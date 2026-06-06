@@ -42,13 +42,14 @@ A future worker must not start with broad refactors, generic memoization, depend
 
 ## Workstream 0: Capture baseline evidence
 
-- [ ] **Step 0.1: Capture Vercel Speed Insights dashboard values**
+- [x] **Step 0.1: Capture Vercel Speed Insights dashboard values**
   - Open `https://vercel.com/philipjonlewis-projects/archestimator/speed-insights`.
   - Capture overall score, p75 LCP, INP, CLS, FCP, TTFB, device split, route/path breakdown, and time window.
   - Save screenshots or summarized values into `01-vercel-speed-insights-and-metrics-intake.md`.
   - Expected: the table has numeric values instead of `provider-open`.
-  - 2026-06-06 status: still provider-open. Read-only Vercel connector and hosted curl timing substitutes are captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`, but they are not p75 Core Web Vitals proof.
-  - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms the Vercel connector still exposes deployment/project metadata but not Speed Insights p75/route/device/export values, and protected dashboard fetch still cannot create a shareable URL.
+  - 2026-06-06 earlier status: read-only Vercel connector and hosted curl timing substitutes were captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`; that substitute alone was not p75 Core Web Vitals proof.
+  - 2026-06-06 earlier blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` is now superseded for p75 values because it was captured before the later `vercel metrics` CLI route/device discovery.
+  - 2026-06-06 completed via provider CLI: `vercel metrics` exposes `vercel.speed_insights_metric.*` p75 values with `route` and `device_type` dimensions. Evidence at `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md` and raw JSON captures current 7-day overall and route/device p75 for LCP, INP, CLS, FCP, and TTFB. Dashboard overview score/screenshot remains unavailable, but the blocking numeric Core Web Vitals provider baseline is captured.
 
 - [x] **Step 0.2: Confirm production deployment context**
   - Run or record Vercel connector output for project `archestimator` and latest production deployment.
@@ -94,28 +95,28 @@ A future worker must not start with broad refactors, generic memoization, depend
 - [x] **Step 1.3: Preserve analytics privacy**
   - If adding `@vercel/speed-insights`, update `tests/vitest/vercel-web-analytics-integration.test.ts:24-30` intentionally and add privacy tests for tokenized/share/auth routes.
   - If keeping Web Analytics-only, document that Speed Insights dashboard data is provider-side and code remains unchanged.
-  - 2026-06-06 status: PR-1A chose dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` locks Speed Insights absence, Web Analytics redaction, sensitive-route drops, and the no-package decision record. Provider p75 proof remains open.
+  - 2026-06-06 status: PR-1A chose dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` locks Speed Insights absence, Web Analytics redaction, sensitive-route drops, and the no-package decision record. Provider p75 baseline is captured; before/after provider proof remains open.
 
 ## Workstream 2: Public/landing LCP and INP
 
 - [x] **Step 2.1: Profile public routes with consent off and on**
   - Test `/`, `/features`, `/pricing`, `/contact` in mobile throttle.
   - Expected: compare LCP/INP with analytics consent false vs true.
-  - 2026-06-06 local evidence: `evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-baseline.md` plus JSON/HTML/trace/devtools assets. Home is weakest locally (score 80 consent-off, TBT 378.48ms); provider Speed Insights p75 and hosted analytics proof remain open.
+  - 2026-06-06 local evidence: `evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-baseline.md` plus JSON/HTML/trace/devtools assets. Home is weakest locally (score 80 consent-off, TBT 378.48ms); before/after Speed Insights provider comparison and hosted analytics proof remain open.
 
 - [x] **Step 2.2: Evaluate Neat canvas fallback**
   - Candidate: static fallback for mobile/reduced-motion/low-end devices or lazy activation after LCP.
   - Guardrails: visual screenshot comparison and no broken hero layout.
-  - 2026-06-06 local implementation: `NeatWireframeBackground` now keeps a static fallback for mobile, coarse-pointer, and reduced-motion clients and dynamically imports/activates `@firecms/neat` after idle for eligible desktop clients. Evidence: `evidence/neat-mobile-fallback-2026-06-06/neat-mobile-fallback-summary.md`. Local TBT improved in both home mobile Lighthouse after-runs, but consent-off LCP/Speed Index regressed in this single local run; provider p75 and hosted proof remain open before claiming production improvement.
+  - 2026-06-06 local implementation: `NeatWireframeBackground` now keeps a static fallback for mobile, coarse-pointer, and reduced-motion clients and dynamically imports/activates `@firecms/neat` after idle for eligible desktop clients. Evidence: `evidence/neat-mobile-fallback-2026-06-06/neat-mobile-fallback-summary.md`. Local TBT improved in both home mobile Lighthouse after-runs, but consent-off LCP/Speed Index regressed in this single local run; before/after provider proof and hosted proof remain open before claiming production improvement.
 
 - [x] **Step 2.3: Evaluate Lenis scope**
   - Candidate: remove from non-home pages or lazy-load after interaction.
   - Guardrails: anchor scrolling, reduced-motion, and navigation behavior tests.
-  - 2026-06-06 local implementation: `PublicPageShell` no longer wraps non-home marketing pages in `LandingSmoothScrollProvider`; home still uses the reduced-motion-aware provider. Evidence: `evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md`. Local Lighthouse after-traces are improved for `/features` and `/pricing` and mixed/stable for `/contact`; provider p75 and hosted proof remain open before claiming production improvement.
+  - 2026-06-06 local implementation: `PublicPageShell` no longer wraps non-home marketing pages in `LandingSmoothScrollProvider`; home still uses the reduced-motion-aware provider. Evidence: `evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md`. Local Lighthouse after-traces are improved for `/features` and `/pricing` and mixed/stable for `/contact`; before/after provider proof and hosted proof remain open before claiming production improvement.
 
 - [x] **Step 2.4: Audit image/font LCP**
   - Ensure hero/marketing media use optimized dimensions, priority only where measured, and no unnecessary font family on first paint.
-  - 2026-06-06 local implementation: source and Lighthouse evidence did not justify image preload/media changes; public image requests remain tiny logo SVGs while LCP is text-based. `RootLayout` now imports only `Inter` and `Roboto_Mono`, with unused `Poppins` and `Source Serif 4` root aliases removed. Evidence: `evidence/public-image-font-lcp-audit-2026-06-06/public-image-font-lcp-summary.md`. Local `/features` consent-off score improved 89 -> 92 and LCP 3782.31ms -> 3322.06ms; `/` score improved 80 -> 89 with LCP roughly stable (3802.40ms -> 3752.86ms). Provider p75 and hosted waterfall proof remain open.
+  - 2026-06-06 local implementation: source and Lighthouse evidence did not justify image preload/media changes; public image requests remain tiny logo SVGs while LCP is text-based. `RootLayout` now imports only `Inter` and `Roboto_Mono`, with unused `Poppins` and `Source Serif 4` root aliases removed. Evidence: `evidence/public-image-font-lcp-audit-2026-06-06/public-image-font-lcp-summary.md`. Local `/features` consent-off score improved 89 -> 92 and LCP 3782.31ms -> 3322.06ms; `/` score improved 80 -> 89 with LCP roughly stable (3802.40ms -> 3752.86ms). Provider p75 baseline is captured; before/after provider proof and hosted waterfall proof remain open.
 
 
 ## Cache-safety matrix for public-route work
@@ -130,8 +131,8 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Use production/preview request timing and local logs to separate proxy, auth, route server render, and Supabase query time.
   - Do not replace `supabase.auth.getUser()` with `getSession()` in proxy auth.
   - 2026-06-06 partial evidence: `evidence/2026-06-06-beta-access-optimization-spike.md` and `evidence/2026-06-06-auth-proxy-hosted-unauth-timing.json` capture unauthenticated `/workshop` redirect timing plus beta RPC provider proof. The signed-in hosted auth waterfall remains open until a safe authenticated fixture/storage state is available.
-  - 2026-06-06 harness/evidence update: `scripts/verify-hosted-auth-routes.ts` now supports repeated sanitized samples via `HOSTED_AUTH_RUNS`, JSON `samples`/min/avg/max duration fields, and optional `MARKDOWN_FILE`. Evidence at `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` captured production signed-out `/workshop` redirect timing (3 samples, avg 115ms) and failed closed for missing allowed/denied/revoked/expired session cookies. Step 3.1 remains open for signed-in waterfall proof.
-  - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms no `HOSTED_AUTH_*` variables or app-specific Playwright storage state are available in the current session/worktree.
+  - 2026-06-06 harness/evidence update: `scripts/verify-hosted-auth-routes.ts` now supports repeated sanitized samples via `HOSTED_AUTH_RUNS`, JSON `samples`/min/avg/max duration fields, optional `MARKDOWN_FILE`, and cache-control/no-leak checks. Evidence at `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` now records production signed-out `/workshop` redirect timing plus the pre-deploy cache header `public, max-age=0, must-revalidate`, so the stricter proof fails until the local proxy no-store patch is deployed and rechecked. Step 3.1 remains open for signed-in waterfall proof.
+  - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms no `HOSTED_AUTH_*` variables or app-specific Playwright storage state are available in the current session/worktree. Local hardening evidence: `evidence/2026-06-06-hosted-proof-harness-hardening.md`.
 
 - [x] **Step 3.2: Public-route cache review**
   - Review `MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate"` in `src/proxy.ts`.
@@ -200,7 +201,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Use `scripts/benchmark-proposal-workbook.ts` and hosted export route script.
   - Candidate: streaming/worker queue only if current Node route exceeds latency/memory budgets.
   - 2026-06-06 local evidence: `evidence/2026-06-06-proposal-workbook-benchmark.md` and `.json` from `bun run scripts/benchmark-proposal-workbook.ts`; hosted export route latency/memory proof remains open.
-  - 2026-06-06 hosted benchmark harness readiness: `scripts/verify-hosted-export-route.ts` now supports repeated sanitized benchmark samples via `HOSTED_EXPORT_RUNS` and `MARKDOWN_FILE`; evidence at `evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md` records that a safe authenticated hosted fixture/cookie/header is still required before proof can be captured.
+  - 2026-06-06 hosted benchmark harness readiness: `scripts/verify-hosted-export-route.ts` now supports repeated sanitized benchmark samples via `HOSTED_EXPORT_RUNS` and `MARKDOWN_FILE`, refuses non-HTTPS/unapproved `HOSTED_EXPORT_BASE_URL` origins via `HOSTED_EXPORT_ALLOWED_ORIGINS`, and requires private/no-store cache-control for a passing proof. Evidence at `evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md` and `evidence/2026-06-06-hosted-proof-harness-hardening.md` records that a safe authenticated hosted fixture/cookie/header is still required before proof can be captured.
   - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms no `HOSTED_EXPORT_*` base URL, project ID, estimate ID, cookie, or auth header is available in the current session/worktree.
 
 ## Workstream 7: Release, monitoring, and rollback
@@ -211,7 +212,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 
 - [ ] **Step 7.2: Compare Speed Insights windows**
   - Do not judge immediately after deploy if traffic is too low; compare consistent windows and route cohorts.
-  - 2026-06-06 blocker audit: this remains dependent on Step 0.1 because no Speed Insights p75 route/device/window data is accessible from the current connector/fetch/browser surfaces.
+  - 2026-06-06 CLI evidence: Step 0.1 now has current 7-day provider p75 route/device data via `vercel metrics`, but previous 7-day and previous-3-day windows returned empty summaries. Step 7.2 remains open until comparable traffic windows exist for the same route/device cohorts.
 
 - [x] **Step 7.3: Preserve closed-beta readiness language**
   - Mark improvements as `IMPLEMENTED LOCALLY` until production Speed Insights/provider proof confirms impact.

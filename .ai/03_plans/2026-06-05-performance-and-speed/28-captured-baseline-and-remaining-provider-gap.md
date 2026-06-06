@@ -47,20 +47,29 @@ Evidence files:
 
 Status: toolchain attempted but not usable in this environment. Vercel CLI `54.6.1` is installed, but `vercel httpstat` failed in the shell with `env: node: No such file or directory` from the child invocation even when Node’s bin directory was added to `PATH`. Curl timing was used as the safe substitute.
 
-## Remaining Speed Insights provider gap
+## Speed Insights CLI p75 capture and remaining dashboard/window gap
 
-The exposed Vercel connector supports project/deployment/docs/fetch, but no Speed Insights metrics endpoint/tool is currently available. Computer Use was previously attempted and timed out. Therefore exact dashboard values remain a provider/UI evidence gap:
+The original connector/browser attempts did not expose Speed Insights values, but the later Vercel CLI `vercel metrics` surface does expose `vercel.speed_insights_metric.*` p75 metrics. Evidence now exists at:
 
-- overall Speed Insights score,
-- p75 LCP,
-- p75 INP,
-- p75 CLS,
-- p75 FCP,
-- p75 TTFB,
-- route/device/geo breakdown,
-- time window.
+- `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md`
+- `evidence/vercel-speed-insights-cli-2026-06-06/current-*-overall.json`
+- `evidence/vercel-speed-insights-cli-2026-06-06/current-*-route-device.json`
 
-This gap blocks proof of final performance impact, but does not block PR-0B because PR-0B is a safety/measurement-enabling implementation packet.
+Captured current 7-day provider p75 values:
+
+| Metric | Overall p75 | Worst captured route/device note |
+| --- | ---: | --- |
+| LCP | 1447ms | `/` desktop 3484ms |
+| INP | 59,404,496ms | `/` desktop anomalous 59,404,496ms; `/` mobile 32ms |
+| CLS | null | `/` desktop and `/login` desktop 0 |
+| FCP | 1380ms | `/` desktop 3216ms |
+| TTFB | 299ms | `/` mobile 721ms |
+
+Remaining gaps:
+
+- Dashboard overview score/screenshot and recommendation cards remain unavailable because Computer Use timed out and protected fetch could not create a shareable dashboard URL.
+- Previous 7-day and previous-3-day route/device windows returned empty summaries, so Workstream 7.2 still lacks comparable traffic cohorts.
+- Final performance-impact proof still requires before/after provider windows after a deployed change; the current CLI capture is a baseline, not a completion claim.
 
 ## 2026-06-06 refresh
 
@@ -74,4 +83,4 @@ Current status:
 - Deployment context is refreshed and still points to production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`.
 - Public hosted route timing/header evidence now includes `/about`, `/privacy`, and `/terms` in addition to the earlier public routes.
 - Bundle analyzer baseline is captured through a clean webpack analyzer build.
-- Speed Insights dashboard/export p75 metrics remain the blocking provider gap.
+- Speed Insights p75 metrics are captured via Vercel CLI; dashboard overview/recommendation cards and comparable prior windows remain open.

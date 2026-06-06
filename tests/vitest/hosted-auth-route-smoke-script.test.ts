@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildHeaders,
   evaluateCase,
+  hasPrivateNoStoreCacheControl,
   normalizeLocationPath,
   parseInputsFromEnv,
   parseRuns,
@@ -129,7 +130,10 @@ describe("hosted auth route smoke script", () => {
   it("fails closed when required hosted session cookies are missing", async () => {
     const fetchMock = vi.fn(async () => new Response(null, {
       status: 307,
-      headers: { location: "https://preview.example/login?next=%2Fworkshop" },
+      headers: {
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        location: "https://preview.example/login?next=%2Fworkshop",
+      },
     }));
 
     const result = await verifyHostedAuthRoutes({
@@ -147,19 +151,30 @@ describe("hosted auth route smoke script", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.passed).toBe(false);
     expect(result.cases.find((authCase) => authCase.name === "signedOut")?.passed).toBe(true);
+    expect(result.cases.find((authCase) => authCase.name === "signedOut")?.hasPrivateNoStoreCacheControl).toBe(true);
     expect(result.cases.find((authCase) => authCase.name === "allowed")?.error).toMatch(/HOSTED_AUTH_ALLOWED_COOKIE/);
   });
 
   it("uses auth material for requests but never writes it to the report", async () => {
+    const cacheControl = "private, no-cache, no-store, max-age=0, must-revalidate";
     const responses = [
-      new Response(null, { status: 307, headers: { location: "https://preview.example/login?next=%2Fworkshop" } }),
-      new Response("<html>workshop</html>", { status: 200 }),
-      new Response(null, { status: 307, headers: { location: "https://preview.example/beta/access-required" } }),
       new Response(null, {
         status: 307,
-        headers: { location: "https://preview.example/beta/access-required?status=revoked" },
+        headers: { "cache-control": cacheControl, location: "https://preview.example/login?next=%2Fworkshop" },
       }),
-      new Response(null, { status: 307, headers: { location: "https://preview.example/login?next=%2Fworkshop" } }),
+      new Response("<html>workshop</html>", { status: 200, headers: { "cache-control": cacheControl } }),
+      new Response(null, {
+        status: 307,
+        headers: { "cache-control": cacheControl, location: "https://preview.example/beta/access-required" },
+      }),
+      new Response(null, {
+        status: 307,
+        headers: { "cache-control": cacheControl, location: "https://preview.example/beta/access-required?status=revoked" },
+      }),
+      new Response(null, {
+        status: 307,
+        headers: { "cache-control": cacheControl, location: "https://preview.example/login?next=%2Fworkshop" },
+      }),
     ];
     const fetchMock = vi.fn(async () => responses.shift()!);
 
@@ -189,12 +204,17 @@ describe("hosted auth route smoke script", () => {
       }),
     );
     expect(JSON.stringify(result)).not.toContain("secret");
+    expect(result.cases.every((authCase) => authCase.hasPrivateNoStoreCacheControl)).toBe(true);
+    expect(result.cases[0]?.cacheControl).toBe(cacheControl);
   });
 
   it("records repeated sanitized timing samples for provided cases", async () => {
     const fetchMock = vi.fn(async () => new Response(null, {
       status: 307,
-      headers: { location: "https://preview.example/login?next=%2Fworkshop" },
+      headers: {
+        "cache-control": "private, no-store",
+        location: "https://preview.example/login?next=%2Fworkshop",
+      },
     }));
 
     const result = await verifyHostedAuthRoutes({
@@ -214,5 +234,29 @@ describe("hosted auth route smoke script", () => {
     expect(result.cases[0]?.averageDurationMs).not.toBeNull();
     expect(result.cases[0]?.maxDurationMs).not.toBeNull();
     expect(JSON.stringify(result)).not.toContain("secret");
+  });
+
+  it("fails the hosted auth proof when cache headers could leak protected responses", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, {
+      status: 307,
+      headers: {
+        "cache-control": "public, max-age=3600",
+        location: "https://preview.example/login?next=%2Fworkshop",
+      },
+    }));
+
+    const result = await verifyHostedAuthRoutes({
+      baseUrl: "https://preview.example",
+      allowedOrigins: ["https://preview.example"],
+      cases: [
+        { name: "signedOut", required: true },
+      ],
+    }, fetchMock as unknown as typeof fetch);
+
+    expect(result.passed).toBe(false);
+    expect(result.cases[0]?.passed).toBe(false);
+    expect(result.cases[0]?.hasPrivateNoStoreCacheControl).toBe(false);
+    expect(hasPrivateNoStoreCacheControl("private, no-store")).toBe(true);
+    expect(hasPrivateNoStoreCacheControl("public, max-age=3600")).toBe(false);
   });
 });

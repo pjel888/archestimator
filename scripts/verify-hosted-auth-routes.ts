@@ -26,6 +26,8 @@ type AuthCaseSample = {
   status: number | null;
   location: string | null;
   normalizedLocationPath: string | null;
+  cacheControl: string | null;
+  hasPrivateNoStoreCacheControl: boolean;
   ok: boolean;
   durationMs: number | null;
   passed: boolean;
@@ -167,6 +169,15 @@ export function normalizeLocationPath(location: string | null, baseUrl: string) 
   }
 }
 
+export function hasPrivateNoStoreCacheControl(value: string | null) {
+  if (!value) return false;
+  const directives = value
+    .toLowerCase()
+    .split(",")
+    .map((directive) => directive.trim());
+  return directives.includes("private") && directives.includes("no-store");
+}
+
 function expectedDescription(name: AuthCaseName) {
   if (name === "allowed") return "allowed session reaches the protected workshop without beta-access redirect";
   if (name === "denied") return "denied session redirects to /beta/access-required";
@@ -211,6 +222,8 @@ function missingCaseResult(name: AuthCaseName): AuthCaseResult {
     status: null,
     location: null,
     normalizedLocationPath: null,
+    cacheControl: null,
+    hasPrivateNoStoreCacheControl: false,
     ok: false,
     durationMs: null,
     passed: false,
@@ -274,18 +287,23 @@ export async function verifyHostedAuthRoutes(inputs: VerifyInputs, fetchImpl: ty
       const durationMs = performance.now() - startedAt;
       const location = response.headers.get("location");
       const normalizedLocationPath = normalizeLocationPath(location, baseUrl);
-      const passed = evaluateCase({
+      const cacheControl = response.headers.get("cache-control");
+      const hasPrivateNoStore = hasPrivateNoStoreCacheControl(cacheControl);
+      const routeBehaviorPassed = evaluateCase({
         name: authCase.name,
         status: response.status,
         ok: response.ok,
         location,
         normalizedLocationPath,
       });
+      const passed = routeBehaviorPassed && hasPrivateNoStore;
 
       samples.push({
         status: response.status,
         location,
         normalizedLocationPath,
+        cacheControl,
+        hasPrivateNoStoreCacheControl: hasPrivateNoStore,
         ok: response.ok,
         durationMs: Math.round(durationMs),
         passed,
@@ -331,6 +349,8 @@ function writeMarkdown(markdownFile: string, result: VerifyResult) {
       authCase.passed ? "pass" : "fail",
       String(authCase.status ?? "n/a"),
       authCase.normalizedLocationPath ?? "n/a",
+      authCase.cacheControl ?? "n/a",
+      authCase.hasPrivateNoStoreCacheControl ? "yes" : "no",
       formatDuration(authCase.minDurationMs),
       formatDuration(authCase.averageDurationMs),
       formatDuration(authCase.maxDurationMs),
@@ -348,8 +368,8 @@ Base URL: \`${result.baseUrl}\`
 
 Runs per provided case: ${result.runs}
 
-| Case | Result | Latest status | Latest redirect path | Min | Avg | Max | Error |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| Case | Result | Latest status | Latest redirect path | Cache-Control | Private/no-store | Min | Avg | Max | Error |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 ${rows}
 
 Note: ${result.note}

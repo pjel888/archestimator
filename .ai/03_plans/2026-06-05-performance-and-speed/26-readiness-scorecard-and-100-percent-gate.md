@@ -6,7 +6,7 @@
 
 This pack is now **100% document-quality ready** and **100% implementation-ready for the first safe performance implementation story**.
 
-It is **not** 100% ready to implement arbitrary optimization code or claim performance completion, because exact Vercel Speed Insights route/device p75 metrics remain unavailable from the exposed tools. That is not a documentation gap; it is an external provider-evidence input required to choose and prove later optimization work.
+It is **not** 100% ready to claim performance completion. Numeric Vercel Speed Insights route/device p75 metrics are now captured via CLI, but dashboard overview evidence, comparable before/after traffic windows, post-deploy cache proof, and authenticated hosted fixtures remain external inputs required to prove later optimization work.
 
 ## Readiness definitions
 
@@ -14,7 +14,7 @@ It is **not** 100% ready to implement arbitrary optimization code or claim perfo
 | --- | ---: | --- |
 | Document quality | 100% | The pack has complete structure, canonical index, source map, hypotheses, decision tree, acceptance criteria, fixtures, risk/rollback, telemetry/privacy, cache-safety, linked-plan sync, UltraQA, and evidence registry. |
 | First-story code implementation readiness | 100% | A future worker can begin the first safe code-bearing performance story from `27-ready-implementation-packets.md` without guessing scope, tests, evidence, risk, or rollback. |
-| Full optimization selection readiness | 85% | Public header/timing and deployment evidence are captured, but exact Speed Insights route/device p75 values still need dashboard/export capture to pick the highest real-user bottleneck. |
+| Full optimization selection readiness | 92% | Public header/timing, deployment evidence, and current 7-day Speed Insights p75 route/device values are captured; comparable prior windows, dashboard overview cards, and fixture-gated hosted proofs remain open. |
 | Performance completion readiness | 0% | No speed improvement has been implemented or provider-proven yet; this is intentional. |
 
 ## Why code readiness can be 100% while Speed Insights remains open
@@ -70,10 +70,11 @@ As of this document, **PR-0B is the recommended first code-bearing packet** beca
 
 ## Remaining external evidence gate
 
-The exact Speed Insights p75 route/device dashboard values remain open. This blocks:
+Current Speed Insights p75 route/device values are captured via Vercel CLI, but the following still block full completion:
 
-- picking the final highest real-user optimization target,
-- claiming “massive performance upgrade” as proven,
-- using `COMPLETE` status for performance improvements.
+- comparable before/after Speed Insights windows for the same route/device cohorts,
+- dashboard overview screenshot/recommendation cards if required for provider UI signoff,
+- post-deploy protected redirect cache proof,
+- signed-in hosted auth and hosted export fixtures.
 
-It does **not** block PR-0B because PR-0B is a safety/measurement-enabling implementation packet, not a performance-claiming optimization.
+These gaps block claiming “massive performance upgrade” as proven and using `COMPLETE` for performance improvements. They do **not** block local safety/measurement packets, which must stay labeled `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted proof exists.

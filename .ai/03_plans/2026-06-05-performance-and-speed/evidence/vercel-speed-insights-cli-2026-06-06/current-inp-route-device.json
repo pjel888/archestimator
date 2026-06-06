@@ -1,0 +1,813 @@
+{
+  "query": {
+    "metric": "vercel.speed_insights_metric.inp",
+    "aggregation": "p75",
+    "groupBy": [
+      "route",
+      "device_type"
+    ],
+    "startTime": "2026-05-30T00:00:00.000Z",
+    "endTime": "2026-06-06T04:00:00.000Z",
+    "granularity": {
+      "hours": 4
+    }
+  },
+  "summary": [
+    {
+      "route": "/",
+      "device_type": "desktop",
+      "vercel_speed_insights_metric_inp_p75": 59404496
+    },
+    {
+      "route": "/",
+      "device_type": "mobile",
+      "vercel_speed_insights_metric_inp_p75": 32
+    },
+    {
+      "route": "/login",
+      "device_type": "desktop",
+      "vercel_speed_insights_metric_inp_p75": null
+    }
+  ],
+  "data": [
+    {
+      "timestamp": "2026-05-30T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": 59404496,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-06T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-30T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-30T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-30T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-30T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-30T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-31T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-31T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-31T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-31T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-31T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-31T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-01T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-01T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-01T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-01T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-01T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-01T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-02T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-02T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-02T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-02T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-02T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-02T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-03T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-03T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-03T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-03T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-03T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": 32,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-03T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-04T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-04T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-04T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-04T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-04T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-04T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-05T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-05T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-05T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-05T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-05T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-05T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-06-06T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/",
+      "device_type": "mobile"
+    },
+    {
+      "timestamp": "2026-05-30T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-30T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-05-31T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-01T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-02T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-03T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-04T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T04:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T08:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T12:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T16:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-05T20:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    },
+    {
+      "timestamp": "2026-06-06T00:00:00.000Z",
+      "vercel_speed_insights_metric_inp_p75": null,
+      "route": "/login",
+      "device_type": "desktop"
+    }
+  ],
+  "statistics": {
+    "bytesRead": 38596003,
+    "rowsRead": 768364,
+    "dbTimeSeconds": 0
+  }
+}

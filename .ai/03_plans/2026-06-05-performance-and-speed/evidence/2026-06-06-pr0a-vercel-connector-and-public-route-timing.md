@@ -5,7 +5,7 @@ Branch/worktree: `feat/performance-and-speed-pr-0b-cache-safety` in `/Users/phil
 
 ## Scope
 
-This is PR-0A substitute evidence. It captures current read-only Vercel project/deployment context and hosted route timing/header checks. It does **not** replace the required Vercel Speed Insights dashboard/export p75 data.
+This is PR-0A substitute evidence. It captures current read-only Vercel project/deployment context and hosted route timing/header checks. It did **not** replace Vercel Speed Insights p75 data when captured; later `vercel metrics` CLI evidence supersedes the numeric p75 gap, while dashboard overview/export evidence remains separate.
 
 ## Vercel connector evidence
 
