@@ -5,3 +5,17 @@ args = [
 ]
 command = "uvx"
 suppress_unstable_features_warning = true
+startup_timeout_sec = 15
+
+[features]
+multi_agent = true
+child_agents_md = true
+hooks = true
+goals = true
+
+[shell_environment_policy.set]
+USE_OMX_EXPLORE_CMD = "0"
+
+[agents]
+max_threads = 6
+max_depth = 2
