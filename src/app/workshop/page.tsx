@@ -8,6 +8,7 @@ import {
 } from "@/components/workshop/WorkshopHomebaseClient";
 import { PENDING_INVITE_COOKIE } from "@/lib/collaboration/pending-invite";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
+import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { getWorkshopHomebaseData } from "@/lib/repositories/workspace-repository";
 
@@ -77,6 +78,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
   }
 
   const homebase = await getWorkshopHomebaseData();
+  const currentUser = await requireCurrentUserContext();
 
   return (
     <WorkshopPageShell
@@ -90,6 +92,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
         homebase={homebase}
         inviteBanner={inviteBanner}
         removedProjectBanner={removedProjectBanner}
+        userDisplayName={currentUser.displayName}
       />
     </WorkshopPageShell>
   );

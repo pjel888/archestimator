@@ -1,7 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
-import type { ImgHTMLAttributes } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
@@ -11,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   routerReplace: vi.fn(),
   routerRefresh: vi.fn(),
   setProjectFavorite: vi.fn(async () => {}),
-  setEstimateFavorite: vi.fn(async () => {}),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -30,20 +27,8 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("next/image", () => ({
-  default: (props: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean; sizes?: string }) => {
-    const { alt, fill, priority, sizes, ...imageProps } = props;
-    void fill;
-    void priority;
-    void sizes;
-
-    return createElement("img", { alt: alt ?? "", ...imageProps });
-  },
-}));
-
 vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: mocks.setProjectFavorite,
-  setEstimateFavorite: mocks.setEstimateFavorite,
 }));
 
 const workshopHomebase = {
@@ -138,7 +123,6 @@ afterEach(() => {
   mocks.routerReplace.mockClear();
   mocks.routerRefresh.mockClear();
   mocks.setProjectFavorite.mockClear();
-  mocks.setEstimateFavorite.mockClear();
 });
 
 describe("workshop sidebar baseline", () => {
@@ -195,9 +179,8 @@ describe("workshop sidebar baseline", () => {
     );
   });
 
-  test("renders a bento homebase without search chrome and with persisted favorite targets", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<WorkshopHomebaseClient homebase={workshopHomebase} />);
+  test("renders a sparse dynamic greeting without search chrome, route cards, or favorites", async () => {
+    const { container } = render(<WorkshopHomebaseClient homebase={workshopHomebase} userDisplayName="Philip Lewis" />);
 
     expect(container.querySelector("div.h-full.min-h-0.bg-white.p-2")).toBeTruthy();
     expect(screen.queryByLabelText("Search Workshop")).toBeNull();
@@ -206,58 +189,26 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByRole("button", { name: "Group workshop" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Expand all workshop" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Collapse all workshop" })).toBeNull();
-    expect(screen.getAllByRole("link", { name: /Open Projects/ })[0]).toHaveAttribute("href", "/workshop/projects");
-    expect(screen.getByRole("link", { name: /Open Components/ })).toHaveAttribute("href", "/workshop/library");
-    expect(screen.getByRole("link", { name: /Open Templates/ })).toHaveAttribute("href", "/workshop/templates");
-    expect(screen.getAllByRole("link", { name: /Open Projects/ })[0]).toHaveClass("aspect-square");
-    expect(screen.getByRole("link", { name: /Open Components/ })).toHaveClass("aspect-square");
-    expect(screen.getByRole("link", { name: /Open Templates/ })).toHaveClass("aspect-square");
-    expect(container.querySelector('img[src="/Cards/Projects-Card.jpg"]')).toBeTruthy();
-    expect(container.querySelector('img[src="/Cards/Components-Card.jpg"]')).toBeTruthy();
-    expect(container.querySelector('img[src="/Cards/Templates-Card.jpg"]')).toBeTruthy();
-    expect(container.querySelector('img[class*="mix-blend-soft-light"]')).toBeTruthy();
-    expect(screen.queryByText("Workshop routes")).toBeNull();
-    expect(screen.queryByText("Start")).toBeNull();
-    expect(screen.queryByText("Reuse")).toBeNull();
-    const routePanel = screen.getByRole("region", { name: "Workshop routes" });
-    expect(routePanel).toHaveClass("bg-transparent");
-    expect(routePanel).toHaveClass("p-0");
-    expect(routePanel).toHaveClass("border-0");
-    expect(routePanel).not.toHaveClass("bg-white");
-    const favorites = screen.getByRole("region", { name: "Favorites" });
-    expect(within(favorites).queryByText("Starred")).toBeNull();
-    const favoriteTabs = within(favorites).getByRole("tablist", { name: "Favorite views" });
-    expect(within(favoriteTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Projects", "Estimate Sheets"]);
-    expect(within(favoriteTabs).getByRole("tab", { name: "Projects" })).toHaveAttribute("aria-selected", "true");
-    expect(within(favorites).getByRole("tabpanel", { name: "Favorite projects" })).toBeTruthy();
-    expect(within(favorites).getByRole("link", { name: /Lewis Residence/ })).toHaveAttribute(
-      "href",
-      "/workshop/projects/22222222-2222-4222-8222-222222222222",
-    );
-    expect(within(favorites).getByText("Shared link")).toBeInTheDocument();
-    expect(within(favorites).getByText("4 opens")).toBeInTheDocument();
-    expect(within(favorites).getByText("Shared project")).toBeInTheDocument();
-    expect(within(favorites).getByText("Viewer")).toBeInTheDocument();
-    expect(within(favorites).getByText("Shared by Studio Partner")).toBeInTheDocument();
-    expect(within(favorites).getByText("2 pending invites")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Remove Lewis Residence from favorite projects" })[0]).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
 
-    await user.click(screen.getAllByRole("button", { name: "Remove Lewis Residence from favorite projects" })[0]);
-    expect(mocks.setProjectFavorite).toHaveBeenCalledWith({
-      projectId: "22222222-2222-4222-8222-222222222222",
-      favorite: false,
-    });
-
-    await user.click(within(favoriteTabs).getByRole("tab", { name: "Estimate Sheets" }));
-    expect(within(favoriteTabs).getByRole("tab", { name: "Estimate Sheets" })).toHaveAttribute("aria-selected", "true");
-    expect(within(favorites).getByRole("tabpanel", { name: "Favorite estimate sheets" })).toBeTruthy();
-    expect(within(favorites).getByRole("link", { name: /Lewis Residence - 001/ })).toHaveAttribute(
-      "href",
-      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/88888888-8888-4888-8888-888888888888",
-    );
+    const greeting = screen.getByRole("region", { name: "Workshop greeting" });
+    expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
+    const periodLabel = within(greeting).getByText(/^(Morning|Afternoon|Night)$/);
+    expect(periodLabel).toBeInTheDocument();
+    const periodRow = periodLabel.closest("div");
+    expect(periodRow).toBeTruthy();
+    expect(periodRow).not.toHaveClass("border");
+    expect(periodRow).not.toHaveClass("bg-surfaceMuted/50");
+    expect(periodRow).not.toHaveAttribute("aria-label");
+    expect(periodRow).not.toHaveAttribute("role");
+    expect(within(greeting).queryByRole("button")).toBeNull();
+    expect(within(greeting).getByText("Philip Lewis")).toBeInTheDocument();
+    expect(greeting.querySelector("svg")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Favorites" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Open Projects/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Open Components/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Open Templates/ })).toBeNull();
+    expect(container.querySelector('img[src="/Cards/Projects-Card.jpg"]')).toBeNull();
     expect(screen.queryByText("Project shortcuts")).toBeNull();
     expect(screen.queryByText("Estimate sheet shortcuts")).toBeNull();
     expect(screen.queryByText("First move")).toBeNull();
@@ -268,36 +219,19 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByText("View all")).toBeNull();
   });
 
-  test("keeps a first-run workshop homebase actionable without projects or favorites", async () => {
-    const user = userEvent.setup();
+  test("keeps a first-run workshop homebase sparse without projects or favorites", async () => {
     render(<WorkshopHomebaseClient homebase={emptyWorkshopHomebase} />);
 
-    const routePanel = screen.getByRole("region", { name: "Workshop routes" });
-    expect(routePanel).toBeTruthy();
-    expect(within(routePanel).getByRole("link", { name: /Open Projects/ })).toHaveAttribute(
-      "href",
-      "/workshop/projects",
-    );
-    expect(within(routePanel).getByRole("link", { name: /Open Components/ })).toHaveAttribute(
-      "href",
-      "/workshop/library",
-    );
-    expect(within(routePanel).getByRole("link", { name: /Open Templates/ })).toHaveAttribute(
-      "href",
-      "/workshop/templates",
-    );
-
-    const favorites = screen.getByRole("region", { name: "Favorites" });
-    expect(within(favorites).getByText("No favorite projects yet")).toBeInTheDocument();
-    expect(within(favorites).getByText("Star a project below to keep it pinned here.")).toBeInTheDocument();
+    const greeting = screen.getByRole("region", { name: "Workshop greeting" });
+    expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
+    expect(within(greeting).getByText("there")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Favorites" })).toBeNull();
+    expect(screen.queryByText("No favorite projects yet")).toBeNull();
+    expect(screen.queryByText("No favorite estimate sheets yet")).toBeNull();
     expect(screen.queryByText("Recent Projects")).toBeNull();
     expect(screen.queryByText("Sample Projects")).toBeNull();
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
-
-    await user.click(within(favorites).getByRole("tab", { name: "Estimate Sheets" }));
-    expect(within(favorites).getByRole("tabpanel", { name: "Favorite estimate sheets" })).toBeTruthy();
-    expect(within(favorites).getByText("No favorite estimate sheets yet")).toBeInTheDocument();
-    expect(within(favorites).getByText("Star a sheet below for direct access from Workshop.")).toBeInTheDocument();
   });
 
   test("renders removed favorite project banner and lets the user clear the stale favorite", async () => {

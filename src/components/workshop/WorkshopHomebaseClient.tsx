@@ -1,42 +1,25 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { ArrowRight, Blueprint, Books, Calculator, Folder, LinkSimple, Star } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { acceptPendingInvitationById, signOutForPendingInvite } from "@/lib/collaboration/pending-invite-actions";
-import { setEstimateFavorite, setProjectFavorite } from "@/lib/workshop/actions";
+import { setProjectFavorite } from "@/lib/workshop/actions";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import type {
-  WorkshopEstimateSummary,
   WorkshopHomebaseData,
   WorkshopPendingInviteSummary,
   WorkshopRemovedProjectFavoriteSummary,
-  WorkshopProjectSummary,
 } from "@/lib/repositories/workspace-repository";
-import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "./workshop-tree";
-
-type WorkshopDestination = {
-  id: string;
-  title: string;
-  description: string;
-  href: string;
-  actionLabel: string;
-  icon: typeof Folder;
-  imageSrc: string;
-  imageClassName: string;
-};
 
 type WorkshopHomebaseClientProps = {
   homebase: WorkshopHomebaseData;
   inviteBanner?: WorkshopInviteBannerState;
   removedProjectBanner?: WorkshopRemovedProjectBannerState;
+  userDisplayName?: string | null;
 };
-
-type FavoriteTab = "projects" | "estimates";
 
 export type WorkshopRemovedProjectBannerState = {
   projectId: string;
@@ -47,66 +30,23 @@ type WorkshopRemovedProjectNotice = WorkshopRemovedProjectFavoriteSummary & {
   projectName: string | null;
 };
 
-const favoriteTabs: readonly WorkshopTreeTabItem<FavoriteTab>[] = [
-  { id: "projects", label: "Projects" },
-  { id: "estimates", label: "Estimate Sheets" },
-];
+type WorkshopGreetingTone = {
+  icon: "sun" | "moon";
+  periodLabel: string;
+  greeting: string;
+};
 
-const destinations: WorkshopDestination[] = [
-  {
-    id: "projects",
-    title: "Projects",
-    description: "Create project shells, open estimate sheets, and project-level charts.",
-    href: "/workshop/projects",
-    actionLabel: "Open Projects",
-    icon: Folder,
-    imageSrc: "/Cards/Projects-Card.jpg",
-    imageClassName:
-      "bg-[radial-gradient(circle_at_24%_20%,rgba(213,186,87,0.70),transparent_30%),radial-gradient(circle_at_78%_24%,rgba(204,106,51,0.70),transparent_38%),radial-gradient(circle_at_50%_78%,rgba(145,66,36,0.66),transparent_42%),linear-gradient(135deg,#c5a031_0%,#bb702f_45%,#934925_72%,#3e1f15_100%)]",
-  },
-  {
-    id: "library",
-    title: "Components",
-    description: "Maintain priced components, variants, suppliers, and reusable line-items.",
-    href: "/workshop/library",
-    actionLabel: "Open Components",
-    icon: Books,
-    imageSrc: "/Cards/Components-Card.jpg",
-    imageClassName:
-      "bg-[radial-gradient(ellipse_at_8%_52%,rgba(218,214,187,0.30),transparent_27%),radial-gradient(circle_at_74%_24%,rgba(130,153,88,0.22),transparent_24%),radial-gradient(circle_at_66%_56%,rgba(0,105,72,0.58),transparent_34%),radial-gradient(circle_at_30%_15%,rgba(74,130,122,0.46),transparent_36%),linear-gradient(135deg,#6d8f81_0%,#106c57_42%,#023f34_72%,#061d1b_100%)]",
-  },
-  {
-    id: "templates",
-    title: "Templates",
-    description: "Reuse estimate groups, areas, and row structures without rebuilding.",
-    href: "/workshop/templates",
-    actionLabel: "Open Templates",
-    icon: Blueprint,
-    imageSrc: "/Cards/Templates-Card.jpg",
-    imageClassName:
-      "bg-[radial-gradient(circle_at_62%_28%,rgba(111,149,182,0.46),transparent_28%),radial-gradient(circle_at_26%_30%,rgba(59,104,153,0.46),transparent_34%),radial-gradient(circle_at_52%_78%,rgba(31,47,76,0.72),transparent_36%),linear-gradient(135deg,#456f9a_0%,#385b86_50%,#1a263f_100%)]",
-  },
-];
-
-export function WorkshopHomebaseClient({ homebase, inviteBanner, removedProjectBanner }: WorkshopHomebaseClientProps) {
+export function WorkshopHomebaseClient({
+  homebase,
+  inviteBanner,
+  removedProjectBanner,
+  userDisplayName,
+}: WorkshopHomebaseClientProps) {
   const router = useNavigationRouter();
-  const [projectFavoriteOverrides, setProjectFavoriteOverrides] = useState<Record<string, boolean>>({});
-  const [estimateFavoriteOverrides, setEstimateFavoriteOverrides] = useState<Record<string, boolean>>({});
-  const [activeFavoriteTab, setActiveFavoriteTab] = useState<FavoriteTab>("projects");
   const [pendingFavoriteKey, setPendingFavoriteKey] = useState<string | null>(null);
   const [dismissedRemovedProjectIds, setDismissedRemovedProjectIds] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
 
-  const projects = useMemo(
-    () => applyFavoriteOverrides(homebase.projects, projectFavoriteOverrides),
-    [homebase.projects, projectFavoriteOverrides],
-  );
-  const estimates = useMemo(
-    () => applyFavoriteOverrides(homebase.estimates, estimateFavoriteOverrides),
-    [estimateFavoriteOverrides, homebase.estimates],
-  );
-  const favoriteProjects = projects.filter((project) => project.isFavorite);
-  const favoriteEstimates = estimates.filter((estimate) => estimate.isFavorite);
   const removedProjectNotice = useMemo(() => {
     const byId = new Map<string, WorkshopRemovedProjectNotice>();
     if (removedProjectBanner) {
@@ -128,30 +68,6 @@ export function WorkshopHomebaseClient({ homebase, inviteBanner, removedProjectB
     return Array.from(byId.values()).find((notice) => !dismissedRemovedProjectIds[notice.id]) ?? null;
   }, [dismissedRemovedProjectIds, homebase.removedProjectFavorites, removedProjectBanner]);
 
-  function toggleProject(projectId: string, nextFavorite: boolean) {
-    const previousFavorite = projects.find((project) => project.id === projectId)?.isFavorite ?? false;
-    setProjectFavoriteOverrides((current) => ({ ...current, [projectId]: nextFavorite }));
-    setPendingFavoriteKey(`project:${projectId}`);
-    startTransition(() => {
-      void setProjectFavorite({ projectId, favorite: nextFavorite })
-        .then(() => router.refresh())
-        .catch(() => setProjectFavoriteOverrides((current) => ({ ...current, [projectId]: previousFavorite })))
-        .finally(() => setPendingFavoriteKey(null));
-    });
-  }
-
-  function toggleEstimate(estimateId: string, nextFavorite: boolean) {
-    const previousFavorite = estimates.find((estimate) => estimate.id === estimateId)?.isFavorite ?? false;
-    setEstimateFavoriteOverrides((current) => ({ ...current, [estimateId]: nextFavorite }));
-    setPendingFavoriteKey(`estimate:${estimateId}`);
-    startTransition(() => {
-      void setEstimateFavorite({ estimateId, favorite: nextFavorite })
-        .then(() => router.refresh())
-        .catch(() => setEstimateFavoriteOverrides((current) => ({ ...current, [estimateId]: previousFavorite })))
-        .finally(() => setPendingFavoriteKey(null));
-    });
-  }
-
   function removeRemovedProjectFavorite(projectId: string) {
     setPendingFavoriteKey(`removed-project:${projectId}`);
     startTransition(() => {
@@ -166,7 +82,7 @@ export function WorkshopHomebaseClient({ homebase, inviteBanner, removedProjectB
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 bg-white p-2">
+    <div className="flex h-full min-h-0 w-full flex-col gap-2 bg-white p-2">
       <InviteResolutionBanner inviteBanner={inviteBanner} />
       <RemovedProjectFavoriteBanner
         notice={removedProjectNotice}
@@ -174,29 +90,57 @@ export function WorkshopHomebaseClient({ homebase, inviteBanner, removedProjectB
         onRemoveFavorite={removeRemovedProjectFavorite}
       />
       <PendingInvitesPanel invites={homebase.pendingInvites} />
-      <section
-        className="grid min-h-0 flex-1 grid-cols-12 auto-rows-min content-start gap-2 overflow-y-auto text-[10px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch xl:overflow-hidden"
-        aria-label="Workshop bento"
-      >
-        <BentoPanel className="col-span-12 xl:col-span-8 xl:row-start-1" label="Start here" title="Workshop routes" showHeader={false} surface="flush">
-          <div className="grid content-start items-start gap-2 md:grid-cols-3">
-            {destinations.map((destination) => (
-              <DestinationTile key={destination.id} destination={destination} />
-            ))}
-          </div>
-        </BentoPanel>
-
-        <FavoritesPanel
-          activeTab={activeFavoriteTab}
-          favoriteProjects={favoriteProjects}
-          favoriteEstimates={favoriteEstimates}
-          pendingFavoriteKey={pendingFavoriteKey}
-          onTabChange={setActiveFavoriteTab}
-          onToggleProjectFavorite={toggleProject}
-          onToggleEstimateFavorite={toggleEstimate}
-        />
-      </section>
+      <WorkshopGreeting displayName={userDisplayName} />
     </div>
+  );
+}
+
+function WorkshopGreeting({ displayName }: { displayName?: string | null }) {
+  const tone = getWorkshopGreetingTone();
+  const name = formatWorkshopGreetingName(displayName);
+
+  return (
+    <section
+      className="flex min-h-[180px] w-full flex-1 items-start overflow-hidden bg-white px-2 py-3 text-[10px]"
+      aria-label="Workshop greeting"
+    >
+      <div className="flex w-[280px] max-w-full flex-col items-start">
+        <div className="inline-flex items-center gap-1.5 text-secondary">
+          <GreetingIcon icon={tone.icon} />
+          <span className="truncate text-[10px] font-medium leading-none">{tone.periodLabel}</span>
+        </div>
+        <p className="mt-3 w-full truncate text-[12px] font-medium leading-4 text-ink">{tone.greeting}</p>
+        <p className="mt-1 w-full truncate text-[11px] font-medium leading-4 text-ink">{name}</p>
+      </div>
+    </section>
+  );
+}
+
+function GreetingIcon({ icon }: { icon: WorkshopGreetingTone["icon"] }) {
+  if (icon === "moon") {
+    return (
+      <svg className="size-[18px] shrink-0 text-[#526070]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M19.2 15.3A7.7 7.7 0 0 1 8.7 4.8 8 8 0 1 0 19.2 15.3Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="size-[18px] shrink-0 text-[#B87828]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 2.8V5M12 19v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.8 12H5M19 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
@@ -218,7 +162,7 @@ function RemovedProjectFavoriteBanner({
 
   return (
     <section
-      className="col-span-12 flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
+      className="flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
       aria-label="Project access removed"
     >
       <div className="min-w-0">
@@ -239,13 +183,47 @@ function RemovedProjectFavoriteBanner({
   );
 }
 
+function getWorkshopGreetingTone(date = new Date()): WorkshopGreetingTone {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) {
+    return {
+      icon: "sun",
+      periodLabel: "Morning",
+      greeting: "Good morning",
+    };
+  }
+  if (hour >= 12 && hour < 18) {
+    return {
+      icon: "sun",
+      periodLabel: "Afternoon",
+      greeting: "Good afternoon",
+    };
+  }
+  return {
+    icon: "moon",
+    periodLabel: "Night",
+    greeting: "Good evening",
+  };
+}
+
+function formatWorkshopGreetingName(displayName?: string | null) {
+  const trimmed = displayName?.trim();
+  if (!trimmed) return "there";
+  if (!trimmed.includes("@")) return trimmed.slice(0, 48);
+  return trimmed
+    .split("@")[0]
+    .replace(/[._-]+/g, " ")
+    .trim()
+    .slice(0, 48) || "there";
+}
+
 function PendingInvitesPanel({ invites }: { invites: WorkshopPendingInviteSummary[] }) {
   if (invites.length === 0) return null;
   const actionableInviteCount = invites.filter((invite) => invite.state !== "expired").length;
 
   return (
     <section
-      className="col-span-12 border border-hairline bg-surfaceMuted/35 p-2"
+      className="border border-hairline bg-surfaceMuted/35 p-2"
       aria-label="Pending invites"
     >
       <div className="mb-2 flex min-h-5 items-center justify-between gap-2">
@@ -335,7 +313,7 @@ function InviteResolutionBanner({
       : "The shared workspace is ready.";
     return (
       <section
-        className="col-span-12 flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
+        className="flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
         aria-label={title}
       >
         <div className="min-w-0">
@@ -353,7 +331,7 @@ function InviteResolutionBanner({
     const invitedEmail = inviteBanner.invitedEmail ?? "the invited email";
     return (
       <section
-        className="col-span-12 flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
+        className="flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2"
         aria-label="Invite unavailable"
       >
         <div className="min-w-0">
@@ -377,7 +355,7 @@ function InviteResolutionBanner({
 
   return (
     <section
-      className="col-span-12 min-h-10 border border-hairline bg-surfaceMuted px-3 py-2"
+      className="min-h-10 border border-hairline bg-surfaceMuted px-3 py-2"
       aria-label="Invite unavailable"
     >
       <p className="text-[11px] font-medium leading-4 text-ink">Invite not applied</p>
@@ -386,27 +364,8 @@ function InviteResolutionBanner({
   );
 }
 
-function applyFavoriteOverrides<T extends { id: string; isFavorite: boolean; favoriteCreatedAt: string | null }>(
-  items: T[],
-  overrides: Record<string, boolean>,
-) {
-  return items.map((item) => {
-    const override = overrides[item.id];
-    if (typeof override !== "boolean") return item;
-    return {
-      ...item,
-      isFavorite: override,
-      favoriteCreatedAt: override ? item.favoriteCreatedAt : null,
-    };
-  });
-}
-
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
-}
-
-function formatOpenCount(count: number) {
-  return `${count} ${count === 1 ? "open" : "opens"}`;
 }
 
 function formatPendingInviteCount(count: number) {
@@ -419,304 +378,3 @@ const homebaseRoleLabels = {
   editor: "Editor",
   viewer: "Viewer",
 } as const;
-
-function getProjectAccessBadgeLabel(project: WorkshopProjectSummary) {
-  if (project.accessKind === "project-member") return "Shared project";
-  if (project.accessKind === "sheet-member") return "Sheet-only";
-  return null;
-}
-
-function getProjectAccessDetail(project: WorkshopProjectSummary) {
-  if (project.accessKind === "owned") return null;
-  if (project.accessKind === "sheet-member") {
-    return `${project.sharedEstimateCount} ${project.sharedEstimateCount === 1 ? "shared sheet" : "shared sheets"}`;
-  }
-  return project.ownerWorkspaceName ? `Shared by ${project.ownerWorkspaceName}` : "Shared with you";
-}
-
-function getEstimateHref(estimate: WorkshopEstimateSummary) {
-  return estimate.firstNodeId
-    ? `/workshop/projects/${estimate.project_id}/estimates/${estimate.firstNodeId}`
-    : `/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`;
-}
-
-function BentoPanel({
-  className,
-  label,
-  title,
-  showHeader = true,
-  surface = "panel",
-  children,
-}: {
-  className?: string;
-  label: string;
-  title: string;
-  showHeader?: boolean;
-  surface?: "panel" | "flush";
-  children: React.ReactNode;
-}) {
-  const surfaceClass = surface === "flush" ? "border-0 bg-transparent p-0" : "border border-hairline bg-white p-2";
-
-  return (
-    <section
-      className={`flex min-h-[132px] flex-col overflow-hidden xl:min-h-0 ${surfaceClass} ${className ?? ""}`}
-      aria-label={title}
-    >
-      {showHeader ? (
-        <div className="mb-2 flex min-h-5 items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">{label}</p>
-            <h2 className="truncate text-[12px] font-medium leading-4 text-ink">{title}</h2>
-          </div>
-        </div>
-      ) : null}
-      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
-    </section>
-  );
-}
-
-function EmptyBentoMessage({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="flex min-h-[84px] flex-col justify-center border border-dashed border-hairline bg-surfaceMuted/30 p-2">
-      <p className="text-[10px] font-medium leading-4 text-ink">{title}</p>
-      <p className="text-[9px] leading-4 text-tertiary">{description}</p>
-    </div>
-  );
-}
-
-function FavoriteButton({
-  active,
-  disabled,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  disabled: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={`grid size-6 shrink-0 place-items-center rounded-xs transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-50 ${
-        active ? "text-ink" : "text-tertiary"
-      }`}
-      aria-label={label}
-      aria-pressed={active}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <Star size={12} weight="regular" aria-hidden="true" />
-    </button>
-  );
-}
-
-function FavoritesPanel({
-  activeTab,
-  favoriteProjects,
-  favoriteEstimates,
-  pendingFavoriteKey,
-  onTabChange,
-  onToggleProjectFavorite,
-  onToggleEstimateFavorite,
-}: {
-  activeTab: FavoriteTab;
-  favoriteProjects: WorkshopProjectSummary[];
-  favoriteEstimates: WorkshopEstimateSummary[];
-  pendingFavoriteKey: string | null;
-  onTabChange: (tab: FavoriteTab) => void;
-  onToggleProjectFavorite: (projectId: string, favorite: boolean) => void;
-  onToggleEstimateFavorite: (estimateId: string, favorite: boolean) => void;
-}) {
-  return (
-    <section
-      className="col-span-12 flex h-full min-h-[220px] flex-col overflow-hidden border border-hairline bg-white xl:col-span-4 xl:col-start-9 xl:row-span-2 xl:row-start-1 xl:min-h-0"
-      aria-label="Favorites"
-    >
-      <div className="shrink-0 px-2 pb-1 pt-2">
-        <h2 className="truncate text-[12px] font-medium leading-4 text-ink">Favorites</h2>
-      </div>
-      <div className="shrink-0">
-        <WorkshopTreeTabs tabs={favoriteTabs} activeTab={activeTab} ariaLabel="Favorite views" onTabChange={onTabChange} />
-      </div>
-      <div
-        role="tabpanel"
-        aria-label={activeTab === "projects" ? "Favorite projects" : "Favorite estimate sheets"}
-        className="min-h-0 flex-1 overflow-hidden p-2"
-      >
-        {activeTab === "projects" ? (
-          <ProjectList
-            projects={favoriteProjects}
-            emptyTitle="No favorite projects yet"
-            emptyDescription="Star a project below to keep it pinned here."
-            pendingFavoriteKey={pendingFavoriteKey}
-            onToggleFavorite={onToggleProjectFavorite}
-          />
-        ) : (
-          <EstimateList
-            estimates={favoriteEstimates}
-            emptyTitle="No favorite estimate sheets yet"
-            emptyDescription="Star a sheet below for direct access from Workshop."
-            pendingFavoriteKey={pendingFavoriteKey}
-            onToggleFavorite={onToggleEstimateFavorite}
-          />
-        )}
-      </div>
-    </section>
-  );
-}
-
-function ProjectList({
-  projects,
-  emptyTitle,
-  emptyDescription,
-  pendingFavoriteKey,
-  onToggleFavorite,
-}: {
-  projects: WorkshopProjectSummary[];
-  emptyTitle: string;
-  emptyDescription: string;
-  pendingFavoriteKey: string | null;
-  onToggleFavorite: (projectId: string, favorite: boolean) => void;
-}) {
-  if (projects.length === 0) {
-    return <EmptyBentoMessage title={emptyTitle} description={emptyDescription} />;
-  }
-
-  return (
-    <div className="grid max-h-full content-start gap-1.5 overflow-auto">
-      {projects.map((project) => {
-        const livePublication = project.publicationSummary?.status === "published" ? project.publicationSummary : null;
-        const accessBadgeLabel = getProjectAccessBadgeLabel(project);
-        const accessDetail = getProjectAccessDetail(project);
-
-        return (
-          <div key={project.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border border-hairline bg-surfaceMuted/20 p-2">
-            <span className="grid size-7 place-items-center rounded-xs bg-white text-tertiary ring-1 ring-hairline">
-              <Folder size={13} weight="regular" aria-hidden="true" />
-            </span>
-            <Link href={`/workshop/projects/${project.id}`} className="min-w-0 hover:text-secondary">
-              <span className="block truncate text-[11px] font-medium leading-4 text-ink">{project.name}</span>
-              <span className="block truncate text-[9px] leading-4 text-tertiary">
-                {project.project_code ?? "No project code"} · {project.client_name ?? "No client"} · Updated {formatUpdatedAt(project.updated_at)}
-              </span>
-              {livePublication || accessBadgeLabel || project.pendingInviteCount > 0 ? (
-                <span className="mt-1 flex max-w-full flex-wrap items-center gap-1">
-                  {accessBadgeLabel ? (
-                    <span className="inline-flex max-w-full items-center gap-1 rounded-xs bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-tertiary ring-1 ring-hairline">
-                      <span className="uppercase">{accessBadgeLabel}</span>
-                      <span className="text-secondary">{homebaseRoleLabels[project.currentUserRole]}</span>
-                    </span>
-                  ) : null}
-                  {accessDetail ? (
-                    <span className="inline-flex max-w-full items-center rounded-xs bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary ring-1 ring-hairline">
-                      <span className="truncate">{accessDetail}</span>
-                    </span>
-                  ) : null}
-                  {project.pendingInviteCount > 0 ? (
-                    <span className="inline-flex max-w-full items-center rounded-xs bg-white px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-primary ring-1 ring-hairline">
-                      {formatPendingInviteCount(project.pendingInviteCount)}
-                    </span>
-                  ) : null}
-                  {livePublication ? (
-                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-xs bg-white px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary ring-1 ring-hairline">
-                      <LinkSimple size={9} weight="regular" aria-hidden="true" />
-                      <span>Shared link</span>
-                      <span className="text-secondary normal-case">{formatOpenCount(livePublication.openCount)}</span>
-                    </span>
-                  ) : null}
-                </span>
-              ) : null}
-            </Link>
-            <FavoriteButton
-              active={project.isFavorite}
-              disabled={pendingFavoriteKey === `project:${project.id}`}
-              label={project.isFavorite ? `Remove ${project.name} from favorite projects` : `Add ${project.name} to favorite projects`}
-              onClick={() => onToggleFavorite(project.id, !project.isFavorite)}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function EstimateList({
-  estimates,
-  emptyTitle,
-  emptyDescription,
-  pendingFavoriteKey,
-  onToggleFavorite,
-}: {
-  estimates: WorkshopEstimateSummary[];
-  emptyTitle: string;
-  emptyDescription: string;
-  pendingFavoriteKey: string | null;
-  onToggleFavorite: (estimateId: string, favorite: boolean) => void;
-}) {
-  if (estimates.length === 0) {
-    return <EmptyBentoMessage title={emptyTitle} description={emptyDescription} />;
-  }
-
-  return (
-    <div className="grid max-h-full content-start gap-1.5 overflow-auto">
-      {estimates.map((estimate) => (
-        <div key={estimate.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border border-hairline bg-surfaceMuted/20 p-2">
-          <span className="grid size-7 place-items-center rounded-xs bg-white text-tertiary ring-1 ring-hairline">
-            <Calculator size={13} weight="regular" aria-hidden="true" />
-          </span>
-          <Link href={getEstimateHref(estimate)} className="min-w-0 hover:text-secondary">
-            <span className="block truncate text-[11px] font-medium leading-4 text-ink">{estimate.name}</span>
-            <span className="block truncate text-[9px] leading-4 text-tertiary">
-              {estimate.sheet_code} · {estimate.projectName} · Updated {formatUpdatedAt(estimate.updated_at)}
-            </span>
-          </Link>
-          <FavoriteButton
-            active={estimate.isFavorite}
-            disabled={pendingFavoriteKey === `estimate:${estimate.id}`}
-            label={estimate.isFavorite ? `Remove ${estimate.name} from favorite estimate sheets` : `Add ${estimate.name} to favorite estimate sheets`}
-            onClick={() => onToggleFavorite(estimate.id, !estimate.isFavorite)}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DestinationTile({
-  destination,
-}: {
-  destination: WorkshopDestination;
-}) {
-  const Icon = destination.icon;
-
-  return (
-    <Link
-      href={destination.href}
-      className={`group relative block aspect-square w-full min-h-[210px] overflow-hidden rounded-xs border border-hairline text-white shadow-[0_18px_46px_-38px_rgba(17,17,17,0.85)] outline-none transition ${destination.imageClassName}`}
-      aria-label={`${destination.actionLabel}: ${destination.description}`}
-    >
-      <Image
-        src={destination.imageSrc}
-        alt=""
-        fill
-        sizes="(min-width: 1280px) 21vw, (min-width: 768px) 33vw, 100vw"
-        className="object-cover opacity-[0.17] mix-blend-soft-light saturate-[0.82] contrast-[0.98]"
-        aria-hidden="true"
-      />
-      <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,18,18,0.06)_0%,rgba(18,18,18,0.28)_48%,rgba(18,18,18,0.76)_100%)]" aria-hidden="true" />
-      <span className="absolute inset-0 opacity-[0.20] mix-blend-soft-light bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.38)_1px,transparent_1px)] bg-[length:4px_4px]" aria-hidden="true" />
-      <span className="absolute left-3 top-3 z-10 grid size-8 place-items-center rounded-xs bg-white/[0.10] text-white/88 ring-1 ring-white/16 backdrop-blur-[1px]" aria-hidden="true">
-        <Icon size={16} weight="regular" />
-      </span>
-      <span className="absolute inset-x-3 bottom-3 z-10 flex min-w-0 flex-col">
-        <span className="block truncate text-[12px] font-medium leading-4 text-white">{destination.title}</span>
-        <span className="mt-2 block h-12 max-w-[34ch] text-[10px] leading-4 text-white/84">{destination.description}</span>
-        <span className="mt-3 inline-flex w-full items-center justify-end gap-1 text-right text-[10px] font-medium leading-none text-white/94">
-          {destination.actionLabel}
-          <ArrowRight size={11} weight="regular" aria-hidden="true" />
-        </span>
-      </span>
-    </Link>
-  );
-}

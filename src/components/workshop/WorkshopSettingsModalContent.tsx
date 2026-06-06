@@ -170,7 +170,7 @@ export function WorkshopSettingsModalContent({ canManagePlatform }: { canManageP
     : [...baseSettingsGroups];
 
   return (
-    <div className="grid h-[min(560px,calc(100dvh-128px))] min-h-[420px] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:grid-cols-[184px_minmax(0,1fr)] sm:grid-rows-1">
+    <div className="grid h-[min(640px,calc(100dvh-96px))] min-h-[460px] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:grid-cols-[220px_minmax(0,1fr)] sm:grid-rows-1">
       <nav
         aria-label="Settings sections"
         className="border-b border-hairline bg-surfaceMuted p-2 sm:border-b-0 sm:border-r"
@@ -182,8 +182,8 @@ export function WorkshopSettingsModalContent({ canManagePlatform }: { canManageP
         </div>
       </nav>
 
-      <div className="min-h-0 overflow-y-auto px-3 py-3">
-        <div className="mx-auto max-w-[540px] space-y-3">
+      <div className="min-h-0 overflow-y-auto px-4 py-4">
+        <div className="mx-auto max-w-[660px] space-y-3">
           <SettingsSection group={accountSettingsGroup}>
             {userSettings.map((item) => (
               <SettingsLinkRow key={item.href} {...item} />
@@ -194,7 +194,7 @@ export function WorkshopSettingsModalContent({ canManagePlatform }: { canManageP
                 <p className="text-[10px] leading-4 text-tertiary">End this browser session and return to login.</p>
               </div>
               <form action={signOut}>
-                <Button type="submit" variant="danger" size="sm">
+                <Button type="submit" variant="danger" size="sm" className="shrink-0 whitespace-nowrap">
                   <SignOut className="size-3" aria-hidden="true" />
                   Sign out
                 </Button>
