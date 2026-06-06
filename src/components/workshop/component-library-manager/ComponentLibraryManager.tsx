@@ -733,7 +733,6 @@ function ComponentLibrarySheet({
     [folderNodes, searchQuery, selectedFolderNode, visibleItems],
   );
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
-  const resultSummary = getCatalogueResultSummary(visibleItems.length, sheetItems.length);
   const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
   const toggleCatalogueBranch = (branchId: string) => {
     setCollapsedCatalogueBranchIds((current) => {
@@ -795,9 +794,6 @@ function ComponentLibrarySheet({
           >
             {selectedLabel}
           </button>
-          <p className="ml-auto self-center px-2 text-[9px] font-medium leading-3 text-tertiary" aria-label="Component sheet result count">
-            {resultSummary}
-          </p>
         </div>
         {status.state !== "idle" ? (
           <div

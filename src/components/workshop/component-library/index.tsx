@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X } from "@phosphor-icons/react/dist/ssr";
+import { SquaresFour, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type Esti
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { WorkshopTreeTabs } from "../workshop-tree";
 import { ComponentViewControls, type ComponentViewMode } from "../component-library-manager/LibraryFolderTree";
+import { COMPONENT_VIEW_MODES } from "../component-library-manager/library-folder-tree-shared";
 import { NewComponentForm } from "./NewComponentForm";
 import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
@@ -362,6 +363,7 @@ export function EstimateRightSidebar({
     if (storedPrefs.componentViewMode === "brand" || legacyStoredTab === "brand") return "brand";
     return storedPrefs.componentViewMode === "suppliers" || legacyStoredTab === "suppliers" ? "suppliers" : "default";
   });
+  const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
   const [expandedNodeIdsByViewMode, setExpandedNodeIdsByViewMode] = useState<Record<ComponentViewMode, string[]>>(() => {
     const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
     const storedRecentIds = readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []);
@@ -383,6 +385,7 @@ export function EstimateRightSidebar({
   const [insertQuantity, setInsertQuantity] = useState(1);
   const [lastActionMessage, setLastActionMessage] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const treeHeaderRef = useRef<HTMLDivElement>(null);
   const deleteUndoTimerRef = useRef<number | null>(null);
 
   const selectedTargetNode = useMemo(() => {
@@ -438,7 +441,8 @@ export function EstimateRightSidebar({
         searchRef.current?.focus();
       }
       if (event.key === "Escape") {
-        if (deleteCandidate) setDeleteCandidate(null);
+        if (viewModeMenuOpen) setViewModeMenuOpen(false);
+        else if (deleteCandidate) setDeleteCandidate(null);
         else if (showNewComponent) closeNewComponent();
         else if (searchQuery) setSearchQuery("");
         else if (previewItemId) setPreviewItemId(null);
@@ -446,7 +450,16 @@ export function EstimateRightSidebar({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [closeNewComponent, deleteCandidate, previewItemId, searchQuery, showNewComponent]);
+  }, [closeNewComponent, deleteCandidate, previewItemId, searchQuery, showNewComponent, viewModeMenuOpen]);
+
+  useEffect(() => {
+    if (!viewModeMenuOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!treeHeaderRef.current?.contains(event.target as Node)) setViewModeMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [viewModeMenuOpen]);
 
   useEffect(() => {
     const handler = (event: StorageEvent) => {
@@ -636,6 +649,7 @@ export function EstimateRightSidebar({
     setActiveTab(tab);
     setSearchQuery("");
     setPreviewItemId(null);
+    setViewModeMenuOpen(false);
   }, []);
 
   const handleComponentViewModeChange = useCallback((mode: ComponentViewMode) => {
@@ -643,6 +657,7 @@ export function EstimateRightSidebar({
     setActiveTab("components");
     setSearchQuery("");
     setPreviewItemId(null);
+    setViewModeMenuOpen(false);
   }, []);
 
   const handleToggleNode = useCallback((nodeId: string) => {
@@ -698,7 +713,7 @@ export function EstimateRightSidebar({
     <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
       <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
         {/* Sticky header */}
-        <div className="sticky top-0 z-20 shrink-0 border-b border-hairline bg-white">
+        <div ref={treeHeaderRef} className="sticky top-0 z-20 shrink-0 border-b border-hairline bg-white">
           <div className="flex h-[38px] items-center">
             <SearchInput
               ref={searchRef}
@@ -716,6 +731,16 @@ export function EstimateRightSidebar({
             labelPrefix="library tree"
             onExpandAll={handleExpandAll}
             onCollapseAll={handleCollapseAll}
+            leadingActions={[
+              {
+                label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === componentViewMode)?.label ?? "Default"}`,
+                icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
+                onClick: () => setViewModeMenuOpen((current) => !current),
+                pressed: viewModeMenuOpen,
+                disabled: activeTab !== "components",
+              },
+            ]}
+            leadingActionsLabel="Component tree view mode"
             onAdd={startNewComponent}
           />
 
@@ -725,7 +750,7 @@ export function EstimateRightSidebar({
             ariaLabel="Library tree views"
             onTabChange={handleTabChange}
           />
-          {activeTab === "components" ? (
+          {activeTab === "components" && viewModeMenuOpen ? (
             <ComponentViewControls
               mode={componentViewMode}
               ariaLabel="Component view mode"
@@ -735,32 +760,34 @@ export function EstimateRightSidebar({
         </div>
 
         {/* Scrollable tree */}
-        <div className="min-h-0 flex-1 overflow-auto p-2">
-          <div className="h-6" />
-          {activeTab === "templates" ? (
-            <TemplateSidebarList
-              templates={templates}
-              searchQuery={searchQuery}
-              canInsertTemplate={canInsertTemplate}
-              targetName={effectiveTemplateTargetName || "selected group"}
-              onAddTemplate={addTemplate}
-              onTemplateDragStart={handleTemplateDragStart}
-            />
-          ) : (
-            <LibraryTree
-              nodes={filteredTreeNodes}
-              selectedNodeId={previewItemId}
-              expandedNodeIds={expandedNodeIdsByViewMode[componentViewMode]}
-              searchQuery={searchQuery}
-              onSelect={(nodeId) => handleToggleNode(nodeId)}
-              onToggle={handleToggleNode}
-              onItemAdd={(item) => { if (item) addComponent(item); }}
-              onItemPreview={(itemId) => setPreviewItemId(itemId)}
-              addDisabled={!canInsert}
-              addLabel={targetLabel}
-              onItemDragStart={handleItemDragStart}
-            />
-          )}
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="h-8 w-full bg-white" aria-hidden="true" />
+          <div className="p-2">
+            {activeTab === "templates" ? (
+              <TemplateSidebarList
+                templates={templates}
+                searchQuery={searchQuery}
+                canInsertTemplate={canInsertTemplate}
+                targetName={effectiveTemplateTargetName || "selected group"}
+                onAddTemplate={addTemplate}
+                onTemplateDragStart={handleTemplateDragStart}
+              />
+            ) : (
+              <LibraryTree
+                nodes={filteredTreeNodes}
+                selectedNodeId={previewItemId}
+                expandedNodeIds={expandedNodeIdsByViewMode[componentViewMode]}
+                searchQuery={searchQuery}
+                onSelect={(nodeId) => handleToggleNode(nodeId)}
+                onToggle={handleToggleNode}
+                onItemAdd={(item) => { if (item) addComponent(item); }}
+                onItemPreview={(itemId) => setPreviewItemId(itemId)}
+                addDisabled={!canInsert}
+                addLabel={targetLabel}
+                onItemDragStart={handleItemDragStart}
+              />
+            )}
+          </div>
         </div>
 
         {/* Preview panel */}

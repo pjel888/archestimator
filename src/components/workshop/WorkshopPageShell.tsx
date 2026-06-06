@@ -11,6 +11,7 @@ import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
+import { WorkshopFeedbackModal } from "./WorkshopFeedbackModal";
 import { WorkshopSettingsModal } from "./WorkshopSettingsModal";
 import { WorkshopSettingsModalContent } from "./WorkshopSettingsModalContent";
 import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
@@ -88,10 +89,10 @@ export async function WorkshopPageShell({
   const headerActions = (
     <>
       {actions}
+      <WorkshopNotificationEntry />
       <WorkshopSettingsModal>
         <WorkshopSettingsModalContent canManagePlatform={canManagePlatformSettings} />
       </WorkshopSettingsModal>
-      <WorkshopNotificationEntry />
     </>
   );
 
@@ -122,12 +123,7 @@ export async function WorkshopPageShell({
 
         <footer className={["relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
           <div className="min-w-0 flex-1">
-            <a
-              href="/workshop/feedback"
-              className="inline-flex h-7 items-center rounded-xs px-2 text-[10px] font-medium leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            >
-              Send beta feedback
-            </a>
+            <WorkshopFeedbackModal />
           </div>
           {projectId ? (
             <div

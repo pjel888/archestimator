@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 
+import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
 import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
@@ -44,6 +45,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       ]}
       alignChromeToProjectSidebar
       contentClassName="pt-0 pb-0 pr-2 pl-0"
+      centerHeader={<ProjectEstimateMetadataStrip />}
       projectId={projectId}
     >
       <div className="flex h-full min-h-0 overflow-hidden bg-white">

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { MoonStarsIcon, SunHorizonIcon } from "@phosphor-icons/react/dist/ssr";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 
 import { Button } from "@/components/ui/button";
@@ -104,43 +105,28 @@ function WorkshopGreeting({ displayName }: { displayName?: string | null }) {
       className="flex min-h-[180px] w-full flex-1 items-start overflow-hidden bg-white px-2 py-3 text-[10px]"
       aria-label="Workshop greeting"
     >
-      <div className="flex w-[280px] max-w-full flex-col items-start">
-        <div className="inline-flex items-center gap-1.5 text-secondary">
-          <GreetingIcon icon={tone.icon} />
-          <span className="truncate text-[10px] font-medium leading-none">{tone.periodLabel}</span>
+      <div className="grid w-[280px] max-w-full grid-cols-[36px_minmax(0,1fr)] items-start gap-2">
+        <div className="flex size-9 items-center justify-center text-secondary">
+          <GreetingIcon icon={tone.icon} label={tone.periodLabel} />
         </div>
-        <p className="mt-3 w-full truncate text-[10px] font-[300] leading-4 text-secondary">{tone.greeting}</p>
-        <p className="mt-1 w-full truncate text-[12px] font-medium leading-4 text-ink">{name}</p>
+        <div className="min-w-0">
+          <p className="w-full truncate text-[10px] font-[300] leading-4 text-secondary">{tone.greeting}</p>
+          <p className="mt-1 w-full truncate text-[12px] font-medium leading-4 text-ink">{name}</p>
+        </div>
       </div>
     </section>
   );
 }
 
-function GreetingIcon({ icon }: { icon: WorkshopGreetingTone["icon"] }) {
+function GreetingIcon({ icon, label }: { icon: WorkshopGreetingTone["icon"]; label: string }) {
   if (icon === "moon") {
     return (
-      <svg className="size-[18px] shrink-0 text-[#526070]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M19.2 15.3A7.7 7.7 0 0 1 8.7 4.8 8 8 0 1 0 19.2 15.3Z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <MoonStarsIcon className="size-9 shrink-0 text-[#526070]" size={36} weight="regular" role="img" aria-label={label} />
     );
   }
 
   return (
-    <svg className="size-[18px] shrink-0 text-[#B87828]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M12 2.8V5M12 19v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.8 12H5M19 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
+    <SunHorizonIcon className="size-9 shrink-0 text-[#B87828]" size={36} weight="regular" role="img" aria-label={label} />
   );
 }
 

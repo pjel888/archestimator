@@ -1,13 +1,19 @@
 "use client";
 
+import { useCallback, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { useLayoutEffect, useSyncExternalStore } from "react";
 
 import { dispatchProjectBudgetChange } from "@/components/workshop/ProjectTotalHeader";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
+import { updateEstimateDetails } from "@/lib/estimates/actions";
+import { cn } from "@/lib/ui/cn";
 
 export const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-estimate-metadata-change";
 const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
 
 export type ProjectEstimateMetadata = {
+  projectId: string;
+  estimateId: string;
   projectName: string;
   estimateName: string;
   estimateSheetCode: string;
@@ -49,7 +55,7 @@ function useProjectEstimateMetadata() {
 }
 
 export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMetadataPublisherProps) {
-  const { projectName, estimateName, estimateSheetCode, projectBudget } = metadata;
+  const { projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget } = metadata;
 
   useLayoutEffect(() => {
     const workshopCanvas = document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]");
@@ -58,7 +64,7 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
 
     if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = "true";
     workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px");
-    dispatchProjectEstimateMetadataChange({ projectName, estimateName, estimateSheetCode, projectBudget });
+    dispatchProjectEstimateMetadataChange({ projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget });
     dispatchProjectBudgetChange(projectBudget ?? 0);
 
     return () => {
@@ -76,7 +82,7 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
       dispatchProjectEstimateMetadataChange(null);
       dispatchProjectBudgetChange(0);
     };
-  }, [projectName, estimateName, estimateSheetCode, projectBudget]);
+  }, [projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget]);
 
   return null;
 }
@@ -90,24 +96,133 @@ export function ProjectEstimateMetadataStrip() {
 function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataStripGridProps) {
   return (
     <div
-      className="grid h-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 bg-white px-2 text-[9px] font-normal uppercase tracking-normal text-tertiary"
+      className="grid h-full place-items-center bg-white px-2 text-[10px] font-medium tracking-normal text-ink"
       data-workshop-layout="project-estimate-metadata-row"
     >
-      <EstimateSheetCodeCell value={metadata?.estimateSheetCode ?? ""} />
-      <EstimateProjectTitleCell value={metadata?.projectName ?? ""} />
-      <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
+      <EstimateSheetNameCell metadata={metadata} />
     </div>
   );
 }
 
-function EstimateSheetCodeCell({ value }: { value: string }) {
-  return <span className="min-w-0 flex-1 truncate text-left">{value}</span>;
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Could not rename estimate sheet.";
 }
 
-function EstimateProjectTitleCell({ value }: { value: string }) {
-  return <span className="min-w-0 truncate text-center text-ink">{value}</span>;
-}
+function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata | null }) {
+  const router = useNavigationRouter();
+  const errorId = useId();
+  const savedName = metadata?.estimateName ?? "";
+  const [draft, setDraft] = useState(savedName);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const skipNextBlurCommitRef = useRef(false);
 
-function EstimateSheetNameCell({ value }: { value: string }) {
-  return <span className="min-w-0 truncate text-right text-ink">{value}</span>;
+  useLayoutEffect(() => {
+    setDraft(savedName);
+    setStatus("idle");
+    setErrorMessage(null);
+  }, [savedName]);
+
+  const commitDraft = useCallback(() => {
+    if (!metadata) return;
+    const nextName = draft.trim();
+    if (nextName === savedName.trim()) {
+      setDraft(savedName);
+      setStatus("idle");
+      setErrorMessage(null);
+      return;
+    }
+
+    if (!nextName) {
+      setStatus("error");
+      setErrorMessage("Estimate sheet name is required.");
+      return;
+    }
+
+    setStatus("saving");
+    setErrorMessage(null);
+    startTransition(() => {
+      void updateEstimateDetails({
+        projectId: metadata.projectId,
+        estimateId: metadata.estimateId,
+        name: nextName,
+      })
+        .then((updatedEstimate) => {
+          setDraft(updatedEstimate.name);
+          setStatus("saved");
+          dispatchProjectEstimateMetadataChange({
+            ...metadata,
+            estimateName: updatedEstimate.name,
+          });
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setStatus("error");
+          setErrorMessage(getErrorMessage(error));
+        });
+    });
+  }, [draft, metadata, router, savedName]);
+
+  function handleBlur() {
+    if (skipNextBlurCommitRef.current) {
+      skipNextBlurCommitRef.current = false;
+      return;
+    }
+    commitDraft();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      skipNextBlurCommitRef.current = true;
+      setDraft(savedName);
+      setStatus("idle");
+      setErrorMessage(null);
+      event.currentTarget.blur();
+    }
+  }
+
+  return (
+    <div className="flex min-w-0 max-w-full items-center gap-1">
+      <input
+        aria-describedby={errorMessage ? errorId : undefined}
+        aria-invalid={status === "error" ? "true" : undefined}
+        aria-label="Estimate sheet name"
+        className={cn(
+          "h-7 min-w-0 max-w-[320px] rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
+          status === "error" && "border-danger bg-dangerSoft/40",
+        )}
+        disabled={!metadata || isPending}
+        onBlur={handleBlur}
+        onChange={(event) => {
+          setDraft(event.currentTarget.value);
+          if (status !== "idle") setStatus("idle");
+          if (errorMessage) setErrorMessage(null);
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder="Estimate sheet name"
+        title="Rename estimate sheet. Press Enter or leave the field to save. Press Esc to cancel."
+        value={draft}
+      />
+      {status === "saving" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-tertiary">Saving</span> : null}
+      {status === "saved" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-success">Saved</span> : null}
+      {status === "error" ? (
+        <span className="grid size-4 shrink-0 place-items-center rounded-xs bg-dangerSoft text-[9px] font-medium text-danger" title={errorMessage ?? "Update failed"}>
+          !
+        </span>
+      ) : null}
+      {errorMessage ? (
+        <p id={errorId} className="sr-only">
+          {errorMessage}
+        </p>
+      ) : null}
+    </div>
+  );
 }

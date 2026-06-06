@@ -40,6 +40,8 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
 
   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
   const estimateMetadata = {
+    projectId: project.id,
+    estimateId: estimate.id,
     projectName: project.name,
     estimateName: estimate.name,
     estimateSheetCode: estimate.sheet_code,
