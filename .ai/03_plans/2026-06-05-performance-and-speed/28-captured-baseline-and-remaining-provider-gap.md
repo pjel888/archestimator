@@ -72,7 +72,15 @@ Remaining gaps:
 
 - Dashboard overview score/screenshot and recommendation cards remain unavailable because Computer Use timed out and protected fetch could not create a shareable dashboard URL.
 - Previous 7-day and previous-3-day route/device windows returned empty summaries, so Workstream 7.2 still lacks comparable traffic cohorts.
+- Valid private share-token timing remains open; invalid-token share probes are fail-closed/no-store proof only.
 - Final performance-impact proof still requires before/after provider windows after a deployed change; the current CLI capture is a baseline, not a completion claim.
+
+Closed fixture gaps on 2026-06-06:
+
+- Signed-in hosted auth fixture proof: `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
+- Hosted proposal export fixture proof: `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
+- Valid private media fixture proof: `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
+- Synthetic provider-data cleanup proof: `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md` / `.json`.
 
 ## 2026-06-06 refresh
 
@@ -87,3 +95,16 @@ Current status:
 - Public hosted route timing/header evidence now includes `/about`, `/privacy`, and `/terms` in addition to the earlier public routes.
 - Bundle analyzer baseline is captured through a clean webpack analyzer build.
 - Speed Insights p75 metrics are captured via Vercel CLI; dashboard overview/recommendation cards and comparable prior windows remain open.
+
+## 2026-06-06 synthetic hosted fixture proof refresh
+
+Owner-granted authority allowed temporary synthetic production fixtures against the Archestimator Supabase project `ebxxqidacheyapmmzavr` and production domain `https://www.archestimator.com`. The run created temporary auth users, beta allowlist states, workspace/project/estimate rows, and a private image upload, then removed all synthetic data. Evidence files are sanitized and exclude cookies, passwords, raw tokens, storage paths, and customer data.
+
+| Surface | Evidence | Result |
+| --- | --- | --- |
+| Auth/proxy | `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md` / `.json` | PASS: signed-out, allowed, denied, revoked, expired/invalid-session all returned expected routing and private/no-store cache policy. |
+| Proposal export | `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md` / `.json` | PASS: 2 hosted samples returned XLSX attachment, ZIP magic, 12,253 bytes, and `private, no-store`. |
+| Valid private media | `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md` / `.json` | PASS: upload/2x GET/delete passed; private WebP GET returned `private, max-age=300`, `x-vercel-cache: MISS`, and no shared-cache directive. |
+| Cleanup | `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md` / `.json` | PASS: auth users, beta rows, profiles, workspaces, projects, estimates, nodes, rows, and publications all zero; storage paths removed through app DELETE. |
+
+Remaining provider gaps after this refresh are dashboard overview/recommendation cards, comparable Speed Insights windows, and valid private share-token timing.

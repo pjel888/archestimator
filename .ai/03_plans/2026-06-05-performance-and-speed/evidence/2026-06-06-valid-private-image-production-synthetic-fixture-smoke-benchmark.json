@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-06-06T03:21:12.154Z",
+  "mode": "hosted-private-image-valid-fixture-smoke",
+  "baseUrl": "https://www.archestimator.com",
+  "projectId": "e4806c48-6645-41cf-8b1a-c1122c8c30c3",
+  "upload": {
+    "status": 200,
+    "ok": true,
+    "durationMs": 2541,
+    "contentType": "application/json",
+    "cacheControl": "public, max-age=0, must-revalidate"
+  },
+  "getRoute": "/api/projects/images?path=HOSTED_PRIVATE_IMAGE_PATH_REDACTED",
+  "getSamples": [
+    {
+      "index": 1,
+      "status": 200,
+      "ok": true,
+      "durationMs": 2318,
+      "byteLength": 72,
+      "contentType": "image/webp",
+      "cacheControl": "private, max-age=300",
+      "xVercelCache": "MISS",
+      "age": "0",
+      "hasPrivateCacheDirective": true,
+      "hasPublicOrSharedCacheDirective": false,
+      "passed": true
+    },
+    {
+      "index": 2,
+      "status": 200,
+      "ok": true,
+      "durationMs": 1979,
+      "byteLength": 72,
+      "contentType": "image/webp",
+      "cacheControl": "private, max-age=300",
+      "xVercelCache": "MISS",
+      "age": "0",
+      "hasPrivateCacheDirective": true,
+      "hasPublicOrSharedCacheDirective": false,
+      "passed": true
+    }
+  ],
+  "deleteResult": {
+    "status": 200,
+    "ok": true,
+    "durationMs": 2089,
+    "contentType": "application/json",
+    "cacheControl": "public, max-age=0, must-revalidate",
+    "removedPathCount": 2,
+    "error": null
+  },
+  "passed": true,
+  "note": "Synthetic allowed-session fixture uploaded a tiny PNG through the production private image API, fetched the generated private WebP route twice, and deleted uploaded storage paths. Session cookies and storage paths are never written to this report."
+}
