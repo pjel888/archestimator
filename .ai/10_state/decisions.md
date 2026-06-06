@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-06-06 - Terms acceptance planning baseline
+
+**Decision:** Plan future Terms and Conditions / Terms of Service implementation as versioned, attorney-reviewed legal content plus affirmative authenticated-user acceptance and append-only Supabase/Postgres evidence. Do not rely on passive browsewrap-style login copy as the sole binding acceptance proof.
+
+**Rationale:** ArchEstimator is a SaaS estimation/design-support tool with construction/proposal outputs. The strongest commercially reasonable posture is to show conspicuous Terms/Privacy notice, require affirmative acceptance tied to a Supabase user id and Terms version/effective date/hash, keep audit evidence under RLS, and clearly state that users remain responsible for independent review and use of outputs. Absolute zero liability must not be promised because enforceability depends on jurisdiction, consumer law, gross negligence/willful misconduct limits, public policy, and legal counsel review.
+
+**Follow-up:** Use `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/` for future implementation. Final Terms copy, entity name, governing law, legal notices contact/address, dispute-resolution choices, user/business positioning, billing/refund policy, IP/user-agent retention, and existing-user re-acceptance policy require Philip/legal counsel decisions before production enforcement. Closed beta remains no-payment unless explicitly reopened.
+
 ## 2026-06-06 - Defer CI/CD until after pre-release beta
 
 **Decision:** Do not re-enable GitHub CI or add automated CD while

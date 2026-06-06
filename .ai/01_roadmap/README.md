@@ -3,6 +3,14 @@
 **Last updated:** 2026-06-02
 **Status:** Pre-launch MVP — repo-local launch implementation frozen; external/provider/manual proof lane remains open.
 
+## 2026-06-06 Terms and Conditions implementation plan
+
+- New docs-only implementation plan: `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/`.
+- Status: planning-ready for future engineering after legal/product decisions and qualified legal review of final Terms copy.
+- Scope: versioned Terms, acceptance evidence, Supabase/RLS, re-acceptance, auth/protected-route UX, legal/support evidence, billing edge-case planning.
+- No code, migration, dependency, provider, runtime, or billing implementation has been performed.
+- Do not claim absolute zero liability; implement strongest commercially reasonable legal-reviewable SaaS protection only.
+
 ## Current MVP Launch Handoff
 
 The broad MVP launch `/goal` is blocked, not complete. Repo-local implementation for `.ai/03_plans/mvp-launch-readiness-2026-06-01/` is frozen at `6ab5b38`; docs/status freeze and guard evidence are pushed through `bdf9b03`. Do not reopen local launch implementation unless a new repo-local defect is found.
