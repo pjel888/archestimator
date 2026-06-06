@@ -1,7 +1,7 @@
 # ArchEstimator UI Component Library + Storybook Plan Pack
 
 **Updated:** 2026-06-06
-**Status:** READY_FOR_IMPLEMENTATION_PLANNING_HANDOFF
+**Status:** READY_AFTER_OWNER_PACKAGE_APPROVAL
 **Scope:** Docs-only planning pack. No source code, package file, dependency, runtime config, migration, generated type, provider setting, secret, or app behavior was changed during this refinement.
 
 ## Updated Task Goal
@@ -50,9 +50,9 @@ Start here:
 | 14 | `12_OPEN_QUESTIONS_AND_DECISIONS.md` | Philip decisions and implementation-agent decisions. |
 | 15 | `13_TRACEABILITY_MATRIX.md` | Requirement-to-story-to-test traceability. |
 | 16 | `14_UI_LIBRARY_MASTER_PLAN.md` | Library vision, taxonomy, definitions of done. |
-| 17 | `15_COMPONENT_INVENTORY_MATRIX.md` | Comprehensive component and pattern inventory. |
+| 17 | `15_COMPONENT_INVENTORY_MATRIX.md` | Comprehensive 809-row component and pattern inventory. |
 | 18 | `16_STORYBOOK_INSTALLATION_AND_CONFIGURATION_PLAN.md` | Storybook package/config plan. |
-| 19 | `17_STORYBOOK_STORY_COVERAGE_MATRIX.md` | P0/P1/P2 story coverage matrix. |
+| 19 | `17_STORYBOOK_STORY_COVERAGE_MATRIX.md` | 703-row P0/P1 Storybook story manifest plus P2/deferred coverage notes. |
 | 20 | `18_DESIGN_TOKEN_AND_THEMING_PLAN.md` | Token extraction and Tailwind v4 strategy. |
 | 21 | `19_ICON_SYSTEM_AND_ASSET_PLAN.md` | Phosphor-first icon and asset policy. |
 | 22 | `20_COMPONENT_API_AND_COMPOSITION_CONTRACTS.md` | Prop, slot, export, client/server contracts. |
@@ -67,6 +67,13 @@ Start here:
 | 31 | `29_COMPONENT_DEPENDENCY_AND_PACKAGE_PLAN.md` | Package and dependency gates. |
 | 32 | `30_AGENT_UI_USAGE_RULES_DRAFT.md` | Draft future agent usage rules. |
 | 33 | `31_DOC_REPAIR_LOG.md` | What changed in this refinement. |
+| 34 | `32_SOURCE_ADOPTION_CROSSWALK.md` | Component-by-component shadcn/Flowbite/Aceternity/adapt/defer decisions. |
+| 35 | `33_STORYBOOK_CONFIG_SKELETONS.md` | Future Storybook config, preview, CSS, decorator, and mock skeletons. |
+| 36 | `34_FIXTURE_AND_DECORATOR_CONTRACTS.md` | Static fixture factory and provider decorator contracts. |
+| 37 | `35_COMPONENT_API_REFERENCE_MATRIX.md` | P0/P1 local component API/export/contracts reference. |
+| 38 | `36_P0_P1_IMPLEMENTATION_BACKLOG.md` | Implementation-grade P0/P1 backlog and stop gates. |
+| 39 | `37_PHILIP_STORYBOOK_REVIEW_PACKET.md` | Owner review packet, inspection route, signoff states, and feedback loop. |
+| 40 | `38_VALIDATION_COMMAND_MATRIX.md` | Current docs-only and future Storybook implementation validation commands. |
 
 Preserved tree/domain sub-plan:
 
@@ -97,7 +104,7 @@ Preserved tree/domain sub-plan:
 ## Start-Here Instructions For Future Implementation Agent
 
 1. Verify live repo state before editing: `pwd`, `git status --short --branch`, `git branch --show-current`, `git worktree list`, `git log --oneline -5`.
-2. Read `README.md`, `CURRENT_CANONICAL_PLAN.md`, `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`, `15_COMPONENT_INVENTORY_MATRIX.md`, and `16_STORYBOOK_INSTALLATION_AND_CONFIGURATION_PLAN.md`.
+2. Read `README.md`, `CURRENT_CANONICAL_PLAN.md`, `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`, `15_COMPONENT_INVENTORY_MATRIX.md`, `17_STORYBOOK_STORY_COVERAGE_MATRIX.md`, and `32_SOURCE_ADOPTION_CROSSWALK.md` through `38_VALIDATION_COMMAND_MATRIX.md`.
 3. Re-run graph impact checks before touching shared primitives or tree/domain components.
 4. Confirm package decision gates before installing Storybook or any supporting dependency.
 5. Build Storybook and library components/stories only. Stop before production app migration.
@@ -150,11 +157,11 @@ No new bug plan was required during this refinement. Open owner decisions are re
 
 | Scope | Status |
 |---|---|
-| Docs package readiness | 99/100 READY_FOR_IMPLEMENTATION |
-| Storybook setup readiness | 98/100 READY_AFTER_PACKAGE_APPROVAL |
-| Primitive component readiness | 98/100 READY_FOR_STORYBOOK_MVP |
-| Full component matrix readiness | 99/100 READY_FOR_PHASED_BUILD |
-| Domain component readiness | 97/100 READY_WITH_GRAPH_IMPACT_GATES |
+| Docs package readiness | 100/100 READY_FOR_IMPLEMENTATION_HANDOFF |
+| Storybook setup readiness | 100/100 READY_AFTER_PACKAGE_APPROVAL |
+| Primitive component readiness | 100/100 READY_FOR_STORYBOOK_MVP |
+| Full component matrix readiness | 100/100 READY_FOR_PHASED_BUILD |
+| Domain component readiness | 100/100 READY_WITH_GRAPH_IMPACT_GATES |
 | Migration readiness | 20/100 DEFERRED_BY_DESIGN |
 
 Do not quote a single readiness score without the scope. Migration readiness is intentionally low because production app migration is not part of the MVP.

@@ -84,6 +84,27 @@
 **Validation:** docs diff check; Storybook build evidence; no production app migration diff.
 **Rollback point:** Revert governance/docs commit.
 
+## Expanded Future Slice Checklist
+
+Use this checklist when converting the plan into commits. Each slice must be independently reviewable and reversible.
+
+| Slice | Target | Inputs | Validation | Stop condition |
+|---:|---|---|---|---|
+| 0 | Baseline evidence | Repo state, package scripts, graph impact, current primitives. | `git status --short --branch`; graph/impact evidence; `git diff --check`. | Evidence captured before edits. |
+| 1 | Package approval and install | Owner approval; official Storybook docs. | `bun install`; package diff reviewed. | Storybook scripts exist or rollback package commit. |
+| 2 | Storybook config shell | `33_STORYBOOK_CONFIG_SKELETONS.md`. | `bun run storybook`; `bun run build-storybook`. | Local Storybook loads global CSS. |
+| 3 | Fixtures/decorators | `34_FIXTURE_AND_DECORATOR_CONTRACTS.md`. | Provider env unset smoke; no live provider imports. | Stories can render offline. |
+| 4 | Foundations/tokens/icons | `18_DESIGN_TOKEN_AND_THEMING_PLAN.md`; `19_ICON_SYSTEM_AND_ASSET_PLAN.md`. | Storybook foundations visible; `bun run lint:design-system`. | Philip can inspect design foundations. |
+| 5 | P0 primitives | `35_COMPONENT_API_REFERENCE_MATRIX.md`; P0 rows in `15`. | Focused tests; Storybook stories; `bun run validate`. | Button/search/modal/menu/toast/skeleton/empty states visible. |
+| 6 | P1 forms and controls | P1 form rows in `15` and `17`. | DOM tests for behavior-heavy controls; Storybook controls. | Form states visible and keyboard notes captured. |
+| 7 | P1 overlays/navigation | Menus/dialogs/tabs/sidebar/header rows. | Keyboard/focus tests; Storybook a11y check if approved. | Overlay/nav stories visible. |
+| 8 | P1 data display/layout | Tables/cards/panels/layout rows. | Storybook viewports; overflow/empty/loading stories. | Data/layout stories visible. |
+| 9 | Domain fixtures/stories | Project, estimate, component library, share, notifications, release fixtures. | Offline Storybook render; no Supabase imports. | Domain stories visible with static data. |
+| 10 | Tree/domain shells | Preserved tree sub-plan docs. | Graph impact gates; story-only inspection first. | No production tree migration. |
+| 11 | Motion/landing-only effects | Aceternity/Flowbite gated rows. | Reduced-motion story review; package/performance gate. | Effects remain scoped and optional. |
+| 12 | QA/review packet | `37_PHILIP_STORYBOOK_REVIEW_PACKET.md`. | Review labels and issue capture. | Philip approves, rejects, or requests revisions. |
+| 13 | Future migration plan | `25_FUTURE_APP_MIGRATION_ROADMAP_DEFERRED.md`. | New plan/branch after approval. | Migration remains blocked until approval. |
+
 ## What Not To Touch
 
 - No Supabase migrations or generated types.

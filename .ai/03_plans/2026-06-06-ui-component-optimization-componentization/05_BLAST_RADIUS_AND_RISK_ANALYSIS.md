@@ -61,6 +61,20 @@ Potential future modules:
 | Accessibility regression | High | Medium | a11y docs/addon/play candidates; keyboard matrix. | Revert component; add test. |
 | Merge conflicts | Medium | High | Keep commits scoped; avoid source migration. | Rebase carefully; never force push. |
 | Agent misuse | High | High | `30_AGENT_UI_USAGE_RULES_DRAFT.md`; no app migration without approval. | Revert unauthorized migration; create bug plan. |
+| Future `.storybook` config leaks into production build | Medium | Low | Keep Storybook config isolated; do not import stories from app runtime. | Revert Storybook config commit. |
+| `storybook-static` generated output is committed | Medium | Medium | Add/confirm ignore posture before static builds. | Remove generated directory; amend commit if needed. |
+| Provider/env access from stories | High | Medium | Use `34_FIXTURE_AND_DECORATOR_CONTRACTS.md`; scan stories for Supabase/auth/server action imports. | Revert story; replace with static fixture. |
+| Missing `next/navigation` mocks | Medium | Medium | Add Storybook decorators/mocks before domain stories. | Revert affected stories/config; add mock layer first. |
+| `components.json` lucide default conflicts with Phosphor rule | Medium | High | Treat shadcn generated icons as review-required; adapt to Phosphor for app/workshop. | Replace icons before merging library slice. |
+| Button/SearchInput API changes break callers | High | High | Prefer story wrappers and additive props; run graph impact and targeted tests. | Revert primitive API commit. |
+| Modal/context menu focus regression | High | Medium | Add keyboard/focus stories and tests before behavior edits. | Revert overlay commit. |
+| Toast/live notification coupling | High | Medium | Keep toast stories static and separate from notification provider code. | Revert provider-coupled story/component. |
+| Workshop tree extraction destabilizes estimate editing | High | Medium | Keep tree shells story-first; no production migration; use preserved tree sub-plan. | Revert tree extraction/migration commit. |
+| Estimate sheet inline editing state regression | High | Medium | Treat editable estimate components as domain stories first; targeted DOM tests required before source behavior changes. | Revert estimate editing commit. |
+| Flowbite JS runtime import | High | Medium | Use public docs as visual/API breadth only; do not import Flowbite JS runtime by default. | Remove dependency/import and lockfile change. |
+| Aceternity effect overuse in app/workshop | Medium | Medium | Landing/proposal-only unless approved; reduced-motion required. | Remove effect component or mark landing-only. |
+| Missing a11y addon/play tests hides keyboard failures | Medium | Medium | Add manual keyboard matrix and package-approved a11y tooling. | Add tests before accepting component. |
+| Unauthorized app migration during library work | High | Medium | Enforce `24_NO_MIGRATION_STORYBOOK_ONLY_MVP_SCOPE.md` and diff-gate `src/app` route changes. | Revert route/screen migration and write bug plan. |
 
 ## Affected Tests
 
@@ -94,3 +108,5 @@ Before modifying any shared primitive, domain component, or exported API:
 2. Run code-review-graph impact/detect changes after edits.
 3. Warn on HIGH/CRITICAL impact before proceeding with source edits.
 4. Keep high-impact work in separate commits with targeted tests.
+
+This docs-only refinement does not edit symbols, so the risk is planning drift rather than runtime regression. The future implementation must re-run impact analysis because package versions, callers, and test coverage can drift.

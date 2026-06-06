@@ -1,5 +1,25 @@
 # Decisions
 
+## 2026-06-06 - UI component library docs handoff readiness
+
+**Decision:** Score the UI Component Library + Storybook plan pack as
+100/100 for docs-only implementation handoff after expanding the component
+inventory to 809 rows, the P0/P1 story manifest to 703 rows, and adding
+supplemental docs `32_SOURCE_ADOPTION_CROSSWALK.md` through
+`38_VALIDATION_COMMAND_MATRIX.md`.
+
+**Rationale:** The remaining gaps from the earlier 99/100 pass were planning
+artifacts, not code blockers: source adoption decisions, Storybook config
+skeletons, fixture/decorator contracts, API reference, P0/P1 backlog, owner
+review packet, and command-level validation evidence. Those are now explicit,
+while package installation and Storybook runtime proof remain future
+owner-approved implementation gates.
+
+**Follow-up:** Do not treat this as app migration readiness. Production UI
+migration remains `DEFERRED_BY_DESIGN` at 20/100 until Philip reviews and
+approves an implemented Storybook library and a separate migration plan is
+created.
+
 ## 2026-06-06 - Storybook-first UI component library planning posture
 
 **Decision:** Treat

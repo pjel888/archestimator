@@ -4,6 +4,7 @@
 **Updated:** 2026-06-06
 **Mode:** Planning/documentation refinement only
 **Implementation status:** Not implemented. Storybook is not installed. No app surfaces have been migrated.
+**Docs handoff readiness:** 100/100 for Storybook/UI-library planning only. Production app migration remains deferred by design.
 
 ## Thesis
 
@@ -16,6 +17,8 @@ ArchEstimator now needs a formal, Storybook-first product UI component library t
 - Added a Storybook-first UI library MVP with explicit external source posture for shadcn/ui, Flowbite, Aceternity, and Tailwind CSS v4.
 - Preserved old tree documents as domain-component evidence and future sub-plan material.
 - Added a hard no-migration boundary: the MVP ends when Storybook and the reusable library are inspectable.
+- Expanded the inventory to 809 component/pattern rows and the P0/P1 Storybook manifest to 703 story rows.
+- Added implementation handoff supplements: source adoption crosswalk, Storybook config skeletons, fixture/decorator contracts, API reference, P0/P1 backlog, Philip review packet, and validation command matrix.
 
 ## Current Implementation Status
 
@@ -33,10 +36,18 @@ ArchEstimator now needs a formal, Storybook-first product UI component library t
 3. `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`
 4. `02_CODEBASE_RESEARCH.md`
 5. `15_COMPONENT_INVENTORY_MATRIX.md`
-6. `16_STORYBOOK_INSTALLATION_AND_CONFIGURATION_PLAN.md`
-7. `21_EXTERNAL_SOURCE_ADOPTION_PLAN_SHADCN_FLOWBITE_ACETERNITY.md`
-8. `30_AGENT_UI_USAGE_RULES_DRAFT.md`
-9. Preserved tree sub-plan docs only after reading the canonical layer.
+6. `17_STORYBOOK_STORY_COVERAGE_MATRIX.md`
+7. `16_STORYBOOK_INSTALLATION_AND_CONFIGURATION_PLAN.md`
+8. `21_EXTERNAL_SOURCE_ADOPTION_PLAN_SHADCN_FLOWBITE_ACETERNITY.md`
+9. `32_SOURCE_ADOPTION_CROSSWALK.md`
+10. `33_STORYBOOK_CONFIG_SKELETONS.md`
+11. `34_FIXTURE_AND_DECORATOR_CONTRACTS.md`
+12. `35_COMPONENT_API_REFERENCE_MATRIX.md`
+13. `36_P0_P1_IMPLEMENTATION_BACKLOG.md`
+14. `37_PHILIP_STORYBOOK_REVIEW_PACKET.md`
+15. `38_VALIDATION_COMMAND_MATRIX.md`
+16. `30_AGENT_UI_USAGE_RULES_DRAFT.md`
+17. Preserved tree sub-plan docs only after reading the canonical layer.
 
 ## Source-Of-Truth Hierarchy
 
@@ -50,6 +61,7 @@ ArchEstimator now needs a formal, Storybook-first product UI component library t
 
 - Future implementation installs and configures Storybook only after package approval.
 - All P0/P1 component inventory items have inspectable stories.
+- Component/story coverage is traceable through the 809-row inventory and 703-row P0/P1 story manifest.
 - Stories cover variants, states, density, accessibility, responsive behavior, empty/loading/error/success, and ArchEstimator usage.
 - Stories use static fixtures and mocks only.
 - Components use typed, stable APIs and follow `DESIGN.md`.
