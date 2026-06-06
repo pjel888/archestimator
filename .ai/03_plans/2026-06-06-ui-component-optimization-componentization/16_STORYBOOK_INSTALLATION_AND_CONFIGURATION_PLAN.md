@@ -45,6 +45,7 @@ Preferred config goals:
 - Decorators for app/workshop theme and story-only providers.
 - No live Supabase/provider client initialization.
 - Accessibility addon if approved and compatible.
+- Implementation should follow the non-mutating skeletons captured in `33_STORYBOOK_CONFIG_SKELETONS.md`.
 
 ## Configuration Files To Plan
 
@@ -81,6 +82,8 @@ Disallowed decorators:
 - Vercel provider setup.
 - Live project/workspace loaders.
 
+`34_FIXTURE_AND_DECORATOR_CONTRACTS.md` is the detailed fixture/decorator authority. Future implementation must reject stories that need live Supabase, auth refresh, provider env values, server actions, or external network calls.
+
 ## Validation
 
 ```bash
@@ -89,6 +92,7 @@ bun run storybook
 bun run build-storybook
 bun run validate
 bun run build
+bun run type-check
 git diff --check
 ```
 

@@ -42,6 +42,6 @@ The full plan includes Phases 0-8. It should not be run as one broad prompt. Fut
 
 | Scope | Done means |
 | --- | --- |
-| MVP | Phases 0-3 pass targeted tests, share tree visual smoke, typecheck, and design-system lint; no editable estimate behavior changed. |
+| MVP | Phases 0-3 pass targeted tests, share tree visual smoke, `bun run type-check`, and design-system lint; no editable estimate behavior changed. |
 | Full editable-tree plan | Estimate tree and sheet behavior pass existing and new regression tests; owner smoke confirms drag/drop, rename, delete, bulk delete, row edit, insert, and rollback behavior. |
 | Performance plan | Baseline and post-change Profiler/bundle numbers are recorded. |

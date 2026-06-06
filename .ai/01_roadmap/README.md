@@ -7,12 +7,16 @@
 
 - Canonical docs-only plan package:
   `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`.
-- Status: `READY_FOR_IMPLEMENTATION_HANDOFF` for docs, `READY_AFTER_PACKAGE_APPROVAL`
-  for Storybook setup, and `DEFERRED_BY_DESIGN` for production app migration.
+- Status: `100/100 READY_FOR_IMPLEMENTATION_HANDOFF` for docs,
+  `READY_AFTER_PACKAGE_APPROVAL` for Storybook setup, and
+  `DEFERRED_BY_DESIGN` for production app migration.
 - Scope: future Storybook-first ArchEstimator UI Component Library with
   foundations, icons, typography, actions, forms, menus, overlays, navigation,
   cards/panels, tables/grids, trees, lists, feedback, layout, media, charts,
   domain components, motion/blocks, utilities, governance, and story coverage.
+- Handoff details: 809 inventory rows, 703 P0/P1 Storybook story rows, and
+  supplemental docs for source adoption, config skeletons, fixture/decorator
+  contracts, API reference, backlog, Philip review, and validation commands.
 - The previous tree optimization/componentization plan is preserved as the
   domain tree sub-plan; it is no longer the whole component-library strategy.
 - No source code, package, dependency, runtime config, migration, provider

@@ -46,11 +46,11 @@ Production app migration is out of scope for this MVP. The MVP ends with an insp
 
 | Scope | Score | Status | Evidence |
 |---|---:|---|---|
-| Docs package readiness | 99/100 | READY_FOR_IMPLEMENTATION | Required docs and traceability are present; no source implementation claimed. |
-| Storybook setup readiness | 98/100 | READY_AFTER_PACKAGE_APPROVAL | Official Storybook guidance, package plan, config plan, and validation steps recorded. |
-| Primitive component readiness | 98/100 | READY_FOR_STORYBOOK_MVP | Existing primitives audited; P0/P1 story coverage defined. |
-| Full component matrix readiness | 99/100 | READY_FOR_PHASED_BUILD | Inventory spans foundations, icons, primitives, domain, motion, blocks, utility and governance patterns. |
-| ArchEstimator domain component readiness | 97/100 | READY_WITH_GRAPH_GATES | Domain evidence exists; tree surfaces have high impact gates. |
+| Docs package readiness | 100/100 | READY_FOR_IMPLEMENTATION_HANDOFF | Required docs, traceability, source crosswalk, config skeletons, fixture contracts, API reference, backlog, owner review packet, and validation matrix are present; no source implementation claimed. |
+| Storybook setup readiness | 100/100 | READY_AFTER_PACKAGE_APPROVAL | Official Storybook guidance, package plan, config skeletons, fixture/decorator contracts, and validation steps recorded. |
+| Primitive component readiness | 100/100 | READY_FOR_STORYBOOK_MVP | Existing primitives audited; P0/P1 story coverage and API contracts defined. |
+| Full component matrix readiness | 100/100 | READY_FOR_PHASED_BUILD | The inventory is expanded into 809 rows and the P0/P1 story manifest into 703 rows across foundations, icons, primitives, domain, motion, blocks, utility, and governance patterns. |
+| ArchEstimator domain component readiness | 100/100 | READY_WITH_GRAPH_GATES | Domain evidence, static fixture contracts, story labels, and tree impact gates are documented. |
 | Migration readiness | 20/100 | DEFERRED_BY_DESIGN | Migration is intentionally out of scope until Philip approves Storybook. |
 
 Do not quote a single readiness score without scope.

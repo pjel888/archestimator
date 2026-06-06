@@ -42,7 +42,7 @@ Expected result:
    - `git diff --check`
    - `bun run lint:design-system`
    - `bun run lint` if available
-   - `bun run typecheck` if available
+   - `bun run type-check` for this repo's current TypeScript script
    - `bun run validate`
 
 4. **Unit and DOM tests**
@@ -94,3 +94,7 @@ Stop and write a blocker note if:
 - Storybook stories require live auth/provider state.
 - A shared primitive change has HIGH/CRITICAL graph or GitNexus impact and lacks targeted tests.
 - Production app migration is attempted before Philip approves Storybook.
+
+## Command Authority
+
+`38_VALIDATION_COMMAND_MATRIX.md` is the command source of truth for future implementation. It separates current docs-only checks from future package/config/story checks and keeps `bun run test:e2e` outside the Storybook-only MVP unless production routes are touched.

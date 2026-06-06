@@ -23,6 +23,7 @@ Start by verifying:
 - DESIGN.md app/workshop rules
 - code-review graph and GitNexus impact before symbol edits
 - current official Storybook/Next/Tailwind/shadcn/Flowbite/Aceternity docs
+- docs `32_SOURCE_ADOPTION_CROSSWALK.md` through `38_VALIDATION_COMMAND_MATRIX.md`
 
 Build:
 1. Install/configure Storybook after package approval.
@@ -32,6 +33,7 @@ Build:
 5. Add P0 primitive stories/components.
 6. Add P1 composition/domain stories.
 7. Add governance/checklist stories or docs.
+8. Prepare the Philip Storybook review packet and stop before app migration.
 
 Validate:
 - bun run storybook
@@ -39,6 +41,7 @@ Validate:
 - bun run validate
 - bun run build
 - bun run lint:design-system
+- bun run type-check
 - focused tests for changed components
 - git diff --check
 
@@ -48,5 +51,6 @@ Completion report:
 - Files changed.
 - Package changes.
 - Validation evidence.
+- Philip review status and any requested revisions.
 - Deferred migration note.
 ```

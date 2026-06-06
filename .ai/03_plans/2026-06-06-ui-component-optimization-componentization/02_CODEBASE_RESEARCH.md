@@ -9,17 +9,37 @@
 |---|---|
 | `pwd` | `/Users/philiplewis/archestimator` |
 | `git rev-parse --show-toplevel` | `/Users/philiplewis/archestimator` |
-| `git status --short --branch` | Branch `docs/ui-component-plan-refinement-2026-06-06`; untracked prompt file before docs edits. |
+| `git status --short --branch` | Branch `docs/ui-component-plan-refinement-2026-06-06`; docs-only dirty `.ai` files before continuation edits. |
 | `git branch --show-current` | `docs/ui-component-plan-refinement-2026-06-06` |
 | `git worktree list` | Main worktree plus `archestimator.omx-worktrees/launch-plan-performance-and-speed`. |
 | `git remote -v` | `origin https://github.com/pjel888/archestimator.git` |
 | `git fetch --prune origin` | Updated `origin/feat/ux-ui-improvements` from `235785c` to `1174d99`. |
-| `git log --oneline -5` | Latest local commit before docs edits: `495dfaa docs(ai): preserve UI plan refinement prompt`. |
+| `git log --oneline -5` | Earlier local commit before this plan-pack expansion: `495dfaa docs(ai): preserve UI plan refinement prompt`. |
 | `npx gitnexus analyze --index-only --name archestimator /Users/philiplewis/archestimator` | Indexed successfully at current commit. |
 | `npx gitnexus status` | Up to date at commit `495dfaa`. |
 | `mcp__code_review_graph.get_minimal_context` | 5042 nodes, 74559 edges, low current diff risk. |
 | `mcp__code_review_graph.get_impact_radius` | Representative UI/package touchpoints: high, 500 impacted nodes, 128 files. |
 | `mcp__code_review_graph.list_communities` | Main communities include workshop-estimate, estimates-estimate, workshop-project, component-library-component. |
+
+## Continuation Evidence - 2026-06-06 Current Turn
+
+| Check | Current evidence |
+|---|---|
+| `pwd` | `/Users/philiplewis/archestimator` |
+| `git rev-parse --show-toplevel` | `/Users/philiplewis/archestimator` |
+| `git status --short --branch` | Branch `docs/ui-component-plan-refinement-2026-06-06`; existing dirty prompt file `.ai/08_prompts/ui-library-componentization-prompt.md` before this continuation's plan-doc edits. |
+| `git branch --show-current` | `docs/ui-component-plan-refinement-2026-06-06` |
+| `git worktree list` | Main worktree plus `/Users/philiplewis/archestimator.omx-worktrees/launch-plan-performance-and-speed`. |
+| `git remote -v` | `origin https://github.com/pjel888/archestimator.git` |
+| `git fetch --prune origin` | Completed with no output. |
+| `git log --oneline -5` | Latest commit before this continuation: `ad757ca docs(ai): expand ui component library storybook plan`. |
+| `code-review-graph list_graph_stats` | 560 files, 5042 nodes, 74559 edges, last updated `2026-06-07T00:04:05`. |
+| `code-review-graph detect_changes base=main` | 42 changed files in branch, 0 changed functions/classes, 0 affected flows, risk score `0.00`; branch diff is docs/state/prompt only. |
+| `code-review-graph semantic_search_nodes` | Found `Button`, `Modal`, `ContextMenu`, `Toast`, and `WorkshopTree`; no graph node for `SearchInput`, which file inspection confirmed under `src/components/ui/search-input.tsx`. |
+| `code-review-graph get_impact_radius` | Shared UI files remain high risk: Button, Modal, ContextMenu, Toast, and WorkshopTree all have broad downstream file/node impact. |
+| MCP transport note | A later code-review-graph MCP transport died; final verification must use CLI/file-backed fallback instead of retrying that transport blindly. |
+| Context7 docs check | Storybook, shadcn/ui, and Tailwind CSS current-doc summaries checked. |
+| Public web docs check | Storybook Next.js Vite, Flowbite Next.js/Tailwind v4, and Aceternity component catalog checked. |
 
 ## Files And Folders Inspected
 
@@ -209,6 +229,13 @@ Accessed 2026-06-06:
 - Aceternity AI recommendations: https://ui.aceternity.com/ai-recommendations
 - Tailwind CSS v4 upgrade guide: https://tailwindcss.com/docs/upgrade-guide
 
+Continuation checks on 2026-06-06 also confirmed:
+
+- Storybook docs still recommend `@storybook/nextjs-vite` for most Next.js projects, with `@storybook/nextjs` as the Webpack fallback for custom Webpack/Babel needs.
+- Storybook Next.js Vite docs still document `nextjs.appDirectory` for stories using `next/navigation`, and `npm run storybook` / `npm run build-storybook` scripts after setup.
+- Flowbite public Next.js docs now describe Flowbite React with Next.js and Tailwind CSS v4 setup, while paid/pro content remains owner/license-gated.
+- Aceternity public catalog remains motion-heavy and includes free/pro components, blocks, text effects, cards, backgrounds, loaders, and interaction patterns; any app/workshop use remains dependency/performance/reduced-motion gated.
+
 ## Gaps And Unknowns
 
 - Philip must approve Storybook package installation.
@@ -217,3 +244,10 @@ Accessed 2026-06-06:
 - Flowbite Pro access/license is an owner decision.
 - Motion/Framer-style dependencies are owner-approved only.
 - Production app migration remains deferred.
+
+## Continuation Addendum - 100/100 Handoff Closeout
+
+- `15_COMPONENT_INVENTORY_MATRIX.md` was expanded to 809 rows so prompt-required component families are explicit rather than compressed category shorthand.
+- `17_STORYBOOK_STORY_COVERAGE_MATRIX.md` was expanded to 703 P0/P1 story rows with owner-review labels, fixtures, controls, states, a11y, keyboard/play candidates, viewports, and reduced-motion posture.
+- Docs `32` through `38` were added to capture source-adoption decisions, future Storybook config skeletons, fixture/decorator contracts, API references, implementation backlog, Philip review packet, and validation commands.
+- No source, package, lockfile, runtime config, provider, migration, generated type, or app behavior file was changed by this docs continuation.

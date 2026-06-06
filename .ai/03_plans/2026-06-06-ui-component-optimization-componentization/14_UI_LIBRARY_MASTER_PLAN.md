@@ -39,6 +39,8 @@ MVP completes when:
 5. No production app migration is included.
 6. Philip can inspect and approve or reject the library.
 
+The docs handoff for that future implementation is now complete at 100/100: the 809-row inventory, 703-row story manifest, source crosswalk, config skeletons, fixture contracts, API reference, P0/P1 backlog, owner review packet, and validation matrix are all present. Runtime Storybook proof remains future work after package approval.
+
 ## Component Priority
 
 | Priority | Meaning |
@@ -62,3 +64,4 @@ A component is done when:
 - It has tests if behavior is nontrivial or shared.
 - It has migration status.
 - It has rollback notes for future app adoption.
+- It has an owner review label that maps to `37_PHILIP_STORYBOOK_REVIEW_PACKET.md`.
