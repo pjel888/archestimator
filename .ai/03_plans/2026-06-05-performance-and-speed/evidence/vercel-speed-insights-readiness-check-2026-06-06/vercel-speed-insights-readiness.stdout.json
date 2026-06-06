@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-06-06T04:10:11.362Z",
+  "mode": "vercel-speed-insights-readiness",
+  "project": "archestimator",
+  "scope": "philipjonlewis-projects",
+  "productionUrl": "https://www.archestimator.com",
+  "currentDeploymentId": "dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR",
+  "since": "7d",
+  "targetResScore": 95,
+  "dashboardResScore": null,
+  "currentDeploymentDataReady": false,
+  "coreVitalsGood": false,
+  "dashboardResTargetMet": false,
+  "resCompletionReady": false,
+  "missing": [
+    "current-deployment Speed Insights rows for FCP/LCP/INP/CLS",
+    "current-deployment FCP/LCP/INP/CLS all within Vercel good thresholds",
+    "dashboard/RES score >= 95"
+  ],
+  "metricSummaries": {
+    "fcp": {
+      "metric": "fcp",
+      "threshold": 1800,
+      "hasCurrentDeploymentData": false,
+      "overallValue": null,
+      "worstRouteDeviceValue": null,
+      "valueForThreshold": null,
+      "goodThresholdMet": false,
+      "dataPointCount": 0
+    },
+    "lcp": {
+      "metric": "lcp",
+      "threshold": 2500,
+      "hasCurrentDeploymentData": false,
+      "overallValue": null,
+      "worstRouteDeviceValue": null,
+      "valueForThreshold": null,
+      "goodThresholdMet": false,
+      "dataPointCount": 0
+    },
+    "inp": {
+      "metric": "inp",
+      "threshold": 200,
+      "hasCurrentDeploymentData": false,
+      "overallValue": null,
+      "worstRouteDeviceValue": null,
+      "valueForThreshold": null,
+      "goodThresholdMet": false,
+      "dataPointCount": 0
+    },
+    "cls": {
+      "metric": "cls",
+      "threshold": 0.1,
+      "hasCurrentDeploymentData": false,
+      "overallValue": null,
+      "worstRouteDeviceValue": null,
+      "valueForThreshold": null,
+      "goodThresholdMet": false,
+      "dataPointCount": 0
+    },
+    "ttfb_ms": {
+      "metric": "ttfb_ms",
+      "threshold": 800,
+      "hasCurrentDeploymentData": false,
+      "overallValue": null,
+      "worstRouteDeviceValue": null,
+      "valueForThreshold": null,
+      "goodThresholdMet": false,
+      "dataPointCount": 0
+    }
+  },
+  "note": "Read-only Vercel Speed Insights readiness check. It queries current-deployment p75 Speed Insights metrics via Vercel CLI, compares FCP/LCP/INP/CLS to Vercel good thresholds, and fails closed for exact RES completion unless a dashboard RES score is supplied. It does not submit vitals, create traffic, deploy, promote, mutate provider settings, or infer RES from lab data."
+}

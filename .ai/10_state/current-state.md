@@ -1298,3 +1298,11 @@ Open:
 - Current live production Lighthouse is strong but not RES proof: mobile 94, desktop 100.
 - A Roboto Mono preload/display spike was tested and reverted after mobile Lighthouse LCP worsened; do not reapply without stronger evidence.
 - RES completion is still unclaimed until current-production real-user Speed Insights rows/dashboard RES prove the target.
+
+## Performance and Speed Speed Insights Readiness Checker Added (2026-06-06)
+
+- Branch/worktree: `feat/performance-and-speed-pr-0b-cache-safety` at `/Users/philiplewis/archestimator.omx-worktrees/impl-performance-and-speed-pr-0b-cache-safety`.
+- Added `scripts/check-vercel-speed-insights-readiness.ts`, test `tests/vitest/vercel-speed-insights-readiness-script.test.ts`, and package script `perf:check-speed-insights`.
+- The checker is read-only: it runs Vercel inspect/metrics, filters p75 Speed Insights rows to the current production deployment, compares FCP/LCP/INP/CLS against Vercel good thresholds, and fails closed without a dashboard RES score.
+- Latest run evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` shows current deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, zero current-deployment rows, and `resCompletionReady: false`.
+- RES completion remains unclaimed until the checker passes with current-deployment rows and dashboard RES >= 95.

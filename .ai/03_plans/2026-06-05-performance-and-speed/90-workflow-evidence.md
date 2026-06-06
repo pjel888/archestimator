@@ -387,3 +387,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured live production Lighthouse for `https://www.archestimator.com/`: mobile score 94, desktop score 100. Evidence: `evidence/current-production-lighthouse-2026-06-06/`.
 - Tested a narrow `Roboto_Mono` optional/no-preload spike after GitNexus and graph impact analysis on `RootLayout`; focused test/typecheck/build passed, but three mobile Lighthouse runs worsened LCP. The code/test changes were reverted and only rejected-spike evidence remains at `evidence/mono-font-preload-scope-2026-06-06/`.
 - Computer Use still timed out on Chrome dashboard access, so dashboard overview/recommendation cards remain provider-UI open.
+
+## Speed Insights readiness checker — 2026-06-06
+
+- Added `scripts/check-vercel-speed-insights-readiness.ts` and package script `perf:check-speed-insights` as a read-only Vercel CLI provider gate.
+- TDD RED: `bun run test:dom -- tests/vitest/vercel-speed-insights-readiness-script.test.ts` failed because the checker module did not exist.
+- GREEN: after implementing the checker, the same focused Vitest file passed 4 tests.
+- `bun run type-check` passed.
+- Ran `SPEED_INSIGHTS_ALLOW_NOT_READY=1 ... bun run perf:check-speed-insights`; evidence at `evidence/vercel-speed-insights-readiness-check-2026-06-06/` reports current deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, zero current-deployment Speed Insights rows, missing dashboard RES, and `resCompletionReady: false`.

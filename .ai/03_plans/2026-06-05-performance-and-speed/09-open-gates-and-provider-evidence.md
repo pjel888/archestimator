@@ -75,3 +75,9 @@ Do not use `COMPLETE` for route-transition or Speed Insights improvements withou
 - [x] Current production lab Lighthouse captured: mobile score 94, desktop score 100. Evidence: `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`.
 - [x] Roboto Mono preload micro-optimization spike tested and reverted because mobile Lighthouse LCP worsened. Evidence: `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`.
 - [ ] Current production deployment Speed Insights rows / dashboard RES remain open because filtered current-deployment metrics are empty for all Speed Insights metrics as of the refresh.
+
+## 2026-06-06 repeatable Speed Insights readiness gate
+
+- [x] Added read-only current-deployment Speed Insights readiness checker. Evidence: `scripts/check-vercel-speed-insights-readiness.ts`, `tests/vitest/vercel-speed-insights-readiness-script.test.ts`, and package script `perf:check-speed-insights`.
+- [x] Ran the checker against current production. Evidence: `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` / `.json`; current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` still has zero current-deployment p75 rows for FCP/LCP/INP/CLS/TTFB and no dashboard RES score supplied.
+- [ ] RES completion remains open until `perf:check-speed-insights` can pass with current-deployment rows and dashboard RES >= 95.

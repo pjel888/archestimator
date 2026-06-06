@@ -73,3 +73,10 @@ This file is the registry for future baseline and before/after artifacts. Eviden
 | EVID-SI-INP-ATTR-001 | Stale INP outlier attribution | `evidence/vercel-speed-insights-inp-attribution-2026-06-06/inp-attribution-summary.md`, raw JSON in same folder | captured | The 59,404,496ms `/` desktop INP belongs to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`. |
 | EVID-LH-CURRENT-PROD-001 | Current production Lighthouse | `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`, `prod-home-*.report.json` | captured | Current live production alias scores 94 mobile and 100 desktop in lab. |
 | EVID-FONT-SPIKE-REJECTED-001 | Rejected Roboto Mono preload spike | `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`, summary JSON in same folder | rejected/reverted | Reduced font preload surface but worsened mobile LCP; code reverted. |
+
+## 2026-06-06 Speed Insights readiness checker evidence
+
+| Evidence id | Title | Files | Status | Notes |
+| --- | --- | --- | --- | --- |
+| EVID-SI-CHECKER-001 | Current-deployment Speed Insights readiness checker | `scripts/check-vercel-speed-insights-readiness.ts`, `tests/vitest/vercel-speed-insights-readiness-script.test.ts`, `package.json` script `perf:check-speed-insights` | implemented | Read-only Vercel CLI gate for current-deployment p75 rows, Vercel good thresholds, and dashboard RES target proof. |
+| EVID-SI-CHECKER-RUN-001 | Current production readiness checker run | `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`, `.json`, `.stdout.json` | captured / not ready | Current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has zero current-deployment rows and no dashboard RES score, so RES completion remains open. |

@@ -83,3 +83,7 @@ These gaps block claiming “massive performance upgrade” as proven and using 
 ## 2026-06-06 RES completion audit update
 
 The active RES goal is **not complete**. Evidence now proves the severe `/` desktop INP outlier is stale and tied to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`, while the current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has empty filtered Speed Insights summaries. Current production lab Lighthouse is strong (mobile 94, desktop 100), but Vercel's official scoring docs make RES a real-user score. Therefore completion remains blocked by provider/current-window data, not by a currently identified repo-side code issue.
+
+## 2026-06-06 repeatable gate update
+
+`bun run perf:check-speed-insights` now provides a repeatable fail-closed RES readiness gate. The first run produced `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` and confirms the goal is still not complete: current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no current-deployment Speed Insights rows and no dashboard RES score. This is now the authoritative command to rerun before any future completion claim.

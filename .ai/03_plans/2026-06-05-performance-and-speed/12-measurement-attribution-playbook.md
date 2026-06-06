@@ -151,3 +151,20 @@ Database/query work must follow the linked database-indexing plan: production `E
 - Next.js docs: `@next/bundle-analyzer` can be enabled with `ANALYZE=true` to attribute bundle size.
 - Vercel docs: Speed Insights reports Core Web Vitals from real-user data and dashboard route/device breakdown; CDN cache and `x-vercel-cache` headers are the hosted proof for cache behavior.
 - React docs: memoization should be measured; React Compiler can handle many memoization cases, while `useMemo`/`useCallback` remain escape hatches where identity control matters.
+
+## Current-deployment Speed Insights readiness loop
+
+Use `bun run perf:check-speed-insights` for every continuation of the RES goal before deciding whether more repo-side work is justified.
+
+Recommended capture command while provider rows are still expected to be missing:
+
+```bash
+SPEED_INSIGHTS_ALLOW_NOT_READY=1 SPEED_INSIGHTS_OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/<date>-speed-insights-readiness.json SPEED_INSIGHTS_MARKDOWN_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/<date>-speed-insights-readiness.md bun run perf:check-speed-insights
+```
+
+Interpretation:
+
+- If current-deployment rows are empty, do not claim RES completion and do not tune stale deployment metrics.
+- If current-deployment rows exist but any FCP/LCP/INP/CLS threshold fails, select the matching workstream from `16-metric-decision-tree-and-sequencing-gates.md`.
+- If rows are good but dashboard RES is unavailable, capture dashboard RES manually or via a trusted provider export before marking completion.
+- Do not synthesize Speed Insights data by posting vitals or generating artificial traffic.
