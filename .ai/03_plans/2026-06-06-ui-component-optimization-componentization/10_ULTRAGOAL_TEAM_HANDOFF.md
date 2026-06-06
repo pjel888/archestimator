@@ -17,7 +17,7 @@ $ultragoal $team
 Implement Phases 0-3 from .ai/03_plans/2026-06-06-ui-component-optimization-componentization.
 Do not touch editable estimate tree or EstimateSheetContent behavior.
 Start with tests for tree-core utilities and share-tree rendering.
-Verify with targeted tests, typecheck, design-system lint, browser share-tree smoke, and git diff checks.
+Verify with targeted tests, `bun run type-check`, design-system lint, browser share-tree smoke, and git diff checks.
 ```
 
 ## Suggested Lanes
