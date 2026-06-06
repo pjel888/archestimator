@@ -45,4 +45,4 @@
 
 ## Recommended First Implementation Prompt
 
-Implement only Phases 0-3 from this plan pack. Do not touch editable estimate tree or sheet behavior. Create tests for tree-core utilities and share-tree row rendering first, then wire the read-only share tree surfaces. Verify with targeted tests, typecheck, design-system lint, and browser smoke.
+Implement only Phases 0-3 from this plan pack. Do not touch editable estimate tree or sheet behavior. Create tests for tree-core utilities and share-tree row rendering first, then wire the read-only share tree surfaces. Verify with targeted tests, `bun run type-check`, design-system lint, and browser smoke.
