@@ -337,7 +337,7 @@
 - Local Supabase/Docker verification blocked for mutation/atomicity proof and scalar edit latency benchmarking; must use linked remote `ebxxqidacheyapmmzavr` until Docker is available.
 - Do not merge, deploy, or connect additional Supabase/Postgres resources without the owner's explicit approval.
 - Agent performance degradation is an explicit operational risk; use `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` when quality slips.
-- Privacy Notice and Terms are pending-review status pages only; legal review is required before public launch.
+- Privacy Notice and Terms are now implemented as versioned closed-beta legal surfaces with authenticated clickwrap acceptance on branch `codex/terms-and-conditions`, but qualified legal review, approved Supabase migration/provider proof, and owner-authorized branch merge remain required before public/paid launch enforcement.
 - The broad dirty worktree (`wip/post-shared-link-merge-recovery`) must be isolated, reconciled, or intentionally closed out before any merge/release claim.
 
 ## Resolved product decisions (since May 18)

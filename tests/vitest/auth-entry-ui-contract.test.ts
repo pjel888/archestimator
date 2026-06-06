@@ -15,6 +15,10 @@ const termsSource = readFileSync(
   join(process.cwd(), "src/app/terms/page.tsx"),
   "utf8",
 );
+const termsContentSource = readFileSync(
+  join(process.cwd(), "src/lib/legal/terms-content.ts"),
+  "utf8",
+);
 
 describe("/login auth entry UI contract", () => {
   it("does not expose password UI or internal admin-only copy", () => {
@@ -40,9 +44,9 @@ describe("/login auth entry UI contract", () => {
     expect(privacySource).toMatch(/project and estimate data/i);
     expect(privacySource).toMatch(/support@archestimator\.com/i);
     expect(termsSource).toMatch(/closed beta terms/i);
-    expect(termsSource).toMatch(/invite-only access/i);
-    expect(termsSource).toMatch(/No payment or subscription contract/i);
-    expect(termsSource).toMatch(/Construction estimate accuracy/i);
+    expect(termsSource).toMatch(/invite-only professional\/business beta use/i);
+    expect(termsContentSource).toMatch(/software tool/i);
+    expect(termsSource + termsContentSource).toMatch(/raw IP address and raw user-agent strings are not stored/i);
   });
 
   it("does not echo submitted email addresses in the success query state", () => {

@@ -1,15 +1,16 @@
 # Archestimator Production-Readiness Command Center
 
-**Last updated:** 2026-06-02
-**Status:** Pre-launch MVP — repo-local launch implementation frozen; external/provider/manual proof lane remains open.
+**Last updated:** 2026-06-06
+**Status:** Pre-launch MVP — repo-local launch implementation remains controlled; external/provider/manual proof lane remains open.
 
-## 2026-06-06 Terms and Conditions implementation plan
+## 2026-06-06 Terms and Conditions implementation
 
-- New docs-only implementation plan: `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/`.
-- Status: planning-ready for future engineering after legal/product decisions and qualified legal review of final Terms copy.
-- Scope: versioned Terms, acceptance evidence, Supabase/RLS, re-acceptance, auth/protected-route UX, legal/support evidence, billing edge-case planning.
-- No code, migration, dependency, provider, runtime, or billing implementation has been performed.
-- Do not claim absolute zero liability; implement strongest commercially reasonable legal-reviewable SaaS protection only.
+- Archived plan package: `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`.
+- Branch: `codex/terms-and-conditions`.
+- Status: IMPLEMENTED_ON_BRANCH / NOT MERGED_TO_MAIN / LEGAL_AND_PROVIDER_GATES_OPEN.
+- Scope delivered: versioned Terms/Privacy content, authenticated clickwrap gate at `/workshop/terms`, append-only Supabase acceptance migration, service-role-stamped persistence, own-row RLS read policy, settings/login/legal links, and regression tests.
+- Legal guardrails remain: no absolute zero-liability claim; use strongest commercially reasonable legal-reviewable SaaS protection only; final public/paid Terms require qualified lawyer review.
+- Provider gate remains: apply/verify the new Supabase migration and regenerate types from a working schema before production rollout.
 
 ## Current MVP Launch Handoff
 
