@@ -15,7 +15,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
           }
         ]
       }
@@ -36,7 +37,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
           }
         ]
       }
@@ -46,7 +48,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
           }
         ]
       }
@@ -56,7 +59,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
           }
         ]
       }
@@ -66,7 +70,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
           }
         ]
       }
@@ -76,7 +81,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
           }
         ]
       }
@@ -86,7 +92,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\"",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
             "timeout": 30
           }
         ]
