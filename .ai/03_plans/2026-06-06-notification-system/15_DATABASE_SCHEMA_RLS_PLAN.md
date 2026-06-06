@@ -124,7 +124,7 @@ The RLS test must prove:
 - User A cannot directly update User A or User B delivery state through the authenticated role.
 - Anonymous cannot read either table.
 
-Actual database-backed RLS proof is mandatory before UI work or PR. Static SQL tests are not enough to claim implementation readiness. If local Supabase is unavailable, use a branch-safe/preview database. If neither exists, stop and record a blocker or explicit owner-accepted proof gap before proceeding.
+Actual database-backed RLS proof is mandatory before UI work or PR. Static SQL tests are not enough to claim implementation readiness. For this branch, the owner removed Docker from the goal and accepted the no-Docker local PostgreSQL proof path: `bun run prove:notification-rls` applies the real migration to a temporary PostgreSQL cluster and proves the required allow/deny cases. Supabase-specific reset/typegen remains future provider-readiness work.
 
 ## Static Schema Test Assertions
 
@@ -146,6 +146,6 @@ Actual database-backed RLS proof is mandatory before UI work or PR. Static SQL t
 ## Stop Gates
 
 - Stop before UI work if schema tests cannot prove RLS and grant shape.
-- Stop before UI work if actual RLS behavior proof cannot run locally or against a branch-safe database and the owner has not accepted a named proof gap.
+- Stop before UI work if actual RLS behavior proof cannot run through `bun run prove:notification-rls`, local Supabase, or an owner-approved branch-safe database.
 - Stop before linked apply if local or branch-safe migration/typegen cannot run and the owner has not accepted a narrower database proof.
 - Stop and create `.ai/15_Bugs/<date>-notification-system-rls-blocker.md` if cross-user denial cannot be proven.

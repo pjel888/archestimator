@@ -12,7 +12,7 @@
 
 ## Status
 
-REFINED_READY_FOR_IMPLEMENTATION after the future implementation agent reruns the verification preflight on the then-current branch. This pack is a planning artifact only.
+IMPLEMENTED_LOCAL_COMPLETE_NO_DOCKER_RLS_PROVEN on branch `codex/notification-system`. This pack began as a planning artifact; the branch now contains the V1 implementation plus a no-Docker PostgreSQL RLS proof command.
 
 2026-06-06 refinement status: 100/100 document quality and 100/100 implementation readiness by the dual-axis rubric in `11_READINESS_SCORECARD.md`. The score means every known gap is either concretely specified, assigned to a named implementation gate, or converted into a stop condition. It does not mean the feature is implemented or provider-proven. A second critic review initially returned WATCH on typegen sequencing, mutation authority, mandatory RLS proof, V1 fanout path, and seed/admin action-link safety; those fixes are now applied in docs `03`, `04`, `06`, `08`, `15`, `16`, `19`, `23`, `24`, and `25`.
 
@@ -103,8 +103,8 @@ Scoring rule: a document earns 100 only when a future agent can act without inve
 
 ## Bug Plans
 
-None created. Architect and critic reviews did not discover a current implementation blocker requiring `.ai/15_Bugs`. Remaining live-provider facts and RLS/provider proof requirements are deliberate future stop gates, not hidden blockers.
+`.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` records the original Docker/local-Postgres proof blocker and its resolution through Homebrew PostgreSQL 16 plus `bun run prove:notification-rls`. Remaining live-provider facts and Supabase provider proof requirements are deliberate future readiness gates, not hidden blockers.
 
 ## Current Status
 
-Planning refined. No implementation has started.
+Implementation exists on `codex/notification-system`; repo-local validation and no-Docker PostgreSQL RLS proof pass. Linked Supabase/provider mutation, hosted smoke, real fanout, and Supabase-specific typegen remain future owner-approved work.

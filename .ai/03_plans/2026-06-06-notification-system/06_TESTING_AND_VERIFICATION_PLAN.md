@@ -14,6 +14,12 @@ Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. This plan is the verifica
   - SQL includes user feed, unread, modal, release version, and dedupe indexes.
   - SQL includes `unique(notification_id, user_id)`.
 
+- `bun run prove:notification-rls`
+  - Starts a temporary local PostgreSQL 16 cluster without Docker.
+  - Applies `supabase/migrations/20260606090000_notification_system.sql`.
+  - Stubs Supabase auth roles/functions only for proof isolation.
+  - Proves same-user definition/delivery reads and cross-user/direct-write/anonymous denial.
+
 - `tests/integration/rls-notifications.test.ts` where integration harness is available.
   - User A can read own delivery.
   - User A can read a notification definition only when User A has a delivery row for it.
@@ -116,6 +122,7 @@ bun run type-check
 bun run lint
 bun run lint:design-system
 bun run test:dom
+bun run prove:notification-rls
 bun run validate
 git diff --check
 ```
@@ -165,9 +172,9 @@ If custom instrumentation is added later, it may record event names and counts o
 
 ## Pass/Fail
 
-Pass only when all targeted tests, relevant existing regression tests, typecheck, lint, design-system lint, and documented manual QA are complete or any gap is explicitly accepted by the owner with a reason.
+Pass only when all targeted tests, relevant existing regression tests, typecheck, lint, design-system lint, no-Docker RLS proof, and documented manual QA are complete or any gap is explicitly accepted by the owner with a reason.
 
-RLS behavior proof is not optional for implementation readiness. Static SQL tests can support the migration review, but before UI work or PR the implementation must produce either local Supabase RLS integration proof or branch-safe database proof for same-user read, cross-user denial, direct authenticated write denial, and anonymous denial. If no database-backed RLS proof path is available, stop and record a blocker or owner-accepted proof gap before continuing.
+RLS behavior proof is not optional for implementation readiness. Static SQL tests can support the migration review, but the implementation must produce database-backed proof for same-user read, cross-user denial, direct authenticated write denial, and anonymous denial. For this branch, `bun run prove:notification-rls` satisfies the implementation proof without Docker. Supabase-specific reset/typegen and provider proof remain future readiness gates before linked/provider release claims.
 
 ## Docs-Only Refinement Verification
 

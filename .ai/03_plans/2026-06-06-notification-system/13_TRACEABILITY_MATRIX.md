@@ -1,8 +1,8 @@
 # Traceability Matrix
 
-Status: `IMPLEMENTED_WITH_RLS_PROOF_BLOCKER`.
+Status: `IMPLEMENTED_LOCAL_COMPLETE_NO_DOCKER_RLS_PROVEN`.
 
-This matrix connects requirements, acceptance criteria, source files, specialist docs, tests, verification evidence, and rollback. Source implementation exists on `codex/notification-system`; provider/production readiness is still blocked on database-backed RLS behavior proof and local or branch-safe Supabase type generation.
+This matrix connects requirements, acceptance criteria, source files, specialist docs, tests, verification evidence, and rollback. Source implementation exists on `codex/notification-system`; no-Docker local PostgreSQL RLS behavior proof now passes. Provider/production readiness is still gated on owner-approved Supabase reset/typegen or branch-safe/linked provider evidence.
 
 ## Requirement Trace
 
@@ -28,13 +28,13 @@ This matrix connects requirements, acceptance criteria, source files, specialist
 
 | AC | Evidence Owner | Required Tests | Manual/Operational Proof | Status |
 | --- | --- | --- | --- | --- |
-| AC1 modal once per user | UI + server action | release modal, provider, actions, Playwright release flow | reload after acknowledgement; verify no repeat | Implemented by component/action tests; guarded E2E spec added, blocked on DB proof target |
+| AC1 modal once per user | UI + server action | release modal, provider, actions, Playwright release flow | reload after acknowledgement; verify no repeat | Implemented by component/action tests; guarded E2E spec added for provider-backed smoke |
 | AC2 center feed/unread | UI + query hooks | notification center, query, actions, Playwright center flow | open center, mark read, dismiss | Implemented by component/query/action tests |
-| AC3 cross-user denial | schema/RLS | schema static, mandatory local or branch-safe RLS integration, actions | two-user manual probe if linked DB used | Static/action proof complete; guarded RLS proof harness added, database run blocked |
+| AC3 cross-user denial | schema/RLS | schema static, no-Docker PostgreSQL proof, guarded local/branch-safe RLS integration, actions | two-user manual probe if linked DB used | Static/action proof complete; no-Docker database proof passed; guarded Supabase harness remains for future provider target |
 | AC4 empty state stability | UI/design | notification center, responsive layout checks | 320px and desktop inspection | Implemented by component tests; manual viewport proof pending |
 | AC5 failure does not block workflows | provider/server | provider, action error, workshop regressions | navigation/save/toast smoke | Implemented by provider/action tests and full DOM regression |
 | AC6 content sanitized | server/schema | action-link validator, payload forbidden-key tests | inspect seed content before release | Implemented by DB/static and server validator tests |
-| AC7 additive migration/index/RLS | database | schema static, local/branch-safe typegen diff, mandatory RLS behavior proof, optional EXPLAIN | provider evidence log | Static migration proof complete; guarded proof harness added; typegen/RLS behavior run blocked |
+| AC7 additive migration/index/RLS | database | schema static, no-Docker RLS behavior proof, future local/branch-safe typegen diff, optional EXPLAIN | provider evidence log | Static migration proof and no-Docker DB RLS proof complete; Supabase typegen/provider proof deferred |
 | AC8 state transitions/fallback | server/query/realtime | actions, query, optional realtime | disable Realtime and verify polling path | Implemented durable non-Realtime path; Realtime deferred |
 | AC9 design-system fit | UI/design | `lint:design-system`, modal/center tests | visual/manual QA | Automated design-system lint passed; manual QA pending |
 | AC10 async performance | provider/query | provider/query tests | browser waterfall, bounded fetch proof | Implemented async query path; browser waterfall pending |
@@ -62,4 +62,4 @@ This matrix connects requirements, acceptance criteria, source files, specialist
 
 ## Status Rule
 
-Rows should distinguish implemented source/test evidence from provider/runtime evidence. Do not mark RLS/provider rows complete until `.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` is resolved.
+Rows should distinguish implemented source/test evidence from provider/runtime evidence. The local implementation RLS row is complete after `bun run prove:notification-rls`; provider rows remain incomplete until Supabase-specific reset/typegen or owner-approved branch-safe/linked evidence exists.

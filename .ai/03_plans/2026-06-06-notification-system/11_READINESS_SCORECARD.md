@@ -10,7 +10,7 @@ Refined result after this pass: document quality 100/100, implementation readine
 
 No blocker requires a `.ai/15_Bugs` plan. Open questions are non-blocking and have implementation-safe defaults in `12_OPEN_QUESTIONS_AND_DECISIONS.md`. Live provider facts are explicitly gated in `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`; they are not assumed complete.
 
-A second critic review initially returned WATCH because five choices were still too loose for an honest 100/100 claim. This pass closed them by making local/branch-safe typegen sequencing explicit, fixing V1 mutation authority to server-action/service-role only, making actual RLS behavior proof mandatory before UI/PR, pinning V1 proof/fanout paths, and adding DB/static seed action-link safety.
+A second critic review initially returned WATCH because five choices were still too loose for an honest 100/100 claim. This pass closed them by making local/branch-safe typegen sequencing explicit, fixing V1 mutation authority to server-action/service-role only, making actual RLS behavior proof mandatory before UI/PR, pinning V1 proof/fanout paths, and adding DB/static seed action-link safety. After implementation, the owner removed Docker from this goal and the no-Docker local PostgreSQL proof command `bun run prove:notification-rls` satisfied the RLS behavior gate for the branch.
 
 ## Scoring Rubric
 
@@ -58,8 +58,8 @@ A second critic review initially returned WATCH because five choices were still 
 - Realtime remains optional until durable persistence, RLS tests, cache tests, and UI tests pass.
 - Admin UI remains deferred; release creation uses a seed/server-only path unless owner expands scope.
 - Direct authenticated notification writes are out of V1 scope; server actions own state mutations through the existing service-role helper with current-user filters.
-- Typegen must come from local reset or branch-safe target before PR; linked production typegen is post-approval only.
-- Actual RLS behavior proof is mandatory before UI work or PR. Static SQL tests alone are not enough.
+- Typegen must come from local reset or branch-safe target before provider-readiness claims; linked production typegen is post-approval only.
+- Actual RLS behavior proof is mandatory before UI work or PR. Static SQL tests alone are not enough; `bun run prove:notification-rls` is the accepted no-Docker proof path for this branch.
 
 ## Closure Criteria
 

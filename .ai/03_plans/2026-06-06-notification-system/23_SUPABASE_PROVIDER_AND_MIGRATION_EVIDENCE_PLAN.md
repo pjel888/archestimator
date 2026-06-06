@@ -14,7 +14,7 @@ Separate local planning, local migration proof, branch-safe database proof, and 
 
 ## Local Migration Gate
 
-Required before PR:
+Supabase-specific local reset/typegen is a provider-readiness gate, not a Docker requirement for the current implementation goal. When Docker-backed Supabase is available, run:
 
 ```bash
 bun run test:dom -- tests/vitest/notification-schema.test.ts
@@ -24,16 +24,25 @@ npx supabase@2.98.2 gen types typescript --local > src/lib/supabase/types.ts
 git diff --check
 ```
 
-Local typegen must use `--local` after `db reset`; using `--project-id ebxxqidacheyapmmzavr` at this stage would read the linked project and will not include an unapplied local migration. If local Supabase is unavailable, record the exact command failure and obtain branch-safe database proof before UI work or PR.
+Local typegen must use `--local` after `db reset`; using `--project-id ebxxqidacheyapmmzavr` at this stage would read the linked project and will not include an unapplied local migration. If local Supabase is unavailable, record the exact command failure and use the no-Docker implementation proof gate below. Do not generate linked production types for an unapplied notification migration.
 
-Actual RLS behavior proof is mandatory before UI work or PR:
+## No-Docker Implementation Proof Gate
+
+Required for this branch:
+
+```bash
+brew install postgresql@16
+bun run prove:notification-rls
+```
+
+`bun run prove:notification-rls` starts a temporary local PostgreSQL 16 cluster, applies `supabase/migrations/20260606090000_notification_system.sql`, seeds deterministic proof rows, checks the required RLS allow/deny behavior, and tears the cluster down. Passing assertions:
 
 - Same-user definition and delivery read succeeds.
 - Cross-user definition and delivery read fails.
 - Direct authenticated insert/update/delete fails.
 - Anonymous read fails.
 
-Static SQL tests alone do not satisfy this gate.
+Static SQL tests alone do not satisfy this gate. Supabase-specific typegen/provider proof remains future readiness before linked/provider release claims.
 
 ## Branch-Safe Database Gate
 
@@ -96,5 +105,5 @@ Before linked apply, prepare a forward repair plan:
 - Stop if target project is not `ebxxqidacheyapmmzavr`.
 - Stop if linked apply is requested without owner approval.
 - Stop if RLS denial proof fails.
-- Stop before UI work or PR if no local or branch-safe RLS behavior proof exists and the owner has not accepted the exact proof gap.
+- Stop before UI work or PR if no database-backed RLS behavior proof exists through `bun run prove:notification-rls`, local Supabase, or an owner-approved branch-safe target.
 - Stop if typegen changes unexpected tables outside notification additions.
