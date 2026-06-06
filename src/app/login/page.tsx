@@ -75,7 +75,7 @@ export default async function LoginPage({
           </form>
 
           <p className="mt-2 text-[9px] leading-4 text-muted">
-            By continuing, you agree to the current{" "}
+            Review the current{" "}
             <a href="/terms" className="font-medium text-ink underline decoration-hairline underline-offset-2">
               closed beta terms
             </a>{" "}
@@ -83,7 +83,7 @@ export default async function LoginPage({
             <a href="/privacy" className="font-medium text-ink underline decoration-hairline underline-offset-2">
               privacy notice
             </a>
-            .
+            . Protected workshop access requires affirmative acceptance after sign-in.
           </p>
         </div>
       </section>
