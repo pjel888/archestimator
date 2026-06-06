@@ -369,4 +369,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured hosted proposal export proof at `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md` / `.json`: two allowed-session samples pass with XLSX content type, attachment disposition, ZIP magic, 12,253 bytes, and `private, no-store`.
 - Captured valid private media proof at `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md` / `.json`: upload, two private WebP GETs, and app DELETE cleanup pass; GETs return `private, max-age=300`, `x-vercel-cache: MISS`, and no public/shared-cache directive.
 - Captured cleanup proof at `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md` / `.json`: synthetic auth/database counts are all zero and storage paths were removed through app DELETE.
-- Remaining open gates: dashboard overview/recommendation cards if needed, comparable Speed Insights windows, and valid private share-token timing.
+- Remaining open gates after this auth/export/media pass were dashboard overview/recommendation cards if needed, comparable Speed Insights windows, and valid private share-token timing; the later valid-share fixture proof closes the share-token timing gap.
+
+## 2026-06-06 — Valid share-token synthetic hosted fixture proof captured
+
+- Ran a headless production UI flow with a temporary allowed-session project to generate a real share token through the app server action, not by decrypting/inferring database rows.
+- Captured sanitized evidence at `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md` / `.json`: `/share/VALID_TOKEN_REDACTED`, `/api/share/VALID_TOKEN_REDACTED`, and `/api/share/VALID_TOKEN_REDACTED/activity` all returned `200`, no-store/private no-store cache policy, no `Set-Cookie`, and durations of 1.857s / 2.560s / 1.920s.
+- Captured cleanup proof at `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md` / `.json`: run-scoped auth users, beta rows, profiles, workspaces, projects, estimates, nodes, rows, publications, and publication events are all zero.
+- Remaining open gates: dashboard overview/recommendation cards if needed and comparable Speed Insights before/after windows.

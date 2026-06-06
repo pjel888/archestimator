@@ -53,9 +53,11 @@ The canonical performance-and-speed pack is the complete current inventory below
 6. `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md`
 7. `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md`
 8. `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md`
-9. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
-10. `evidence/README.md`
+9. `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md`
+10. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
+11. `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md`
+12. `evidence/README.md`
 
 ## Implementation pointer
 
-Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. PR-0B, public personalization/cache-safety proof, is implemented as **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED** in branch `feat/performance-and-speed-pr-0b-cache-safety`; evidence is `evidence/2026-06-06-public-cache-safety-harness.md`. Synthetic production fixtures now close signed-in auth, hosted export, and valid private media evidence blockers with zero-residue cleanup proof. Capture dashboard overview/recommendation cards if available, capture comparable Speed Insights windows when traffic exists, and do not claim performance completion until provider/manual evidence proves the target metric. Do not relax public cache headers until personalized/auth/A-B output is isolated or proven cache-safe.
+Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. PR-0B, public personalization/cache-safety proof, is implemented as **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED** in branch `feat/performance-and-speed-pr-0b-cache-safety`; evidence is `evidence/2026-06-06-public-cache-safety-harness.md`. Synthetic production fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token evidence blockers with zero-residue cleanup proof. Capture dashboard overview/recommendation cards if available, capture comparable Speed Insights windows when traffic exists, and do not claim performance completion until provider/manual evidence proves the target metric. Do not relax public cache headers until personalized/auth/A-B output is isolated or proven cache-safe.

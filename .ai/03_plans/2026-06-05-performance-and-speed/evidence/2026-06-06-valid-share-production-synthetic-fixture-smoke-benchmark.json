@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-06-06T03:32:25.126Z",
+  "mode": "hosted-valid-share-token-smoke",
+  "baseUrl": "https://www.archestimator.com",
+  "samples": [
+    {
+      "label": "share-page",
+      "route": "/share/VALID_TOKEN_REDACTED",
+      "status": 200,
+      "ok": true,
+      "durationMs": 1857,
+      "byteLength": 37164,
+      "contentType": "text/html; charset=utf-8",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "passed": true
+    },
+    {
+      "label": "share-snapshot-api",
+      "route": "/api/share/VALID_TOKEN_REDACTED",
+      "status": 200,
+      "ok": true,
+      "durationMs": 2560,
+      "byteLength": 1116,
+      "contentType": "application/json",
+      "cacheControl": "no-store",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "passed": true
+    },
+    {
+      "label": "share-activity-api",
+      "route": "/api/share/VALID_TOKEN_REDACTED/activity",
+      "status": 200,
+      "ok": true,
+      "durationMs": 1920,
+      "byteLength": 58,
+      "contentType": "application/json",
+      "cacheControl": "no-store",
+      "hasNoStoreCacheControl": true,
+      "setCookiePresent": false,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "note": "Synthetic production UI generated a real publication token through the app server action. Raw token, cookies, passwords, and customer data are not written to this report."
+}

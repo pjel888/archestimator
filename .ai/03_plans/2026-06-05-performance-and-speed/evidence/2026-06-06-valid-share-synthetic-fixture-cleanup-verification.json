@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-06-06T03:32:29.291Z",
+  "mode": "hosted-valid-share-cleanup-verification",
+  "runId": "codex-share-20260606033200-99344c10",
+  "counts": {
+    "auth_users": 0,
+    "beta_rows": 0,
+    "estimate_nodes": 0,
+    "estimate_row_items": 0,
+    "estimates": 0,
+    "profiles": 0,
+    "project_publication_events": 0,
+    "project_publications": 0,
+    "projects": 0,
+    "workspaces": 0
+  },
+  "passed": true,
+  "note": "Cleanup deletes only the current runId synthetic share/auth/database fixtures after hosted proof capture. Raw token, cookies, and passwords are not written."
+}

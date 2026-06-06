@@ -45,7 +45,7 @@ This manifest is generated from the current folder inventory. It exists to preve
 
 ## Evidence files
 
-The evidence folder now contains 57 top-level files and 171 files total including trace/report subfolders. `21-evidence-index.md` is the canonical registry. Current key proof artifacts include:
+The evidence folder now contains 61 top-level files and 175 files total including trace/report subfolders. `21-evidence-index.md` is the canonical registry. Current key proof artifacts include:
 
 1. `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md`
 2. `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json`
@@ -55,8 +55,10 @@ The evidence folder now contains 57 top-level files and 171 files total includin
 6. `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md`
 7. `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md`
 8. `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md`
-9. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
-10. `evidence/README.md`
+9. `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md`
+10. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
+11. `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md`
+12. `evidence/README.md`
 
 ## Completion audit
 
@@ -71,4 +73,4 @@ The evidence folder now contains 57 top-level files and 171 files total includin
 
 ## Final interpretation
 
-The planning pack remains complete for handoff. PR-0B is implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Synthetic hosted fixtures now close signed-in auth, hosted export, and valid private media blockers with zero-residue cleanup. Future work should capture dashboard evidence if available, wait for comparable Speed Insights windows, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.
+The planning pack remains complete for handoff. PR-0B is implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Synthetic hosted fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token blockers with zero-residue cleanup. Future work should capture dashboard evidence if available, wait for comparable Speed Insights windows, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.

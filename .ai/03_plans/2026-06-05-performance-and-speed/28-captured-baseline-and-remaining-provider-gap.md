@@ -72,7 +72,6 @@ Remaining gaps:
 
 - Dashboard overview score/screenshot and recommendation cards remain unavailable because Computer Use timed out and protected fetch could not create a shareable dashboard URL.
 - Previous 7-day and previous-3-day route/device windows returned empty summaries, so Workstream 7.2 still lacks comparable traffic cohorts.
-- Valid private share-token timing remains open; invalid-token share probes are fail-closed/no-store proof only.
 - Final performance-impact proof still requires before/after provider windows after a deployed change; the current CLI capture is a baseline, not a completion claim.
 
 Closed fixture gaps on 2026-06-06:
@@ -80,7 +79,8 @@ Closed fixture gaps on 2026-06-06:
 - Signed-in hosted auth fixture proof: `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
 - Hosted proposal export fixture proof: `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
 - Valid private media fixture proof: `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
-- Synthetic provider-data cleanup proof: `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md` / `.json`.
+- Valid private share-token proof: `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md` / `.json`.
+- Synthetic provider-data cleanup proof: `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md` / `.json` and `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md` / `.json`.
 
 ## 2026-06-06 refresh
 
@@ -107,4 +107,8 @@ Owner-granted authority allowed temporary synthetic production fixtures against 
 | Valid private media | `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md` / `.json` | PASS: upload/2x GET/delete passed; private WebP GET returned `private, max-age=300`, `x-vercel-cache: MISS`, and no shared-cache directive. |
 | Cleanup | `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md` / `.json` | PASS: auth users, beta rows, profiles, workspaces, projects, estimates, nodes, rows, and publications all zero; storage paths removed through app DELETE. |
 
-Remaining provider gaps after this refresh are dashboard overview/recommendation cards, comparable Speed Insights windows, and valid private share-token timing.
+Remaining provider gaps after this refresh are dashboard overview/recommendation cards and comparable Speed Insights windows.
+
+## 2026-06-06 valid share-token fixture proof refresh
+
+A headless production UI flow generated a temporary shared link through the real `createProjectPublication` server action, then sanitized the raw token before writing evidence. The valid share page, snapshot API, and activity API all returned `200` with no-store/private no-store cache policy and no `Set-Cookie`. Cleanup removed all run-scoped auth/database/publication rows. Evidence: `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md` / `.json` and `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md` / `.json`.
