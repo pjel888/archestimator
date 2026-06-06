@@ -7,10 +7,10 @@
 
 - Archived plan package: `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`.
 - Branch: `codex/terms-and-conditions`.
-- Status: IMPLEMENTED_ON_BRANCH / NOT MERGED_TO_MAIN / LEGAL_AND_PROVIDER_GATES_OPEN.
-- Scope delivered: versioned Terms/Privacy content, authenticated clickwrap gate at `/workshop/terms`, append-only Supabase acceptance migration, service-role-stamped persistence, own-row RLS read policy, settings/login/legal links, and regression tests.
+- Status: IMPLEMENTED_ON_BRANCH / LINKED_SUPABASE_TERMS_MIGRATION_VERIFIED / LEGAL_REVIEW_AND_MAIN_CLOSEOUT_OPEN.
+- Scope delivered: versioned Terms/Privacy content, authenticated clickwrap gate at `/workshop/terms`, append-only Supabase acceptance migration, service-role-stamped persistence, own-row RLS read policy, settings/login/legal links, regression tests, and linked Supabase exact-file migration/type-shape proof.
 - Legal guardrails remain: no absolute zero-liability claim; use strongest commercially reasonable legal-reviewable SaaS protection only; final public/paid Terms require qualified lawyer review.
-- Provider gate remains: apply/verify the new Supabase migration and regenerate types from a working schema before production rollout.
+- Terms-specific provider gate closed: migration `20260606095935` is applied/repaired/verified on linked ArchEstimator Supabase project `ebxxqidacheyapmmzavr`, and the committed Terms type block matches linked-generated types. Remaining provider/data gates are hosted real-user acceptance smoke, local Docker parity if needed, and global migration-history reconciliation before broad `db push`.
 
 ## Current MVP Launch Handoff
 
@@ -162,7 +162,7 @@ Archestimator is production-ready only when:
 | Security — rate limiting | `DECIDED / REQUIRED BEFORE EXTERNAL BETA` | BETA | Persistent rate limiting implemented | Philip | Execute BETA-P0-SEC-005 | Beta |
 | Security — CAPTCHA | `DECIDED / CLOUDFLARE TURNSTILE` | BETA | Cloudflare Turnstile integrated | Philip | Execute BETA-P1-SEC-006 | Beta |
 | Supabase — RLS policies | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Table-by-table denial tests | Philip | Execute BETA-P0-SEC-001 | Beta |
-| Supabase — migration parity | `UNKNOWN` | YES | Local vs remote reconciliation | Philip | Run migration comparison | Beta |
+| Supabase — migration parity | `PARTIAL / TERMS MIGRATION VERIFIED / BROAD DB PUSH DRIFT OPEN` | YES | Local vs remote reconciliation plus exact-file proof | Philip | Reconcile migration history drift before broad db push | Beta |
 | Supabase — storage policies | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Cross-workspace storage access tests | Philip | Execute BETA-P0-SEC-002 | Beta |
 | Auth — Google OAuth verification | `LEFT TO DO` | YES | Google Cloud Console verified status | Philip | Submit verification | Beta |
 | Auth — email/SMTP/Resend config | `PARTIAL` | YES | SPF/DKIM/DMARC evidence, template review | Philip | Configure DNS records | Beta |
@@ -185,8 +185,8 @@ Archestimator is production-ready only when:
 | QA — RLS denial tests | `LEFT TO DO` | YES | Automated test suite passing | Philip | Execute BETA-P0-SEC-001 | Beta |
 | QA — E2E smoke tests | `PARTIAL` | BETA | Staging E2E pass | Philip | Schedule staging run | Beta |
 | QA — accessibility tests | `LEFT TO DO` | BETA | aXe/WAVE audit pass | Philip | Schedule accessibility audit | Beta |
-| Legal — Privacy Notice | `DECIDED / MINIMUM BETA LEGAL PACK REQUIRED` | YES | Reviewed legal copy published | Philip | Execute BETA-P0-LEGAL-001 | Beta |
-| Legal — Terms of Service | `DECIDED / MINIMUM BETA LEGAL PACK REQUIRED` | YES | Reviewed legal copy published | Philip | Execute BETA-P0-LEGAL-001 | Beta |
+| Legal — Privacy Notice | `IMPLEMENTED AS BETA VERSION / LEGAL REVIEW REQUIRED` | YES | Reviewed legal copy and hosted smoke | Philip/legal counsel | Review final copy before enforcement | Beta |
+| Legal — Terms of Service | `IMPLEMENTED AS BETA VERSION / CLICKWRAP AND DB PROOF COMPLETE / LEGAL REVIEW REQUIRED` | YES | Lawyer-approved copy, hosted acceptance smoke, audit retrieval proof | Philip/legal counsel | Review final copy before enforcement | Beta |
 | Legal — subprocessor list | `LEFT TO DO` | YES | Published subprocessor disclosure | Philip | Compile subprocessor list | Beta |
 | Legal — DSAR workflow | `DECIDED / MANUAL DSAR FOR BETA` | BETA | Manual delete/export process documented | Philip | Document DSAR process | Beta |
 | AI — truthfulness claims | `PARTIAL` | YES | Public copy audit | Philip | Review public pages | Beta |
