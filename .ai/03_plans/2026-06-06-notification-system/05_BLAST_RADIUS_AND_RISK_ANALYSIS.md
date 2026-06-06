@@ -1,5 +1,7 @@
 # Blast Radius And Risk Analysis
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. This analysis is paired with `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md`, which defines the required fresh impact-analysis commands for the future implementation session.
+
 ## Expected Blast Radius
 
 | Area | Files/Modules | Risk | Reason |
@@ -64,6 +66,8 @@
 - Run GitNexus/code-review graph impact analysis if the index is available before modifying symbols.
 - Keep modal/toast primitive changes out of scope unless tests prove necessary.
 - Add tests before implementation where practical.
+- If graph tooling reports an empty or stale index, document the fallback, run targeted file/symbol searches, and refresh the index when available before committing source changes.
+- Report HIGH or CRITICAL impact to the owner before continuing with code edits.
 
 ## Rollback Strategy
 
@@ -125,3 +129,13 @@ Verification:
 - Component test: close button returns focus.
 - Manual keyboard QA at 320px and desktop widths.
 - Existing modal/tooltip regression tests still pass.
+
+## Blast Radius Closure Checklist
+
+- [ ] App provider impact analyzed before editing `src/app/providers.tsx`.
+- [ ] Workshop shell/header impact analyzed before editing workshop shell files.
+- [ ] Modal primitive impact analyzed before any shared dialog changes.
+- [ ] Toast primitive left unchanged unless a targeted regression test proves a required change.
+- [ ] Shared-link activity and collaboration Realtime files left unchanged unless future producers explicitly require integration.
+- [ ] `gitnexus_detect_changes()` or code-review graph `detect_changes` run before commit.
+- [ ] Final implementation log names every affected symbol/file and explains why the blast radius stayed acceptable.

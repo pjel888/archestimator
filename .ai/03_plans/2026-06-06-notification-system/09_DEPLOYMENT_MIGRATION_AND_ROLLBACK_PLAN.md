@@ -1,5 +1,7 @@
 # Deployment, Migration, And Rollback Plan
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. Provider/migration evidence must follow `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`; release operations and content rollback must follow `24_RELEASE_OPERATOR_RUNBOOK.md`.
+
 ## Branch Policy
 
 - Continue on `codex/notification-system`.
@@ -68,3 +70,11 @@ Default behavior in code should be safe when unset: provider disabled or fetch r
 - No Resend changes.
 - No DNS changes.
 - No secrets in repo or `.ai`.
+
+## Migration Evidence Gates
+
+- Local migration/static SQL proof is required before any branch-safe database apply.
+- Branch-safe or preview database proof is required before linked production apply.
+- Linked production apply requires explicit owner deployment approval and must name the project ref `ebxxqidacheyapmmzavr`.
+- If type generation changes `src/lib/supabase/types.ts`, the implementation report must include the command used and the expected changed table/type names.
+- Any rollback after linked apply must be forward-only unless the owner explicitly approves destructive data deletion.

@@ -1,5 +1,7 @@
 # Open Questions And Decisions
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`.
+
 ## Decisions Made
 
 | Decision | Value | Evidence |
@@ -12,6 +14,9 @@
 | V1 external channels | None | User asked for popup modals/in-app planning, not email/push. |
 | State library | TanStack Query first | Existing provider and mutation invalidation patterns fit feed/count/modal data. |
 | Admin UI | Deferred | Not required to prove release announcements. |
+| Implementation readiness | Approved for docs-only handoff | Gaps from the initial plan were closed by specialist docs `15` through `25`. |
+| Realtime V1 default | Deferred unless Tasks 1-6 finish cleanly | Durable polling/query path satisfies release-modal and center acceptance criteria. |
+| Release modal read behavior | Acknowledgement marks release item read | Prevents the user from reading the modal and still seeing stale unread count. |
 
 ## Assumptions
 
@@ -30,6 +35,17 @@
 | Should dismissed notifications be recoverable? | Hide dismissed from default center; keep rows in database. | Retains auditability without adding archive UI. |
 | Should notification center live in header or sidebar? | Header/action area, compact bell. | Least disruptive and conventional. |
 | Should Realtime ship in V1? | No unless Tasks 1-6 pass early and tests stay green. | Durable polling works; Realtime can be follow-up. |
+| Should a future admin UI manage definitions? | No for V1; use seed/server-only creation. | Operator runbook covers release announcement creation and rollback without UI scope. |
+
+## Blocker Review
+
+No blocker or bug-plan doc is required at this planning checkpoint.
+
+- Product requirements are sufficient for V1.
+- Missing local Next docs were handled by checking official docs and requiring future re-check.
+- Empty code-review graph evidence was handled by adding future graph/GitNexus fallback and detection gates.
+- Provider/migration risk was handled by keeping provider proof future-only and docs-only now.
+- Realtime uncertainty is resolved by making Realtime optional.
 
 ## Human-Decision Triggers
 
