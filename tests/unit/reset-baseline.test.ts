@@ -54,7 +54,7 @@ describe("workshop sidebar baseline", () => {
     expect(homebase).toContain("inline-flex items-center gap-1.5 text-secondary");
     expect(homebase).not.toContain("min-w-[96px]");
     expect(homebase).not.toContain("bg-surfaceMuted/50");
-    expect(homebase).toContain("text-[10px] font-medium leading-4 text-secondary");
+    expect(homebase).toContain("text-[10px] font-[300] leading-4 text-secondary");
     expect(homebase).toContain("text-[12px] font-medium leading-4 text-ink");
     expect(homebase).not.toContain("Workshop bento");
     expect(homebase).not.toContain("destinations");
