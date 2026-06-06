@@ -109,8 +109,8 @@ function WorkshopGreeting({ displayName }: { displayName?: string | null }) {
           <GreetingIcon icon={tone.icon} />
           <span className="truncate text-[10px] font-medium leading-none">{tone.periodLabel}</span>
         </div>
-        <p className="mt-3 w-full truncate text-[12px] font-medium leading-4 text-ink">{tone.greeting}</p>
-        <p className="mt-1 w-full truncate text-[11px] font-medium leading-4 text-ink">{name}</p>
+        <p className="mt-3 w-full truncate text-[10px] font-medium leading-4 text-secondary">{tone.greeting}</p>
+        <p className="mt-1 w-full truncate text-[12px] font-medium leading-4 text-ink">{name}</p>
       </div>
     </section>
   );
