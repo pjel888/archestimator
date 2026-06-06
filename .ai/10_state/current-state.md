@@ -1,7 +1,41 @@
 # Current State
 
-**Terms And Conditions Implementation Plan Created (2026-06-06):**
-New docs-only pack `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/` plans a future versioned Terms and Conditions / Terms of Service system for ArchEstimator. It covers attorney-reviewed Terms content structure, affirmative user acceptance, Supabase/Postgres acceptance evidence with RLS and optional privacy-minimized metadata, auth/protected-route and re-acceptance gating, no-payment/billing edge cases, UI/accessibility/design-system requirements, testing, deployment, rollback, and legal-review handoff. No production source, migration, generated type, dependency, runtime config, provider setting, secret, or app behavior was changed. Final Terms copy remains a qualified-legal-review gate, and the implementation must not claim absolute zero liability. A non-blocking docs-drift bug was filed for stale migration counts in `.ai/README.md` and root `README.md` versus the live 81 local migration files.
+**Notification System Implemented And No-Docker RLS-Proven (2026-06-06):**
+Branch `codex/notification-system` now contains the V1 implementation for durable
+in-app notifications and release announcement modals. Added an additive
+Supabase migration for `notification_definitions` and `notification_deliveries`,
+manual notification table entries in `src/lib/supabase/types.ts`, server-only
+notification repository/actions under `src/lib/notifications/`, TanStack Query
+hooks plus compact modal/center/bell UI under `src/features/notifications/`,
+global route-gated provider mounting in `src/app/providers.tsx`, and workshop
+header integration through `WorkshopPageShell`'s existing action slot. Added
+guarded RLS and Playwright E2E harnesses that only run against local or explicitly
+branch-safe Supabase targets. Added `scripts/prove-notification-rls-postgres.mjs`
+and `bun run prove:notification-rls`, which start a temporary local PostgreSQL 16
+cluster without Docker, apply the real notification migration, and prove
+same-user reads, cross-user denial, direct authenticated write denial, direct
+definition insert denial, and anonymous read denial. Static schema,
+server-action, query-hook, modal, center, provider, workshop-entry, mapped
+regression tests, no-Docker RLS proof, and follow-up validation pass. No linked
+Supabase, Vercel, DNS, Resend, paid feature, secret, or production/provider
+setting changed. Supabase CLI reset/typegen, linked migration apply, hosted
+smoke, and real beta fanout remain future owner-approved provider-readiness work,
+not a Docker dependency for this implementation goal; see
+`.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` for the resolved
+blocker record.
+
+**Terms And Conditions Acceptance Implemented And Merged (2026-06-06):**
+Current `main` already includes the versioned closed-beta Terms and Privacy
+implementation: public `/terms` and `/privacy` pages, authenticated clickwrap
+acceptance at `/workshop/terms`, the protected `/workshop` layout gate,
+server-side Terms acceptance persistence helpers, migration
+`supabase/migrations/20260606095935_legal_terms_acceptance.sql`, linked
+Supabase proof, generated type alignment, focused Terms tests, full
+`bun run validate`, `bun run build`, and environment-gated Playwright proof.
+Do not regress or delete this gate while integrating notification work. Remaining
+Terms gates stay limited to qualified legal review before public/paid launch,
+hosted real-user acceptance smoke, broad Supabase migration-parity reconciliation,
+and normal production release/deployment proof.
 
 **Pre-Release Beta Release Path Confirmed (2026-06-06 08:13Z):**
 Latest `main` commit `1e7c581fb9efa3094fb34b782d59e229f93f2320` was manually
@@ -18,6 +52,24 @@ GitHub CI or add CI/CD automation yet. Keep CI/CD as future work, keep
 `vercel.json` Git deployments disabled, and keep production release as an
 explicit manual deploy after local validation until the owner reopens CI/CD
 implementation.
+
+**Notification System Planning Pack Refined (2026-06-06):**
+Docs-only planning pack `.ai/03_plans/2026-06-06-notification-system/`
+now defines and refines the future notification system implementation for popup
+release/version announcement modals and durable user-specific in-app
+notifications. The plan selects additive Supabase/Postgres notification
+definitions plus per-user delivery state, server-authoritative read/dismiss/
+modal acknowledgement actions, a compact workshop notification center, existing
+`Modal`/`ToastProvider` reuse, and optional private Supabase Broadcast only after
+durable delivery passes. It includes UX/UI, accessibility, blast-radius,
+performance, RLS/security, migration/deployment/rollback, testing, traceability,
+operator runbook, provider/migration evidence gates, GitNexus/code-graph impact
+gates, and Team + Ultragoal handoff guidance. Refinement added specialist docs
+`15_DATABASE_SCHEMA_RLS_PLAN.md` through `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`
+and records 100/100 document quality plus 100/100 implementation readiness in
+`11_READINESS_SCORECARD.md`. This is planning only: no source code, migrations,
+dependencies, runtime configuration, Supabase/Vercel/Resend/DNS, secrets, or
+production/provider settings were changed, and the feature is not implemented.
 
 **Advisory Staging Branch Created (2026-06-05 08:47Z):**
 `origin/staging` now exists as the shared closed-beta/pre-production

@@ -296,6 +296,160 @@ export type Database = {
           },
         ]
       }
+      notification_definitions: {
+        Row: {
+          action_href: string | null
+          action_label: string | null
+          body: string
+          created_at: string
+          created_by: string | null
+          dedupe_key: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          payload_json: Json
+          priority: number
+          release_version: string | null
+          severity: string
+          starts_at: string
+          surface: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_href?: string | null
+          action_label?: string | null
+          body: string
+          created_at?: string
+          created_by?: string | null
+          dedupe_key?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          payload_json?: Json
+          priority?: number
+          release_version?: string | null
+          severity?: string
+          starts_at?: string
+          surface?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_href?: string | null
+          action_label?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          dedupe_key?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          payload_json?: Json
+          priority?: number
+          release_version?: string | null
+          severity?: string
+          starts_at?: string
+          surface?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_deliveries: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          delivered_at: string
+          delivery_reason: string
+          dismissed_at: string | null
+          estimate_id: string | null
+          id: string
+          modal_acknowledged_at: string | null
+          notification_id: string
+          payload_json: Json
+          project_id: string | null
+          read_at: string | null
+          seen_at: string | null
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          delivered_at?: string
+          delivery_reason?: string
+          dismissed_at?: string | null
+          estimate_id?: string | null
+          id?: string
+          modal_acknowledged_at?: string | null
+          notification_id: string
+          payload_json?: Json
+          project_id?: string | null
+          read_at?: string | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          delivered_at?: string
+          delivery_reason?: string
+          dismissed_at?: string | null
+          estimate_id?: string | null
+          id?: string
+          modal_acknowledged_at?: string | null
+          notification_id?: string
+          payload_json?: Json
+          project_id?: string | null
+          read_at?: string | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_deliveries_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notification_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_deliveries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_deliveries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_onboarding_profiles: {
         Row: {
           country_region: string

@@ -8,6 +8,7 @@ import { NavigationListener } from "@/components/navigation-listener";
 import { PerformanceMonitor } from "@/components/performance-monitor";
 import { RouteLoadingOverlay } from "@/components/ui/route-loading-overlay";
 import { ToastProvider } from "@/components/ui/toast";
+import { NotificationProvider } from "@/features/notifications/components/NotificationProvider";
 
 function createQueryClient() {
   return new QueryClient({
@@ -31,11 +32,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <BfcacheHandler />
-        <PerformanceMonitor />
-        <NavigationListener />
-        {children}
-        <RouteLoadingOverlay />
+        <NotificationProvider>
+          <BfcacheHandler />
+          <PerformanceMonitor />
+          <NavigationListener />
+          {children}
+          <RouteLoadingOverlay />
+        </NotificationProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

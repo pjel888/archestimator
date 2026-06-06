@@ -5,6 +5,7 @@ import { MainSidebar, type MainSidebarStatus } from "@/components/sidebar/MainSi
 import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkshopNotificationEntry } from "@/features/notifications/components/WorkshopNotificationEntry";
 import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
@@ -81,6 +82,12 @@ export async function WorkshopPageShell({
   const showAskFlip = isAskFlipUiEnabled();
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:pr-2 lg:pl-[25px]" : "p-2";
+  const headerActions = (
+    <>
+      {actions}
+      <WorkshopNotificationEntry />
+    </>
+  );
 
   return (
     <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden bg-canvas text-ink" aria-label={title}>
@@ -95,7 +102,7 @@ export async function WorkshopPageShell({
           title={title}
           eyebrow={eyebrow}
           showEyebrow={showEyebrow}
-          actions={actions}
+          actions={headerActions}
           centerHeader={centerHeader}
           breadcrumbs={resolvedBreadcrumbs}
           projectId={projectId}
