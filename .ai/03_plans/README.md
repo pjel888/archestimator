@@ -17,6 +17,7 @@ Current planning baseline:
 
 Active/current plans:
 
+- `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/` — active docs-only planning pack for a future Terms and Conditions / Terms of Service sheet, versioned Terms acceptance, Supabase/RLS acceptance evidence, re-acceptance, legal-review handoff, and UI/auth/protected-route gating. No source, migration, dependency, runtime, provider, or generated-file implementation has been done; final Terms language still requires qualified legal review and must not claim absolute zero liability.
 - `.ai/03_plans/2026-06-05-agentic-development-cicd-standardization/` — active docs-only planning pack for future agentic development and CI/CD enforcement. Plans GitHub Actions restoration/hardening, PR/CODEOWNERS governance, GitHub branch protection/ruleset capability resolution, `codex/*`/`staging`/`main` branch model, and controlled Vercel staged deploy/promote release flow. No source/provider/GitHub/Vercel settings changed; implementation remains future work.
 
 - `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` — archived completion pointer for the Agentic-Driven Development framework rollout. Phase 1A/1B are complete and archived at `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/` with final status `PHASE_1A_COMPLETE_PHASE_1B_MIRRORED_ARCHIVED`, Phase 1A commit `539e32a`, and the Notion mirror at https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c. Global enforcement, GitHub rulesets, provider changes, and remaining closed-beta launch gates are separate future work.
