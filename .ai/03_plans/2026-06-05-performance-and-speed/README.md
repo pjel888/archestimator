@@ -63,14 +63,14 @@ Create an implementation-ready plan to improve Archestimator speed and Core Web 
 
 ## Non-goals
 
-- No code implementation in this turn.
-- No dependency changes in this turn.
-- No provider/dashboard mutation.
-- No claim that Speed Insights is fixed or that route-transition performance is complete.
+- Code-bearing mitigation and proof slices now exist on `feat/performance-and-speed-pr-0b-cache-safety`; this plan pack still separates implementation proof from Speed Insights completion proof.
+- No dependency changes are introduced by the synthetic hosted fixture proof.
+- Temporary provider fixtures were created only under owner-granted authority and cleaned up to zero recorded residue.
+- No claim that Speed Insights/RES is fixed or that route-transition performance is complete.
 
 ## Quality gate verdict
 
-The pack is now document-quality complete and implementation-ready for the first safe code-bearing performance story. The recommended first packet is `PR-0B` in `27-ready-implementation-packets.md`: public personalization/cache-safety proof before any cache-header relaxation. The pack still does not claim performance gains until Vercel Speed Insights/provider evidence proves them.
+The pack is document-quality complete and implementation-ready for future bounded performance stories. The first safe packet, `PR-0B`, has been executed; later synthetic hosted fixtures also closed signed-in auth, hosted export, and valid private media evidence blockers. The pack still does not claim RES/performance gains until comparable Vercel Speed Insights/provider evidence proves them.
 
 ## PR-0B implementation result
 
@@ -78,4 +78,4 @@ The pack is now document-quality complete and implementation-ready for the first
 
 ## Recommended next step
 
-Run `PR-0A` if Speed Insights dashboard access is available, or plan the next cache-safety follow-up that splits/static-isolates public personalized output before any cache-header relaxation. Do not implement cache-header relaxation, telemetry package changes, root-provider splitting, or estimate/workshop optimization until the matching packet gates are satisfied.
+Capture dashboard overview/recommendation cards if access becomes available, wait for comparable Speed Insights windows for the deployed branch, and plan the next cache-safety follow-up that splits/static-isolates public personalized output before any cache-header relaxation. Do not claim RES completion, implement cache-header relaxation, telemetry package changes, root-provider splitting, or estimate/workshop optimization until the matching packet gates are satisfied.

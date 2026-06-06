@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-06-06T03:21:16.650Z",
+  "mode": "hosted-synthetic-fixture-cleanup-verification",
+  "runId": "codex-perf-20260606032046-2983cf73",
+  "counts": {
+    "auth_users": 0,
+    "beta_rows": 0,
+    "estimate_nodes": 0,
+    "estimate_row_items": 0,
+    "estimates": 0,
+    "profiles": 0,
+    "project_publications": 0,
+    "projects": 0,
+    "workspaces": 0
+  },
+  "storagePathsRemovedThroughApp": true,
+  "passed": true,
+  "note": "Cleanup deletes only the current runId synthetic auth/database fixtures after hosted proof capture. Sensitive cookies, passwords, and storage object paths are not written."
+}

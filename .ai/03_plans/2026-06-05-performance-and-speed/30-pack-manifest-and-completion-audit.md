@@ -45,12 +45,18 @@ This manifest is generated from the current folder inventory. It exists to preve
 
 ## Evidence files
 
-1. `evidence/2026-06-05-computer-use-speed-insights-attempt.md`
-2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
-3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
-4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/2026-06-06-public-cache-safety-harness.md`
-6. `evidence/README.md`
+The evidence folder now contains 57 top-level files and 171 files total including trace/report subfolders. `21-evidence-index.md` is the canonical registry. Current key proof artifacts include:
+
+1. `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md`
+2. `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json`
+3. `evidence/2026-06-06-public-cache-safety-harness.md`
+4. `evidence/2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md`
+5. `evidence/2026-06-06-sensitive-route-production-postfix-fail-closed-probe.md`
+6. `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md`
+7. `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md`
+8. `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md`
+9. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
+10. `evidence/README.md`
 
 ## Completion audit
 
@@ -58,11 +64,11 @@ This manifest is generated from the current folder inventory. It exists to preve
 | --- | --- | --- |
 | Document quality 100% | Complete manifest, canonical pointer, scorecard, decision tree, packets, UltraQA audit, source map, risk/rollback, evidence index | PASS |
 | First safe code implementation readiness 100% | `27-ready-implementation-packets.md` PR-0B has scope, allowed/forbidden files, tests, evidence, rollback, completion language | PASS |
-| Provider proof honesty | `28-captured-baseline-and-remaining-provider-gap.md` and evidence files record exact Speed Insights gap and captured substitute evidence | PASS |
+| Provider proof honesty | `28-captured-baseline-and-remaining-provider-gap.md`, `21-evidence-index.md`, and evidence files record exact Speed Insights gap, captured substitutes, hosted synthetic fixture proof, and remaining provider gaps | PASS |
 | No app code changed in the original planning turn | git status only showed the new plan folder in main checkout during planning | PASS |
 | PR-0B proof-harness implementation packet | `scripts/check-public-cache-safety.ts`, `tests/vitest/public-cache-safety-harness.test.tsx`, and `evidence/2026-06-06-public-cache-safety-harness.md` prove current public marketing routes are not shared-cache compatible without changing runtime behavior | PASS |
 | No hidden workflow state | OMX active modes scan returns empty | PASS |
 
 ## Final interpretation
 
-The planning pack remains complete for handoff. PR-0B is now implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Future implementation should run PR-0A if dashboard evidence is available, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.
+The planning pack remains complete for handoff. PR-0B is implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Synthetic hosted fixtures now close signed-in auth, hosted export, and valid private media blockers with zero-residue cleanup. Future work should capture dashboard evidence if available, wait for comparable Speed Insights windows, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.

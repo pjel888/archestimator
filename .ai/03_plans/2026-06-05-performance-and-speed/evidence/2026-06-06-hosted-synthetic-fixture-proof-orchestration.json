@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-06-06T03:21:16.650Z",
+  "runId": "codex-perf-20260606032046-2983cf73",
+  "passed": true,
+  "authPassed": true,
+  "exportPassed": true,
+  "imagePassed": true,
+  "cleanupPassed": true,
+  "projectId": "e4806c48-6645-41cf-8b1a-c1122c8c30c3",
+  "estimateId": "eb99dfbd-b679-4477-b6d5-213055e15e21",
+  "note": "Orchestrated hosted synthetic proof. This summary deliberately excludes cookies, passwords, and storage paths."
+}
