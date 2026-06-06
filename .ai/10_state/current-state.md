@@ -1,5 +1,21 @@
 # Current State
 
+**Pre-Release Beta Release Path Confirmed (2026-06-06 08:13Z):**
+Latest `main` commit `1e7c581fb9efa3094fb34b782d59e229f93f2320` was manually
+deployed to Vercel Production through the controlled prebuilt path:
+`vercel pull --environment=production`, `bun run validate`, `vercel build
+--prod`, and `vercel deploy --prebuilt --prod`. Vercel deployment
+`dpl_CEa14W4r5PjSipkVMsFaiVjTmE6i` is Ready and aliased to
+`https://www.archestimator.com`; hosted checks returned HTTP 200 for `/` and
+`{"ok":true}` from `/api/health`. Vercel inspect still reports `meta: null`,
+`source: null`, and `gitSource: null`, so commit attribution is retained by
+repo/operator evidence rather than provider metadata. Owner decision after this
+deploy: because Archestimator is still pre-release beta, do not re-enable
+GitHub CI or add CI/CD automation yet. Keep CI/CD as future work, keep
+`vercel.json` Git deployments disabled, and keep production release as an
+explicit manual deploy after local validation until the owner reopens CI/CD
+implementation.
+
 **Advisory Staging Branch Created (2026-06-05 08:47Z):**
 `origin/staging` now exists as the shared closed-beta/pre-production
 integration branch baseline for agentic development. It was bootstrapped from
