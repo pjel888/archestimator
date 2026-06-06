@@ -2,7 +2,7 @@
 
 **Classification:** Documentation/source-of-truth drift
 **Date discovered:** 2026-06-06
-**Discovery context:** Terms and Conditions sheet implementation planning pack `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/`
+**Discovery context:** Terms and Conditions sheet implementation planning pack `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`
 **Status:** OPEN_NON_BLOCKING
 **Blocks implementation:** No, provided future agents verify live migration state before schema work.
 
@@ -49,7 +49,7 @@ LOW / NON_BLOCKING.
 
 ## Relationship to current plan
 
-`.ai/03_plans/2026-06-06-terms-and-conditions-sheet/02_CODEBASE_RESEARCH.md` records live migration evidence and flags this drift so future Terms acceptance schema work does not rely on stale counts.
+`.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/02_CODEBASE_RESEARCH.md` records live migration evidence and flags this drift so future Terms acceptance schema work does not rely on stale counts.
 
 ## Proposed fix plan
 
