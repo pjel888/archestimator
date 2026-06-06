@@ -30,6 +30,7 @@ The following claims remain unproven by a real database:
 
 - `tests/vitest/notification-schema.test.ts` statically proves the migration includes the required tables, RLS enablement, scoped policies, strict revokes/grants, no authenticated update policy, safe `/workshop` action link check, unique delivery constraint, and required indexes.
 - Server-action tests prove state mutations use service-role only after current-user authentication and filter by both `id` and `user_id`.
+- `tests/vitest/notification-rls-proof.test.ts` is a guarded executable proof harness for same-user reads, cross-user denial, direct authenticated write denial, and anonymous denial. It skips by default and only runs when `ARCHESTIMATOR_NOTIFICATION_RLS_PROOF=1` plus local Supabase or `ARCHESTIMATOR_NOTIFICATION_RLS_BRANCH_SAFE=1` are configured.
 
 ## Resolution Path
 
@@ -38,7 +39,7 @@ Run one of:
 1. Install/start Docker Desktop, then run:
    - `npx supabase@2.98.2 db reset`
    - `npx supabase@2.98.2 gen types typescript --local > src/lib/supabase/types.ts`
-   - database-backed RLS probes with the deterministic User A/User B fixture ids from the plan.
+   - `ARCHESTIMATOR_NOTIFICATION_RLS_PROOF=1 bun run test:dom -- tests/vitest/notification-rls-proof.test.ts`
 2. Use an owner-approved branch-safe Supabase database, apply only the notification migration, regenerate types from that branch-safe target, and run the same RLS probes.
 
 Do not apply this migration to linked production without explicit owner approval.

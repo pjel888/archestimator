@@ -15,6 +15,8 @@ Implemented the V1 durable in-app notification system code path:
 - Route-gated `NotificationProvider`, release announcement modal, workshop notification bell, notification center, and compact row UI.
 - Workshop shell composition through the existing header `actions` slot.
 - Deterministic notification fixtures and focused tests.
+- Guarded database-backed RLS proof harness at `tests/vitest/notification-rls-proof.test.ts`, skipped unless explicitly pointed at local or branch-safe Supabase.
+- Guarded Playwright E2E specs for release modal once-only behavior and notification center read/dismiss behavior, skipped unless `ARCHESTIMATOR_E2E_NOTIFICATIONS=1` and a local or branch-safe Supabase target are configured.
 
 No Supabase linked project, Vercel, DNS, Resend, paid feature, secret, or production/provider setting was changed.
 
@@ -29,6 +31,8 @@ No Supabase linked project, Vercel, DNS, Resend, paid feature, secret, or produc
 - `src/components/workshop/WorkshopPageShell.tsx`
 - `tests/fixtures/notifications.ts`
 - `tests/vitest/notification*.test.*`, `notifications-*.test.*`, and `workshop-notification-entry.test.tsx`
+- `e2e/notifications-*.spec.ts`
+- `.ai/05_logs/2026-06-06-notification-system-ultraqa.md`
 
 ## Graph / Impact Evidence
 
@@ -48,6 +52,7 @@ No Supabase linked project, Vercel, DNS, Resend, paid feature, secret, or produc
 - Local PostgreSQL binary checks: `postgres`, `initdb`, `pg_ctl`, and `psql` were not available on PATH.
 - Provider boundary: no linked or production Supabase migration apply was attempted because linked/provider mutation requires explicit owner approval.
 - Current proof state: static migration/RLS tests pass, but actual database-backed RLS behavior proof remains blocked by missing local Docker/Postgres or an owner-approved branch-safe database.
+- Runnable proof path added: `ARCHESTIMATOR_NOTIFICATION_RLS_PROOF=1` runs `tests/vitest/notification-rls-proof.test.ts` only against local Supabase or an explicitly branch-safe target.
 
 ## Verification
 
@@ -62,12 +67,17 @@ Passed:
 - `bun run test:dom` after fixing the direct `WorkshopPageShell` render fallback: 197 files passed, 1497 tests passed, 2 skipped.
 - `git diff --check`
 - `bun run validate`: type-check passed, lint passed with existing warnings only, design-system lint passed, unit tests passed, full DOM suite passed with 198 files and 1498 tests.
+- `bun run test:dom -- tests/vitest/notification-rls-proof.test.ts`: 1 file skipped, 1 test skipped because no explicit local/branch-safe RLS proof target is configured.
+- `bunx playwright test e2e/notifications-release-modal.spec.ts e2e/notifications-center.spec.ts --list`: discovered 2 notification E2E specs.
+- `bunx playwright test e2e/notifications-release-modal.spec.ts e2e/notifications-center.spec.ts --reporter=list`: 2 skipped by default, with no provider mutation.
+- `bun run test:dom -- tests/vitest/notification-schema.test.ts tests/vitest/notification-rls-proof.test.ts tests/vitest/notifications-actions.test.ts tests/vitest/notifications-query.test.tsx tests/vitest/release-announcement-modal.test.tsx tests/vitest/notification-center.test.tsx tests/vitest/notification-provider.test.tsx tests/vitest/workshop-notification-entry.test.tsx tests/vitest/app-providers-notifications.test.tsx`: 8 files passed, 1 skipped; 32 tests passed, 1 skipped.
+- Follow-up `bun run validate`: type-check passed, lint passed with the same 12 existing warnings, design-system lint passed, unit tests passed, full DOM suite passed with 198 files passed and 1 skipped file; 1498 tests passed and 3 skipped.
 
 Known verification still required before production/provider readiness:
 
 - `npx supabase@2.98.2 db reset`
 - `npx supabase@2.98.2 gen types typescript --local > src/lib/supabase/types.ts`
-- Database-backed same-user read, cross-user denial, direct authenticated write denial, and anonymous denial proof.
+- Database-backed same-user read, cross-user denial, direct authenticated write denial, and anonymous denial proof by running the guarded proof harness against local or branch-safe Supabase.
 
 ## Remaining Risk
 

@@ -22,9 +22,10 @@ Implemented source code, tests, and an additive migration on the feature branch 
 - Notification client UI and query hooks under `src/features/notifications/`.
 - Provider and workshop-shell integration.
 - Static schema, server-action, query-hook, modal, center, provider, and workshop-entry tests.
+- Guarded local/branch-safe RLS proof harness and guarded Playwright notification E2E specs.
 - Current-state, implementation log, and blocker updates.
 - 100/100 document quality and 100/100 implementation readiness scorecard in `11_READINESS_SCORECARD.md`.
 
 ## Next Action
 
-Resolve `.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` with local Docker-backed Supabase or an owner-approved branch-safe Supabase target, then regenerate `src/lib/supabase/types.ts` from that proven target before provider/production readiness is claimed.
+Resolve `.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` by running the guarded RLS harness with local Docker-backed Supabase or an owner-approved branch-safe Supabase target, then regenerate `src/lib/supabase/types.ts` from that proven target before provider/production readiness is claimed.

@@ -28,13 +28,13 @@ This matrix connects requirements, acceptance criteria, source files, specialist
 
 | AC | Evidence Owner | Required Tests | Manual/Operational Proof | Status |
 | --- | --- | --- | --- | --- |
-| AC1 modal once per user | UI + server action | release modal, provider, actions, Playwright release flow | reload after acknowledgement; verify no repeat | Implemented by component/action tests; E2E pending DB proof |
+| AC1 modal once per user | UI + server action | release modal, provider, actions, Playwright release flow | reload after acknowledgement; verify no repeat | Implemented by component/action tests; guarded E2E spec added, blocked on DB proof target |
 | AC2 center feed/unread | UI + query hooks | notification center, query, actions, Playwright center flow | open center, mark read, dismiss | Implemented by component/query/action tests |
-| AC3 cross-user denial | schema/RLS | schema static, mandatory local or branch-safe RLS integration, actions | two-user manual probe if linked DB used | Static/action proof complete; database RLS proof blocked |
+| AC3 cross-user denial | schema/RLS | schema static, mandatory local or branch-safe RLS integration, actions | two-user manual probe if linked DB used | Static/action proof complete; guarded RLS proof harness added, database run blocked |
 | AC4 empty state stability | UI/design | notification center, responsive layout checks | 320px and desktop inspection | Implemented by component tests; manual viewport proof pending |
 | AC5 failure does not block workflows | provider/server | provider, action error, workshop regressions | navigation/save/toast smoke | Implemented by provider/action tests and full DOM regression |
 | AC6 content sanitized | server/schema | action-link validator, payload forbidden-key tests | inspect seed content before release | Implemented by DB/static and server validator tests |
-| AC7 additive migration/index/RLS | database | schema static, local/branch-safe typegen diff, mandatory RLS behavior proof, optional EXPLAIN | provider evidence log | Static migration proof complete; typegen/RLS behavior blocked |
+| AC7 additive migration/index/RLS | database | schema static, local/branch-safe typegen diff, mandatory RLS behavior proof, optional EXPLAIN | provider evidence log | Static migration proof complete; guarded proof harness added; typegen/RLS behavior run blocked |
 | AC8 state transitions/fallback | server/query/realtime | actions, query, optional realtime | disable Realtime and verify polling path | Implemented durable non-Realtime path; Realtime deferred |
 | AC9 design-system fit | UI/design | `lint:design-system`, modal/center tests | visual/manual QA | Automated design-system lint passed; manual QA pending |
 | AC10 async performance | provider/query | provider/query tests | browser waterfall, bounded fetch proof | Implemented async query path; browser waterfall pending |

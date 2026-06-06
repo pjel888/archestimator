@@ -8,11 +8,14 @@ manual notification table entries in `src/lib/supabase/types.ts`, server-only
 notification repository/actions under `src/lib/notifications/`, TanStack Query
 hooks plus compact modal/center/bell UI under `src/features/notifications/`,
 global route-gated provider mounting in `src/app/providers.tsx`, and workshop
-header integration through `WorkshopPageShell`'s existing action slot. Static
-schema, server-action, query-hook, modal, center, provider, workshop-entry, and
-mapped regression tests pass, and final `bun run validate` passes with the full
-DOM suite at 198 files and 1498 tests. No linked Supabase, Vercel, DNS, Resend,
-paid feature, secret, or production/provider setting changed. Remaining release/PR blocker:
+header integration through `WorkshopPageShell`'s existing action slot. Added
+guarded RLS and Playwright E2E harnesses that only run against local or explicitly
+branch-safe Supabase targets. Static schema, server-action, query-hook, modal,
+center, provider, workshop-entry, and mapped regression tests pass, and follow-up
+`bun run validate` passes with the full DOM suite at 198 passed files plus 1
+skipped proof file, and 1498 passed tests plus 3 skipped tests. No linked
+Supabase, Vercel, DNS, Resend, paid feature, secret, or production/provider
+setting changed. Remaining release/PR blocker:
 database-backed RLS proof and local typegen are unavailable in this worktree
 because Docker/Postgres are not installed; see
 `.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md`.
