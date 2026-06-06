@@ -48,7 +48,7 @@ export function WorkshopSettingsModal({
         title="Settings"
         description="Manage account, workspace, and beta operations."
         closeLabel="Close settings"
-        className="max-w-[760px]"
+        className="max-w-[920px]"
         bodyClassName="bg-surface p-0"
         onOpenChange={handleOpenChange}
       >

@@ -30,7 +30,7 @@ describe("auth onboarding and settings route contracts", () => {
     const pageSource = read("src/app/workshop/settings/page.tsx");
 
     expect(source).toContain('aria-label="Settings sections"');
-    expect(source).toContain("sm:grid-cols-[184px_minmax(0,1fr)]");
+    expect(source).toContain("sm:grid-cols-[220px_minmax(0,1fr)]");
     expect(source).toContain('href: "/workshop/settings/profile"');
     expect(source).toContain('href: "/workshop/settings/workspace"');
     expect(source).toContain('href: "/workshop/feedback"');
@@ -44,7 +44,7 @@ describe("auth onboarding and settings route contracts", () => {
     expect(source).toContain('import { signOut } from "@/lib/auth/actions"');
     expect(source).toContain("action={signOut}");
     expect(source).toContain("Sign out");
-    expect(modalSource).toContain('className="max-w-[760px]"');
+    expect(modalSource).toContain('className="max-w-[920px]"');
     expect(pageSource).toContain('context.role === "ceo" || context.role === "admin"');
     expect(pageSource).toContain('trigger="none"');
     expect(pageSource).toContain("initialOpen");

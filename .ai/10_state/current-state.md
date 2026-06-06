@@ -288,6 +288,15 @@ journey proof is now current for the single-tester beta. Residual Codex Security
 history-risk is owner-accepted for this single-owner beta by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
 without claiming the findings are fixed or the dashboard fully green.
+
+**Workshop Homebase Simplification (2026-06-06):**
+Local `/workshop` now supersedes the previous bento/favorites homebase with a
+sparse upper-left greeting. The protected shell, pending-invite notices, and
+stale-access notices remain, but the Projects/Components/Templates cards and
+homebase favorites rail are removed. The only default homebase content is a
+stable three-line greeting: time-of-day icon/label, greeting copy, and the
+authenticated user's display name.
+
 Synthetic Google Sheets workbook compatibility proof is now captured by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json`;
 native Excel/Numbers/LibreOffice workbook app proof is the
