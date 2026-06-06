@@ -1,5 +1,22 @@
 # Current State
 
+**Notification System Implemented With Local RLS Proof Blocker (2026-06-06):**
+Branch `codex/notification-system` now contains the V1 implementation for durable
+in-app notifications and release announcement modals. Added an additive
+Supabase migration for `notification_definitions` and `notification_deliveries`,
+manual notification table entries in `src/lib/supabase/types.ts`, server-only
+notification repository/actions under `src/lib/notifications/`, TanStack Query
+hooks plus compact modal/center/bell UI under `src/features/notifications/`,
+global route-gated provider mounting in `src/app/providers.tsx`, and workshop
+header integration through `WorkshopPageShell`'s existing action slot. Static
+schema, server-action, query-hook, modal, center, provider, workshop-entry, and
+mapped regression tests pass, and final `bun run validate` passes with the full
+DOM suite at 198 files and 1498 tests. No linked Supabase, Vercel, DNS, Resend,
+paid feature, secret, or production/provider setting changed. Remaining release/PR blocker:
+database-backed RLS proof and local typegen are unavailable in this worktree
+because Docker/Postgres are not installed; see
+`.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md`.
+
 **Pre-Release Beta Release Path Confirmed (2026-06-06 08:13Z):**
 Latest `main` commit `1e7c581fb9efa3094fb34b782d59e229f93f2320` was manually
 deployed to Vercel Production through the controlled prebuilt path:
