@@ -1,12 +1,20 @@
 # Decisions
 
+## 2026-06-06 - Terms acceptance implementation posture
+
+**Decision:** Implement Terms acceptance as authenticated clickwrap plus server-stamped append-only acceptance records. Use a protected `/workshop/terms` page for first protected-app access and material-version re-acceptance, keep `/terms` and `/privacy` public, and avoid raw IP/user-agent storage by default.
+
+**Rationale:** Philip provided defaults for professional/B2B closed beta, Philippine-law placeholders, no paid beta, authenticated clickwrap, append-only consent records, and no absolute zero-liability claim. Server-role-stamped writes provide stronger audit integrity than browser-authenticated direct INSERT policies because users cannot forge arbitrary Terms-version acceptance rows from the client.
+
+**Follow-up:** Final public/paid Terms copy still requires qualified legal review; entity name, formal notices address, venue/dispute process, arbitration/class-action waiver, and future billing/refund language remain legal/owner decisions. `supabase/migrations/20260606095935_legal_terms_acceptance.sql` has been applied and verified on linked ArchEstimator project `ebxxqidacheyapmmzavr` by exact-file apply/repair/readback, and the committed Terms type block matches linked-generated types. Keep broad `supabase db push --linked` blocked until unrelated migration-history drift is reconciled.
+
 ## 2026-06-06 - Terms acceptance planning baseline
 
 **Decision:** Plan future Terms and Conditions / Terms of Service implementation as versioned, attorney-reviewed legal content plus affirmative authenticated-user acceptance and append-only Supabase/Postgres evidence. Do not rely on passive browsewrap-style login copy as the sole binding acceptance proof.
 
 **Rationale:** ArchEstimator is a SaaS estimation/design-support tool with construction/proposal outputs. The strongest commercially reasonable posture is to show conspicuous Terms/Privacy notice, require affirmative acceptance tied to a Supabase user id and Terms version/effective date/hash, keep audit evidence under RLS, and clearly state that users remain responsible for independent review and use of outputs. Absolute zero liability must not be promised because enforceability depends on jurisdiction, consumer law, gross negligence/willful misconduct limits, public policy, and legal counsel review.
 
-**Follow-up:** Use `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/` for future implementation. Final Terms copy, entity name, governing law, legal notices contact/address, dispute-resolution choices, user/business positioning, billing/refund policy, IP/user-agent retention, and existing-user re-acceptance policy require Philip/legal counsel decisions before production enforcement. Closed beta remains no-payment unless explicitly reopened.
+**Follow-up:** Use `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/` for future implementation. Final Terms copy, entity name, governing law, legal notices contact/address, dispute-resolution choices, user/business positioning, billing/refund policy, IP/user-agent retention, and existing-user re-acceptance policy require Philip/legal counsel decisions before production enforcement. Closed beta remains no-payment unless explicitly reopened.
 
 ## 2026-06-06 - Defer CI/CD until after pre-release beta
 

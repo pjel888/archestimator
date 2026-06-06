@@ -41,6 +41,11 @@ const supportSettings = [
     href: "/terms",
     label: "Terms and privacy",
   },
+  {
+    description: "Reopen the protected clickwrap screen to review the current accepted Terms version.",
+    href: "/workshop/terms?next=%2Fworkshop%2Fsettings",
+    label: "Terms acceptance",
+  },
 ] as const;
 
 function SettingsLinkCard({

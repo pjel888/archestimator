@@ -181,6 +181,51 @@ export type Database = {
           },
         ]
       }
+      legal_terms_acceptances: {
+        Row: {
+          acceptance_context: string
+          acceptance_method: string
+          accepted_at: string
+          created_at: string
+          id: string
+          metadata_json: Json
+          privacy_policy_version: string
+          terms_content_hash: string
+          terms_effective_date: string
+          terms_key: string
+          terms_version: string
+          user_id: string
+        }
+        Insert: {
+          acceptance_context: string
+          acceptance_method: string
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json
+          privacy_policy_version: string
+          terms_content_hash: string
+          terms_effective_date: string
+          terms_key: string
+          terms_version: string
+          user_id: string
+        }
+        Update: {
+          acceptance_context?: string
+          acceptance_method?: string
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json
+          privacy_policy_version?: string
+          terms_content_hash?: string
+          terms_effective_date?: string
+          terms_key?: string
+          terms_version?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       beta_feedback_submissions: {
         Row: {
           created_at: string

@@ -1,7 +1,7 @@
 # Terms and Conditions Sheet Planning Log
 
 **Date:** 2026-06-06
-**Plan:** `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/`
+**Plan:** `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`
 **Mode:** docs-only planning.
 
 ## Actions
@@ -11,7 +11,7 @@
 - Read required `.ai` source-of-truth chain, `DESIGN.md`, `package.json`, `README.md`, relevant `.ai/06_specs`, active launch plans, and archived/current legal/billing/security plans.
 - Inspected route tree, auth/proxy/callback/session/Supabase client patterns, current `/terms` and `/privacy`, login legal notice, migration count, and legal/billing plan evidence.
 - Performed targeted legal/SaaS/product research for clickwrap/browsewrap, subscription cancellation/consent, privacy/data minimization, Supabase RLS/grants, and construction/estimating output disclaimer patterns.
-- Created implementation planning folder `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/` with required and optional docs.
+- Created implementation planning folder `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/` with required and optional docs.
 - Filed non-blocking docs-drift bug for stale migration counts.
 
 ## Validation boundary
