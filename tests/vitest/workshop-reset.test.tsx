@@ -143,6 +143,8 @@ afterEach(() => {
 
 describe("workshop sidebar baseline", () => {
   test("renders the workshop shell with an overlay sidebar and blank canvas", async () => {
+    const user = userEvent.setup();
+
     render(
       await WorkshopPageShell({
         title: "Workshop",
@@ -162,10 +164,25 @@ describe("workshop sidebar baseline", () => {
     expect(navigation).toBeTruthy();
     expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByRole("link", { name: "Projects, 3 pending invites" })).toBeTruthy();
+    expect(within(navigation).queryByRole("link", { name: "Settings" })).toBeNull();
     expect(navigation.querySelector('span[class*="bg-white/[0.10]"]')).toBeTruthy();
     expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
+    const settingsButton = screen.getByRole("button", { name: "Open settings" });
+    expect(settingsButton).toBeTruthy();
+    await user.click(settingsButton);
+    const settingsDialog = screen.getByRole("dialog", { name: "Settings" });
+    expect(within(settingsDialog).getByRole("link", { name: "Open Profile settings" })).toHaveAttribute(
+      "href",
+      "/workshop/settings/profile",
+    );
+    expect(within(settingsDialog).getByRole("link", { name: "Open Workspace settings" })).toHaveAttribute(
+      "href",
+      "/workshop/settings/workspace",
+    );
+    expect(within(settingsDialog).getByRole("button", { name: "Sign out" })).toBeTruthy();
+    expect(within(settingsDialog).queryByRole("link", { name: "Open Beta users" })).toBeNull();
     expect(screen.getByRole("link", { name: "Send beta feedback" })).toHaveAttribute(
       "href",
       "/workshop/feedback",

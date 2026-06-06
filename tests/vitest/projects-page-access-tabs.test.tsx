@@ -174,7 +174,11 @@ describe("ProjectsPageClient access tabs", () => {
 
     const tabs = screen.getAllByRole("tab");
     expect(tabs).toHaveLength(2);
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toBeInTheDocument();
+    const tablist = screen.getByRole("tablist", { name: "Project access tabs" });
+    const ownedTab = screen.getByRole("tab", { name: /Your Projects/i });
+    expect(tablist).toHaveClass("h-[32px]", "border-b", "bg-surfaceMuted");
+    expect(ownedTab).toHaveClass("border-b-0", "bg-white", "-mb-px");
+    expect(ownedTab).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toBeInTheDocument();
     for (const tab of tabs) {
       const panelId = tab.getAttribute("aria-controls");
@@ -314,7 +318,11 @@ describe("ProjectsPageClient access tabs", () => {
 
     await user.click(within(getActivePanel()).getByRole("checkbox", { name: "Select Owned Residence for deletion" }));
 
-    expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
+    const toolbar = screen.getByRole("region", { name: "Bulk action toolbar" });
+    expect(toolbar).toHaveTextContent("1 selected");
+    expect(toolbar).toHaveClass("fixed");
+    expect(toolbar.className).toContain("bottom-[calc(3.5rem+env(safe-area-inset-bottom))]");
+    expect(getActivePanel()).toHaveClass("pb-20");
 
     await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
 

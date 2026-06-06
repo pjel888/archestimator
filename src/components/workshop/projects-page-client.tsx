@@ -202,50 +202,50 @@ function ProjectAccessTabs({
   }
 
   return (
-    <div className="border-b border-hairline bg-white px-2 py-1">
-      <div
-        role="tablist"
-        aria-label="Project access tabs"
-        className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted p-0.5"
-      >
-        {PROJECT_ACCESS_TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          const count = tab.id === "your-projects" ? ownedCount : sharedCount;
+    <div
+      role="tablist"
+      aria-label="Project access tabs"
+      className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium"
+    >
+      {PROJECT_ACCESS_TABS.map((tab) => {
+        const isActive = activeTab === tab.id;
+        const count = tab.id === "your-projects" ? ownedCount : sharedCount;
 
-          return (
-            <button
-              key={tab.id}
-              id={getProjectAccessTabId(tab.id)}
-              ref={(node) => {
-                tabRefs.current[tab.id] = node;
-              }}
-              type="button"
-              role="tab"
-              aria-controls={getProjectAccessPanelId(tab.id)}
-              aria-label={`${tab.label}, ${formatProjectCount(count)}`}
-              aria-selected={isActive}
-              tabIndex={isActive ? 0 : -1}
+        return (
+          <button
+            key={tab.id}
+            id={getProjectAccessTabId(tab.id)}
+            ref={(node) => {
+              tabRefs.current[tab.id] = node;
+            }}
+            type="button"
+            role="tab"
+            aria-controls={getProjectAccessPanelId(tab.id)}
+            aria-label={`${tab.label}, ${formatProjectCount(count)}`}
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
+            className={cn(
+              "relative inline-flex h-full flex-shrink-0 min-w-0 items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              isActive
+                ? "z-10 -mb-px border-hairline bg-white text-ink"
+                : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
+            )}
+            onClick={() => activateTab(tab.id)}
+            onKeyDown={(event) => handleKeyDown(event, tab.id)}
+          >
+            <span>{tab.label}</span>
+            <span
+              aria-hidden="true"
               className={cn(
-                "inline-flex h-6 min-w-0 items-center gap-1 rounded-xs px-2 text-[10px] font-medium leading-3 tracking-normal text-tertiary transition hover:bg-white/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
-                isActive ? "bg-white text-ink shadow-sm" : null,
+                "ml-1 inline-flex min-w-3 justify-center rounded-xs px-1 text-[8px] font-medium leading-[10px]",
+                isActive ? "bg-surfaceMuted text-secondary" : "bg-white/70 text-tertiary",
               )}
-              onClick={() => activateTab(tab.id)}
-              onKeyDown={(event) => handleKeyDown(event, tab.id)}
             >
-              <span>{tab.label}</span>
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "ml-1 rounded-xs border border-hairline bg-white/80 px-1 text-[8px] font-medium leading-[10px] text-tertiary",
-                  isActive ? "text-secondary" : null,
-                )}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              {count}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -537,12 +537,13 @@ export function ProjectsPageClient({
         role="tabpanel"
         aria-labelledby={getProjectAccessTabId(activeTab)}
         aria-label={activeTab === "your-projects" ? "Your projects" : "Projects shared to you"}
-        className="space-y-2"
+        className={cn("space-y-2", selectedVisibleProjectIds.length ? "pb-20" : null)}
       >
         <BulkActionToolbar
           selectedCount={selectedVisibleProjectIds.length}
           actionLabel="Delete selected projects"
           helperText="Project deletion blocks active shared links and runs a dependency preview first."
+          placement="bottom-dock"
           onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
           onClear={() => setSelectedProjectIds(new Set())}
           onSelectVisible={() => setSelectedProjectIds(new Set(selectableDisplayProjectIds))}

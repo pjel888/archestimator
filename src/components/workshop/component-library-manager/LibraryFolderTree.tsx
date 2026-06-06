@@ -33,6 +33,7 @@ import {
 import { reorderLibraryFolders } from "@/lib/component-library/actions";
 import {
   evaluateLibraryFolderDrop,
+  fromLibraryFolderTreeItemId,
   LIBRARY_FOLDER_TREE_ID,
   LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
   toLibraryFolderTreeItemId,
@@ -261,7 +262,7 @@ function buildFolderTreeModel(nodes: LibraryFolderTreeNode[], itemsByFolderId: M
       items[itemId] = {
         index: itemId,
         isFolder: false,
-        canMove: false,
+        canMove: true,
         children: [],
         data: {
           kind: "component",
@@ -285,6 +286,19 @@ function buildFolderSelectionNodes(nodes: LibraryFolderTreeNode[]): TreeSelectio
     selectable: !isAllComponentsFolderId(node.folderId),
     children: buildFolderSelectionNodes(node.children ?? []),
   }));
+}
+
+function getWritableDropFolderId(targetItem: TreeItemIndex) {
+  const value = String(targetItem);
+  if (value === LIBRARY_FOLDER_TREE_ROOT_ITEM_ID) return null;
+  const folderId = fromLibraryFolderTreeItemId(value);
+  return folderId && !isAllComponentsFolderId(folderId) ? folderId : null;
+}
+
+function getComponentDropTargetFolderId(target: DraggingPosition) {
+  if (target.targetType === "item") return getWritableDropFolderId(target.targetItem);
+  if (target.targetType === "between-items") return getWritableDropFolderId(target.parentItem);
+  return null;
 }
 
 export function FolderActionIcon() {
@@ -327,10 +341,13 @@ type LibraryFolderTreeProps = {
   folders: LibraryFolderRecord[];
   nodes: LibraryFolderTreeNode[];
   libraryItems?: EstimateRowItem[];
+  selectedComponentIds?: Set<string>;
   selectedFolderId: string | null;
   searchQuery: string;
   disabled: boolean;
   onSelectFolder: (folderId: string) => void;
+  onToggleComponentSelected?: (itemId: string) => void;
+  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
   onFoldersChange: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus: (status: ReorderStatus) => void;
   onCreateFolder: (parentId: string | null) => void;
@@ -348,10 +365,13 @@ export function LibraryFolderTree({
   folders,
   nodes,
   libraryItems = [],
+  selectedComponentIds = new Set<string>(),
   selectedFolderId,
   searchQuery,
   disabled,
   onSelectFolder,
+  onToggleComponentSelected,
+  onMoveComponentToFolder,
   onFoldersChange,
   onReorderStatus,
   onCreateFolder,
@@ -398,6 +418,7 @@ export function LibraryFolderTree({
   const folderSelectionNodes = useMemo(() => buildFolderSelectionNodes(filteredNodes), [filteredNodes]);
   const [bulkSelectedFolderIds, setBulkSelectedFolderIds] = useState<Set<string>>(() => new Set());
   const bulkSelectionCount = bulkSelectedFolderIds.size;
+  const selectedComponentCount = selectedComponentIds.size;
 
   useEffect(() => {
     let cancelled = false;
@@ -425,17 +446,22 @@ export function LibraryFolderTree({
     if (result !== false) clearBulkSelection();
   }, [bulkSelectedFolderIds, clearBulkSelection, onDeleteFolders]);
 
-  const canDrag = useCallback((items: TreeItem<LibraryFolderTreeItemData>[]) => (
-    enableDragAndDrop &&
-    !disabled &&
-    items.length === 1 &&
-    items[0]?.data.kind === "folder" &&
-    Boolean(items[0]?.data.folderId) &&
-    !isAllComponentsFolderId(items[0]?.data.folderId)
-  ), [disabled, enableDragAndDrop]);
+  const canDrag = useCallback((items: TreeItem<LibraryFolderTreeItemData>[]) => {
+    if (!enableDragAndDrop || disabled || items.length !== 1) return false;
+    const draggedItem = items[0];
+    if (draggedItem?.data.kind === "folder") {
+      return Boolean(draggedItem.data.folderId) && !isAllComponentsFolderId(draggedItem.data.folderId);
+    }
+    return Boolean(onMoveComponentToFolder && draggedItem?.data.kind === "component" && draggedItem.data.item && draggedItem.data.parentFolderId);
+  }, [disabled, enableDragAndDrop, onMoveComponentToFolder]);
 
   const canDropAt = useCallback((items: TreeItem<LibraryFolderTreeItemData>[], target: DraggingPosition) => {
     if (!canDrag(items)) return false;
+    const draggedItem = items[0];
+    if (draggedItem.data.kind === "component") {
+      const targetFolderId = getComponentDropTargetFolderId(target);
+      return Boolean(targetFolderId && draggedItem.data.parentFolderId !== targetFolderId);
+    }
     return evaluateLibraryFolderDrop({
       folders,
       draggedItemIds: items.map((item) => item.index),
@@ -444,6 +470,30 @@ export function LibraryFolderTree({
   }, [canDrag, folders]);
 
   const handleDrop = useCallback(async (items: TreeItem<LibraryFolderTreeItemData>[], target: DraggingPosition) => {
+    const draggedItem = items[0];
+    if (draggedItem?.data.kind === "component") {
+      const targetFolderId = getComponentDropTargetFolderId(target);
+      const componentItem = draggedItem.data.item;
+      if (!componentItem || !targetFolderId || !onMoveComponentToFolder) {
+        onReorderStatus({ state: "error", message: "Drop components onto a library folder." });
+        return;
+      }
+      if (draggedItem.data.parentFolderId === targetFolderId) {
+        onReorderStatus({ state: "saved", message: "Component is already in that folder." });
+        return;
+      }
+
+      onReorderStatus({ state: "saving", message: `Moving ${getComponentName(componentItem)}...` });
+      try {
+        await onMoveComponentToFolder(componentItem, targetFolderId);
+        onSelectFolder(targetFolderId);
+        onReorderStatus({ state: "saved", message: "Component moved." });
+      } catch (error) {
+        onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not move component." });
+      }
+      return;
+    }
+
     const result = evaluateLibraryFolderDrop({
       folders,
       draggedItemIds: items.map((item) => item.index),
@@ -466,7 +516,7 @@ export function LibraryFolderTree({
       onFoldersChange(previousFolders);
       onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save folder order." });
     }
-  }, [folders, onFoldersChange, onReorderStatus, onSelectFolder]);
+  }, [folders, onFoldersChange, onMoveComponentToFolder, onReorderStatus, onSelectFolder]);
 
   const createActionGroups = useCallback((item: TreeItem<LibraryFolderTreeItemData>, hasChildren: boolean, isExpanded: boolean): ActionMenuGroup[] => {
     const folderId = item.data.folderId;
@@ -635,10 +685,14 @@ export function LibraryFolderTree({
           const componentItem = item.data.item;
           const componentName = getComponentName(componentItem);
           const componentPrice = getComponentPrice(componentItem);
+          const componentSelected = selectedComponentIds.has(componentItem.id);
           const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
           delete (liProps as Record<string, unknown>).role;
           delete (liProps as Record<string, unknown>)["aria-selected"];
           const { className: rowClassName, style: rowStyle, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
+          const { className: buttonClassName, onClick: interactiveOnClick, ...interactiveProps } = context.interactiveElementProps as HTMLAttributes<HTMLDivElement>;
+          delete (interactiveProps as Record<string, unknown>).type;
+          delete (interactiveProps as Record<string, unknown>).disabled;
 
           return (
             <li {...liProps} className={cn("list-none", liClassName)}>
@@ -649,15 +703,34 @@ export function LibraryFolderTree({
                 style={rowStyle}
               >
                 <WorkshopTreeRow
+                  {...interactiveProps}
                   as="div"
                   role="treeitem"
                   aria-label={componentName}
                   aria-selected={false}
                   data-library-component-item-id={componentItem.id}
+                  data-library-component-bulk-selected={componentSelected ? "true" : undefined}
                   depth={depth}
                   selected={false}
-                  className="cursor-pointer gap-1.5"
-                  onClick={() => {
+                  selectionMode={selectedComponentCount > 0}
+                  dragHandleSlot={enableDragAndDrop && onMoveComponentToFolder ? <TreeDragHandle forceVisible /> : undefined}
+                  leadingSlot={
+                    onToggleComponentSelected ? (
+                      <TreeSelectionCheckbox
+                        checked={componentSelected}
+                        disabled={disabled}
+                        aria-label={`Select ${componentName}`}
+                        onChange={() => onToggleComponentSelected(componentItem.id)}
+                      />
+                    ) : undefined
+                  }
+                  className={cn(
+                    "cursor-pointer gap-1.5",
+                    componentSelected ? "border-accent bg-accentSoft" : undefined,
+                    buttonClassName,
+                  )}
+                  onClick={(event) => {
+                    interactiveOnClick?.(event);
                     if (parentFolderId) onSelectFolder(parentFolderId);
                   }}
                 >
@@ -762,6 +835,7 @@ type LibraryFolderTreePickerProps = {
   folders: LibraryFolderRecord[];
   nodes: LibraryFolderTreeNode[];
   libraryItems?: EstimateRowItem[];
+  selectedComponentIds?: Set<string>;
   selectedFolderId: string | null;
   viewMode?: ComponentViewMode;
   defaultViewMode?: ComponentViewMode;
@@ -773,6 +847,8 @@ type LibraryFolderTreePickerProps = {
   selectedBrandId?: string | null;
   selectedBrandName?: string | null;
   onSelectFolder: (folderId: string) => void;
+  onToggleComponentSelected?: (itemId: string) => void;
+  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
   onSelectSupplier?: (supplierId: string | null, supplierName?: string) => void;
   onSelectBrand?: (brandId: string | null, brandName?: string) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
@@ -789,11 +865,14 @@ type LibraryFolderTreeSurfaceProps = {
   folders: LibraryFolderRecord[];
   folderNodes: LibraryFolderTreeNode[];
   libraryItems?: EstimateRowItem[];
+  selectedComponentIds?: Set<string>;
   selectedFolderId: string | null;
   viewMode?: ComponentViewMode;
   defaultViewMode?: ComponentViewMode;
   onViewModeChange?: (mode: ComponentViewMode) => void;
   onSelectFolder: (folderId: string) => void;
+  onToggleComponentSelected?: (itemId: string) => void;
+  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
   onFoldersChange?: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus?: (status: ReorderStatus) => void;
   onCreateFolder?: CreateLibraryFolderHandler;
@@ -842,11 +921,14 @@ export function LibraryFolderTreeSurface({
   folders,
   folderNodes,
   libraryItems = [],
+  selectedComponentIds = new Set<string>(),
   selectedFolderId,
   viewMode: controlledViewMode,
   defaultViewMode = "default",
   onViewModeChange,
   onSelectFolder,
+  onToggleComponentSelected,
+  onMoveComponentToFolder,
   onFoldersChange = () => undefined,
   onReorderStatus = () => undefined,
   onCreateFolder,
@@ -1109,6 +1191,7 @@ export function LibraryFolderTreeSurface({
             folders={folders}
             nodes={displayedFolderNodes}
             libraryItems={libraryItems}
+            selectedComponentIds={selectedComponentIds}
             selectedFolderId={effectiveSelectedFolderId}
             searchQuery={searchQuery}
             disabled={treeMutationPending}
@@ -1118,6 +1201,8 @@ export function LibraryFolderTreeSurface({
             enableDragAndDrop={enableFolderDragAndDrop}
             selectedTitleOnly={selectedTitleOnly}
             onSelectFolder={onSelectFolder}
+            onToggleComponentSelected={onToggleComponentSelected}
+            onMoveComponentToFolder={onMoveComponentToFolder}
             onFoldersChange={onFoldersChange}
             onReorderStatus={onReorderStatus}
             onCreateFolder={onCreateFolder ?? (() => undefined)}
@@ -1139,6 +1224,7 @@ export function LibraryFolderTreePicker({
   folders,
   nodes,
   libraryItems = [],
+  selectedComponentIds,
   selectedFolderId,
   viewMode,
   defaultViewMode,
@@ -1150,6 +1236,8 @@ export function LibraryFolderTreePicker({
   selectedBrandId,
   selectedBrandName,
   onSelectFolder,
+  onToggleComponentSelected,
+  onMoveComponentToFolder,
   onSelectSupplier,
   onSelectBrand,
   onCreateFolder,
@@ -1195,6 +1283,7 @@ export function LibraryFolderTreePicker({
       folders={folders}
       folderNodes={nodes}
       libraryItems={libraryItems}
+      selectedComponentIds={selectedComponentIds}
       selectedFolderId={selectedFolderId}
       viewMode={viewMode}
       defaultViewMode={defaultViewMode}
@@ -1210,6 +1299,8 @@ export function LibraryFolderTreePicker({
       brandNodes={brandTreeNodes}
       selectedBrandNodeId={selectedBrandNodeId}
       onSelectFolder={onSelectFolder}
+      onToggleComponentSelected={onToggleComponentSelected}
+      onMoveComponentToFolder={onMoveComponentToFolder}
       onSelectSupplier={onSelectSupplier}
       onSelectBrand={onSelectBrand}
       reorderStatus={reorderStatus}

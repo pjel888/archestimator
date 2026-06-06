@@ -25,7 +25,8 @@ describe("auth onboarding and settings route contracts", () => {
   });
 
   it("keeps settings as a discoverable hub for beta operations", () => {
-    const source = read("src/app/workshop/settings/page.tsx");
+    const source = read("src/components/workshop/WorkshopSettingsModalContent.tsx");
+    const pageSource = read("src/app/workshop/settings/page.tsx");
 
     expect(source).toContain('href: "/workshop/settings/profile"');
     expect(source).toContain('href: "/workshop/settings/workspace"');
@@ -40,14 +41,20 @@ describe("auth onboarding and settings route contracts", () => {
     expect(source).toContain('import { signOut } from "@/lib/auth/actions"');
     expect(source).toContain("action={signOut}");
     expect(source).toContain("Sign out");
-    expect(source).toContain('context.role === "ceo" || context.role === "admin"');
-    expect(source).not.toContain('redirect("/workshop/settings/profile")');
+    expect(pageSource).toContain('context.role === "ceo" || context.role === "admin"');
+    expect(pageSource).toContain('trigger="none"');
+    expect(pageSource).toContain("initialOpen");
+    expect(pageSource).not.toContain("SettingsLinkCard");
+    expect(pageSource).not.toContain('redirect("/workshop/settings/profile")');
   });
 
-  it("points the sidebar Settings item at the settings route", () => {
-    expect(read("src/components/sidebar/MainSidebar.tsx")).toMatch(
-      /href:\s*["']\/workshop\/settings["']/,
-    );
+  it("moves settings out of the sidebar and into the workshop header modal", () => {
+    const sidebarSource = read("src/components/sidebar/MainSidebar.tsx");
+    const shellSource = read("src/components/workshop/WorkshopPageShell.tsx");
+
+    expect(sidebarSource).not.toMatch(/href:\s*["']\/workshop\/settings["']/);
+    expect(shellSource).toContain("WorkshopSettingsModal");
+    expect(shellSource).toContain("WorkshopSettingsModalContent");
   });
 
   it("derives invited-collaborator onboarding mode server-side", () => {

@@ -74,6 +74,23 @@ describe("NotificationCenter", () => {
     expect(hookState.dismiss.mutate).toHaveBeenCalledWith(notificationFixtureIds.userASecurityDelivery);
   });
 
+  it("closes when the user clicks outside the notification panel", async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <NotificationCenter />
+        <button type="button">Outside target</button>
+      </div>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Notifications, 1 unread" }));
+    expect(screen.getByRole("region", { name: "Notifications" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Outside target" }));
+
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Notifications" })).not.toBeInTheDocument());
+  });
+
   it("renders loading, empty, and retryable error states compactly", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<NotificationCenter />);

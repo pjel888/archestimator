@@ -24,6 +24,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteLibraryFolder: vi.fn(),
   deleteLibraryFoldersBulk: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
+  moveCostLibraryComponentToFolder: vi.fn(),
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
@@ -34,18 +35,26 @@ const navigationMocks = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
+type CapturedFolderTreeItemData = {
+  kind: "folder" | "component";
+  folderId: string | null;
+  label: string;
+  item?: EstimateRowItem;
+  parentFolderId?: string;
+};
+
 type CapturedFolderEnvironmentProps = {
-  items: Record<TreeItemIndex, TreeItem<{ folderId: string | null; label: string }>>;
-  getItemTitle: (item: TreeItem<{ folderId: string | null; label: string }>) => string;
+  items: Record<TreeItemIndex, TreeItem<CapturedFolderTreeItemData>>;
+  getItemTitle: (item: TreeItem<CapturedFolderTreeItemData>) => string;
   viewState?: TreeViewState;
   canDragAndDrop?: boolean;
   canReorderItems?: boolean;
   canDropOnFolder?: boolean;
   canDropOnNonFolder?: boolean;
   canDropBelowOpenFolders?: boolean;
-  canDropAt?: (items: TreeItem<{ folderId: string | null; label: string }>[], target: DraggingPosition) => boolean;
-  onDrop?: (items: TreeItem<{ folderId: string | null; label: string }>[], target: DraggingPosition) => void | Promise<void>;
-  onPrimaryAction?: (item: TreeItem<{ folderId: string | null; label: string }>) => void;
+  canDropAt?: (items: TreeItem<CapturedFolderTreeItemData>[], target: DraggingPosition) => boolean;
+  onDrop?: (items: TreeItem<CapturedFolderTreeItemData>[], target: DraggingPosition) => void | Promise<void>;
+  onPrimaryAction?: (item: TreeItem<CapturedFolderTreeItemData>) => void;
 };
 
 const rctHarness = vi.hoisted(() => ({
@@ -239,12 +248,14 @@ describe("workshop library consolidation UI", () => {
     actionMocks.deleteLibraryFolder.mockReset();
     actionMocks.deleteLibraryFoldersBulk.mockReset();
     actionMocks.executeBulkArchiveLibraryComponents.mockReset();
+    actionMocks.moveCostLibraryComponentToFolder.mockReset();
     actionMocks.previewBulkArchiveLibraryComponents.mockReset();
     actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
     actionMocks.renameLibraryFolder.mockReset();
     actionMocks.reorderLibraryFolders.mockReset();
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
     actionMocks.reorderLibraryFolders.mockResolvedValue(undefined);
+    actionMocks.moveCostLibraryComponentToFolder.mockResolvedValue(undefined);
     navigationMocks.refresh.mockReset();
     vi.spyOn(window, "confirm").mockReturnValue(false);
     rctHarness.lastEnvironmentProps = null;
@@ -863,5 +874,44 @@ describe("workshop library consolidation UI", () => {
         ]),
       });
     });
+  });
+
+  it("lets component rows move to another library folder from the tree", async () => {
+    render(
+      <LibraryPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        libraryFolders={sharedFolders}
+        libraryItems={sharedLibraryItems}
+      />,
+    );
+    await waitForLibraryWorkspace();
+
+    const environment = rctHarness.lastEnvironmentProps;
+    const componentItem = Object.values(environment?.items ?? {}).find(
+      (item) => item.data.kind === "component" && item.data.item?.id === "db-library-steel-frame",
+    );
+    expect(componentItem).toBeDefined();
+    expect(componentItem?.canMove).toBe(true);
+
+    const dropTarget: DraggingPosition = {
+      targetType: "item",
+      treeId: "library-folder-tree",
+      targetItem: "folder:folder-details",
+      parentItem: "folder:folder-fabrication",
+      linearIndex: 2,
+      depth: 1,
+    };
+    expect(environment?.canDropAt?.([componentItem!], dropTarget)).toBe(true);
+
+    await environment?.onDrop?.([componentItem!], dropTarget);
+
+    await waitFor(() =>
+      expect(actionMocks.moveCostLibraryComponentToFolder).toHaveBeenCalledWith({
+        itemId: "db-library-steel-frame",
+        libraryFolderId: "folder-details",
+      }),
+    );
+    expect(navigationMocks.refresh).toHaveBeenCalled();
   });
 });

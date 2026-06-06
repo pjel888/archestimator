@@ -42,6 +42,35 @@ function mockEditorSupabaseClient() {
   return { from, rpc };
 }
 
+function createQueryResult(data: Record<string, unknown> | null) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    update: vi.fn(),
+    maybeSingle: vi.fn(async () => ({ data, error: null })),
+  };
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.update.mockReturnValue(query);
+  return query;
+}
+
+function mockComponentMoveSupabaseClient() {
+  const rpc = vi.fn(async (name: string) => {
+    if (name === "is_workspace_editor") return { data: true, error: null };
+    return { data: null, error: null };
+  });
+  const folderQuery = createQueryResult({ id: "00000000-0000-4000-8000-000000000001" });
+  const componentQuery = createQueryResult({ id: "00000000-0000-4000-8000-000000000002" });
+  const from = vi.fn((table: string) => {
+    if (table === "library_folders") return folderQuery;
+    if (table === "cost_library_items") return componentQuery;
+    throw new Error(`unexpected table access: ${table}`);
+  });
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+  return { from, rpc, folderQuery, componentQuery };
+}
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -66,8 +95,14 @@ describe("component library folder server actions", () => {
     await expect(actions.reorderLibraryFolders({ updates: [{ id: "folder-1", parentId: null, sortOrder: 10 }] })).rejects.toThrow(
       "Only workspace editors/admins can manage library folders.",
     );
+    await expect(
+      actions.moveCostLibraryComponentToFolder({
+        itemId: "00000000-0000-4000-8000-000000000002",
+        libraryFolderId: "00000000-0000-4000-8000-000000000001",
+      }),
+    ).rejects.toThrow("Only workspace editors/admins can manage library folders.");
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(4);
+    expect(supabase.rpc).toHaveBeenCalledTimes(5);
     expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
     expect(supabase.from).not.toHaveBeenCalled();
   });
@@ -85,5 +120,25 @@ describe("component library folder server actions", () => {
       target_folder_id: folderId,
     });
     expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("moves a component by updating only its library folder", async () => {
+    const supabase = mockComponentMoveSupabaseClient();
+    const actions = await import("@/lib/component-library/actions");
+    const folderId = "00000000-0000-4000-8000-000000000001";
+    const itemId = "00000000-0000-4000-8000-000000000002";
+
+    await expect(actions.moveCostLibraryComponentToFolder({ itemId, libraryFolderId: folderId })).resolves.toBeUndefined();
+
+    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
+    expect(supabase.from).toHaveBeenCalledWith("library_folders");
+    expect(supabase.folderQuery.select).toHaveBeenCalledWith("id");
+    expect(supabase.folderQuery.eq).toHaveBeenCalledWith("id", folderId);
+    expect(supabase.folderQuery.eq).toHaveBeenCalledWith("workspace_id", "workspace-1");
+    expect(supabase.from).toHaveBeenCalledWith("cost_library_items");
+    expect(supabase.componentQuery.update).toHaveBeenCalledWith({ library_folder_id: folderId });
+    expect(supabase.componentQuery.eq).toHaveBeenCalledWith("id", itemId);
+    expect(supabase.componentQuery.eq).toHaveBeenCalledWith("workspace_id", "workspace-1");
+    expect(supabase.componentQuery.select).toHaveBeenCalledWith("id");
   });
 });
