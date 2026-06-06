@@ -1,5 +1,29 @@
 # Decisions
 
+## 2026-06-06 - UI component optimization planning posture
+
+**Decision:** Treat `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
+as a docs-only, phase-gated planning pack. Future implementation should start
+with MVP Phases 0-3: baseline/safety, pure tree utilities, headless tree
+hooks/shells, and read-only share-tree unification. Do not start editable
+`EstimateSheetTree` or `EstimateSheetContent` decomposition until measurement,
+impact, missing tests, and owner smoke gates pass.
+
+**Rationale:** GitNexus and code-review graph evidence shows the tree/sheet
+surface is not uniformly low risk: `ShareEstimateTreePanel` and
+`ShareEstimateTreeView` are low direct risk, but `WorkshopTree` is high shared
+blast radius and editable estimate surfaces own optimistic mutations, rollback,
+drag/drop, bulk selection, and row editing. The previous single 96 percent
+readiness claim was not evidence-based because Profiler data, realistic row
+counts, formal risk/rollback, and owner gates were missing.
+
+**Follow-up:** Future implementation must read the plan's
+`CURRENT_CANONICAL_PLAN.md`, `BLAST_RADIUS_ANALYSIS.md`,
+`IMPLEMENTATION_MATRIX.md`, `MEASUREMENT_BASELINE.md`, and
+`OWNER_SIGNOFF.md` before source edits. Route-level memoization and dynamic
+import decisions must defer to the active route-transition performance plan.
+Virtualization or new dependencies require measured need and owner approval.
+
 ## 2026-06-06 - Terms acceptance implementation posture
 
 **Decision:** Implement Terms acceptance as authenticated clickwrap plus server-stamped append-only acceptance records. Use a protected `/workshop/terms` page for first protected-app access and material-version re-acceptance, keep `/terms` and `/privacy` public, and avoid raw IP/user-agent storage by default.
