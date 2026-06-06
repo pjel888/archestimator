@@ -1,10 +1,19 @@
 "use client";
 
+import { useActionState } from "react";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { BETA_FEEDBACK_SEVERITIES, BETA_FEEDBACK_TYPES } from "@/lib/workshop/beta-feedback";
-import { submitBetaFeedback } from "@/lib/workshop/beta-feedback-actions";
+import {
+  submitBetaFeedback,
+  submitBetaFeedbackInline,
+  type BetaFeedbackInlineState,
+} from "@/lib/workshop/beta-feedback-actions";
+
+type BetaFeedbackFormProps = {
+  mode?: "inline" | "redirect";
+};
 
 const feedbackTypeLabels: Record<(typeof BETA_FEEDBACK_TYPES)[number], string> = {
   bug: "Bug",
@@ -22,12 +31,32 @@ const severityLabels: Record<(typeof BETA_FEEDBACK_SEVERITIES)[number], string> 
   low: "Low",
 };
 
-export function BetaFeedbackForm() {
+const initialInlineState: BetaFeedbackInlineState = { status: "idle" };
+
+export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
   const pathname = usePathname();
+  const [inlineState, inlineAction, inlinePending] = useActionState(submitBetaFeedbackInline, initialInlineState);
+  const isInline = mode === "inline";
+  const action = isInline ? inlineAction : submitBetaFeedback;
 
   return (
-    <form action={submitBetaFeedback} className="max-w-3xl space-y-3">
+    <form action={action} className="max-w-3xl space-y-3">
       <input type="hidden" name="pagePath" value={pathname ?? "/workshop/feedback"} />
+      {isInline && inlineState.status !== "idle" && inlineState.message ? (
+        <div
+          className={[
+            "rounded-xs border p-2 text-[10px] leading-4",
+            inlineState.status === "saved"
+              ? "border-accent/25 bg-accentSoft text-ink"
+              : inlineState.status === "fallback"
+                ? "border-warning/25 bg-warningSoft text-warning"
+                : "border-dangerSoft bg-dangerSoft/40 text-danger",
+          ].join(" ")}
+          role="status"
+        >
+          {inlineState.message}
+        </div>
+      ) : null}
 
       <section className="space-y-2 border border-hairline bg-white p-2">
         <div className="grid gap-2 sm:grid-cols-2">
@@ -88,8 +117,8 @@ export function BetaFeedbackForm() {
         <p className="max-w-xl text-[9px] leading-3 text-tertiary">
           Avoid pasting client-confidential estimate details unless Philip has explicitly asked for them.
         </p>
-        <Button type="submit" variant="primary" size="md">
-          Send feedback
+        <Button type="submit" variant="primary" size="md" disabled={isInline && inlinePending}>
+          {isInline && inlinePending ? "Sending" : "Send feedback"}
         </Button>
       </div>
     </form>

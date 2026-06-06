@@ -2,7 +2,7 @@
 
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 
-import { DotsSixVertical } from "@phosphor-icons/react/dist/ssr";
+import { DotsSixVertical, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 
@@ -147,6 +147,10 @@ type TreeBulkActionBarProps = {
   deleteDisabled?: boolean;
   /** Tooltip / reason shown on hover when delete is disabled. */
   disabledReason?: string;
+  /** Optional layout override for surfaces that provide their own container. */
+  className?: string;
+  /** Use icon-only actions for compact toolbar surfaces. */
+  iconOnly?: boolean;
 };
 
 /**
@@ -163,14 +167,44 @@ export function TreeBulkActionBar({
   deleteLabel = "Delete selected",
   deleteDisabled,
   disabledReason,
+  className,
+  iconOnly = false,
 }: TreeBulkActionBarProps) {
   if (selectedCount === 0) return null;
+
+  if (iconOnly) {
+    return (
+      <div
+        role="toolbar"
+        aria-label="Bulk actions"
+        className={cn("flex items-center justify-end gap-1 sticky top-0 z-10 bg-surface px-3 py-2 border-b border-hairline", className)}
+      >
+        <span className="sr-only">
+          <TreeSelectionCountLabel count={selectedCount} singular={entityLabel} plural={entityLabelPlural} />
+        </span>
+        <Button variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" onClick={onClearSelection} aria-label="Clear selection">
+          <X size={12} weight="regular" aria-hidden="true" />
+        </Button>
+        <Button
+          variant="danger"
+          size="icon-sm"
+          className="size-6 rounded-xs p-0"
+          onClick={onDelete}
+          disabled={deleteDisabled}
+          title={deleteDisabled ? disabledReason : undefined}
+          aria-label={deleteLabel}
+        >
+          <Trash size={12} weight="regular" aria-hidden="true" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div
       role="toolbar"
       aria-label="Bulk actions"
-      className="flex items-center gap-2 sticky top-0 z-10 bg-surface px-3 py-2 border-b border-hairline"
+      className={cn("flex items-center gap-2 sticky top-0 z-10 bg-surface px-3 py-2 border-b border-hairline", className)}
     >
       <TreeSelectionCountLabel count={selectedCount} singular={entityLabel} plural={entityLabelPlural} />
       <Button variant="ghost" size="sm" onClick={onClearSelection}>

@@ -39,7 +39,7 @@ import {
   WORKSHOP_TREE_ROW_GAP_CLASS,
   WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
 } from "./tree-visual-style";
-import { WorkshopTreeRow, WorkshopTreeTabs } from "./workshop-tree";
+import { WorkshopTreeRow } from "./workshop-tree";
 import { TreeBulkActionBar, TreeDragHandle, TreeSelectionCheckbox } from "./tree-row-affordances";
 import {
   ESTIMATE_TREE_ROOT_ITEM_ID,
@@ -67,6 +67,25 @@ const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheets" }] as const;
 type EstimateTreeItemData = {
   node: EstimateTreeNode | null;
 };
+
+function EstimateTreeTabStrip() {
+  return (
+    <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Estimate tree views">
+      {ESTIMATE_TREE_TABS.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected="true"
+          className="relative z-10 -mb-px h-full rounded-xs border border-b-0 border-hairline bg-white px-3 text-[10px] font-medium leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          {tab.label}
+        </button>
+      ))}
+      <div className="h-full min-w-0 flex-1 bg-surfaceMuted" aria-hidden="true" />
+    </div>
+  );
+}
 
 type EstimateTreeModel = {
   items: Record<TreeItemIndex, TreeItem<EstimateTreeItemData>>;
@@ -1011,23 +1030,27 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               },
             ]}
           />
-          <WorkshopTreeTabs tabs={ESTIMATE_TREE_TABS} activeTab="sheets" ariaLabel="Estimate tree views" />
+          <EstimateTreeTabStrip />
         </div>
 
-        <TreeBulkActionBar
-          selectedCount={bulkSelectionCount}
-          entityLabel="node"
-          onClearSelection={clearBulkSelection}
-          onDelete={() => setBulkDeleteConfirmOpen(true)}
-          deleteDisabled={isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0}
-          disabledReason={
-            isTreeMutationSaving
-              ? "Finish the current tree save before deleting selected nodes."
-              : "Select at least one node."
-          }
-        />
-
-        <div className="min-h-0 flex-1 overflow-auto p-2">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="h-8 w-full bg-white">
+            <TreeBulkActionBar
+              selectedCount={bulkSelectionCount}
+              entityLabel="node"
+              onClearSelection={clearBulkSelection}
+              onDelete={() => setBulkDeleteConfirmOpen(true)}
+              deleteDisabled={isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0}
+              disabledReason={
+                isTreeMutationSaving
+                  ? "Finish the current tree save before deleting selected nodes."
+                  : "Select at least one node."
+              }
+              className="static h-full border-0 bg-transparent px-2 py-0"
+              iconOnly
+            />
+          </div>
+          <div className="px-2 pb-2 pt-0">
           {localNodes.length === 0 ? (
             <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
               This estimate has no tree nodes yet. Add a Group Node or Area Node to begin rebuilding the estimate structure.
@@ -1460,8 +1483,8 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   onDrop={(event) => handleRootDropZoneDrop("top", event)}
                   onDragLeave={clearRootDropActive}
                   className={cn(
-                    "relative h-8 px-1 py-2 transition-colors",
-                    activeRootDropEdge === "top" ? "rounded-xs bg-[#eef7ff]" : "bg-transparent",
+                    "relative px-1 transition-colors",
+                    activeRootDropEdge === "top" ? "h-8 rounded-xs bg-[#eef7ff] py-2" : "h-[9px] bg-transparent py-0",
                   )}
                 >
                   <div
@@ -1494,6 +1517,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               </>
             </ControlledTreeEnvironment>
           )}
+          </div>
         </div>
         </div>
       </ResizableSidePanel>

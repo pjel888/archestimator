@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -18,7 +19,7 @@ import {
   type TreeItemIndex,
   type TreeViewState,
 } from "react-complex-tree";
-import { CaretDown, CaretRight, FolderSimple, Package } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretRight, Check, FolderSimple, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
@@ -315,21 +316,32 @@ export function ComponentViewControls({
   onModeChange: (mode: ComponentViewMode) => void;
 }) {
   return (
-    <div className="border-b border-hairline bg-white px-2 py-1.5">
-      <div className="mb-1 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">View By</div>
-      <div role="group" aria-label={ariaLabel} className="grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5">
+    <div
+      role="menu"
+      aria-label={ariaLabel}
+      className="absolute left-2 top-[72px] z-40 w-36 rounded-xs border border-hairline bg-white p-1 shadow-lg"
+    >
+      <div className="px-2 pb-1 pt-0.5 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">View By</div>
+      <div className="space-y-0.5">
         {COMPONENT_VIEW_MODES.map((item) => (
           <button
             key={item.id}
             type="button"
-            aria-pressed={mode === item.id}
+            role="menuitemradio"
+            aria-checked={mode === item.id}
             onClick={() => onModeChange(item.id)}
             className={cn(
-              "h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              mode === item.id ? "bg-white text-ink shadow-sm" : "text-tertiary hover:bg-white/70 hover:text-ink",
+              "flex h-7 w-full items-center gap-2 rounded-xs px-2 text-left text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              mode === item.id ? "bg-accentSoft text-ink" : "text-tertiary hover:bg-surfaceMuted hover:text-ink",
             )}
           >
-            {item.label}
+            <Check
+              size={11}
+              weight="bold"
+              aria-hidden="true"
+              className={cn("shrink-0", mode === item.id ? "opacity-100" : "opacity-0")}
+            />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
           </button>
         ))}
       </div>
@@ -969,6 +981,8 @@ export function LibraryFolderTreeSurface({
 }: LibraryFolderTreeSurfaceProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [internalViewMode, setInternalViewMode] = useState<ComponentViewMode>(defaultViewMode);
+  const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
   const viewMode = controlledViewMode ?? internalViewMode;
   const displayedFolderNodes = useMemo(
     () => (showAllComponentsRoot ? withAllComponentsRoot(folderNodes) : folderNodes),
@@ -995,7 +1009,24 @@ export function LibraryFolderTreeSurface({
   const changeViewMode = useCallback((nextMode: ComponentViewMode) => {
     if (controlledViewMode === undefined) setInternalViewMode(nextMode);
     onViewModeChange?.(nextMode);
+    setViewModeMenuOpen(false);
   }, [controlledViewMode, onViewModeChange]);
+
+  useEffect(() => {
+    if (!viewModeMenuOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!headerRef.current?.contains(event.target as Node)) setViewModeMenuOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setViewModeMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [viewModeMenuOpen]);
 
   function toggleSupplierNode(nodeId: string) {
     setExpandedSupplierNodeIds((current) =>
@@ -1141,7 +1172,7 @@ export function LibraryFolderTreeSurface({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col overflow-hidden bg-white", className)}>
-      <div className="sticky top-0 z-20 shrink-0 bg-white">
+      <div ref={headerRef} className="sticky top-0 z-20 shrink-0 bg-white">
         <SearchInput
           placeholder={treeSearchPlaceholder}
           value={searchQuery}
@@ -1163,6 +1194,15 @@ export function LibraryFolderTreeSurface({
             else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds([]);
             else if (supplierNodes.length > 0) setExpandedSupplierNodeIds([]);
           }}
+          leadingActions={[
+            {
+              label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Default"}`,
+              icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
+              onClick: () => setViewModeMenuOpen((current) => !current),
+              pressed: viewModeMenuOpen,
+            },
+          ]}
+          leadingActionsLabel="Component tree view mode"
           addActions={addActions}
         />
         <WorkshopTreeTabs
@@ -1170,7 +1210,7 @@ export function LibraryFolderTreeSurface({
           activeTab="components"
           ariaLabel={tabsAriaLabel}
         />
-        <ComponentViewControls mode={viewMode} ariaLabel={viewModeAriaLabel} onModeChange={changeViewMode} />
+        {viewModeMenuOpen ? <ComponentViewControls mode={viewMode} ariaLabel={viewModeAriaLabel} onModeChange={changeViewMode} /> : null}
         {reorderStatus.state !== "idle" ? (
           <div
             role="status"
@@ -1184,37 +1224,40 @@ export function LibraryFolderTreeSurface({
           </div>
         ) : null}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-2">
-        {bodyTopSpacer}
-        {isFolderMode ? (
-          <LibraryFolderTree
-            folders={folders}
-            nodes={displayedFolderNodes}
-            libraryItems={libraryItems}
-            selectedComponentIds={selectedComponentIds}
-            selectedFolderId={effectiveSelectedFolderId}
-            searchQuery={searchQuery}
-            disabled={treeMutationPending}
-            expandedItemIds={expandedFolderItemIds}
-            onExpandedItemIdsChange={setExpandedFolderItemIds}
-            enableFolderActions={enableFolderActions}
-            enableDragAndDrop={enableFolderDragAndDrop}
-            selectedTitleOnly={selectedTitleOnly}
-            onSelectFolder={onSelectFolder}
-            onToggleComponentSelected={onToggleComponentSelected}
-            onMoveComponentToFolder={onMoveComponentToFolder}
-            onFoldersChange={onFoldersChange}
-            onReorderStatus={onReorderStatus}
-            onCreateFolder={onCreateFolder ?? (() => undefined)}
-            onRenameFolder={onRenameFolder}
-            onDeleteFolder={onDeleteFolder}
-            onDeleteFolders={onDeleteFolders}
-          />
-        ) : isBrandMode ? (
-          brandTree
-        ) : (
-          supplierTree
-        )}
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="h-8 w-full bg-white" aria-hidden="true" />
+        <div className="p-2">
+          {bodyTopSpacer}
+          {isFolderMode ? (
+            <LibraryFolderTree
+              folders={folders}
+              nodes={displayedFolderNodes}
+              libraryItems={libraryItems}
+              selectedComponentIds={selectedComponentIds}
+              selectedFolderId={effectiveSelectedFolderId}
+              searchQuery={searchQuery}
+              disabled={treeMutationPending}
+              expandedItemIds={expandedFolderItemIds}
+              onExpandedItemIdsChange={setExpandedFolderItemIds}
+              enableFolderActions={enableFolderActions}
+              enableDragAndDrop={enableFolderDragAndDrop}
+              selectedTitleOnly={selectedTitleOnly}
+              onSelectFolder={onSelectFolder}
+              onToggleComponentSelected={onToggleComponentSelected}
+              onMoveComponentToFolder={onMoveComponentToFolder}
+              onFoldersChange={onFoldersChange}
+              onReorderStatus={onReorderStatus}
+              onCreateFolder={onCreateFolder ?? (() => undefined)}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
+              onDeleteFolders={onDeleteFolders}
+            />
+          ) : isBrandMode ? (
+            brandTree
+          ) : (
+            supplierTree
+          )}
+        </div>
       </div>
     </div>
   );

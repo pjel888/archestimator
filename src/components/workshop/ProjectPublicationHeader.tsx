@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
-import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit, UploadSimple } from "@phosphor-icons/react/dist/ssr";
+import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -304,16 +304,15 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          className="relative min-h-6 rounded-xs px-2 text-secondary hover:bg-surfaceMuted hover:text-ink"
+          size="icon-sm"
+          className="relative size-6 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
           aria-label="Open shared link"
           onClick={() => {
             setActiveTab("link");
             setOpen(true);
           }}
         >
-          <UploadSimple size={12} weight="regular" aria-hidden="true" />
-          Shared link
+          <LinkSimple size={12} weight="regular" aria-hidden="true" />
           {hasHeaderActivity ? (
             <span
               aria-hidden="true"
@@ -321,17 +320,6 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               className="absolute right-1 top-1 size-1.5 rounded-xs bg-orange-500 ring-1 ring-white"
             />
           ) : null}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-6 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label="Copy shared link from header"
-          disabled={!clientLinkPath}
-          onClick={() => void copyClientLink()}
-        >
-          <LinkSimple size={12} weight="regular" aria-hidden="true" />
         </Button>
         {actionMessage ? (
           <span className="sr-only" role="status">

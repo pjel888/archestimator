@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { EstimateCenterColumnBoundary } from "./EstimateCenterColumnBoundary";
-import { ProjectEstimateMetadataStrip } from "./ProjectEstimateMetadataStrip";
 import { ProjectPublicationHeader } from "./ProjectPublicationHeader";
 import { ProjectTeamspaceHeader } from "./ProjectTeamspaceHeader";
 import { ProjectWorkspaceProjectCode } from "./ProjectWorkspaceProjectCode";
@@ -43,7 +42,7 @@ export function ProjectWorkspaceHeaderRow({
 
   return (
     <ProjectWorkspaceHeaderSurface
-      centerContent={isEstimateSheetRoute ? <ProjectEstimateMetadataStrip /> : null}
+      centerContent={null}
       centerId="project-estimate-metadata-strip"
       centerDataColumn="metadata-strip"
       rightContent={

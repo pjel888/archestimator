@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition, type CSSProperties, type FormEvent } from "react";
-import { GearSix, LinkSimple, PaperPlaneTilt, Trash } from "@phosphor-icons/react/dist/ssr";
+import { LinkSimple, PaperPlaneTilt, Trash, UserCircleGearIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -32,6 +32,7 @@ const roleLabels: Record<CollaborationRole, string> = {
 };
 
 const assignableRoles = Object.keys(roleLabels) as CollaborationRole[];
+const TEAMSPACE_AVATAR_SLOT_COUNT = 5;
 
 function getInitials(name: string) {
   const parts = name
@@ -55,6 +56,7 @@ function AvatarBubble({
   const color = getCollaborationColorForUser(collaborator.id);
   const avatarStyle: CSSProperties = {
     marginLeft: offset ? -6 : 0,
+    zIndex: TEAMSPACE_AVATAR_SLOT_COUNT - offset + 1,
     backgroundColor: color.cursorSoft,
     borderColor: color.cursor,
     boxShadow: `0 0 0 1px ${color.ring}`,
@@ -81,6 +83,24 @@ function AvatarBubble({
       ) : (
         <span aria-hidden="true">{initials}</span>
       )}
+    </span>
+  );
+}
+
+function AvatarPlaceholder({ offset }: { offset: number }) {
+  const placeholderStyle: CSSProperties = {
+    marginLeft: offset ? -6 : 0,
+    zIndex: TEAMSPACE_AVATAR_SLOT_COUNT - offset,
+  };
+
+  return (
+    <span
+      className="relative grid size-6 shrink-0 place-items-center rounded-xs border border-hairline bg-white opacity-75 shadow-[0_0_0_1px_#F2F2F2]"
+      style={placeholderStyle}
+      aria-hidden="true"
+      data-teamspace-collaborator-placeholder="true"
+    >
+      <span className="size-3 rounded-xs border border-hairline bg-surfaceMuted/35" />
     </span>
   );
 }
@@ -304,7 +324,8 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     });
   }
 
-  const visibleCollaborators = activeSummary.collaborators.slice(0, 5);
+  const visibleCollaborators = activeSummary.collaborators.slice(0, TEAMSPACE_AVATAR_SLOT_COUNT);
+  const placeholderCount = Math.max(0, TEAMSPACE_AVATAR_SLOT_COUNT - visibleCollaborators.length);
   const hiddenCollaboratorCount = Math.max(0, activeSummary.collaborators.length - visibleCollaborators.length);
   const onlineCollaboratorCount = activeSummary.collaborators.filter((collaborator) => collaborator.online || onlineUserIds.has(collaborator.id)).length;
 
@@ -315,9 +336,10 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
         aria-label="Project teamspaces"
         data-workshop-layout="project-teamspace-header"
       >
-        <span className="hidden text-[9px] font-medium leading-3 text-secondary sm:inline">Teamspaces</span>
-        <span className="h-4 w-px bg-hairline" aria-hidden="true" />
-        <div className="flex items-center" aria-label={`${activeSummary.collaborators.length} project collaborators`}>
+        <div
+          className="flex items-center"
+          aria-label={`${activeSummary.collaborators.length} project collaborators, ${placeholderCount} open teamspace seats`}
+        >
           {visibleCollaborators.map((collaborator, index) => (
             <AvatarBubble
               key={collaborator.id}
@@ -325,6 +347,9 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
               online={collaborator.online || onlineUserIds.has(collaborator.id)}
               offset={index}
             />
+          ))}
+          {Array.from({ length: placeholderCount }, (_, index) => (
+            <AvatarPlaceholder key={`teamspace-placeholder-${index}`} offset={visibleCollaborators.length + index} />
           ))}
           {hiddenCollaboratorCount ? (
             <span className="grid size-6 shrink-0 place-items-center rounded-xs border border-white bg-surfaceMuted text-[8px] font-medium leading-none text-tertiary shadow-[0_0_0_1px_#F2F2F2]">
@@ -340,7 +365,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
           aria-label="Open teamspace settings"
           onClick={() => setOpen(true)}
         >
-          <GearSix size={13} weight="regular" aria-hidden="true" />
+          <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
         </Button>
       </div>
 
