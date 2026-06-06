@@ -1,5 +1,28 @@
 # Decisions
 
+## 2026-06-06 - Storybook-first UI component library planning posture
+
+**Decision:** Treat
+`.ai/03_plans/2026-06-06-ui-component-optimization-componentization/` as the
+canonical future Storybook-first ArchEstimator UI Component Library planning
+pack. The previous tree/workshop optimization plan remains preserved only as a
+domain tree sub-plan inside the broader library strategy.
+
+**Rationale:** Philip asked for a complete reusable UI component library and
+Storybook plan before app migration. Live repo/package evidence shows
+Storybook is not installed, shared primitives and tree surfaces have high or
+critical blast radius, and current app/workshop design rules require local
+ArchEstimator adaptation rather than dropping in shadcn/ui, Flowbite, or
+Aceternity defaults. A Storybook-only MVP gives reviewable visual/a11y proof
+without changing production closed-beta behavior.
+
+**Follow-up:** Future implementation must get package approval before
+installing Storybook or new dependencies, use static provider-free stories,
+preserve `DESIGN.md` app/workshop density and Phosphor icon posture, and stop
+before production route migration. App migration requires Philip's Storybook
+approval plus a separate route-by-route migration plan with fresh graph and
+GitNexus impact evidence.
+
 ## 2026-06-06 - UI component optimization planning posture
 
 **Decision:** Treat `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`

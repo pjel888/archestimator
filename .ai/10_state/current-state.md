@@ -1,5 +1,27 @@
 # Current State
 
+**UI Component Library + Storybook Plan Pack Expanded (2026-06-06):**
+Docs-only plan pack
+`.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
+now supersedes the earlier narrow tree-only planning posture with a canonical
+Storybook-first ArchEstimator UI Component Library plan. The folder keeps the
+old tree optimization/componentization files as a domain tree sub-plan, while
+new docs `00_INDEX.md` through `31_DOC_REPAIR_LOG.md` define requirements,
+codebase/graph/GitNexus evidence, architecture, implementation sequence,
+testing, UX/accessibility, security/data isolation, deployment/rollback,
+Storybook installation, component inventory, story coverage, design tokens,
+icons/assets, API contracts, external source adoption for shadcn/ui, Flowbite,
+Aceternity, Tailwind v4, visual QA, no-migration MVP scope, future migration
+roadmap, implementation prompts, acceptance checklist, dependency gates, and
+future agent usage rules. The current scoped readiness is: docs package
+99/100, Storybook setup planning 98/100 after package approval, primitives
+98/100, full inventory 99/100, domain components 97/100 with graph gates, and
+production app migration 20/100 because migration is intentionally deferred.
+No source code, package file, dependency, lockfile, migration, runtime config,
+generated type, provider setting, secret, Storybook install, or production app
+behavior changed. App migration remains blocked until Philip reviews and
+approves an implemented Storybook library in a separate future pass.
+
 **UI Component Optimization Plan Pack Refined (2026-06-06):**
 Docs-only plan pack `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
 now has a canonical README/current-plan layer, measurement baseline/protocol,

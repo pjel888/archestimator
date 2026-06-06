@@ -3,6 +3,23 @@
 **Last updated:** 2026-06-06
 **Status:** Pre-launch MVP — repo-local launch implementation remains controlled; external/provider/manual proof lane remains open.
 
+## 2026-06-06 UI Component Library + Storybook plan
+
+- Canonical docs-only plan package:
+  `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`.
+- Status: `READY_FOR_IMPLEMENTATION_HANDOFF` for docs, `READY_AFTER_PACKAGE_APPROVAL`
+  for Storybook setup, and `DEFERRED_BY_DESIGN` for production app migration.
+- Scope: future Storybook-first ArchEstimator UI Component Library with
+  foundations, icons, typography, actions, forms, menus, overlays, navigation,
+  cards/panels, tables/grids, trees, lists, feedback, layout, media, charts,
+  domain components, motion/blocks, utilities, governance, and story coverage.
+- The previous tree optimization/componentization plan is preserved as the
+  domain tree sub-plan; it is no longer the whole component-library strategy.
+- No source code, package, dependency, runtime config, migration, provider
+  setting, Storybook install, or app behavior changed in this planning pass.
+- Do not migrate production app UI until Philip approves the implemented
+  Storybook result in a separate future pass.
+
 ## 2026-06-06 Terms and Conditions implementation
 
 - Archived plan package: `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`.

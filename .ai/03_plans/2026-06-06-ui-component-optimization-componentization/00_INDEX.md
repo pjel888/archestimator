@@ -1,89 +1,164 @@
-# UI Component Optimization and Componentization Plan Pack
+# ArchEstimator UI Component Library + Storybook Plan Pack
 
-Date: 2026-06-06
+**Updated:** 2026-06-06
+**Status:** READY_FOR_IMPLEMENTATION_PLANNING_HANDOFF
+**Scope:** Docs-only planning pack. No source code, package file, dependency, runtime config, migration, generated type, provider setting, secret, or app behavior was changed during this refinement.
 
-Status: read-only audit, research, adversarial plan-QA, and implementation-handoff pack. No app source implementation was performed.
+## Updated Task Goal
 
-## 2026-06-06 Refinement Update
+This folder is now the canonical planning pack for a future ArchEstimator UI Component Library + Storybook MVP. The target future implementation is a reusable product UI library, Storybook configured for ArchEstimator, static stories for all P0/P1 components, and governance that tells future agents to use approved library components instead of feature-local one-off UI.
 
-Read `README.md` and `CURRENT_CANONICAL_PLAN.md` before using this index. The refined pack now includes the missing `.ai/03_plans/README.md` metadata, measurement protocol, blast-radius analysis, risk register, implementation matrix, route-transition coordination, API contracts, rollout guidance, owner gates, and implementer handoff.
+## Canonical Scope
 
-The canonical MVP is Phases 0-3: baseline/safety, pure tree utilities, headless hooks/shells, and read-only share tree unification. Editable estimate-tree and estimate-sheet decomposition remain measurement- and owner-gated.
+- Build and inspect a Storybook-first UI library in a future implementation.
+- Cover foundations, icons, typography, actions, forms, menus, overlays, navigation, data display, layout, feedback, media, charts, motion, blocks, utilities, and ArchEstimator domain components.
+- Preserve existing tree optimization research as the Domain Tree Components and Estimate/Share Tree Sub-plan.
+- Defer production app migration until Philip reviews and approves the Storybook result.
 
-Current scoped readiness:
+## Old Scope Supersession
 
-- Architecture strategy: 96/100.
-- MVP Phases 0-3 planning handoff: 92/100.
-- Full editable-tree implementation readiness: 74/100.
-- Performance-claim readiness: 45/100 until Profiler and bundle data are collected.
+The old folder thesis was narrow: optimize and componentize tree/workshop UI without creating a broad design-system layer. That thesis is superseded. The tree/componentization work remains valuable, but it is now one domain-component sub-plan inside the larger Storybook-first product UI library strategy.
 
-## Target Result
+## Non-Goals
 
-Audit the Archestimator UI for reusable component opportunities, with special focus on tree structures, tree performance, and a concrete implementation plan for future componentization work.
+- Do not migrate current production app screens in the MVP.
+- Do not install Storybook in this docs pass.
+- Do not add dependencies in this docs pass.
+- Do not import Flowbite JS runtime, paid Flowbite content, Aceternity effects, Motion/Framer, new Radix packages, or Storybook packages without future owner-approved package gates.
+- Do not use live Supabase/provider data in stories.
+- Do not publish Storybook unless Philip separately approves publishing.
 
-## Executive Decision
+## Plan Document Map
 
-The next implementation should not start by building a broad generic design system. The repo already has useful primitives and one shared tree row surface. The highest-value work is to extract reusable, tested composition layers around the existing workshop and share tree surfaces, then split the largest client components into domain-specific sections and hooks.
+Start here:
 
-The first version of this pack was directionally useful but too shallow for execution. The improved version adds risk-ranked graph evidence, adversarial critique, explicit TDD task slices, a plan-quality QA matrix, and durable handoff guidance.
+| Order | Document | Purpose |
+|---:|---|---|
+| 1 | `README.md` | Folder orientation, metadata, source hierarchy, warnings. |
+| 2 | `CURRENT_CANONICAL_PLAN.md` | Canonical thesis, MVP phases, gates, readiness by scope. |
+| 3 | `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md` | Requirements and pass/fail criteria. |
+| 4 | `02_CODEBASE_RESEARCH.md` | Live repo, package, graph, and source evidence. |
+| 5 | `03_ARCHITECTURE_AND_DESIGN_PLAN.md` | Future library architecture and boundaries. |
+| 6 | `04_IMPLEMENTATION_SEQUENCE.md` | Future build order, validation, rollback points. |
+| 7 | `05_BLAST_RADIUS_AND_RISK_ANALYSIS.md` | Risk matrix and impact evidence. |
+| 8 | `06_TESTING_AND_VERIFICATION_PLAN.md` | Required validation strategy. |
+| 9 | `07_UI_UX_AND_ACCESSIBILITY_PLAN.md` | Storybook inspection flow, density, a11y rules. |
+| 10 | `08_SECURITY_PERFORMANCE_AND_DATA_PLAN.md` | Data isolation, secrets, bundle, provider boundaries. |
+| 11 | `09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md` | Local/dev Storybook posture, rollback, deferred publishing. |
+| 12 | `10_IMPLEMENTATION_PROMPT_DRAFT.md` | Broad future implementation prompt. |
+| 13 | `11_READINESS_SCORECARD.md` | Document and scope readiness scoring. |
+| 14 | `12_OPEN_QUESTIONS_AND_DECISIONS.md` | Philip decisions and implementation-agent decisions. |
+| 15 | `13_TRACEABILITY_MATRIX.md` | Requirement-to-story-to-test traceability. |
+| 16 | `14_UI_LIBRARY_MASTER_PLAN.md` | Library vision, taxonomy, definitions of done. |
+| 17 | `15_COMPONENT_INVENTORY_MATRIX.md` | Comprehensive component and pattern inventory. |
+| 18 | `16_STORYBOOK_INSTALLATION_AND_CONFIGURATION_PLAN.md` | Storybook package/config plan. |
+| 19 | `17_STORYBOOK_STORY_COVERAGE_MATRIX.md` | P0/P1/P2 story coverage matrix. |
+| 20 | `18_DESIGN_TOKEN_AND_THEMING_PLAN.md` | Token extraction and Tailwind v4 strategy. |
+| 21 | `19_ICON_SYSTEM_AND_ASSET_PLAN.md` | Phosphor-first icon and asset policy. |
+| 22 | `20_COMPONENT_API_AND_COMPOSITION_CONTRACTS.md` | Prop, slot, export, client/server contracts. |
+| 23 | `21_EXTERNAL_SOURCE_ADOPTION_PLAN_SHADCN_FLOWBITE_ACETERNITY.md` | External source posture and gates. |
+| 24 | `22_ACCESSIBILITY_AND_KEYBOARD_MATRIX.md` | Component keyboard and ARIA expectations. |
+| 25 | `23_VISUAL_QA_AND_REVIEW_WORKFLOW.md` | Philip Storybook review and QA signoff. |
+| 26 | `24_NO_MIGRATION_STORYBOOK_ONLY_MVP_SCOPE.md` | Explicit no-migration boundary. |
+| 27 | `25_FUTURE_APP_MIGRATION_ROADMAP_DEFERRED.md` | Future migration roadmap after approval. |
+| 28 | `26_IMPLEMENTATION_PROMPT_STORYBOOK_AND_LIBRARY_ONLY.md` | Focused copy-paste future implementation prompt. |
+| 29 | `27_COMPONENT_ACCEPTANCE_CHECKLIST.md` | Per-component completion checklist. |
+| 30 | `28_MCP_AND_COMPUTER_USE_SOURCE_RESEARCH_GUIDE.md` | Future MCP/browser/computer-use research rules. |
+| 31 | `29_COMPONENT_DEPENDENCY_AND_PACKAGE_PLAN.md` | Package and dependency gates. |
+| 32 | `30_AGENT_UI_USAGE_RULES_DRAFT.md` | Draft future agent usage rules. |
+| 33 | `31_DOC_REPAIR_LOG.md` | What changed in this refinement. |
 
-Primary recommendation:
+Preserved tree/domain sub-plan:
 
-1. Keep `react-complex-tree` for editable drag/drop trees for now.
-2. Add a repo-local tree core for shared expansion, filtering, flattening, selection, indexing, and row rendering.
-3. Use virtualization only after flattening visible tree rows and measuring row counts/render cost. Treat `@tanstack/react-virtual` as an adoption candidate, not an automatic dependency addition.
-4. Split `EstimateSheetContent.tsx` and `ComponentLibraryManager.tsx` by behavior seams before visual redesign.
-5. Preserve the current neutral workshop UI rules from `DESIGN.md` and `.ai/10_state/decisions.md`.
+- `01_UI_REUSE_AUDIT.md`
+- `02_TREE_PERFORMANCE_RESEARCH.md`
+- `03_TREE_COMPONENTIZATION_AUDIT.md`
+- `04_IMPLEMENTATION_PLAN.md`
+- `05_READINESS_VALIDATION.md`
+- `06_STRATEGY_CRITIQUE_AND_DECISION.md`
+- `07_REPO_EVIDENCE_REGISTER.md`
+- `08_TDD_IMPLEMENTATION_TASK_PACK.md`
+- `09_ULTRAQA_PLAN_QUALITY_REPORT.md`
+- `10_ULTRAGOAL_TEAM_HANDOFF.md`
+- `BENCHMARK_PROTOCOL.md`
+- `BLAST_RADIUS_ANALYSIS.md`
+- `CROSS_PLAN_REFERENCES.md`
+- `EFFORT_AND_MVP_SLICING.md`
+- `GRADUAL_ROLLOUT_STRATEGY.md`
+- `HANDOFF.md`
+- `IMPLEMENTATION_MATRIX.md`
+- `MEASUREMENT_BASELINE.md`
+- `OWNER_SIGNOFF.md`
+- `PLAN_REPAIR_LOG.md`
+- `RISK_REGISTER.md`
+- `TREE_CORE_API_CONTRACTS.md`
+- `VISUAL_REGRESSION_STRATEGY.md`
 
-## Artifacts
+## Start-Here Instructions For Future Implementation Agent
 
-- `01_UI_REUSE_AUDIT.md` - repo-local componentization audit with file-level findings.
-- `02_TREE_PERFORMANCE_RESEARCH.md` - official-source research on React, Next.js, virtualization, React Complex Tree, and WAI-ARIA tree constraints.
-- `03_TREE_COMPONENTIZATION_AUDIT.md` - tree-surface matrix and performance/reuse findings.
-- `04_IMPLEMENTATION_PLAN.md` - staged implementation plan with files, tests, acceptance criteria, and rollback gates.
-- `05_READINESS_VALIDATION.md` - validation ledger, constraints, RALPLAN-style decision record, and remaining risks.
-- `06_STRATEGY_CRITIQUE_AND_DECISION.md` - adversarial critique of the first strategy and the corrected decision.
-- `07_REPO_EVIDENCE_REGISTER.md` - graph, source-line, test, and research evidence table.
-- `08_TDD_IMPLEMENTATION_TASK_PACK.md` - concrete TDD-first implementation tasks with red/green steps.
-- `09_ULTRAQA_PLAN_QUALITY_REPORT.md` - adversarial QA matrix for the plan pack itself.
-- `10_ULTRAGOAL_TEAM_HANDOFF.md` - durable goal and parallel execution handoff guidance.
-- `README.md` - master metadata, reading order, and success criteria.
-- `CURRENT_CANONICAL_PLAN.md` - source of truth for current status and gates.
-- `MEASUREMENT_BASELINE.md` and `BENCHMARK_PROTOCOL.md` - measurement tables and procedure.
-- `BLAST_RADIUS_ANALYSIS.md` - GitNexus and code-review graph impact evidence.
-- `RISK_REGISTER.md`, `IMPLEMENTATION_MATRIX.md`, `CROSS_PLAN_REFERENCES.md`, `TREE_CORE_API_CONTRACTS.md`, `EFFORT_AND_MVP_SLICING.md`, `GRADUAL_ROLLOUT_STRATEGY.md`, `VISUAL_REGRESSION_STRATEGY.md`, `OWNER_SIGNOFF.md`, `HANDOFF.md`, and `PLAN_REPAIR_LOG.md` - refined implementation-readiness controls.
+1. Verify live repo state before editing: `pwd`, `git status --short --branch`, `git branch --show-current`, `git worktree list`, `git log --oneline -5`.
+2. Read `README.md`, `CURRENT_CANONICAL_PLAN.md`, `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`, `15_COMPONENT_INVENTORY_MATRIX.md`, and `16_STORYBOOK_INSTALLATION_AND_CONFIGURATION_PLAN.md`.
+3. Re-run graph impact checks before touching shared primitives or tree/domain components.
+4. Confirm package decision gates before installing Storybook or any supporting dependency.
+5. Build Storybook and library components/stories only. Stop before production app migration.
+6. Ask Philip for Storybook review after the Storybook library is inspectable.
 
-## Evidence Base
+## Recommended Implementation Sequence
 
-Repo graph evidence:
+1. Package decision and Storybook install/config branch.
+2. Static Storybook shell, CSS import, decorators, and provider mocks.
+3. Tokens, icon gallery, typography, Button/IconButton, Field/Input, Badge, Tooltip, Modal/Dialog, Menus, Card/Panel, Empty/Loading/Error states.
+4. P1 form, overlay, navigation, table, tree shell, and domain card stories.
+5. Domain story fixtures for project, estimate, component library, share, notifications, and release modal surfaces.
+6. Selective app/workshop-safe microinteractions only after reduced-motion and dependency gates.
+7. Governance docs and future migration readiness. Stop.
 
-- `code-review-graph` minimal context: 5,042 nodes, 74,559 edges, 560 files, medium risk.
-- Graph last updated: 2026-06-06T21:35:04 on `main` at commit `7c20850754a7`.
-- Largest UI hotspot: `src/components/workshop/EstimateSheetContent.tsx`, about 4,071 lines.
-- Largest tree hotspot: `src/components/workshop/EstimateSheetTree.tsx`, about 1,576 lines.
-- Top bridge nodes include `EstimateSheetContent`, `EstimateSheetTree`, and `EstimateRightSidebar`.
-- Other high-value surfaces: `AddComponentModal.tsx`, `ComponentLibraryManager.tsx`, `LibraryFolderTree.tsx`, `ProjectEstimatesTable.tsx`, `ShareEstimateTreePanel.tsx`, `ShareEstimateTreeView.tsx`, `buildLibraryTree.ts`, `library-folder-reorder.ts`, and `workshop-tree.tsx`.
+## Required Verification Commands
 
-External research sources:
+Current docs-only pass:
 
-- React `memo`: https://react.dev/reference/react/memo
-- React `useMemo`: https://react.dev/reference/react/useMemo
-- React `useCallback`: https://react.dev/reference/react/useCallback
-- React `Profiler`: https://react.dev/reference/react/Profiler
-- Next.js lazy loading: https://nextjs.org/docs/app/guides/lazy-loading
-- TanStack Virtual introduction: https://tanstack.com/virtual/latest/docs/introduction
-- TanStack Virtualizer API: https://tanstack.com/virtual/latest/docs/api/virtualizer
-- TanStack Table virtualization guide: https://tanstack.com/table/latest/docs/guide/virtualization
-- React Complex Tree controlled environment: https://rct.lukasbach.com/docs/guides/controlled-environment/
-- React Complex Tree multiple trees: https://rct.lukasbach.com/docs/guides/multiple-trees/
-- WAI-ARIA Tree View Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
+- `git diff --check`
+- `git diff -- .ai`
 
-## Stop Condition For Future Implementation
+Future implementation baseline:
 
-The implementation branch can be considered complete only when:
+- `bun run validate`
+- `bun run build`
+- `git diff --check`
+- `bun run lint:design-system`
+- `bun run test`
+- `bun run test:dom`
+- `bun run storybook` after the script exists.
+- `bun run build-storybook` after the script exists.
 
-- Shared tree utilities and row/shell primitives have targeted tests.
-- Existing tree behavior remains unchanged in editable estimate tree, component library tree, and share tree.
-- `EstimateSheetContent.tsx` no longer owns unrelated table, activity, proposal, sidebar, and mutation concerns in one file.
-- No new dependency is added without a measured threshold and approval.
-- `bun run type-check`, `bun run lint:design-system`, targeted Vitest files, `bun run perf:profile-peak-load`, `git diff --check`, and any relevant route smoke/perf scripts pass or have explicit fixture blockers.
+`bun run test:e2e` is not required for the Storybook-only MVP unless a future agent violates scope and touches production routes, which it must not do.
+
+## Risk Summary
+
+- Shared primitives are high-risk: GitNexus reported `Button` and `SearchInput` as CRITICAL impact symbols.
+- `WorkshopTree` is HIGH impact and must remain a later domain component lane.
+- code-review-graph representative UI/package touchpoints showed high blast radius: 500 impacted nodes across 128 files for shared UI/tree/package surfaces.
+- Storybook dependencies are approval-gated and must not be added in this docs pass.
+- Flowbite paid content and Aceternity/Motion effects are license, privacy, performance, and design-system gates.
+- Production app migration is the largest visual/regression risk and is explicitly out of MVP scope.
+
+## Bug/Blocker References
+
+No new bug plan was required during this refinement. Open owner decisions are recorded in `12_OPEN_QUESTIONS_AND_DECISIONS.md` and are implementation gates, not blockers to this docs handoff.
+
+## Current Status
+
+| Scope | Status |
+|---|---|
+| Docs package readiness | 99/100 READY_FOR_IMPLEMENTATION |
+| Storybook setup readiness | 98/100 READY_AFTER_PACKAGE_APPROVAL |
+| Primitive component readiness | 98/100 READY_FOR_STORYBOOK_MVP |
+| Full component matrix readiness | 99/100 READY_FOR_PHASED_BUILD |
+| Domain component readiness | 97/100 READY_WITH_GRAPH_IMPACT_GATES |
+| Migration readiness | 20/100 DEFERRED_BY_DESIGN |
+
+Do not quote a single readiness score without the scope. Migration readiness is intentionally low because production app migration is not part of the MVP.
+
+## Absolute Boundary
+
+No current app migration until Philip approves Storybook.
