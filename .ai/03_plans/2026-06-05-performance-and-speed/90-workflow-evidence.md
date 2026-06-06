@@ -377,3 +377,13 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured sanitized evidence at `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md` / `.json`: `/share/VALID_TOKEN_REDACTED`, `/api/share/VALID_TOKEN_REDACTED`, and `/api/share/VALID_TOKEN_REDACTED/activity` all returned `200`, no-store/private no-store cache policy, no `Set-Cookie`, and durations of 1.857s / 2.560s / 1.920s.
 - Captured cleanup proof at `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md` / `.json`: run-scoped auth users, beta rows, profiles, workspaces, projects, estimates, nodes, rows, publications, and publication events are all zero.
 - Remaining open gates: dashboard overview/recommendation cards if needed and comparable Speed Insights before/after windows.
+
+## Post-closeout provider refresh and rejected font spike — 2026-06-06
+
+- Reviewed the owner-linked Vercel Speed Insights metrics/scoring docs. Evidence: `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md`.
+- Ran fresh `vercel metrics` captures for 1h, 6h, 24h, and 7d windows. Evidence: `evidence/vercel-speed-insights-refresh-2026-06-06-post-closeout/`.
+- Filtered Speed Insights by current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`; all current-deployment summaries were empty.
+- Attributed the anomalous `/` desktop INP `59,404,496ms` to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`, commit `2cddb0e0d23b21b013c66d0a1c086d129cfbd499`. Evidence: `evidence/vercel-speed-insights-inp-attribution-2026-06-06/`.
+- Captured live production Lighthouse for `https://www.archestimator.com/`: mobile score 94, desktop score 100. Evidence: `evidence/current-production-lighthouse-2026-06-06/`.
+- Tested a narrow `Roboto_Mono` optional/no-preload spike after GitNexus and graph impact analysis on `RootLayout`; focused test/typecheck/build passed, but three mobile Lighthouse runs worsened LCP. The code/test changes were reverted and only rejected-spike evidence remains at `evidence/mono-font-preload-scope-2026-06-06/`.
+- Computer Use still timed out on Chrome dashboard access, so dashboard overview/recommendation cards remain provider-UI open.

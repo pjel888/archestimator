@@ -1,0 +1,44 @@
+{
+  "query": {
+    "metric": "vercel.speed_insights_metric.inp",
+    "aggregation": "avg",
+    "groupBy": [
+      "route",
+      "device_type",
+      "deployment_id"
+    ],
+    "startTime": "2026-05-30T00:00:00.000Z",
+    "endTime": "2026-06-06T04:00:00.000Z",
+    "granularity": {
+      "hours": 4
+    }
+  },
+  "summary": [
+    {
+      "route": "/",
+      "device_type": "desktop",
+      "deployment_id": "dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT",
+      "vercel_speed_insights_metric_inp_avg": 29702312
+    },
+    {
+      "route": "/",
+      "device_type": "mobile",
+      "deployment_id": "dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT",
+      "vercel_speed_insights_metric_inp_avg": 32
+    },
+    {
+      "route": "/login",
+      "device_type": "desktop",
+      "deployment_id": "dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT",
+      "vercel_speed_insights_metric_inp_avg": null
+    }
+  ],
+  "statistics": {
+    "bytesRead": 42656486,
+    "rowsRead": 838540,
+    "dbTimeSeconds": 0
+  },
+  "dataPointCount": 129,
+  "dataOmittedFromCommittedEvidence": true,
+  "omissionReason": "Time-series buckets were omitted to keep repository evidence compact; query, summary, statistics, and dataPointCount are retained."
+}

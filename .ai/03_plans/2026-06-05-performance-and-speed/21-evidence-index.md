@@ -63,3 +63,13 @@ This file is the registry for future baseline and before/after artifacts. Eviden
 - Prefer markdown summaries plus redacted screenshots/JSON.
 - Large trace files can be stored outside git if linked with path and retention note.
 - Every future performance PR should update this index.
+
+## 2026-06-06 post-closeout provider refresh evidence
+
+| Evidence id | Title | Files | Status | Notes |
+| --- | --- | --- | --- | --- |
+| EVID-SI-SCORING-001 | Vercel Speed Insights scoring-doc review | `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md` | captured | Confirms RES is real-user, weighted FCP/LCP/INP/CLS scoring; completion requires current-deployment provider rows. |
+| EVID-SI-REFRESH-001 | Fresh Speed Insights CLI windows | `evidence/vercel-speed-insights-refresh-2026-06-06-post-closeout/vercel-speed-insights-refresh-summary.md`, raw JSON in same folder | captured | 1h/6h/24h windows empty; 7d data is stale. Current deployment filtered rows are empty. |
+| EVID-SI-INP-ATTR-001 | Stale INP outlier attribution | `evidence/vercel-speed-insights-inp-attribution-2026-06-06/inp-attribution-summary.md`, raw JSON in same folder | captured | The 59,404,496ms `/` desktop INP belongs to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`. |
+| EVID-LH-CURRENT-PROD-001 | Current production Lighthouse | `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`, `prod-home-*.report.json` | captured | Current live production alias scores 94 mobile and 100 desktop in lab. |
+| EVID-FONT-SPIKE-REJECTED-001 | Rejected Roboto Mono preload spike | `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`, summary JSON in same folder | rejected/reverted | Reduced font preload surface but worsened mobile LCP; code reverted. |

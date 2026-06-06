@@ -59,3 +59,16 @@ Retrieved/verified on 2026-06-05 for planning only:
 | Vercel `httpstat` docs | https://vercel.com/docs/cli/httpstat | Use hosted timing as L3 evidence before provider real-user proof. |
 
 Version note: local `package.json` currently reports Next.js `16.2.6` and React `19.2.6`; Context7 returned official Next.js docs for `v16.2.2`, so future implementers should re-check exact installed docs or current upstream docs before coding.
+
+## 2026-06-06 Vercel Speed Insights scoring review
+
+Reviewed `https://vercel.com/docs/speed-insights/metrics#how-the-scores-are-determined` after the owner specifically linked it. The completion gate is now stricter:
+
+- RES is real-user monitoring from visitor devices, so current-production Speed Insights rows are required for completion.
+- Individual metric scores are 0-100 log-normal scores based on HTTP Archive real-world distributions.
+- RES weights are FCP 15%, LCP 30%, INP 30%, and CLS 25%.
+- The dashboard defaults to P75; compare the same route/device/time-window cohorts.
+- Good targets: FCP <= 1.8s, LCP <= 2.5s, INP <= 200ms, CLS <= 0.1, TTFB under 800ms.
+- Next.js hard navigations matter because Speed Insights data points are collected on first page views and then on interaction/leave.
+
+Evidence: `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md`.

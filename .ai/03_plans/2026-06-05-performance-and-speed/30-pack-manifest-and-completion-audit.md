@@ -74,3 +74,13 @@ The evidence folder now contains 61 top-level files and 175 files total includin
 ## Final interpretation
 
 The planning pack remains complete for handoff. PR-0B is implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Synthetic hosted fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token blockers with zero-residue cleanup. Future work should capture dashboard evidence if available, wait for comparable Speed Insights windows, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.
+
+## 2026-06-06 post-closeout manifest refresh
+
+After adding current-provider refresh, INP attribution, current production Lighthouse, Vercel scoring-doc review, and rejected mono-font spike evidence:
+
+- Top-level files under `evidence/`: 62.
+- Total evidence files under `evidence/`: 286.
+- Total files under this plan pack: 322.
+
+This refresh did not add runtime code. It added provider/lab evidence and a reverted-spike record that future workers should respect.

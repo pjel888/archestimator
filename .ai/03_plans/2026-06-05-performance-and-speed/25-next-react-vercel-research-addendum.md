@@ -66,3 +66,9 @@ No package instrumentation should ship until `20-telemetry-privacy-decision-reco
 - Vercel Speed Insights usage/cost controls: https://vercel.com/docs/speed-insights/managing-usage
 - Vercel CDN cache: https://vercel.com/docs/cdn-cache
 - Vercel httpstat: https://vercel.com/docs/cli/httpstat
+
+## 2026-06-06 Speed Insights scoring addendum
+
+The owner-linked Vercel metrics page was reviewed directly: `https://vercel.com/docs/speed-insights/metrics#how-the-scores-are-determined`.
+
+Implementation implication: do not use lab Lighthouse or synthetic provider probes to claim RES 95-100. RES is a weighted, real-user score over FCP/LCP/INP/CLS. Local Lighthouse can justify or reject a code spike, but completion requires current-deployment Speed Insights rows and dashboard/CLI provider proof.

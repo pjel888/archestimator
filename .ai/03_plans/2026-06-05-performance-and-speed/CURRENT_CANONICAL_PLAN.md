@@ -56,8 +56,13 @@ The canonical performance-and-speed pack is the complete current inventory below
 9. `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md`
 10. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
 11. `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md`
-12. `evidence/README.md`
+12. `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md`
+13. `evidence/vercel-speed-insights-refresh-2026-06-06-post-closeout/vercel-speed-insights-refresh-summary.md`
+14. `evidence/vercel-speed-insights-inp-attribution-2026-06-06/inp-attribution-summary.md`
+15. `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`
+16. `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`
+17. `evidence/README.md`
 
 ## Implementation pointer
 
-Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. PR-0B, public personalization/cache-safety proof, is implemented as **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED** in branch `feat/performance-and-speed-pr-0b-cache-safety`; evidence is `evidence/2026-06-06-public-cache-safety-harness.md`. Synthetic production fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token evidence blockers with zero-residue cleanup proof. Capture dashboard overview/recommendation cards if available, capture comparable Speed Insights windows when traffic exists, and do not claim performance completion until provider/manual evidence proves the target metric. Do not relax public cache headers until personalized/auth/A-B output is isolated or proven cache-safe.
+Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. PR-0B, public personalization/cache-safety proof, is implemented as **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED** in branch `feat/performance-and-speed-pr-0b-cache-safety`; evidence is `evidence/2026-06-06-public-cache-safety-harness.md`. Synthetic production fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token evidence blockers with zero-residue cleanup proof. Current-provider refresh attributes the only severe INP outlier to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; current production `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no filtered Speed Insights rows yet. Capture dashboard overview/recommendation cards if available, capture current-deployment comparable Speed Insights/RES windows when traffic exists, and do not claim performance completion until provider/manual evidence proves the target metric. Do not relax public cache headers until personalized/auth/A-B output is isolated or proven cache-safe; do not reapply the Roboto Mono preload spike without stronger proof.
