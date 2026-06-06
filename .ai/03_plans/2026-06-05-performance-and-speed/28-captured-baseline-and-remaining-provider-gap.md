@@ -145,3 +145,15 @@ bun run perf:check-speed-insights
 Latest evidence: `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` / `.json`.
 
 Result: **CURRENT DEPLOYMENT PROVIDER DATA OPEN**. The checker queried current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` and found no p75 rows for FCP, LCP, INP, CLS, or TTFB. It also had no dashboard RES score, so it correctly reports `resCompletionReady: false`. The script is intentionally read-only and does not submit vitals, create traffic, deploy, promote, mutate provider settings, or infer RES from lab data.
+
+
+## 2026-06-06 RES readiness rerun and Vercel API endpoint inventory
+
+After owner-granted authority to resolve blockers, the read-only readiness checker was rerun and the official Vercel CLI API endpoint inventory was searched for a durable RES export surface.
+
+- Readiness rerun evidence: `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md` / `.json` / `.stdout.json`.
+- Rerun result: generated `2026-06-06T04:14:18.083Z`; current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`; zero current-deployment rows for FCP, LCP, INP, CLS, and TTFB; no dashboard RES supplied; `resCompletionReady: false`.
+- API inventory evidence: `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md` plus raw `vercel-api-ls.json` and filtered `vercel-api-speed-related.jsonl`.
+- API inventory result: `vercel api ls --format json` returned 310 documented endpoints; the speed/insight/metric/observability/analytics/vital/experience filter found only two Observability Plus configuration endpoints, not a documented Speed Insights RES read/export endpoint.
+
+Remaining gap: current production still needs real-user Speed Insights rows and dashboard/provider RES >= 95. The plan must not infer RES from Lighthouse-only lab data, stale rows from old deployments, undocumented dashboard internals, or synthetic vitals traffic.

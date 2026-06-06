@@ -60,6 +60,9 @@ Create an implementation-ready plan to improve Archestimator speed and Core Web 
 4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
 5. `evidence/2026-06-06-public-cache-safety-harness.md`
 6. `evidence/README.md`
+7. `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`
+8. `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md`
+9. `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md`
 
 ## Non-goals
 
@@ -78,4 +81,4 @@ The pack is document-quality complete and implementation-ready for future bounde
 
 ## Recommended next step
 
-Fresh 2026-06-06 provider refresh attributes the anomalous 59,404,496ms desktop home INP to old production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no filtered Speed Insights rows yet. Use `bun run perf:check-speed-insights` as the repeatable read-only provider gate; the latest run at `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` still reports zero current-deployment rows and no dashboard RES. Capture dashboard overview/recommendation cards if access becomes available, wait for current-deployment comparable Speed Insights windows/RES after real-user hard-navigation data exists, and do not implement speculative cache/header, telemetry package, root-provider, or font-preload changes without matching proof. The mono-font preload spike was tested and reverted because it worsened mobile Lighthouse LCP.
+Fresh 2026-06-06 provider refresh attributes the anomalous 59,404,496ms desktop home INP to old production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no filtered Speed Insights rows yet. Use `bun run perf:check-speed-insights` as the repeatable read-only provider gate; the latest rerun at `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md` still reports zero current-deployment rows and no dashboard RES. The Vercel API inventory check at `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md` found no official documented Speed Insights RES read/export endpoint, so capture dashboard overview/recommendation cards if access becomes available, wait for current-deployment comparable Speed Insights windows/RES after real-user hard-navigation data exists, and do not implement speculative cache/header, telemetry package, root-provider, or font-preload changes without matching proof. The mono-font preload spike was tested and reverted because it worsened mobile Lighthouse LCP.
