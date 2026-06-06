@@ -6,7 +6,7 @@
 
 This pack is now **100% document-quality ready** and **100% implementation-ready for the first safe performance implementation story**.
 
-It is **not** 100% ready to claim performance completion. Numeric Vercel Speed Insights route/device p75 metrics are now captured via CLI, post-deploy signed-out/probe-safe cache proof is captured, and synthetic production fixtures now cover signed-in auth, hosted proposal export, valid private media, and cleanup. Dashboard overview evidence, comparable before/after traffic windows, and valid private share-token proof remain external inputs required to prove later optimization work.
+It is **not** 100% ready to claim performance completion. Numeric Vercel Speed Insights route/device p75 metrics are now captured via CLI, post-deploy signed-out/probe-safe cache proof is captured, and synthetic production fixtures now cover signed-in auth, hosted proposal export, valid private media, and cleanup. Dashboard overview evidence and comparable before/after traffic windows remain external/time-gated inputs required to prove later optimization work.
 
 ## Readiness definitions
 
@@ -14,7 +14,7 @@ It is **not** 100% ready to claim performance completion. Numeric Vercel Speed I
 | --- | ---: | --- |
 | Document quality | 100% | The pack has complete structure, canonical index, source map, hypotheses, decision tree, acceptance criteria, fixtures, risk/rollback, telemetry/privacy, cache-safety, linked-plan sync, UltraQA, and evidence registry. |
 | First-story code implementation readiness | 100% | A future worker can begin the first safe code-bearing performance story from `27-ready-implementation-packets.md` without guessing scope, tests, evidence, risk, or rollback. |
-| Full optimization selection readiness | 96% | Public header/timing, deployment evidence, current 7-day Speed Insights p75 route/device values, live Supabase proof, signed-in auth/export synthetic hosted fixtures, valid private media proof, and cleanup evidence are captured; comparable prior windows, dashboard overview cards, and valid private share-token proof remain open. |
+| Full optimization selection readiness | 98% | Public header/timing, deployment evidence, current 7-day Speed Insights p75 route/device values, live Supabase proof, signed-in auth/export synthetic hosted fixtures, valid private media/share proof, and cleanup evidence are captured; comparable prior windows and dashboard overview cards remain open. |
 | Performance completion readiness | 0% | Local/production safety and mitigation slices exist, but no comparable Speed Insights before/after window has provider-proven an RES/Core Web Vitals improvement yet. |
 
 ## Why code readiness can be 100% while Speed Insights remains open
@@ -73,9 +73,8 @@ As of this document, **PR-0B is the recommended first code-bearing packet** beca
 Current Speed Insights p75 route/device values are captured via Vercel CLI, but the following still block full completion:
 
 - comparable before/after Speed Insights windows for the same route/device cohorts,
-- dashboard overview screenshot/recommendation cards if required for provider UI signoff,
-- valid private share-token fixture beyond credential-free fake-token probes.
+- dashboard overview screenshot/recommendation cards if required for provider UI signoff.
 
-The previous signed-in hosted auth, hosted export, and valid private media fixture blockers were closed on 2026-06-06 by synthetic production fixtures plus zero-residue cleanup verification.
+The previous signed-in hosted auth, hosted export, valid private media, and valid private share-token fixture blockers were closed on 2026-06-06 by synthetic production fixtures plus zero-residue cleanup verification.
 
 These gaps block claiming “massive performance upgrade” as proven and using `COMPLETE` for performance improvements. They do **not** block local safety/measurement packets, which must stay labeled `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted proof exists.
