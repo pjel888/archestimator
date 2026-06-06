@@ -1306,3 +1306,13 @@ Open:
 - The checker is read-only: it runs Vercel inspect/metrics, filters p75 Speed Insights rows to the current production deployment, compares FCP/LCP/INP/CLS against Vercel good thresholds, and fails closed without a dashboard RES score.
 - Latest run evidence at `.ai/03_plans/2026-06-05-performance-and-speed/evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` shows current deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, zero current-deployment rows, and `resCompletionReady: false`.
 - RES completion remains unclaimed until the checker passes with current-deployment rows and dashboard RES >= 95.
+
+
+## Performance and Speed RES Provider Gate Rerun / API Inventory (2026-06-06)
+
+- Branch/worktree: `feat/performance-and-speed-pr-0b-cache-safety` at `/Users/philiplewis/archestimator.omx-worktrees/impl-performance-and-speed-pr-0b-cache-safety`.
+- Reran the read-only Speed Insights readiness checker under owner-granted blocker authority. Evidence: `.ai/03_plans/2026-06-05-performance-and-speed/evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md` / `.json`.
+- Result: generated `2026-06-06T04:14:18.083Z`; current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`; zero current-deployment rows for FCP, LCP, INP, CLS, and TTFB; no dashboard RES supplied; `resCompletionReady: false`.
+- Checked the official Vercel CLI API inventory for a documented Speed Insights RES export surface. Evidence: `.ai/03_plans/2026-06-05-performance-and-speed/evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md`.
+- Result: `vercel api ls --format json` returned 310 documented endpoints; keyword filtering found only Observability Plus configuration endpoints, not a Speed Insights RES read/export endpoint.
+- Current truth: RES/performance completion remains unclaimed until current-production real-user Speed Insights rows and dashboard/provider RES >= 95 exist. Do not infer RES from Lighthouse-only lab data, stale old-deployment rows, undocumented dashboard internals, synthetic vitals, or artificial traffic.

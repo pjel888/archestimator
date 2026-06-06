@@ -395,3 +395,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - GREEN: after implementing the checker, the same focused Vitest file passed 4 tests.
 - `bun run type-check` passed.
 - Ran `SPEED_INSIGHTS_ALLOW_NOT_READY=1 ... bun run perf:check-speed-insights`; evidence at `evidence/vercel-speed-insights-readiness-check-2026-06-06/` reports current deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, zero current-deployment Speed Insights rows, missing dashboard RES, and `resCompletionReady: false`.
+
+
+## RES readiness rerun and official Vercel API endpoint inventory — 2026-06-06
+
+- Reran the read-only `bun run perf:check-speed-insights` gate under `SPEED_INSIGHTS_ALLOW_NOT_READY=1`; evidence lives at `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/`.
+- Result: current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` still has zero current-deployment p75 rows for FCP, LCP, INP, CLS, or TTFB, no dashboard RES was supplied, and `resCompletionReady` remains `false`.
+- Checked `vercel api ls --format json` for a documented Speed Insights/RES export endpoint; evidence lives at `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/`.
+- Result: 310 documented endpoints were listed; the speed/insight/metric/observability/analytics/vital/experience filter matched only Observability Plus configuration endpoints. No official Vercel CLI API endpoint for Speed Insights dashboard RES export was found.
+- Completion language: **PROVIDER DATA OPEN / RES COMPLETION NOT CLAIMED**.

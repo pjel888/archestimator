@@ -45,7 +45,7 @@ This manifest is generated from the current folder inventory. It exists to preve
 
 ## Evidence files
 
-The evidence folder now contains 61 top-level files and 175 files total including trace/report subfolders. `21-evidence-index.md` is the canonical registry. Current key proof artifacts include:
+The evidence folder now contains 62 top-level files and 296 files total including trace/report subfolders. `21-evidence-index.md` is the canonical registry. Current key proof artifacts include:
 
 1. `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md`
 2. `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json`
@@ -58,7 +58,10 @@ The evidence folder now contains 61 top-level files and 175 files total includin
 9. `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md`
 10. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
 11. `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md`
-12. `evidence/README.md`
+12. `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`
+13. `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md`
+14. `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md`
+15. `evidence/README.md`
 
 ## Completion audit
 
@@ -95,3 +98,15 @@ After adding the repeatable Speed Insights readiness checker and latest run evid
 - New evidence folder: `evidence/vercel-speed-insights-readiness-check-2026-06-06/`.
 
 Completion remains unclaimed because the checker fails closed with missing current-deployment rows and missing dashboard RES.
+
+## 2026-06-06 RES gate rerun/API-inventory manifest refresh
+
+After rerunning the Speed Insights readiness checker and checking the official Vercel CLI API endpoint inventory:
+
+- New evidence folder: `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/`.
+- New evidence folder: `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/`.
+- Top-level files under `evidence/`: 62.
+- Total evidence files under `evidence/`: 296.
+- Total files under this plan pack: 332.
+
+Completion remains unclaimed because the rerun still finds no current-production Speed Insights rows and the official Vercel CLI API inventory exposes no documented RES read/export endpoint.
