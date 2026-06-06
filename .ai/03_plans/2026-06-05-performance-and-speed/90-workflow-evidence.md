@@ -279,7 +279,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured Workstream 7 local release matrix for each performance surface shipped, deferred, or held behind provider proof.
 - Evidence: `evidence/2026-06-06-release-rollback-readiness-language.md`.
 - Closed locally: 7.1 one-surface-at-a-time release evidence and 7.3 conservative closed-beta/provider-open language.
-- Still open: 7.2 Speed Insights window comparison and all provider/manual gates that require Vercel dashboard overview/export, hosted auth fixtures, hosted export fixtures, or post-deploy cache proof.
+- Still open: 7.2 Speed Insights window comparison and provider/manual gates that require Vercel dashboard overview/export, signed-in hosted auth fixtures, hosted export fixtures, or valid private media/share fixtures. Later production postfix evidence captures signed-out/probe-safe no-store proof.
 - Completion language: **LOCAL RELEASE MATRIX CAPTURED / SPEED INSIGHTS WINDOW PROOF OPEN**.
 
 ## Live Supabase EXPLAIN/provider proof — 2026-06-06
@@ -310,7 +310,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Reconciled local decision/security gates that had stale open checkboxes after implementation packets.
 - Evidence: `evidence/2026-06-06-open-gate-reconciliation.md`.
 - Closed locally: marketing visual graceful degradation, GA/Clarity post-consent loading decision, no global Next/React experimental toggles, auth/proxy no-change review, and tokenized/share cache-header invariants.
-- Still open after later CLI p75 capture: Speed Insights dashboard overview/recommendation cards, Speed Insights-window comparison, signed-in auth fixture waterfall, hosted authenticated export benchmark, and post-deploy protected redirect cache proof.
+- Still open after later CLI p75 capture: Speed Insights dashboard overview/recommendation cards, Speed Insights-window comparison, signed-in auth fixture waterfall, hosted authenticated export benchmark, and valid private media/share fixture proof. Later production postfix evidence captures signed-out/probe-safe no-store proof.
 - Completion language: **LOCAL DECISION GATES RECONCILED / PROVIDER/FIXTURE GATES STILL OPEN**.
 
 ## Hosted auth route smoke benchmark harness — 2026-06-06
@@ -319,8 +319,8 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Preserved failure-closed behavior when allowed/denied/revoked/expired session cookies are missing; auth cookies and platform bypass headers are still never written to reports.
 - Added focused coverage in `tests/vitest/hosted-auth-route-smoke-script.test.ts` for bounded run parsing and repeated sanitized sample aggregation.
 - Ran `HOSTED_AUTH_BASE_URL=https://www.archestimator.com HOSTED_AUTH_RUNS=3 OUTPUT_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.json MARKDOWN_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.md bun run launch:verify-hosted-auth`; expected exit 1 because signed-in fixture cookies were absent.
-- Original evidence captured production signed-out `/workshop` redirect timing, but the later stricter cache-proof refresh superseded the status: signed-out now fails because current production returns `Cache-Control: public, max-age=0, must-revalidate` until the local proxy no-store patch is deployed and rechecked.
-- Completion language: **HOSTED AUTH HARNESS READY / SIGNED-IN AND POST-DEPLOY CACHE PROOF OPEN**.
+- Original evidence captured production signed-out `/workshop` redirect timing, and the later stricter cache-proof refresh intentionally failed while production still returned `Cache-Control: public, max-age=0, must-revalidate`. That signed-out cache gap is superseded by the later production postfix evidence, where signed-out `/workshop` redirects with private/no-store.
+- Completion language: **HOSTED AUTH HARNESS READY / SIGNED-OUT CACHE PROOF CAPTURED / SIGNED-IN FIXTURE PROOF OPEN**.
 
 ## Remaining provider/fixture blocker audit — 2026-06-06
 
@@ -329,7 +329,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Vercel connector still reaches Archestimator project/deployment metadata, but does not expose Speed Insights dashboard UI/export values. Later Vercel CLI metrics superseded this for numeric p75 and route/device breakdown.
 - Protected fetch for `https://vercel.com/philipjonlewis-projects/archestimator/speed-insights` still fails with `Unable to create shareable URL...`.
 - Process env and repo env files contain no safe `HOSTED_AUTH_*`, `HOSTED_EXPORT_*`, app-specific `PLAYWRIGHT_STORAGE_STATE`, or equivalent fixture inputs.
-- Remaining gates require external inputs or post-deploy provider evidence: dashboard overview/recommendation cards if needed, signed-in hosted auth fixtures, hosted export fixture IDs/auth, comparable Speed Insights windows, and protected redirect cache recheck after deploy.
+- Remaining gates require external inputs or provider evidence: dashboard overview/recommendation cards if needed, signed-in hosted auth fixtures, hosted export fixture IDs/auth, comparable Speed Insights windows, and valid private media/share fixtures. Later production postfix evidence captures the protected/sensitive-route no-store recheck for signed-out and fake-path probes.
 - Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN — EXTERNAL INPUTS REQUIRED**.
 
 ## Vercel Speed Insights CLI baseline — 2026-06-06
@@ -348,8 +348,16 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - UltraQA/team worker evidence identified local-fixable proof gaps in the hosted auth/export scripts.
 - Added sanitized hosted export Markdown output for `MARKDOWN_FILE`, `HOSTED_EXPORT_ALLOWED_ORIGINS` HTTPS/origin validation, and private/no-store cache-control pass criteria.
 - Added hosted auth cache-control capture and private/no-store pass criteria, then refreshed `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json`.
-- The refreshed hosted auth proof intentionally exits 1: signed-in cookies are absent, and current production signed-out `/workshop` redirects still return `Cache-Control: public, max-age=0, must-revalidate` before this branch is deployed.
+- The refreshed hosted auth proof intentionally exits 1 before deployment because signed-in cookies are absent and production signed-out `/workshop` redirects still returned `Cache-Control: public, max-age=0, must-revalidate`. Later production postfix evidence supersedes the signed-out cache gap; signed-in fixture proof remains open.
 - Added `SENSITIVE_ROUTE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate"` to `src/proxy.ts` for protected/auth redirects produced by Proxy, with `tests/vitest/proxy-sensitive-cache-headers.test.ts` locking the source invariant.
 - Focused verification: `bun test tests/vitest/hosted-auth-route-smoke-script.test.ts tests/vitest/hosted-export-route-smoke-script.test.ts tests/vitest/proxy-sensitive-cache-headers.test.ts` passed 23/23.
 - Evidence: `evidence/2026-06-06-hosted-proof-harness-hardening.md`.
-- Remaining proof: post-deploy protected redirect cache recheck, signed-in hosted auth fixture waterfall, hosted proposal export fixture/auth benchmark, and comparable Speed Insights windows.
+- Remaining proof: signed-in hosted auth fixture waterfall, hosted proposal export fixture/auth benchmark, valid private media/share fixture proof, dashboard overview/recommendation cards if required, and comparable Speed Insights windows.
+
+## Production deployment and private media no-store proof — 2026-06-06
+
+- With owner-granted authority, manually deployed branch `feat/performance-and-speed-pr-0b-cache-safety` to production.
+- Final deployment: `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, URL `https://archestimator-6mwjrwhnk-philipjonlewis-projects.vercel.app`, aliased to `https://www.archestimator.com`.
+- Evidence: `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json`, `evidence/2026-06-06-sensitive-route-production-postfix-fail-closed-probe.md` / `.json`, and `evidence/2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md` / `.json`.
+- Result: signed-out `/workshop` redirects to `/login?next=%2Fworkshop` with private/no-store over 3 samples; invalid share token probes plus missing/malformed/valid-shaped fake project-image probes all pass no-store/no-`Set-Cookie`.
+- Remaining gates: signed-in hosted auth cookies/storage state, hosted export fixture IDs/auth, valid private media/share fixtures, dashboard overview/recommendation cards, and comparable Speed Insights windows.

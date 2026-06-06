@@ -4,7 +4,7 @@
 
 ## Captured project/deployment context
 
-Source: Vercel connector, 2026-06-05.
+Source: Vercel connector, 2026-06-05, with later 2026-06-06 production deployment proof noted separately.
 
 | Field | Value |
 | --- | --- |
@@ -13,11 +13,14 @@ Source: Vercel connector, 2026-06-05.
 | Account/team | `team_eRuwqQwhMbYYDmvgIgpQW1GS` / `philipjonlewis-projects` |
 | Framework | Next.js |
 | Node version | `24.x` |
-| Latest production deployment | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` |
-| Deployment URL | `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app` |
+| Baseline production deployment for initial public-route and Speed Insights window proof | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` |
+| Baseline deployment URL | `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app` |
+| Current production deployment after 2026-06-06 post-fix proof | `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` |
+| Current production URL after 2026-06-06 post-fix proof | `archestimator-6mwjrwhnk-philipjonlewis-projects.vercel.app`, aliased to `www.archestimator.com` |
 | Production domains | `www.archestimator.com`, `archestimator.com`, `archestimator.vercel.app` |
-| Latest production commit | `2d9e12d4d8b3f08a6da686bcb06f753474590511` |
-| Commit message | `Record shared-link clickthrough proof` |
+| Baseline production commit | `2d9e12d4d8b3f08a6da686bcb06f753474590511` |
+| Baseline commit message | `Record shared-link clickthrough proof` |
+| Current production proof commit | `207babf` |
 | Bundler metadata | `turbopack` |
 | Runtime metadata | `{"nodejs":2}` |
 
@@ -80,7 +83,7 @@ Additional evidence files:
 
 Current status:
 
-- Deployment context is refreshed and still points to production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`.
+- Deployment context for the baseline public-route/Speed Insights window points to production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`; later post-fix cache proof points to production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`.
 - Public hosted route timing/header evidence now includes `/about`, `/privacy`, and `/terms` in addition to the earlier public routes.
 - Bundle analyzer baseline is captured through a clean webpack analyzer build.
 - Speed Insights p75 metrics are captured via Vercel CLI; dashboard overview/recommendation cards and comparable prior windows remain open.
