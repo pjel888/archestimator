@@ -6,9 +6,9 @@ Use this document after Vercel Speed Insights and local baseline evidence are ca
 
 ## Hard gate before implementation
 
-No code work should begin until `01-vercel-speed-insights-and-metrics-intake.md` has a captured baseline for:
+Optimization code work should not claim completion until `01-vercel-speed-insights-and-metrics-intake.md` has a captured baseline and comparable proof plan for:
 
-- overall score,
+- overall score if dashboard UI is available,
 - p75 LCP,
 - p75 INP,
 - p75 CLS,
@@ -19,7 +19,7 @@ No code work should begin until `01-vercel-speed-insights-and-metrics-intake.md`
 - time window,
 - production deployment id/commit.
 
-If the dashboard cannot provide a route/device breakdown, the first implementation slice is not optimization; it is observability/attribution.
+If dashboard UI cannot provide a route/device breakdown, use the Vercel CLI `vercel metrics` route/device p75 data as the provider baseline and keep dashboard overview/recommendation cards as optional/manual evidence. If neither dashboard nor CLI can provide route/device data, the first slice is observability/attribution.
 
 ## Metric-to-workstream decision tree
 

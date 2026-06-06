@@ -98,7 +98,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 ## PR-0A/PR-1B evidence reconciliation — 2026-06-06
 
 - `$team` run `read-only-evidence-te-54927f7e` reached phase `complete`: 2 workers, 2 completed tasks, 0 pending/blocked/in-progress/failed.
-- Worker-1 confirmed PR-0A remains Speed Insights provider/UI blocked and recommended only read-only connector/curl substitutes until dashboard/export data is available.
+- Worker-1 confirmed PR-0A was blocked from connector/UI surfaces at that time; later `vercel metrics` CLI evidence superseded the numeric p75 blocker while dashboard overview/export remains unavailable.
 - Worker-2 confirmed PR-1B must stay analyzer-baseline-first and flagged root provider/global CSS hazards before runtime shell edits.
 - Leader-side read-only Vercel connector refresh confirmed production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` at commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`; evidence captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`.
 - Hosted public-route curl timing/header refresh covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms`; all still returned private/no-store cache headers with `x-vercel-cache: MISS`.
@@ -113,7 +113,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Attempted read-only Computer Use `get_app_state` against `Google Chrome` to access the Vercel Speed Insights dashboard.
 - Result: timed out after 120s.
 - Evidence: `evidence/2026-06-06-speed-insights-chrome-retry.md`.
-- Decision: Speed Insights dashboard/export p75 metrics remain provider-open; no runtime optimization or telemetry package change is justified from this attempt.
+- Decision at that time: Speed Insights dashboard/export values remained provider-open; later CLI p75 evidence superseded the numeric portion, but no telemetry package change is justified from this attempt.
 
 ## PR-1A telemetry privacy decision — 2026-06-06
 
@@ -164,7 +164,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 
 - Marked Workstream 1.3 complete for the local PR-1A telemetry privacy decision: dashboard/provider-only Speed Insights, no package change, sensitive Web Analytics redaction preserved.
 - Marked Workstream 3.2 complete for the local public-route cache review: PR-0B evidence keeps `MARKETING_PAGE_CACHE_CONTROL` unchanged because public marketing HTML is not broad shared-cache-safe today.
-- Updated open-gate decision checkboxes for telemetry/cache guardrails only; Vercel Speed Insights p75 provider proof, live EXPLAIN/provider proof, browser traces, and hosted route proofs remain open.
+- Updated open-gate decision checkboxes for telemetry/cache guardrails only; later evidence captures Vercel CLI p75 and live EXPLAIN/provider proof, while browser traces, dashboard UI evidence, and hosted route proofs remain open.
 
 
 ## Public mobile Lighthouse baseline — 2026-06-06
@@ -172,7 +172,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran `bun run build`, then `PORT=3044 bun run start -- -p 3044`, then `bunx lighthouse` mobile performance traces for `/`, `/features`, `/pricing`, and `/contact` with landing consent off and accepted-consent cookie.
 - Saved JSON/HTML reports plus compressed trace/devtools assets under `evidence/public-lighthouse-2026-06-06/`.
 - Summary: home scored 80 consent-off and 88 consent-on; features 89/91; pricing 88/89; contact 88/89. Home consent-off was the local outlier with TBT 378.48ms.
-- Local limitation: accepted-consent traces do not prove production GA/Clarity or Vercel provider behavior; Speed Insights p75 and hosted analytics proof remain open.
+- Local limitation: accepted-consent traces do not prove production GA/Clarity or hosted analytics behavior; later CLI evidence captures Speed Insights p75, but hosted analytics proof remains open.
 - Completion language: **LOCAL PUBLIC MOBILE LIGHTHOUSE BASELINE CAPTURED / SPEED INSIGHTS AND HOSTED ANALYTICS PROOF OPEN**.
 
 ## Neat mobile fallback after-trace — 2026-06-06
@@ -279,7 +279,7 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured Workstream 7 local release matrix for each performance surface shipped, deferred, or held behind provider proof.
 - Evidence: `evidence/2026-06-06-release-rollback-readiness-language.md`.
 - Closed locally: 7.1 one-surface-at-a-time release evidence and 7.3 conservative closed-beta/provider-open language.
-- Still open: 7.2 Speed Insights window comparison and all provider/manual gates that require Vercel dashboard/export, hosted auth fixtures, or Supabase provider metrics.
+- Still open: 7.2 Speed Insights window comparison and all provider/manual gates that require Vercel dashboard overview/export, hosted auth fixtures, hosted export fixtures, or post-deploy cache proof.
 - Completion language: **LOCAL RELEASE MATRIX CAPTURED / SPEED INSIGHTS WINDOW PROOF OPEN**.
 
 ## Live Supabase EXPLAIN/provider proof — 2026-06-06
@@ -302,16 +302,16 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 
 - Attempted Vercel connector, Vercel documentation search, protected Vercel fetch, and Computer Use Chrome state capture for Speed Insights.
 - Evidence: `evidence/2026-06-06-speed-insights-provider-access-retry.md`.
-- Result: dashboard p75/export values remain inaccessible from this session; Workstream 0.1 and 7.2 stay open.
-- Completion language: **SPEED INSIGHTS PROVIDER ACCESS BLOCKED / P75 METRICS OPEN**.
+- Result at the time: dashboard p75/export values were inaccessible from connector/fetch/browser surfaces. Later `vercel metrics` CLI evidence superseded this for numeric p75 values, but visual dashboard overview/recommendation cards and Workstream 7.2 comparable windows remain open.
+- Completion language: **SPEED INSIGHTS DASHBOARD UI BLOCKED / CLI P75 LATER CAPTURED**.
 
 ## Open gate reconciliation — 2026-06-06
 
 - Reconciled local decision/security gates that had stale open checkboxes after implementation packets.
 - Evidence: `evidence/2026-06-06-open-gate-reconciliation.md`.
 - Closed locally: marketing visual graceful degradation, GA/Clarity post-consent loading decision, no global Next/React experimental toggles, auth/proxy no-change review, and tokenized/share cache-header invariants.
-- Still open: Speed Insights p75/dashboard route-device metrics, Speed Insights-window comparison, signed-in auth fixture waterfall, and hosted authenticated export benchmark.
-- Completion language: **LOCAL DECISION GATES RECONCILED / PROVIDER GATES STILL OPEN**.
+- Still open after later CLI p75 capture: Speed Insights dashboard overview/recommendation cards, Speed Insights-window comparison, signed-in auth fixture waterfall, hosted authenticated export benchmark, and post-deploy protected redirect cache proof.
+- Completion language: **LOCAL DECISION GATES RECONCILED / PROVIDER/FIXTURE GATES STILL OPEN**.
 
 ## Hosted auth route smoke benchmark harness — 2026-06-06
 
@@ -319,15 +319,37 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Preserved failure-closed behavior when allowed/denied/revoked/expired session cookies are missing; auth cookies and platform bypass headers are still never written to reports.
 - Added focused coverage in `tests/vitest/hosted-auth-route-smoke-script.test.ts` for bounded run parsing and repeated sanitized sample aggregation.
 - Ran `HOSTED_AUTH_BASE_URL=https://www.archestimator.com HOSTED_AUTH_RUNS=3 OUTPUT_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.json MARKDOWN_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.md bun run launch:verify-hosted-auth`; expected exit 1 because signed-in fixture cookies were absent.
-- Evidence: `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` captures production signed-out `/workshop` redirect timing: 3 samples, 60ms min, 115ms avg, 217ms max, latest status 307 to `/login?next=%2Fworkshop`.
-- Completion language: **SIGNED-OUT HOSTED AUTH TIMING CAPTURED / SIGNED-IN FIXTURE WATERFALL OPEN**.
+- Original evidence captured production signed-out `/workshop` redirect timing, but the later stricter cache-proof refresh superseded the status: signed-out now fails because current production returns `Cache-Control: public, max-age=0, must-revalidate` until the local proxy no-store patch is deployed and rechecked.
+- Completion language: **HOSTED AUTH HARNESS READY / SIGNED-IN AND POST-DEPLOY CACHE PROOF OPEN**.
 
 ## Remaining provider/fixture blocker audit — 2026-06-06
 
 - Re-audited the remaining open gates after `23db6aa`.
 - Evidence: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md`.
-- Vercel connector still reaches Archestimator project/deployment metadata, but does not expose Speed Insights p75, route/device breakdown, or export values.
+- Vercel connector still reaches Archestimator project/deployment metadata, but does not expose Speed Insights dashboard UI/export values. Later Vercel CLI metrics superseded this for numeric p75 and route/device breakdown.
 - Protected fetch for `https://vercel.com/philipjonlewis-projects/archestimator/speed-insights` still fails with `Unable to create shareable URL...`.
 - Process env and repo env files contain no safe `HOSTED_AUTH_*`, `HOSTED_EXPORT_*`, app-specific `PLAYWRIGHT_STORAGE_STATE`, or equivalent fixture inputs.
-- Remaining gates require external inputs: Speed Insights dashboard/export, signed-in hosted auth fixtures, hosted export fixture IDs/auth, and comparable Speed Insights windows.
+- Remaining gates require external inputs or post-deploy provider evidence: dashboard overview/recommendation cards if needed, signed-in hosted auth fixtures, hosted export fixture IDs/auth, comparable Speed Insights windows, and protected redirect cache recheck after deploy.
 - Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN — EXTERNAL INPUTS REQUIRED**.
+
+## Vercel Speed Insights CLI baseline — 2026-06-06
+
+- Resumed `$team` / `$ultragoal` / `$autopilot` implementation lane rechecked remaining provider gates and discovered that Vercel CLI `54.6.1` exposes Speed Insights metrics through `vercel metrics`.
+- Captured read-only provider p75 evidence for `vercel.speed_insights_metric.lcp`, `inp`, `cls`, `fcp`, and `ttfb_ms` under project `archestimator` / scope `philipjonlewis-projects`.
+- Evidence folder: `evidence/vercel-speed-insights-cli-2026-06-06/`.
+- Summary: `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md`.
+- Current 7-day overall p75: LCP 1447ms, INP 59,404,496ms (anomalous provider value), CLS null overall, FCP 1380ms, TTFB 299ms.
+- Route/device highlights flag `/` desktop for LCP/FCP and anomalous INP, so a bounded production desktop Lighthouse trace was captured for `https://www.archestimator.com/`: score 0.99, FCP 467ms, LCP 756ms, CLS 0, TBT 1ms, Speed Index 1084ms.
+- Previous 7-day and previous-3-day Vercel metric windows returned empty summaries, so Workstream 7.2 remains open for comparable route/device cohorts.
+- No deploy, provider mutation, environment change, or Supabase mutation was performed.
+
+## Hosted proof harness hardening and protected redirect cache guard — 2026-06-06
+
+- UltraQA/team worker evidence identified local-fixable proof gaps in the hosted auth/export scripts.
+- Added sanitized hosted export Markdown output for `MARKDOWN_FILE`, `HOSTED_EXPORT_ALLOWED_ORIGINS` HTTPS/origin validation, and private/no-store cache-control pass criteria.
+- Added hosted auth cache-control capture and private/no-store pass criteria, then refreshed `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json`.
+- The refreshed hosted auth proof intentionally exits 1: signed-in cookies are absent, and current production signed-out `/workshop` redirects still return `Cache-Control: public, max-age=0, must-revalidate` before this branch is deployed.
+- Added `SENSITIVE_ROUTE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate"` to `src/proxy.ts` for protected/auth redirects produced by Proxy, with `tests/vitest/proxy-sensitive-cache-headers.test.ts` locking the source invariant.
+- Focused verification: `bun test tests/vitest/hosted-auth-route-smoke-script.test.ts tests/vitest/hosted-export-route-smoke-script.test.ts tests/vitest/proxy-sensitive-cache-headers.test.ts` passed 23/23.
+- Evidence: `evidence/2026-06-06-hosted-proof-harness-hardening.md`.
+- Remaining proof: post-deploy protected redirect cache recheck, signed-in hosted auth fixture waterfall, hosted proposal export fixture/auth benchmark, and comparable Speed Insights windows.

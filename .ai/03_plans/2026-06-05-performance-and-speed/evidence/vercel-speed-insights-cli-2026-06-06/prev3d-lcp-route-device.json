@@ -1,0 +1,22 @@
+{
+  "query": {
+    "metric": "vercel.speed_insights_metric.lcp",
+    "aggregation": "p75",
+    "groupBy": [
+      "route",
+      "device_type"
+    ],
+    "startTime": "2026-05-31T01:00:00.000Z",
+    "endTime": "2026-06-03T02:00:00.000Z",
+    "granularity": {
+      "hours": 1
+    }
+  },
+  "summary": [],
+  "data": [],
+  "statistics": {
+    "bytesRead": 11932173,
+    "rowsRead": 258457,
+    "dbTimeSeconds": 0
+  }
+}

@@ -15,7 +15,7 @@ Current repo evidence shows:
 - `@vercel/analytics` is installed and `VercelWebAnalytics` is mounted in `src/app/layout.tsx`.
 - `@vercel/speed-insights` is not installed in `package.json`.
 - Existing tests intentionally assert Speed Insights is absent in `tests/vitest/vercel-web-analytics-integration.test.ts`.
-- Vercel Speed Insights dashboard/provider proof is still open from repeated Computer Use timeouts.
+- Numeric Vercel Speed Insights provider p75 proof is captured via CLI without adding `@vercel/speed-insights`; dashboard overview/recommendation cards remain unavailable from repeated Computer Use/protected-fetch attempts.
 
 ## Decision options
 
@@ -51,10 +51,10 @@ Use route labels such as `/share/[token]` and redact query strings.
 Decision date: 2026-06-06
 Chosen option: Option A — dashboard/provider-only Speed Insights, no package change
 Approver: owner goal to implement the performance plan, constrained by prior security removal and current dashboard access blockers
-Reason: Lowest-risk path preserves the existing privacy/security posture after `@vercel/speed-insights` was removed. Current connector/browser attempts cannot capture dashboard p75 metrics, and adding a package would increase telemetry/privacy surface without solving provider access.
+Reason: Lowest-risk path preserves the existing privacy/security posture after `@vercel/speed-insights` was removed. The Vercel CLI now captures provider p75 metrics without adding a package; adding client instrumentation would increase telemetry/privacy surface without solving dashboard UI access or comparable-window proof.
 Sensitive route policy: Keep dropping tokenized `/share/<token>` and `/invite/<token>` page views before Vercel receives them. Keep dropping authenticated `/workshop/*` page views. Keep stripping query strings and hash fragments from allowed public page views.
 Tests required: `tests/vitest/vercel-web-analytics-integration.test.ts` must prove Web Analytics remains redacted, Speed Insights remains absent, and this decision record stays dashboard-only/no-package.
-Provider proof required: Vercel Speed Insights dashboard/export p75 route/device metrics remain required before claiming real-user performance improvement.
+Provider proof required: Vercel Speed Insights before/after route/device windows remain required before claiming real-user performance improvement; dashboard overview/recommendation cards remain optional/manual provider UI evidence if required.
 Rollback: Reopen this decision record, add an owner-approved Option B/C/D policy, add sensitive-route redaction/drop/sampling tests before adding any package or telemetry destination, then deploy and capture provider proof.
 ```
 

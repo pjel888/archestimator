@@ -8,7 +8,7 @@ Status: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN**
 
 - Changed `src/components/landing/NeatWireframeBackground.tsx` so mobile, coarse-pointer, and reduced-motion clients keep a static hero gradient fallback instead of initializing the `@firecms/neat` canvas on the critical path.
 - Desktop-capable clients now load `@firecms/neat` dynamically after `requestIdleCallback` or a bounded timer fallback.
-- This evidence only covers local `next start` Lighthouse on `/`; it does not prove Vercel Speed Insights p75, hosted third-party script behavior, or real-user improvement.
+- This evidence only covers local `next start` Lighthouse on `/`; it does not prove before/after Vercel Speed Insights comparison, hosted third-party script behavior, or real-user improvement.
 
 ## Local Lighthouse comparison
 

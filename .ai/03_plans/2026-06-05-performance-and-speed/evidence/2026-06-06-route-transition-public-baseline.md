@@ -78,4 +78,4 @@ Thresholds:
 
 Status language: **LOCAL ROUTE-TRANSITION BASELINE CAPTURED / AUTHENTICATED AND PROVIDER PROOF OPEN**.
 
-This evidence can support local PR validation and route-transition regression checks. It does not close the full performance plan because Speed Insights p75 route/device metrics, authenticated route-transition fixture proof, and hosted/provider evidence remain open.
+This evidence can support local PR validation and route-transition regression checks. It does not close the full performance plan because before/after Speed Insights route/device comparison, authenticated route-transition fixture proof, and hosted/provider evidence remain open.

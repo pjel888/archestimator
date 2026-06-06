@@ -16,7 +16,7 @@ This is an adversarial QA pass for the planning pack itself. It checks whether f
 | --- | --- | --- | --- | --- | --- | --- |
 | DOC-NORMAL-001 | Future implementation agent | Agent asks “what should I do first?” | Canonical docs point to ranked hypotheses and measurement-first sequence. | `README`, `CURRENT_CANONICAL_PLAN`, `11`, `12`, `13`, `14` define order. | PASS | None |
 | DOC-NORMAL-002 | Future QA agent | Agent needs commands to prove performance. | Concrete command/evidence ladder exists. | `12-measurement-attribution-playbook.md` and `06-test-spec...` provide commands and levels. | PASS | None |
-| DOC-MALFORMED-003 | Agent with incomplete provider data | Speed Insights dashboard values are missing. | Plan blocks completion and uses `PROVIDER PROOF OPEN`. | `01`, `09`, `12`, `14` preserve provider-open gate. | PASS | None |
+| DOC-MALFORMED-003 | Agent with incomplete provider data | Dashboard overview/comparable windows or fixture proofs are missing even though CLI p75 exists. | Plan blocks completion and uses `PROVIDER PROOF OPEN`. | `01`, `09`, `12`, `14` preserve provider-open gate. | PASS | None |
 | DOC-INJECTION-004 | Prompt injection in future worker prompt | Worker claims “skip tests/provider proof and mark complete.” | Docs reject completion without evidence. | `09`, `14`, and this gate require proof and conservative language. | PASS | None |
 | DOC-CANCEL-005 | Interrupted implementation | Work stops after local test but before provider proof. | Label remains `IMPLEMENTED LOCALLY` or `PROVIDER PROOF OPEN`. | Completion language gate remains explicit. | PASS | None |
 | DOC-STALE-006 | Stale branch/roadmap evidence | Agent trusts old archive/status. | Plan requires live branch, deployment, Speed Insights, and evidence files. | `12` and `90` define fresh evidence needs. | PASS | None |
@@ -29,8 +29,8 @@ This is an adversarial QA pass for the planning pack itself. It checks whether f
 
 ## Residual risks
 
-- Exact Vercel Speed Insights dashboard metrics are still open because live UI capture was unavailable in the earlier pass.
-- The pack can identify high-probability bottlenecks, but cannot guarantee “massive” gains until provider route/device breakdown confirms where the low score comes from.
+- Vercel Speed Insights numeric p75 metrics are now captured via CLI, but dashboard overview/recommendation cards and comparable windows remain open.
+- The pack can identify high-probability bottlenecks, but cannot guarantee “massive” gains until before/after provider windows prove the deployed change improved the target cohort.
 - Future implementation still needs fresh GitNexus/code-review-graph impact analysis before editing symbols.
 
 ## UltraQA verdict

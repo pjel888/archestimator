@@ -16,17 +16,17 @@ If only local proof exists, use `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN`, not
 
 ## Provider/dashboard gates
 
-- [ ] Vercel Speed Insights exact metrics captured from dashboard or export.
+- [x] Vercel Speed Insights exact metrics captured from dashboard/CLI/export. Evidence: `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md` plus raw JSON captures provider p75 LCP, INP, CLS, FCP, and TTFB via `vercel metrics`; dashboard overview score/screenshot remains unavailable.
 - [x] Vercel latest deployment and commit matched to metric window. Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` plus 2026-06-06 Vercel connector refresh (`dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`).
 - [x] Production or preview public-route timing captured with `vercel httpstat` or comparable Vercel evidence. Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`; authenticated route timing remains open under the auth/proxy gate.
-- [ ] Speed Insights route/device breakdown attached.
+- [x] Speed Insights route/device breakdown attached. Evidence: `evidence/vercel-speed-insights-cli-2026-06-06/current-*-route-device.json` and summary in `vercel-speed-insights-cli-baseline.md`.
 - [x] Supabase EXPLAIN/provider query evidence captured before DB/index work. Evidence: `evidence/2026-06-06-live-supabase-explain-provider-proof.md`; no DB/index work is justified from current beta proof.
-- [ ] Manual Chrome/Lighthouse traces captured for the route(s) Speed Insights flags.
+- [x] Manual Chrome/Lighthouse traces captured for the route(s) Speed Insights flags. Evidence: `/` desktop was the largest LCP/FCP and anomalous INP provider outlier; production Lighthouse desktop trace captured at `evidence/vercel-speed-insights-cli-2026-06-06/prod-home-desktop-speed-insights-flagged.report.json` / `.html`.
 
 ## Product decision gates
 
-- [x] Decide whether to keep `@vercel/speed-insights` absent or intentionally add Speed Insights package instrumentation. Decision: keep absent for PR-1A; provider proof remains open.
-- [x] Decide if marketing visual effects can degrade gracefully on mobile/reduced-motion. 2026-06-06 decision: Neat hero canvas degrades to a static gradient on mobile/coarse-pointer/reduced-motion, Lenis is removed from non-home public pages, and the public image/font LCP audit found no image preload candidate while removing unused root fonts. Evidence: `evidence/2026-06-06-open-gate-reconciliation.md`. Hosted third-party script timing and Speed Insights p75 remain open.
+- [x] Decide whether to keep `@vercel/speed-insights` absent or intentionally add Speed Insights package instrumentation. Decision: keep absent for PR-1A; numeric provider p75 is captured via Vercel CLI, while dashboard overview/recommendation cards remain unavailable.
+- [x] Decide if marketing visual effects can degrade gracefully on mobile/reduced-motion. 2026-06-06 decision: Neat hero canvas degrades to a static gradient on mobile/coarse-pointer/reduced-motion, Lenis is removed from non-home public pages, and the public image/font LCP audit found no image preload candidate while removing unused root fonts. Evidence: `evidence/2026-06-06-open-gate-reconciliation.md`. Hosted third-party script timing and before/after Speed Insights comparison remain open.
 - [x] Decide acceptable privacy posture for Speed Insights route labels on share/invite/auth paths. Decision: no package/custom telemetry for PR-1A; existing Web Analytics drops/redacts sensitive routes.
 - [x] Decide whether public marketing pages can have cache headers less restrictive than `private, no-cache`. Decision: not yet; keep current private/no-cache posture until personalization is isolated/proven.
 - [x] Decide acceptable delay/sampling for Clarity/GA post-consent scripts. Decision: keep existing consent-gated loading and no new delay/sampling change in this branch; `LandingAnalyticsLoader` returns null until analytics consent, and Clarity remains `afterInteractive`. Evidence: `evidence/2026-06-06-open-gate-reconciliation.md`.

@@ -4,7 +4,7 @@ Status: **LOCAL DECISION GATES RECONCILED / PROVIDER GATES STILL OPEN**.
 
 ## Purpose
 
-Reconcile stale decision/security checkboxes in `09-open-gates-and-provider-evidence.md` after PR-0B/PR-1 local implementation and provider attempts. This artifact does not close Speed Insights p75, signed-in auth fixture, or hosted proposal export proof.
+Reconcile stale decision/security checkboxes in `09-open-gates-and-provider-evidence.md` after PR-0B/PR-1 local implementation and provider attempts. This artifact does not close before/after Speed Insights comparison, signed-in auth fixture, hosted proposal export proof, or post-deploy protected redirect cache proof.
 
 ## Gates closed by current source/test evidence
 
@@ -18,7 +18,7 @@ Evidence:
 - `evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md` records that non-home public pages no longer use Lenis, while home keeps the reduced-motion-aware provider.
 - `evidence/public-image-font-lcp-audit-2026-06-06/public-image-font-lcp-summary.md` records that no image preload/media change was justified and unused root fonts were removed.
 
-Provider caveat: hosted third-party timing and Speed Insights p75 remain open; this gate only decides the local graceful-degradation posture.
+Provider caveat: hosted third-party timing and before/after Speed Insights comparison remain open; this gate only decides the local graceful-degradation posture.
 
 ### GA/Clarity delay/sampling
 
@@ -66,7 +66,7 @@ Evidence:
 
 ## Gates left open
 
-- Vercel Speed Insights dashboard/export p75 values and route/device breakdown.
+- Vercel Speed Insights dashboard overview/export evidence and before/after route/device comparison windows.
 - Manual Chrome capture specifically for Speed Insights-flagged routes, because Speed Insights route flags are still unavailable.
 - Signed-in auth/proxy waterfall with safe authenticated fixture/storage state.
 - Hosted authenticated proposal export benchmark.

@@ -44,7 +44,7 @@ After-request details:
 - The safe implementation win is concrete and local: unused root font families are no longer imported in `src/app/layout.tsx`, no longer aliased in `src/app/globals.css`, and no longer emitted in built CSS.
 - The local Lighthouse samples are directionally positive for `/features` and mostly stable for `/`, but they are not production Core Web Vitals proof.
 - No image optimization change was made because the measured public image request is a tiny logo SVG and current LCP evidence does not identify an image candidate.
-- Vercel Speed Insights p75, hosted waterfall, and real-user production proof remain open gates.
+- Before/after Vercel Speed Insights comparison, hosted waterfall, and real-user production proof remain open gates.
 
 ## Evidence files
 
