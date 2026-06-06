@@ -1,0 +1,109 @@
+{
+  "generatedAt": "2026-06-06T02:25:14.545876Z",
+  "mode": "vercel-read-only-deployment-state-after-pr0b-branch",
+  "searchedCommit": "e55d29178cc751f3791cc37740a043a1616a3cbe",
+  "searchedCurrentCommitDeploymentCount": 0,
+  "searchedCurrentCommitDeployments": [],
+  "latestDeployments": [
+    {
+      "url": "archestimator-lz829v0ad-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780596242727,
+      "githubCommitRef": "main",
+      "githubCommitSha": "2d9e12d4d8b3f08a6da686bcb06f753474590511",
+      "githubCommitMessage": "Record shared-link clickthrough proof",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-p66mgz1mc-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780593874602,
+      "githubCommitRef": "main",
+      "githubCommitSha": "14e0a61774c30c4244a9e41aaecc616ccc4a92c4",
+      "githubCommitMessage": "Emit absolute recipient URLs in share emails",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-2oid4rslf-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780592055326,
+      "githubCommitRef": "main",
+      "githubCommitSha": "2d49b6bcfd9d17a3f2a98f4d51ed72b6cde26143",
+      "githubCommitMessage": "Keep beta launch instrumentation and agentic routing truthful",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-3torz4dzn-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780586342809,
+      "githubCommitRef": "main",
+      "githubCommitSha": "19c6b90887a2b443c60c9bf87451cdc85ad3b033",
+      "githubCommitMessage": "Prevent owners from sending shared links to themselves",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-bni1ukxvs-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780583534439,
+      "githubCommitRef": "main",
+      "githubCommitSha": "535b68c1f111c003223b3cda03af4c3610a861f3",
+      "githubCommitMessage": "Add owner logout and scoped security acceptance proof",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780578207036,
+      "githubCommitRef": "main",
+      "githubCommitSha": "083bf97d936d5d5c61e56880c8e10120449aacae",
+      "githubCommitMessage": "Keep production deploy payload lean",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780549452576,
+      "githubCommitRef": "main",
+      "githubCommitSha": "c6aa6dd3f4a912ba444469dea50b743f636c546f",
+      "githubCommitMessage": "Keep OMX state out of Vercel uploads",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780542987685,
+      "githubCommitRef": "main",
+      "githubCommitSha": "9fed643a745324e7b733ffe725f726b74e9eca99",
+      "githubCommitMessage": "Lock destructive cleanup audit writes to the server",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-pa4i1gj5p-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780533643829,
+      "githubCommitRef": "main",
+      "githubCommitSha": "984124bd6299cb43efd596cf8c742b90197b28c4",
+      "githubCommitMessage": "Strip internal rates from public proposal snapshots",
+      "bundler": "turbopack"
+    },
+    {
+      "url": "archestimator-p6124ss9p-philipjonlewis-projects.vercel.app",
+      "state": "READY",
+      "target": "production",
+      "createdAt": 1780532031626,
+      "githubCommitRef": "main",
+      "githubCommitSha": "6121d6883cb6c3f962ef3cc35a2b906d46a215d9",
+      "githubCommitMessage": "Neutralize formula-leading CSV export cells",
+      "bundler": "turbopack"
+    }
+  ]
+}
