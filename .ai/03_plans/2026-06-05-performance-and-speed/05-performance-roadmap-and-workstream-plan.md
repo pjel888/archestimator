@@ -191,6 +191,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Public share APIs must keep token/password/session/rate-limit protections.
   - Cache only public, non-sensitive, non-tokenized assets.
   - 2026-06-06 local coverage: `tests/vitest/share-no-store-invariants.test.ts` locks `force-dynamic` plus `Cache-Control: no-store` across all `/api/share/[token]` routes and keeps `/share/[token]` force-dynamic with no numeric `revalidate`/`unstable_cache`. Evidence: `evidence/2026-06-06-share-no-store-invariants.md`.
+  - 2026-06-06 hosted credential-free refresh: `scripts/verify-hosted-sensitive-route-fail-closed.ts` and `evidence/2026-06-06-sensitive-route-fail-closed-probe.md` prove invalid-token share page/API/activity requests fail closed with no-store and no Set-Cookie. The same run shows unauthenticated private project-image redirects are still pre-deploy cache-proof-open (`public, max-age=0, must-revalidate`) until the proxy no-store patch is deployed/rechecked.
 
 - [x] **Step 6.2: Benchmark share activity endpoint**
   - Measure query count and latency for comments/responses/events/recipient-name lookup.
