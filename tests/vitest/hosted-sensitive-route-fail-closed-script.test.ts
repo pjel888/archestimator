@@ -29,6 +29,7 @@ describe("hosted sensitive route fail-closed verifier", () => {
       "share-activity-invalid-token",
       "project-image-missing-path",
       "project-image-invalid-path",
+      "project-image-valid-shaped-path",
     ]);
     expect(probes[0].path).toContain("fake%20token");
   });
@@ -60,7 +61,7 @@ describe("hosted sensitive route fail-closed verifier", () => {
     });
 
     expect(report.passed).toBe(true);
-    expect(report.results).toHaveLength(5);
+    expect(report.results).toHaveLength(6);
     expect(report.results.every((result) => result.passed)).toBe(true);
   });
 

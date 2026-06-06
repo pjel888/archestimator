@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getCurrentUserContext, requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -22,9 +22,22 @@ const THUMBNAIL_EDGE = 512;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const ALLOWED_SHARP_FORMATS = new Set(["jpeg", "png", "webp", "avif"]);
 const AVIF_FTYP_BRANDS = new Set(["avif", "avis"]);
+const PRIVATE_IMAGE_ERROR_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+function privateImageNotFound() {
+  return NextResponse.json(
+    { error: "Image could not be found." },
+    {
+      status: 404,
+      headers: {
+        "Cache-Control": PRIVATE_IMAGE_ERROR_CACHE_CONTROL,
+      },
+    },
+  );
 }
 
 function readAscii(bytes: Uint8Array, start: number, end: number) {
@@ -161,11 +174,12 @@ function readStoragePaths(value: unknown) {
 }
 
 export async function GET(request: Request) {
-  await requireCurrentUserContext();
-
   const requestUrl = new URL(request.url);
   const parsedPath = parseProjectImageStoragePath(requestUrl.searchParams.get("path") ?? "");
-  if (!parsedPath) return jsonError("Image could not be found.", 404);
+  if (!parsedPath) return privateImageNotFound();
+
+  const currentUser = await getCurrentUserContext();
+  if (!currentUser) return privateImageNotFound();
 
   const serverSupabase = await createSupabaseServerClient();
   const { data: project, error: projectError } = await serverSupabase
@@ -176,12 +190,12 @@ export async function GET(request: Request) {
 
   if (projectError) throw projectError;
   if (!project || project.workspace_id !== parsedPath.workspaceId) {
-    return jsonError("Image could not be found.", 404);
+    return privateImageNotFound();
   }
 
   const storageSupabase = await createStorageSupabaseClient();
   const { data, error } = await storageSupabase.storage.from(PROJECT_IMAGE_BUCKET).download(parsedPath.path);
-  if (error || !data) return jsonError("Image could not be found.", 404);
+  if (error || !data) return privateImageNotFound();
 
   return new Response(await data.arrayBuffer(), {
     headers: {
