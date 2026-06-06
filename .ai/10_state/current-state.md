@@ -1,5 +1,19 @@
 # Current State
 
+**UI Component Optimization Plan Pack Refined (2026-06-06):**
+Docs-only plan pack `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
+now has a canonical README/current-plan layer, measurement baseline/protocol,
+GitNexus and code-review graph blast-radius evidence, risk register,
+implementation matrix, route-transition deconfliction, tree-core API contracts,
+MVP effort slicing, gradual rollout strategy, visual regression guidance,
+owner sign-off gates, repair log, and future implementation handoff. This
+refinement corrected the old inflated 96 percent single readiness score: MVP
+Phases 0-3 are ready for future implementation handoff if approved, but editable
+estimate-tree/sheet decomposition and performance claims remain gated by
+Profiler/bundle/row-count evidence, missing tests, and owner smoke approval. No
+source code, dependencies, migrations, runtime configuration, Supabase/Vercel/
+GitHub provider settings, secrets, or production state changed.
+
 **Notification System Implemented And No-Docker RLS-Proven (2026-06-06):**
 Branch `codex/notification-system` now contains the V1 implementation for durable
 in-app notifications and release announcement modals. Added an additive
