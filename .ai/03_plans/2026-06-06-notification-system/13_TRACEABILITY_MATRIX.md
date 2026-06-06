@@ -1,8 +1,8 @@
 # Traceability Matrix
 
-Status: `REFINED_READY_FOR_IMPLEMENTATION`.
+Status: `IMPLEMENTED_WITH_RLS_PROOF_BLOCKER`.
 
-This matrix connects requirements, acceptance criteria, future source files, specialist docs, tests, verification evidence, and rollback. All implementation statuses are `Planned` because this branch currently contains documentation only.
+This matrix connects requirements, acceptance criteria, source files, specialist docs, tests, verification evidence, and rollback. Source implementation exists on `codex/notification-system`; provider/production readiness is still blocked on database-backed RLS behavior proof and local or branch-safe Supabase type generation.
 
 ## Requirement Trace
 
@@ -28,16 +28,16 @@ This matrix connects requirements, acceptance criteria, future source files, spe
 
 | AC | Evidence Owner | Required Tests | Manual/Operational Proof | Status |
 | --- | --- | --- | --- | --- |
-| AC1 modal once per user | UI + server action | release modal, provider, actions, Playwright release flow | reload after acknowledgement; verify no repeat | Planned |
-| AC2 center feed/unread | UI + query hooks | notification center, query, actions, Playwright center flow | open center, mark read, dismiss | Planned |
-| AC3 cross-user denial | schema/RLS | schema static, mandatory local or branch-safe RLS integration, actions | two-user manual probe if linked DB used | Planned |
-| AC4 empty state stability | UI/design | notification center, responsive layout checks | 320px and desktop inspection | Planned |
-| AC5 failure does not block workflows | provider/server | provider, action error, workshop regressions | navigation/save/toast smoke | Planned |
-| AC6 content sanitized | server/schema | action-link validator, payload forbidden-key tests | inspect seed content before release | Planned |
-| AC7 additive migration/index/RLS | database | schema static, local/branch-safe typegen diff, mandatory RLS behavior proof, optional EXPLAIN | provider evidence log | Planned |
-| AC8 state transitions/fallback | server/query/realtime | actions, query, optional realtime | disable Realtime and verify polling path | Planned |
-| AC9 design-system fit | UI/design | `lint:design-system`, modal/center tests | visual/manual QA | Planned |
-| AC10 async performance | provider/query | provider/query tests | browser waterfall, bounded fetch proof | Planned |
+| AC1 modal once per user | UI + server action | release modal, provider, actions, Playwright release flow | reload after acknowledgement; verify no repeat | Implemented by component/action tests; E2E pending DB proof |
+| AC2 center feed/unread | UI + query hooks | notification center, query, actions, Playwright center flow | open center, mark read, dismiss | Implemented by component/query/action tests |
+| AC3 cross-user denial | schema/RLS | schema static, mandatory local or branch-safe RLS integration, actions | two-user manual probe if linked DB used | Static/action proof complete; database RLS proof blocked |
+| AC4 empty state stability | UI/design | notification center, responsive layout checks | 320px and desktop inspection | Implemented by component tests; manual viewport proof pending |
+| AC5 failure does not block workflows | provider/server | provider, action error, workshop regressions | navigation/save/toast smoke | Implemented by provider/action tests and full DOM regression |
+| AC6 content sanitized | server/schema | action-link validator, payload forbidden-key tests | inspect seed content before release | Implemented by DB/static and server validator tests |
+| AC7 additive migration/index/RLS | database | schema static, local/branch-safe typegen diff, mandatory RLS behavior proof, optional EXPLAIN | provider evidence log | Static migration proof complete; typegen/RLS behavior blocked |
+| AC8 state transitions/fallback | server/query/realtime | actions, query, optional realtime | disable Realtime and verify polling path | Implemented durable non-Realtime path; Realtime deferred |
+| AC9 design-system fit | UI/design | `lint:design-system`, modal/center tests | visual/manual QA | Automated design-system lint passed; manual QA pending |
+| AC10 async performance | provider/query | provider/query tests | browser waterfall, bounded fetch proof | Implemented async query path; browser waterfall pending |
 
 ## Plan Document Trace
 
@@ -62,4 +62,4 @@ This matrix connects requirements, acceptance criteria, future source files, spe
 
 ## Status Rule
 
-Rows stay `Planned` until source/migration/runtime implementation exists and evidence is recorded. Do not mark a row complete solely because the plan describes it.
+Rows should distinguish implemented source/test evidence from provider/runtime evidence. Do not mark RLS/provider rows complete until `.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` is resolved.
