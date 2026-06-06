@@ -1,0 +1,221 @@
+{
+  "generatedAt": "2026-06-06T02:19:02.592Z",
+  "mode": "hosted-sensitive-route-fail-closed",
+  "baseUrl": "https://www.archestimator.com",
+  "runs": 2,
+  "fakeTokenLabel": "redacted-fake-token",
+  "note": "Credential-free hosted probe for invalid share tokens and unauthenticated private image routes. It proves fail-closed/no-store behavior only; valid share tokens and private media fixtures remain separate owner-approved evidence gates.",
+  "passed": false,
+  "results": [
+    {
+      "key": "share-page-invalid-token",
+      "label": "Invalid share page",
+      "path": "/share/not-a-real-share-token-for-performance-proof",
+      "note": "Exercises redacted invalid-token share page rendering without a private token.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 404,
+          "durationMs": 1959.84,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": "text/html; charset=utf-8",
+          "bodyBytes": 13364,
+          "bodyPreview": "<!DOCTYPE html><html data-dpl-id=\"dpl_4bMoArwC32Tup4dKK67wtKoBf2jv\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" c",
+          "failClosed": true,
+          "passed": true
+        },
+        {
+          "run": 2,
+          "status": 404,
+          "durationMs": 1272.63,
+          "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": "text/html; charset=utf-8",
+          "bodyBytes": 13364,
+          "bodyPreview": "<!DOCTYPE html><html data-dpl-id=\"dpl_4bMoArwC32Tup4dKK67wtKoBf2jv\" id=\"__next_error__\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" c",
+          "failClosed": true,
+          "passed": true
+        }
+      ],
+      "minDurationMs": 1272.63,
+      "avgDurationMs": 1616.24,
+      "maxDurationMs": 1959.84,
+      "passed": true
+    },
+    {
+      "key": "share-api-invalid-token",
+      "label": "Invalid share snapshot API",
+      "path": "/api/share/not-a-real-share-token-for-performance-proof",
+      "note": "Exercises redacted invalid-token share snapshot API without a private token.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 404,
+          "durationMs": 1289.65,
+          "cacheControl": "no-store",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": "application/json",
+          "bodyBytes": 34,
+          "bodyPreview": "{\"error\":\"Publication not found.\"}",
+          "failClosed": true,
+          "passed": true
+        },
+        {
+          "run": 2,
+          "status": 404,
+          "durationMs": 2545.43,
+          "cacheControl": "no-store",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": "application/json",
+          "bodyBytes": 34,
+          "bodyPreview": "{\"error\":\"Publication not found.\"}",
+          "failClosed": true,
+          "passed": true
+        }
+      ],
+      "minDurationMs": 1289.65,
+      "avgDurationMs": 1917.54,
+      "maxDurationMs": 2545.43,
+      "passed": true
+    },
+    {
+      "key": "share-activity-invalid-token",
+      "label": "Invalid share activity API",
+      "path": "/api/share/not-a-real-share-token-for-performance-proof/activity",
+      "note": "Exercises redacted invalid-token share activity API without a private token.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 404,
+          "durationMs": 1294.44,
+          "cacheControl": "no-store",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": "application/json",
+          "bodyBytes": 46,
+          "bodyPreview": "{\"error\":\"Publication not found or inactive.\"}",
+          "failClosed": true,
+          "passed": true
+        },
+        {
+          "run": 2,
+          "status": 404,
+          "durationMs": 2099.45,
+          "cacheControl": "no-store",
+          "hasNoStoreCacheControl": true,
+          "location": null,
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": "application/json",
+          "bodyBytes": 46,
+          "bodyPreview": "{\"error\":\"Publication not found or inactive.\"}",
+          "failClosed": true,
+          "passed": true
+        }
+      ],
+      "minDurationMs": 1294.44,
+      "avgDurationMs": 1696.95,
+      "maxDurationMs": 2099.45,
+      "passed": true
+    },
+    {
+      "key": "project-image-missing-path",
+      "label": "Project image API missing path",
+      "path": "/api/projects/images",
+      "note": "Exercises private project image route without a path or session.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 307,
+          "durationMs": 447.65,
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": "/login",
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": null,
+          "bodyBytes": 0,
+          "bodyPreview": "",
+          "failClosed": true,
+          "passed": false
+        },
+        {
+          "run": 2,
+          "status": 307,
+          "durationMs": 320.05,
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": "/login",
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": null,
+          "bodyBytes": 0,
+          "bodyPreview": "",
+          "failClosed": true,
+          "passed": false
+        }
+      ],
+      "minDurationMs": 320.05,
+      "avgDurationMs": 383.85,
+      "maxDurationMs": 447.65,
+      "passed": false
+    },
+    {
+      "key": "project-image-invalid-path",
+      "label": "Project image API invalid path",
+      "path": "/api/projects/images?path=not-a-valid-private-path.webp",
+      "note": "Exercises private project image route with a non-secret invalid storage path.",
+      "samples": [
+        {
+          "run": 1,
+          "status": 307,
+          "durationMs": 321.47,
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": "/login",
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": null,
+          "bodyBytes": 0,
+          "bodyPreview": "",
+          "failClosed": true,
+          "passed": false
+        },
+        {
+          "run": 2,
+          "status": 307,
+          "durationMs": 638.11,
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "hasNoStoreCacheControl": false,
+          "location": "/login",
+          "setCookiePresent": false,
+          "xVercelCache": "MISS",
+          "contentType": null,
+          "bodyBytes": 0,
+          "bodyPreview": "",
+          "failClosed": true,
+          "passed": false
+        }
+      ],
+      "minDurationMs": 321.47,
+      "avgDurationMs": 479.79,
+      "maxDurationMs": 638.11,
+      "passed": false
+    }
+  ]
+}
