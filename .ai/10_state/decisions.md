@@ -6,7 +6,7 @@
 
 **Rationale:** Philip provided defaults for professional/B2B closed beta, Philippine-law placeholders, no paid beta, authenticated clickwrap, append-only consent records, and no absolute zero-liability claim. Server-role-stamped writes provide stronger audit integrity than browser-authenticated direct INSERT policies because users cannot forge arbitrary Terms-version acceptance rows from the client.
 
-**Follow-up:** Final public/paid Terms copy still requires qualified legal review; entity name, formal notices address, venue/dispute process, arbitration/class-action waiver, and future billing/refund language remain legal/owner decisions. Before production rollout, apply/verify `supabase/migrations/20260606095935_legal_terms_acceptance.sql` through the approved ArchEstimator Supabase workflow for project `ebxxqidacheyapmmzavr` and regenerate types from a working schema.
+**Follow-up:** Final public/paid Terms copy still requires qualified legal review; entity name, formal notices address, venue/dispute process, arbitration/class-action waiver, and future billing/refund language remain legal/owner decisions. `supabase/migrations/20260606095935_legal_terms_acceptance.sql` has been applied and verified on linked ArchEstimator project `ebxxqidacheyapmmzavr` by exact-file apply/repair/readback, and the committed Terms type block matches linked-generated types. Keep broad `supabase db push --linked` blocked until unrelated migration-history drift is reconciled.
 
 ## 2026-06-06 - Terms acceptance planning baseline
 

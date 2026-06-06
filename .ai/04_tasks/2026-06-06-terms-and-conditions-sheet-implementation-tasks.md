@@ -4,7 +4,7 @@
 **Source plan:** `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`
 **Archive target:** `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`
 **Branch:** `codex/terms-and-conditions`
-**Status:** IMPLEMENTED_ON_BRANCH / NOT MERGED_TO_MAIN / LEGAL_AND_PROVIDER_GATES_OPEN
+**Status:** IMPLEMENTED_ON_BRANCH / LINKED_PROVIDER_PROOF_COMPLETE / LEGAL_REVIEW_AND_MAIN_CLOSEOUT_OPEN
 
 ## Task board
 
@@ -18,9 +18,9 @@
 - [x] Add unit/DOM/migration/static/E2E validation coverage.
 - [x] Run `bun run validate`, `bun run build`, `bun run test:e2e`, `bun run lint:design-system`, and focused Terms tests.
 - [x] Update `.ai` implementation logs/state.
-- [ ] Apply/verify the new Supabase migration through the approved provider/local workflow before production rollout.
-- [ ] Regenerate Supabase types from a working local/provider schema once Docker/Supabase local proof is available.
-- [ ] Merge to main only if Philip explicitly authorizes branch integration.
+- [x] Apply/verify the new Terms Supabase migration through the approved linked-provider exact-file workflow.
+- [x] Compare committed Terms type block against linked-generated Supabase types for `legal_terms_acceptances`.
+- [ ] Merge to main after final branch validation because Philip subsequently authorized resolving the remaining integration steps.
 
 ## Non-goals preserved
 
@@ -37,6 +37,9 @@
 - `bun run build`: passed.
 - `bun run test:e2e`: passed; 9 passed / 24 environment-gated skipped.
 
-## Open validation gap
+## Remaining validation / release gaps
 
-See `.ai/15_Bugs/2026-06-06-local-supabase-docker-unavailable-for-terms-migration-verification.md` for the local Supabase Docker/type-generation proof gap.
+- Qualified lawyer review remains required before public/paid Terms enforcement.
+- Local Supabase Docker proof remains unavailable; see `.ai/15_Bugs/2026-06-06-local-supabase-docker-unavailable-for-terms-migration-verification.md`.
+- Global linked migration parity remains open; broad `supabase db push --linked` is blocked by unrelated drift. See `.ai/15_Bugs/2026-06-06-linked-supabase-migration-history-drift-blocks-db-push.md`.
+- Final main merge/push and worktree cleanup are pending this closeout run.

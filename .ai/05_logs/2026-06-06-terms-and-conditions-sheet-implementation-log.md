@@ -4,7 +4,7 @@
 **Branch:** `codex/terms-and-conditions`
 **Worktree:** `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-terms-and-conditions`
 **Source plan:** `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/`
-**Status:** IMPLEMENTED_ON_BRANCH / NOT MERGED_TO_MAIN
+**Status:** IMPLEMENTED_ON_BRANCH / LINKED_SUPABASE_TERMS_MIGRATION_VERIFIED / NOT MERGED_TO_MAIN
 
 ## Summary
 
@@ -20,7 +20,7 @@ Implemented scope:
 - Protected `/workshop/terms` clickwrap page with required checkbox, version/effective date display, Terms/Privacy links, software-tool-only summary, and error state.
 - Server action `acceptCurrentTermsAction` validates submitted version + checkbox, derives user server-side, writes acceptance through service-role persistence, and redirects to sanitized `next`.
 - Append-only Supabase migration `20260606095935_legal_terms_acceptance.sql` with `legal_terms_acceptances`, version/hash/effective-date evidence, no raw IP/user-agent columns, RLS enabled, authenticated own-row SELECT only, and service-role INSERT.
-- Manual generated type surface update for `legal_terms_acceptances` because local Supabase Docker was unavailable.
+- Generated type surface update for `legal_terms_acceptances`; later linked-generated type comparison confirmed the committed table block matches the linked schema exactly despite local Docker being unavailable.
 - Settings hub link to reopen the protected Terms acceptance screen.
 
 ## Legal/product posture implemented
@@ -50,25 +50,41 @@ Implemented scope:
 | --- | --- | --- | --- | --- | --- |
 | Normal authenticated acceptance UI | Closed-beta authenticated user | `terms-acceptance-panel.test.tsx` | Version, Terms/Privacy links, summary, required checkbox, disabled submit until checked | Passed | Committed regression test |
 | Malformed/hostile `next` URL | Phishing attempt with external URL | `legal-terms-gate.test.ts` | Redirect falls back to `/workshop` | Passed | Committed regression test |
-| Missing acceptance record on protected route | Existing user without current acceptance | `src/app/workshop/layout.tsx` + type/build validation | Redirect to `/workshop/terms?next=...` | Build/typecheck passed; live authenticated DB proof still provider/local-gap | None |
+| Missing acceptance record on protected route | Existing user without current acceptance | `src/app/workshop/layout.tsx` + type/build validation | Redirect to `/workshop/terms?next=...` | Build/typecheck passed; linked table/grant/RLS proof completed for acceptance storage | None |
 | Forged browser write attempt | Authenticated client trying to insert arbitrary version | Migration static test | No authenticated INSERT grant/policy; own-row SELECT only | Passed | Committed migration test |
 | Raw metadata privacy risk | Overcollection of IP/user-agent | Migration/content/record tests | No raw IP/user-agent storage by default | Passed | Committed regression tests |
-| Duplicate first-login race | Double submit/current version exists | `recordCurrentTermsAcceptance` handles `23505` duplicate by reading existing row | Typecheck/build passed; DB duplicate live proof pending local Supabase | None |
+| Duplicate first-login race | Double submit/current version exists | `recordCurrentTermsAcceptance` handles `23505` duplicate by reading existing row | Typecheck/build passed; no live duplicate-write residue created during linked proof | None |
 | Public legal surfaces | Signed-out/public visitor | `auth-entry-ui-contract`, support-contact contract, Playwright signed-out routes | `/terms`, `/privacy`, `/login` remain public and truthful | Passed | Committed regression tests |
 | Broad app regression | Existing repo workflows | `bun run validate`, `bun run build`, `bun run test:e2e` | Existing unit/DOM/E2E gates stay green | Passed with existing lint warnings and env-gated E2E skips | None |
 | Dirty worktree safety | Multi-agent branch isolation | `git status --short --branch` before/after validation | Only intended branch changes; generated `next-env.d.ts` reverted | Cleaned generated toggle | `next-env.d.ts` reverted |
-| Local DB validation gap | Environment missing Docker | `supabase status --output json` | Local DB stack reachable | Failed; bug filed | `.ai/15_Bugs/2026-06-06-local-supabase-docker-unavailable-for-terms-migration-verification.md` |
+| Linked Terms migration apply/readback | Provider migration release | exact-file `supabase db query`, single-version repair, shape/RLS/type readback | Terms table exists with RLS/grants/type shape matching code | Passed; evidence captured | `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/evidence/2026-06-06-linked-supabase-terms-migration-proof.md` |
+| Local DB validation gap | Environment missing Docker | `supabase status --output json` | Local DB stack reachable | Failed locally; provider proof closed for Terms migration | `.ai/15_Bugs/2026-06-06-local-supabase-docker-unavailable-for-terms-migration-verification.md` |
+| Broad linked `db push` drift | Provider migration tooling | `supabase db push --linked --dry-run` | Safe no-op or only intended Terms migration | Blocked by unrelated migration-history drift; exact-file path used | `.ai/15_Bugs/2026-06-06-linked-supabase-migration-history-drift-blocks-db-push.md` |
 
 ## Remaining gates
 
 - Qualified lawyer review is still required before public/paid launch Terms enforcement.
 - Legal entity name, formal notices address, venue/dispute wording, and future billing/refund copy remain owner/legal decisions.
-- New migration must be applied through the approved Supabase migration workflow before production gate rollout.
-- Local Supabase Docker/type-generation proof remains open because Docker daemon was unavailable in this worktree.
-- No main merge is authorized by this run; branch should remain PR/handoff-ready unless Philip explicitly authorizes merge.
+- Terms migration `20260606095935` has been applied to linked ArchEstimator Supabase project `ebxxqidacheyapmmzavr`, repaired into migration history, and verified by table/grant/RLS/type-shape readback.
+- Local Supabase Docker proof remains open because Docker daemon was unavailable in this worktree, but it no longer blocks this Terms-specific provider migration proof.
+- Global Supabase migration parity remains open because broad linked `db push` is blocked by unrelated migration-history drift.
+- Philip subsequently authorized resolving remaining integration steps; main merge status is handled by the final git closeout rather than this earlier branch-only log line.
 
 ## Code-review graph evidence
 
-- `list_graph_stats_tool` at start reported this worktree graph had 0 files / 0 nodes / 0 edges, so impact analysis was structurally limited.
+- `list_graph_stats_tool` at the first implementation pass reported this worktree graph had 0 files / 0 nodes / 0 edges, so initial impact analysis was structurally limited.
+- After graph update, `list_graph_stats_tool` reported 22 files, 73 nodes, 867 edges, and languages `tsx`, `typescript`, and `sql` for this worktree.
 - `detect_changes_tool` with explicit changed source/test/migration files returned risk score `0.50`, 0 affected flows, and page-level review priorities for `LoginPage`, `/login auth entry UI contract`, and the Terms/Privacy page contract.
 - Native subagent review lanes were not launched because the available `spawn_agent` tool did not expose the required `agent_type` parameter, while AGENTS/OMX requires typed role subagents for OMX work. Direct review plus graph and validation evidence were used instead.
+
+## Linked Supabase provider proof addendum — 2026-06-06
+
+- Linked project: ArchEstimator `ebxxqidacheyapmmzavr`.
+- Exact-file apply: `supabase db query --linked --file supabase/migrations/20260606095935_legal_terms_acceptance.sql --output json`.
+- Migration repair: `supabase migration repair --linked --status applied 20260606095935 --yes --output pretty` returned `Repaired migration history: [20260606095935] => applied`.
+- Migration list readback showed `20260606095935 | 20260606095935 | 2026-06-06 09:59:35`.
+- Shape/grant/RLS readback confirmed `legal_terms_acceptances_exists:true`, `migration_20260606095935_recorded:true`, authenticated SELECT only, no authenticated INSERT/UPDATE/DELETE, service-role INSERT, and own-row SELECT policy.
+- Transactional RLS own-row smoke returned `own_visible_count:1` and rolled back; no test-row residue remained (`legal_terms_acceptances_total_rows:0`).
+- Linked generated-type comparison confirmed the committed `src/lib/supabase/types.ts` `legal_terms_acceptances` block matches `/tmp/archestimator-linked-types.ts` exactly (`45` local lines, `45` linked lines, `blocks_match True`).
+- Broad `supabase db push --linked --dry-run` remains unsafe because of unrelated migration-history drift; tracked at `.ai/15_Bugs/2026-06-06-linked-supabase-migration-history-drift-blocks-db-push.md`.
+- One later cross-user RLS replay after repeated CLI auth failures hit Supabase temp-role/circuit-breaker auth errors; earlier cross-user denial proof plus policy readback remain the available evidence until the circuit resets.
