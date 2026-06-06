@@ -6,7 +6,7 @@
 
 This pack is now **100% document-quality ready** and **100% implementation-ready for the first safe performance implementation story**.
 
-It is **not** 100% ready to claim performance completion. Numeric Vercel Speed Insights route/device p75 metrics are now captured via CLI, but dashboard overview evidence, comparable before/after traffic windows, post-deploy cache proof, and authenticated hosted fixtures remain external inputs required to prove later optimization work.
+It is **not** 100% ready to claim performance completion. Numeric Vercel Speed Insights route/device p75 metrics are now captured via CLI, and post-deploy signed-out/probe-safe cache proof is captured, but dashboard overview evidence, comparable before/after traffic windows, signed-in hosted auth/export fixtures, and valid private media/share fixtures remain external inputs required to prove later optimization work.
 
 ## Readiness definitions
 
@@ -74,7 +74,7 @@ Current Speed Insights p75 route/device values are captured via Vercel CLI, but 
 
 - comparable before/after Speed Insights windows for the same route/device cohorts,
 - dashboard overview screenshot/recommendation cards if required for provider UI signoff,
-- post-deploy protected redirect cache proof,
-- signed-in hosted auth and hosted export fixtures.
+- signed-in hosted auth and hosted export fixtures,
+- valid private media/share fixtures beyond credential-free fake-token/fake-path probes.
 
 These gaps block claiming “massive performance upgrade” as proven and using `COMPLETE` for performance improvements. They do **not** block local safety/measurement packets, which must stay labeled `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted proof exists.

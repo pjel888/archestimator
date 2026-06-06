@@ -5,7 +5,7 @@
 
 ## Current provider evidence
 
-The Vercel connector returned:
+The initial Vercel connector baseline returned:
 
 | Field | Value |
 | --- | --- |
@@ -14,9 +14,11 @@ The Vercel connector returned:
 | Project id | `prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E` |
 | Framework | `nextjs` |
 | Node version | `24.x` |
-| Latest production deployment | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` |
-| Latest production URL | `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app` |
-| Latest commit message | `Record shared-link clickthrough proof` |
+| Baseline production deployment for the captured Speed Insights window | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` |
+| Baseline production URL | `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app` |
+| Baseline commit message | `Record shared-link clickthrough proof` |
+| Current production deployment after 2026-06-06 post-fix proof | `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` |
+| Current production URL after 2026-06-06 post-fix proof | `archestimator-6mwjrwhnk-philipjonlewis-projects.vercel.app`, aliased to `www.archestimator.com` |
 | Bundler metadata | `turbopack` |
 | Domains | `www.archestimator.com`, `archestimator.com`, `archestimator.vercel.app`, Vercel preview aliases |
 
@@ -38,7 +40,7 @@ See `28-captured-baseline-and-remaining-provider-gap.md` for verified Vercel pro
 
 Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`.
 
-- Read-only Vercel connector refresh confirmed latest production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, created `2026-06-04T18:04:02.727Z`, at commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`.
+- Read-only Vercel connector refresh confirmed baseline production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, created `2026-06-04T18:04:02.727Z`, at commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`.
 - Hosted public-route curl timing/header refresh covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms`.
 - All checked public routes still returned `private, no-cache, no-store, max-age=0, must-revalidate` and `x-vercel-cache: MISS`.
 - This is **not** Speed Insights/Core Web Vitals proof by itself. The later Vercel CLI capture below supplies provider p75 values; dashboard overview score/screenshot remains unavailable.
@@ -66,7 +68,8 @@ Status: **provider p75 metrics captured via Vercel CLI / comparable prior window
 | Field | Value | Evidence file/link | Notes |
 | --- | --- | --- | --- |
 | Capture date/time | 2026-06-06 CLI capture | `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md` | read-only `vercel metrics` queries |
-| Vercel project/deployment | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` / `2d9e12d4d8b3f08a6da686bcb06f753474590511` | `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` | deployment context captured |
+| Vercel project/deployment for baseline metric window | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` / `2d9e12d4d8b3f08a6da686bcb06f753474590511` | `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` | baseline deployment context captured |
+| Current production deployment after private-image cache fix | `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` / `207babf` | `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json` | post-fix deployment aliased to `www.archestimator.com` |
 | Time window | `2026-05-30T00:00:00.000Z` → `2026-06-06T04:00:00.000Z` | `current-*-overall.json`, `current-*-route-device.json` | current 7-day provider window |
 | Device split | desktop + mobile route/device p75 | `current-*-route-device.json` | `route`, `device_type` dimensions |
 | Worst route bucket | public landing `/` desktop | `vercel-speed-insights-cli-baseline.md` | highest LCP/FCP outlier; anomalous INP outlier |
@@ -137,5 +140,5 @@ Before adding Speed Insights instrumentation, decide one of these paths:
 - [x] Capture top failing route/path list. 2026-06-06: `/` desktop is the LCP/FCP and anomalous INP outlier in CLI output.
 - [x] Capture mobile vs desktop split. 2026-06-06: captured via `device_type` dimension.
 - [ ] Capture last 7 days and last 30 days. 2026-06-06: current 7-day captured; previous 7-day/3-day comparison windows returned empty summaries, and 30-day comparable data remains unavailable.
-- [x] Note whether latest production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` is inside the selected window. 2026-06-06: selected window ends 2026-06-06T04:00:00Z and includes the 2026-06-04 production deployment.
+- [x] Note whether the baseline production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` is inside the selected window. 2026-06-06: selected window ends 2026-06-06T04:00:00Z and includes the 2026-06-04 production deployment. Later deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` is the post-fix production proof deployment, not the baseline Speed Insights window deployment.
 - [ ] Attach any Vercel recommendation cards to this folder as evidence files or short summaries.

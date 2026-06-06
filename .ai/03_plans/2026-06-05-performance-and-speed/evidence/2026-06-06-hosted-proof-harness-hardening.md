@@ -1,6 +1,6 @@
 # Hosted auth/export proof harness hardening — 2026-06-06
 
-Status: **LOCAL HARNESS/RUNTIME GUARDS IMPLEMENTED / HOSTED SIGNED-IN AND POST-DEPLOY PROOF OPEN**.
+Status: **LOCAL HARNESS/RUNTIME GUARDS IMPLEMENTED / SIGNED-OUT POST-DEPLOY PROOF CAPTURED / HOSTED SIGNED-IN AND EXPORT FIXTURES OPEN**.
 
 ## Why this was needed
 
@@ -45,10 +45,10 @@ bun run launch:verify-hosted-auth
 
 Expected result: exit `1`, because signed-in fixture cookies are still absent.
 
-New result detail: production signed-out `/workshop` redirects currently return `Cache-Control: public, max-age=0, must-revalidate`, so the stricter proof marks signed-out as `fail` until the proxy no-store patch is deployed and rechecked. This is not treated as a completed hosted proof.
+Original result detail: production signed-out `/workshop` redirects returned `Cache-Control: public, max-age=0, must-revalidate`, so the stricter proof marked signed-out as `fail` before deployment. This older hosted artifact is superseded for signed-out cache proof by `2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md` / `.json`, where `/workshop` redirects with private/no-store over 3 production samples.
 
 ## Remaining open proof
 
 - Signed-in hosted auth waterfall still requires owner-approved allowed/denied/revoked/expired session cookies or equivalent storage state.
 - Hosted proposal export benchmark still requires safe `HOSTED_EXPORT_BASE_URL`, `HOSTED_EXPORT_ALLOWED_ORIGINS`, `HOSTED_EXPORT_PROJECT_ID`, `HOSTED_EXPORT_ESTIMATE_ID`, and `HOSTED_EXPORT_AUTH_COOKIE` or `HOSTED_EXPORT_AUTH_HEADER`.
-- Production/post-deploy protected redirect cache proof must be re-run after this branch is deployed; the current hosted artifact intentionally records the old production cache header.
+- Production/post-deploy signed-out protected redirect cache proof is captured in `2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md` / `.json`; signed-in auth and hosted export fixtures remain open.
