@@ -382,7 +382,7 @@ export function LiveProjectCard({
               onFocus={() => prefetch(projectHref)}
               onMouseEnter={() => prefetch(projectHref)}
               onMouseLeave={() => cancel(projectHref)}
-              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-1.5 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-4 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {openLabel}
               <ArrowRight
