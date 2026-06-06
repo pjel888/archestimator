@@ -15,6 +15,9 @@ The notification system migration and static RLS tests are implemented, but actu
 - `npx supabase@2.98.2 db reset` failed with:
   `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`.
 - `postgres`, `initdb`, `pg_ctl`, and `psql` are not available on PATH.
+- Follow-up local binary audit found no `/Applications/Docker.app`, no Postgres app binaries, no Postgres binaries under `/opt/homebrew`, `/usr/local`, or `/Library/PostgreSQL`, and Homebrew reports `postgresql@16` and `postgresql@15` as `Not installed`.
+- A fresh `npx supabase@2.98.2 db reset` attempt still failed with:
+  `Cannot connect to the Docker daemon at unix:///var/run/docker.sock`.
 - No branch-safe or linked Supabase target was mutated; linked/provider changes require explicit owner approval.
 
 ## Impact
