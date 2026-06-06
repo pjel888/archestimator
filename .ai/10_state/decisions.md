@@ -1,5 +1,24 @@
 # Decisions
 
+## 2026-06-06 - Defer CI/CD until after pre-release beta
+
+**Decision:** Do not re-enable GitHub CI or add automated CD while
+Archestimator is still in pre-release beta. Keep CI/CD as future work. Continue
+using manual local validation plus explicit Vercel production deployment for
+closed-beta releases.
+
+**Rationale:** The current product stage benefits from a controlled release
+operator path more than always-on automation. AI-agentic development still needs
+repeatable validation, but full GitHub CI/CD can be introduced after the beta
+release path, branch governance, required checks, and provider-proof standards
+are intentionally reopened.
+
+**Follow-up:** Leave the GitHub `CI` workflow disabled manually, keep
+`vercel.json` Git deployments disabled, and deploy production with the current
+controlled path: validate locally, build with Vercel production settings, then
+deploy the prebuilt artifact manually. Reopen CI first as a lean validation
+workflow before adding manual or automated Vercel CD.
+
 ## 2026-06-05 - Agentic development and CI/CD governance target
 
 **Decision:** Keep GitHub Actions as the CI control plane and Vercel as the
