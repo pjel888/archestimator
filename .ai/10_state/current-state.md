@@ -1,5 +1,20 @@
 # Current State
 
+**Notification System Planning Pack Created (2026-06-06):**
+Docs-only planning pack `.ai/03_plans/2026-06-06-notification-system/`
+now defines the future notification system implementation for popup
+release/version announcement modals and durable user-specific in-app
+notifications. The plan selects additive Supabase/Postgres notification
+definitions plus per-user delivery state, server-authoritative read/dismiss/
+modal acknowledgement actions, a compact workshop notification center, existing
+`Modal`/`ToastProvider` reuse, and optional private Supabase Broadcast only after
+durable delivery passes. It includes UX/UI, accessibility, blast-radius,
+performance, RLS/security, migration/deployment/rollback, testing, traceability,
+and Team + Ultragoal handoff guidance. This is planning only: no source code,
+migrations, dependencies, runtime configuration, Supabase/Vercel/Resend/DNS,
+secrets, or production/provider settings were changed, and the feature is not
+implemented.
+
 **Advisory Staging Branch Created (2026-06-05 08:47Z):**
 `origin/staging` now exists as the shared closed-beta/pre-production
 integration branch baseline for agentic development. It was bootstrapped from
