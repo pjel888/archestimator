@@ -1,5 +1,8 @@
 # Current State
 
+**Terms And Conditions Implementation Plan Created (2026-06-06):**
+New docs-only pack `.ai/03_plans/2026-06-06-terms-and-conditions-sheet/` plans a future versioned Terms and Conditions / Terms of Service system for ArchEstimator. It covers attorney-reviewed Terms content structure, affirmative user acceptance, Supabase/Postgres acceptance evidence with RLS and optional privacy-minimized metadata, auth/protected-route and re-acceptance gating, no-payment/billing edge cases, UI/accessibility/design-system requirements, testing, deployment, rollback, and legal-review handoff. No production source, migration, generated type, dependency, runtime config, provider setting, secret, or app behavior was changed. Final Terms copy remains a qualified-legal-review gate, and the implementation must not claim absolute zero liability. A non-blocking docs-drift bug was filed for stale migration counts in `.ai/README.md` and root `README.md` versus the live 81 local migration files.
+
 **Pre-Release Beta Release Path Confirmed (2026-06-06 08:13Z):**
 Latest `main` commit `1e7c581fb9efa3094fb34b782d59e229f93f2320` was manually
 deployed to Vercel Production through the controlled prebuilt path:
