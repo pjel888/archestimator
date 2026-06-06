@@ -323,6 +323,25 @@ describe("ProjectsPageClient access tabs", () => {
     expect(toolbar).toHaveClass("fixed");
     expect(toolbar.className).toContain("bottom-[calc(3.5rem+env(safe-area-inset-bottom))]");
     expect(getActivePanel()).toHaveClass("pb-20");
+    const dockSurface = toolbar.querySelector("[data-bulk-action-dock-surface]");
+    expect(dockSurface).toHaveClass(
+      "bg-white/95",
+      "flex-col",
+      "shadow-[0_22px_54px_-30px_rgba(17,17,17,0.75)]",
+      "backdrop-blur-md",
+      "w-36",
+    );
+    expect(toolbar).not.toHaveTextContent("Project deletion blocks active shared links");
+    expect(toolbar.querySelector("[data-bulk-action-count-floor]")).toHaveClass("h-6", "w-full");
+    expect(toolbar.querySelector("[data-bulk-action-count-floor] p")).toHaveClass("w-[12ch]", "tabular-nums");
+    expect(toolbar.querySelector("[data-bulk-action-icon-floor]")).toHaveClass(
+      "h-9",
+      "grid-cols-[2rem_2rem_1px_2rem]",
+    );
+    expect(screen.getByRole("group", { name: "Bulk selection actions" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select visible" })).toHaveClass("size-8");
+    expect(screen.getByRole("button", { name: "Clear selection" })).toHaveClass("size-8");
+    expect(screen.getByRole("button", { name: "Delete selected projects" })).toHaveClass("size-8", "text-danger");
 
     await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
 

@@ -173,6 +173,12 @@ describe("workshop sidebar baseline", () => {
     expect(settingsButton).toBeTruthy();
     await user.click(settingsButton);
     const settingsDialog = screen.getByRole("dialog", { name: "Settings" });
+    const settingsNav = within(settingsDialog).getByRole("navigation", { name: "Settings sections" });
+    expect(within(settingsNav).getByRole("link", { name: "Show Account settings" })).toHaveAttribute(
+      "href",
+      "#settings-account",
+    );
+    expect(within(settingsDialog).getByRole("region", { name: "Account" })).toBeTruthy();
     expect(within(settingsDialog).getByRole("link", { name: "Open Profile settings" })).toHaveAttribute(
       "href",
       "/workshop/settings/profile",

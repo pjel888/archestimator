@@ -1,8 +1,9 @@
 "use client";
 
-import { Trash } from "@phosphor-icons/react/dist/ssr";
+import { SelectionAll, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { cn } from "@/lib/ui/cn";
 
 type BulkActionToolbarProps = {
@@ -31,15 +32,74 @@ export function BulkActionToolbar({
   if (selectedCount === 0) return null;
   const isBottomDock = placement === "bottom-dock";
 
+  if (isBottomDock) {
+    return (
+      <div
+        role="region"
+        aria-label="Bulk action toolbar"
+        className={cn(
+          "pointer-events-none fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex min-h-[72px] max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center lg:left-[calc(50%+32px)]",
+          className,
+        )}
+      >
+        <div
+          data-bulk-action-dock-surface
+          className="pointer-events-auto flex w-36 flex-col items-center gap-1 rounded-xs border border-hairline bg-white/95 p-1 shadow-[0_22px_54px_-30px_rgba(17,17,17,0.75)] ring-1 ring-black/[0.04] backdrop-blur-md"
+        >
+          <div
+            data-bulk-action-count-floor
+            className="grid h-6 w-full place-items-center rounded-xs border border-hairline bg-surfaceMuted/80 px-2"
+          >
+            <p className="w-[12ch] truncate text-center text-[10px] font-medium leading-3 tabular-nums text-ink" aria-live="polite">
+              {selectedCount} selected
+            </p>
+          </div>
+          <div
+            data-bulk-action-icon-floor
+            className="grid h-9 w-full grid-cols-[2rem_2rem_1px_2rem] items-center justify-center gap-1 rounded-xs border border-hairline bg-white p-0.5 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]"
+            role="group"
+            aria-label="Bulk selection actions"
+          >
+            {onSelectVisible ? (
+              <ToolbarIconButton
+                label="Select visible"
+                className="size-8 rounded-xs border border-transparent text-secondary hover:-translate-y-0.5 hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-surfaceMuted focus-visible:text-ink"
+                onClick={onSelectVisible}
+              >
+                <SelectionAll size={14} weight="regular" aria-hidden="true" />
+              </ToolbarIconButton>
+            ) : (
+              <span className="size-8 rounded-xs" aria-hidden="true" />
+            )}
+            <ToolbarIconButton
+              label="Clear selection"
+              className="size-8 rounded-xs border border-transparent text-secondary hover:-translate-y-0.5 hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-surfaceMuted focus-visible:text-ink"
+              onClick={onClear}
+            >
+              <X size={14} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+            <span className="h-6 w-px bg-hairline" aria-hidden="true" />
+            <ToolbarIconButton
+              label={actionLabel}
+              className="size-8 rounded-xs border border-dangerSoft bg-dangerSoft/40 text-danger hover:-translate-y-0.5 hover:bg-dangerSoft hover:text-danger focus-visible:-translate-y-0.5 focus-visible:bg-dangerSoft focus-visible:text-danger"
+              disabled={disabled}
+              onClick={onAction}
+            >
+              <Trash size={14} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       role="region"
       aria-label="Bulk action toolbar"
       className={cn(
         "flex min-h-9 shrink-0 items-center gap-2 px-2 py-1",
-        isBottomDock
-          ? "fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-[min(calc(100vw-1rem),680px)] -translate-x-1/2 flex-wrap rounded-xs border border-hairline bg-white shadow-[0_18px_42px_-36px_rgba(17,17,17,0.65)] lg:left-[calc(50%+32px)]"
-          : "border-b border-hairline bg-surfaceMuted",
+        "border-b border-hairline bg-surfaceMuted",
         className,
       )}
     >
@@ -50,7 +110,6 @@ export function BulkActionToolbar({
         <p
           className={cn(
             "hidden text-[9px] font-normal leading-3 text-tertiary sm:block",
-            isBottomDock ? "max-w-[320px] truncate" : null,
           )}
           title={helperText}
         >
