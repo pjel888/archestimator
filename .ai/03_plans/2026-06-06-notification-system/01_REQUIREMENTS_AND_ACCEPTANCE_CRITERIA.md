@@ -4,6 +4,26 @@
 
 Archestimator needs a first-class in-app notification system that can tell signed-in beta users about new releases/version updates through popup modals and can later support user-specific product notifications such as invitation, publication, feedback, and activity events.
 
+## 2026-06-06 Refinement Gate
+
+Status: `REFINED_READY_FOR_IMPLEMENTATION`.
+
+This requirements doc is now linked to the specialist handoff docs:
+
+- Data/RLS detail: `15_DATABASE_SCHEMA_RLS_PLAN.md`
+- Server contracts: `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md`
+- Client shell integration: `17_FRONTEND_COMPONENT_AND_SHELL_INTEGRATION_PLAN.md`
+- State/query behavior: `18_STATE_MANAGEMENT_AND_QUERY_CACHE_PLAN.md`
+- Fixtures and seed data: `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md`
+- Accessibility: `20_ACCESSIBILITY_FOCUS_MANAGEMENT_PLAN.md`
+- Design-system alignment: `21_DESIGN_SYSTEM_ALIGNMENT_PLAN.md`
+- Graph/blast-radius gates: `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md`
+- Provider/migration evidence: `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`
+- Operator rollback/runbook: `24_RELEASE_OPERATOR_RUNBOOK.md`
+- Start checklist: `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`
+
+No product blocker remains for implementation. Any future owner preference about admin UI, project-specific producers, or Realtime should be treated as scope expansion, not as a prerequisite for V1.
+
 ## MUST
 
 - Persist notification definitions and per-user delivery state in Supabase/Postgres.
@@ -54,6 +74,21 @@ Archestimator needs a first-class in-app notification system that can tell signe
 9. Design-system lint passes, and modal/list UI follows `DESIGN.md` app typography and neutral product styling.
 10. Performance proof shows initial workshop render is not gated on notifications; notification data loads asynchronously with bounded page size.
 
+## Acceptance Criteria To Test Mapping
+
+| Acceptance Criteria | Primary Test Evidence | Supporting Docs |
+| --- | --- | --- |
+| AC1 release modal once per user | `release-announcement-modal`, `notification-provider`, Playwright release modal spec | `17`, `18`, `20` |
+| AC2 notification center feed/count | `notification-center`, `notifications-query`, Playwright center spec | `17`, `18`, `21` |
+| AC3 cross-user denial | RLS integration/static schema tests | `15`, `16`, `22`, `23` |
+| AC4 empty state stability | component tests plus 320px manual QA | `17`, `20`, `21` |
+| AC5 failure does not block app workflows | provider/action tests plus workshop regression tests | `05`, `06`, `17`, `18` |
+| AC6 sanitized release content | action-link validator and payload privacy tests | `08`, `16`, `19` |
+| AC7 additive migration/index/RLS | static SQL tests, typegen diff, provider evidence log | `15`, `22`, `23` |
+| AC8 state transition and Realtime fallback | action/query/realtime tests | `16`, `18` |
+| AC9 design-system fit | `bun run lint:design-system`, component/manual QA | `07`, `20`, `21` |
+| AC10 async performance | provider tests, browser waterfall, bounded query proof | `05`, `08`, `18` |
+
 ## State Transitions
 
 - `delivered`: row exists with `delivered_at`.
@@ -73,9 +108,11 @@ Archestimator needs a first-class in-app notification system that can tell signe
 
 ## Implementation Is Passing When
 
+- The implementation agent has completed `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`.
 - `bun run test:dom -- tests/vitest/notification*.test.tsx` passes.
 - Notification schema tests pass.
 - Targeted RLS/integration tests pass locally or against a branch-safe Supabase environment.
 - `bun run lint:design-system` passes.
 - `bun run type-check` passes.
 - `bun run validate` passes before PR unless the owner explicitly accepts a narrower verification gate for the PR.
+- `.ai/05_logs/` records exact validation commands and any accepted gaps.

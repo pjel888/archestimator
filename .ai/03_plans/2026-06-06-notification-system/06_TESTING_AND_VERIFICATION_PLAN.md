@@ -1,5 +1,7 @@
 # Testing And Verification Plan
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. This plan is the verification source of truth for implementation; docs-only refinement verification is listed at the end of this file.
+
 ## Targeted Automated Tests
 
 ### Schema/RLS
@@ -17,8 +19,9 @@
   - User A can read a notification definition only when User A has a delivery row for it.
   - User A cannot read a notification definition delivered only to User B.
   - User A cannot read User B delivery.
-  - User A cannot update User B read/dismiss fields.
+  - User A cannot directly update any delivery row through the authenticated browser role in V1.
   - Authenticated browser role cannot insert definitions.
+  - Authenticated browser role cannot insert, update, or delete deliveries.
   - Anonymous user cannot read deliveries.
 
 ### Server Domain
@@ -30,6 +33,7 @@
   - Dismiss action invalidates/returns expected result.
   - Modal acknowledge action writes `seen_at`, `modal_acknowledged_at`, and release read state.
   - Internal action href validator rejects external URLs.
+  - State mutations use the service-role repository only after `requireCurrentUserContext()` and still filter by delivery id plus current user id.
 
 ### Client Query
 
@@ -100,6 +104,8 @@ Add Playwright specs once the UI exists:
 - `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx`
 - `bun run test:dom -- tests/vitest/project-publication-header.test.tsx`
 - `bun run test:dom -- tests/vitest/workshop-homebase-visibility.test.tsx`
+- Any tests covering the current canonical workshop shell/header after re-verification.
+- Any Supabase/RLS regression tests touched by new migration fixtures.
 
 ## Broader Verification Commands
 
@@ -160,3 +166,18 @@ If custom instrumentation is added later, it may record event names and counts o
 ## Pass/Fail
 
 Pass only when all targeted tests, relevant existing regression tests, typecheck, lint, design-system lint, and documented manual QA are complete or any gap is explicitly accepted by the owner with a reason.
+
+RLS behavior proof is not optional for implementation readiness. Static SQL tests can support the migration review, but before UI work or PR the implementation must produce either local Supabase RLS integration proof or branch-safe database proof for same-user read, cross-user denial, direct authenticated write denial, and anonymous denial. If no database-backed RLS proof path is available, stop and record a blocker or owner-accepted proof gap before continuing.
+
+## Docs-Only Refinement Verification
+
+For this planning refinement commit, runtime tests/build are intentionally out of scope because no source, migration, dependency, provider, or runtime files are changed. The correct verification is:
+
+```bash
+find .ai/03_plans/2026-06-06-notification-system -maxdepth 1 -type f | sort
+rg -n "TB[D]|TO[D]O|fill in [l]ater|Write tests for the [a]bove|Similar to [T]ask|[9]8/100|[9]9/100|[9]8\\.0/100|[9]9\\.0/100" .ai/03_plans/2026-06-06-notification-system .ai/04_tasks/2026-06-06-notification-system .ai/05_logs/2026-06-06-notification-system-planning.md .ai/10_state/current-state.md
+git diff --check
+git status --short
+```
+
+Expected result: the plan folder contains `README.md`, `00_INDEX.md` through `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`; placeholder scan finds no unresolved placeholders or stale sub-100 readiness scores; `git diff --check` passes.

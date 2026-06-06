@@ -2,6 +2,8 @@
 
 Each task is intended to produce reviewable, reversible progress. Commit after each coherent phase if tests pass.
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. Start implementation from `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`; this file remains the phase-by-phase execution body.
+
 ## Task 0: Re-Verify Preconditions
 
 **Files:** no edits.
@@ -12,6 +14,8 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - [ ] Run `git rev-list --left-right --count origin/main...HEAD`; if behind, rebase before implementation.
 - [ ] Read `DESIGN.md`, this entire plan folder, and the current `package.json`.
 - [ ] Check `node_modules/next/dist/docs/` for current Next.js 16 docs before editing App Router behavior. If absent, use official Next docs and cite the exact page in the implementation report.
+- [ ] Read `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md` and run impact analysis before editing any symbol covered by the project GitNexus/code graph contract.
+- [ ] Confirm no source/provider/runtime changes are already pending in the worktree unless they are intentionally part of the implementation.
 
 ## Task 1: Database Schema And RLS
 
@@ -23,15 +27,16 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Optional integration test: `tests/integration/rls-notifications.test.ts`
 
 - [ ] Create a migration with `supabase migration new notification_system`.
+- [ ] Follow `15_DATABASE_SCHEMA_RLS_PLAN.md` as the canonical schema/RLS source.
 - [ ] Add `notification_definitions` and `notification_deliveries` exactly as described in `03_ARCHITECTURE_AND_DESIGN_PLAN.md`.
 - [ ] Enable RLS on both tables.
 - [ ] Revoke broad access from `public`, `anon`, and `authenticated`.
-- [ ] Grant authenticated `select` on delivery-safe joined fields only if direct client reads are used; otherwise keep reads behind server actions.
+- [ ] Grant authenticated `select` only; do not grant authenticated `insert`, `update`, or `delete` on notification tables in V1.
+- [ ] Grant service-role maintenance/write access for server-action state mutations and release seed/fanout only.
 - [ ] Add policies:
   - Users can select `notification_definitions` only when an own delivery row exists for that definition.
   - Users can select their own `notification_deliveries`.
-  - Users can update only their own `seen_at`, `read_at`, `dismissed_at`, `archived_at`, and `modal_acknowledged_at` through server-controlled actions or narrow RLS checks.
-  - Authenticated users cannot insert definitions or deliveries directly.
+  - Authenticated users cannot insert, update, or delete definitions or deliveries directly.
   - Service role can insert/update definitions and deliveries.
 - [ ] Add indexes:
   - `notification_deliveries_user_feed_idx`
@@ -40,9 +45,11 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
   - `notification_definitions_release_version_idx`
   - `notification_definitions_dedupe_key_idx`
 - [ ] Add schema tests that read the SQL file and assert table names, RLS statements, revoke/grant statements, unique constraint, and indexes.
-- [ ] Add RLS tests proving definition read access is scoped through own delivery rows.
+- [ ] Add RLS tests proving definition read access is scoped through own delivery rows and direct authenticated state updates are denied.
+- [ ] Do not proceed to UI work until local Supabase RLS integration proof or branch-safe DB proof passes. If neither path is available, stop and record a blocker or explicit owner-accepted proof gap.
 - [ ] Run `bun run test:dom -- tests/vitest/notification-schema.test.ts`; expected pass.
 - [ ] Run local Supabase reset/typegen if the implementation environment supports it. If not, document the exact reason and run SQL static tests.
+- [ ] Record local/branch-safe/linked-provider evidence according to `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`.
 
 ## Task 2: Server Types, Repository, And Actions
 
@@ -55,6 +62,8 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Test: `tests/vitest/notifications-actions.test.ts`
 
 - [ ] Define TypeScript constants for notification kinds, severities, surfaces, audiences, and states.
+- [ ] Follow `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md` for function names, view models, errors, and link validation.
+- [ ] For state mutations, use the existing `src/lib/supabase/service-role.ts` helper inside server-only code after authenticating the user; repository updates must include `eq("id", deliveryId)` and `eq("user_id", currentUser.id)`.
 - [ ] Define view models:
   - `NotificationDeliveryView`
   - `NotificationFeedResult`
@@ -88,6 +97,7 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - [ ] Add mutation wrappers for mark-read, dismiss, and modal acknowledge.
 - [ ] On mutation success, update cached delivery/read state optimistically or invalidate the three notification query keys with `refetchType: "none"` where appropriate.
 - [ ] Tests assert query keys are stable, mutations call server actions, success updates count/list/modal cache, and errors preserve existing UI state.
+- [ ] Follow `18_STATE_MANAGEMENT_AND_QUERY_CACHE_PLAN.md` for stale times, cache writes, invalidation, and optional Broadcast behavior.
 
 ## Task 4: Release Announcement Modal
 
@@ -97,6 +107,7 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Test: `tests/vitest/release-announcement-modal.test.tsx`
 
 - [ ] Use `src/components/ui/modal.tsx`.
+- [ ] Follow `20_ACCESSIBILITY_FOCUS_MANAGEMENT_PLAN.md` before modifying the modal primitive.
 - [ ] Render title, body, release version label, optional action button, and close/dismiss button.
 - [ ] On close, call `acknowledgeCurrentUserReleaseModal`.
 - [ ] Ensure focus is inside the dialog when open and returns to the prior trigger/shell after close. If the current `Modal` primitive cannot satisfy focus return, add the smallest scoped enhancement with regression tests.
@@ -113,6 +124,7 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Test: `tests/vitest/notification-center.test.tsx`
 
 - [ ] Render a compact icon button with unread badge.
+- [ ] Follow `17_FRONTEND_COMPONENT_AND_SHELL_INTEGRATION_PLAN.md` and `21_DESIGN_SYSTEM_ALIGNMENT_PLAN.md` for dimensions, placement, and visual constraints.
 - [ ] Use existing UI primitives and Phosphor icons already present in the repo; do not add a dependency.
 - [ ] Provide states: loading, empty, error with retry, unread/read item, dismissed item hidden, pagination/load older if needed.
 - [ ] Keep typography to app tokens/classes: 8-12px, zero letter spacing, neutral colors, crisp-xs corners.
@@ -129,6 +141,7 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Test: `tests/vitest/workshop-notification-entry.test.tsx`
 
 - [ ] Mount `NotificationProvider` under `QueryClientProvider` so hooks can use TanStack Query.
+- [ ] Re-read `src/app/providers.tsx` and the current canonical workshop shell immediately before editing, because these files are active global integration points.
 - [ ] Keep `ToastProvider` available; either nest notifications inside it or keep both under the same query provider without changing toast behavior.
 - [ ] Only enable notifications for authenticated app/workshop routes.
 - [ ] Add the bell to the existing workshop header/action area without creating a nested card or marketing-style surface.
@@ -143,6 +156,7 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Test: `tests/vitest/notification-realtime.test.ts`
 
 - [ ] Implement only after Tasks 1-6 pass.
+- [ ] Do not implement Realtime if durable polling/query behavior or RLS evidence is incomplete.
 - [ ] Authorize topic `user:{auth.uid()}:notifications` with a simple RLS helper; avoid workspace/project joins in Realtime policy.
 - [ ] Subscribe with `{ config: { private: true } }`.
 - [ ] On Broadcast event, invalidate notification queries and fetch canonical state.
@@ -158,6 +172,8 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - Test: `tests/vitest/notification-release-seed.test.ts`
 
 - [ ] For V1, prefer seed migration for the first release announcement if no admin UI is needed.
+- [ ] Follow `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md` for deterministic seed/test data and `24_RELEASE_OPERATOR_RUNBOOK.md` for release content operations.
+- [ ] First proof path is deterministic local/test fixtures only. Real beta fanout is a separate owner-approved provider step using `closed_beta_allowed_emails.status in ('invited','active')` joined to `profiles.email`.
 - [ ] Seed definition plus delivery rows only for intended beta users if the target list is available through existing closed-beta tables.
 - [ ] If a server/admin action is used, require platform admin checks and service-role server-only access.
 - [ ] Never expose service-role creation to browser code.
@@ -181,6 +197,19 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 - [ ] Run `bun run validate` before PR unless cost/time requires a documented narrower gate.
 - [ ] Run `git diff --check`.
 - [ ] Update `.ai` state/logs honestly; do not mark provider or production proof complete unless performed.
+- [ ] Update `13_TRACEABILITY_MATRIX.md` from `Planned` to evidence-backed statuses only for completed rows.
+
+## Stop Conditions
+
+Stop and write a bug/blocker note before proceeding if:
+
+- RLS proof allows cross-user read/update.
+- Migration/typegen output targets a Supabase project other than `ebxxqidacheyapmmzavr`.
+- Provider mounting blocks authenticated shell render or leaks into public share pages.
+- Modal focus cannot be made accessible without a shared primitive change and regression tests.
+- Design-system lint flags notification UI violations that require a product decision.
+- Realtime requires broad topic authorization or joins that make user-only authorization ambiguous.
+- Any source/provider/runtime file outside the plan scope changes unexpectedly.
 
 ## Rollback Points
 

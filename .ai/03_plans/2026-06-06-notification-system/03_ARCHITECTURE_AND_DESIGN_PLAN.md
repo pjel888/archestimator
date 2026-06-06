@@ -2,6 +2,8 @@
 
 ## RALPLAN-DR Summary
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`.
+
 ### Principles
 
 1. Durable state before realtime delivery.
@@ -88,7 +90,7 @@ Stores canonical notification content.
 - `priority integer not null default 0`
 - `dedupe_key text`
 - `action_label text`
-- `action_href text`
+- `action_href text check (action_href is null or (action_href ~ '^/workshop(/|$|\\?)' and action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c)'))`
 - `payload_json jsonb not null default '{}'::jsonb`
 - `starts_at timestamptz not null default now()`
 - `expires_at timestamptz`
@@ -133,7 +135,7 @@ Stores per-user delivery/read/dismiss state.
 Create `src/lib/notifications/`:
 
 - `types.ts`: TypeScript view models and constants.
-- `repository.ts`: Supabase queries; server-only.
+- `repository.ts`: Supabase queries; server-only. Reads use the authenticated server Supabase client so RLS is exercised; state mutations use `src/lib/supabase/service-role.ts` only after `requireCurrentUserContext()` and must filter by both `deliveryId` and current `userId`.
 - `actions.ts`: server actions for current-user feed, mark read, dismiss, acknowledge modal.
 - `release-announcements.ts`: helper for selecting eligible modal announcement.
 - `authorization.ts`: small guards if scoped delivery creation is added.
@@ -164,6 +166,7 @@ using (
 
 - Definition writes remain service-role/admin-only.
 - Server actions may query delivery + definition through the normal authenticated server Supabase client because RLS enforces the delivery relationship.
+- Authenticated clients get no direct table `insert`, `update`, or `delete` grants in V1. State writes are server-action-authoritative through the existing service-role helper and explicit current-user filters.
 - Tests must prove User A can read a definition delivered to User A and cannot read a definition delivered only to User B.
 
 ## Client Boundaries
@@ -216,3 +219,19 @@ Modify:
 - No Zustand store unless TanStack Query cannot cover the feed/modal/count state.
 - No Realtime until durable delivery, RLS tests, and non-Realtime fetch behavior pass.
 - No new dependency for dialog, popover, or notification state.
+
+## Refined Implementation Boundaries
+
+The architecture handoff is intentionally split so implementation can proceed without re-inventing decisions:
+
+| Boundary | Canonical Detail Doc | Implementation Rule |
+| --- | --- | --- |
+| Tables, constraints, indexes, RLS | `15_DATABASE_SCHEMA_RLS_PLAN.md` | Implement exactly unless current schema proof shows a conflict. |
+| Server actions and repository contracts | `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md` | Browser must never supply trusted `userId`; current session owns all reads/writes. |
+| Provider/modal/center/shell UI | `17_FRONTEND_COMPONENT_AND_SHELL_INTEGRATION_PLAN.md` | Mount after query provider and keep public share pages untouched. |
+| Query cache and Realtime | `18_STATE_MANAGEMENT_AND_QUERY_CACHE_PLAN.md` | Durable queries first; Realtime invalidates only. |
+| Fixtures and seed data | `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md` | Deterministic two-user fixtures are required before RLS claims. |
+| Accessibility and design | `20_ACCESSIBILITY_FOCUS_MANAGEMENT_PLAN.md`, `21_DESIGN_SYSTEM_ALIGNMENT_PLAN.md` | Focus return, keyboard behavior, stable dimensions, and design lint are merge gates. |
+| Impact and provider evidence | `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md`, `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md` | Re-run impact/provider checks in the implementation session before source or migration edits. |
+
+If a future implementation conflict appears, update the specialist doc first, then update this architecture doc and `13_TRACEABILITY_MATRIX.md` in the same commit.

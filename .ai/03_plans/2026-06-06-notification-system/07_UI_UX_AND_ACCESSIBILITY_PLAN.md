@@ -1,5 +1,7 @@
 # UI, UX, And Accessibility Plan
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. Accessibility implementation detail is expanded in `20_ACCESSIBILITY_FOCUS_MANAGEMENT_PLAN.md`; visual/design-system closure detail is expanded in `21_DESIGN_SYSTEM_ALIGNMENT_PLAN.md`.
+
 ## Product Tone
 
 Notifications should feel like quiet workshop instrumentation, not a marketing layer. Use dense, crisp, neutral product UI aligned with `DESIGN.md`: SF Pro, 8-12px type, zero letter spacing, `rounded-xs`, hairline borders, white/surface-muted backgrounds, and restrained status color.
@@ -109,3 +111,11 @@ Only one modal should be visible at a time. If another app modal is already open
 - Run `bun run lint:design-system`.
 - Inspect generated class names for oversized type, negative letter spacing, large rounded cards, gradient/orb decoration, and one-hue palette drift.
 - Verify notification UI does not occlude route loading overlay or existing modal z-index layers.
+
+## UX Implementation Gates
+
+- The release modal cannot merge unless focus return is proven by component tests or by a minimal shared `Modal` primitive enhancement with regression coverage.
+- The notification center cannot merge unless the bell badge has stable dimensions at `0`, `1`, `9`, and `9+`.
+- The workshop shell integration cannot merge unless the existing header/action layout remains usable at 320px mobile width and desktop width.
+- The center must keep loading/error/empty states compact and operational; no instructional marketing copy should be added.
+- Existing toast behavior must remain visually and behaviorally separate from durable notifications.

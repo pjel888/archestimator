@@ -8,6 +8,8 @@
 - Fresh fetch completed during planning.
 - Only intended untracked planning folder existed before this pack was written.
 - Code-review graph stats for this new worktree reported zero indexed files, so repo inspection fell back to targeted file reads and `rg`.
+- Refinement verification on 2026-06-06 kept all edits docs-only under `.ai`; no `src`, `supabase`, provider, dependency, or runtime files were modified.
+- `node_modules/next/dist/docs/` was absent in this worktree during refinement, so current Next.js guidance was checked from official web docs instead.
 
 ## Required Project Context Read
 
@@ -71,13 +73,13 @@
 ## Official Documentation Checked
 
 - Next.js Route Handlers: https://nextjs.org/docs/app/getting-started/route-handlers
-- Next.js caching guide: https://nextjs.org/docs/app/guides/caching
+- Next.js caching guide: https://nextjs.org/docs/app/guides/caching-without-cache-components
 - Supabase Realtime overview: https://supabase.com/docs/guides/realtime
 - Supabase Realtime getting started: https://supabase.com/docs/guides/realtime/getting_started
 - Supabase Broadcast: https://supabase.com/docs/guides/realtime/broadcast
 - Supabase Realtime authorization: https://supabase.com/docs/guides/realtime/authorization
 - Supabase Realtime quotas: https://supabase.com/docs/guides/realtime/limits
-- Supabase RLS feature guidance: https://supabase.com/features/row-level-security
+- Supabase RLS guidance: https://supabase.com/docs/guides/database/postgres/row-level-security
 
 ## External Evidence Applied
 
@@ -87,6 +89,18 @@
 - Prefer Broadcast for notifications and high-frequency updates, but keep durable database state canonical.
 - RLS complexity can increase Realtime join latency; notification policies must stay simple.
 - Pro-plan defaults include 500 concurrent connections, 500 messages/s, 500 joins/s, and 100 channels per connection; one user notification channel is acceptable for beta scale.
+- Next Route Handlers use Web `Request`/`Response` APIs inside `app` route files, and should explicitly opt out of caching for user-private notification reads if a route handler is added.
+- Supabase RLS guidance requires explicit policies for exposed tables; `auth.uid()` is null for unauthenticated requests, so policies must include authenticated-only ownership checks.
+
+## Refinement Evidence Added
+
+- Exact schema/RLS/index plan now lives in `15_DATABASE_SCHEMA_RLS_PLAN.md`.
+- Exact server-action/repository contracts now live in `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md`.
+- Exact provider, modal, center, and workshop integration boundaries now live in `17_FRONTEND_COMPONENT_AND_SHELL_INTEGRATION_PLAN.md`.
+- Exact TanStack Query cache and optional Realtime invalidation behavior now lives in `18_STATE_MANAGEMENT_AND_QUERY_CACHE_PLAN.md`.
+- Exact fixtures, fake users, seed data, and E2E data setup now live in `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md`.
+- Accessibility and design-system closure gates now live in `20_ACCESSIBILITY_FOCUS_MANAGEMENT_PLAN.md` and `21_DESIGN_SYSTEM_ALIGNMENT_PLAN.md`.
+- Future symbol-impact and provider/migration evidence gates now live in `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md` and `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`.
 
 ## Research Conclusion
 

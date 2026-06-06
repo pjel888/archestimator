@@ -4,6 +4,8 @@
 
 `$plan --consensus` / `$ralplan` short mode. The user requested planning only and no implementation.
 
+Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`.
+
 ## Planner Output
 
 Favored plan: durable database-backed notifications with release modal and notification center, implemented as a new bounded domain.
@@ -91,9 +93,58 @@ Applied fixes:
 
 ## Consensus Verdict
 
-APPROVED FOR IMPLEMENTATION PLANNING HANDOFF.
+APPROVED FOR IMPLEMENTATION HANDOFF AFTER DOCS-ONLY REFINEMENT.
 
 The plan is ready for a future implementation agent after that agent reruns branch, docs, codebase, and official-doc verification on the then-current repo state.
+
+## Refinement Review Cycle
+
+### Architect Recheck
+
+Verdict: PASS.
+
+Rationale:
+
+- The durable database model is still the correct boundary for once-per-user release announcements and future user-specific notifications.
+- The new specialist docs close the earlier handoff gap by making schema/RLS, server action contracts, UI placement, cache behavior, fixtures, accessibility, design-system, graph impact, provider evidence, and operations explicit.
+- Realtime remains optional and cannot become the source of truth, which preserves offline and RLS correctness.
+- Public share pages and existing shared-link/collaboration flows remain protected by explicit integration tests and provider route-gating.
+
+Architect residual watch items for the future implementation session:
+
+- Re-run graph/GitNexus impact analysis when source symbols are about to change.
+- Re-check current workshop shell and provider files immediately before editing.
+- Prove modal focus return before shipping the release modal.
+
+### Critic Recheck
+
+Verdict: PASS.
+
+First refinement critic result: WATCH until five implementation-readiness gaps were made concrete.
+
+WATCH findings:
+
+1. Provider/typegen sequencing still allowed linked-project typegen before a local-only migration could exist remotely.
+2. Mutation authority still left direct authenticated updates versus server-only writes as a future choice.
+3. Static RLS shape tests were not enough to prove actual cross-user denial.
+4. V1 release creation/fanout still offered seed/admin alternatives without pinning the first proof path and real beta source.
+5. Seed/admin action links could bypass server-side validation without a DB/static seed gate.
+
+Applied WATCH fixes:
+
+- `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md` now requires local `db reset` plus `gen types --local` for local proof, branch-safe project typegen for preview proof, and linked production typegen only after owner-approved linked apply.
+- `15_DATABASE_SCHEMA_RLS_PLAN.md`, `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md`, and `08_SECURITY_PERFORMANCE_AND_DATA_PLAN.md` now fix V1 mutation authority to server actions using the existing service-role helper after `requireCurrentUserContext()`, with no direct authenticated notification table writes.
+- `06_TESTING_AND_VERIFICATION_PLAN.md`, `15_DATABASE_SCHEMA_RLS_PLAN.md`, `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`, and `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md` now make local or branch-safe RLS behavior proof mandatory before UI work or PR.
+- `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md` and `24_RELEASE_OPERATOR_RUNBOOK.md` now pin the first proof to deterministic local/test fixtures and real beta fanout to `profiles.email` joined against `closed_beta_allowed_emails.status in ('invited','active')` after owner approval.
+- `03_ARCHITECTURE_AND_DESIGN_PLAN.md`, `15_DATABASE_SCHEMA_RLS_PLAN.md`, `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md`, `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md`, and `24_RELEASE_OPERATOR_RUNBOOK.md` now add DB/static seed action-href safety for `/workshop` paths only.
+
+Final critic challenge results:
+
+- Requirement traceability now maps every acceptance criterion to future files, tests, evidence, and rollback in `13_TRACEABILITY_MATRIX.md`.
+- The previous sub-100 readiness score was replaced with explicit baseline-vs-refined scoring in `11_READINESS_SCORECARD.md`.
+- The plan now has concrete stop gates for RLS leakage, provider leakage, modal accessibility failure, design-system drift, Realtime authorization ambiguity, and provider/migration authority.
+- No bug-plan doc is needed because no blocker remains; optional admin UI, Realtime, and producer breadth are not V1 blockers.
+- UltraQA runtime execution is intentionally skipped for this docs-only refinement; adversarial QA is represented by the pre-mortem, traceability matrix, stop gates, and docs validation commands.
 
 ## Improvements Applied
 
@@ -106,6 +157,11 @@ The plan is ready for a future implementation agent after that agent reruns bran
 - Added Supabase project ref, RLS policy shape, payload privacy, caching, and Realtime limits to `08_SECURITY_PERFORMANCE_AND_DATA_PLAN.md`.
 - Added feature-flag, migration, deployment, and rollback guidance to `09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md`.
 - Added future prompt, agent roster, Team + Ultragoal staffing, launch hints, and verification path to `10_IMPLEMENTATION_PROMPT_DRAFT.md`.
+- Added specialist handoff docs `15` through `25`.
+- Expanded implementation readiness scorecard to a documented 100/100 result.
+- Expanded traceability from a short matrix into requirement, acceptance, document, evidence, and rollback traces.
+- Closed critic WATCH items for typegen sequencing, mutation authority, actual RLS proof, V1 fanout path, and action-link seed safety.
+- Updated task/log/state records for the refined planning status.
 
 ## Execution Boundary
 

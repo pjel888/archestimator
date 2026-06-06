@@ -5,6 +5,8 @@ Use this prompt when the owner says to start implementation.
 ```text
 Implement the notification system from `.ai/03_plans/2026-06-06-notification-system` on branch `codex/notification-system`.
 
+Plan status: REFINED_READY_FOR_IMPLEMENTATION.
+
 Hard constraints:
 - This is now implementation work, but do not widen scope beyond the plan.
 - Do not add email/SMS/browser push/external vendors.
@@ -17,6 +19,9 @@ Preflight:
 1. Run `pwd`, `git status --short --branch`, `git branch --show-current`, `git fetch --prune origin`, and `git rev-list --left-right --count origin/main...HEAD`.
 2. Rebase on current `origin/main` if behind.
 3. Read every file in `.ai/03_plans/2026-06-06-notification-system`.
+   - Start with `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`.
+   - Then read `00_INDEX.md`, `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`, `04_IMPLEMENTATION_SEQUENCE.md`, `06_TESTING_AND_VERIFICATION_PLAN.md`, and `13_TRACEABILITY_MATRIX.md`.
+   - Use `15` through `24` as the specialist source of truth for schema, server, UI, state, fixtures, accessibility, design, impact, provider evidence, and operator runbook.
 4. Re-read `DESIGN.md`, `package.json`, `.ai/10_state/current-state.md`, `.ai/10_state/decisions.md`, and `.ai/10_state/known-issues.md`.
 5. Read current Next.js 16 docs under `node_modules/next/dist/docs/` before editing App Router code; if missing, use official Next docs and cite them.
 6. Use GitNexus/code-review graph impact analysis before editing symbols if the graph index is available; if stale or empty, document fallback.
@@ -28,6 +33,7 @@ Execution:
 4. Do not modify shared `Modal` or `ToastProvider` unless a test proves a gap.
 5. Do not add Realtime until durable DB/query/UI path passes.
 6. Update `.ai` logs/state honestly; do not mark hosted/provider proof complete without evidence.
+7. Update `13_TRACEABILITY_MATRIX.md` as evidence is produced.
 
 Verification:
 1. Run targeted notification tests.

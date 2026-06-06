@@ -12,7 +12,9 @@
 
 ## Status
 
-READY_FOR_IMPLEMENTATION after the future implementation agent reruns the verification preflight on the then-current branch. This pack is a planning artifact only.
+REFINED_READY_FOR_IMPLEMENTATION after the future implementation agent reruns the verification preflight on the then-current branch. This pack is a planning artifact only.
+
+2026-06-06 refinement status: 100/100 document quality and 100/100 implementation readiness by the dual-axis rubric in `11_READINESS_SCORECARD.md`. The score means every known gap is either concretely specified, assigned to a named implementation gate, or converted into a stop condition. It does not mean the feature is implemented or provider-proven. A second critic review initially returned WATCH on typegen sequencing, mutation authority, mandatory RLS proof, V1 fanout path, and seed/admin action-link safety; those fixes are now applied in docs `03`, `04`, `06`, `08`, `15`, `16`, `19`, `23`, `24`, and `25`.
 
 ## Scope
 
@@ -48,14 +50,26 @@ READY_FOR_IMPLEMENTATION after the future implementation agent reruns the verifi
 12. `12_OPEN_QUESTIONS_AND_DECISIONS.md`
 13. `13_TRACEABILITY_MATRIX.md`
 14. `14_RALPLAN_CONSENSUS_REVIEW.md`
+15. `15_DATABASE_SCHEMA_RLS_PLAN.md`
+16. `16_SERVER_ACTIONS_API_CONTRACT_PLAN.md`
+17. `17_FRONTEND_COMPONENT_AND_SHELL_INTEGRATION_PLAN.md`
+18. `18_STATE_MANAGEMENT_AND_QUERY_CACHE_PLAN.md`
+19. `19_TEST_FIXTURES_AND_SEED_DATA_PLAN.md`
+20. `20_ACCESSIBILITY_FOCUS_MANAGEMENT_PLAN.md`
+21. `21_DESIGN_SYSTEM_ALIGNMENT_PLAN.md`
+22. `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md`
+23. `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`
+24. `24_RELEASE_OPERATOR_RUNBOOK.md`
+25. `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`
 
 ## Start Here
 
-1. Read this index and `10_IMPLEMENTATION_PROMPT_DRAFT.md`.
+1. Read this index, `10_IMPLEMENTATION_PROMPT_DRAFT.md`, and `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`.
 2. Rerun the repo safety preflight from `10_IMPLEMENTATION_PROMPT_DRAFT.md`.
-3. Re-read the files cited in `02_CODEBASE_RESEARCH.md`.
-4. Implement in the sequence in `04_IMPLEMENTATION_SEQUENCE.md`.
-5. Do not skip the database/RLS tasks before wiring UI.
+3. Re-read the files cited in `02_CODEBASE_RESEARCH.md`; if local Next docs are still absent at `node_modules/next/dist/docs/`, use the official Next docs linked in `02_CODEBASE_RESEARCH.md`.
+4. Execute the specialist docs in order: database/RLS (`15`), server/actions (`16`), frontend/shell (`17`), query/cache (`18`), fixtures (`19`), accessibility (`20`), design system (`21`), graph impact (`22`), provider/migration evidence (`23`), release operations (`24`), then handoff checklist (`25`).
+5. Implement in the sequence in `04_IMPLEMENTATION_SEQUENCE.md`.
+6. Do not skip database/RLS and server-action tasks before wiring UI.
 
 ## Recommended Execution Lane
 
@@ -63,23 +77,17 @@ Use `$ultragoal` as the durable goal ledger and `$team` for parallel implementat
 
 ## Readiness Scores
 
-| Document | Score |
-| --- | ---: |
-| Requirements | 99 |
-| Codebase research | 98 |
-| Architecture/design | 99 |
-| Implementation sequence | 98 |
-| Blast radius/risk | 99 |
-| Testing/verification | 99 |
-| UX/UI/accessibility | 98 |
-| Security/performance/data | 99 |
-| Deployment/rollback | 98 |
-| Implementation prompt | 99 |
-| Scorecard | 99 |
-| Open questions/decisions | 99 |
-| Traceability | 98 |
+| Area | Document Quality | Implementation Readiness |
+| --- | ---: | ---: |
+| Core plan docs `00`-`14` | 100 | 100 |
+| Specialist docs `15`-`25` | 100 | 100 |
+| Traceability and scorecard | 100 | 100 |
+| Handoff and runbook | 100 | 100 |
 
-Overall readiness: 99.0.
+Overall document quality: 100/100.
+Overall implementation readiness: 100/100.
+
+Scoring rule: a document earns 100 only when a future agent can act without inventing architecture, file paths, validation gates, RLS policy shape, fixture strategy, UI acceptance, or rollback criteria. Unknown live-provider facts are not hidden; they are encoded in `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md` as stop gates.
 
 ## Evidence Summary
 
@@ -87,13 +95,16 @@ Overall readiness: 99.0.
 - Existing `Modal` already handles portal layering and dialog semantics, but the plan still requires focus-return verification because the primitive does not visibly implement a full focus trap.
 - Existing private Supabase Realtime patterns use `project:` and `estimate:` topics with cleanup.
 - Existing shared-link activity tables show the additive migration/RLS/grant precedent.
-- Official Supabase Realtime docs recommend private production channels, topic names such as `user:789:notifications`, cleanup on unmount, and Broadcast for notifications.
-- Official Next.js Route Handler docs confirm App Router route handlers use Web Request/Response APIs.
+- Initial graph evidence on this worktree: code-review graph returned `0 communities`, `0 hubs`, and no source-code changes before docs refinement; the plan records the fallback and future impact gates in `22_GITNEXUS_CODE_GRAPH_IMPACT_PLAN.md`.
+- Official Supabase Realtime docs confirm private Broadcast authorization through `realtime.messages` RLS and `config: { private: true }`.
+- Official Supabase limits list Pro defaults of 500 concurrent connections, 500 messages/s, 500 joins/s, and 100 channels per connection.
+- Official Supabase RLS docs require enabling RLS on exposed-schema tables and describe `auth.uid()`-scoped policies.
+- Official Next.js Route Handler docs confirm App Router route handlers use Web Request/Response APIs and are not cached by default; the caching guide still requires explicit `no-store` discipline when private fetches/routes are introduced.
 
 ## Bug Plans
 
-None created. The plan is not blocked below the readiness threshold.
+None created. Architect and critic reviews did not discover a current implementation blocker requiring `.ai/15_Bugs`. Remaining live-provider facts and RLS/provider proof requirements are deliberate future stop gates, not hidden blockers.
 
 ## Current Status
 
-Planning complete. No implementation has started.
+Planning refined. No implementation has started.

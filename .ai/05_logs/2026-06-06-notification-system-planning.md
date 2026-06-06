@@ -6,7 +6,7 @@ Worktree: `/Users/philiplewis/.codex/worktrees/notification-system/archestimator
 
 ## Summary
 
-Created a docs-only planning pack for a durable Archestimator in-app notification system. The plan covers release/version announcement popup modals, user-specific notification delivery state, notification center UI, Supabase/RLS design, blast radius, performance implications, testing, deployment, rollback, and a future implementation prompt.
+Created and refined a docs-only planning pack for a durable Archestimator in-app notification system. The plan covers release/version announcement popup modals, user-specific notification delivery state, notification center UI, Supabase/RLS design, blast radius, performance implications, testing, deployment, rollback, operator runbook, and a future implementation handoff prompt.
 
 ## Evidence Gathered
 
@@ -16,6 +16,10 @@ Created a docs-only planning pack for a durable Archestimator in-app notificatio
 - Inspected existing `ToastProvider`, `Modal`, Realtime collaboration hooks, shared-link activity feed, publication activity API route, and Supabase migrations for shared-link/RLS/realtime patterns.
 - Checked official Next.js Route Handler docs and official Supabase Realtime/RLS docs.
 - Ran a RALPLAN Architect review and applied its WATCH findings to the planning docs.
+- Refined the plan to 100/100 document quality and 100/100 implementation readiness by adding specialist docs `15` through `25` and expanding traceability/readiness gates.
+- Kept the branch docs-only; no source code, migration, dependency, provider, runtime, secret, or production setting changed.
+- Ran an architect sidecar review: PASS, no blocker, no `.ai/15_Bugs` doc required.
+- Ran a critic sidecar review: initial WATCH on typegen sequencing, mutation authority, actual RLS proof, V1 fanout path, and seed/admin action-link safety. Applied fixes across the specialist docs before commit.
 
 ## Files Added Or Updated
 
@@ -26,11 +30,14 @@ Created a docs-only planning pack for a durable Archestimator in-app notificatio
 
 ## Verification
 
-Pending final docs verification in this run:
+Docs-only verification for the refinement run:
 
 - `git diff --check`
 - `git status --short`
 - plan folder file listing
+- placeholder/stale-score scan across the refined plan/task/log/state docs
+- code-review graph `detect_changes` before commit where available
+- architect/critic RALPLAN sidecar review evidence
 
 ## Residual Risk
 
