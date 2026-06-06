@@ -133,3 +133,15 @@ Findings:
 - A narrow Roboto Mono preload/display spike was tried and reverted because three mobile Lighthouse runs remained score 91 with LCP around 3.46s-3.49s.
 
 Remaining gap: current production needs real-user Speed Insights rows / dashboard RES before the owner-requested 95-100 RES target can be claimed.
+
+## 2026-06-06 automated readiness checker result
+
+New checker:
+
+```bash
+bun run perf:check-speed-insights
+```
+
+Latest evidence: `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md` / `.json`.
+
+Result: **CURRENT DEPLOYMENT PROVIDER DATA OPEN**. The checker queried current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` and found no p75 rows for FCP, LCP, INP, CLS, or TTFB. It also had no dashboard RES score, so it correctly reports `resCompletionReady: false`. The script is intentionally read-only and does not submit vitals, create traffic, deploy, promote, mutate provider settings, or infer RES from lab data.

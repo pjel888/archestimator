@@ -49,3 +49,12 @@ If dashboard UI cannot provide a route/device breakdown, use the Vercel CLI `ver
 ## Parallelism rule
 
 Parallel workers may collect evidence for multiple hypotheses, but code implementation must proceed one route bucket / metric hypothesis at a time unless two changes are inseparable and proven by the same measurement.
+
+## Repeatable current-deployment RES gate
+
+Before selecting more performance code, run `bun run perf:check-speed-insights`.
+
+- If it reports `currentDeploymentDataReady: false`, the next action is provider monitoring/dashboard capture, not speculative code.
+- If it reports current-deployment rows and a failing metric, select the workstream from the metric-to-workstream table above.
+- If it reports current-deployment rows with good thresholds but no dashboard RES score, the remaining gate is exact dashboard/provider RES proof.
+- Completion requires `resCompletionReady: true`, which intentionally fails closed without current-deployment rows and a dashboard RES score meeting the owner target.

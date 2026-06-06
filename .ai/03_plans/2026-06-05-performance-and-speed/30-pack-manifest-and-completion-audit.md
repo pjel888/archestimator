@@ -84,3 +84,14 @@ After adding current-provider refresh, INP attribution, current production Light
 - Total files under this plan pack: 322.
 
 This refresh did not add runtime code. It added provider/lab evidence and a reverted-spike record that future workers should respect.
+
+## 2026-06-06 readiness-checker manifest refresh
+
+After adding the repeatable Speed Insights readiness checker and latest run evidence:
+
+- New script: `scripts/check-vercel-speed-insights-readiness.ts`.
+- New test: `tests/vitest/vercel-speed-insights-readiness-script.test.ts`.
+- New package script: `perf:check-speed-insights`.
+- New evidence folder: `evidence/vercel-speed-insights-readiness-check-2026-06-06/`.
+
+Completion remains unclaimed because the checker fails closed with missing current-deployment rows and missing dashboard RES.
