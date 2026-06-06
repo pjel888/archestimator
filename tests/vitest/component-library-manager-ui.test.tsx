@@ -19,6 +19,7 @@ const actionMocks = vi.hoisted(() => ({
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
   executeBulkArchiveLibraryComponents: vi.fn(),
+  moveCostLibraryComponentToFolder: vi.fn(),
   previewBulkArchiveLibraryComponents: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),

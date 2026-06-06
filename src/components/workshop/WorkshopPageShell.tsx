@@ -11,6 +11,8 @@ import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
+import { WorkshopSettingsModal } from "./WorkshopSettingsModal";
+import { WorkshopSettingsModalContent } from "./WorkshopSettingsModalContent";
 import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
 import {
   getSidePanelActualWidth,
@@ -79,12 +81,16 @@ export async function WorkshopPageShell({
   const sidebarUser = currentUser
     ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
     : undefined;
+  const canManagePlatformSettings = currentUser?.role === "ceo" || currentUser?.role === "admin";
   const showAskFlip = isAskFlipUiEnabled();
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:pr-2 lg:pl-[25px]" : "p-2";
   const headerActions = (
     <>
       {actions}
+      <WorkshopSettingsModal>
+        <WorkshopSettingsModalContent canManagePlatform={canManagePlatformSettings} />
+      </WorkshopSettingsModal>
       <WorkshopNotificationEntry />
     </>
   );

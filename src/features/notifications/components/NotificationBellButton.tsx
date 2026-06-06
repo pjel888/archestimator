@@ -24,7 +24,7 @@ export function NotificationBellButton({ unreadCount, open, onClick, buttonRef }
       aria-expanded={open}
       aria-controls="notification-center-panel"
       className={cn(
-        "relative grid size-7 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+        "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
         open ? "bg-surfaceMuted text-ink" : null,
       )}
       onClick={onClick}

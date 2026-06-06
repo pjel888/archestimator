@@ -16,6 +16,7 @@ import {
   createLibraryFolder,
   deleteLibraryFolder,
   executeBulkArchiveLibraryComponents,
+  moveCostLibraryComponentToFolder,
   previewBulkArchiveLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
@@ -581,12 +582,15 @@ function ComponentLibraryTreePanel({
   libraryItems,
   folders,
   selectedFolderId,
+  selectedItemIds,
   viewMode,
   reorderStatus,
   treeMutationPending,
   onSelectNode,
   onSelectBrandNode,
   onSelectFolder,
+  onToggleSelected,
+  onMoveComponentToFolder,
   onViewModeChange,
   onFoldersChange,
   onReorderStatus,
@@ -602,12 +606,15 @@ function ComponentLibraryTreePanel({
   libraryItems: EstimateRowItem[];
   folders: LibraryFolderRecord[];
   selectedFolderId: string | null;
+  selectedItemIds: Set<string>;
   viewMode: ComponentViewMode;
   reorderStatus: ReorderStatus;
   treeMutationPending: boolean;
   onSelectNode: (nodeId: string) => void;
   onSelectBrandNode: (nodeId: string) => void;
   onSelectFolder: (folderId: string) => void;
+  onToggleSelected: (itemId: string) => void;
+  onMoveComponentToFolder: (item: EstimateRowItem, targetFolderId: string) => Promise<void>;
   onViewModeChange: (mode: ComponentViewMode) => void;
   onFoldersChange: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus: (status: ReorderStatus) => void;
@@ -630,6 +637,7 @@ function ComponentLibraryTreePanel({
           folders={folders}
           folderNodes={folderNodes}
           libraryItems={libraryItems}
+          selectedComponentIds={selectedItemIds}
           selectedFolderId={selectedFolderId}
           supplierNodes={supplierNodes}
           selectedSupplierNodeId={selectedNodeId}
@@ -642,6 +650,8 @@ function ComponentLibraryTreePanel({
           onSelectSupplierNode={onSelectNode}
           onSelectBrandNode={onSelectBrandNode}
           onSelectFolder={onSelectFolder}
+          onToggleComponentSelected={onToggleSelected}
+          onMoveComponentToFolder={onMoveComponentToFolder}
           onViewModeChange={onViewModeChange}
           onFoldersChange={onFoldersChange}
           onReorderStatus={onReorderStatus}
@@ -1170,6 +1180,28 @@ export function ComponentLibraryManager({
     });
   }
 
+  async function moveComponentToFolder(item: EstimateRowItem, targetFolderId: string) {
+    if (item.libraryFolderId === targetFolderId) return;
+    const previousItem = item;
+
+    setLibraryItemState((current) => ({
+      ...current,
+      items: current.items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
+    }));
+
+    try {
+      await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
+      setSelectedFolderId(targetFolderId);
+      router.refresh();
+    } catch (error) {
+      setLibraryItemState((current) => ({
+        ...current,
+        items: current.items.map((entry) => (entry.id === previousItem.id ? previousItem : entry)),
+      }));
+      throw error;
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white" data-component-library-workspace="true">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
@@ -1205,9 +1237,12 @@ export function ComponentLibraryManager({
             viewMode={viewMode}
             reorderStatus={reorderStatus}
             treeMutationPending={isTreeMutationPending}
+            selectedItemIds={selectedItemIds}
             onSelectNode={selectSupplierNode}
             onSelectBrandNode={selectBrandNode}
             onSelectFolder={selectFolder}
+            onToggleSelected={toggleComponentSelection}
+            onMoveComponentToFolder={moveComponentToFolder}
             onViewModeChange={setViewMode}
             onFoldersChange={setLocalFolders}
             onReorderStatus={setReorderStatus}

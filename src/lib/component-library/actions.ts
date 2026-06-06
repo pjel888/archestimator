@@ -127,6 +127,11 @@ export type ReorderLibraryFoldersInput = {
   }>;
 };
 
+export type MoveCostLibraryComponentToFolderInput = {
+  itemId: string;
+  libraryFolderId: string | null;
+};
+
 export type BulkArchiveLibraryComponentsInput = {
   itemIds: string[];
 };
@@ -584,5 +589,43 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
   });
 
   if (error) throw new Error(`Could not reorder library folders: ${error.message}`);
+  revalidateLibraryRoutes();
+}
+
+export async function moveCostLibraryComponentToFolder(input: MoveCostLibraryComponentToFolderInput): Promise<void> {
+  const [{ workspace }] = await Promise.all([
+    ensureDefaultWorkspace(),
+    requireCurrentUserContext(),
+  ]);
+  const supabase = await createSupabaseServerClient();
+  await assertCanManageLibraryFolders(supabase, workspace.id);
+
+  if (!isUuid(input.itemId)) throw new Error("Component not found in the current workspace.");
+
+  let targetFolderId: string | null = null;
+  if (input.libraryFolderId) {
+    if (!isUuid(input.libraryFolderId)) throw new Error("Library folder not found in the current workspace.");
+    const { data: folder, error: folderError } = await supabase
+      .from("library_folders")
+      .select("id")
+      .eq("id", input.libraryFolderId)
+      .eq("workspace_id", workspace.id)
+      .maybeSingle();
+
+    if (folderError) throw folderError;
+    if (!folder) throw new Error("Library folder not found in the current workspace.");
+    targetFolderId = folder.id;
+  }
+
+  const { data: component, error } = await supabase
+    .from("cost_library_items")
+    .update({ library_folder_id: targetFolderId })
+    .eq("id", input.itemId)
+    .eq("workspace_id", workspace.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not move component: ${error.message}`);
+  if (!component) throw new Error("Component not found in the current workspace.");
   revalidateLibraryRoutes();
 }

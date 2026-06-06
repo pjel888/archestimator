@@ -10,19 +10,28 @@ import {
   type LibraryFolderTreeNode,
   toLibraryFolderTreeItemId,
 } from "@/lib/component-library/library-folder-reorder";
+import type { EstimateRowItem } from "@/lib/estimates/types";
 
 vi.mock("@/lib/component-library/actions", () => ({
   reorderLibraryFolders: vi.fn(),
 }));
 
+type CapturedTreeItemData = {
+  kind: "folder" | "component";
+  folderId: string | null;
+  label: string;
+  item?: EstimateRowItem;
+  parentFolderId?: string;
+};
+
 const rctHarness = vi.hoisted(() => ({
   environment: null as (Record<string, unknown> & {
-    items: Record<TreeItemIndex, TreeItem<{ folderId: string | null; label: string }>>;
-    getItemTitle: (item: TreeItem<{ folderId: string | null; label: string }>) => string;
+    items: Record<TreeItemIndex, TreeItem<CapturedTreeItemData>>;
+    getItemTitle: (item: TreeItem<CapturedTreeItemData>) => string;
     renderItem?: (props: Record<string, unknown>) => ReactNode;
     renderItemTitle?: (props: Record<string, unknown>) => ReactNode;
     renderItemArrow?: (props: Record<string, unknown>) => ReactNode;
-    onPrimaryAction?: (item: TreeItem<{ folderId: string | null; label: string }>) => void;
+    onPrimaryAction?: (item: TreeItem<CapturedTreeItemData>) => void;
   }) | null,
 }));
 
@@ -128,15 +137,49 @@ const nodes: LibraryFolderTreeNode[] = [
   },
 ];
 
-function renderTree(onDeleteFolders = vi.fn()) {
+const componentItem: EstimateRowItem = {
+  id: "component-monthly",
+  material: "General Requirements Monthly",
+  name: "General Requirements Monthly",
+  description: "Contractor allowance",
+  supplier: "Contractor allowance",
+  source: "library",
+  unit: "month",
+  itemCost: 185000,
+  price: 185000,
+  currency: "PHP",
+  quantity: 1,
+  subTotal: 185000,
+  miscCost: 0,
+  totalItemCosts: 185000,
+  category: "Project Requirements",
+  categoryNodeId: "category-general-requirements",
+  categoryPath: ["Administration", "Project Requirements", "General Requirements"],
+  libraryFolderId: "folder-details",
+  pricingSource: "Contractor allowance",
+  pricingDate: "2026-05-23",
+};
+
+type RenderTreeOptions = {
+  libraryItems?: EstimateRowItem[];
+  selectedComponentIds?: Set<string>;
+  onToggleComponentSelected?: (itemId: string) => void;
+  onMoveComponentToFolder?: (item: EstimateRowItem, targetFolderId: string) => Promise<void> | void;
+};
+
+function renderTree(onDeleteFolders = vi.fn(), options: RenderTreeOptions = {}) {
   render(
     <LibraryFolderTree
       folders={folders}
       nodes={nodes}
+      libraryItems={options.libraryItems}
+      selectedComponentIds={options.selectedComponentIds}
       selectedFolderId="folder-fabrication"
       searchQuery=""
       disabled={false}
       onSelectFolder={vi.fn()}
+      onToggleComponentSelected={options.onToggleComponentSelected}
+      onMoveComponentToFolder={options.onMoveComponentToFolder}
       onFoldersChange={vi.fn()}
       onReorderStatus={vi.fn()}
       onCreateFolder={vi.fn()}
@@ -170,5 +213,26 @@ describe("library folder tree bulk selection", () => {
     expect(screen.getByRole("checkbox", { name: "Select Details" })).toBeChecked();
     expect(screen.getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("toolbar", { name: "Bulk actions" })).toHaveTextContent("2 folders selected");
+  });
+
+  it("shows component rows with a checkbox and drag handle", () => {
+    const onToggleComponentSelected = vi.fn();
+
+    renderTree(vi.fn(), {
+      libraryItems: [componentItem],
+      selectedComponentIds: new Set(["component-monthly"]),
+      onToggleComponentSelected,
+      onMoveComponentToFolder: vi.fn(),
+    });
+
+    const checkbox = screen.getByRole("checkbox", { name: "Select General Requirements Monthly" });
+    expect(checkbox).toBeChecked();
+    const row = screen.getByRole("treeitem", { name: "General Requirements Monthly" });
+    expect(row).toHaveAttribute("data-library-component-bulk-selected", "true");
+    expect(row.querySelector('[title="Drag row"]')).not.toBeNull();
+
+    fireEvent.click(checkbox);
+
+    expect(onToggleComponentSelected).toHaveBeenCalledWith("component-monthly");
   });
 });

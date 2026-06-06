@@ -55,7 +55,7 @@ describe("workshop notification entry", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Notifications, 2 unread" })).toHaveClass("size-7");
+    expect(screen.getByRole("button", { name: "Notifications, 2 unread" })).toHaveClass("size-10");
   });
 
   it("mounts notifications under the app query provider and workshop actions slot", () => {
@@ -65,7 +65,16 @@ describe("workshop notification entry", () => {
     expect(providersSource).toContain("NotificationProvider");
     expect(providersSource).toContain("<NotificationProvider>");
     expect(shellSource).toContain("WorkshopNotificationEntry");
+    expect(shellSource).toContain("WorkshopSettingsModal");
     expect(shellSource).toContain("const headerActions");
     expect(shellSource).toContain("actions={headerActions}");
+    const headerActionsStart = shellSource.indexOf("const headerActions");
+    const headerActionsSource = shellSource.slice(
+      headerActionsStart,
+      shellSource.indexOf("return (", headerActionsStart),
+    );
+    expect(headerActionsSource.indexOf("<WorkshopSettingsModal>")).toBeLessThan(
+      headerActionsSource.indexOf("<WorkshopNotificationEntry"),
+    );
   });
 });
