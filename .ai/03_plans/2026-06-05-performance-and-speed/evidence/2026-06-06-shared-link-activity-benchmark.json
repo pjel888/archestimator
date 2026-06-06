@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-06-05T20:00:51.528Z",
+  "mode": "local-shared-link-activity-benchmark",
+  "note": "Synthetic local CPU benchmark for shared-link activity merge/sort/compose and static query fan-out. It does not prove Supabase latency, RLS cost, hosted function duration, or production p95/p99 behavior.",
+  "activityCounts": [
+    100,
+    500,
+    1000,
+    2500
+  ],
+  "pageLimit": 100,
+  "queryPlans": [
+    {
+      "name": "public-anonymous",
+      "queryCount": 3,
+      "tables": [
+        "project_publications",
+        "shared_link_comments",
+        "shared_link_recipients"
+      ],
+      "note": "Current public GET loads publication, public comments, and recipient display names when comments include recipient ids; responses/events are skipped without a verified recipient session."
+    },
+    {
+      "name": "public-recipient-session",
+      "queryCount": 5,
+      "tables": [
+        "project_publications",
+        "shared_link_comments",
+        "shared_link_responses",
+        "shared_link_events",
+        "shared_link_recipients"
+      ],
+      "note": "Verified recipient session adds response and event queries; all activity table reads are paginated with limit + 1."
+    },
+    {
+      "name": "owner-include-access-telemetry",
+      "queryCount": 6,
+      "tables": [
+        "project_publications",
+        "shared_link_comments",
+        "shared_link_responses",
+        "shared_link_events",
+        "project_publication_events",
+        "shared_link_recipients"
+      ],
+      "note": "Owner server action also performs auth/RBAC outside this activity-table count; this plan covers the activity fan-out to benchmark before RPC or pagination rewrites."
+    }
+  ],
+  "runs": [
+    {
+      "activityCount": 100,
+      "recipientCount": 25,
+      "ownerDurationMs": 2.64,
+      "ownerActivityCount": 99,
+      "ownerHasMore": false,
+      "publicAnonymousDurationMs": 1.01,
+      "publicAnonymousActivityCount": 20,
+      "publicAnonymousHasMore": false,
+      "publicRecipientSessionDurationMs": 1.39,
+      "publicRecipientSessionActivityCount": 70,
+      "publicRecipientSessionHasMore": false,
+      "rssMiB": 46.84,
+      "heapUsedMiB": 0.2
+    },
+    {
+      "activityCount": 500,
+      "recipientCount": 25,
+      "ownerDurationMs": 3.68,
+      "ownerActivityCount": 100,
+      "ownerHasMore": true,
+      "publicAnonymousDurationMs": 3.01,
+      "publicAnonymousActivityCount": 100,
+      "publicAnonymousHasMore": false,
+      "publicRecipientSessionDurationMs": 2.94,
+      "publicRecipientSessionActivityCount": 100,
+      "publicRecipientSessionHasMore": true,
+      "rssMiB": 67.19,
+      "heapUsedMiB": 0.2
+    },
+    {
+      "activityCount": 1000,
+      "recipientCount": 25,
+      "ownerDurationMs": 5.47,
+      "ownerActivityCount": 100,
+      "ownerHasMore": true,
+      "publicAnonymousDurationMs": 4.2,
+      "publicAnonymousActivityCount": 100,
+      "publicAnonymousHasMore": true,
+      "publicRecipientSessionDurationMs": 5.86,
+      "publicRecipientSessionActivityCount": 100,
+      "publicRecipientSessionHasMore": true,
+      "rssMiB": 92.25,
+      "heapUsedMiB": 2.24
+    },
+    {
+      "activityCount": 2500,
+      "recipientCount": 25,
+      "ownerDurationMs": 11.44,
+      "ownerActivityCount": 100,
+      "ownerHasMore": true,
+      "publicAnonymousDurationMs": 9.97,
+      "publicAnonymousActivityCount": 100,
+      "publicAnonymousHasMore": true,
+      "publicRecipientSessionDurationMs": 7.84,
+      "publicRecipientSessionActivityCount": 100,
+      "publicRecipientSessionHasMore": true,
+      "rssMiB": 100.14,
+      "heapUsedMiB": 3.32
+    }
+  ]
+}

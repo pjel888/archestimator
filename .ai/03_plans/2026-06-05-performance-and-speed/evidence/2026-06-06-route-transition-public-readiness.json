@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-06-05T18:28:09.920Z",
+  "mode": "route-transition-readiness",
+  "benchmarkFile": ".ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-route-transition-public-baseline.json",
+  "benchmarkGeneratedAt": "2026-06-05T18:27:49.269Z",
+  "baseUrl": "http://127.0.0.1:3039",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "skipAuthenticated": true,
+  "skippedScenarios": [
+    "Authenticated: Workshop to Projects",
+    "Authenticated: Workshop to Library",
+    "Authenticated: Workshop to Templates",
+    "Authenticated: Workshop to Settings"
+  ],
+  "thresholds": {
+    "minRuns": 3,
+    "publicMedianBudgetMs": 15000,
+    "slow3gPublicMedianBudgetMs": 30000,
+    "authenticatedMedianBudgetMs": 10000,
+    "overlayVisibilityRateMax": 1
+  },
+  "scenarioChecks": [
+    {
+      "scenario": "Public: Landing to Login",
+      "networkProfile": "No throttle",
+      "runs": 3,
+      "failures": 0,
+      "medianMs": 756,
+      "budgetMs": 15000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "scenario": "Public: About to Contact",
+      "networkProfile": "No throttle",
+      "runs": 3,
+      "failures": 0,
+      "medianMs": 701,
+      "budgetMs": 15000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "networkProfile": "No throttle",
+      "runs": 3,
+      "failures": 0,
+      "medianMs": 699,
+      "budgetMs": 15000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3,
+      "passed": true,
+      "reasons": []
+    }
+  ],
+  "missing": [],
+  "routeTransitionReady": true,
+  "note": "Sanitized route-transition readiness check. It validates a benchmark JSON artifact from scripts/measure-route-transitions.ts against local thresholds; it does not create hosted/manual browser proof or verify production-user behavior by itself."
+}

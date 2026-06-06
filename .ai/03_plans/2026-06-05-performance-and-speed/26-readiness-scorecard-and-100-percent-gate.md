@@ -6,7 +6,7 @@
 
 This pack is now **100% document-quality ready** and **100% implementation-ready for the first safe performance implementation story**.
 
-It is **not** 100% ready to implement arbitrary optimization code or claim performance completion, because exact Vercel Speed Insights route/device p75 metrics remain unavailable from the exposed tools. That is not a documentation gap; it is an external provider-evidence input required to choose and prove later optimization work.
+It is **not** 100% ready to claim performance completion. Numeric Vercel Speed Insights route/device p75 metrics are now captured via CLI, post-deploy signed-out/probe-safe cache proof is captured, and synthetic production fixtures now cover signed-in auth, hosted proposal export, valid private media, and cleanup. Dashboard overview evidence and current-deployment comparable before/after traffic windows remain external/time-gated inputs required to prove later optimization work. A fresh provider refresh attributed the severe INP outlier to an old deployment, and the 2026-06-06T04:14Z readiness-checker rerun confirms current production still has no filtered Speed Insights rows. Official Vercel CLI API inventory did not expose a documented RES read/export endpoint.
 
 ## Readiness definitions
 
@@ -14,8 +14,8 @@ It is **not** 100% ready to implement arbitrary optimization code or claim perfo
 | --- | ---: | --- |
 | Document quality | 100% | The pack has complete structure, canonical index, source map, hypotheses, decision tree, acceptance criteria, fixtures, risk/rollback, telemetry/privacy, cache-safety, linked-plan sync, UltraQA, and evidence registry. |
 | First-story code implementation readiness | 100% | A future worker can begin the first safe code-bearing performance story from `27-ready-implementation-packets.md` without guessing scope, tests, evidence, risk, or rollback. |
-| Full optimization selection readiness | 85% | Public header/timing and deployment evidence are captured, but exact Speed Insights route/device p75 values still need dashboard/export capture to pick the highest real-user bottleneck. |
-| Performance completion readiness | 0% | No speed improvement has been implemented or provider-proven yet; this is intentional. |
+| Full optimization selection readiness | 98% | Public header/timing, deployment evidence, current 7-day Speed Insights p75 route/device values, live Supabase proof, signed-in auth/export synthetic hosted fixtures, valid private media/share proof, stale-INP attribution, current production Lighthouse, repeatable readiness checker/rerun evidence, Vercel API endpoint inventory, and cleanup evidence are captured; current-deployment Speed Insights rows, comparable prior/current windows, dashboard RES, and dashboard overview cards remain open. |
+| Performance completion readiness | 0% | Local/production safety and mitigation slices exist, but no comparable Speed Insights before/after window has provider-proven an RES/Core Web Vitals improvement yet. |
 
 ## Why code readiness can be 100% while Speed Insights remains open
 
@@ -70,10 +70,20 @@ As of this document, **PR-0B is the recommended first code-bearing packet** beca
 
 ## Remaining external evidence gate
 
-The exact Speed Insights p75 route/device dashboard values remain open. This blocks:
+Current Speed Insights p75 route/device values are captured via Vercel CLI, but the following still block full completion:
 
-- picking the final highest real-user optimization target,
-- claiming “massive performance upgrade” as proven,
-- using `COMPLETE` status for performance improvements.
+- current-deployment Speed Insights rows/RES after enough real-user hard-navigation data exists,
+- comparable before/after Speed Insights windows for the same route/device cohorts,
+- dashboard overview screenshot/recommendation cards if required for provider UI signoff.
 
-It does **not** block PR-0B because PR-0B is a safety/measurement-enabling implementation packet, not a performance-claiming optimization.
+The previous signed-in hosted auth, hosted export, valid private media, and valid private share-token fixture blockers were closed on 2026-06-06 by synthetic production fixtures plus zero-residue cleanup verification.
+
+These gaps block claiming “massive performance upgrade” as proven and using `COMPLETE` for performance improvements. They do **not** block local safety/measurement packets, which must stay labeled `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted proof exists.
+
+## 2026-06-06 RES completion audit update
+
+The active RES goal is **not complete**. Evidence now proves the severe `/` desktop INP outlier is stale and tied to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`, while the current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has empty filtered Speed Insights summaries. Current production lab Lighthouse is strong (mobile 94, desktop 100), but Vercel's official scoring docs make RES a real-user score. Therefore completion remains blocked by provider/current-window data, not by a currently identified repo-side code issue.
+
+## 2026-06-06 repeatable gate update
+
+`bun run perf:check-speed-insights` now provides a repeatable fail-closed RES readiness gate. The first run produced `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`, and the owner-authorized rerun produced `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md`; both confirm the goal is still not complete because current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no current-deployment Speed Insights rows and no dashboard RES score. The Vercel API endpoint inventory at `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md` found no official documented RES read/export endpoint in `vercel api ls --format json`, so this checker plus dashboard/provider RES evidence is the authoritative gate before any future completion claim.

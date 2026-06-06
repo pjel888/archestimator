@@ -1,7 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { NeatGradient, type NeatConfig } from '@firecms/neat'
+import { useEffect, useRef, useState } from 'react'
+import type { NeatConfig, NeatGradient as NeatGradientInstance } from '@firecms/neat'
+
+const NEAT_STATIC_FALLBACK_QUERY = '(prefers-reduced-motion: reduce), (pointer: coarse), (max-width: 767px)'
+const NEAT_IDLE_ACTIVATION_TIMEOUT_MS = 1800
+const NEAT_TIMEOUT_ACTIVATION_DELAY_MS = 1200
 
 const neatConfig: NeatConfig = {
   colors: [
@@ -49,63 +53,123 @@ const neatConfig: NeatConfig = {
   chromaticAberration: 0,
 }
 
+export function shouldUseStaticNeatFallback() {
+  if (typeof window === 'undefined') return true
+  if (typeof window.matchMedia !== 'function') return false
+
+  return window.matchMedia(NEAT_STATIC_FALLBACK_QUERY).matches
+}
+
+function scheduleNeatActivation(callback: () => void) {
+  if (typeof window.requestIdleCallback === 'function' && typeof window.cancelIdleCallback === 'function') {
+    const idleId = window.requestIdleCallback(callback, {
+      timeout: NEAT_IDLE_ACTIVATION_TIMEOUT_MS,
+    })
+    return () => window.cancelIdleCallback(idleId)
+  }
+
+  const timeoutId = globalThis.setTimeout(callback, NEAT_TIMEOUT_ACTIVATION_DELAY_MS)
+  return () => globalThis.clearTimeout(timeoutId)
+}
+
 export function NeatWireframeBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [shouldRenderCanvas, setShouldRenderCanvas] = useState(false)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    if (shouldUseStaticNeatFallback()) return
 
-    const gradient = new NeatGradient({
-      ref: canvas,
-      ...neatConfig,
+    let isCancelled = false
+    const cancelActivation = scheduleNeatActivation(() => {
+      if (!isCancelled) setShouldRenderCanvas(true)
     })
 
-    const removeNeatLink = () => {
-      canvas.parentElement?.querySelector('a[data-n]')?.remove()
+    return () => {
+      isCancelled = true
+      cancelActivation()
     }
+  }, [])
 
-    removeNeatLink()
-    const linkObserver = new MutationObserver(removeNeatLink)
-    if (canvas.parentElement) {
-      linkObserver.observe(canvas.parentElement, { childList: true })
+  useEffect(() => {
+    if (!shouldRenderCanvas) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const canvasElement = canvas
+
+    let isActive = true
+    let gradient: NeatGradientInstance | null = null
+    let linkObserver: MutationObserver | null = null
+    let observer: IntersectionObserver | null = null
+
+    const removeNeatLink = () => {
+      canvasElement.parentElement?.querySelector('a[data-n]')?.remove()
     }
 
     const handleScroll = () => {
-      if (!gradient.paused) {
+      if (gradient && !gradient.paused) {
         gradient.yOffset = window.scrollY * 0.18
       }
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    async function activateNeat() {
+      const { NeatGradient } = await import('@firecms/neat')
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          gradient.paused = !entry.isIntersecting
-        })
-      },
-      { threshold: 0 }
-    )
-    observer.observe(canvas)
+      if (!isActive || !canvasElement.isConnected) return
+
+      gradient = new NeatGradient({
+        ref: canvasElement,
+        ...neatConfig,
+      })
+
+      removeNeatLink()
+      linkObserver = new MutationObserver(removeNeatLink)
+      if (canvasElement.parentElement) {
+        linkObserver.observe(canvasElement.parentElement, { childList: true })
+      }
+
+      window.addEventListener('scroll', handleScroll, { passive: true })
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (gradient) gradient.paused = !entry.isIntersecting
+          })
+        },
+        { threshold: 0 }
+      )
+      observer.observe(canvasElement)
+    }
+
+    void activateNeat()
 
     return () => {
-      observer.disconnect()
-      linkObserver.disconnect()
+      isActive = false
+      observer?.disconnect()
+      linkObserver?.disconnect()
       window.removeEventListener('scroll', handleScroll)
-      gradient.destroy()
+      gradient?.destroy()
     }
-  }, [])
+  }, [shouldRenderCanvas])
 
   return (
     <>
       <style jsx global>{`a[data-n][href*="neat.firecms.co"] { display: none !important; }`}</style>
-      <canvas
-        ref={canvasRef}
-        className='absolute inset-0 size-full'
-        style={{ isolation: 'isolate' }}
-        aria-hidden='true'
-      />
+      {shouldRenderCanvas ? (
+        <canvas
+          ref={canvasRef}
+          className='absolute inset-0 size-full'
+          style={{ isolation: 'isolate' }}
+          aria-hidden='true'
+        />
+      ) : (
+        <div
+          className='absolute inset-0 size-full bg-[linear-gradient(135deg,rgba(255,138,64,0.72),rgba(210,66,30,0.64)_45%,rgba(111,41,0,0.42))]'
+          data-neat-static-fallback='true'
+          data-testid='neat-static-fallback'
+          aria-hidden='true'
+        />
+      )}
     </>
   )
 }

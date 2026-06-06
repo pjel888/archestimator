@@ -1,0 +1,21 @@
+{
+  "query": {
+    "metric": "vercel.speed_insights_metric.cls",
+    "aggregation": "p75",
+    "groupBy": [],
+    "startTime": "2026-05-30T00:00:00.000Z",
+    "endTime": "2026-06-06T04:00:00.000Z",
+    "granularity": {
+      "hours": 4
+    }
+  },
+  "summary": [],
+  "statistics": {
+    "bytesRead": 9120107,
+    "rowsRead": 200123,
+    "dbTimeSeconds": 0
+  },
+  "dataPointCount": 0,
+  "dataOmittedFromCommittedEvidence": true,
+  "omissionReason": "Time-series buckets were omitted to keep repository evidence compact; query, summary, statistics, and dataPointCount are retained."
+}

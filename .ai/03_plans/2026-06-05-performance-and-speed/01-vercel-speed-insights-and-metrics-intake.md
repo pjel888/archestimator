@@ -5,7 +5,7 @@
 
 ## Current provider evidence
 
-The Vercel connector returned:
+The initial Vercel connector baseline returned:
 
 | Field | Value |
 | --- | --- |
@@ -14,9 +14,11 @@ The Vercel connector returned:
 | Project id | `prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E` |
 | Framework | `nextjs` |
 | Node version | `24.x` |
-| Latest production deployment | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` |
-| Latest production URL | `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app` |
-| Latest commit message | `Record shared-link clickthrough proof` |
+| Baseline production deployment for the captured Speed Insights window | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` |
+| Baseline production URL | `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app` |
+| Baseline commit message | `Record shared-link clickthrough proof` |
+| Current production deployment after 2026-06-06 post-fix proof | `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` |
+| Current production URL after 2026-06-06 post-fix proof | `archestimator-6mwjrwhnk-philipjonlewis-projects.vercel.app`, aliased to `www.archestimator.com` |
 | Bundler metadata | `turbopack` |
 | Domains | `www.archestimator.com`, `archestimator.com`, `archestimator.vercel.app`, Vercel preview aliases |
 
@@ -26,32 +28,58 @@ The Vercel connector returned:
 - Computer Use attempts:
   - `Google Chrome` app state: timed out after 120s.
   - `com.google.Chrome` app state: timed out after 120s.
-- Therefore exact dashboard values are **provider proof open**.
-- The plan treats the owner report “scoring so low” as the problem trigger, not as a measured numeric baseline.
+- Computer Use dashboard capture still times out, but `vercel metrics` now provides provider-side Speed Insights p75 metric values and route/device breakdown.
+- The dashboard overview score/screenshot remains unavailable; provider CLI p75 values are the measured numeric baseline.
 
 
 ## Captured Vercel project/deployment context — 2026-06-05
 
-See `28-captured-baseline-and-remaining-provider-gap.md` for verified Vercel project/deployment context and public hosted header/timing evidence. Exact Speed Insights p75 dashboard metrics remain provider-open because the exposed connector has no Speed Insights metrics endpoint and Computer Use timed out.
+See `28-captured-baseline-and-remaining-provider-gap.md` for verified Vercel project/deployment context, public hosted header/timing evidence, and the later Vercel CLI p75 capture. Dashboard overview score/screenshot remains unavailable, but the numeric Speed Insights p75 baseline is now captured via `vercel metrics`.
+
+## PR-0A substitute evidence refresh — 2026-06-06
+
+Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`.
+
+- Read-only Vercel connector refresh confirmed baseline production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, created `2026-06-04T18:04:02.727Z`, at commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`.
+- Hosted public-route curl timing/header refresh covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms`.
+- All checked public routes still returned `private, no-cache, no-store, max-age=0, must-revalidate` and `x-vercel-cache: MISS`.
+- This is **not** Speed Insights/Core Web Vitals proof by itself. The later Vercel CLI capture below supplies provider p75 values; dashboard overview score/screenshot remains unavailable.
+
+
+## Speed Insights Chrome retry — 2026-06-06
+
+Evidence: `evidence/2026-06-06-speed-insights-chrome-retry.md`. Computer Use `get_app_state` for `Google Chrome` timed out after 120s again, so visual dashboard overview/recommendation cards remain unavailable; numeric p75 values were captured later via CLI.
+
+
+## Speed Insights provider access retry — 2026-06-06
+
+Evidence: `evidence/2026-06-06-speed-insights-provider-access-retry.md`.
+
+- Vercel connector refreshed team/project/deployment context but did not expose Speed Insights p75 dashboard/export metrics.
+- Vercel documentation search surfaced Speed Insights ingestion/drain/package references, not a dashboard p75 read API for this session.
+- Vercel protected fetch helper returned `Unable to create shareable URL` for the Speed Insights dashboard.
+- Computer Use `Google Chrome` state capture timed out after 120s again.
+- Previous connector/fetch/browser surfaces did not expose metrics, but the later `vercel metrics` CLI capture below now provides provider p75 Core Web Vitals values. Dashboard overview score/screenshot remains unavailable.
 
 ## Captured baseline record
 
-Status: **open / provider proof required**. Fill this table before implementation.
+Status: **provider p75 metrics captured via Vercel CLI / comparable prior window open**.
 
 | Field | Value | Evidence file/link | Notes |
 | --- | --- | --- | --- |
-| Capture date/time | provider-open |  |  |
-| Vercel project/deployment | provider-open |  | deployment id + commit required |
-| Time window | provider-open |  | use comparable future window |
-| Device split | provider-open |  | mobile/desktop p75 required |
-| Worst route bucket | provider-open |  | public / protected / estimate / share / export |
-| Worst metric | provider-open |  | LCP / INP / CLS / FCP / TTFB |
-| Overall score | provider-open |  |  |
-| p75 LCP | provider-open |  |  |
-| p75 INP | provider-open |  |  |
-| p75 CLS | provider-open |  |  |
-| p75 FCP | provider-open |  |  |
-| p75 TTFB | provider-open |  |  |
+| Capture date/time | 2026-06-06 CLI capture | `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md` | read-only `vercel metrics` queries |
+| Vercel project/deployment for baseline metric window | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` / `2d9e12d4d8b3f08a6da686bcb06f753474590511` | `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` | baseline deployment context captured |
+| Current production deployment after private-image cache fix | `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` / `207babf` | `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json` | post-fix deployment aliased to `www.archestimator.com` |
+| Time window | `2026-05-30T00:00:00.000Z` → `2026-06-06T04:00:00.000Z` | `current-*-overall.json`, `current-*-route-device.json` | current 7-day provider window |
+| Device split | desktop + mobile route/device p75 | `current-*-route-device.json` | `route`, `device_type` dimensions |
+| Worst route bucket | public landing `/` desktop | `vercel-speed-insights-cli-baseline.md` | highest LCP/FCP outlier; anomalous INP outlier |
+| Worst metric | INP anomaly on `/` desktop; LCP/FCP also public desktop | `current-inp-route-device.json`, `current-lcp-route-device.json`, `current-fcp-route-device.json` | INP value requires conservative interpretation |
+| Overall score | dashboard-only/unavailable |  | CLI exposes p75 metrics, not dashboard overview score |
+| p75 LCP | 1447ms overall; `/` desktop 3484ms; `/` mobile 1447ms | `current-lcp-overall.json`, `current-lcp-route-device.json` | provider CLI p75 |
+| p75 INP | 59,404,496ms overall; `/` desktop 59,404,496ms; `/` mobile 32ms | `current-inp-overall.json`, `current-inp-route-device.json` | anomalous desktop value preserved in raw JSON |
+| p75 CLS | overall null; `/` desktop 0; `/login` desktop 0 | `current-cls-overall.json`, `current-cls-route-device.json` | provider CLI p75 |
+| p75 FCP | 1380ms overall; `/` desktop 3216ms; `/` mobile 1380ms | `current-fcp-overall.json`, `current-fcp-route-device.json` | provider CLI p75 |
+| p75 TTFB | 299ms overall; `/` mobile 721ms; `/` desktop 257ms | `current-ttfb_ms-overall.json`, `current-ttfb_ms-route-device.json` | provider CLI p75 |
 
 ## Top bottleneck selection decision
 
@@ -74,12 +102,12 @@ Fill this table from Vercel Speed Insights before code changes:
 
 | Metric | Current p75 | Target p75 | Worst route/path | Device | Time window | Notes |
 | --- | ---: | ---: | --- | --- | --- | --- |
-| Overall score | provider-open | improve by >= 20 points or reach Vercel good threshold | provider-open | mobile + desktop | last 7 and 30 days | capture screenshot |
-| LCP | provider-open | <= 2.5s | provider-open | mobile first | same window | route-specific attribution required |
-| INP | provider-open | <= 200ms | provider-open | mobile first | same window | likely client JS/render work |
-| CLS | provider-open | <= 0.1 | provider-open | mobile + desktop | same window | check fonts/images/skeleton shifts |
-| FCP | provider-open | <= 1.8s | provider-open | mobile first | same window | correlate with fonts/scripts |
-| TTFB | provider-open | <= 800ms for dynamic routes; lower for static marketing | provider-open | mobile + desktop | same window | correlate with proxy/Supabase/cache |
+| Overall score | dashboard-unavailable | improve by >= 20 points or reach Vercel good threshold | dashboard-unavailable | mobile + desktop | dashboard-dependent | CLI exposes p75 metrics, not overview score |
+| LCP | 1447ms overall | <= 2.5s | `/` 3484ms | desktop | 2026-05-30 → 2026-06-06 | provider CLI p75 route/device captured |
+| INP | 59,404,496ms overall | <= 200ms | `/` 59,404,496ms | desktop | 2026-05-30 → 2026-06-06 | anomalous provider value; `/` mobile is 32ms |
+| CLS | null overall | <= 0.1 | `/` and `/login` 0 | desktop | 2026-05-30 → 2026-06-06 | null overall but route/device p75 values captured |
+| FCP | 1380ms overall | <= 1.8s | `/` 3216ms | desktop | 2026-05-30 → 2026-06-06 | provider CLI p75 route/device captured |
+| TTFB | 299ms overall | <= 800ms for dynamic routes; lower for static marketing | `/` 721ms | mobile | 2026-05-30 → 2026-06-06 | provider CLI p75 route/device captured |
 
 ## Route buckets to tag in Speed Insights
 
@@ -108,9 +136,9 @@ Before adding Speed Insights instrumentation, decide one of these paths:
 ## Exact evidence capture checklist
 
 - [ ] Screenshot Speed Insights overview with date/time and deployment context.
-- [ ] Screenshot or export metric breakdown by LCP, INP, CLS, FCP, TTFB.
-- [ ] Capture top failing route/path list.
-- [ ] Capture mobile vs desktop split.
-- [ ] Capture last 7 days and last 30 days.
-- [ ] Note whether latest production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` is inside the selected window.
+- [x] Screenshot or export metric breakdown by LCP, INP, CLS, FCP, TTFB. 2026-06-06: captured via `vercel metrics` raw JSON.
+- [x] Capture top failing route/path list. 2026-06-06: `/` desktop is the LCP/FCP and anomalous INP outlier in CLI output.
+- [x] Capture mobile vs desktop split. 2026-06-06: captured via `device_type` dimension.
+- [ ] Capture last 7 days and last 30 days. 2026-06-06: current 7-day captured; previous 7-day/3-day comparison windows returned empty summaries, and 30-day comparable data remains unavailable.
+- [x] Note whether the baseline production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` is inside the selected window. 2026-06-06: selected window ends 2026-06-06T04:00:00Z and includes the 2026-06-04 production deployment. Later deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` is the post-fix production proof deployment, not the baseline Speed Insights window deployment.
 - [ ] Attach any Vercel recommendation cards to this folder as evidence files or short summaries.

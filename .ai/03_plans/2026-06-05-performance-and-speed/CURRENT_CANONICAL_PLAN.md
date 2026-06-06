@@ -49,8 +49,23 @@ The canonical performance-and-speed pack is the complete current inventory below
 2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
 3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
 4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/README.md`
+5. `evidence/2026-06-06-public-cache-safety-harness.md`
+6. `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md`
+7. `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md`
+8. `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md`
+9. `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md`
+10. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
+11. `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md`
+12. `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md`
+13. `evidence/vercel-speed-insights-refresh-2026-06-06-post-closeout/vercel-speed-insights-refresh-summary.md`
+14. `evidence/vercel-speed-insights-inp-attribution-2026-06-06/inp-attribution-summary.md`
+15. `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`
+16. `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`
+17. `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`
+18. `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md`
+19. `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md`
+20. `evidence/README.md`
 
 ## Implementation pointer
 
-Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. The recommended first code-bearing packet is PR-0B, public personalization/cache-safety proof. Capture Speed Insights dashboard evidence via PR-0A if available, but do not block PR-0B on that provider UI gap. Do not claim performance completion until provider/manual evidence proves the target metric.
+Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. PR-0B, public personalization/cache-safety proof, is implemented as **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED** in branch `feat/performance-and-speed-pr-0b-cache-safety`; evidence is `evidence/2026-06-06-public-cache-safety-harness.md`. Synthetic production fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token evidence blockers with zero-residue cleanup proof. Current-provider refresh attributes the only severe INP outlier to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; current production `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no filtered Speed Insights rows yet. `scripts/check-vercel-speed-insights-readiness.ts` / `bun run perf:check-speed-insights` is now the repeatable read-only gate for current-deployment rows and RES target proof; the latest rerun still fails closed because rows/dashboard RES are missing. `vercel api ls --format json` did not expose a documented Speed Insights RES read/export endpoint, so dashboard/provider RES proof remains required. Capture dashboard overview/recommendation cards if available, capture current-deployment comparable Speed Insights/RES windows when traffic exists, and do not claim performance completion until provider/manual evidence proves the target metric. Do not relax public cache headers until personalized/auth/A-B output is isolated or proven cache-safe; do not reapply the Roboto Mono preload spike without stronger proof.

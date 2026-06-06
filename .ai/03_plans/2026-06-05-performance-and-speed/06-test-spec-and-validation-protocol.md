@@ -102,3 +102,20 @@ Stop implementation and return to planning if:
 - A performance improvement requires removing product behavior the owner has not approved.
 - Bundle analyzer shows no measurable impact from the proposed change.
 - Tests pass locally but production/provider proof remains absent; mark local-only, not complete.
+
+## 2026-06-06 Speed Insights RES readiness checker
+
+A repeatable provider gate now exists for the RES target:
+
+```bash
+bun run perf:check-speed-insights
+```
+
+Environment controls:
+
+- `SPEED_INSIGHTS_OUTPUT_FILE` / `OUTPUT_FILE` — write JSON evidence.
+- `SPEED_INSIGHTS_MARKDOWN_FILE` / `MARKDOWN_FILE` — write markdown evidence.
+- `SPEED_INSIGHTS_ALLOW_NOT_READY=1` — capture evidence without failing the shell while provider data is still missing.
+- `SPEED_INSIGHTS_DASHBOARD_RES_SCORE=<number>` — only for a manually verified dashboard RES value; the script fails closed without it because Vercel CLI metrics do not expose exact RES.
+
+The checker is read-only: it runs `vercel inspect` and `vercel metrics`, filters p75 metric rows to the current production deployment, compares FCP/LCP/INP/CLS to Vercel good thresholds, and refuses to mark RES completion without current-deployment rows plus a dashboard RES score meeting the target. Regression coverage: `tests/vitest/vercel-speed-insights-readiness-script.test.ts`.

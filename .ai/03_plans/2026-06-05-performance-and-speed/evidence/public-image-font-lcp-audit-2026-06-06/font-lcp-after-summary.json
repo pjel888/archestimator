@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-06-06T00:00:00.000+08:00",
+  "mode": "local-next-start-lighthouse-mobile-after-unused-root-font-removal",
+  "baseUrl": "http://127.0.0.1:3048",
+  "rows": [
+    {
+      "file": "features-mobile-consent-off-after-font-audit.report.json",
+      "url": "http://127.0.0.1:3048/features",
+      "score": 92,
+      "fcpMs": 1211.53,
+      "lcpMs": 3322.0599999999995,
+      "tbtMs": 12,
+      "cls": 0,
+      "siMs": 1211.53,
+      "fontRequestCount": 2,
+      "fontRequests": [
+        {
+          "url": "2f13ad8e538108e0-s.p.0o52u8sd-fo14.woff2",
+          "transferSize": 33052
+        },
+        {
+          "url": "83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2",
+          "transferSize": 48732
+        }
+      ],
+      "imageRequestCount": 1,
+      "imageRequests": [
+        {
+          "url": "archestimator_logo.svg",
+          "transferSize": 1118
+        }
+      ],
+      "lcpNodeLabel": null
+    },
+    {
+      "file": "home-mobile-consent-off-after-font-audit.report.json",
+      "url": "http://127.0.0.1:3048/",
+      "score": 89,
+      "fcpMs": 1216.575,
+      "lcpMs": 3752.862500000001,
+      "tbtMs": 51,
+      "cls": 0,
+      "siMs": 2594.774215362847,
+      "fontRequestCount": 3,
+      "fontRequests": [
+        {
+          "url": "2f13ad8e538108e0-s.p.0o52u8sd-fo14.woff2",
+          "transferSize": 33052
+        },
+        {
+          "url": "83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2",
+          "transferSize": 48732
+        },
+        {
+          "url": "99ac5753282bcf05-s.14-35mipncksh.woff2",
+          "transferSize": 23168
+        }
+      ],
+      "imageRequestCount": 1,
+      "imageRequests": [
+        {
+          "url": "archestimator_logo.svg",
+          "transferSize": 1118
+        }
+      ],
+      "lcpNodeLabel": null
+    }
+  ],
+  "postBuildFontCss": {
+    "fontFamilies": {
+      "Inter": 7,
+      "Inter Fallback": 1,
+      "Roboto Mono": 6,
+      "Roboto Mono Fallback": 1
+    },
+    "fontUrlCount": 13,
+    "containsPoppins": false,
+    "containsSourceSerif": false
+  }
+}

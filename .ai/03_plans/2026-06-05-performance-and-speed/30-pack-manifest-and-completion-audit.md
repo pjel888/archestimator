@@ -45,11 +45,23 @@ This manifest is generated from the current folder inventory. It exists to preve
 
 ## Evidence files
 
-1. `evidence/2026-06-05-computer-use-speed-insights-attempt.md`
-2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
-3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
-4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/README.md`
+The evidence folder now contains 62 top-level files and 296 files total including trace/report subfolders. `21-evidence-index.md` is the canonical registry. Current key proof artifacts include:
+
+1. `evidence/vercel-speed-insights-cli-2026-06-06/vercel-speed-insights-cli-baseline.md`
+2. `evidence/2026-06-06-production-deployment-private-image-cache-fix-inspect.json`
+3. `evidence/2026-06-06-public-cache-safety-harness.md`
+4. `evidence/2026-06-06-auth-proxy-production-postfix-smoke-benchmark.md`
+5. `evidence/2026-06-06-sensitive-route-production-postfix-fail-closed-probe.md`
+6. `evidence/2026-06-06-hosted-auth-production-synthetic-fixture-smoke-benchmark.md`
+7. `evidence/2026-06-06-hosted-export-production-synthetic-fixture-smoke-benchmark.md`
+8. `evidence/2026-06-06-valid-private-image-production-synthetic-fixture-smoke-benchmark.md`
+9. `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md`
+10. `evidence/2026-06-06-hosted-synthetic-fixture-cleanup-verification.md`
+11. `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md`
+12. `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`
+13. `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md`
+14. `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md`
+15. `evidence/README.md`
 
 ## Completion audit
 
@@ -57,10 +69,44 @@ This manifest is generated from the current folder inventory. It exists to preve
 | --- | --- | --- |
 | Document quality 100% | Complete manifest, canonical pointer, scorecard, decision tree, packets, UltraQA audit, source map, risk/rollback, evidence index | PASS |
 | First safe code implementation readiness 100% | `27-ready-implementation-packets.md` PR-0B has scope, allowed/forbidden files, tests, evidence, rollback, completion language | PASS |
-| Provider proof honesty | `28-captured-baseline-and-remaining-provider-gap.md` and evidence files record exact Speed Insights gap and captured substitute evidence | PASS |
-| No app code changed in this planning turn | git status only shows new plan folder in main checkout; worktree branch is clean | PASS |
+| Provider proof honesty | `28-captured-baseline-and-remaining-provider-gap.md`, `21-evidence-index.md`, and evidence files record exact Speed Insights gap, captured substitutes, hosted synthetic fixture proof, and remaining provider gaps | PASS |
+| No app code changed in the original planning turn | git status only showed the new plan folder in main checkout during planning | PASS |
+| PR-0B proof-harness implementation packet | `scripts/check-public-cache-safety.ts`, `tests/vitest/public-cache-safety-harness.test.tsx`, and `evidence/2026-06-06-public-cache-safety-harness.md` prove current public marketing routes are not shared-cache compatible without changing runtime behavior | PASS |
 | No hidden workflow state | OMX active modes scan returns empty | PASS |
 
 ## Final interpretation
 
-The pack is complete for handoff. Future implementation should begin with PR-0B unless the owner first supplies Speed Insights dashboard evidence for PR-0A.
+The planning pack remains complete for handoff. PR-0B is implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Synthetic hosted fixtures now close signed-in auth, hosted export, valid private media, and valid private share-token blockers with zero-residue cleanup. Future work should capture dashboard evidence if available, wait for comparable Speed Insights windows, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.
+
+## 2026-06-06 post-closeout manifest refresh
+
+After adding current-provider refresh, INP attribution, current production Lighthouse, Vercel scoring-doc review, and rejected mono-font spike evidence:
+
+- Top-level files under `evidence/`: 62.
+- Total evidence files under `evidence/`: 286.
+- Total files under this plan pack: 322.
+
+This refresh did not add runtime code. It added provider/lab evidence and a reverted-spike record that future workers should respect.
+
+## 2026-06-06 readiness-checker manifest refresh
+
+After adding the repeatable Speed Insights readiness checker and latest run evidence:
+
+- New script: `scripts/check-vercel-speed-insights-readiness.ts`.
+- New test: `tests/vitest/vercel-speed-insights-readiness-script.test.ts`.
+- New package script: `perf:check-speed-insights`.
+- New evidence folder: `evidence/vercel-speed-insights-readiness-check-2026-06-06/`.
+
+Completion remains unclaimed because the checker fails closed with missing current-deployment rows and missing dashboard RES.
+
+## 2026-06-06 RES gate rerun/API-inventory manifest refresh
+
+After rerunning the Speed Insights readiness checker and checking the official Vercel CLI API endpoint inventory:
+
+- New evidence folder: `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/`.
+- New evidence folder: `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/`.
+- Top-level files under `evidence/`: 62.
+- Total evidence files under `evidence/`: 296.
+- Total files under this plan pack: 332.
+
+Completion remains unclaimed because the rerun still finds no current-production Speed Insights rows and the official Vercel CLI API inventory exposes no documented RES read/export endpoint.

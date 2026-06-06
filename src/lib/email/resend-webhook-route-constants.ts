@@ -1,0 +1,1 @@
+export const RESEND_WEBHOOK_MAX_BODY_BYTES = 256 * 1024;

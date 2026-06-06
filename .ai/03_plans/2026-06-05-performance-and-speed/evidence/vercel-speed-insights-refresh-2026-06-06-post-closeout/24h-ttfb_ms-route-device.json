@@ -1,0 +1,24 @@
+{
+  "query": {
+    "metric": "vercel.speed_insights_metric.ttfb_ms",
+    "aggregation": "p75",
+    "groupBy": [
+      "route",
+      "device_type"
+    ],
+    "startTime": "2026-06-05T03:00:00.000Z",
+    "endTime": "2026-06-06T04:00:00.000Z",
+    "granularity": {
+      "hours": 1
+    }
+  },
+  "summary": [],
+  "statistics": {
+    "bytesRead": 10964490,
+    "rowsRead": 236854,
+    "dbTimeSeconds": 0
+  },
+  "dataPointCount": 0,
+  "dataOmittedFromCommittedEvidence": true,
+  "omissionReason": "Time-series buckets were omitted to keep repository evidence compact; query, summary, statistics, and dataPointCount are retained."
+}
