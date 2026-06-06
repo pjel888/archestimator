@@ -121,6 +121,12 @@ export function buildSensitiveRouteProbes(fakeToken = DEFAULT_FAKE_TOKEN): Sensi
       path: "/api/projects/images?path=not-a-valid-private-path.webp",
       note: "Exercises private project image route with a non-secret invalid storage path.",
     },
+    {
+      key: "project-image-valid-shaped-path",
+      label: "Project image API valid-shaped fake path",
+      path: "/api/projects/images?path=11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/project-images/33333333-3333-4333-8333-333333333333/non-secret-proof.webp",
+      note: "Exercises private project image route with a syntactically valid but non-secret fake storage path and no session.",
+    },
   ];
 }
 

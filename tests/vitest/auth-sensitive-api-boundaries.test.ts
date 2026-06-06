@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
+  getCurrentUserContext: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -42,6 +43,9 @@ function mockCurrentWorkspace() {
     workspace: { id: "workspace-1" },
   });
   authMocks.requireCurrentUserContext.mockResolvedValue({
+    userId: "user-1",
+  });
+  authMocks.getCurrentUserContext.mockResolvedValue({
     userId: "user-1",
   });
 }
@@ -328,6 +332,44 @@ describe("sensitive API auth boundaries", () => {
     expect(projectLookup.maybeSingle).toHaveBeenCalled();
     expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.download).toHaveBeenCalledWith(path);
+  });
+
+  it("fails closed with no-store for malformed project image paths before auth", async () => {
+    const projectLookup = mockProjectLookup();
+    const storage = mockStorageClient();
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(new Request("http://localhost/api/projects/images?path=not-a-valid-private-path.webp"));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Image could not be found.",
+    });
+    expect(authMocks.getCurrentUserContext).not.toHaveBeenCalled();
+    expect(projectLookup.from).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with no-store for unauthenticated project image requests without redirecting", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const ownerUserId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
+    const projectLookup = mockProjectLookup({ id: projectId, workspace_id: workspaceId });
+    const storage = mockStorageClient();
+    authMocks.getCurrentUserContext.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/projects/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("private, no-cache, no-store, max-age=0, must-revalidate");
+    await expect(response.json()).resolves.toEqual({
+      error: "Image could not be found.",
+    });
+    expect(projectLookup.from).not.toHaveBeenCalled();
+    expect(storage.from).not.toHaveBeenCalled();
   });
 
   it("rejects project image uploads for projects outside the current workspace before storage writes", async () => {
