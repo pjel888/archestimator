@@ -4,6 +4,8 @@ Each task is intended to produce reviewable, reversible progress. Commit after e
 
 Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. Start implementation from `25_IMPLEMENTATION_HANDOFF_CHECKLIST.md`; this file remains the phase-by-phase execution body.
 
+2026-06-06 implementation update: the owner removed Docker from this goal and requested PostgreSQL binaries instead. `bun run prove:notification-rls` is the accepted local database-backed RLS behavior proof for this implementation branch; Supabase CLI reset/typegen remains future provider-readiness work.
+
 ## Task 0: Re-Verify Preconditions
 
 **Files:** no edits.
@@ -46,9 +48,9 @@ Refinement status: `REFINED_READY_FOR_IMPLEMENTATION`. Start implementation from
   - `notification_definitions_dedupe_key_idx`
 - [ ] Add schema tests that read the SQL file and assert table names, RLS statements, revoke/grant statements, unique constraint, and indexes.
 - [ ] Add RLS tests proving definition read access is scoped through own delivery rows and direct authenticated state updates are denied.
-- [ ] Do not proceed to UI work until local Supabase RLS integration proof or branch-safe DB proof passes. If neither path is available, stop and record a blocker or explicit owner-accepted proof gap.
+- [ ] Do not proceed to UI work until database-backed RLS integration proof passes. For this branch, `bun run prove:notification-rls` satisfies that proof without Docker by applying the migration to a temporary local PostgreSQL cluster.
 - [ ] Run `bun run test:dom -- tests/vitest/notification-schema.test.ts`; expected pass.
-- [ ] Run local Supabase reset/typegen if the implementation environment supports it. If not, document the exact reason and run SQL static tests.
+- [ ] Run local Supabase reset/typegen if the implementation environment supports it. If not, document the exact reason, run SQL static tests, and run `bun run prove:notification-rls` for no-Docker RLS behavior proof.
 - [ ] Record local/branch-safe/linked-provider evidence according to `23_SUPABASE_PROVIDER_AND_MIGRATION_EVIDENCE_PLAN.md`.
 
 ## Task 2: Server Types, Repository, And Actions

@@ -57,6 +57,7 @@ bun run type-check
 bun run lint
 bun run lint:design-system
 bun run test:dom
+bun run prove:notification-rls
 bun run validate
 git diff --check
 ```
@@ -72,7 +73,7 @@ bun run test:e2e -- e2e/notifications-release-modal.spec.ts e2e/notifications-ce
 Stop and create a bug plan under `.ai/15_Bugs` if:
 
 - Cross-user RLS denial fails.
-- Actual local or branch-safe RLS behavior proof is unavailable and the owner has not accepted the exact proof gap.
+- Actual database-backed RLS behavior proof is unavailable through `bun run prove:notification-rls`, local Supabase, or an owner-approved branch-safe database.
 - Authenticated role can directly insert/update/delete notification rows.
 - Notification UI appears on public share or signed-out routes.
 - Modal focus return cannot be proven.

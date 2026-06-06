@@ -1,6 +1,6 @@
 # Current State
 
-**Notification System Implemented With Local RLS Proof Blocker (2026-06-06):**
+**Notification System Implemented And No-Docker RLS-Proven (2026-06-06):**
 Branch `codex/notification-system` now contains the V1 implementation for durable
 in-app notifications and release announcement modals. Added an additive
 Supabase migration for `notification_definitions` and `notification_deliveries`,
@@ -10,15 +10,19 @@ hooks plus compact modal/center/bell UI under `src/features/notifications/`,
 global route-gated provider mounting in `src/app/providers.tsx`, and workshop
 header integration through `WorkshopPageShell`'s existing action slot. Added
 guarded RLS and Playwright E2E harnesses that only run against local or explicitly
-branch-safe Supabase targets. Static schema, server-action, query-hook, modal,
-center, provider, workshop-entry, and mapped regression tests pass, and follow-up
-`bun run validate` passes with the full DOM suite at 198 passed files plus 1
-skipped proof file, and 1498 passed tests plus 3 skipped tests. No linked
+branch-safe Supabase targets. Added `scripts/prove-notification-rls-postgres.mjs`
+and `bun run prove:notification-rls`, which start a temporary local PostgreSQL 16
+cluster without Docker, apply the real notification migration, and prove
+same-user reads, cross-user denial, direct authenticated write denial, direct
+definition insert denial, and anonymous read denial. Static schema,
+server-action, query-hook, modal, center, provider, workshop-entry, mapped
+regression tests, no-Docker RLS proof, and follow-up validation pass. No linked
 Supabase, Vercel, DNS, Resend, paid feature, secret, or production/provider
-setting changed. Remaining release/PR blocker:
-database-backed RLS proof and local typegen are unavailable in this worktree
-because Docker/Postgres are not installed; see
-`.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md`.
+setting changed. Supabase CLI reset/typegen, linked migration apply, hosted
+smoke, and real beta fanout remain future owner-approved provider-readiness work,
+not a Docker dependency for this implementation goal; see
+`.ai/15_Bugs/2026-06-06-notification-system-rls-proof-blocker.md` for the resolved
+blocker record.
 
 **Pre-Release Beta Release Path Confirmed (2026-06-06 08:13Z):**
 Latest `main` commit `1e7c581fb9efa3094fb34b782d59e229f93f2320` was manually
