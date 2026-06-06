@@ -1,0 +1,14 @@
+# Archestimator ownership gate.
+# Platform enforcement is pending GitHub branch-protection capability; keep this
+# file advisory until required CODEOWNERS review can be enabled.
+
+* @pjel888
+
+.github/ @pjel888
+.ai/ @pjel888
+.codex/ @pjel888
+src/ @pjel888
+supabase/ @pjel888
+vercel.json @pjel888
+package.json @pjel888
+bun.lock @pjel888

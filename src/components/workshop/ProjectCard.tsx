@@ -64,9 +64,11 @@ export function ProjectCard({ project, hasUnseenSharedLinkActivity = false }: Pr
           </div>
         </div>
 
-        <div className="mt-2 flex items-center justify-between border-t border-hairline pt-2 text-[10px] font-medium text-ink">
-          <span>Open sample</span>
-          <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        <div className="mt-2 flex justify-end border-t border-hairline pt-2 text-[10px] font-medium text-ink">
+          <span className="inline-flex h-7 items-center gap-1 rounded-xs px-4 hover:bg-surfaceMuted">
+            Open sample
+            <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </span>
         </div>
       </div>
     </Link>

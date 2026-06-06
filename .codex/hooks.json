@@ -10,6 +10,15 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -20,6 +29,71 @@
             "type": "command",
             "command": "uvx --from code-review-graph==2.3.5 code-review-graph status",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -lc 'hook=\"$(npm root -g 2>/dev/null)/oh-my-codex/dist/scripts/codex-native-hook.js\"; [ -f \"$hook\" ] && node \"$hook\" || true'",
+            "timeout": 30
           }
         ]
       }
