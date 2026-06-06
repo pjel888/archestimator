@@ -201,7 +201,8 @@ describe("workshop sidebar baseline", () => {
     expect(periodRow).not.toHaveAttribute("aria-label");
     expect(periodRow).not.toHaveAttribute("role");
     expect(within(greeting).queryByRole("button")).toBeNull();
-    expect(within(greeting).getByText("Philip Lewis")).toBeInTheDocument();
+    expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toHaveClass("text-[10px]", "font-medium", "text-secondary");
+    expect(within(greeting).getByText("Philip Lewis")).toHaveClass("text-[12px]", "font-medium", "text-ink");
     expect(greeting.querySelector("svg")).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Favorites" })).toBeNull();
