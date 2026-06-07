@@ -27,7 +27,7 @@ Target: `src/lib/projects/archive-logic.test.ts` (or relevant logic files)
 
 ## Vitest / DOM Tests
 
-Target: `src/components/projects/ProjectsPageClient.test.tsx`
+Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test)
 
 | Test Case | Description | Expected Result |
 |-----------|-------------|-----------------|
@@ -54,7 +54,7 @@ Target: `tests/e2e/archives.spec.ts`
 
 ## Verification Commands
 
-- `bun run typecheck`: Ensure no type regressions in project interfaces.
+- `bun run type-check`: Ensure no type regressions in project interfaces.
 - `bun run lint`: Verify code style and design system alignment.
 - `bun run build`: Ensure the production build succeeds with new routes/components.
 
@@ -95,5 +95,5 @@ If E2E tests are blocked by environment issues, use **Manual RPC Verification**:
 
 When applying schema changes:
 - `npx supabase migration list`: Verify the archive migration is applied.
-- `npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr > src/types/supabase.ts`: Update types.
+- `npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr > src/lib/supabase/types.ts`: Update types (plus manual patches for new RPCs).
 - **RLS Proof**: `SELECT * FROM projects WHERE archived_at IS NOT NULL` as a non-member user (should return 0 rows).
