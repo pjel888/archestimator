@@ -117,3 +117,88 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.
+
+<!-- compound-engineering-plugin:start -->
+## Compound Engineering Plugin
+
+This project has the [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin) installed for OpenCode. Agents must leverage these skills for every applicable task.
+
+### Always Use These Skills
+
+| For | Use |
+|-----|-----|
+| Planning / architecture decisions | `/ce-plan`, `/ce-brainstorm`, `/ce-strategy` |
+| UI / frontend work | `/ce-frontend-design`, `/ce-polish-beta` |
+| Code review | `/ce-code-review`, `/ce-doc-review` |
+| Debugging | `/ce-debug`, `/ce-report-bug` |
+| Performance / optimization | `/ce-optimize` |
+| Testing in browser | `/ce-test-browser` |
+| Commit / PR workflow | `/ce-commit`, `/ce-commit-push-pr` |
+| Code simplification | `/ce-simplify-code` |
+| Project health check | `/ce-product-pulse` |
+| Multi-agent coordination | `/ce-work`, `/ce-sessions` |
+
+### Rules
+
+- **MUST use `/ce-plan` before any multi-step implementation.** Do not start coding without a plan.
+- **MUST use `/ce-code-review` before merging substantial work.**
+- **MUST use `/ce-frontend-design` or `/ce-polish-beta` for any UI/visual changes.**
+- Agent skills in `~/.config/opencode/agents/ce-*` are available for specialized review — delegate to them when their domain matches.
+<!-- compound-engineering-plugin:end -->
+
+<!-- impeccable:start -->
+## Impeccable Design System
+
+This project uses [Impeccable](https://impeccable.style/) for design quality enforcement. Skill files live in `.agents/skills/impeccable/`, `.claude/skills/impeccable/`, and `.cursor/skills/impeccable/`.
+
+### Always Do
+
+- **MUST load the impeccable skill before any UI/design work.** Use `skill(name="impeccable")` to load the full design workflow.
+- Follow `PRODUCT.md` and `DESIGN.md` as the source of truth for all visual decisions.
+- Run `node .agents/skills/impeccable/scripts/context.mjs` at the start of any design session.
+- Read the relevant command reference (`reference/craft.md`, `reference/polish.md`, etc.) before using any impeccable sub-command.
+- **Never skip contrast verification** — body text must hit ≥4.5:1 against its background.
+- **Never use gray text on colored backgrounds** — use a darker shade of the background's hue instead.
+
+### When Building UI
+
+- Prefer the impeccable workflow over ad-hoc styling.
+- Use existing design tokens from `src/app/globals.css` — do not invent new colors or spacing.
+- All app/workshop UI must use SF Pro, max 12px, 3px radius, 0 letter-spacing, regular/medium weights.
+- Refer to `DESIGN.md` before any visual change.
+<!-- impeccable:end -->
+
+<!-- ui-component-library:start -->
+## UI Component Library
+
+This project has a comprehensive UI component library with 60+ components and 85+ Storybook stories in `src/components/ui/`. All components are barrel-exported from `src/components/ui/index.tsx`.
+
+### Always Do
+
+- **MUST check `src/components/ui/` before creating any new UI markup.** Reuse existing components.
+- **NEVER create one-off button, input, card, badge, or modal markup** — use the library components.
+- Import from the barrel: `import { Button, Card, Tabs } from "@/components/ui"`.
+- Review available components in Storybook before deciding something doesn't exist.
+
+### Key Components
+
+| Category | Available |
+|----------|-----------|
+| Actions | `Button`, `IconButton`, `ButtonGroup`, `ButtonLink`, `DropdownMenu`, `ToolbarIconButton` |
+| Forms | `ControlInput`, `ControlTextarea`, `ControlSelect`, `SearchInput`, `Checkbox`, `RadioGroup`, `Switch`, `NumberInput`, `CurrencyInput`, `DatePicker`, `FileUpload`, `CreatableCombobox` |
+| Overlays | `Dialog`, `Modal`, `AppModal`, `Sheet`, `Drawer`, `Popover`, `Tooltip`, `HoverCard`, `CommandDialog`, `ConfirmDialog` |
+| Navigation | `Tabs` (+`TabPanel`), `Breadcrumbs`, `PageHeader`, `Pagination`, `ContextMenu` |
+| Data | `DataTable`, `Tree`, `Timeline`, `Progress` |
+| Feedback | `Toast`, `Alert`, `Banner`, `Spinner`, `Skeleton`, `EmptyState` |
+| Layout | `Card`, `Panel`, `Separator`, `Accordion`, `ScrollArea`, `BulkActionToolbar` |
+| Domain | `FinancialTotalCard`, `EstimateCell`, `StatusBadge`, `ConfidenceIndicator`, `Avatar` |
+| Utility | `Badge`, `Chip`, `HeaderIconToolbar`, `RouteLoadingOverlay` |
+
+### Rules
+
+- **NEVER duplicate an existing component pattern.** If you need a variant, extend the component.
+- New components must follow `DESIGN.md`: SF Pro, max 12px, 3px radius, 0 letter-spacing, regular/medium weights.
+- New components must be barrel-exported from `src/components/ui/index.tsx`.
+- New components must have Storybook stories.
+- Run `bun run lint:design-system` after any component change.
+<!-- ui-component-library:end -->
