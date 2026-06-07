@@ -4,25 +4,27 @@ import { describe, expect, it, vi } from "vitest";
 import { HeroSection, heroCopyVariants } from "@/components/landing/HeroSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { ProductShowcaseSection } from "@/components/landing/ProductShowcaseSection";
-import { SolutionSection } from "@/components/landing/SolutionSection";
+import { SecondaryClaimSection } from "@/components/landing/SecondaryClaimSection";
 
 vi.mock("@/components/landing/NeatWireframeBackground", () => ({
   NeatWireframeBackground: () => <div data-testid="neat-wireframe-background" />,
 }));
 
 describe("landing page below-hero interactivity", () => {
-  it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
+  it("keeps hero A/B copy grounded in product workflow", () => {
     render(<HeroSection />);
 
-    expect(screen.getByRole("heading", { name: /clearer workspace for quote sheets and proposal handoff/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /quote logic your buyer can trust/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /request access/i })).toHaveAttribute("href", "/contact");
+    expect(screen.getByRole("link", { name: /view product direction/i })).toHaveAttribute("href", "/features");
     expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
       expect.arrayContaining([
-        "A clearer workspace for quote sheets and proposal handoff.",
-        "Build estimate logic buyers can actually review.",
+        "Quote logic your buyer can trust.",
+        "From estimate to proposal, keep the math attached.",
       ]),
     );
-    expect(heroCopyVariants.map((variant) => variant.support).join(" ")).toMatch(
-      /closed-beta/i,
+    expect(heroCopyVariants.map((variant) => variant.support).join(" ")).not.toMatch(
+      /beta|closed-beta/i,
     );
     expect(heroCopyVariants.map((variant) => variant.headline).join(" ")).not.toMatch(
       /smart ones|competitors are already/i,
@@ -71,26 +73,41 @@ describe("landing page below-hero interactivity", () => {
     expect(componentLibraryTab).toHaveAttribute("aria-selected", "true");
   });
 
-  it("replaces the public solution placeholder with a credible quote workflow visual", () => {
-    render(<SolutionSection />);
+  it("renders a focused method section with compact walkthrough slots", () => {
+    render(<SecondaryClaimSection />);
 
-    expect(screen.queryByText(/placeholder/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/connected quote workflow/i)).toBeInTheDocument();
-    expect(screen.getByText(/line-item structure drives connected quote logic/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /estimate\. revise\. propose\./i })).toBeInTheDocument();
+    expect(screen.getByText("Workflow walkthroughs")).toBeInTheDocument();
+    expect(screen.getByText("Quote build")).toBeInTheDocument();
+    expect(screen.getByText("Revision review")).toBeInTheDocument();
+    expect(screen.getAllByText("Proposal handoff").length).toBe(1);
+    expect(screen.getAllByRole("button", { name: /video placeholder/i })).toHaveLength(3);
+    expect(screen.getByText("Quantities, rates, suppliers.")).toBeInTheDocument();
+    expect(screen.getByText("Changes, assumptions, approvals.")).toBeInTheDocument();
+    expect(screen.getByText("Inclusions, exclusions, totals.")).toBeInTheDocument();
+    expect(screen.queryByText(/Video slot|Planned video/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Not claimed")).not.toBeInTheDocument();
+    expect(screen.queryByText(/recording slot|no faux app screenshots/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Trusted by|Used by|Customers include/i)).not.toBeInTheDocument();
   });
 
   it("renders a professional footer with grounded quote-and-proposal navigation", () => {
     render(<LandingFooter />);
 
-    const footer = screen.getByRole("contentinfo", { name: /clearer quote and proposal workspace/i });
+    const footer = screen.getByRole("contentinfo", { name: /estimate\. revise\. propose\./i });
     expect(footer).toBeInTheDocument();
-    expect(screen.getByText(/A clearer quote and proposal workspace for sales teams, suppliers, and estimating teams/i)).toBeInTheDocument();
-    expect(screen.getByText(/Less file hunting/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /Open workspace/i }).map((link) => link.getAttribute("href"))).toContain("/workshop");
-    expect(screen.getAllByRole("link", { name: /Try Workspace/i }).map((link) => link.getAttribute("href"))).toContain("/login?next=/workshop/projects");
-    expect(screen.getByRole("link", { name: "Estimate Workspace" })).toHaveAttribute("href", "#product");
-    expect(screen.getByRole("link", { name: "Proposal-ready outputs" })).toHaveAttribute("href", "#solutions");
+    expect(screen.getAllByText(/Estimate\. Revise\. Propose\./i).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Request access/i }).map((link) => link.getAttribute("href"))).toContain("/contact");
+    expect(screen.queryByRole("link", { name: /Try Workspace/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Feature status" })).toHaveAttribute("href", "/features");
     expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} Archestimator`))).toBeInTheDocument();
     expect(footer).not.toHaveTextContent(/Trusted by|Used by|Customers include|testimonial/i);
+  });
+
+  it("renders authenticated footer access as Open workspace", () => {
+    render(<LandingFooter isLoggedIn={true} />);
+
+    expect(screen.getAllByRole("link", { name: /Open workspace/i }).map((link) => link.getAttribute("href"))).toContain("/workshop");
+    expect(screen.queryByRole("link", { name: /Request access/i })).not.toBeInTheDocument();
   });
 });

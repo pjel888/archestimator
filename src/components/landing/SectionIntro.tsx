@@ -28,7 +28,7 @@ export function SectionIntro({
       {showActions ? (
         <div className="mt-7 flex justify-center gap-3">
           <CtaLink href={workshopHref}>See the workspace</CtaLink>
-          <CtaLink href="#product" variant="secondary">
+          <CtaLink href="/features" variant="secondary">
             View product preview
           </CtaLink>
         </div>
