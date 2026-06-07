@@ -12,7 +12,7 @@ This document analyzes the impact and risks associated with implementing the Pro
 - **Chart Access:** Charts belonging to archived projects will be blocked/inaccessible.
 - **Homebase:** The homebase view will exclude archived projects from "Recent" and "Favorites" sections.
 - **Favorites:** Archived projects will be hidden from the favorites list but will reappear if restored.
-- **Collaboration:** Shared project lists will exclude archived projects. Pending invites for archived projects are preserved but hidden; invite acceptance is blocked while project is archived (`src/app/invite/[token]/page.tsx`, `src/lib/collaboration/pending-invite-actions.ts`).
+- **Collaboration:** Shared project lists will exclude archived projects. Pending invites for archived projects are preserved but hidden; invite acceptance is blocked while project is archived (`src/app/invite/[token]/page.tsx`, `src/app/invite/[token]/accept/route.ts`, `src/lib/collaboration/pending-invite-actions.ts`).
 - **Publication:** Shared links for archived projects will be "paused," showing an "Archived" state instead of the project content.
 
 ## Affected Modules

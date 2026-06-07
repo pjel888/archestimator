@@ -40,7 +40,7 @@
 | R29 | Keyboard navigation for tabs | Arrow keys navigate tabs including Archived | src/components/workshop/projects-page-client.tsx | Phase 4 | DOM test: keyboard navigation works | Low risk | Planned |
 | R30 | Build passes | bun run build exits 0 | All files | Phase 7 | bun run build | Blocking: build failure | Planned |
 | R31 | API surfaces check archive state | XLSX export, AI endpoints, project images reject/redirect for archived projects | src/app/api/projects/..., src/lib/ai/ | Phase 5 | Route test: API returns expected archive response | Medium risk | Planned |
-| R32 | Invite acceptance blocked for archived | Accepting invite for archived project returns "project archived" state; re-enabled on restore | src/app/invite/[token]/page.tsx, src/lib/collaboration/pending-invite-actions.ts | Phase 5 | Route test: invite acceptance returns archived state | Low risk | Planned |
+| R32 | Invite acceptance blocked for archived | Accepting invite for archived project returns "project archived" state; re-enabled on restore | src/app/invite/[token]/page.tsx, src/app/invite/[token]/accept/route.ts, src/lib/collaboration/pending-invite-actions.ts | Phase 5 | Route test: invite acceptance returns archived state | Low risk | Planned |
 
 ## Summary
 

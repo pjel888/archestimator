@@ -107,13 +107,14 @@ This document outlines the step-by-step implementation order for the Archives fe
   - Add archive-state checks to API surfaces: XLSX export route, AI ask/package-builder context reads, project image serving (see blast radius analysis for full list).
   - Update homebase: Exclude archived projects from recent/favorites.
   - Update favorites: Hide archived project favorites; ensure they re-appear on restore.
-  - Update collaboration: Preserve pending invites for archived projects; hide archived from shared lists; block invite acceptance (`src/app/invite/[token]/page.tsx`, `src/lib/collaboration/pending-invite-actions.ts`) while project is archived.
+  - Update collaboration: Preserve pending invites for archived projects; hide archived from shared lists; block invite acceptance (`src/app/invite/[token]/page.tsx`, `src/app/invite/[token]/accept/route.ts`, `src/lib/collaboration/pending-invite-actions.ts`) while project is archived.
 - **Files Involved:**
   - `src/app/workshop/projects/[projectId]/page.tsx`
   - `src/app/workshop/projects/[projectId]/layout.tsx`
   - `src/app/workshop/projects/[projectId]/estimates/page.tsx`
   - `src/app/workshop/projects/[projectId]/charts/page.tsx`
   - `src/app/invite/[token]/page.tsx`
+  - `src/app/invite/[token]/accept/route.ts`
   - `src/lib/collaboration/pending-invite-actions.ts`
   - `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts`
   - `src/lib/ai/read-context.ts`
