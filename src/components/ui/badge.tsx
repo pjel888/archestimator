@@ -28,7 +28,7 @@ export function Badge({ className, tone = "neutral", size = "sm", children, ...p
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-xs border font-medium leading-none tracking-normal uppercase tabular-nums",
+        "inline-flex shrink-0 items-center justify-center min-w-[96px] rounded-xs border font-medium leading-none tracking-normal uppercase tabular-nums",
         toneClasses[tone],
         sizeClasses[size],
         className,

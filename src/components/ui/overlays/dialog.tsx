@@ -318,7 +318,12 @@ export function DialogCloseButton({ className }: DialogCloseButtonProps) {
       type="button"
       variant="ghost"
       size="icon-sm"
-      className={cn("size-6 shrink-0 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink", className)}
+      className={cn(
+        "size-6 shrink-0 rounded-xs p-0",
+        "text-[#B84646] hover:text-[#8B2E2E]",
+        "bg-[#FBE8E8] hover:bg-[#F2CCCC]",
+        className
+      )}
       aria-label={closeLabel}
       onClick={() => onOpenChange(false)}
     >
