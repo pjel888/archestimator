@@ -45,7 +45,12 @@ Warning: This will permanently delete any archive timestamps already recorded.
 
 ### RPC Rollback
 You can drop the new functions if they cause issues:
-`DROP FUNCTION preview_bulk_archive_projects;`
+```sql
+DROP FUNCTION preview_bulk_archive_projects;
+DROP FUNCTION execute_bulk_archive_projects;
+DROP FUNCTION preview_bulk_restore_projects;
+DROP FUNCTION execute_bulk_restore_projects;
+```
 It's also safe to leave them unused in the database.
 
 ## Post-Deployment Checks

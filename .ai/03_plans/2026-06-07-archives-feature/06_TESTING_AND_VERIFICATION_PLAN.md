@@ -77,7 +77,7 @@ Target: `e2e/archives.spec.ts`
 | **Homebase** | Check Recent/Favorites lists | Archived projects are filtered out. |
 | **Favorites** | Archive a favorited project | Project is hidden from favorites; reappears on restore. |
 | **Invites** | Archive project with pending invites | Invites remain in DB; visible/actionable after restore. |
-| **Shared Links** | Access a shared link for an archived project | Link returns a "Project Archived" notice or 404. |
+| **Shared Links** | Access a shared link for an archived project | Link returns a "Project Archived" state (paused, not revoked). |
 | **Accessibility** | Trigger archive/restore actions | `aria-live` region announces "Project archived" or "Project restored". |
 | **Focus Management** | Close Archive modal | Focus returns to the button that opened the modal. |
 
