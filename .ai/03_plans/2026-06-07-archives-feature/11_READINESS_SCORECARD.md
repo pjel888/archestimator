@@ -35,8 +35,8 @@
 | 04 | IMPLEMENTATION_SEQUENCE | 80 | Still 7-phase project-only; specialist docs 14-19 provide per-entity sequence |
 | 05 | BLAST_RADIUS | 85 | Project-focused; specialist doc 21 provides cross-entity impacts |
 | 06 | TESTING | 90 | Project test coverage; specialist doc 23 adds per-entity fixtures |
-| 07 | UI_UX | 96 | Per-entity IA with wireframes; some states deferred |
-| 08 | SECURITY | 98 | Per-entity security semantics resolved; retention model defined |
+| 07 | UI_UX | 85 | Project-focused UI/IA; per-entity detail in specialist docs 16-19 |
+| 08 | SECURITY | 88 | Project-focused security; per-entity security in specialist doc 15 |
 | 09 | DEPLOYMENT | 96 | Per-phase migration and rollback; P5 future-gated |
 | 10 | IMPLEMENTATION_PROMPT | 92 | Scope section updated to multi-entity; phase-scoped prompts need per-entity detail |
 | 11 | READINESS | 90 | Honest scoring; gaps documented; scores reflect partial core doc updates |

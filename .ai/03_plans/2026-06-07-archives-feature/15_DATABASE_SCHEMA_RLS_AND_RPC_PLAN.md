@@ -14,6 +14,7 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived_by UUID REFERENCES auth.u
 ### Indexes
 ```sql
 CREATE INDEX idx_projects_active ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NULL;
+CREATE INDEX idx_projects_archived ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NOT NULL;
 ```
 
 ### RPCs (following mass_deletion_governance.sql pattern)
@@ -122,10 +123,10 @@ See `22_SHARED_RECIPIENT_AND_PAID_CLIENT_RETENTION_PLAN.md` for full schema desi
 ```sql
 -- Projects
 UPDATE projects SET archived_at = NULL, archived_by = NULL;
-DROP FUNCTION preview_bulk_archive_projects CASCADE;
-DROP FUNCTION execute_bulk_archive_projects CASCADE;
-DROP FUNCTION preview_bulk_restore_projects CASCADE;
-DROP FUNCTION execute_bulk_restore_projects CASCADE;
+DROP FUNCTION IF EXISTS preview_bulk_archive_projects CASCADE;
+DROP FUNCTION IF EXISTS execute_bulk_archive_projects CASCADE;
+DROP FUNCTION IF EXISTS preview_bulk_restore_projects CASCADE;
+DROP FUNCTION IF EXISTS execute_bulk_restore_projects CASCADE;
 
 -- Estimate Sheets
 UPDATE estimates SET archived_at = NULL, archived_by = NULL;

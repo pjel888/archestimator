@@ -65,7 +65,7 @@ This document analyzes the impact and risks associated with implementing the Pro
 | :--- | :--- | :--- | :--- |
 | **Database Migration** | MEDIUM | LOW | Additive migration; no breaking changes to existing columns. |
 | **Route Behavior Changes** | MEDIUM | LOW | Guards are fail-closed (redirect away if archived). |
-| **Query Filter Regressions** | HIGH | LOW | Missing `WHERE` clause could hide active projects; mitigated by comprehensive unit tests. |
+| **Query Filter Regressions** | HIGH | LOW | Missing `WHERE archived_at IS NULL` clause would leak archived projects into active views; mitigated by comprehensive unit tests. |
 | **UI Regression** | LOW | MEDIUM | New tab may impact layout on smaller screens; mitigated by design-system linting. |
 | **Design-System Lint Failure** | LOW | HIGH | New UI needs compliance; mitigated by running `lint:design-system` early. |
 | **Concurrency** | LOW | LOW | Archive/restore operations are idempotent-ish. |
