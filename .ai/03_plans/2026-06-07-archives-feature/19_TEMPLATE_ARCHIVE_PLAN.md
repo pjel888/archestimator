@@ -20,7 +20,7 @@ All follow existing preview→execute pattern. Workspace-scoped (templates are w
 
 ## Auth
 
-- Workspace editor for archive/restore (same gate as template creation/edit)
+- Workspace editor (`is_workspace_editor`) for archive/restore — intentionally tighter than template read (`is_workspace_member`). Archive is a mutation, not a read.
 
 ## UI
 

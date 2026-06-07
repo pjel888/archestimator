@@ -44,7 +44,7 @@
 | Symbol | Module | Risk | Impact |
 |--------|--------|------|--------|
 | `TemplateLibraryManager` | `component-library-manager/` | LOW | New filter + actions |
-| Template insertion | `component-library/actions.ts` | LOW | Filter archived templates |
+| Template insertion | `src/lib/estimates/actions.ts` | LOW | Filter archived templates from `insertEstimateTemplateIntoEstimate` |
 
 ## Required Future Checks
 
