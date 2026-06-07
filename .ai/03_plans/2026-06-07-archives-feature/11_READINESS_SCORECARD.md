@@ -29,19 +29,19 @@
 | # | Document | Score | Notes |
 |---|----------|-------|-------|
 | 00 | INDEX | 100 | Complete phase map, scope, non-goals |
-| 01 | REQUIREMENTS | 95 | Multi-entity requirements with 50+ AC; some P5 details deferred |
+| 01 | REQUIREMENTS | 88 | Scope section updated to multi-entity; AC items still project-focused; needs estimate/component/template AC expansion |
 | 02 | CODEBASE_RESEARCH | 92 | Strong research; some estimate/template detail needs implementation verification |
-| 03 | ARCHITECTURE | 98 | Entity strategy matrix covers all 4 entities + retention |
-| 04 | IMPLEMENTATION_SEQUENCE | 98 | 7-phase plan with per-phase files, tests, validation, rollback |
-| 05 | BLAST_RADIUS | 96 | Per-entity sections; some cross-entity impacts deferred to implementation |
-| 06 | TESTING | 94 | Multi-entity test matrices; E2E scenarios could be more detailed |
+| 03 | ARCHITECTURE | 80 | Still project-oriented structure; specialist docs 15-19 provide per-entity detail |
+| 04 | IMPLEMENTATION_SEQUENCE | 80 | Still 7-phase project-only; specialist docs 14-19 provide per-entity sequence |
+| 05 | BLAST_RADIUS | 85 | Project-focused; specialist doc 21 provides cross-entity impacts |
+| 06 | TESTING | 90 | Project test coverage; specialist doc 23 adds per-entity fixtures |
 | 07 | UI_UX | 96 | Per-entity IA with wireframes; some states deferred |
 | 08 | SECURITY | 98 | Per-entity security semantics resolved; retention model defined |
 | 09 | DEPLOYMENT | 96 | Per-phase migration and rollback; P5 future-gated |
-| 10 | IMPLEMENTATION_PROMPT | 98 | Phase-scoped prompts; complete agent instructions |
-| 11 | READINESS | 97 | Honest scoring with before/after; gaps documented |
+| 10 | IMPLEMENTATION_PROMPT | 92 | Scope section updated to multi-entity; phase-scoped prompts need per-entity detail |
+| 11 | READINESS | 90 | Honest scoring; gaps documented; scores reflect partial core doc updates |
 | 12 | OPEN_QUESTIONS | 96 | 15+ decisions and questions; some retention questions need Philip |
-| 13 | TRACEABILITY | 97 | ~50 requirements across entities; P5 rows future-gated |
+| 13 | TRACEABILITY | 78 | Project-focused (32 requirements); needs expansion to ~50 multi-entity; specialist docs 14-19 provide per-entity detail |
 | 14 | ENTITY_SCOPE_STRATEGY | 100 | Clear phase rationale and anti-overreach |
 | 15 | DATABASE_SCHEMA_RLS_RPC | 95 | Schema per entity; exact RPC signatures deferred to implementation |
 | 16 | PROJECT_ARCHIVE_UI | 98 | Complete project IA, copy, states, keyboard |

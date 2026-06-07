@@ -4,15 +4,18 @@ This document outlines the functional and non-functional requirements for the pr
 
 ## Overview
 
-The Archives feature allows users with `can_edit_project` access (workspace members, project editors, admins, and owners) to hide completed or inactive projects from their primary workspace without permanently deleting them. Archiving is a reversible state that blocks access and pauses collaboration until the project is restored.
+The Archives feature allows users to archive and restore Projects, Estimate Sheets, Components, and Templates. Archiving is a reversible, non-destructive state that hides items from active surfaces while preserving data. Each entity archives in-place within its domain route. See `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md` for phase ordering.
 
 ## Functional Requirements
 
 ### MUST (P0)
-- **Workspace Project Archiving**: Support archiving workspace projects. V1 scope is limited to projects only.
-- **Project Restoration**: Allow authorized users to restore archived projects to an active state.
-- **Access Blocking**: Prevent all users (including owners) from accessing archived projects via direct URL.
-- **Redirect with Notice**: Redirect attempts to access archived projects to the projects list with a clear "Project Archived" notice.
+- **Project Archiving**: Support archiving workspace projects with `archived_at`/`archived_by` columns.
+- **Estimate Sheet Archiving**: Support archiving estimate sheets within projects (Phase 2).
+- **Component Archiving**: Support archiving components via existing `lifecycle_state`; add restore view (Phase 3).
+- **Template Archiving**: Support archiving estimate templates (Phase 4).
+- **Project Restoration**: Allow authorized users to restore archived projects/estimates/components/templates.
+- **Access Blocking**: Redirect direct URL access to archived projects and estimate sheets with notice.
+- **Redirect with Notice**: Redirect attempts to access archived projects to the projects list with "Project Archived" notice.
 - **Shared Link Pausing**: Pause active shared links for archived projects. Links should return a "Project Archived" state instead of project data.
 - **Homebase Exclusion**: Exclude archived projects from the Workshop Homebase dashboard and "Recent Projects" lists.
 - **Tabbed UI**: Preserve existing "Your Projects" and "Projects shared to you" tabs. Add "Archived" as a third top-level tab to separate project states.
@@ -28,10 +31,10 @@ The Archives feature allows users with `can_edit_project` access (workspace memb
 - **Bulk Archive/Restore**: Support selecting multiple projects for archive or restore actions via the existing `BulkActionToolbar`. The RPCs (`preview_bulk_*`, `execute_bulk_*`) naturally handle single or multiple project IDs, so bulk operations are essentially free given the single-project path.
 - **Archive Metadata**: Track who archived the project (`archived_by`) and when (`archived_at`). These are mandatory data model columns required for the archive state to function.
 
-### OUT OF SCOPE (V2+)
-- **Estimate Sheet Archiving**: Archiving individual sheets within a project.
-- **Template Archiving**: Archiving estimate templates.
-- **Library Item Archiving**: Archiving cost library components (handled by existing lifecycle states).
+### OUT OF SCOPE (Future Phases)
+- **Phase 5 Paid-Client Retention**: Architecture planned in `22_SHARED_RECIPIENT_AND_PAID_CLIENT_RETENTION_PLAN.md` — NO implementation without explicit approval.
+- **Global Archive Center**: Deferred — in-place archives per domain in V1.
+- **Library Item Lifecycle**: Components already use `lifecycle_state` — this plan adds Restore view, not duplicate columns.
 
 ## Non-Functional Requirements
 
