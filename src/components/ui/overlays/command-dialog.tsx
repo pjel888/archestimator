@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 import { ControlInput, CONTROL_INPUT_SURFACE_CLASS } from "@/components/ui/control-input";
@@ -49,7 +49,7 @@ export function CommandDialog({
 }: CommandDialogProps) {
   return (
     <AppModal open={open} onOpenChange={onOpenChange} title={title} description={description} size="lg" bodyClassName="space-y-2">
-      <CommandMenu query={query} onQueryChange={onQueryChange} groups={groups} loading={loading} emptyLabel={emptyLabel} />
+      <CommandMenu query={query} onQueryChange={onQueryChange} groups={groups} loading={loading} emptyLabel={emptyLabel} onClose={() => onOpenChange(false)} />
     </AppModal>
   );
 }
@@ -64,22 +64,62 @@ type CommandMenuProps = {
   groups: CommandGroup[];
   loading?: boolean;
   emptyLabel?: string;
+  onClose?: () => void;
 };
 
-export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyLabel = "No commands match" }: CommandMenuProps) {
+export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyLabel = "No commands match", onClose }: CommandMenuProps) {
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredGroups = groups
-    .map((group) => ({
-      ...group,
-      items: normalizedQuery
-        ? group.items.filter((item) => `${item.label} ${item.description ?? ""}`.toLowerCase().includes(normalizedQuery))
-        : group.items,
-    }))
-    .filter((group) => group.items.length > 0);
+  const filteredGroups = useMemo(
+    () =>
+      groups
+        .map((group) => ({
+          ...group,
+          items: normalizedQuery
+            ? group.items.filter((item) => `${item.label} ${item.description ?? ""}`.toLowerCase().includes(normalizedQuery))
+            : group.items,
+        }))
+        .filter((group) => group.items.length > 0),
+    [groups, normalizedQuery],
+  );
+  const selectableItems = useMemo(
+    () => filteredGroups.flatMap((group) => group.items.filter((item) => !item.disabled).map((item) => ({ groupId: group.id, item }))),
+    [filteredGroups],
+  );
+  const [selectedIndex, setSelectedIndex] = useState(selectableItems.length > 0 ? 0 : -1);
   const empty = !loading && filteredGroups.length === 0;
 
+  useEffect(() => {
+    setSelectedIndex(selectableItems.length > 0 ? 0 : -1);
+  }, [selectableItems]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      onClose?.();
+      return;
+    }
+
+    if (selectableItems.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelectedIndex((currentIndex) => (currentIndex + 1) % selectableItems.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelectedIndex((currentIndex) => (currentIndex <= 0 ? selectableItems.length - 1 : currentIndex - 1));
+      return;
+    }
+
+    if (event.key === "Enter" && selectedIndex >= 0) {
+      event.preventDefault();
+      selectableItems[selectedIndex]?.item.onSelect?.();
+    }
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" onKeyDown={handleKeyDown}>
       <label className="flex h-8 items-center gap-1 rounded-xs border border-hairline bg-white px-2">
         <MagnifyingGlass size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
         <ControlInput
@@ -107,23 +147,36 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
                 {group.label}
               </p>
               <div role="listbox" aria-label={group.label}>
-                {group.items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="option"
-                    aria-selected="false"
-                    disabled={item.disabled}
-                    className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-[10px] leading-4 tracking-normal text-secondary hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50"
-                    onClick={() => item.onSelect?.()}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-ink">{item.label}</span>
-                      {item.description ? <span className="block truncate text-[9px] leading-3 text-tertiary">{item.description}</span> : null}
-                    </span>
-                    {item.shortcut ? <span className="shrink-0 text-[9px] leading-3 text-tertiary">{item.shortcut}</span> : null}
-                  </button>
-                ))}
+                {group.items.map((item) => {
+                  const commandIndex = item.disabled
+                    ? -1
+                    : selectableItems.findIndex((selectableItem) => selectableItem.groupId === group.id && selectableItem.item.id === item.id);
+                  const selected = commandIndex === selectedIndex;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="option"
+                      aria-selected={selected ? "true" : "false"}
+                      disabled={item.disabled}
+                      className={cn(
+                        "flex w-full items-center gap-2 px-2 py-1.5 text-left text-[10px] leading-4 tracking-normal text-secondary hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-50",
+                        selected && "bg-surfaceMuted text-ink",
+                      )}
+                      onMouseEnter={() => {
+                        if (commandIndex >= 0) setSelectedIndex(commandIndex);
+                      }}
+                      onClick={() => item.onSelect?.()}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium text-ink">{item.label}</span>
+                        {item.description ? <span className="block truncate text-[9px] leading-3 text-tertiary">{item.description}</span> : null}
+                      </span>
+                      {item.shortcut ? <span className="shrink-0 text-[9px] leading-3 text-tertiary">{item.shortcut}</span> : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}

@@ -1,126 +1,75 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ArrowRight, DotsThree, ImageSquare } from "@phosphor-icons/react";
 
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatPeso, makeProjectFixture } from "../fixtures/product-fixtures";
-import { Note, StoryGrid, StoryPanel } from "../ui-library/story-canvas";
-
-function CardPreview({ state = "default" }: { state?: "default" | "selected" | "interactive" | "loading" | "empty" | "error" | "long" }) {
-  const project = makeProjectFixture(state === "long" ? {
-    name: "Extremely long renovation and procurement package title that demonstrates truncation",
-  } : {});
-
-  if (state === "loading") {
-    return (
-      <StoryPanel className="space-y-2">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-3 w-40" />
-        <Skeleton className="h-3 w-28" />
-      </StoryPanel>
-    );
-  }
-
-  if (state === "empty") {
-    return <EmptyState title="No project card" description="Add a static fixture before review." />;
-  }
-
-  if (state === "error") {
-    return <Note tone="danger">Card fixture failed local validation. No provider call was attempted.</Note>;
-  }
-
-  return (
-    <article
-      className={`flex min-h-52 max-w-sm flex-col rounded-xs border bg-white p-2 ${state === "selected" ? "border-ink ring-2 ring-focus" : "border-hairline"} ${state === "interactive" ? "transition hover:border-tertiary" : ""}`}
-    >
-      <div className="flex h-20 items-center justify-center rounded-xs border border-hairline bg-surfaceMuted text-tertiary">
-        <ImageSquare size={20} weight="regular" aria-hidden="true" />
-      </div>
-      <div className="mt-2 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <Badge tone="success">{project.status}</Badge>
-          <Button size="icon-sm" variant="ghost" aria-label="Card actions">
-            <DotsThree size={12} weight="regular" aria-hidden="true" />
-          </Button>
-        </div>
-        <h3 className="mt-2 line-clamp-2 text-[12px] font-medium leading-4 text-ink">{project.name}</h3>
-        <p className="mt-1 text-[9px] leading-3 text-tertiary">{project.code} / {project.estimateCount} estimates</p>
-      </div>
-      <div className="mt-auto flex items-center justify-between border-t border-hairline pt-2">
-        <span className="text-[10px] font-medium leading-4 text-ink">{formatPeso(project.totalCost)}</span>
-        <Button variant="ghost" size="sm">
-          Open
-          <ArrowRight size={11} weight="regular" aria-hidden="true" />
-        </Button>
-      </div>
-    </article>
-  );
-}
+import { StoryPanel } from "../ui-library/story-canvas";
 
 const meta = {
   title: "Cards/Card",
-  component: CardPreview,
+  component: Card,
   parameters: {
-    archestimator: {
-      storybookContract: "story-composition",
-    },
     docs: {
       description: {
-        component:
-          "Standalone Card story for compact project and library card states. This is a story-only review composition using static fixtures.",
+        component: "Card component for grouping related content.",
       },
     },
   },
-} satisfies Meta<typeof CardPreview>;
+} satisfies Meta<typeof Card>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => <CardPreview />,
-};
-
-export const WithHeader: Story = {
-  render: () => <CardPreview />,
-};
-
-export const WithActions: Story = {
-  render: () => <CardPreview />,
-};
-
-export const Selected: Story = {
-  render: () => <CardPreview state="selected" />,
+  render: () => (
+    <StoryPanel className="max-w-md">
+      <Card className="p-4">
+        <h3 className="text-[12px] font-medium mb-2">Card Title</h3>
+        <p className="text-[10px] text-muted">
+          This is a basic card component. It provides a container with a border, background, and border radius.
+        </p>
+      </Card>
+    </StoryPanel>
+  ),
 };
 
 export const Interactive: Story = {
-  render: () => <CardPreview state="interactive" />,
-};
-
-export const Loading: Story = {
-  render: () => <CardPreview state="loading" />,
-};
-
-export const Empty: Story = {
-  render: () => <CardPreview state="empty" />,
-};
-
-export const Error: Story = {
-  render: () => <CardPreview state="error" />,
-};
-
-export const LongContent: Story = {
-  render: () => <CardPreview state="long" />,
-};
-
-export const StateMatrix: Story = {
   render: () => (
-    <StoryGrid columns="md:grid-cols-3">
-      <CardPreview />
-      <CardPreview state="selected" />
-      <CardPreview state="loading" />
-    </StoryGrid>
+    <StoryPanel className="max-w-md">
+      <Card interactive className="p-4 cursor-pointer">
+        <h3 className="text-[12px] font-medium mb-2">Interactive Card</h3>
+        <p className="text-[10px] text-muted">
+          Hover over this card to see the interactive state. It elevates slightly and adds a shadow.
+        </p>
+      </Card>
+    </StoryPanel>
   ),
 };
+
+export const WithSections: Story = {
+  render: () => (
+    <StoryPanel className="max-w-md">
+      <Card>
+        <div className="p-4 border-b border-hairline">
+          <h3 className="text-[12px] font-medium">Card Header</h3>
+        </div>
+        <div className="p-4">
+          <p className="text-[10px] text-muted">
+            This card has distinct sections separated by borders.
+          </p>
+        </div>
+        <div className="p-4 border-t border-hairline bg-surfaceMuted rounded-b-xs">
+          <p className="text-[10px] text-muted">Card Footer</p>
+        </div>
+      </Card>
+    </StoryPanel>
+  ),
+};
+
+export const WithHeader: Story = { args: { children: <><div className="text-[11px] font-medium text-ink">Header</div><div className="text-[10px] text-muted">Content</div></> } };
+export const WithActions: Story = { args: { children: <><div className="text-[10px] text-ink">Card with actions</div><div className="mt-2 flex gap-2"><Button size="sm" variant="secondary">Cancel</Button><Button size="sm" variant="primary">Save</Button></div></> } };
+export const Selected: Story = { args: { className: "ring-1 ring-focus", children: <div className="text-[10px] text-ink">Selected card</div> } };
+export const Loading: Story = { args: { children: <div className="flex items-center gap-2"><div className="h-3 w-32 animate-pulse rounded-xs bg-surfaceMuted" /><div className="h-3 w-24 animate-pulse rounded-xs bg-surfaceMuted" /></div> } };
+export const Empty: Story = { args: { children: <div className="text-[10px] text-muted py-4 text-center">No items to display</div> } };
+export const Error: Story = { args: { children: <div className="text-[10px] text-danger py-4">Failed to load content</div> } };
+export const LongContent: Story = { args: { children: <div className="text-[10px] text-ink">This is a very long content that should demonstrate how the card handles overflow and wrapping of text content within its boundaries properly without breaking the layout.</div> } };

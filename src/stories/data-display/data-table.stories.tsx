@@ -1,93 +1,229 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { Button } from "@/components/ui/button";
-import { SearchInput } from "@/components/ui/search-input";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatPeso, makeEstimateFixture } from "../fixtures/product-fixtures";
-import { Note, StoryPanel } from "../ui-library/story-canvas";
+import { DataTable, type ColumnDef } from "@/components/ui/data-table";
+import { StoryPanel } from "../ui-library/story-canvas";
+import { Badge } from "@/components/ui/badge";
 
-function DataTablePreview({ state = "default" }: { state?: "default" | "toolbar" | "empty" | "loading" | "error" }) {
-  const estimate = makeEstimateFixture();
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: "active" | "inactive";
+};
 
-  if (state === "empty") return <EmptyState title="No data table rows" description="Static fixture returned an empty row set." />;
-  if (state === "loading") {
-    return (
-      <StoryPanel className="space-y-1">
-        {[0, 1, 2, 3].map((row) => <Skeleton key={row} className="h-6 w-full" />)}
-      </StoryPanel>
-    );
-  }
-  if (state === "error") return <Note tone="danger">DataTable fixture failed local validation. No provider call was attempted.</Note>;
+const data: User[] = [
+  { id: "1", name: "Alice Smith", email: "alice@example.com", role: "Admin", status: "active" },
+  { id: "2", name: "Bob Jones", email: "bob@example.com", role: "User", status: "active" },
+  { id: "3", name: "Charlie Brown", email: "charlie@example.com", role: "User", status: "inactive" },
+  { id: "4", name: "Diana Prince", email: "diana@example.com", role: "Manager", status: "active" },
+  { id: "5", name: "Evan Wright", email: "evan@example.com", role: "User", status: "inactive" },
+];
 
-  return (
-    <StoryPanel className="space-y-2 overflow-x-auto">
-      {state === "toolbar" ? (
-        <div className="flex items-center gap-1">
-          <SearchInput value="" readOnly placeholder="Search rows" aria-label="Search data table rows" wrapperClassName="h-8 min-h-8 flex-1" />
-          <Button size="sm">Filter</Button>
-        </div>
-      ) : null}
-      <table className="w-full min-w-[520px] border-collapse text-left text-[10px] leading-4">
-        <thead className="text-[9px] font-medium text-tertiary">
-          <tr className="border-b border-hairline">
-            <th className="py-1 pr-2 font-medium">Item</th>
-            <th className="py-1 pr-2 font-medium">Qty</th>
-            <th className="py-1 pr-2 font-medium">Unit</th>
-            <th className="py-1 text-right font-medium">Rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {estimate.rows.map((row) => (
-            <tr key={row.id} className="border-b border-hairline last:border-b-0">
-              <td className="max-w-56 truncate py-1 pr-2 font-medium text-ink">{row.label}</td>
-              <td className="py-1 pr-2 tabular-nums text-secondary">{row.quantity}</td>
-              <td className="py-1 pr-2 text-secondary">{row.unit}</td>
-              <td className="py-1 text-right tabular-nums text-ink">{formatPeso(row.rate)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </StoryPanel>
-  );
-}
+const columns: ColumnDef<User>[] = [
+  {
+    id: "name",
+    header: "Name",
+    cell: (item) => <span className="font-medium">{item.name}</span>,
+  },
+  {
+    id: "email",
+    header: "Email",
+    cell: (item) => <span className="text-tertiary">{item.email}</span>,
+  },
+  {
+    id: "role",
+    header: "Role",
+    cell: (item) => item.role,
+  },
+  {
+    id: "status",
+    header: "Status",
+    cell: (item) => (
+      <Badge tone={item.status === "active" ? "success" : "neutral"}>
+        {item.status}
+      </Badge>
+    ),
+  },
+];
+
+const sortableColumns: ColumnDef<User>[] = columns.map(col => ({
+  ...col,
+  sortable: true,
+}));
 
 const meta = {
   title: "Data Display/DataTable",
-  component: DataTablePreview,
+  component: DataTable,
+  tags: ["autodocs"],
   parameters: {
-    archestimator: {
-      storybookContract: "story-composition",
-    },
     docs: {
       description: {
-        component:
-          "Standalone DataTable story documenting table shell, toolbar, empty, loading, and error states from static estimate fixtures.",
+        component: "DataTable component for displaying tabular data with sorting, selection, and pagination.",
       },
     },
   },
-} satisfies Meta<typeof DataTablePreview>;
+  args: {
+    data: data.slice(0, 3),
+    columns,
+    keyExtractor: (item: User) => item.id,
+  },
+} satisfies Meta<typeof DataTable<User>>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => <DataTablePreview />,
-};
-
-export const WithToolbar: Story = {
-  render: () => <DataTablePreview state="toolbar" />,
-};
-
-export const Empty: Story = {
-  render: () => <DataTablePreview state="empty" />,
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={data.slice(0, 3)}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+      />
+    </StoryPanel>
+  ),
 };
 
 export const Loading: Story = {
-  render: () => <DataTablePreview state="loading" />,
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={[]}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        isLoading
+      />
+    </StoryPanel>
+  ),
 };
 
-export const ErrorState: Story = {
-  render: () => <DataTablePreview state="error" />,
+export const Empty: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={[]}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        emptyState={{
+          title: "No users found",
+          description: "There are no users matching your criteria.",
+        }}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const Error: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={[]}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        isError
+        error="Failed to load users. Please try again later."
+      />
+    </StoryPanel>
+  ),
+};
+
+export const ClickableRows: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={data.slice(0, 3)}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        onRowClick={(item) => console.log("Clicked row:", item)}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const SortableColumns: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={data}
+        columns={sortableColumns}
+        keyExtractor={(item) => item.id}
+        onSort={(key, direction) => console.log("Sort:", key, direction)}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const SortedWithIndicator: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={data}
+        columns={sortableColumns}
+        keyExtractor={(item) => item.id}
+        sortedKey="name"
+        sortDirection="asc"
+        onSort={(key, direction) => console.log("Sort:", key, direction)}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const WithRowSelection: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={data}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        selectable
+        selectedRows={new Set(["1", "3"])}
+        onSelectionChange={(selected) => console.log("Selected:", selected)}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const WithPagination: Story = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        data={data.slice(0, 3)}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        pagination={{
+          page: 1,
+          totalPages: 5,
+          onPageChange: (page) => console.log("Page changed to:", page),
+        }}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const WithToolbar: StoryObj<typeof DataTable<User>> = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        columns={columns}
+        data={data}
+        keyExtractor={(user) => user.id}
+      />
+    </StoryPanel>
+  ),
+};
+
+export const ErrorState: StoryObj<typeof DataTable<User>> = {
+  render: () => (
+    <StoryPanel>
+      <DataTable
+        columns={columns}
+        data={[]}
+        keyExtractor={(user) => user.id}
+        isError
+        error="Failed to load data from server"
+      />
+    </StoryPanel>
+  ),
 };

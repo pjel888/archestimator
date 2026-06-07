@@ -1,60 +1,113 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { Tabs, type TabsProps } from "@/components/ui/tabs";
 import { useState } from "react";
-
-import { StoryPanel } from "../ui-library/story-canvas";
-
-const tabs = ["Scope", "Pricing", "Activity"];
-
-function TabsPreview() {
-  const [activeTab, setActiveTab] = useState("Scope");
-
-  return (
-    <StoryPanel className="max-w-md">
-      <div role="tablist" aria-label="Estimate tabs" className="flex border-b border-hairline">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            className={`min-h-7 border-b px-2 text-[10px] font-medium leading-4 ${activeTab === tab ? "border-ink text-ink" : "border-transparent text-tertiary"}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" className="p-2 text-[10px] leading-4 text-secondary">
-        {activeTab} static panel content. This story uses local state only.
-      </div>
-    </StoryPanel>
-  );
-}
 
 const meta = {
   title: "Navigation/Tabs",
-  component: TabsPreview,
+  component: Tabs,
   parameters: {
-    archestimator: {
-      storybookContract: "story-composition",
-    },
-    docs: {
-      description: {
-        component:
-          "Standalone Tabs story for compact tablists and panels. Local state only; no route or search-param migration is performed.",
-      },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  argTypes: {
+    variant: {
+      control: "select",
+      options: ["underline", "pills"],
     },
   },
-} satisfies Meta<typeof TabsPreview>;
+  decorators: [
+    (Story) => (
+      <div className="w-[400px]">
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof Tabs>;
 
 export default meta;
-
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  render: () => <TabsPreview />,
+const defaultTabs = [
+  { id: "scope", label: "Scope" },
+  { id: "pricing", label: "Pricing" },
+  { id: "activity", label: "Activity" },
+];
+
+function TabsWithState(props: Omit<TabsProps, "activeId" | "onChange"> & { defaultActiveId?: string }) {
+  const [activeId, setActiveId] = useState(props.defaultActiveId || props.tabs[0]?.id || "");
+  return <Tabs {...props} activeId={activeId} onChange={setActiveId} />;
+}
+
+export const Underline: Story = {
+  render: (args) => <TabsWithState {...args} defaultActiveId="scope" />,
+  args: {
+    tabs: defaultTabs,
+    activeId: "scope",
+    onChange: () => {},
+    variant: "underline",
+  },
 };
 
-export const KeyboardFocus: Story = {
-  render: () => <TabsPreview />,
+export const Pills: Story = {
+  render: (args) => <TabsWithState {...args} defaultActiveId="scope" />,
+  args: {
+    tabs: defaultTabs,
+    activeId: "scope",
+    onChange: () => {},
+    variant: "pills",
+  },
 };
+
+export const WithIcons: Story = {
+  render: (args) => <TabsWithState {...args} defaultActiveId="scope" />,
+  args: {
+    tabs: [
+      { id: "scope", label: "Scope", icon: <div className="h-3 w-3 rounded-xs bg-current" /> },
+      { id: "pricing", label: "Pricing", icon: <div className="h-3 w-3 rounded-xs border border-current" /> },
+      { id: "activity", label: "Activity", icon: <div className="h-3 w-3 rounded-xs bg-current opacity-50" /> },
+    ],
+    activeId: "scope",
+    onChange: () => {},
+  },
+};
+
+export const WithBadges: Story = {
+  render: (args) => <TabsWithState {...args} defaultActiveId="scope" />,
+  args: {
+    tabs: [
+      { id: "scope", label: "Scope" },
+      { id: "pricing", label: "Pricing", badge: "New" },
+      { id: "activity", label: "Activity", badge: "3" },
+    ],
+    activeId: "scope",
+    onChange: () => {},
+  },
+};
+
+export const WithDisabled: Story = {
+  render: (args) => <TabsWithState {...args} defaultActiveId="scope" />,
+  args: {
+    tabs: [
+      { id: "scope", label: "Scope" },
+      { id: "pricing", label: "Pricing", disabled: true },
+      { id: "activity", label: "Activity" },
+    ],
+    activeId: "scope",
+    onChange: () => {},
+  },
+};
+
+export const Scrollable: Story = {
+  render: (args) => <TabsWithState {...args} defaultActiveId="tab1" />,
+  args: {
+    tabs: Array.from({ length: 10 }).map((_, i) => ({
+      id: `tab${i + 1}`,
+      label: `Long Tab Name ${i + 1}`,
+    })),
+    activeId: "tab1",
+    onChange: () => {},
+  },
+};
+
+export const Default: Story = { args: { items: [{ id: "1", label: "Tab One" }, { id: "2", label: "Tab Two" }], activeTab: "1" } as any };
+export const KeyboardFocus: Story = { args: { items: [{ id: "a", label: "First Tab" }, { id: "b", label: "Second Tab" }, { id: "c", label: "Third Tab" }], activeTab: "a" } as any };

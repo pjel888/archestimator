@@ -1,62 +1,74 @@
 import type { Meta, StoryObj } from "@storybook/react";
-
-import { Note, StoryPanel } from "../ui-library/story-canvas";
-
-function SwitchPreview({ checked = false, disabled = false }: { checked?: boolean; disabled?: boolean }) {
-  return (
-    <StoryPanel className="max-w-xs space-y-2">
-      <label className={`flex items-center justify-between gap-3 text-[10px] font-medium leading-4 ${disabled ? "text-tertiary" : "text-ink"}`}>
-        Compact mode
-        <input
-          type="checkbox"
-          role="switch"
-          defaultChecked={checked}
-          disabled={disabled}
-          className="h-3 w-6 accent-[#292929]"
-        />
-      </label>
-      <p className="text-[9px] leading-3 text-tertiary">Story-only native switch fixture; route persistence stays out of Storybook.</p>
-    </StoryPanel>
-  );
-}
+import { Switch } from "@/components/ui/switch";
 
 const meta = {
   title: "Forms/Switch",
-  component: SwitchPreview,
+  component: Switch,
   parameters: {
-    archestimator: {
-      storybookContract: "fixture-only",
-    },
-    docs: {
-      description: {
-        component:
-          "Standalone Switch story using a native checkbox with role=switch. Covers unchecked, checked, disabled, and keyboard focus notes.",
-      },
-    },
+    layout: "centered",
   },
-} satisfies Meta<typeof SwitchPreview>;
+  tags: ["autodocs"],
+} satisfies Meta<typeof Switch>;
 
 export default meta;
-
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => <SwitchPreview />,
+  args: {
+    checked: false,
+  },
 };
 
 export const Checked: Story = {
-  render: () => <SwitchPreview checked />,
+  args: {
+    checked: true,
+  },
+};
+
+export const WithLabel: Story = {
+  args: {
+    checked: false,
+    label: "Enable notifications",
+  },
+};
+
+export const CheckedWithLabel: Story = {
+  args: {
+    checked: true,
+    label: "Compact mode",
+  },
 };
 
 export const Disabled: Story = {
-  render: () => <SwitchPreview checked disabled />,
+  args: {
+    checked: false,
+    disabled: true,
+    label: "Disabled option",
+  },
 };
 
-export const KeyboardFocus: Story = {
-  render: () => (
-    <StoryPanel className="space-y-2">
-      <SwitchPreview checked />
-      <Note>Keyboard contract: native Space toggles the switch; visible label names the control.</Note>
-    </StoryPanel>
-  ),
+export const DisabledChecked: Story = {
+  args: {
+    checked: true,
+    disabled: true,
+    label: "Disabled checked",
+  },
 };
+
+export const Invalid: Story = {
+  args: {
+    checked: false,
+    invalid: true,
+    label: "Required setting",
+  },
+};
+
+export const InvalidChecked: Story = {
+  args: {
+    checked: true,
+    invalid: true,
+    label: "Invalid state",
+  },
+};
+
+export const KeyboardFocus: Story = { args: { checked: false, label: "Toggle me" } };
