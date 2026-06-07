@@ -21,7 +21,7 @@ import { Note, StoryGrid, StoryPanel } from "../ui-library/story-canvas";
 type DialogState = "default" | "close-left" | "description" | "scroll" | "footer" | "xs" | "lg" | "danger" | "long" | "accessibility";
 
 function DialogSystemStory({ state = "default" }: { state?: DialogState }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const closeLeft = state === "close-left";
   const withDescription = state === "description" || state === "accessibility";
   const withFooter = state === "footer" || state === "danger";

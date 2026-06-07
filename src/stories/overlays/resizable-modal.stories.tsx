@@ -22,7 +22,7 @@ type ResizableState =
   | "focus";
 
 function ResizableModalStory({ state = "default" }: { state?: ResizableState }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const Component = state === "floating" ? FloatingModal : state === "inspector" ? PopupWindow : ResizableModal;
   const noBackdrop = state === "no-backdrop" || state === "inspector" || state === "floating";
   const size = state === "small" ? "sm" : state === "large" ? "lg" : "md";

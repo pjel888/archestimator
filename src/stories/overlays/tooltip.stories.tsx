@@ -10,7 +10,6 @@ function TooltipFixture({ variant = "default" }: { variant?: "default" | "toolba
   return (
     <StoryPanel className="space-y-3">
       <Tooltip
-        defaultOpen
         side={variant === "long" ? "bottom" : "top"}
         label={variant === "long" ? "Long tooltip text wraps by using a wider content class." : "Search estimate rows"}
         contentClassName={variant === "long" ? "max-w-48 whitespace-normal leading-3" : undefined}

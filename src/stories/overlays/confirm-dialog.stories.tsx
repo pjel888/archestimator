@@ -8,7 +8,7 @@ import { Note, StoryPanel } from "../ui-library/story-canvas";
 type ConfirmState = "default" | "destructive" | "busy" | "error" | "unsaved" | "long";
 
 function ConfirmDialogStory({ state = "default" }: { state?: ConfirmState }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const longCopy = "This static confirmation includes long copy to prove body wrapping and compact footer hierarchy. ".repeat(4);
 
   return (

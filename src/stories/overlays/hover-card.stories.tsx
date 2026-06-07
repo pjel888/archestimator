@@ -9,7 +9,6 @@ function HoverCardFixture({ variant = "default" }: { variant?: "default" | "revi
   return (
     <StoryPanel className="min-h-48">
       <HoverCard
-        defaultOpen
         trigger={<Button variant="secondary">{variant === "cost" ? "Cost item" : "Reviewer"}</Button>}
         title={variant === "cost" ? "Custom millwork" : "Client reviewer"}
         description="Hover or focus card with static Storybook data."

@@ -13,7 +13,6 @@ function PopoverFixture({ variant = "default" }: { variant?: "default" | "info" 
       <Component
         trigger={variant === "filter" ? "Filters" : "Details"}
         triggerLabel="Toggle story popover"
-        defaultOpen
         title={variant === "filter" ? "Filter estimate rows" : "Popover surface"}
         description="Compact anchored overlay with local state only."
         footer={variant === "footer" ? <Button size="sm">Apply</Button> : undefined}
