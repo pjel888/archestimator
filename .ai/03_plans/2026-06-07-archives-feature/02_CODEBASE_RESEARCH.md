@@ -74,8 +74,8 @@
 - `src/lib/publication/public-repository.ts` — publication resolution
 
 ### Test Research
-- 204 Vitest/DOM test files under `tests/vitest/` (count as of 2026-06-07)
-- 14 Playwright E2E specs under `e2e/`
+- ~200 Vitest/DOM test files under `tests/vitest/` (approximate; exact count drifts with ongoing development)
+- ~15 Playwright E2E specs under `e2e/` (approximate; exact count drifts)
 - 3 Bun unit tests under `tests/unit/`
 - Key archive-adjacent tests: `mass-deletion-action-contract.test.ts`, `mass-deletion-ui-contract.test.ts`, `bulk-action-validation.test.ts`
 - Key project tests: `projects-page-access-tabs.test.tsx`, `project-dashboard-ui.test.ts`, `project-creation-ui.test.ts`
@@ -228,7 +228,7 @@ Key archive/project-adjacent tests:
 - `tests/vitest/project-publication-schema.test.ts` — project-publication RLS/RPC contract
 - `tests/vitest/project-collaboration-schema.test.ts` — project/collaboration RLS + realtime auth
 
-### E2E Specs (14 files)
+### E2E Specs (representative sample)
 - `e2e/auth.spec.ts` — protected workshop redirect + login
 - `e2e/estimate-tree-dnd.spec.ts` — tree drag/drop
 - `e2e/landing-audit.spec.ts` — landing page audit
