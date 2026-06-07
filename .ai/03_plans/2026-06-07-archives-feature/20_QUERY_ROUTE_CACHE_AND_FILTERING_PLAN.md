@@ -20,7 +20,7 @@
 | `/workshop/projects/[projectId]` | Redirect to `/workshop/projects` with notice if project archived | 1 |
 | `/workshop/projects/[projectId]/estimates/[nodeId]` | Redirect if estimate archived | 2 |
 | `/workshop/projects/[projectId]/charts` | Redirect if project archived | 1 |
-| `/workshop/projects/[projectId]/estimates` | No redirect; renders filter | 2 |
+| `/workshop/projects/[projectId]/estimates` | No redirect when parent project is active; renders filter. If parent project is archived, redirects via project layout guard (Phase 1). | 2 |
 | API routes (export, AI, images) | Reject/redirect for archived entities | 1-2 |
 
 ## Next.js App Router Behavior

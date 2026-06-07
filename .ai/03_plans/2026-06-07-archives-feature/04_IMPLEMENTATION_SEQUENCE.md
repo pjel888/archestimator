@@ -50,7 +50,7 @@ This document outlines the step-by-step implementation order for the Archives fe
 - **Migration naming:** `YYYYMMDDHHMMSS_project_archive_state.sql` (follows existing convention)
   - `src/lib/supabase/types.ts`
 - **Expected Changes:** New migration file, updated TypeScript types.
-- **Validation Commands:** `npx supabase db lint`, `npx supabase gen types typescript --local > src/lib/supabase/types.ts` (then manual patches).
+- **Validation Commands:** `npx supabase db lint`, `npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr > src/lib/supabase/types.ts` (then manual patches).
 - **Rollback Point:** `npx supabase db reset` or manual `DROP COLUMN` / `DROP FUNCTION`.
 - **Dependencies:** Phase 1.
 
