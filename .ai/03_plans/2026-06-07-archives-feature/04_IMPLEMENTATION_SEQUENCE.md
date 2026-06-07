@@ -1,6 +1,8 @@
-# Implementation Sequence: Project Archives Feature
+# Implementation Sequence: Archives Feature
 
-This document outlines the step-by-step implementation order for the Project Archives feature in Archestimator.
+> **REFINEMENT NOTE (2026-06-07):** This document describes the project-archive implementation sequence (Phase 1). For the full multi-entity phased plan (Projects→Estimate Sheets→Components→Templates→Retention), see `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md`. Per-entity implementation detail in docs `16-19`. Phase order: P1=Projects (this doc), P2=Estimate Sheets (`17`), P3=Components (`18`), P4=Templates (`19`), P5=Retention (`22`, planning only).
+
+This document outlines the step-by-step implementation order for the Archives feature in Archestimator, starting with Phase 1 (Projects).
 
 ## Phase 1 — Baseline, Graph Impact & Tests-First Scaffolding
 
