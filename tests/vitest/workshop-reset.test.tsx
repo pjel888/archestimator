@@ -173,7 +173,7 @@ describe("workshop sidebar baseline", () => {
     );
     expect(within(settingsDialog).getByRole("button", { name: "Sign out" })).toBeTruthy();
     expect(within(settingsDialog).queryByRole("link", { name: "Open Beta users" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Send beta feedback" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open Send beta feedback" })).toHaveAttribute(
       "href",
       "/workshop/feedback",
     );
@@ -192,14 +192,12 @@ describe("workshop sidebar baseline", () => {
 
     const greeting = screen.getByRole("region", { name: "Workshop greeting" });
     expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
-    const periodLabel = within(greeting).getByText(/^(Morning|Afternoon|Night)$/);
+    const periodLabel = within(greeting).getByRole("img", { name: /^(Morning|Afternoon|Night)$/ });
     expect(periodLabel).toBeInTheDocument();
     const periodRow = periodLabel.closest("div");
     expect(periodRow).toBeTruthy();
     expect(periodRow).not.toHaveClass("border");
     expect(periodRow).not.toHaveClass("bg-surfaceMuted/50");
-    expect(periodRow).not.toHaveAttribute("aria-label");
-    expect(periodRow).not.toHaveAttribute("role");
     expect(within(greeting).queryByRole("button")).toBeNull();
     expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toHaveClass("text-[10px]", "font-[300]", "text-secondary");
     expect(within(greeting).getByText("Philip Lewis")).toHaveClass("text-[12px]", "font-medium", "text-ink");

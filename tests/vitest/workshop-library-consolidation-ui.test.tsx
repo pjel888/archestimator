@@ -17,6 +17,16 @@ async function waitForLibraryWorkspace() {
   await screen.findByRole("tablist", { name: "Library views" }, { timeout: 10_000 });
 }
 
+function openComponentViewMenu() {
+  fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
+  return screen.getByRole("menu", { name: "Component view mode" });
+}
+
+function openAddComponentViewMenu(dialog: HTMLElement) {
+  fireEvent.click(within(dialog).getByRole("button", { name: /View by:/ }));
+  return within(dialog).getByRole("menu", { name: "Add component view mode" });
+}
+
 const actionMocks = vi.hoisted(() => ({
   changeCostLibraryComponentLifecycleState: vi.fn(),
   createCostLibraryComponent: vi.fn(),
@@ -322,11 +332,11 @@ describe("workshop library consolidation UI", () => {
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    const viewMode = openComponentViewMenu();
     expect(screen.getByText("View By")).toBeInTheDocument();
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(viewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(viewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" })).toHaveAttribute("aria-checked", "false");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
 
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
@@ -361,8 +371,8 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
+    const viewMode = openComponentViewMenu();
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
     const addFolderButton = screen.getByRole("button", { name: "Add library folder" });
     expect(addFolderButton).not.toBeDisabled();
@@ -370,7 +380,7 @@ describe("workshop library consolidation UI", () => {
 
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Supplier Review Folder", { placement: "top" }));
     expect(promptSpy).toHaveBeenCalledWith("Folder name");
-    await waitFor(() => expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "View by: Default" })).toHaveAttribute("aria-pressed", "false"));
     expect(screen.getByRole("treeitem", { name: "Supplier Review Folder" })).toHaveAttribute("aria-selected", "true");
     promptSpy.mockRestore();
   });
@@ -477,10 +487,10 @@ describe("workshop library consolidation UI", () => {
     expect(modalAddFolderButton).not.toHaveTextContent("Add folder");
     expect(modalAddFolderButton).toHaveClass("size-6");
     expect(within(dialog).getByText("NEST COMPONENT UNDER")).toBeInTheDocument();
-    const modalViewMode = within(dialog).getByRole("group", { name: "Add component view mode" });
-    expect(within(modalViewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(modalViewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(modalViewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "false");
+    let modalViewMode = openAddComponentViewMenu(dialog);
+    expect(within(modalViewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
+    expect(within(modalViewMode).getByRole("menuitemradio", { name: "Suppliers" })).toHaveAttribute("aria-checked", "false");
+    expect(within(modalViewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
     expect(within(dialog).queryByText("Resolve before saving")).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/validation issue/i)).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
@@ -489,10 +499,11 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByRole("button", { name: "Add Component" })).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Use same image for all variants")).toHaveAttribute("type", "checkbox");
     expect(within(dialog).getByLabelText("Upload attachment")).toHaveAttribute("type", "file");
-    fireEvent.click(within(modalViewMode).getByRole("button", { name: "Suppliers" }));
+    fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Suppliers" }));
     expect(within(dialog).getByRole("tree")).toBeInTheDocument();
     expect(within(dialog).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
-    fireEvent.click(within(modalViewMode).getByRole("button", { name: "Default" }));
+    modalViewMode = openAddComponentViewMenu(dialog);
+    fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Default" }));
     expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "false");
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("No folder selected")).toBeInTheDocument();
     expect(dialog.querySelector("label label")).toBeNull();
@@ -655,23 +666,24 @@ describe("workshop library consolidation UI", () => {
     fireEvent.click(within(updatedVariantTabs).getByRole("tab", { name: "Variant 1" }));
     const brandCombobox = within(dialog).getByRole("combobox", { name: "Brand" });
     fireEvent.change(brandCombobox, { target: { value: "Acme Hardware" } });
-    expect(within(modalViewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(modalViewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(within(modalViewMode).getByRole("button", { name: "Brand" }));
-    expect(within(modalViewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "true");
+    modalViewMode = openAddComponentViewMenu(dialog);
+    expect(within(modalViewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
+    expect(within(modalViewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Brand" }));
+    expect(within(dialog).getByRole("button", { name: "View by: Brand" })).toHaveAttribute("aria-pressed", "false");
     expect(within(dialog).getByRole("treeitem", { name: "Acme Hardware" })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(within(modalViewMode).getByRole("button", { name: "Default" }));
+    modalViewMode = openAddComponentViewMenu(dialog);
+    fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Default" }));
     const supplierCombobox = within(dialog).getByRole("combobox", { name: "Supplier" });
     fireEvent.change(supplierCombobox, { target: { value: "Database" } });
-    expect(within(modalViewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(modalViewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(within(dialog).getByRole("option", { name: "Database Supplier" }));
-    expect(within(modalViewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(modalViewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(within(modalViewMode).getByRole("button", { name: "Suppliers" }));
-    expect(within(modalViewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(supplierCombobox).toHaveValue("Database Supplier"));
+    modalViewMode = openAddComponentViewMenu(dialog);
+    fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Suppliers" }));
+    expect(within(dialog).getByRole("button", { name: "View by: Suppliers" })).toHaveAttribute("aria-pressed", "false");
     expect(within(dialog).getByRole("treeitem", { name: "Database Supplier" })).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(within(modalViewMode).getByRole("button", { name: "Default" }));
+    modalViewMode = openAddComponentViewMenu(dialog);
+    fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Default" }));
     fireEvent.click(supplierCombobox);
     const activeSupplierOption = within(dialog).getByRole("option", { name: "Database Supplier" });
     expect(supplierCombobox).toHaveAttribute("aria-expanded", "true");
@@ -814,11 +826,10 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
-    const updatedViewMode = screen.getByRole("group", { name: "Component view mode" });
+    const viewMode = openComponentViewMenu();
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
-    expect(within(updatedViewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "View by: Suppliers" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
 

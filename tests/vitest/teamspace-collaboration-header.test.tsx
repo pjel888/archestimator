@@ -116,7 +116,6 @@ describe("ProjectTeamspaceHeader", () => {
     render(<ProjectTeamspaceHeader summary={summary} />);
 
     const rail = screen.getByLabelText("Project teamspaces");
-    expect(rail).toHaveTextContent("Teamspaces");
     expect(within(rail).getByText("PL")).toBeInTheDocument();
     expect(within(rail).getByRole("img", { name: "Ana Builder" })).toBeInTheDocument();
 

@@ -117,8 +117,9 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     );
 
     const actions = container.querySelector('[data-workshop-layout="project-workspace-header-actions"]');
-    // RED TEST (P0): "Public link" terminology renamed to "Shared link" — fails until P1 updates JSX
-    expect(actions?.textContent).toMatch(/Shared link.*Teamspaces/s);
+    const sharedLink = within(actions as HTMLElement).getByLabelText("Shared link");
+    const teamspaces = within(actions as HTMLElement).getByLabelText("Project teamspaces");
+    expect(sharedLink.compareDocumentPosition(teamspaces) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
 
@@ -140,7 +141,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(headerSource).not.toContain('className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]"');
   });
 
-  it("offers one-click header copy and marks shared-link activity before opening the modal", async () => {
+  it("marks shared-link activity from the icon-only header entry", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -157,11 +158,10 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Copy shared link from header" }));
-
-    expect(writeText).toHaveBeenCalledWith("http://localhost:3000/share/client-token");
     expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Shared link copied.");
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    expect(screen.getByRole("dialog", { name: "Shared link" })).toBeInTheDocument();
+    expect(writeText).not.toHaveBeenCalled();
   });
 
   it("persists shared-link activity last seen and clears the header dot from the Activity tab", async () => {

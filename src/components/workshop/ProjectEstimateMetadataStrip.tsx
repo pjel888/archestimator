@@ -94,12 +94,14 @@ export function ProjectEstimateMetadataStrip() {
 }
 
 function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataStripGridProps) {
+  const estimateNameKey = metadata ? `${metadata.estimateId}:${metadata.estimateName}` : "empty";
+
   return (
     <div
       className="grid h-full place-items-center bg-white px-2 text-[10px] font-medium tracking-normal text-ink"
       data-workshop-layout="project-estimate-metadata-row"
     >
-      <EstimateSheetNameCell metadata={metadata} />
+      <EstimateSheetNameCell key={estimateNameKey} metadata={metadata} />
     </div>
   );
 }
@@ -117,12 +119,6 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const skipNextBlurCommitRef = useRef(false);
-
-  useLayoutEffect(() => {
-    setDraft(savedName);
-    setStatus("idle");
-    setErrorMessage(null);
-  }, [savedName]);
 
   const commitDraft = useCallback(() => {
     if (!metadata) return;
