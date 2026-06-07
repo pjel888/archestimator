@@ -21,6 +21,8 @@ jobs:
         run: bun run validate
       - name: Build
         run: bun run build
+      - name: Impeccable design audit
+        run: npx impeccable detect --strict
       - name: Install Playwright Chromium
         run: bunx playwright install chromium --with-deps
       - name: E2E smoke
