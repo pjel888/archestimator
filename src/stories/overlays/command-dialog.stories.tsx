@@ -25,7 +25,7 @@ const commandGroups: CommandGroup[] = [
 ];
 
 function CommandDialogFixture({ variant = "default" }: { variant?: "default" | "palette" | "menu" | "loading" | "empty" | "focus" }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(variant === "empty" ? "zzzz" : "");
 
   return (

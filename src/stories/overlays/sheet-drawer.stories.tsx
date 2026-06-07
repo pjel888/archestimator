@@ -10,7 +10,7 @@ import { Note, StoryPanel } from "../ui-library/story-canvas";
 type SheetState = "right" | "left" | "bottom" | "inspector" | "form" | "table" | "loading" | "error" | "no-blur";
 
 function SheetDrawerStory({ state = "right" }: { state?: SheetState }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const Component = state === "bottom" ? Drawer : state === "inspector" ? InspectorDrawer : Sheet;
   const side = state === "left" ? "left" : state === "bottom" ? "bottom" : "right";
   const table = state === "table";

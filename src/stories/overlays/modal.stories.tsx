@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { Note, StoryPanel } from "../ui-library/story-canvas";
 
 function ModalLauncher({ tone = "default" }: { tone?: "default" | "destructive" | "busy" | "error" | "long" }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const destructive = tone === "destructive";
   const busy = tone === "busy";
   const error = tone === "error";

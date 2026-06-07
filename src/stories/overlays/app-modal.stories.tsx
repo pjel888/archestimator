@@ -24,7 +24,7 @@ type AppModalState =
   | "destructive";
 
 function AppModalStory({ state = "default" }: { state?: AppModalState }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const size = state === "xs" ? "xs" : state === "sm" ? "sm" : state === "lg" ? "lg" : state === "xl" ? "xl" : state === "fullscreen" ? "fullscreen" : "md";
   const destructive = state === "destructive";
   const table = state === "table";
