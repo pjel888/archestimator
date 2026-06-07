@@ -1,4 +1,6 @@
-# Traceability Matrix — Archives Feature
+# Traceability Matrix — Archives Feature (Phase 1: Projects)
+
+> **REFINEMENT NOTE (2026-06-07):** This matrix covers Phase 1 (Projects) requirements (R1-R32). Per-entity traceability for estimate sheets, components, and templates is in specialist docs `17-19`. Cross-cutting requirements (design system, accessibility, build) are covered here.
 
 **Date:** 2026-06-07
 **Plan:** `.ai/03_plans/2026-06-07-archives-feature/`

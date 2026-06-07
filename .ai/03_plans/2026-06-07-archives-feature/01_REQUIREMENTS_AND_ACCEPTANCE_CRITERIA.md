@@ -1,6 +1,6 @@
 # Requirements and Acceptance Criteria: Archestimator Archives
 
-> **REFINEMENT NOTE (2026-06-27):** Scope section updated to multi-entity. This document's AC items remain project-focused (detailed project ACs validated through 30+ Oracle review cycles). Per-entity acceptance criteria for estimate sheets, components, and templates are in specialist docs `17-19`.
+> **REFINEMENT NOTE (2026-06-07):** Scope section updated to multi-entity. This document's AC items remain project-focused (detailed project ACs validated through 30+ Oracle review cycles). Per-entity acceptance criteria for estimate sheets, components, and templates are in specialist docs `17-19`.
 
 This document outlines the functional and non-functional requirements for the Archives feature in Archestimator.
 
