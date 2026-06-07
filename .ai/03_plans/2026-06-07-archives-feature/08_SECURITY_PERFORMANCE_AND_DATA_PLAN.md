@@ -9,7 +9,7 @@
 - **Restore gate:** same as archive (`can_edit_project`)
 - **Implementation:** Archive/restore RPCs call `can_edit_project` internally; server actions validate before RPC call; RPC acts as final authority
 - **Workspace admin override:** platform admins (`is_platform_admin()`) and workspace members with admin rank pass `can_edit_project`
-- **Authorization scope:** `can_edit_project` returns true for workspace members (via `is_workspace_member`) AND project-level editors/admins/owners (via `project_members`). This is intentionally broader than "owner/admin only" — project editors can archive/restore, same as they can edit/delete projects. For V1, this is consistent with existing project mutation permissions. If finer-grained archive-only permission is needed later, add a separate `can_archive_project` RPC.
+- **Authorization scope:** `can_edit_project` returns true for workspace members (via `is_workspace_member`) AND project-level editors/admins/owners (via `project_members`). This is intentionally broader than "owner/admin only" — project editors can archive/restore, same as they can edit projects. Delete is separately gated by `can_manage_project_access` (owner/admin only). If finer-grained archive-only permission is needed later, add a separate `can_archive_project` RPC.
 - **Sheet-only collaborators:** cannot archive the parent project (no `can_edit_project` on projects where they're sheet-only members)
 - **Pending invite users:** cannot archive (resolved after invite acceptance with appropriate role)
 
