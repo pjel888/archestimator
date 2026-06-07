@@ -21,7 +21,7 @@ Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test)
 | **Independent Search** | Search for "Project A" in existing tabs vs Archived tab | Search results are scoped to the current tab's filter. |
 | **Tab Counts** | Verify count logic for existing tabs and Archived tab | Counts accurately reflect the database state for each filter. |
 | **Archive Role Check** | Attempt archive with viewer role (read-only, without `can_edit_project`) | Action is rejected with a 403 Forbidden error. |
-| **Restore Role Check** | Attempt restore with `can_view` but not `can_edit_project` | Action is rejected with a 403 Forbidden error. |
+| **Restore Role Check** | Attempt restore with read-only project access (`can_access_project` true, `can_edit_project` false) | Action is rejected with a 403 Forbidden error. |
 | **Delete Distinction** | Verify `deleteProject` server action still removes rows | Archive sets a timestamp; Delete removes the record entirely (via `execute_bulk_delete_projects` RPC). |
 | **RLS Verification** | Direct SQL update attempt by unauthorized user | Supabase RLS prevents `UPDATE` on `archived_at` for non-editors. |
 
