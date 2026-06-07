@@ -60,7 +60,7 @@ This document outlines the step-by-step implementation order for the Archives fe
 
 - **Tasks:**
   - Add archive/restore functions to `src/lib/projects/actions.ts` following the preview/execute pattern.
-  - Add archive confirmation helper to `src/lib/mass-deletion/bulk-action.ts` (simple confirm button label: "Archive" — NOT typed phrase, since archive is non-destructive). Typed confirmation is reserved for destructive delete only.
+  - Add archive confirmation helper to `src/lib/mass-deletion/bulk-action.ts` (simple confirm button label: "Archive" for new project/estimate/template flows — NOT typed phrase, since archive is non-destructive). Typed confirmation is used for destructive delete and existing component archive (`ARCHIVE COMPONENT(S)`).
   - Update `src/lib/repositories/workspace-repository.ts`:
     - `listCurrentWorkspaceProjects`: Add `includeArchived` parameter (default `false` for callers that only need active projects).
     - **Note:** The `/workshop/projects` page server wrapper (`src/app/workshop/projects/page.tsx`) must call `listCurrentWorkspaceProjects({ includeArchived: true })` to load ALL projects, then partition active/archived client-side for tab display.
