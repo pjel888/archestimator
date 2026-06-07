@@ -29,6 +29,12 @@ This document analyzes the impact and risks associated with implementing the Pro
 - **`src/app/workshop/projects/[projectId]/estimates/`:** Implementation of archived-state guards for all estimate sub-routes.
 - **`supabase/migrations/`:** New migration for `archived_at` and `archived_by` columns and associated RPCs.
 - **`src/lib/supabase/types.ts`:** Type updates reflecting the new schema and RPCs.
+- **API/data access surfaces:** Archive state must be checked before serving project data through any authenticated endpoint:
+  - `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts` — XLSX export must reject archived project exports
+  - `src/app/api/projects/images/route.ts` — project image serving should check project isn't archived
+  - `src/app/api/ai/ask/route.ts` — AI ask must exclude archived project data from context reads
+  - `src/app/api/ai/package-builder/route.ts` — AI package builder must reject operations on archived projects
+- **`src/lib/ai/read-context.ts`:** AI read context should exclude archived project data (similar to how it already excludes archived/discontinued library items)
 
 ## Affected Routes
 
@@ -38,6 +44,10 @@ This document analyzes the impact and risks associated with implementing the Pro
 - `/workshop/projects/[projectId]/estimates`: Estimate list (block guard).
 - `/workshop/projects/[projectId]/estimates/[nodeId]`: Estimate editor (block guard).
 - `/workshop/projects/[projectId]/charts`: Charts view (block guard).
+- `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`: XLSX export (reject for archived).
+- `/api/projects/images`: Project image serving (check archive state).
+- `/api/ai/ask`: AI ask endpoint (exclude archived project data).
+- `/api/ai/package-builder`: AI package builder (reject archived project ops).
 
 ## Affected Tests
 

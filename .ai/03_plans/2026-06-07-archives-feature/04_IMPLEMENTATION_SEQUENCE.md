@@ -56,7 +56,7 @@ This document outlines the step-by-step implementation order for the Project Arc
 
 - **Tasks:**
   - Add archive/restore functions to `src/lib/projects/actions.ts` following the preview/execute pattern.
-  - Add archive confirmation phrases to `src/lib/mass-deletion/bulk-action.ts` (e.g., "ARCHIVE PROJECT", "ARCHIVE N PROJECTS").
+  - Add archive confirmation helper to `src/lib/mass-deletion/bulk-action.ts` (simple confirm button label: "Archive" — NOT typed phrase, since archive is non-destructive). Typed confirmation is reserved for destructive delete only.
   - Update `src/lib/repositories/workspace-repository.ts`:
     - `listCurrentWorkspaceProjects`: Add `includeArchived` parameter (default `false`); add `WHERE archived_at IS NULL` when false.
     - `getWorkshopHomebaseData`: Filter recent projects to active only.
@@ -119,8 +119,9 @@ This document outlines the step-by-step implementation order for the Project Arc
   - Update publication resolution: Return "project archived" state for archived project publications.
   - Pause (do not revoke) active shared links for archived projects.
 - **Files Involved:**
-  - `src/lib/publications/actions.ts`
-  - `src/app/p/[slug]/page.tsx`
+  - `src/lib/publication/public-repository.ts` (publication resolution)
+  - `src/lib/publication/security.ts` (token/password handling)
+  - `src/app/share/[token]/page.tsx` (shared-link receiver page)
 - **Expected Changes:** Updated publication logic and public view state.
 - **Validation Commands:** `bun run test tests/e2e/project-archives.test.ts`.
 - **Rollback Point:** Revert publication logic changes.

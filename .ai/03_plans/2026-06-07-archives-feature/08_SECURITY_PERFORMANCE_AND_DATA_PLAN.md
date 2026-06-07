@@ -9,7 +9,7 @@
 - **Restore gate:** same as archive (`can_edit_project`)
 - **Implementation:** Archive/restore RPCs call `can_edit_project` internally; server actions validate before RPC call; RPC acts as final authority
 - **Workspace admin override:** platform admins (`is_platform_admin()`) and workspace members with admin rank pass `can_edit_project`
-- **Viewer/editor restriction:** viewers and editors without admin rank cannot archive/restore (same as delete restriction)
+- **Authorization scope:** `can_edit_project` returns true for workspace members (via `is_workspace_member`) AND project-level editors/admins/owners (via `project_members`). This is intentionally broader than "owner/admin only" — project editors can archive/restore, same as they can edit/delete projects. For V1, this is consistent with existing project mutation permissions. If finer-grained archive-only permission is needed later, add a separate `can_archive_project` RPC.
 - **Sheet-only collaborators:** cannot archive the parent project (no `can_edit_project` on projects where they're sheet-only members)
 - **Pending invite users:** cannot archive (resolved after invite acceptance with appropriate role)
 
@@ -18,7 +18,7 @@ Reference: `src/lib/collaboration/actions.ts` role system, `supabase/migrations/
 ## RLS/Supabase
 
 - **Existing RLS on projects:**
-  - SELECT: `can_access_project(id)` — unaffected by archive (archived projects remain accessible to authorized viewers)
+  - SELECT: `can_access_project(id)` — NOTE: this allows reading archived projects at the RLS level. The application layer (repository queries with `WHERE archived_at IS NULL`) is the gate for hiding archived projects from active views. This is intentional: archived data remains accessible to authorized users through the Archived tab, and direct API routes are gated by application-level checks, not RLS.
   - INSERT: `is_workspace_editor(workspace_id)` — unaffected
   - UPDATE: `can_edit_project(id)` — covers archive/restore (UPDATE sets `archived_at`)
   - DELETE: `can_edit_project(id)` — unaffected
