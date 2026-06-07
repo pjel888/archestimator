@@ -16,7 +16,7 @@
 | **Proposal export** | N/A (project-level; export blocked for archived projects) | Reject archived sheet export | N/A | N/A |
 | **Project charts** | N/A (blocked for archived projects) | Exclude archived sheets from aggregation | N/A | N/A |
 | **AI Ask/read context** | Exclude archived project data | Exclude archived sheet data | Already excludes archived (existing) | Exclude archived templates from AI search |
-| **AI package builder** | Reject operations on archived projects | Reject operations on archived sheets | Already rejects archived (existing) | N/A |
+| **AI package builder** | Reject operations on archived projects | Reject operations on archived sheets | Already rejects archived (existing) | Exclude archived templates from AI template search (code queries `estimate_templates` at `read-tools.ts:1166`) |
 | **Activity history** | Preserved; visible on restore | Preserved; visible on restore | N/A | N/A |
 | **Favorites** | Hide; re-appear on restore | Hide; re-appear on restore | N/A | N/A |
 | **Template insertion** | N/A | Blocked for archived sheets | N/A | N/A |
