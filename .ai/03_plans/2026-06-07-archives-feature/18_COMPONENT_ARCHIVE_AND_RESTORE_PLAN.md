@@ -13,7 +13,7 @@ Components already have full archive support via `lifecycle_state = 'archived'`:
 - **AI exclusion:** `src/lib/ai/read-context.ts` and `src/lib/ai/package-builder/` already exclude archived/discontinued items
 - **UI:** `ComponentLibraryManager` has archive action in toolbar and `archivedIds` handling
 
-**What's missing:** Restore flow and Archived Components view.
+**What's missing:** Restore flow and Archived Components view. Note: existing component archive uses typed confirmation (`ARCHIVE COMPONENT(S)` via `BulkDestructivePreviewModal`). This plan only adds restore (simple confirm button). Existing archive flow may keep typed phrase since it pre-dates the new "simple confirm" convention.
 
 ## New: Restore RPCs
 

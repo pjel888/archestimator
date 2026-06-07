@@ -8,7 +8,7 @@
 - [ ] Philip approves multi-entity archive strategy
 - [ ] Philip approves in-place archive approach (no global center in V1)
 - [ ] Philip approves `can_edit_project` for archive (separate from `can_manage_project_access` for delete)
-- [ ] Philip approves simple confirm button for archive (not typed phrase)
+- [ ] Philip approves simple confirm button for new archive flows (projects, estimate sheets, templates). Existing component archive may keep typed phrase.
 
 ## Per-Phase Release Gates
 

@@ -53,6 +53,6 @@ Each entity archives **in-place** within its existing route surface. No global `
 1. **No duplicate columns** — components already have `lifecycle_state = 'archived'`. Do NOT add `archived_at` to `cost_library_items`.
 2. **No premature global center** — each entity archives in-place. A unified center is future work.
 3. **No paid access implementation** — Phase 5 produces architecture docs only. Implementation requires Philip's explicit approval, payment infrastructure, and legal review.
-4. **Follow existing patterns** — preview→execute RPC pattern, simple confirm for archive (not typed phrase), reuse BulkDestructivePreviewModal with non-destructive styling.
+4. **Follow existing patterns** — preview→execute RPC pattern; simple confirm for archive in new flows (projects, estimate sheets, templates). Existing component archive uses typed confirmation (`ARCHIVE COMPONENT(S)`) via `BulkDestructivePreviewModal` at `ComponentLibraryManager.tsx:975` — may keep typed phrase since it pre-dates the new convention. Restore always uses simple confirm.
 5. **Additive schema only** — all migrations are `ALTER TABLE ADD COLUMN IF NOT EXISTS`. No breaking changes.
 6. **One entity per phase** — do not mix entity implementations. Each phase is independently shippable and rollback-able.
