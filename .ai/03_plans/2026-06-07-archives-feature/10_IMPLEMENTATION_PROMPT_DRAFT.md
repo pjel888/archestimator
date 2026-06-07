@@ -83,7 +83,7 @@ You are implementing the Archestimator Archives Feature — a reversible archive
 - Add archive/restore functions to `src/lib/projects/actions.ts` (`previewBulkArchiveProjects`, `executeBulkArchiveProjects`, etc. — following existing naming convention)
 - Add archive/restore action types to `src/lib/mass-deletion/bulk-action.ts` (simple confirm button, NOT typed phrase — archive is non-destructive; typed confirmation reserved for delete)
 - Update `src/lib/repositories/workspace-repository.ts`:
-  - `listCurrentWorkspaceProjects(includeArchived = false)` — default excludes archived. The projects page server wrapper must override with `{ includeArchived: true }` to load all projects for client-side tab partitioning.
+  - `listCurrentWorkspaceProjects({ includeArchived: false })` — default excludes archived. The projects page server wrapper must call `listCurrentWorkspaceProjects({ includeArchived: true })` to load all projects for client-side tab partitioning.
   - `getWorkshopHomebaseData` — filter recent projects to active only
 
 ### Phase 4 — UI

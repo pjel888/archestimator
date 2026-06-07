@@ -29,27 +29,27 @@ Follow existing pattern from `scripts/prove-notification-rls-postgres.mjs`:
 ### Projects
 ```typescript
 // Active project
-const activeProject = { id: 'uuid-1', name: 'Active Project', workspace_id, archived_at: null }
+const activeProject = { id: '<fixture-active-project-uuid>', name: 'Active Project', workspace_id, archived_at: null }
 // Archived project
-const archivedProject = { id: 'uuid-2', name: 'Archived Project', workspace_id, archived_at: new Date(), archived_by: userId }
+const archivedProject = { id: '<fixture-archived-project-uuid>', name: 'Archived Project', workspace_id, archived_at: new Date(), archived_by: userId }
 ```
 
 ### Estimate Sheets
 ```typescript
-const activeEstimate = { id: 'uuid-3', project_id: activeProject.id, archived_at: null }
-const archivedEstimate = { id: 'uuid-4', project_id: activeProject.id, archived_at: new Date() }
+const activeEstimate = { id: '<fixture-active-estimate-uuid>', project_id: activeProject.id, archived_at: null }
+const archivedEstimate = { id: '<fixture-archived-estimate-uuid>', project_id: activeProject.id, archived_at: new Date() }
 ```
 
 ### Components
 ```typescript
-const activeComponent = { id: 'uuid-5', lifecycle_state: 'available' }
-const archivedComponent = { id: 'uuid-6', lifecycle_state: 'archived' }
+const activeComponent = { id: '<fixture-active-component-uuid>', lifecycle_state: 'available' }
+const archivedComponent = { id: '<fixture-archived-component-uuid>', lifecycle_state: 'archived' }
 ```
 
 ### Templates
 ```typescript
-const activeTemplate = { id: 'uuid-7', workspace_id, archived_at: null }
-const archivedTemplate = { id: 'uuid-8', workspace_id, archived_at: new Date() }
+const activeTemplate = { id: '<fixture-active-template-uuid>', workspace_id, archived_at: null }
+const archivedTemplate = { id: '<fixture-archived-template-uuid>', workspace_id, archived_at: new Date() }
 ```
 
 ### Retained Recipient (Future — Phase 5)
