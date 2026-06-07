@@ -121,7 +121,7 @@ cleanup audit (service-role RPC)
 - `targetType: 'project' | 'estimate_sheet' | 'library_component'`
 - Execution result includes `deletedIds?: string[]` or `archivedIds?: string[]`
 - Issue codes: `empty_selection`, `invalid_id`, `batch_limit_exceeded`, `not_found`, `forbidden`, `blocked`, `stale_preview`, `rpc_error`, `storage_cleanup_failed`
-- Confirmation phrases: `DELETE PROJECT`, `DELETE 3 PROJECTS`; existing archive variant (`ARCHIVE ...`, used only for component library). NOTE: project archives will use simple confirm button, NOT typed phrase — typed confirmation is reserved for destructive delete only.
+- Confirmation phrases: `DELETE PROJECT`, `DELETE 3 PROJECTS`; existing archive variant (`ARCHIVE COMPONENT(S)` used for component library at `ComponentLibraryManager.tsx:975`). NOTE: new project/estimate/template archive flows will use simple confirm button. Existing component archive may keep typed phrase since it pre-dates the new convention.
 
 ### Migration Conventions
 - Filename format: `YYYYMMDDHHMMSS_slug.sql`
