@@ -18,7 +18,7 @@
 | R9 | Server actions: executeBulkRestoreProjects | Calls RPC, returns execution result with `archivedIds` (IDs that were unarchived, reusing existing field) | src/lib/projects/actions.ts | Phase 3 | Unit test with mock RPC | Medium risk | Planned |
 | R10 | listCurrentWorkspaceProjects filters archived by default | Active project list excludes archived projects | src/lib/repositories/workspace-repository.ts | Phase 3 | Unit test: active list excludes archived | HIGH risk: query regression could hide active projects | Planned |
 | R11 | getWorkshopHomebaseData excludes archived projects | Homebase recent/favorites exclude archived projects | src/lib/repositories/workspace-repository.ts | Phase 3 | Unit test: homebase excludes archived | Medium risk: homebase regression | Planned |
-| R12 | Projects page has Active/Archived tabs | Tabs render, tab panels show correct projects, counts correct | src/components/workshop/projects-page-client.tsx | Phase 4 | DOM test: tabs render and switch correctly | Low risk: additive UI change | Planned |
+| R12 | Projects page has Archived tab | Archived tab renders alongside existing tabs, showing correct projects, counts correct | src/components/workshop/projects-page-client.tsx | Phase 4 | DOM test: tabs render and switch correctly | Low risk: additive UI change | Planned |
 | R13 | Archive action on LiveProjectCard | Archive button visible; triggers preview modal | src/components/workshop/LiveProjectCard.tsx | Phase 4 | DOM test: archive button renders and triggers flow | Low risk: additive action | Planned |
 | R14 | Archive action in BulkActionToolbar | Bulk archive button visible when projects selected | src/components/workshop/BulkActionToolbar.tsx | Phase 4 | DOM test: bulk archive renders with selection | Low risk: additive action | Planned |
 | R15 | Archive confirmation modal | Modal shows non-destructive copy; confirms archive; shows results | src/components/workshop/ (new or extended) | Phase 4 | DOM test: modal renders, confirms, executes | Low risk: new modal component | Planned |
@@ -41,7 +41,7 @@
 
 ## Summary
 
-- **Total requirements:** 30
+- **Total requirements:** 31
 - **Phase 1 (Baseline/Tests):** Foundation
 - **Phase 2 (Database):** R1-R5 (schema + RPCs)
 - **Phase 3 (Server Actions):** R6-R11 (actions + repository)

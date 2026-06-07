@@ -18,7 +18,7 @@ Reference: `src/lib/collaboration/actions.ts` role system, `supabase/migrations/
 ## RLS/Supabase
 
 - **Existing RLS on projects:**
-  - SELECT: `can_access_project(id)` — NOTE: this allows reading archived projects at the RLS level. The application layer (repository queries with `WHERE archived_at IS NULL`) is the gate for hiding archived projects from active views. This is intentional: archived data remains accessible to authorized users through the Archived tab, and direct API routes are gated by application-level checks, not RLS.
+  - SELECT: `can_access_project(id)` — allows reading archived projects at the RLS level. This is intentional: archived data remains accessible to authorized users through the Archived tab and authorized API routes. Application-layer filtering (`WHERE archived_at IS NULL`) controls visibility in active views; RLS controls data access. Both layers together provide defense-in-depth.
   - INSERT: `is_workspace_editor(workspace_id)` — unaffected
   - UPDATE: `can_edit_project(id)` — covers archive/restore (UPDATE sets `archived_at`)
   - DELETE: `can_edit_project(id)` — unaffected

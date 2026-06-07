@@ -10,7 +10,7 @@ This document defines the user experience, visual design, and accessibility requ
 
 ## Screen and Component Impact
 
-- **Projects Page (`src/app/workshop/projects/page.tsx`)**: Server wrapper — passes new `includeArchived` parameter. The client component `src/components/workshop/projects-page-client.tsx` renders the tabbed interface (Active/Archived).
+- **Projects Page (`src/app/workshop/projects/page.tsx`)**: Server wrapper — passes new `includeArchived` parameter. The client component `src/components/workshop/projects-page-client.tsx` preserves existing "Your Projects"/"Projects shared to you" tabs and adds a third "Archived" tab.
 - **LiveProjectCard (`src/components/workshop/LiveProjectCard.tsx`)**: Added "Archive" action to the overflow menu or as a secondary action.
 - **ArchivedProjectCard**: A variant of the project card for the Archived tab, featuring a "Restore" action.
 - **BulkActionToolbar**: Updated to include "Archive" (in Active tab) and "Restore" (in Archived tab) actions.
