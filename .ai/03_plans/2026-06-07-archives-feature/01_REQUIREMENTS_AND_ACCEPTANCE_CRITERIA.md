@@ -25,9 +25,8 @@ The Archives feature allows users with `can_edit_project` access (workspace memb
 - **Invite Preservation**: Preserve pending collaboration invites for archived projects but keep them inactive until restoration.
 - **Collaborator Visibility**: Hide archived projects from the shared project lists of collaborators who are not owners or admins.
 
-### COULD (P2)
-- **Bulk Archive/Restore**: Support selecting multiple projects for archive or restore actions.
-- **Archive Metadata**: Track who archived the project and when.
+- **Bulk Archive/Restore**: Support selecting multiple projects for archive or restore actions via the existing `BulkActionToolbar`. The RPCs (`preview_bulk_*`, `execute_bulk_*`) naturally handle single or multiple project IDs, so bulk operations are essentially free given the single-project path.
+- **Archive Metadata**: Track who archived the project (`archived_by`) and when (`archived_at`). These are mandatory data model columns required for the archive state to function.
 
 ### OUT OF SCOPE (V2+)
 - **Estimate Sheet Archiving**: Archiving individual sheets within a project.
