@@ -60,8 +60,9 @@ This document outlines the step-by-step implementation order for the Project Arc
   - Add archive/restore functions to `src/lib/projects/actions.ts` following the preview/execute pattern.
   - Add archive confirmation helper to `src/lib/mass-deletion/bulk-action.ts` (simple confirm button label: "Archive" — NOT typed phrase, since archive is non-destructive). Typed confirmation is reserved for destructive delete only.
   - Update `src/lib/repositories/workspace-repository.ts`:
-    - `listCurrentWorkspaceProjects`: Add `includeArchived` parameter (default `false`); add `WHERE archived_at IS NULL` when false.
-    - `getWorkshopHomebaseData`: Filter recent projects to active only.
+    - `listCurrentWorkspaceProjects`: Add `includeArchived` parameter (default `false` for callers that only need active projects).
+    - **Note:** The `/workshop/projects` page server wrapper (`src/app/workshop/projects/page.tsx`) must call `listCurrentWorkspaceProjects({ includeArchived: true })` to load ALL projects, then partition active/archived client-side for tab display.
+    - `getWorkshopHomebaseData`: Filter recent projects to active only (never includes archived).
 - **Files Involved:**
   - `src/lib/projects/actions.ts`
   - `src/lib/mass-deletion/bulk-action.ts`
