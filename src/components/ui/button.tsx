@@ -36,10 +36,10 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  xs: "min-h-7 rounded-xs px-1.5 py-1",
-  sm: "min-h-8 rounded-xs px-2 py-1.5",
-  md: "min-h-9 rounded-xs px-2.5 py-2",
-  lg: "min-h-10 rounded-xs px-3 py-2",
+  xs: "min-h-7 min-w-[96px] rounded-xs px-1.5 py-1",
+  sm: "min-h-8 min-w-[96px] rounded-xs px-2 py-1.5",
+  md: "min-h-9 min-w-[96px] rounded-xs px-2.5 py-2",
+  lg: "min-h-10 min-w-[96px] rounded-xs px-3 py-2",
   "icon-xs": "grid size-7 place-items-center rounded-xs p-0",
   "icon-sm": "grid size-8 place-items-center rounded-xs p-0",
   icon: "grid size-9 place-items-center rounded-xs p-0",

@@ -61,7 +61,7 @@ const disallowedFontWeightClasses = [
   "font-poppins",
 ];
 const requiredGlobals = new Map([
-  ["--ink", "#292929"],
+  ["--ink", "#3D3D3D"],
   ["--secondary", "#5d5d5d"],
   ["--tertiary", "#7f7f7f"],
   ["--surface-muted", "#f5f5f5"],
