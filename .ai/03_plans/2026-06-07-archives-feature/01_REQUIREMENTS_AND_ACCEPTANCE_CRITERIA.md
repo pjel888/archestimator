@@ -16,7 +16,7 @@ The Archives feature allows users with `can_edit_project` access (workspace memb
 - **Shared Link Pausing**: Pause active shared links for archived projects. Links should return a "Project Archived" state instead of project data.
 - **Homebase Exclusion**: Exclude archived projects from the Workshop Homebase dashboard and "Recent Projects" lists.
 - **Tabbed UI**: Preserve existing "Your Projects" and "Projects shared to you" tabs. Add "Archived" as a third top-level tab to separate project states.
-- **Search Scoping**: Scope project search to the currently active tab (Active or Archived).
+- **Search Scoping**: Scope project search to the currently visible tab ("Your Projects", "Projects shared to you", or "Archived").
 - **Permissions**: Restrict archive and restore actions to users with `can_edit_project` access (workspace members, project editors, admins, and owners — matching existing project mutation authorization).
 
 ### SHOULD (P1)

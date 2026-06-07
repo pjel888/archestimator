@@ -16,13 +16,13 @@ Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test)
 
 | Test Case | Description | Expected Result |
 |-----------|-------------|-----------------|
-| **Active List Exclusion** | Query active projects with `archived_at IS NULL` | Projects with `archived_at` set are not returned. |
-| **Archived List Inclusion** | Query archived projects with `archived_at IS NOT NULL` | Only projects with `archived_at` set are returned. |
-| **Independent Search** | Search for "Project A" in Active vs Archived views | Search results are scoped to the current tab's filter. |
-| **Tab Counts** | Verify count logic for Active and Archived tabs | Counts accurately reflect the database state for each filter. |
+| **Active List Exclusion** | Query projects with `archived_at IS NULL` | Archived projects are not returned in default (non-Archived-tab) queries. |
+| **Archived List Inclusion** | Query projects with `archived_at IS NOT NULL` | Only archived projects are returned. |
+| **Independent Search** | Search for "Project A" in existing tabs vs Archived tab | Search results are scoped to the current tab's filter. |
+| **Tab Counts** | Verify count logic for existing tabs and Archived tab | Counts accurately reflect the database state for each filter. |
 | **Archive Role Check** | Attempt archive with `can_view` but not `can_edit_project` | Action is rejected with a 403 Forbidden error. |
 | **Restore Role Check** | Attempt restore with `can_view` but not `can_edit_project` | Action is rejected with a 403 Forbidden error. |
-| **Delete Distinction** | Verify `deleteProject` RPC still removes rows | Archive sets a timestamp; Delete removes the record entirely. |
+| **Delete Distinction** | Verify `deleteProject` server action still removes rows | Archive sets a timestamp; Delete removes the record entirely (via `execute_bulk_delete_projects` RPC). |
 | **RLS Verification** | Direct SQL update attempt by unauthorized user | Supabase RLS prevents `UPDATE` on `archived_at` for non-editors. |
 
 ## Vitest / DOM Tests
@@ -31,7 +31,7 @@ Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test)
 
 | Test Case | Description | Expected Result |
 |-----------|-------------|-----------------|
-| **Tab Rendering** | Render `ProjectsPageClient` | Both "Active" and "Archived" tabs are visible and accessible. |
+| **Tab Rendering** | Render `ProjectsPageClient` | Existing tabs ("Your Projects"/"Projects shared to you") plus "Archived" tab are visible and accessible. |
 | **Archive Trigger** | Click Archive button on `LiveProjectCard` | The `BulkArchivePreviewModal` (or extended `BulkDestructivePreviewModal`) opens with the correct project context. |
 | **Modal Content** | Inspect archive confirmation modal copy | Uses non-destructive language: "Archive project?" and "You can restore it later." |
 

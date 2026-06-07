@@ -45,7 +45,7 @@ This document outlines the step-by-step implementation order for the Project Arc
   - **RLS:** Verify existing policies cover SELECT/UPDATE via `can_edit_project`.
 - **Stop Gate:** STOP before any schema/provider mutation. STOP if linked Supabase migration proof fails.
 - **Files Involved:**
-  - `supabase/migrations/20260607000000_project_archives.sql` (New)
+- **Migration naming:** `YYYYMMDDHHMMSS_project_archive_state.sql` (follows existing convention)
   - `src/lib/supabase/types.ts`
 - **Expected Changes:** New migration file, updated TypeScript types.
 - **Validation Commands:** `npx supabase db lint`, `npx supabase gen types typescript --local > src/lib/supabase/types.ts` (then manual patches).
@@ -76,7 +76,7 @@ This document outlines the step-by-step implementation order for the Project Arc
 **Goal:** Provide user interface for managing archived projects.
 
 - **Tasks:**
-  - Add "Active" and "Archived" tabs to `projects-page-client.tsx` (following `WorkshopCollectionLayout` pattern).
+  - Add "Archived" tab to `projects-page-client.tsx` alongside existing "Your Projects"/"Projects shared to you" tabs (following `WorkshopCollectionLayout` pattern).
   - Add archive action to `LiveProjectCard`.
   - Add archive action to `BulkActionToolbar` (non-destructive styling).
   - Add `BulkArchivePreviewModal` or extend `BulkDestructivePreviewModal` with non-destructive copy.
@@ -110,6 +110,8 @@ This document outlines the step-by-step implementation order for the Project Arc
   - `src/app/workshop/projects/[projectId]/layout.tsx`
   - `src/app/workshop/projects/[projectId]/estimates/page.tsx`
   - `src/app/workshop/projects/[projectId]/charts/page.tsx`
+  - `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts`
+  - `src/lib/ai/read-context.ts`
   - `src/lib/repositories/workspace-repository.ts`
 - **Expected Changes:** Route guards, updated repository logic for favorites and homebase.
 - **Validation Commands:** `bun run test:e2e`.
