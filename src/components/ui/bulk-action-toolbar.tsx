@@ -93,7 +93,7 @@ export function BulkActionToolbar({
         role="region"
         aria-label="Bulk action toolbar"
         className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex flex-col items-center gap-1",
+          "pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex flex-col items-center",
           className
         )}
       >
@@ -103,7 +103,7 @@ export function BulkActionToolbar({
             "pointer-events-auto flex items-center gap-0.5",
             "rounded-xs border border-hairline",
             "bg-white/90 p-1",
-            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
+            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_4px_8px_-2px_rgba(17,17,17,0.15)]",
             "backdrop-blur-xl",
             "animate-in fade-in slide-in-from-bottom-4 duration-300"
           )}
@@ -134,14 +134,15 @@ export function BulkActionToolbar({
           ))}
         </div>
 
-        {/* Level 2: Selection count — slides down from level 1 */}
+        {/* Level 2: Selection count — same width as Level 1, slides down */}
         <div
           className={cn(
             "pointer-events-auto flex items-center justify-center gap-1.5",
             "rounded-xs border border-hairline",
-            "bg-white/90 px-3 py-1",
+            "bg-white/90 p-1",
             "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
             "backdrop-blur-xl",
+            "min-h-8",
             "animate-in fade-in slide-in-from-top-1 duration-200"
           )}
           style={{ animationFillMode: "backwards", animationDelay: "100ms" }}
