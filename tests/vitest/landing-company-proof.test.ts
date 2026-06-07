@@ -1,10 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  getRenderableCompanyProofItems,
-  type CompanyProofLogo,
-} from "../../src/components/landing/company-proof-data";
 
 const root = process.cwd();
 const readProjectFile = (path: string) =>
@@ -29,103 +25,56 @@ function readTextFilesRecursively(directory: string): string[] {
   });
 }
 
-describe("landing page company proof and Lenis integration", () => {
-  it("keeps the locked hero first and inserts the company proof carousel before the product showcase", () => {
+describe("landing page proof policy and Lenis integration", () => {
+  it("keeps the home page focused after the hero", () => {
     const page = readProjectFile("src/app/page.tsx");
+    const orderedSections = [
+      "<HeroSection",
+      "<SecondaryClaimSection",
+      "<PricingSection",
+      "<FinalCTASection",
+    ];
 
-    expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
-    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
-      page.indexOf("<HeroSection"),
-    );
-    expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
-      page.indexOf("<CompanyProofCarouselSection />"),
-    );
-    expect(page.indexOf("<LandingFooter />")).toBeGreaterThan(
-      page.indexOf("<FinalCTASection />"),
-    );
+    for (let index = 0; index < orderedSections.length - 1; index += 1) {
+      expect(page.indexOf(orderedSections[index])).toBeGreaterThan(-1);
+      expect(page.indexOf(orderedSections[index + 1])).toBeGreaterThan(
+        page.indexOf(orderedSections[index]),
+      );
+    }
+
+    expect(page).not.toContain("<CompanyProofCarouselSection");
+    expect(page).not.toContain("<ProductShowcaseSection");
+    expect(page).not.toContain("<SolutionSection");
+    expect(page).not.toContain("<WorkflowStoryboardSection");
+    expect(page).not.toContain("<WorkflowVideoPlaceholderSection");
     expect(page).toContain("LandingSmoothScrollProvider");
+    expect(page).toContain("<LandingFooter isLoggedIn={isLoggedIn} />");
   });
 
-  it("marks company carousel data as placeholder scaffolding instead of real social proof", () => {
-    const data = readProjectFile(
-      "src/components/landing/company-proof-data.ts",
+  it("uses compact workflow proof instead of fake customer logos or mockup cards", () => {
+    const page = readProjectFile("src/app/page.tsx");
+    const method = readProjectFile(
+      "src/components/landing/SecondaryClaimSection.tsx",
     );
-    const section = readProjectFile(
-      "src/components/landing/CompanyProofCarouselSection.tsx",
-    );
+    const index = readProjectFile("src/components/landing/index.ts");
+    const combined = `${page}\n${method}\n${index}`;
 
-    expect(data).toContain('relationship: "placeholder"');
-    expect(data).toContain("permissionConfirmed: false");
-    expect(data).toContain("isPlaceholder: true");
-    expect(data).toContain(
-      "Real customer proof will replace this rail before any public trust claim",
-    );
-    expect(section).toContain("getRenderableCompanyProofItems");
-    expect(section).toContain("data-company-proof-state={proofState}");
-    expect(section).toContain(
-      'data-placeholder={item.isPlaceholder ? "true" : undefined}',
-    );
-    expect(section).not.toContain("Pause rail");
-    expect(section).not.toContain("Resume rail");
-    expect(section).not.toMatch(/Trusted by|Used by|Customers include/);
-  });
-
-  it("fails closed to placeholder-only data when candidate proof is unconfirmed", () => {
-    const placeholder: CompanyProofLogo = {
-      name: "Sample Builder",
-      initials: "SB",
-      relationship: "placeholder",
-      permissionConfirmed: false,
-      isPlaceholder: true,
-      publicLabel: "Sample profile",
-      workflowFit: "Estimate workspace preview",
-    };
-    const unconfirmedCustomer: CompanyProofLogo = {
-      name: "Unconfirmed Customer",
-      initials: "UC",
-      relationship: "customer",
-      permissionConfirmed: false,
-      publicLabel: "Customer",
-      workflowFit: "Should not render",
-    };
-    const verifiedCustomer: CompanyProofLogo = {
-      name: "Verified Customer",
-      initials: "VC",
-      relationship: "customer",
-      permissionConfirmed: true,
-      publicLabel: "Customer",
-      workflowFit: "Confirmed proof",
-    };
-
-    expect(
-      getRenderableCompanyProofItems([unconfirmedCustomer, placeholder]),
-    ).toEqual({
-      items: [placeholder],
-      state: "placeholder",
-    });
-    expect(getRenderableCompanyProofItems([unconfirmedCustomer])).toEqual({
-      items: [],
-      state: "placeholder",
-    });
-    expect(
-      getRenderableCompanyProofItems([
-        placeholder,
-        verifiedCustomer,
-        unconfirmedCustomer,
-      ]),
-    ).toEqual({
-      items: [verifiedCustomer],
-      state: "verified",
-    });
+    expect(page).not.toContain("CompanyProofCarouselSection");
+    expect(method).toContain('id="proof"');
+    expect(method).toContain("Workflow walkthroughs");
+    expect(method).toContain("video placeholder");
+    expect(method).not.toContain("Video slot");
+    expect(method).not.toContain("Planned video");
+    expect(method).not.toContain("Not claimed");
+    expect(method).not.toContain("Recording slot");
+    expect(method).not.toContain("No faux app screenshots");
+    expect(combined).not.toMatch(/Trusted by|Used by|Customers include|Northline Builders|Formworks Studio/);
   });
 
   it("keeps landing header hash links pointed at rendered below-hero sections", () => {
     const header = readProjectFile("src/components/landing/LandingHeader.tsx");
     const landingSources = [
-      readProjectFile("src/components/landing/HeroSection.tsx"),
-      readProjectFile("src/components/landing/ProductShowcaseSection.tsx"),
       readProjectFile("src/components/landing/SecondaryClaimSection.tsx"),
-      readProjectFile("src/components/landing/SolutionSection.tsx"),
       readProjectFile("src/components/landing/PricingSection.tsx"),
       readProjectFile("src/components/landing/FinalCTASection.tsx"),
       readProjectFile("src/components/landing/LandingFooter.tsx"),
@@ -134,42 +83,10 @@ describe("landing page company proof and Lenis integration", () => {
       (match) => match[1],
     );
 
-    expect(hashHrefs).toEqual([
-      "product",
-      "method",
-      "solutions",
-      "pricing",
-      "contact",
-    ]);
+    expect(hashHrefs).toEqual(["method", "access", "contact"]);
     for (const hash of hashHrefs) {
       expect(landingSources).toMatch(new RegExp(`id=['\"]${hash}['\"]`));
     }
-  });
-
-  it("uses CSS marquee motion with reduced-motion fallback inside a light full-width rail", () => {
-    const section = readProjectFile(
-      "src/components/landing/CompanyProofCarouselSection.tsx",
-    );
-    const globals = readProjectFile("src/app/globals.css");
-
-    expect(section).toContain("landing-company-carousel-viewport");
-    expect(section).toContain("w-full overflow-hidden border-y");
-    expect(section).toContain("bg-[#f8f6f1]");
-    expect(section).not.toContain("landing-company-marquee-paused");
-    expect(section).not.toContain("useState");
-    expect(section).not.toContain('aria-controls="company-proof-rail"');
-    expect(section).not.toContain("aria-pressed=");
-    expect(section).not.toContain("data-company-proof-paused");
-    expect(section).toContain('aria-hidden={duplicate ? "true" : undefined}');
-    expect(globals).toContain("@keyframes landing-company-marquee");
-    expect(globals).toContain("--landing-company-marquee-gap");
-    expect(globals).not.toContain("landing-company-marquee-paused");
-    expect(globals).not.toContain("data-company-proof-paused");
-    expect(globals).toContain(
-      '.landing-company-marquee > [aria-hidden="true"]',
-    );
-    expect(globals).toContain("prefers-reduced-motion: reduce");
-    expect(globals).toContain("animation: none");
   });
 
   it("scopes Lenis to the home landing wrapper and preserves native non-home scrolling", () => {
@@ -199,7 +116,6 @@ describe("landing page company proof and Lenis integration", () => {
     expect(provider).toContain("options={landingLenisOptions}");
     expect(provider).toContain("data-lenis-prevent");
 
-    // Settle/snap controller should be removed for smooth free scrolling
     expect(
       existsSync(
         join(root, "src/components/landing/LandingSnapController.tsx"),

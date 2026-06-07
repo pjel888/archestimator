@@ -73,13 +73,13 @@ export function CookieConsentBanner() {
     <section
       role="region"
       aria-label="Cookie choices"
-      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-[760px] rounded-[6px] border border-[#d8d6cf] bg-[#eeeeec]/96 p-4 text-[#111111] shadow-[0_18px_45px_rgba(17,17,17,0.18)] backdrop-blur-xl sm:inset-x-6 sm:p-5"
+      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-[620px] rounded-[6px] border border-[#d8d6cf] bg-[#eeeeec]/96 p-4 text-[#111111] shadow-[0_8px_14px_rgba(17,17,17,0.14)] backdrop-blur-xl sm:inset-x-6"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-[500px]">
+        <div className="max-w-[360px]">
           <p className="text-[13px] font-semibold">Cookie choices</p>
           <p className="mt-1 text-[12px] leading-5 text-[#55534d]">
-            Essential cookies keep the workspace and preferences working. Analytics and experiment cookies stay off unless you accept them.
+            Essential cookies run the site. Analytics stay off unless accepted.
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
