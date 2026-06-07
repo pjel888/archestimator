@@ -58,7 +58,7 @@
 
 | # | Question | Status |
 |---|----------|--------|
-| Q1 | Should estimate sheet favorites also be hidden when parent project is archived? | Deferred to V2 (estimate sheet archive) |
+| Q1 | Should estimate sheet favorites also be hidden when parent project is archived? | Phase 2 (estimate sheet archive) — favorites hide when sheet is archived; when parent project is archived, estimate data is inaccessible via route guards anyway |
 | Q2 | Should component library items be archivable in V1? | NO — already has lifecycle_state archiving; separate from project archive |
 | Q3 | Should the archive feature have analytics/event tracking? | Deferred — product analytics not yet implemented for any feature |
 | Q4 | Should archived projects be included in workspace export/backup? | YES — archived projects are preserved data, not deleted data |
