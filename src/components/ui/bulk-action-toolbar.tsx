@@ -145,8 +145,8 @@ export function BulkActionToolbar({
         <div
           className={cn(
             "pointer-events-auto flex items-center justify-center gap-1.5",
-            "rounded-xs border border-hairline",
-            "bg-white/90 p-1",
+            "rounded-xs",
+            "bg-white/80 p-1",
             "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
             "backdrop-blur-xl",
             "min-h-8",
