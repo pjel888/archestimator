@@ -80,7 +80,7 @@ and `Governance`.
 
 `bun run storybook:check-boundary` passed:
 
-- Files scanned: 68
+- Files scanned: 69
 - Inventory rows: 809
 - Story rows: 703
 
@@ -134,7 +134,7 @@ Passed commands:
 - `bun run build`
 
 `bun run validate` passed with existing ESLint warnings only, 9 Bun unit tests
-passed, 206 Vitest DOM files passed, 1 skipped, 1515 tests passed, and 3
+passed, 206 Vitest DOM files passed, 1 skipped, 1517 tests passed, and 3
 skipped.
 
 ## Boundaries
