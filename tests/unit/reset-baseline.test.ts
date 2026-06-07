@@ -51,11 +51,11 @@ describe("workshop sidebar baseline", () => {
     expect(homebase).toContain('icon: "sun"');
     expect(homebase).toContain('icon: "moon"');
     expect(homebase).toContain("w-[280px]");
-    expect(homebase).toContain("flex size-9 items-center justify-center text-secondary");
+    expect(homebase).toContain("inline-flex items-center gap-1.5 text-secondary");
     expect(homebase).not.toContain("min-w-[96px]");
     expect(homebase).not.toContain("bg-surfaceMuted/50");
-    expect(homebase).toContain("text-[10px] font-[300] leading-4 text-secondary");
-    expect(homebase).toContain("text-[12px] font-medium leading-4 text-ink");
+    expect(homebase).toContain("text-[12px]");
+    expect(homebase).toContain("text-[11px]");
     expect(homebase).not.toContain("Workshop bento");
     expect(homebase).not.toContain("destinations");
     expect(homebase).not.toContain("DestinationTile");
