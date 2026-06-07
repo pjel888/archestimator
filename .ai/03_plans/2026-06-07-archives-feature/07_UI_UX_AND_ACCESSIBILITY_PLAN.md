@@ -64,7 +64,7 @@ The project list will use a tabbed interface following the existing pattern in t
   - Action: "Archive" (Neutral styling)
 - **Restore Confirmation**:
   - Title: "Restore project?"
-  - Body: "This project will be moved back to your Active projects list."
+  - Body: "This project will be moved back to your project list ('Your Projects' or 'Projects shared to you')."
   - Action: "Restore"
 - **Empty Archived State**: "No archived projects" with a hint about how to archive.
 

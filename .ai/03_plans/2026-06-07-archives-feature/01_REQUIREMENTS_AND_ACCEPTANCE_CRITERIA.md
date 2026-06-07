@@ -78,7 +78,7 @@ The Archives feature allows users with `can_edit_project` access (workspace memb
 | AC-12 | Homebase | Archived projects are excluded from the Workshop Homebase dashboard. |
 | AC-13 | Search | Search in the default (non-Archived) tabs excludes archived projects. |
 | AC-14 | Search | Search in the "Archived" tab only returns archived projects. |
-| AC-15 | UI | Active and Archived tabs show accurate project counts. |
+| AC-15 | UI | Each tab ("Your Projects", "Projects shared to you", and "Archived") shows accurate project counts. |
 | AC-16 | Favorites | Favorites for archived projects are hidden from the favorites list. |
 | AC-17 | Favorites | Favorites for archived projects re-appear when the project is restored. |
 | AC-18 | Invites | Pending invites for archived projects are preserved but cannot be accepted. |
