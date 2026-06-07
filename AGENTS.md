@@ -35,6 +35,142 @@ Start here:
 
 Archestimator is preparing a closed beta. Prioritize beta auth, estimating workflows, cost library, proposal package, collaboration/publication proof, provider evidence, and design-system consistency.
 
+<!-- agent-toolkit:start -->
+## Agent Toolkit — What To Use When
+
+This project has an extensive toolkit of agents, skills, and commands. Use this decision matrix to route work to the right tool.
+
+### Work Mode Selection
+
+| Your Task | Mode / Command |
+|-----------|----------------|
+| Complex, multi-step implementation | `/ulw-loop` — ultrawork loop with continuous verification |
+| Adversarial planning with cross-critique | `/hyperplan` — 5 hostile agents cross-critique, lead synthesizes |
+| Self-referential dev loop to completion | `/ralph-loop` — continuous self-review loop |
+| Simple refactoring with safety nets | `/refactor` — LSP + AST-grep + architecture analysis + TDD |
+| One-shot quick fix | Just do it directly (delegate to `quick` category agent) |
+
+### Planning & Design
+
+| Your Task | Use |
+|-----------|-----|
+| Feature planning / architecture | `/ce-plan` — compound engineering plan agent |
+| Brainstorming / ideation | `/ce-brainstorm` or `/ce-strategy` |
+| Pre-planning analysis (ambiguity check) | `task(subagent_type="metis", ...)` — finds hidden intentions and AI failure points |
+| Plan review (quality gate) | `task(subagent_type="momus", ...)` — rigorous clarity/completeness review |
+| Adversarial multi-agent planning | `/hyperplan` — team-mode cross-critique |
+| UI/UX design before coding | `/ce-frontend-design` or load `impeccable` skill |
+
+### Code Quality & Review
+
+| Your Task | Use |
+|-----------|-----|
+| Pre-merge code review | `/ce-code-review` |
+| Documentation review | `/ce-doc-review` |
+| Code simplification | `/ce-simplify-code` |
+| Remove AI slop / code smells | `/remove-ai-slops` |
+| Review changes incrementally | `skill(name="Review Changes")` |
+| Safety review (security) | `skill(name="security-review")` |
+| Design audit | `npx impeccable detect --strict` or load `impeccable` with audit/critique sub-command |
+
+### Debugging & Investigation
+
+| Your Task | Use |
+|-----------|-----|
+| Bug investigation / "Why is X failing?" | `skill(name="Debug Issue")` + `skill(name="gitnexus-debugging")` |
+| Systematic debugging workflow | `/superpowers:systematic-debugging` |
+| Report a bug formally | `/ce-report-bug` |
+| Hard debugging (2+ failed attempts) | `task(subagent_type="oracle", ...)` — high-IQ reasoning |
+| Unconventional problem | `task(category="artistry", ...)` — creative approaches |
+
+### Codebase Navigation
+
+| Your Task | Use |
+|-----------|-----|
+| Understand architecture / "How does X work?" | `skill(name="Explore Codebase")` + `skill(name="gitnexus-exploring")` |
+| Blast radius / "What breaks if I change X?" | `skill(name="gitnexus-impact-analysis")` BEFORE any edit |
+| Find patterns / grep codebase | `task(subagent_type="explore", ...)` — contextual grep |
+| Find external library docs / examples | `task(subagent_type="librarian", ...)` — reference grep |
+| Structural code search | `code-review-graph` MCP tools (semantic_search_nodes, query_graph) |
+
+### Implementation
+
+| Your Task | Delegate To |
+|-----------|-------------|
+| Frontend / UI / styling | `task(category="visual-engineering", load_skills=["frontend-ui-ux", "impeccable"], ...)` |
+| Complex logic / algorithms | `task(category="ultrabrain", ...)` |
+| Deep research + implementation | `task(category="deep", ...)` — one goal per call |
+| Single-file trivial fix | `task(category="quick", ...)` |
+| Documentation / prose | `task(category="writing", ...)` |
+| Refactoring (safe, graph-backed) | `skill(name="Refactor Safely")` + `skill(name="gitnexus-refactoring")` |
+| Multi-agent parallel work | `/ce-work` or `/superpowers:dispatching-parallel-agents` |
+
+### Database & Supabase
+
+| Your Task | Use |
+|-----------|-----|
+| Any Supabase task (auth, DB, storage, realtime) | `skill(name="supabase")` |
+| Postgres query/design review | `skill(name="supabase-postgres-best-practices")` |
+| Schema migrations | Must follow `.ai/` planning process, RLS on all user tables |
+| Never mutate other provider projects | SlateCamp and other projects are off-limits |
+
+### Testing & QA
+
+| Your Task | Use |
+|-----------|-----|
+| Test-driven development | `/superpowers:test-driven-development` — RED → GREEN → SURFACE |
+| Browser testing | `/ce-test-browser` or `skill(name="playwright")` |
+| Verification before claiming done | `/superpowers:verification-before-completion` |
+| Visual QA | `skill(name="impeccable")` with polish/critique sub-commands |
+
+### Git & Workflow
+
+| Your Task | Use |
+|-----------|-----|
+| Commit changes | `/ce-commit` or `/commit-commands:commit` |
+| Commit + push + PR | `/ce-commit-push-pr` or `/commit-commands:commit-push-pr` |
+| Clean up gone branches | `/ce-clean-gone-branches` or `/commit-commands:clean_gone` |
+| Isolated feature work | `/superpowers:using-git-worktrees` |
+| Finish development branch | `/superpowers:finishing-a-development-branch` |
+
+### Discovery & Context
+
+| Your Task | Use |
+|-----------|-----|
+| Cross-session memory / "How did we solve X?" | `/claude-mem:mem-search` |
+| Learn a codebase from scratch | `/claude-mem:learn-codebase` |
+| Project health pulse check | `/ce-product-pulse` |
+| Find/search Notion pages | `/Notion:find` or `/Notion:search` |
+
+### Superpowers Quick Reference
+
+| Superpower | When |
+|------------|------|
+| `brainstorming` | Before ANY creative work — features, components, functionality |
+| `writing-plans` | Multi-step task with spec/requirements, before touching code |
+| `executing-plans` | You have a written plan to execute with review checkpoints |
+| `test-driven-development` | Before writing ANY implementation code |
+| `systematic-debugging` | Any bug, test failure, or unexpected behavior |
+| `verification-before-completion` | About to claim work is done — run verification FIRST |
+| `dispatching-parallel-agents` | 2+ independent tasks with no shared dependencies |
+| `subagent-driven-development` | Executing plans with independent tasks in current session |
+| `requesting-code-review` | Completing tasks, major features, or before merging |
+| `receiving-code-review` | Getting review feedback — requires rigor, not performative agreement |
+| `using-git-worktrees` | Starting feature work needing workspace isolation |
+| `finishing-a-development-branch` | Implementation complete, tests pass, deciding merge/PR/cleanup |
+| `writing-skills` | Creating or editing skills — verify before deploying |
+
+### Decision Heuristics
+
+1. **Always plan first** — `/ce-plan` before multi-step work. Never start coding blind.
+2. **Always check impact** — `gitnexus_impact` before editing any symbol. Warn on HIGH/CRITICAL.
+3. **Always delegate** — you are an orchestrator. Use `task()` for implementation, not direct coding.
+4. **Always verify** — run verification gates before claiming completion. Never assume.
+5. **Always check the library** — `src/components/ui/` before creating new markup.
+6. **Always follow DESIGN.md** — SF Pro, max 12px, 3px radius, 0 tracking. No exceptions.
+7. **Never work alone when specialists exist** — parallel delegation is the default.
+<!-- agent-toolkit:end -->
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
