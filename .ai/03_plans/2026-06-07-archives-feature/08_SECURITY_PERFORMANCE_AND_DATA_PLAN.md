@@ -98,7 +98,7 @@ Archive/restore uses existing Supabase project `ebxxqidacheyapmmzavr` and existi
 | Unauthorized (viewer tries archive) | RPC returns `forbidden`; preview shows 0 eligible | No action needed |
 | Stale preview (state changed between preview and execute) | Execute returns `stale_preview`; client shows error | User re-runs preview |
 | Network failure | Client shows error toast; state unchanged | User retries |
-| Concurrent archive by different user | Second archive is no-op (already archived) | No conflict |
+| Concurrent archive by different user | Second archive returns `stale_preview` (execute re-runs preview, state changed since first user's preview) | User re-runs preview |
 | Migration apply failure | Feature not available (migration must precede code deployment per `09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md`) | Fix migration; re-apply before deploying code |
 
 ## Required Rules

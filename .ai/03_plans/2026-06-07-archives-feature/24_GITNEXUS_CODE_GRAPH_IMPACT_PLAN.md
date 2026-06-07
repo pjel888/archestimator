@@ -16,7 +16,7 @@
 | `listCurrentWorkspaceProjects` | `workspace-repository.ts` | HIGH | All project list consumers |
 | `getWorkshopHomebaseData` | `workspace-repository.ts` | HIGH | Homebase + favorites |
 | `getCurrentWorkspaceProject` | `workspace-repository.ts` | HIGH | Project dashboard, estimates, charts |
-| `previewBulkDeleteProjects` | `projects/actions.ts` | LOW | New actions, no modification |
+| `projects/actions.ts` (new archive/restore actions) | `projects/actions.ts` | LOW | New actions, no modification to existing |
 | `ProjectsPageClient` | `projects-page-client.tsx` | MEDIUM | Tab structure change |
 | `LiveProjectCard` | `LiveProjectCard.tsx` | MEDIUM | New archive action |
 | `BulkActionToolbar` | `BulkActionToolbar.tsx` | MEDIUM | New archive action |
