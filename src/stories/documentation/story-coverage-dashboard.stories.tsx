@@ -14,29 +14,60 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Note, StoryHeader, StoryPanel, StorySection } from "../ui-library/story-canvas";
 
+function StoryCoverageDashboard() {
+  return <ActualStandaloneCoverageContent />;
+}
+
 const meta = {
-  title: "Documentation/Story Coverage Dashboard",
+  title: "Governance/StoryCoverageDashboard",
+  component: StoryCoverageDashboard,
   parameters: {
     docs: {
       description: {
         component:
-          "Governance dashboard for the canonical 809-row component inventory and 703-row P0/P1 Storybook manifest.",
+          "Governance dashboard for the canonical 809-row component inventory and 703-row P0/P1 Storybook manifest. Actual standalone story implementation is verified separately by `bun run storybook:check-components`.",
       },
     },
   },
-} satisfies Meta;
+} satisfies Meta<typeof StoryCoverageDashboard>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const ManifestCoverageDashboard: Story = {
+export const ActualStandaloneCoverage: Story = {
+  render: () => <ActualStandaloneCoverageContent />,
+};
+
+export const ManifestCoverageDashboard: Story = ActualStandaloneCoverage;
+
+export const PlanBacklogDistinction: Story = {
   render: () => (
     <>
       <StoryHeader
         eyebrow="P0 governance"
+        title="Plan rows are backlog, not implemented stories"
+        description="The 809 inventory rows and 703 story rows remain useful planning data, but the executable coverage check reads actual story files and exports."
+      />
+      <StoryPanel className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <Metric label="Planned inventory" value={String(inventoryRows.length)} />
+          <Metric label="Planned story rows" value={String(storyCoverageRows.length)} />
+          <Metric label="Actual verifier" value="storybook:check-components" />
+        </div>
+        <Note>Required standalone entries fail the build-time check if actual `.stories` files or exports are missing.</Note>
+      </StoryPanel>
+    </>
+  ),
+};
+
+function ActualStandaloneCoverageContent() {
+  return (
+    <>
+      <StoryHeader
+        eyebrow="P0 governance"
         title="Storybook coverage dashboard"
-        description="This story imports the canonical plan matrices as static markdown and renders their P0/P1 rows for local review."
+        description="This story imports the canonical plan matrices as static markdown backlog evidence. It does not count plan rows as implemented Storybook stories."
       />
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <Metric label="Inventory rows" value={String(inventoryRows.length)} />
@@ -46,6 +77,10 @@ export const ManifestCoverageDashboard: Story = {
       </div>
       <StorySection title="Implementation evidence">
         <StoryPanel className="space-y-1">
+          <div className="flex items-start gap-2 text-[10px] leading-4 text-ink">
+            <Badge tone="info" size="xs">VERIFY</Badge>
+            <span>Actual standalone component entries are checked by `bun run storybook:check-components`, not by this matrix row count.</span>
+          </div>
           {storybookImplementationEvidence.map((item) => (
             <div key={item} className="flex items-start gap-2 text-[10px] leading-4 text-ink">
               <Badge tone="success" size="xs">MVP</Badge>
@@ -79,8 +114,8 @@ export const ManifestCoverageDashboard: Story = {
         </StoryPanel>
       </StorySection>
     </>
-  ),
-};
+  );
+}
 
 export const P0FirstReviewRows: Story = {
   render: () => (
