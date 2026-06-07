@@ -734,6 +734,7 @@ function ComponentLibrarySheet({
   );
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
   const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
+  const resultSummary = getCatalogueResultSummary(visibleItems.length, sheetItems.length);
   const toggleCatalogueBranch = (branchId: string) => {
     setCollapsedCatalogueBranchIds((current) => {
       const next = new Set(current);
@@ -794,6 +795,9 @@ function ComponentLibrarySheet({
           >
             {selectedLabel}
           </button>
+          <p className="ml-auto self-center px-2 text-[10px] font-medium leading-4 text-tertiary">
+            {resultSummary}
+          </p>
         </div>
         {status.state !== "idle" ? (
           <div

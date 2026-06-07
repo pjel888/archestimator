@@ -337,7 +337,7 @@ export function ComponentViewControls({
           >
             <Check
               size={11}
-              weight="bold"
+              weight="regular"
               aria-hidden="true"
               className={cn("shrink-0", mode === item.id ? "opacity-100" : "opacity-0")}
             />
@@ -1010,7 +1010,7 @@ export function LibraryFolderTreeSurface({
     if (controlledViewMode === undefined) setInternalViewMode(nextMode);
     onViewModeChange?.(nextMode);
     setViewModeMenuOpen(false);
-  }, [controlledViewMode, onViewModeChange]);
+  }, [controlledViewMode, onViewModeChange, setViewModeMenuOpen]);
 
   useEffect(() => {
     if (!viewModeMenuOpen) return;

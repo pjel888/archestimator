@@ -60,6 +60,11 @@ function renderSidebar(props: ComponentProps<typeof EstimateRightSidebar> = {}) 
   return render(<EstimateRightSidebar initialLibraryItems={sidebarSeedItems} {...props} />);
 }
 
+function openComponentViewMenu() {
+  fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
+  return screen.getByRole("menu", { name: "Component view mode" });
+}
+
 describe("component library UI", () => {
   beforeAll(() => {
     if (!window.PointerEvent) {
@@ -101,7 +106,10 @@ describe("component library UI", () => {
     expect(screen.queryByRole("button", { name: "Export components" })).not.toBeInTheDocument();
 
     const stickyHeader = screen.getByLabelText("Library tree tools").closest(".sticky");
-    expect(stickyHeader?.children).toHaveLength(4); // search, toolbar, tabs, view controls
+    expect(stickyHeader?.children).toHaveLength(3); // search, toolbar, tabs
+    expect(screen.queryByRole("menu", { name: "Component view mode" })).not.toBeInTheDocument();
+    openComponentViewMenu();
+    expect(stickyHeader?.children).toHaveLength(4); // search, toolbar, tabs, view menu
   });
 
   it("matches the component library route navigation contract", () => {
@@ -113,11 +121,11 @@ describe("component library UI", () => {
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    const viewMode = openComponentViewMenu();
     expect(screen.getByText("View By")).toBeInTheDocument();
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(viewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
-    expect(within(viewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" })).toHaveAttribute("aria-checked", "false");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
   });
 
   it("opens the new component form in a viewport modal from the plus tool", () => {
@@ -140,8 +148,8 @@ describe("component library UI", () => {
   });
 
   function expandSupplierFolder() {
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
+    const viewMode = openComponentViewMenu();
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
     // Expand up to 3 levels deep to reach components
     for (let i = 0; i < 3; i++) {
       const folders = screen.getAllByRole("treeitem");
@@ -355,8 +363,8 @@ describe("component library UI", () => {
       brands: sharedBrands,
     });
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Brand" }));
+    const viewMode = openComponentViewMenu();
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Brand" }));
 
     expect(screen.getByRole("treeitem", { name: "All Brands" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("treeitem", { name: "Database Brand" })).toBeInTheDocument();
