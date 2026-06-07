@@ -396,9 +396,8 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         e.stopPropagation();
         setFocusId(nodeId);
         onRowClick?.(nodeId, node);
-        triggerSelection(nodeId, e.metaKey || e.ctrlKey);
       },
-      [onRowClick, triggerSelection]
+      [onRowClick]
     );
 
     const handleCheckboxClick = useCallback(
