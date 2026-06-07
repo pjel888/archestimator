@@ -61,7 +61,7 @@ Archive/restore uses existing Supabase project `ebxxqidacheyapmmzavr` and existi
 - **Index strategy:**
   - `CREATE INDEX idx_projects_active ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NULL` — speeds up active project list
   - `CREATE INDEX idx_projects_archived ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NOT NULL` — speeds up archived project list
-- **Query impact on project list:** adding `WHERE archived_at IS NULL` to existing query uses the partial index; no N+1 regression
+- **Query impact on project list:** adding `WHERE archived_at IS NULL` to existing query is index-assisted when the planner selects the partial index; no N+1 regression
 - **Homebase impact:** same index covers `getWorkshopHomebaseData` recent projects query
 - **Index-assisted queries:** partial indexes enable index-assisted active/archived queries when the planner selects the partial index; exact scan behavior depends on query structure and data distribution
 

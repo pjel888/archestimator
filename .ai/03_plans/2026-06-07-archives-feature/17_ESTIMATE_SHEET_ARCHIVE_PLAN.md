@@ -59,5 +59,5 @@ RPCs follow preview→execute pattern (same as project archive).
 - DOM: status filter renders, archive/restore actions work
 - Route: archived sheet URL redirects
 - Charts: aggregation excludes archived sheets
-- Export: workbook excludes archived sheets
+- Export: single-estimate XLSX route rejects archived sheet export
 - E2E: archive → verify hidden → restore → verify visible flow
