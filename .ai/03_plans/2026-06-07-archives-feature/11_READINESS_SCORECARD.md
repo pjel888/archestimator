@@ -52,7 +52,7 @@ Each document scored 0-100 across 8 categories:
 ## Evidence for Scores
 
 - **Repository Evidence (100):** All 14 documents reference specific file paths verified from live codebase reads on 2026-06-07. Background agents inspected 83+ migration files, generated types, server actions, UI components, and route handlers. Multiple Oracle review passes corrected hallucinated paths.
-- **Requirement Clarity (100):** 31 traceable requirements with binary pass/fail acceptance criteria. Archive semantics explicitly defined (who, what, how).
+- **Requirement Clarity (100):** 32 traceable requirements with binary pass/fail acceptance criteria. Archive semantics explicitly defined (who, what, how).
 - **Implementation Specificity (99):** 7-phase sequence with specific files, RPC names, migration SQL, and validation commands. Minor deduction: exact UI component names for archive modal deferred to implementer.
 - **Test Readiness (95):** Tests specified with pass/fail criteria. Deduction: E2E test scenarios could be more detailed; some tests rely on implementer judgment for exact assertions.
 - **Risk Coverage (96):** Blast radius analyzed for all routes, modules, and flows. Includes API/data access surfaces. Deduction: merge conflict risks mentioned but no explicit conflict resolution protocol.
