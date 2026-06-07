@@ -39,7 +39,7 @@
 - [ ] Implement repository filters
 - [ ] Implement UI components
 - [ ] Implement route guards
-- [ ] **Archive is simple confirm button — NOT typed phrase.** Typed confirmation is for delete only.
+- [ ] **Archive is simple confirm button for new flows (projects, estimates, templates).** Existing component archive uses typed confirmation via `BulkDestructivePreviewModal`. Typed confirmation is for delete and existing component archive.
 - [ ] Reuse `src/components/ui` primitives; no raw button/search/icon-button class strings
 
 ### Validation
