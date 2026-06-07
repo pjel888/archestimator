@@ -88,7 +88,7 @@ The plan is **implementation-ready for Phase 1 (Projects)** — the project-arch
 | Iteration | Changes | Score Delta |
 |-----------|---------|-------------|
 | 1 (initial) | Project-only plan, 14 docs, 66/100 | Baseline |
-| 2 (refinement) | Multi-entity plan, 27 docs, 96/100 | +30% |
+| 2 (refinement) | Multi-entity plan, 27 docs, ~85/100 overall (Phase 1 ~82/100) | +19 overall |
 
 ### Final Pass/Fail Decision
 
