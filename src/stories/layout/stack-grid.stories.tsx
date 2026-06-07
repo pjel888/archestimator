@@ -16,6 +16,9 @@ const meta = {
   title: "Layout/Stack",
   component: StackGridPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:

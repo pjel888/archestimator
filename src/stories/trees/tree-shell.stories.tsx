@@ -55,6 +55,9 @@ const meta = {
   title: "Trees/TreeShell",
   component: TreeShellPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

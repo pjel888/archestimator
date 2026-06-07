@@ -13,8 +13,10 @@ surface into an actual component library with individually inspectable stories.
 The canonical 809-row inventory and 703-row story manifest remain useful
 planning data, but they are not counted as implementation proof.
 
-Implementation proof now comes from actual `.stories` files and named CSF
-exports checked by `bun run storybook:check-components`.
+Implementation proof now comes from actual `.stories` files, named CSF
+exports, and either real `@/components/*` component linkage or explicit
+fixture/composition/governance Storybook contracts checked by
+`bun run storybook:check-components`.
 
 ## Standalone Story Coverage
 
@@ -46,15 +48,15 @@ Required standalone titles checked by script:
 - `Data Display/EditableCell`
 - `Navigation/Tabs`
 - `Navigation/Sidebar`
-- `Layout/StackGrid`
+- `Layout/Stack`
 - `Layout/Toolbar`
 - `Trees/TreeShell`
-- `Trees/ShareReviewTree`
 - `Domain/Workshop/ProjectCard`
 - `Domain/Workshop/EstimateRow`
 - `Domain/Workshop/ComponentLibraryCard`
 - `Domain/Share/ShareReviewPanel`
 - `Domain/Notifications/NotificationCenter`
+- `Governance/StoryCoverageDashboard`
 
 Top-level Storybook groups now include required product-library sections such as
 `Actions`, `Forms`, `Menus`, `Overlays`, `Navigation`, `Cards`, `Data Display`,
@@ -72,6 +74,8 @@ and `Governance`.
 - Actual story exports: 230
 - Actual component-level stories: 49
 - Overview/governance stories: 7
+- Linked repo component stories: 13
+- Explicit fixture/composition contracts: 23
 - Required standalone titles checked: 35
 
 `bun run storybook:check-boundary` passed:

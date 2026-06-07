@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Clock, Folder, ImageSquare, MapPin } from "@phosphor-icons/react";
+import { Clock, ImageSquare, MapPin } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPeso, makeComponentLibraryFixture, makeEstimateFixture, makeProjectFixture } from "../../fixtures/product-fixtures";
+import { TreeShellPreviewForDomain } from "../../fixtures/tree-story-fixtures";
 import { StoryGrid, StoryPanel } from "../../ui-library/story-canvas";
 
 function ProjectCardPreview({ selected = false, longContent = false }: { selected?: boolean; longContent?: boolean }) {
@@ -48,20 +49,6 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function TreeShellPreviewForDomain({ label = "Demo scope" }: { label?: string }) {
-  return (
-    <StoryPanel className="max-w-sm space-y-1">
-      {["General requirements", "Millwork", "Loose furniture"].map((item, index) => (
-        <div key={item} className="flex min-h-7 items-center gap-2 rounded-xs px-2 text-[10px] font-medium leading-4 text-secondary" style={{ paddingLeft: `${8 + index * 8}px` }}>
-          <Folder size={12} weight="regular" aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate">{index === 0 ? label : item}</span>
-          <Badge size="xs">{index === 0 ? "group" : "area"}</Badge>
-        </div>
-      ))}
-    </StoryPanel>
-  );
-}
-
 function EstimateRowPreview() {
   const estimate = makeEstimateFixture();
 
@@ -101,6 +88,9 @@ const meta = {
   title: "Domain/Workshop/ProjectCard",
   component: ProjectCardPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

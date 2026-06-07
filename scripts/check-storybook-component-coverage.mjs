@@ -3,8 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = process.cwd();
-const storyRoot = join(root, "src/stories");
+const defaultRoot = process.cwd();
 
 const requiredStories = [
   { title: "Actions/Button", exports: ["Default", "Variants", "Sizes", "WithIcon", "IconOnly", "Disabled", "Loading", "Destructive", "LongContent", "KeyboardFocus"] },
@@ -91,13 +90,28 @@ function parseStoryFile(file) {
   const exports = Array.from(source.matchAll(/\bexport\s+const\s+([A-Za-z0-9_]+)/g), (match) => match[1]);
   const title = titleMatch?.[1] ?? null;
   const overview = Boolean(title && /(Primitive Stories|P0 States|Compositions|Dashboard|Boundary|Matrix|Blocks)$/i.test(title));
+  const componentName = source.match(/\bcomponent:\s*([A-Za-z_$][\w$]*)/)?.[1] ?? null;
+  const storybookContract = source.match(/\bstorybookContract:\s*["'](real-component|story-composition|fixture-only|deferred|governance)["']/)?.[1] ?? null;
 
   return {
-    file: relative(root, file),
+    absoluteFile: file,
     title,
     exports,
     overview,
+    componentName,
+    storybookContract,
+    source,
   };
+}
+
+function hasComponentImportLink(story) {
+  if (!story.componentName) return false;
+
+  const escaped = story.componentName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const namedImportPattern = new RegExp(`import\\s+\\{[^}]*\\b${escaped}\\b[^}]*\\}\\s+from\\s+["']@/components/`, "m");
+  const defaultImportPattern = new RegExp(`import\\s+${escaped}\\s+from\\s+["']@/components/`, "m");
+
+  return namedImportPattern.test(story.source) || defaultImportPattern.test(story.source);
 }
 
 function markdownTableRows(source, rowPrefix) {
@@ -107,7 +121,7 @@ function markdownTableRows(source, rowPrefix) {
     .map((line) => line.split("|").slice(1, -1).map((cell) => cell.trim()));
 }
 
-function readPlanCounts() {
+function readPlanCounts(root = defaultRoot) {
   const planRoot = join(root, ".ai/03_plans/2026-06-06-ui-component-optimization-componentization");
   const inventoryPath = join(planRoot, "15_COMPONENT_INVENTORY_MATRIX.md");
   const coveragePath = join(planRoot, "17_STORYBOOK_STORY_COVERAGE_MATRIX.md");
@@ -122,14 +136,23 @@ function readPlanCounts() {
   return { inventoryRows: inventoryRows.length, storyRows: storyRows.length };
 }
 
-function collectCoverage() {
+function collectCoverage(options = {}) {
+  const root = options.root ?? defaultRoot;
+  const storyRoot = options.storyRoot ?? join(root, "src/stories");
+  const requiredStoryList = options.requiredStories ?? requiredStories;
+  const requiredGroupList = options.requiredTopLevelGroups ?? requiredTopLevelGroups;
   const files = walk(storyRoot);
-  const stories = files.map(parseStoryFile).filter((story) => story.title);
+  const stories = files.map(parseStoryFile).filter((story) => story.title).map((story) => ({
+    ...story,
+    file: relative(root, story.absoluteFile),
+  }));
   const byTitle = new Map(stories.map((story) => [story.title, story]));
   const missingStories = [];
   const missingExports = [];
+  const missingComponentFields = [];
+  const missingContracts = [];
 
-  for (const required of requiredStories) {
+  for (const required of requiredStoryList) {
     const story = byTitle.get(required.title);
     if (!story) {
       missingStories.push(required.title);
@@ -140,11 +163,20 @@ function collectCoverage() {
     if (missing.length > 0) {
       missingExports.push({ title: required.title, file: story.file, missing });
     }
+
+    if (!story.componentName) {
+      missingComponentFields.push({ title: required.title, file: story.file });
+      continue;
+    }
+
+    if (!hasComponentImportLink(story) && !story.storybookContract) {
+      missingContracts.push({ title: required.title, file: story.file, componentName: story.componentName });
+    }
   }
 
   const topLevelGroups = new Set(stories.map((story) => story.title.split("/")[0]));
-  const missingGroups = requiredTopLevelGroups.filter((group) => !topLevelGroups.has(group));
-  const planCounts = readPlanCounts();
+  const missingGroups = requiredGroupList.filter((group) => !topLevelGroups.has(group));
+  const planCounts = readPlanCounts(root);
   const actualExportCount = stories.reduce((count, story) => count + story.exports.length, 0);
 
   return {
@@ -153,9 +185,13 @@ function collectCoverage() {
     byTitle,
     missingStories,
     missingExports,
+    missingComponentFields,
+    missingContracts,
     missingGroups,
     planCounts,
     actualExportCount,
+    linkedComponentStories: stories.filter(hasComponentImportLink),
+    explicitContractStories: stories.filter((story) => story.storybookContract),
     overviewStories: stories.filter((story) => story.overview),
     componentStories: stories.filter((story) => !story.overview),
   };
@@ -170,34 +206,68 @@ function printReport(coverage) {
   console.log(`- Actual story exports: ${coverage.actualExportCount}`);
   console.log(`- Actual component-level stories: ${coverage.componentStories.length}`);
   console.log(`- Overview/governance stories: ${coverage.overviewStories.length}`);
+  console.log(`- Linked repo component stories: ${coverage.linkedComponentStories.length}`);
+  console.log(`- Explicit fixture/composition contracts: ${coverage.explicitContractStories.length}`);
   console.log(`- Required standalone titles checked: ${requiredStories.length}`);
+}
+
+function evaluateCoverage(coverage) {
+  const errors = [];
+
+  if (coverage.files.length === 0) {
+    errors.push({
+      heading: "No Storybook story files found under src/stories.",
+      items: [],
+    });
+  }
+
+  if (coverage.missingGroups.length > 0) {
+    errors.push({
+      heading: "Missing required top-level Storybook groups:",
+      items: coverage.missingGroups,
+    });
+  }
+
+  if (coverage.missingStories.length > 0) {
+    errors.push({
+      heading: "Missing required standalone Storybook titles:",
+      items: coverage.missingStories,
+    });
+  }
+
+  if (coverage.missingExports.length > 0) {
+    errors.push({
+      heading: "Missing required story exports:",
+      items: coverage.missingExports.map((item) => `${item.title} (${item.file}): ${item.missing.join(", ")}`),
+    });
+  }
+
+  if (coverage.missingComponentFields.length > 0) {
+    errors.push({
+      heading: "Missing Storybook component fields:",
+      items: coverage.missingComponentFields.map((item) => `${item.title} (${item.file})`),
+    });
+  }
+
+  if (coverage.missingContracts.length > 0) {
+    errors.push({
+      heading: "Missing repo component linkage or explicit fixture/composition contract:",
+      items: coverage.missingContracts.map((item) => `${item.title} (${item.file}) uses local ${item.componentName}`),
+    });
+  }
+
+  return errors;
 }
 
 function main() {
   const coverage = collectCoverage();
   printReport(coverage);
 
-  if (coverage.files.length === 0) {
-    console.error("No Storybook story files found under src/stories.");
-    process.exit(1);
-  }
-
-  if (coverage.missingGroups.length > 0) {
-    console.error("Missing required top-level Storybook groups:");
-    for (const group of coverage.missingGroups) console.error(`- ${group}`);
-    process.exit(1);
-  }
-
-  if (coverage.missingStories.length > 0) {
-    console.error("Missing required standalone Storybook titles:");
-    for (const title of coverage.missingStories) console.error(`- ${title}`);
-    process.exit(1);
-  }
-
-  if (coverage.missingExports.length > 0) {
-    console.error("Missing required story exports:");
-    for (const item of coverage.missingExports) {
-      console.error(`- ${item.title} (${item.file}): ${item.missing.join(", ")}`);
+  const errors = evaluateCoverage(coverage);
+  if (errors.length > 0) {
+    for (const error of errors) {
+      console.error(error.heading);
+      for (const item of error.items) console.error(`- ${item}`);
     }
     process.exit(1);
   }
@@ -209,4 +279,4 @@ const isCli = process.argv[1] && fileURLToPath(import.meta.url) === process.argv
 
 if (isCli) main();
 
-export { collectCoverage, requiredStories, requiredTopLevelGroups };
+export { collectCoverage, evaluateCoverage, requiredStories, requiredTopLevelGroups };

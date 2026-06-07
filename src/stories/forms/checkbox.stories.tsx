@@ -24,6 +24,9 @@ const meta = {
   title: "Forms/Checkbox",
   component: CheckboxPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

@@ -30,6 +30,9 @@ const meta = {
   title: "Navigation/Sidebar",
   component: SidebarPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

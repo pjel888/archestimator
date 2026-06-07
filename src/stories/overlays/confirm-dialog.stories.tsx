@@ -37,6 +37,9 @@ const meta = {
   title: "Overlays/ConfirmDialog",
   component: ConfirmDialogExample,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:

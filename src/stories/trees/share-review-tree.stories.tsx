@@ -1,11 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { TreeShellPreviewForDomain } from "../domain/workshop/project-card.stories";
+import { TreeShellPreviewForDomain } from "../fixtures/tree-story-fixtures";
 
 const meta = {
   title: "Trees/ShareReviewTree",
   component: TreeShellPreviewForDomain,
   parameters: {
+    archestimator: {
+      storybookContract: "deferred",
+    },
     docs: {
       description: {
         component:

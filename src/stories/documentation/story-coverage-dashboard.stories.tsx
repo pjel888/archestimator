@@ -22,6 +22,9 @@ const meta = {
   title: "Governance/StoryCoverageDashboard",
   component: StoryCoverageDashboard,
   parameters: {
+    archestimator: {
+      storybookContract: "governance",
+    },
     docs: {
       description: {
         component:

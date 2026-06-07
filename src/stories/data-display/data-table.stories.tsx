@@ -56,6 +56,9 @@ const meta = {
   title: "Data Display/DataTable",
   component: DataTablePreview,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:
