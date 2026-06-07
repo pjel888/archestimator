@@ -130,17 +130,17 @@ DROP FUNCTION IF EXISTS execute_bulk_restore_projects CASCADE;
 
 -- Estimate Sheets
 UPDATE estimates SET archived_at = NULL, archived_by = NULL;
-DROP FUNCTION preview_bulk_archive_estimate_sheets CASCADE;
+DROP FUNCTION IF EXISTS preview_bulk_archive_estimate_sheets CASCADE;
 -- ... etc
 
 -- Components (revert lifecycle_state)
 UPDATE cost_library_items SET lifecycle_state = 'available' WHERE lifecycle_state = 'archived';
-DROP FUNCTION preview_bulk_restore_library_components CASCADE;
+DROP FUNCTION IF EXISTS preview_bulk_restore_library_components CASCADE;
 -- ... etc
 
 -- Templates
 UPDATE estimate_templates SET archived_at = NULL, archived_by = NULL;
-DROP FUNCTION preview_bulk_archive_templates CASCADE;
+DROP FUNCTION IF EXISTS preview_bulk_archive_templates CASCADE;
 -- ... etc
 ```
 

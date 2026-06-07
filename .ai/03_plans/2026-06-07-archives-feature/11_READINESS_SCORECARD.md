@@ -37,7 +37,7 @@
 | 06 | TESTING | 90 | Project test coverage; specialist doc 23 adds per-entity fixtures |
 | 07 | UI_UX | 85 | Project-focused UI/IA; per-entity detail in specialist docs 16-19 |
 | 08 | SECURITY | 88 | Project-focused security; per-entity security in specialist doc 15 |
-| 09 | DEPLOYMENT | 96 | Per-phase migration and rollback; P5 future-gated |
+| 09 | DEPLOYMENT | 88 | Project-archive migration/rollback; per-entity detail in specialist docs 15, 25 |
 | 10 | IMPLEMENTATION_PROMPT | 92 | Scope section updated to multi-entity; phase-scoped prompts need per-entity detail |
 | 11 | READINESS | 90 | Honest scoring; gaps documented; scores reflect partial core doc updates |
 | 12 | OPEN_QUESTIONS | 96 | 15+ decisions and questions; some retention questions need Philip |
