@@ -1,6 +1,17 @@
 "use client";
 
-import { forwardRef, useState, useCallback, useMemo, useEffect, type ReactNode, type KeyboardEvent } from "react";
+import {
+  memo,
+  forwardRef,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  type ReactNode,
+  type KeyboardEvent,
+  type MouseEvent,
+  type DragEvent,
+} from "react";
 import {
   DotsSixVertical,
   CaretDown,
@@ -28,6 +39,8 @@ export interface TreeProps {
   onSelectionChange?: (selectedIds: string[]) => void;
   onDrop?: (draggedId: string, targetId: string, position: "before" | "after" | "inside") => void;
   onToggle?: (nodeId: string, expanded: boolean) => void;
+  onContextMenu?: (nodeId: string, node: TreeNode, event: MouseEvent) => void;
+  onRowClick?: (nodeId: string, node: TreeNode) => void;
   /** Controlled: currently expanded node IDs */
   expandedIds?: string[];
   /** Controlled: called when expandedIds should change */
@@ -49,6 +62,149 @@ interface FlatNode {
   depth: number;
   isExpanded: boolean;
 }
+
+interface TreeRowProps {
+  flat: FlatNode;
+  isSelected: boolean;
+  isDragOver: boolean;
+  isFocused: boolean;
+  dragPosition: "before" | "after" | "inside" | null;
+  draggable: boolean;
+  selectable: boolean;
+  expandable: boolean;
+  renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
+  onToggle: (nodeId: string) => void;
+  onRowClick: (nodeId: string, node: TreeNode, event: MouseEvent<HTMLDivElement>) => void;
+  onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLSpanElement>) => void;
+  onContextMenu?: (nodeId: string, node: TreeNode, event: MouseEvent) => void;
+  onDragStart: (nodeId: string, event: DragEvent<HTMLDivElement>) => void;
+  onDragOver: (nodeId: string, event: DragEvent<HTMLDivElement>) => void;
+  onDragLeave: () => void;
+  onDrop: (targetId: string, event: DragEvent<HTMLDivElement>) => void;
+}
+
+const TreeRow = memo(function TreeRow({
+  flat,
+  isSelected,
+  isDragOver,
+  isFocused,
+  dragPosition,
+  draggable,
+  selectable,
+  expandable,
+  renderRow,
+  onToggle,
+  onRowClick,
+  onCheckboxClick,
+  onContextMenu,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: TreeRowProps) {
+  const { node, depth, isExpanded } = flat;
+  const hasChildren = node.children && node.children.length > 0;
+
+  return (
+    <div className="select-none">
+      <div
+        data-tree-row={node.id}
+        tabIndex={isFocused ? 0 : -1}
+        draggable={draggable && node.draggable !== false}
+        onDragStart={(e) => onDragStart(node.id, e)}
+        onDragOver={(e) => onDragOver(node.id, e)}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => onDrop(node.id, e)}
+        onClick={(e) => onRowClick(node.id, node, e)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onContextMenu?.(node.id, node, e);
+        }}
+        className={cn(
+          "group flex items-center h-9 text-[10px] text-ink tracking-normal transition-colors outline-none",
+          "border border-transparent",
+          isSelected && "bg-accentSoft",
+          isDragOver && dragPosition === "inside" && "bg-surfaceMuted",
+          isDragOver && dragPosition === "before" && "border-t-2 border-t-primary",
+          isDragOver && dragPosition === "after" && "border-b-2 border-b-primary",
+          "hover:bg-surfaceMuted cursor-pointer"
+        )}
+        style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        role="treeitem"
+        aria-level={depth + 1}
+        aria-selected={isSelected}
+        aria-expanded={hasChildren ? isExpanded : undefined}
+      >
+        {/* Drag handle — leftmost, no indent, hover-only */}
+        {draggable && node.draggable !== false && (
+          <span
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "shrink-0 mr-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab",
+              "flex items-center justify-center w-4"
+            )}
+            style={{ marginLeft: -(depth * 16 + 8) + 4, marginRight: 4 }}
+          >
+            <DotsSixVertical weight="regular" className="h-3.5 w-3.5 text-muted" />
+          </span>
+        )}
+
+        {/* Selection checkbox — left edge, no indent, hover-only */}
+        {selectable && node.selectable !== false && (
+          <span
+            onClick={(e) => onCheckboxClick(node.id, e)}
+            className={cn(
+              "shrink-0 mr-1.5 flex items-center justify-center w-3.5 h-3.5 rounded-xs border transition-all",
+              isSelected
+                ? "bg-primary border-primary opacity-100"
+                : "border-tertiary opacity-0 group-hover:opacity-100",
+              "cursor-pointer"
+            )}
+            style={{
+              marginLeft: draggable && node.draggable !== false
+                ? 0
+                : -(depth * 16 + 8) + 8
+            }}
+          >
+            {isSelected && <Check weight="regular" className="h-2.5 w-2.5 text-white" />}
+          </span>
+        )}
+
+        {/* Expand/collapse caret */}
+        {expandable && hasChildren && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(node.id);
+            }}
+            className="shrink-0 mr-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-xs hover:bg-[#E8E8E8] cursor-pointer transition-colors"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
+          >
+                {isExpanded ? (
+                  <CaretDown weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+                ) : (
+                  <CaretRight weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+                )}
+          </button>
+        )}
+
+        {expandable && !hasChildren && <span className="w-4 shrink-0" />}
+
+        {node.icon && (
+          <span className="shrink-0 mr-1.5 flex items-center">{node.icon}</span>
+        )}
+
+        {renderRow ? (
+          renderRow(node, depth, isSelected, isExpanded)
+        ) : (
+          <span className="truncate">{node.label}</span>
+        )}
+      </div>
+    </div>
+  );
+});
 
 /** Flatten tree into visible nodes (expanded children included) */
 function flattenTree(
@@ -77,6 +233,8 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       onSelectionChange,
       onDrop,
       onToggle,
+      onContextMenu,
+      onRowClick,
       expandedIds: controlledExpandedIds,
       onExpandedChange,
       defaultExpandedIds = [],
@@ -232,18 +390,26 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
 
     // ─── Mouse handlers ────────────────────────────────────────────
 
-    const handleSelect = useCallback(
-      (nodeId: string, e: React.MouseEvent) => {
-        if (!selectable || !onSelectionChange) return;
+    const handleRowClick = useCallback(
+      (nodeId: string, node: TreeNode, e: MouseEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        setFocusId(nodeId);
+        onRowClick?.(nodeId, node);
+      },
+      [onRowClick]
+    );
+
+    const handleCheckboxClick = useCallback(
+      (nodeId: string, e: MouseEvent<HTMLSpanElement>) => {
         e.stopPropagation();
         setFocusId(nodeId);
         triggerSelection(nodeId, e.metaKey || e.ctrlKey);
       },
-      [selectable, triggerSelection]
+      [triggerSelection]
     );
 
     const handleDragStart = useCallback(
-      (nodeId: string, e: React.DragEvent) => {
+      (nodeId: string, e: DragEvent<HTMLDivElement>) => {
         if (!draggable) return;
         e.dataTransfer.setData("text/plain", nodeId);
         e.dataTransfer.effectAllowed = "move";
@@ -252,7 +418,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     );
 
     const handleDragOver = useCallback(
-      (nodeId: string, e: React.DragEvent) => {
+      (nodeId: string, e: DragEvent<HTMLDivElement>) => {
         if (!draggable || !onDrop) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
@@ -273,7 +439,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     }, []);
 
     const handleDrop = useCallback(
-      (targetId: string, e: React.DragEvent) => {
+      (targetId: string, e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         const draggedId = e.dataTransfer.getData("text/plain");
         if (draggedId && draggedId !== targetId && dragPosition && onDrop) {
@@ -287,103 +453,52 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
 
     // ─── Render ─────────────────────────────────────────────────────
 
-    const renderNode = (flat: FlatNode): ReactNode => {
-      const { node, depth, isExpanded } = flat;
+    const renderNode = useCallback((flat: FlatNode): ReactNode => {
+      const { node } = flat;
       const isSelected = selectedIds.includes(node.id);
-      const hasChildren = node.children && node.children.length > 0;
       const isDragOver = dragOverId === node.id;
       const isFocused = focusId === node.id;
 
       return (
-        <div key={node.id} className="select-none">
-          <div
-            data-tree-row={node.id}
-            tabIndex={isFocused ? 0 : -1}
-            draggable={draggable && node.draggable !== false}
-            onDragStart={(e) => handleDragStart(node.id, e)}
-            onDragOver={(e) => handleDragOver(node.id, e)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(node.id, e)}
-            onClick={(e) => handleSelect(node.id, e)}
-            className={cn(
-              "group flex items-center h-9 text-[10px] text-ink tracking-normal transition-colors outline-none",
-              "border border-transparent",
-              isSelected && "bg-accentSoft",
-              isFocused && "ring-1 ring-inset ring-focus",
-              isDragOver && dragPosition === "inside" && "bg-surfaceMuted",
-              isDragOver && dragPosition === "before" && "border-t-2 border-t-primary",
-              isDragOver && dragPosition === "after" && "border-b-2 border-b-primary",
-              "hover:bg-surfaceMuted cursor-pointer"
-            )}
-            style={{ paddingLeft: `${depth * 16 + 8}px` }}
-            role="treeitem"
-            aria-level={depth + 1}
-            aria-selected={isSelected}
-            aria-expanded={hasChildren ? isExpanded : undefined}
-          >
-            {/* Drag handle — leftmost, no indent, hover-only */}
-            {draggable && node.draggable !== false && (
-              <span
-                className={cn(
-                  "shrink-0 mr-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab",
-                  "flex items-center justify-center w-4"
-                )}
-                style={{ marginLeft: -(depth * 16 + 8) + 4, marginRight: 4 }}
-              >
-                <DotsSixVertical weight="regular" className="h-3.5 w-3.5 text-muted" />
-              </span>
-            )}
-
-            {/* Selection checkbox — no indent, hover-only */}
-            {selectable && node.selectable !== false && (
-              <span
-                className={cn(
-                  "shrink-0 mr-1.5 flex items-center justify-center w-4 h-4 rounded-xs border transition-all",
-                  isSelected
-                    ? "bg-primary border-primary opacity-100"
-                    : "border-hairline opacity-0 group-hover:opacity-100",
-                  "cursor-pointer"
-                )}
-              >
-                {isSelected && <Check weight="regular" className="h-3 w-3 text-white" />}
-              </span>
-            )}
-
-            {/* Expand/collapse caret */}
-            {expandable && hasChildren && (
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggle(node.id);
-                }}
-                className="shrink-0 mr-1 flex items-center justify-center w-4 h-4 rounded-xs hover:bg-surfaceMuted transition-colors"
-                aria-label={isExpanded ? "Collapse" : "Expand"}
-              >
-                {isExpanded ? (
-                  <CaretDown weight="regular" className="h-3.5 w-3.5 text-tertiary" />
-                ) : (
-                  <CaretRight weight="regular" className="h-3.5 w-3.5 text-tertiary" />
-                )}
-              </button>
-            )}
-
-            {expandable && !hasChildren && <span className="w-5 shrink-0" />}
-
-            {node.icon && (
-              <span className="shrink-0 mr-1.5 flex items-center">{node.icon}</span>
-            )}
-
-            {renderRow ? (
-              renderRow(node, depth, isSelected, isExpanded)
-            ) : (
-              <span className="truncate">{node.label}</span>
-            )}
-          </div>
-        </div>
+        <TreeRow
+          key={node.id}
+          flat={flat}
+          isSelected={isSelected}
+          isDragOver={isDragOver}
+          isFocused={isFocused}
+          dragPosition={dragPosition}
+          draggable={draggable}
+          selectable={selectable}
+          expandable={expandable}
+          renderRow={renderRow}
+          onToggle={handleToggle}
+          onRowClick={handleRowClick}
+          onCheckboxClick={handleCheckboxClick}
+          onContextMenu={onContextMenu}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        />
       );
-    };
+    }, [
+      selectedIds,
+      dragOverId,
+      focusId,
+      dragPosition,
+      draggable,
+      selectable,
+      expandable,
+      renderRow,
+      handleToggle,
+      handleRowClick,
+      handleCheckboxClick,
+      onContextMenu,
+      handleDragStart,
+      handleDragOver,
+      handleDragLeave,
+      handleDrop,
+    ]);
 
     return (
       <div

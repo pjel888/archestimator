@@ -5,9 +5,9 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #292929;
-  --primary: #292929;
-  --ink: #292929;
+  --foreground: #3D3D3D;
+  --primary: #3D3D3D;
+  --ink: #3D3D3D;
   --secondary: #5d5d5d;
   --tertiary: #7f7f7f;
   --surface: #ffffff;
@@ -18,10 +18,10 @@
   --hairline: #f2f2f2;
   --divider: #f2f2f2;
   --muted: #7f7f7f;
-  --accent: #292929;
-  --accent-dark: #111111;
+  --accent: #3D3D3D;
+  --accent-dark: #2A2A2A;
   --accent-soft: #f5f5f5;
-  --focus: #292929;
+  --focus: #3D3D3D;
   --success: #15803d;
   --success-soft: #dcfce7;
   --warning: #b45309;
@@ -274,3 +274,51 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* ─── Animation utilities (replaces tailwindcss-animate) ────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom-4 {
+  from { transform: translateY(1rem); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slide-in-from-top-1 {
+  from { transform: translateY(-0.25rem); }
+  to { transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-in {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: backwards;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slide-in-from-bottom-4;
+}
+
+.slide-in-from-top-1 {
+  animation-name: slide-in-from-top-1;
+}
+
+.scale-in {
+  animation-name: scale-in;
+}
+
+.duration-300 { animation-duration: 0.3s; }
+.duration-200 { animation-duration: 0.2s; }
+.duration-150 { animation-duration: 0.15s; }
