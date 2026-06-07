@@ -10,7 +10,7 @@
 | **Project members** | Archived projects hidden from shared lists | N/A | N/A | N/A |
 | **Estimate sheet members** | N/A | Cannot access archived sheets | N/A | N/A |
 | **Pending invites** | Preserved; acceptance blocked | N/A | N/A | N/A |
-| **Shared links** | Paused; show "Project Archived" | Excluded from new snapshots; existing preserved | Paused; show "Component Archived" | N/A |
+| **Shared links** | Paused; show "Project Archived" | Excluded from new snapshots; existing preserved | N/A (components use lifecycle_state; no separate shared-link publication for individual components) | N/A |
 | **Publication snapshots** | Existing preserved; new blocked | Excluded from new snapshots | N/A | N/A |
 | **Comments/decisions** | Preserved; read-only during archive | Preserved | N/A | N/A |
 | **Proposal export** | N/A (export is sheet-level) | Exclude archived sheets | N/A | N/A |
@@ -24,12 +24,12 @@
 ## Implementation Notes
 
 ### AI Read Context
-Existing code in `src/lib/ai/read-context.ts` (line 1407) already excludes `lifecycle_state = 'archived'` for components. Extend same pattern to:
+Existing code in `src/lib/ai/read-context.ts` already excludes `lifecycle_state = 'archived'` for components. Extend same pattern to:
 - Projects: exclude if `archived_at IS NOT NULL`
 - Estimate sheets: exclude if `archived_at IS NOT NULL`
 
 ### AI Package Builder
-Existing code in `src/lib/ai/package-builder/apply.ts` (line 335) and `read-tools.ts` (line 742) already rejects archived/discontinued components. Extend same pattern to reject operations on archived projects and estimate sheets.
+Existing code in `src/lib/ai/package-builder/apply.ts` and `read-tools.ts` already rejects archived/discontinued components. Extend same pattern to reject operations on archived projects and estimate sheets.
 
 ### Proposal Export
 `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts` — check estimate `archived_at` before building workbook. Return appropriate response if archived.

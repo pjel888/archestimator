@@ -46,17 +46,12 @@ You are implementing the Archestimator Archives Feature — a reversible archive
 
 ## SCOPE
 
-**V1: Workspace projects only.**
-- Archive: set `archived_at = now()`, `archived_by = auth.uid()` on `projects` table
-- Restore: set `archived_at = NULL`, `archived_by = NULL`
-- UI: Preserve existing "Your Projects"/"Projects shared to you" tabs + add "Archived" tab; archive/restore actions on cards and toolbar
-- Route guards: redirect archived project pages to `/workshop/projects` with notice
-- Homebase/favorites/collaboration: exclude archived projects
-
-**OUT OF SCOPE for V1:**
-- Do NOT archive estimate sheets, templates, or component library items
-- Do NOT modify project deletion flow
-- Do NOT add lifecycle state machine (simple boolean archive is sufficient)
+**Multi-entity archives across 5 phases (see `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md`):**
+- **Phase 1 — Projects:** `archived_at`/`archived_by` on projects, archive/restore RPCs, tab UI, route guards, homebase/collaboration/publication
+- **Phase 2 — Estimate Sheets:** `archived_at`/`archived_by` on estimates, archive/restore RPCs, status filter UI, cross-cutting effects
+- **Phase 3 — Components:** Archived view + Restore using existing `lifecycle_state = 'archived'`, restore RPCs, library UI
+- **Phase 4 — Templates:** `archived_at`/`archived_by` on estimate_templates, archive/restore RPCs, status filter
+- **Phase 5 — Retention:** Planning only — architecture docs, no code
 - Do NOT add new dependencies or packages
 - Do NOT modify provider settings, secrets, or environment variables
 
