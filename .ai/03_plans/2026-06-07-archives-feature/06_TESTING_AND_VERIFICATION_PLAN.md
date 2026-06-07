@@ -42,11 +42,11 @@ Target: `e2e/archives.spec.ts`
 - **Archive/Restore Flow**:
   1. Create a new project.
   2. Archive the project via the card menu.
-  3. Verify it disappears from the "Active" tab.
+  3. Verify it disappears from the default (non-Archived) tabs.
   4. Switch to the "Archived" tab.
   5. Verify the project appears there.
   6. Restore the project.
-  7. Verify it returns to the "Active" tab.
+  7. Verify it returns to its original tab.
 - **Direct Access Redirect**:
   1. Archive a project.
    2. Attempt to navigate directly to `/workshop/projects/[projectId]`.

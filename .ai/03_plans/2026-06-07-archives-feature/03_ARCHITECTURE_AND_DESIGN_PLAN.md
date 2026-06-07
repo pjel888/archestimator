@@ -71,7 +71,7 @@ A project is considered "archived" if `archived_at` is not null.
 ## Data Flow
 
 ### Archive Flow
-1. **Selection**: User selects projects in the "Active" tab.
+1. **Selection**: User selects projects in a default (non-Archived) tab.
 2. **Preview**: UI calls `preview_bulk_archive_projects`.
 3. **Confirmation**: User confirms the action in the preview modal.
 4. **Execution**: UI calls `execute_bulk_archive_projects`.
@@ -86,7 +86,7 @@ A project is considered "archived" if `archived_at` is not null.
 ## Reuse Opportunities
 
 - **BulkDestructivePreviewModal**: Use as a template for the archive preview modal.
-- **WorkshopCollectionLayout**: Use the `toolbarPanel` slot for the Active/Archived tabs.
+- **WorkshopCollectionLayout**: Use the `toolbarPanel` slot for the archived/non-archived tab selector.
 - **BulkActionToolbar**: Extend to support archive/restore actions based on the active tab.
 
 ## Alternatives Rejected
@@ -99,7 +99,7 @@ A project is considered "archived" if `archived_at` is not null.
 ## Backward Compatibility
 
 - **Additive Schema**: Adding nullable columns ensures existing queries and data remain functional.
-- **Default State**: All existing projects will have `archived_at = NULL`, making them "Active" by default.
+- **Default State**: All existing projects will have `archived_at = NULL`, making them visible in default (non-Archived) tabs by default.
 
 ## Migration Implications
 

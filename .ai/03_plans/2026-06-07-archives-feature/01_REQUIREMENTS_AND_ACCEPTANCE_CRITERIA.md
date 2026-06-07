@@ -20,7 +20,7 @@ The Archives feature allows users with `can_edit_project` access (workspace memb
 - **Permissions**: Restrict archive and restore actions to users with `can_edit_project` access (workspace members, project editors, admins, and owners — matching existing project mutation authorization).
 
 ### SHOULD (P1)
-- **Count Badges**: Display project counts on the Active and Archived tabs.
+- **Count Badges**: Display project counts on the existing "Your Projects"/"Projects shared to you" tabs and the "Archived" tab.
 - **Favorite Management**: Hide favorites for archived projects from the global favorites list. Re-show them upon restoration.
 - **Invite Preservation**: Preserve pending collaboration invites for archived projects but keep them inactive until restoration.
 - **Collaborator Visibility**: Hide archived projects from the shared project lists of collaborators who are not owners or admins.
@@ -68,15 +68,15 @@ The Archives feature allows users with `can_edit_project` access (workspace memb
 | AC-02 | Permissions | Users without `can_edit_project` (viewers, sheet-only collaborators) cannot archive. |
 | AC-03 | Permissions | Users with `can_edit_project` can restore a project. |
 | AC-04 | Visibility | Archived projects appear in the "Archived" tab. |
-| AC-05 | Visibility | Archived projects do not appear in the "Active" tab. |
+| AC-05 | Visibility | Archived projects do not appear in the default (non-Archived) tabs. |
 | AC-06 | Access Control | Direct URL access to an archived project redirects to the projects list. |
 | AC-07 | UX | Redirected users see a notice stating the project is archived. |
 | AC-08 | Shared Links | Public shared links for archived projects show an "Archived" status page. |
-| AC-09 | Restoration | Restoring a project moves it back to the "Active" tab immediately. |
+| AC-09 | Restoration | Restoring a project moves it back to its original tab ("Your Projects" or "Projects shared to you") immediately. |
 | AC-10 | Restoration | Restored projects are accessible via direct URL again. |
 | AC-11 | Restoration | Restored projects re-enable their public shared links. |
 | AC-12 | Homebase | Archived projects are excluded from the Workshop Homebase dashboard. |
-| AC-13 | Search | Search in the "Active" tab excludes archived projects. |
+| AC-13 | Search | Search in the default (non-Archived) tabs excludes archived projects. |
 | AC-14 | Search | Search in the "Archived" tab only returns archived projects. |
 | AC-15 | UI | Active and Archived tabs show accurate project counts. |
 | AC-16 | Favorites | Favorites for archived projects are hidden from the favorites list. |

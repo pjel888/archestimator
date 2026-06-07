@@ -49,7 +49,7 @@ You are implementing the Archestimator Archives Feature — a reversible archive
 **V1: Workspace projects only.**
 - Archive: set `archived_at = now()`, `archived_by = auth.uid()` on `projects` table
 - Restore: set `archived_at = NULL`, `archived_by = NULL`
-- UI: Active/Archived tabs on project list; archive/restore actions on cards and toolbar
+- UI: Preserve existing "Your Projects"/"Projects shared to you" tabs + add "Archived" tab; archive/restore actions on cards and toolbar
 - Route guards: redirect archived project pages to `/workshop/projects` with notice
 - Homebase/favorites/collaboration: exclude archived projects
 
