@@ -16,7 +16,7 @@ Currently, Archestimator has no concept of paid access, subscriptions, or retain
 
 | Action | Creator View | Paid Recipient View | Free Shared Link | Rationale |
 |--------|-------------|-------------------|------------------|-----------|
-| Creator archives project | Hidden in Archived tab | Retained access to issued estimate | Shows "Project Archived" | Paid access persists; free access follows creator state |
+| Creator archives project | Hidden from active views; visible in Archived tab | Retained access to issued estimate | Shows "Project Archived" | Paid access persists; free access follows creator state |
 | Creator deletes project | Project removed | Retained snapshot access | Link broken (404) | Paid clients keep immutable snapshots |
 | Recipient subscription expires | N/A | Access revoked | N/A | Time-limited access |
 | Recipient access revoked | N/A | Immediate loss | Link invalidated | Manual revocation |
