@@ -164,8 +164,23 @@ export function ButtonMatrix() {
         <div className="flex flex-wrap items-center gap-1">
           <Button variant="primary">Save estimate</Button>
           <Button variant="secondary">Review</Button>
+          <Button variant="soft">Draft</Button>
+          <Button variant="success">Approve</Button>
+          <Button variant="warning">Flag</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          <Button variant="outline">Outline</Button>
           <Button variant="ghost">Cancel</Button>
+          <Button variant="plain">Plain</Button>
           <Button variant="danger">Delete</Button>
+        </div>
+      </StoryPanel>
+      <StoryPanel className="space-y-2">
+        <div className="flex flex-wrap items-center gap-1">
+          <Button size="xs">XS</Button>
+          <Button size="sm">SM</Button>
+          <Button size="md">MD</Button>
+          <Button size="lg">LG</Button>
         </div>
         <div className="flex flex-wrap items-center gap-1">
           <Button disabled>Disabled</Button>
@@ -175,9 +190,10 @@ export function ButtonMatrix() {
       </StoryPanel>
       <StoryPanel className="space-y-2">
         <div className="flex items-center gap-1">
+          <Button size="icon-xs" aria-label="Quick add row"><Plus size={11} weight="regular" /></Button>
           <Button size="icon-sm" aria-label="Add row"><Plus size={12} weight="regular" /></Button>
-          <Button size="icon-sm" variant="ghost" aria-label="Edit row"><PencilSimple size={12} weight="regular" /></Button>
-          <Button size="icon-sm" variant="danger" aria-label="Delete row"><XCircle size={12} weight="regular" /></Button>
+          <Button size="icon" variant="ghost" aria-label="Edit row"><PencilSimple size={13} weight="regular" /></Button>
+          <Button size="icon-lg" variant="danger" aria-label="Delete row"><XCircle size={14} weight="regular" /></Button>
         </div>
         <Note>Icon-only buttons require an accessible label and use Phosphor regular outline icons.</Note>
       </StoryPanel>
