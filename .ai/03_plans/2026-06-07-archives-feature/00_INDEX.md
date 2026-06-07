@@ -15,7 +15,7 @@ Create a reversible archive/restore flow for workspace projects in Archestimator
 
 - **V1:** Workspace projects only (archive + restore)
 - **V2+:** Estimate sheets, templates, component-library item archives (evaluated but deferred)
-- **V1 includes:** Database migration, RPCs, server actions, project list tabs (Active/Archived), archive/restore actions, homebase/favorites/route semantics, collaboration/publication behavior, tests
+- **V1 includes:** Database migration, RPCs, server actions, project list tabs (preserves existing "Your Projects"/"Projects shared to you" + adds "Archived" tab), archive/restore actions, homebase/favorites/route semantics, collaboration/publication behavior, tests
 - **Existing precedent:** Component-library already has `lifecycle_state` archiving; this plan treats that as architectural precedent, not reusable code
 
 ## Explicit Non-Goals
@@ -35,7 +35,7 @@ Create a reversible archive/restore flow for workspace projects in Archestimator
 | Who can restore? | Same as archive (`can_edit_project`) | Same authorization gate |
 | Direct URL access to archived projects? | Redirect to projects list with notice | Prevents data access confusion; consistent with removed-project pattern |
 | Archived projects: read-only or fully blocked? | Fully blocked (redirect + notice) | Simplest security posture; archived = not active |
-| Active shared links after archive? | Paused (link returns "project archived" state) | Publication RPCs already check project existence |
+| Active shared links after archive? | Paused (link returns "project archived" state) | Publication currently resolves from `project_publications` table; an explicit project archive-state check must be added to the resolution flow |
 | Collaborators see archived projects? | No; archived projects hidden from shared lists | Matches "archived = removed from active surfaces" |
 | Pending invites when archived? | Preserved but inactive; restored projects re-enable | Avoids invite data loss |
 | Favorites for archived projects? | Hidden from favorites; re-appear on restore | Prevents broken favorite links |

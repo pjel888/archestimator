@@ -52,7 +52,7 @@ A project is considered "archived" if `archived_at` is not null.
 - `src/lib/repositories/workspace-repository.ts`: Update `listCurrentWorkspaceProjects` and `getWorkshopHomebaseData` to include `archived_at IS NULL` filters.
 
 ### UI Components
-- `src/components/workshop/projects-page-client.tsx`: Add "Active" and "Archived" tabs. Implement archive/restore action handlers.
+- `src/components/workshop/projects-page-client.tsx`: Add "Archived" tab alongside existing "Your Projects"/"Projects shared to you" tabs. Implement archive/restore action handlers.
 - `src/components/workshop/LiveProjectCard.tsx`: Add archive/restore action to the card menu.
 - `src/components/workshop/ProjectDetailsModal.tsx`: Add archive action affordance.
 - `src/components/workshop/BulkActionToolbar.tsx`: Add archive/restore buttons to the selection bar.

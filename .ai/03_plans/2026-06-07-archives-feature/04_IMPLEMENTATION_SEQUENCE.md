@@ -101,6 +101,7 @@ This document outlines the step-by-step implementation order for the Project Arc
 - **Tasks:**
   - Add archived-project guard to project route pages (redirect to `/workshop/projects` with notice).
   - Add archived guard to estimate routes and chart route (`src/app/workshop/projects/[projectId]/charts/page.tsx`).
+  - Add archive-state checks to API surfaces: XLSX export route, AI ask/package-builder context reads, project image serving (see blast radius analysis for full list).
   - Update homebase: Exclude archived projects from recent/favorites.
   - Update favorites: Hide archived project favorites; ensure they re-appear on restore.
   - Update collaboration: Preserve pending invites for archived projects; hide archived from shared lists.
