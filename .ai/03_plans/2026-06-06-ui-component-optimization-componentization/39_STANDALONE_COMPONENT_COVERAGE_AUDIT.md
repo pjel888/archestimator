@@ -18,6 +18,38 @@ exports, and either real `@/components/*` component linkage or explicit
 fixture/composition/governance Storybook contracts checked by
 `bun run storybook:check-components`.
 
+## Complete Overlay Continuation - 2026-06-07
+
+Branch `feat/storybook-complete-ui-component-system` expands the standalone
+coverage audit to the required modal/dialog/popup overlay family. The coverage
+script now checks 41 required standalone titles, including the new overlay
+titles `Overlays/DialogSystem`, `Overlays/AppModal`,
+`Overlays/ResizableModal`, `Overlays/SheetDrawer`, `Overlays/HoverCard`, and
+`Overlays/CommandDialog`.
+
+Fresh `bun run storybook:check-components` output:
+
+- Planned inventory rows: 809
+- Planned story rows: 703
+- Actual story files: 62
+- Actual titled stories: 62
+- Actual story exports: 295
+- Actual component-level stories: 55
+- Overview/governance stories: 7
+- Linked repo component stories: 21
+- Explicit fixture/composition contracts: 21
+- Required standalone titles checked: 41
+
+Fresh `bun run storybook:check-boundary` output:
+
+- Files scanned: 75
+- Inventory rows: 809
+- Story rows: 703
+
+Additional rendered proof: static Storybook overlay smoke passed across 8
+overlay story families in desktop and mobile viewports with 16 screenshots
+under `/tmp/archestimator-storybook-overlay-smoke/*.png`.
+
 ## Standalone Story Coverage
 
 Required standalone titles checked by script:

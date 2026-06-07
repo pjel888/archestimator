@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-06-07 - Complete overlay system remains Storybook-only review surface
+
+**Decision:** Implement the modal/dialog/popup overlay component system as a
+Storybook-first reusable library layer on `feat/storybook-complete-ui-component-system`
+without migrating production app routes.
+
+**Rationale:** The UI library prompt required a complete modal/dialog/popup
+system before app adoption. A Storybook-only overlay implementation gives Philip
+inspectable DialogSystem, AppModal, ResizableModal, ConfirmDialog, SheetDrawer,
+Popover, Tooltip, HoverCard, and CommandDialog surfaces while preserving
+closed-beta production behavior and avoiding new runtime dependencies.
+
+**Follow-up:** Do not treat this as production migration approval. App/workshop
+route adoption still requires Philip's Storybook review approval plus a separate
+route-by-route migration plan with fresh graph impact evidence. Public
+Storybook hosting and hosted/provider proof also remain unperformed.
+
 ## 2026-06-06 - Storybook-first UI component library MVP implementation
 
 **Decision:** Implement the approved Storybook-first UI Component Library MVP on

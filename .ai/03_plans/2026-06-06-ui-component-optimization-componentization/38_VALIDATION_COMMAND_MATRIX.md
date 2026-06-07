@@ -3,6 +3,22 @@
 **Status:** Implementation-aware command matrix.
 **Repo fact:** The TypeScript script is `bun run type-check`, not `bun run typecheck`.
 
+## Complete Overlay Component System Evidence - 2026-06-07
+
+| Command | Result | Notes |
+|---|---|---|
+| `bun run storybook:check-components` | Passed | 62 actual story files, 62 titled stories, 295 story exports, 55 component-level stories, 7 overview/governance stories, 41 required standalone titles checked. |
+| `bun run type-check` | Passed | Overlay primitives, stories, tests, and Storybook coverage verifier compile under `tsc --noEmit`. |
+| `bun run storybook:check-boundary` | Passed | 75 files scanned, 809 inventory rows, 703 story rows; no forbidden provider/server imports in Storybook surfaces. |
+| `bunx vitest run tests/vitest/ui-modal-tooltip.test.tsx tests/vitest/storybook-component-coverage.test.ts --maxWorkers=1` | Passed | 2 files, 11 tests. |
+| `bunx vitest run tests/vitest/release-announcement-modal.test.tsx --maxWorkers=1` | Passed | 1 file, 4 tests. |
+| `git diff --check` | Passed | No whitespace errors. |
+| `bun run lint:design-system` | Passed | Compact app/workshop design-system enforcement passed. |
+| `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static-overlays` | Passed | Static Storybook generated in `/tmp`; generated output is not committed. Vite emitted large chunk warnings for docs/axe/dashboard/iframe assets only. |
+| Local Playwright static Storybook overlay smoke | Passed | 8 overlay story families across desktop and mobile viewports, 16 screenshots under `/tmp/archestimator-storybook-overlay-smoke/`, dialog/tooltip role checks, body text checks, pixel-range checks, and zero console/page errors. |
+| `bun run validate` | Passed | Existing ESLint warnings only; 9 Bun unit tests passed; 206 Vitest DOM files passed, 1 skipped; 1522 tests passed, 3 skipped. |
+| `bun run build` | Passed | Next.js 16.2.6 production build completed. |
+
 ## Standalone Component Completion Evidence - 2026-06-07
 
 | Command | Result | Notes |

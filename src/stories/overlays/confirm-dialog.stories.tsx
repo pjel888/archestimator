@@ -2,74 +2,80 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog, DeleteConfirmDialog, UnsavedChangesDialog } from "@/components/ui/overlays/confirm-dialog";
 import { Note, StoryPanel } from "../ui-library/story-canvas";
 
-function ConfirmDialogExample({ danger = false }: { danger?: boolean }) {
+type ConfirmState = "default" | "destructive" | "busy" | "error" | "unsaved" | "long";
+
+function ConfirmDialogStory({ state = "default" }: { state?: ConfirmState }) {
   const [open, setOpen] = useState(true);
+  const longCopy = "This static confirmation includes long copy to prove body wrapping and compact footer hierarchy. ".repeat(4);
 
   return (
     <StoryPanel className="min-h-56">
-      <Button variant={danger ? "danger" : "secondary"} onClick={() => setOpen(true)}>
+      <Button variant={state === "destructive" ? "danger" : "secondary"} onClick={() => setOpen(true)}>
         Open confirmation
       </Button>
-      <Modal
-        open={open}
-        onOpenChange={setOpen}
-        title={danger ? "Delete selected rows?" : "Apply review decision?"}
-        description={danger ? "This action is destructive in production; this story is static." : "Confirm before changing shared review state."}
-      >
-        <div className="space-y-3">
-          <Note tone={danger ? "danger" : "neutral"}>
-            Static confirmation copy documents tone, focus, and action hierarchy without invoking app actions.
-          </Note>
-          <div className="flex justify-end gap-1">
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant={danger ? "danger" : "primary"}>{danger ? "Delete" : "Apply"}</Button>
-          </div>
-        </div>
-      </Modal>
+      {state === "destructive" ? (
+        <DeleteConfirmDialog
+          open={open}
+          onOpenChange={setOpen}
+          title="Delete selected rows?"
+          description="This destructive Storybook fixture does not call production actions."
+        />
+      ) : state === "unsaved" ? (
+        <UnsavedChangesDialog
+          open={open}
+          onOpenChange={setOpen}
+          title="Discard unsaved changes?"
+          description="Unsaved local fixture changes will be discarded."
+        />
+      ) : (
+        <ConfirmDialog
+          open={open}
+          onOpenChange={setOpen}
+          title={state === "error" ? "Apply failed" : "Apply review decision?"}
+          description={state === "long" ? longCopy : "Confirm before changing shared review state."}
+          busy={state === "busy"}
+          error={state === "error" ? "The static fixture failed local validation." : undefined}
+          confirmLabel={state === "busy" ? "Applying" : "Apply"}
+        >
+          <Note>Cancel remains the safe action for normal confirmations.</Note>
+        </ConfirmDialog>
+      )}
     </StoryPanel>
   );
 }
 
 const meta = {
   title: "Overlays/ConfirmDialog",
-  component: ConfirmDialogExample,
+  component: ConfirmDialog,
   parameters: {
-    archestimator: {
-      storybookContract: "story-composition",
-    },
     docs: {
       description: {
         component:
-          "Story-only confirmation dialog composition built on Modal and Button. It documents confirm/cancel hierarchy while production route actions remain out of scope.",
+          "Reusable ConfirmDialog, DeleteConfirmDialog, and UnsavedChangesDialog stories with static state only. These are real UI primitives, not route-action previews.",
       },
     },
   },
-} satisfies Meta<typeof ConfirmDialogExample>;
+} satisfies Meta<typeof ConfirmDialog>;
 
 export default meta;
 
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-export const Default: Story = {
-  render: () => <ConfirmDialogExample />,
-};
-
-export const DestructiveConfirm: Story = {
-  render: () => <ConfirmDialogExample danger />,
-};
-
-export const Busy: Story = {
+export const Default: Story = { render: () => <ConfirmDialogStory /> };
+export const Destructive: Story = { render: () => <ConfirmDialogStory state="destructive" /> };
+export const DestructiveConfirm: Story = Destructive;
+export const Busy: Story = { render: () => <ConfirmDialogStory state="busy" /> };
+export const Error: Story = { render: () => <ConfirmDialogStory state="error" /> };
+export const UnsavedChanges: Story = { render: () => <ConfirmDialogStory state="unsaved" /> };
+export const LongContent: Story = { render: () => <ConfirmDialogStory state="long" /> };
+export const FocusNotes: Story = {
   render: () => (
     <StoryPanel className="space-y-2">
-      <ConfirmDialogExample />
-      <Note tone="warning">Busy state disables the primary action in production; this story keeps it static for review.</Note>
+      <ConfirmDialogStory />
+      <Note>Keyboard contract: cancel is the safe focus target unless the destructive action needs explicit confirmation.</Note>
     </StoryPanel>
   ),
-};
-
-export const FocusNotes: Story = {
-  render: () => <Note>Keyboard contract: confirm dialogs use the Modal close/Escape behavior and labelled action buttons.</Note>,
 };
