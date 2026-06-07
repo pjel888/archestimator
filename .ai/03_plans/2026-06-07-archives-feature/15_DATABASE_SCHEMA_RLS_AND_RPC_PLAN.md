@@ -58,7 +58,7 @@ execute_bulk_restore_estimate_sheets(target_project_id uuid, target_estimate_ids
 
 ### Auth
 - `can_edit_estimate` for archive/restore
-- Project-level `can_edit_project` does NOT grant estimate archive permission (separate gate)
+- Note: `can_edit_estimate` delegates to `can_edit_project(e.project_id)` when estimate access inherits from project access (see `supabase/migrations/20260526142913_project_sheet_collaboration_access.sql:403-409`). This means project editors who inherit estimate access CAN archive estimate sheets — consistent with the inheritance model.
 
 ## Components (Phase 3)
 
