@@ -158,7 +158,7 @@ const TreeRow = memo(function TreeRow({
               "shrink-0 mr-1.5 flex items-center justify-center w-4 h-4 rounded-xs border transition-all",
               isSelected
                 ? "bg-primary border-primary opacity-100"
-                : "border-hairline opacity-0 group-hover:opacity-100",
+                : "border-tertiary opacity-0 group-hover:opacity-100",
               "cursor-pointer"
             )}
             style={{
