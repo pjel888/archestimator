@@ -11,24 +11,20 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   {
-    question: "How does access work?",
-    answer: "Request access with the Google account you want enabled. If approved, that account can enter the workspace after it is added to the access list.",
+    question: "How does the closed beta work?",
+    answer: "Archestimator is invite-only during closed beta. Request access with the Google account you want enabled; approved testers can enter the workspace after their email is allowlisted.",
   },
   {
-    question: "Will there be product walkthrough videos?",
-    answer: "Yes. Short walkthroughs are planned for quote build, revision review, and proposal handoff once the recordings are approved for public use.",
-  },
-  {
-    question: "Can I import or export my existing quote sheets?",
-    answer: "The current workspace supports structured quote work and reusable cost components. Spreadsheet import, export, and document handoff workflows remain planned paths and should not be presented as finished public capabilities yet.",
-  },
-  {
-    question: "How does Archestimator differ from spreadsheets?",
-    answer: "Spreadsheets are flexible, but they often separate quote structure, supplier context, revision evidence, and proposal language. Archestimator is built to keep those commercial decisions closer together while the offer matures.",
+    question: "Can I import my existing Excel quote sheets?",
+    answer: "We support structured manual entry and quick copy-paste into the workspace to keep line items clean. Direct Excel importing is not yet supported, and spreadsheet/document handoff remains a planned workflow.",
   },
   {
     question: "Is my quote data protected?",
-    answer: "Workspace access is protected by login and row-level access rules. Broader security, privacy, and compliance claims should stay pending until the reviewed Privacy Notice, Terms, and security posture are published.",
+    answer: "Workspace access is protected by login and row-level access rules. Broader security, privacy, and compliance claims stay pending until the reviewed Privacy Notice, Terms, and security posture are published.",
+  },
+  {
+    question: "How does Archestimator differ from spreadsheets?",
+    answer: "Traditional spreadsheets suffer from broken formulas, disconnected tabs, and high risk of errors. Archestimator structures quote and estimate sheets, helps reuse catalog items and supplier context, and is designed to make revisions and proposal comparisons easier as planned workflows mature.",
   },
 ];
 
@@ -48,14 +44,14 @@ export function FAQSection() {
       <div className="mx-auto w-full max-w-[1120px]">
         <MotionReveal>
           <div className="text-center mb-16">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-normal text-[#7b7b78]">
-              Access FAQ
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
+              Got questions?
             </p>
-            <h2 className="mt-4 text-[34px] font-normal leading-[1.05] tracking-normal text-[#111111] sm:text-[44px]">
-              A few practical notes before access.
+            <h2 className="mt-4 text-[34px] font-normal leading-[1.05] tracking-[-0.045em] text-[#111111] sm:text-[44px]">
+              Frequently Asked Questions
             </h2>
             <p className="mx-auto mt-4 max-w-[540px] text-[14px] leading-[1.5] text-[#626260]">
-              Access is intentionally small while quote workflows, revision review, and proposal handoff continue to mature.
+              Everything you need to know about Archestimator&apos;s closed beta access and product direction.
             </p>
           </div>
         </MotionReveal>
@@ -71,7 +67,7 @@ export function FAQSection() {
                     aria-expanded={isOpen}
                     className="flex w-full items-center justify-between px-5 py-4 text-left font-medium text-[#111111] focus:outline-none"
                   >
-                    <span className="text-[14px] sm:text-[15px] font-semibold tracking-normal">
+                    <span className="text-[14px] sm:text-[15px] font-semibold tracking-[-0.015em]">
                       {item.question}
                     </span>
                     <span

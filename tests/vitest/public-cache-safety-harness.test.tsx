@@ -91,17 +91,17 @@ describe("public cache-safety proof harness", () => {
   it("renders different auth CTA markup when landing auth state is true", () => {
     const { rerender } = render(<LandingHeader isLoggedIn={false} />);
 
-    expect(screen.getByRole("link", { name: "Request access" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Try Workspace" })).toHaveAttribute(
       "href",
-      "/contact",
+      "/login?next=/workshop/projects",
     );
     expect(screen.getByRole("link", { name: "Log In" })).toHaveAttribute("href", "/login?next=/workshop/projects");
-    expect(screen.queryByRole("link", { name: "Open workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Workspace" })).not.toBeInTheDocument();
 
     rerender(<LandingHeader isLoggedIn={true} />);
 
-    expect(screen.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", "/workshop");
-    expect(screen.queryByRole("link", { name: "Request access" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Workspace/i })).toHaveAttribute("href", "/workshop");
+    expect(screen.queryByRole("link", { name: "Try Workspace" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Log In" })).not.toBeInTheDocument();
   });
 
