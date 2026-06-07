@@ -44,12 +44,12 @@ Removing columns is generally discouraged unless absolutely necessary. Prefer le
 Warning: This will permanently delete any archive timestamps already recorded.
 
 ### RPC Rollback
-You can drop the new functions if they cause issues:
+You can drop the new functions if they cause issues (PostgreSQL requires signature; use CASCADE or specify arg types):
 ```sql
-DROP FUNCTION preview_bulk_archive_projects;
-DROP FUNCTION execute_bulk_archive_projects;
-DROP FUNCTION preview_bulk_restore_projects;
-DROP FUNCTION execute_bulk_restore_projects;
+DROP FUNCTION IF EXISTS preview_bulk_archive_projects CASCADE;
+DROP FUNCTION IF EXISTS execute_bulk_archive_projects CASCADE;
+DROP FUNCTION IF EXISTS preview_bulk_restore_projects CASCADE;
+DROP FUNCTION IF EXISTS execute_bulk_restore_projects CASCADE;
 ```
 It's also safe to leave them unused in the database.
 
