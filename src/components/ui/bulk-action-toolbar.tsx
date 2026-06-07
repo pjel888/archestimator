@@ -86,6 +86,15 @@ export function BulkActionToolbar({
   if (selectedCount === 0) return null;
 
   const isBottomDock = placement === "bottom-dock";
+  const actionsRef = React.useRef<HTMLDivElement>(null);
+  const [actionsWidth, setActionsWidth] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    if (actionsRef.current) {
+      const w = actionsRef.current.getBoundingClientRect().width;
+      setActionsWidth(w);
+    }
+  }, [selectedCount, actions]);
 
   if (isBottomDock) {
     return (
@@ -99,6 +108,7 @@ export function BulkActionToolbar({
       >
         {/* Level 1: Action buttons */}
         <div
+          ref={actionsRef}
           className={cn(
             "pointer-events-auto flex items-center gap-0.5",
             "rounded-xs border border-hairline",
@@ -109,19 +119,16 @@ export function BulkActionToolbar({
           )}
           style={{ animationFillMode: "backwards", animationDelay: "0ms" }}
         >
-          {/* Clear selection */}
           <FloatingDockItem
             label="Clear selection"
             icon={<X size={16} weight="regular" />}
             onClick={onClear}
           />
 
-          {/* Divider if actions exist */}
           {actions.length > 0 && (
             <span className="mx-0.5 h-6 w-px bg-hairline" aria-hidden="true" />
           )}
 
-          {/* Action items */}
           {actions.map((action, index) => (
             <FloatingDockItem
               key={index}
@@ -134,7 +141,7 @@ export function BulkActionToolbar({
           ))}
         </div>
 
-        {/* Level 2: Selection count — same width as Level 1, slides down */}
+        {/* Level 2: Selection count — matches Level 1 width exactly */}
         <div
           className={cn(
             "pointer-events-auto flex items-center justify-center gap-1.5",
@@ -145,7 +152,11 @@ export function BulkActionToolbar({
             "min-h-8",
             "animate-in fade-in slide-in-from-top-1 duration-200"
           )}
-          style={{ animationFillMode: "backwards", animationDelay: "100ms" }}
+          style={{
+            width: actionsWidth || "auto",
+            animationFillMode: "backwards",
+            animationDelay: "100ms",
+          }}
         >
           <span
             className="text-[10px] font-medium tabular-nums text-ink"
