@@ -8,6 +8,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "storybook:check-boundary": "node scripts/check-storybook-boundary.mjs",
+    "storybook:check-components": "node scripts/check-storybook-component-coverage.mjs",
     "start": "next start",
     "lint": "eslint",
     "lint:design-system": "node scripts/enforce-app-design-system.mjs",

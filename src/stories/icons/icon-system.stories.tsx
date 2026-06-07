@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { IconGallery, Note, StoryHeader, StoryPanel, StorySection } from "../ui-library/story-canvas";
 
 const meta = {
-  title: "Icon system/Phosphor Regular",
+  title: "Icons/IconGallery",
   parameters: {
     docs: {
       description: {
