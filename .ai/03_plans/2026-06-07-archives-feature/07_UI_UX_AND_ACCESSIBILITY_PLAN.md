@@ -19,9 +19,10 @@ This document defines the user experience, visual design, and accessibility requ
 ## Information Architecture
 
 The project list will use a tabbed interface following the existing pattern in the application:
-- **TabList**: Contains "Active" and "Archived" tabs.
-- **TabPanel (Active)**: Displays projects where `archived_at` is NULL.
-- **TabPanel (Archived)**: Displays projects where `archived_at` is NOT NULL.
+- **Existing Tabs**: "Your Projects" and "Projects shared to you" remain unchanged.
+- **New Tab (Archived)**: Added as a third top-level tab.
+- **Implicit Active Filter**: The existing tabs show projects where `archived_at` IS NULL (active only).
+- **Archived Tab**: Displays projects where `archived_at` IS NOT NULL.
 
 ## Entry Points
 

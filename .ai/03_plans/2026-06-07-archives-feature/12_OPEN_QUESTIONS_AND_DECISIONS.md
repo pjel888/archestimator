@@ -17,7 +17,7 @@
 | D8 | Pending invites preserved during archive | Avoids collaboration data loss; invites become actionable again on restore | collaboration_invitations table is independent of project state |
 | D9 | Additive migration only (ALTER TABLE ADD COLUMN IF NOT EXISTS) | No breaking changes; safe to roll back; follows existing migration conventions | Migration conventions from supabase/migrations/ |
 | D10 | Reuse BulkDestructivePreviewModal pattern for archive | Avoids duplicating modal logic; non-destructive copy differentiates archive from delete | src/components/workshop/BulkDestructivePreviewModal.tsx |
-| D11 | UI tabs: Active / Archived (3rd tab, not replacing existing tabs) | Preserves existing "Your Projects" / "Projects shared to you" tabs; Archive is a separate view mode | Current tab structure in src/components/workshop/projects-page-client.tsx |
+| D11 | UI tabs: Preserve existing "Your Projects" / "Projects shared to you" tabs + add "Archived" as a third top-level tab | Preserves existing structure; Archived is a separate view mode; existing tabs implicitly show active projects only (WHERE archived_at IS NULL) | Current tab structure in src/components/workshop/projects-page-client.tsx |
 | D12 | Server-authoritative filtering (WHERE archived_at IS NULL) | Application layer filters archived projects from active views; RLS remains permissive (archived projects are still readable by authorized users through the Archived tab). The security boundary is at the app query layer, not at RLS — this is intentional: archived data is still accessible to authorized users, just not shown in active views. | RLS patterns: RLS is the data-access boundary, application queries are the visibility boundary |
 
 ## Assumptions
