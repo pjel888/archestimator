@@ -180,18 +180,18 @@ const TreeRow = memo(function TreeRow({
               e.stopPropagation();
               onToggle(node.id);
             }}
-            className="shrink-0 mr-0.5 flex items-center justify-center w-5 h-5 rounded-xs hover:bg-[#E8E8E8] cursor-pointer transition-colors"
+            className="shrink-0 mr-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-xs hover:bg-[#E8E8E8] cursor-pointer transition-colors"
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
-            {isExpanded ? (
-              <CaretDown weight="regular" className="h-3.5 w-3.5 text-tertiary" />
-            ) : (
-              <CaretRight weight="regular" className="h-3.5 w-3.5 text-tertiary" />
-            )}
+                {isExpanded ? (
+                  <CaretDown weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+                ) : (
+                  <CaretRight weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+                )}
           </button>
         )}
 
-        {expandable && !hasChildren && <span className="w-[22px] shrink-0" />}
+        {expandable && !hasChildren && <span className="w-4 shrink-0" />}
 
         {node.icon && (
           <span className="shrink-0 mr-1.5 flex items-center">{node.icon}</span>
