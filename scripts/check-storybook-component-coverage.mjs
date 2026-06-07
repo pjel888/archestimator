@@ -59,7 +59,7 @@ const requiredStories = [
   { title: "Data Display/Table", exports: ["Default", "Empty", "Loading", "Sortable", "Selectable", "Overflow", "EditableCell", "ErrorState"] },
   { title: "Data Display/DataTable", exports: ["Default", "WithToolbar", "Empty", "Loading", "ErrorState"] },
   { title: "Data Display/EditableCell", exports: ["Default", "KeyboardFocus"] },
-  { title: "Trees/TreeShell", exports: ["Default", "Expanded", "Collapsed", "Selected", "Empty", "Loading", "ContextMenu", "InvalidDropTarget", "KeyboardNotes"] },
+  { title: "Trees/Tree", exports: ["Default", "Selectable", "Draggable", "DraggableAndSelectable", "SingleLevel", "AllExpanded"] },
   { title: "Navigation/Tabs", exports: ["Default", "KeyboardFocus"] },
   { title: "Navigation/Sidebar", exports: ["Default"] },
   { title: "Layout/Stack", exports: ["Default"] },

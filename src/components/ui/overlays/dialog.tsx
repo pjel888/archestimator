@@ -3,6 +3,7 @@
 import {
   createContext,
   type HTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
   useContext,
   useEffect,
@@ -38,6 +39,21 @@ type DialogProps = {
 };
 
 const DialogContext = createContext<DialogContextValue | null>(null);
+
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function getFocusableElements(container: HTMLElement) {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0,
+  );
+}
 
 function useDialogContext(component: string) {
   const context = useContext(DialogContext);
@@ -83,6 +99,27 @@ export function Dialog({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [closeOnEscape, onOpenChange, open]);
+
+  // Body scroll lock + inert on background content
+  useEffect(() => {
+    if (!open) return;
+
+    const body = document.body;
+    const originalOverflow = body.style.overflow;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+
+    // Add inert to main app shells so background content is hidden from assistive tech
+    const shells = document.querySelectorAll("[data-workshop-page-shell-root], [data-public-page-shell-root]");
+    shells.forEach((el) => el.setAttribute("inert", ""));
+
+    return () => {
+      body.style.overflow = originalOverflow;
+      body.style.paddingRight = "";
+      shells.forEach((el) => el.removeAttribute("inert"));
+    };
+  }, [open]);
 
   const value = useMemo(
     () => ({ open, onOpenChange, titleId, descriptionId, closeLabel, closeOnOverlayClick, modal }),
@@ -145,13 +182,49 @@ type DialogContentProps = HTMLAttributes<HTMLDivElement> & {
   described?: boolean;
 };
 
-export function DialogContent({ className, role = "dialog", described = true, children, ...props }: DialogContentProps) {
+export function DialogContent({ className, role = "dialog", described = true, children, onKeyDown, ...props }: DialogContentProps) {
   const { titleId, descriptionId, modal } = useDialogContext("DialogContent");
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    contentRef.current?.focus({ preventScroll: true });
+    const content = contentRef.current;
+    if (!content) return;
+
+    window.requestAnimationFrame(() => {
+      const firstFocusable = getFocusableElements(content)[0];
+      (firstFocusable ?? content).focus({ preventScroll: true });
+    });
   }, []);
+
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    onKeyDown?.(event);
+    if (event.defaultPrevented || event.key !== "Tab") return;
+
+    const content = contentRef.current;
+    if (!content) return;
+
+    const focusableElements = getFocusableElements(content);
+    if (focusableElements.length === 0) {
+      event.preventDefault();
+      content.focus({ preventScroll: true });
+      return;
+    }
+
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements.at(-1);
+    const activeElement = document.activeElement;
+
+    if (event.shiftKey && (activeElement === firstFocusable || activeElement === content)) {
+      event.preventDefault();
+      lastFocusable?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!event.shiftKey && activeElement === lastFocusable) {
+      event.preventDefault();
+      firstFocusable.focus({ preventScroll: true });
+    }
+  }
 
   return (
     <div
@@ -165,6 +238,7 @@ export function DialogContent({ className, role = "dialog", described = true, ch
         "relative z-[1001] flex min-h-0 flex-col overflow-hidden rounded-xs border border-hairline bg-white text-ink shadow-2xl outline-none",
         className,
       )}
+      onKeyDown={handleKeyDown}
       {...props}
     >
       {children}

@@ -1,116 +1,97 @@
 import type { Meta, StoryObj } from "@storybook/react";
-
-import { Badge } from "@/components/ui/badge";
+import { Panel } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatPeso, makeEstimateFixture } from "../fixtures/product-fixtures";
-import { Note, StoryGrid, StoryPanel } from "../ui-library/story-canvas";
-
-function PanelPreview({ state = "default" }: { state?: "default" | "loading" | "empty" | "error" | "long" }) {
-  const estimate = makeEstimateFixture();
-
-  if (state === "loading") {
-    return (
-      <StoryPanel className="space-y-2">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-20 w-full" />
-      </StoryPanel>
-    );
-  }
-
-  if (state === "empty") return <EmptyState title="No panel content" description="Static fixture has no details yet." />;
-  if (state === "error") return <Note tone="danger">Panel fixture failed local validation.</Note>;
-
-  return (
-    <section className="max-w-xl rounded-xs border border-hairline bg-white">
-      <header className="flex min-h-10 items-center justify-between gap-2 border-b border-hairline px-2">
-        <div className="min-w-0">
-          <p className="text-[9px] leading-3 text-tertiary">Estimate panel</p>
-          <h3 className="truncate text-[11px] font-medium leading-4 text-ink">{estimate.name}</h3>
-        </div>
-        <Badge tone="warning">{estimate.status}</Badge>
-      </header>
-      <div className="space-y-2 p-2">
-        <p className="text-[10px] leading-4 text-secondary">
-          {state === "long"
-            ? "Long panel copy demonstrates wrapping and compact density without increasing text scale. ".repeat(4)
-            : "Static summary panel for review surfaces."}
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[9px] leading-3 text-tertiary">Total</p>
-            <p className="text-[10px] font-medium leading-4 text-ink">{formatPeso(estimate.totalCost)}</p>
-          </div>
-          <div>
-            <p className="text-[9px] leading-3 text-tertiary">Updated</p>
-            <p className="text-[10px] font-medium leading-4 text-ink">{estimate.updatedLabel}</p>
-          </div>
-        </div>
-      </div>
-      <footer className="flex justify-end gap-1 border-t border-hairline p-2">
-        <Button variant="ghost" size="sm">Cancel</Button>
-        <Button variant="primary" size="sm">Apply</Button>
-      </footer>
-    </section>
-  );
-}
 
 const meta = {
   title: "Cards/Panel",
-  component: PanelPreview,
+  component: Panel,
   parameters: {
-    archestimator: {
-      storybookContract: "story-composition",
-    },
-    docs: {
-      description: {
-        component:
-          "Standalone Panel story for compact bordered surfaces, headers, actions, loading, empty, error, and long-content states.",
-      },
-    },
+    layout: "centered",
   },
-} satisfies Meta<typeof PanelPreview>;
+  tags: ["autodocs"],
+  decorators: [
+    (Story) => (
+      <div className="w-[400px]">
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof Panel>;
 
 export default meta;
-
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: () => <PanelPreview />,
+  args: {
+    children: (
+      <div className="text-[10px] text-secondary">
+        This is a basic panel with just content.
+      </div>
+    ),
+  },
 };
 
-export const WithHeader: Story = {
-  render: () => <PanelPreview />,
+export const WithTitle: Story = {
+  args: {
+    title: "Project Details",
+    children: (
+      <div className="text-[10px] text-secondary">
+        Panel content goes here. The title is displayed in the header.
+      </div>
+    ),
+  },
 };
 
 export const WithActions: Story = {
-  render: () => <PanelPreview />,
+  args: {
+    title: "Estimate Summary",
+    actions: (
+      <>
+        <Button variant="ghost" size="sm">Cancel</Button>
+        <Button variant="primary" size="sm">Save</Button>
+      </>
+    ),
+    children: (
+      <div className="space-y-2">
+        <div className="flex justify-between text-[10px]">
+          <span className="text-tertiary">Subtotal</span>
+          <span className="font-medium text-ink">$45,000.00</span>
+        </div>
+        <div className="flex justify-between text-[10px]">
+          <span className="text-tertiary">Tax</span>
+          <span className="font-medium text-ink">$3,825.00</span>
+        </div>
+      </div>
+    ),
+  },
 };
 
-export const Loading: Story = {
-  render: () => <PanelPreview state="loading" />,
+export const ComplexContent: Story = {
+  args: {
+    title: "Recent Activity",
+    children: (
+      <div className="space-y-3">
+        <div className="flex items-start gap-2">
+          <div className="mt-0.5 h-2 w-2 rounded-xs bg-primary" />
+          <div>
+            <div className="text-[10px] font-medium text-ink">Estimate Approved</div>
+            <div className="text-[9px] text-muted">2 hours ago by John Doe</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <div className="mt-0.5 h-2 w-2 rounded-xs border border-hairline bg-surfaceMuted" />
+          <div>
+            <div className="text-[10px] font-medium text-ink">Review Requested</div>
+            <div className="text-[9px] text-muted">Yesterday by Jane Smith</div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
 };
 
-export const Empty: Story = {
-  render: () => <PanelPreview state="empty" />,
-};
-
-export const Error: Story = {
-  render: () => <PanelPreview state="error" />,
-};
-
-export const LongContent: Story = {
-  render: () => <PanelPreview state="long" />,
-};
-
-export const StateMatrix: Story = {
-  render: () => (
-    <StoryGrid columns="md:grid-cols-2">
-      <PanelPreview />
-      <PanelPreview state="loading" />
-      <PanelPreview state="empty" />
-      <PanelPreview state="error" />
-    </StoryGrid>
-  ),
-};
+export const WithHeader: Story = { args: { title: "Panel Header", children: <div className="text-[10px] text-muted">Panel body content</div> } };
+export const Loading: Story = { args: { title: "Loading", children: <div className="space-y-2"><div className="h-3 w-full animate-pulse rounded-xs bg-surfaceMuted" /><div className="h-3 w-3/4 animate-pulse rounded-xs bg-surfaceMuted" /></div> } };
+export const Empty: Story = { args: { title: "Empty Panel", children: <div className="text-[10px] text-muted py-4 text-center">No data available</div> } };
+export const Error: Story = { args: { title: "Error", children: <div className="text-[10px] text-danger py-4">Something went wrong loading this panel.</div> } };
+export const LongContent: Story = { args: { title: "Long Content", children: <div className="text-[10px] text-ink">This panel contains very long content that should demonstrate proper text wrapping and overflow handling within the panel container boundaries without causing layout issues or unexpected scroll behavior in the parent container.</div> } };

@@ -1,66 +1,83 @@
 import type { Meta, StoryObj } from "@storybook/react";
-
-import { Note, StoryPanel } from "../ui-library/story-canvas";
-
-function RadioGroupPreview({ invalid = false, disabled = false }: { invalid?: boolean; disabled?: boolean }) {
-  return (
-    <StoryPanel className="space-y-2">
-      <div className="space-y-2" role="radiogroup" aria-label="Review decision" aria-invalid={invalid || undefined}>
-        {["Pending", "Approved", "Changes requested"].map((label, index) => (
-          <label key={label} className={`flex items-center gap-2 text-[10px] font-medium leading-4 ${disabled ? "text-tertiary" : "text-ink"}`}>
-            <input
-              type="radio"
-              name="review-decision-story"
-              defaultChecked={index === 0}
-              disabled={disabled}
-              className="size-3 accent-[#292929]"
-            />
-            {label}
-          </label>
-        ))}
-      </div>
-      {invalid ? <Note tone="danger">Choose one static review decision before sharing.</Note> : null}
-    </StoryPanel>
-  );
-}
+import { RadioGroup } from "@/components/ui/radio-group";
 
 const meta = {
   title: "Forms/RadioGroup",
-  component: RadioGroupPreview,
+  component: RadioGroup,
   parameters: {
-    archestimator: {
-      storybookContract: "fixture-only",
-    },
-    docs: {
-      description: {
-        component:
-          "Standalone RadioGroup story using native radio controls. No custom menu or provider state is introduced.",
-      },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  argTypes: {
+    layout: {
+      control: "select",
+      options: ["vertical", "horizontal"],
     },
   },
-} satisfies Meta<typeof RadioGroupPreview>;
+  decorators: [
+    (Story) => (
+      <div className="w-[300px]">
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof RadioGroup>;
 
 export default meta;
-
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  render: () => <RadioGroupPreview />,
+const defaultOptions = [
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Changes requested" },
+];
+
+export const Vertical: Story = {
+  args: {
+    options: defaultOptions,
+    value: "pending",
+    name: "status-vertical",
+  },
 };
 
-export const Invalid: Story = {
-  render: () => <RadioGroupPreview invalid />,
+export const Horizontal: Story = {
+  args: {
+    options: defaultOptions,
+    value: "approved",
+    name: "status-horizontal",
+    layout: "horizontal",
+  },
 };
 
 export const Disabled: Story = {
-  render: () => <RadioGroupPreview disabled />,
+  args: {
+    options: defaultOptions,
+    value: "pending",
+    name: "status-disabled",
+    disabled: true,
+  },
 };
 
-export const KeyboardFocus: Story = {
-  render: () => (
-    <StoryPanel className="space-y-2">
-      <RadioGroupPreview />
-      <Note>Keyboard contract: native radio inputs support Tab entry and arrow-key selection in browser-managed groups.</Note>
-    </StoryPanel>
-  ),
+export const PartiallyDisabled: Story = {
+  args: {
+    options: [
+      { value: "pending", label: "Pending" },
+      { value: "approved", label: "Approved", disabled: true },
+      { value: "rejected", label: "Changes requested" },
+    ],
+    value: "pending",
+    name: "status-partial-disabled",
+  },
 };
+
+export const Invalid: Story = {
+  args: {
+    options: defaultOptions,
+    value: "pending",
+    name: "status-invalid",
+    invalid: true,
+  },
+};
+
+export const Default: Story = { args: { options: [{ value: "a", label: "Option A" }, { value: "b", label: "Option B" }], value: "a" } };
+export const KeyboardFocus: Story = { args: { options: [{ value: "a", label: "Option A" }, { value: "b", label: "Option B" }], value: "a" } };
