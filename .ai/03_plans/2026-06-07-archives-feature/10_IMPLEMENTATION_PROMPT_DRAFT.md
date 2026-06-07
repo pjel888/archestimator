@@ -136,7 +136,7 @@ You are implementing the Archestimator Archives Feature — a reversible archive
 - Server-authoritative archive/restore — validate via RPC, not client
 - Client-side filtering is UI convenience, NOT a security boundary
 - Every RPC must validate `auth.uid()` and workspace/project membership
-- Archive/restore requires `can_edit_project` (same as delete)
+- Archive/restore requires `can_edit_project` (NOT the same as delete which uses `can_manage_project_access` — archive is intentionally more permissive since it's reversible)
 
 ### Database
 - Additive migration only: `ALTER TABLE ADD COLUMN IF NOT EXISTS`
