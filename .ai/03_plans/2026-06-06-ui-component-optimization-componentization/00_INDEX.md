@@ -1,8 +1,11 @@
 # ArchEstimator UI Component Library + Storybook Plan Pack
 
-**Updated:** 2026-06-06
-**Status:** READY_AFTER_OWNER_PACKAGE_APPROVAL
-**Scope:** Docs-only planning pack. No source code, package file, dependency, runtime config, migration, generated type, provider setting, secret, or app behavior was changed during this refinement.
+**Updated:** 2026-06-07
+**Status:** STORYBOOK_ONLY_IMPLEMENTED_STANDALONE_REVIEW_READY
+**Scope:** Implementation-aware Storybook pack. The current continuation branch
+adds standalone Storybook component entries and local validation evidence while
+still excluding production route migration, provider changes, public Storybook
+hosting, and main/staging merge.
 
 ## Updated Task Goal
 
@@ -73,7 +76,8 @@ Start here:
 | 37 | `35_COMPONENT_API_REFERENCE_MATRIX.md` | P0/P1 local component API/export/contracts reference. |
 | 38 | `36_P0_P1_IMPLEMENTATION_BACKLOG.md` | Implementation-grade P0/P1 backlog and stop gates. |
 | 39 | `37_PHILIP_STORYBOOK_REVIEW_PACKET.md` | Owner review packet, inspection route, signoff states, and feedback loop. |
-| 40 | `38_VALIDATION_COMMAND_MATRIX.md` | Current docs-only and future Storybook implementation validation commands. |
+| 40 | `38_VALIDATION_COMMAND_MATRIX.md` | Current docs-only and Storybook implementation validation commands. |
+| 41 | `39_STANDALONE_COMPONENT_COVERAGE_AUDIT.md` | Latest actual standalone story coverage audit and validation proof. |
 
 Preserved tree/domain sub-plan:
 

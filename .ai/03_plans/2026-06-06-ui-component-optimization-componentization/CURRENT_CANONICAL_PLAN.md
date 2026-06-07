@@ -2,7 +2,7 @@
 
 **Canonical name:** ArchEstimator UI Component Library + Storybook
 **Updated:** 2026-06-07 local / 2026-06-06Z
-**Mode:** Implementation-aware Storybook MVP plan. The Storybook-only MVP is implemented on `feat/ui-component-optimization`; production app migration remains unimplemented and blocked on separate approval.
+**Mode:** Implementation-aware Storybook MVP plan. The Storybook-only MVP is implemented on `feat/ui-component-optimization` and repaired/completed for standalone component inspection on continuation branch `fix/storybook-standalone-ui-components`; production app migration remains unimplemented and blocked on separate approval.
 
 ## Canonical Thesis
 
@@ -34,6 +34,41 @@ iframes with nonblank screenshots and no final-run console/page errors.
 
 This does not approve or implement production route migration, Storybook
 publishing, hosted provider proof, or Philip review approval.
+
+## Standalone Component Completion Addendum - 2026-06-07 local / 2026-06-07Z
+
+Continuation branch `fix/storybook-standalone-ui-components` repairs the
+Storybook information architecture so Philip can inspect actual individual
+components instead of only broad matrices. Standalone story titles now cover
+`Actions/Button`, `Actions/IconButton`, `Actions/ButtonGroup`, form controls,
+menus, overlays, feedback, cards, data display, navigation, layout, trees, and
+domain workshop/share/notification components. Media, charts, and blocks remain
+Storybook-only placeholder/backlog slices, not production app migration.
+
+`Governance/StoryCoverageDashboard` now distinguishes plan matrices from
+implementation proof. The actual implementation proof is
+`bun run storybook:check-components`, which passed with 56 story files, 56
+titled stories, 230 story exports, 49 component-level stories, 7
+overview/governance stories, and 35 required standalone titles checked.
+Provider isolation remains covered by `bun run storybook:check-boundary`, which
+passed with 68 scanned files, 809 inventory rows, and 703 story rows.
+
+Fresh closeout validation passed:
+
+- `bun run storybook:check-components`
+- `bun run type-check`
+- `bun run storybook:check-boundary`
+- `bunx vitest run tests/vitest/storybook-component-coverage.test.ts tests/vitest/storybook-provider-boundary.test.ts tests/vitest/storybook-plan-matrix.test.ts --maxWorkers=1`
+- `git diff --check`
+- `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone`
+- `bun run lint:design-system`
+- local Playwright static Storybook smoke over 17 representative iframe stories
+- `bun run validate`
+- `bun run build`
+
+This addendum still does not approve or perform production route migration,
+Storybook publishing, hosted provider proof, Supabase changes, Vercel
+deployment, or Philip review approval.
 
 ## Explicit Non-Goal
 
