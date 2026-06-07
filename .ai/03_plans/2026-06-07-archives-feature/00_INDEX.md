@@ -59,7 +59,7 @@ A multi-entity Archives Feature covering **projects, estimate sheets, cost-libra
 | # | Document | Purpose |
 |---|----------|---------|
 | 00 | INDEX | This file — refined overview and navigation |
-| 01 | REQUIREMENTS | Multi-entity requirements with 50+ AC items |
+| 01 | REQUIREMENTS | Multi-entity requirements; project-focused AC items (20); per-entity AC in specialist docs |
 | 02 | CODEBASE_RESEARCH | Live repo evidence for all four entities |
 | 03 | ARCHITECTURE | Project-archive architecture (Phase 1); multi-entity in specialist docs 14-19 |
 | 04 | IMPLEMENTATION_SEQUENCE | Project-archive sequence (Phase 1); phased plan in specialist doc 14 |
@@ -67,7 +67,7 @@ A multi-entity Archives Feature covering **projects, estimate sheets, cost-libra
 | 06 | TESTING | Multi-entity test matrices |
 | 07 | UI_UX | Per-entity IA, wireframes, accessibility, design system |
 | 08 | SECURITY | Per-entity security semantics, RLS, performance |
-| 09 | DEPLOYMENT | Per-phase migration, rollback per entity |
+| 09 | DEPLOYMENT | Project-archive migration/rollback; per-entity detail in specialist docs 15, 25 |
 | 10 | IMPLEMENTATION_PROMPT | Phase-scoped implementation handoff |
 | 11 | READINESS | Honest before/after scoring |
 | 12 | OPEN_QUESTIONS | 15+ decisions + open questions |
