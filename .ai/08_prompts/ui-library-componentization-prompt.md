@@ -1,76 +1,74 @@
-I used your uploaded planning prompt as the structure bar, but rewrote this as a **direct implementation repair prompt** for the current `feat/ui-component-optimization` branch.  It specifically addresses the issue you noticed: the branch has Storybook, but components like Button and Modal are hidden in broad matrix stories instead of being individually inspectable.
+I used your uploaded plan/prompt structure as the quality bar, but this is written as a **direct implementation prompt** for the next overlay-hardening pass, not a plan-creation prompt. 
 
 ````md
 You are ChatGPT/Codex/Claude Code/OpenCode/CommandCode/OMX acting as a senior startup technical founder, principal engineer, product strategist, technical architect, Storybook architect, UI component library architect, design-system lead, accessibility engineer, QA strategist, security/performance reviewer, repo-aware implementation agent, documentation maintainer, and careful git/worktree operator.
 
-You are repairing and completing the ArchEstimator Storybook-first UI Component Library implementation.
+You are implementing the production-hardening pass for the ArchEstimator Storybook-first UI Component Library overlay system.
 
 Repository:
 - GitHub repo: pjel888/archestimator
 - Local repo path: /Users/philiplewis/archestimator
-- Existing implementation branch to inspect first: feat/ui-component-optimization
+- Current overlay system branch / PR: feat/storybook-complete-ui-component-system
+- PR: #30, “Complete Storybook overlay component system”
+- Base branch for this continuation: feat/storybook-complete-ui-component-system
+- Previous base: fix/storybook-standalone-ui-components
 - Main branch: main
 - Remote: origin
-- Existing plan folder:
+- Plan folder:
   /Users/philiplewis/archestimator/.ai/03_plans/2026-06-06-ui-component-optimization-componentization
 
 FEATURE / CHANGE REQUEST:
-The current `feat/ui-component-optimization` branch has Storybook infrastructure, but it is not enough. Storybook currently shows broad preview/matrix boards and a plan coverage dashboard, but the UI component library is not actually inspectable as individual reusable components. Philip does not clearly see Buttons, Modals, Inputs, Cards, Menus, Tables, etc. as standalone Storybook entries.
+Philip reviewed the new overlay/modal/dialog/pop-up system and the direction is correct, but before this can be considered production-grade for future app migration, the overlay primitives need a hardening pass.
 
-Implement the missing standalone UI component library stories and components. Convert the current Storybook from a preliminary preview board into a real component library with individually inspectable components, variants, states, controls, accessibility notes, and static fixtures.
+Implement focus trap, body scroll lock, outside-click/Escape behavior consistency, overlay stack safety, accessibility hardening, and stronger Storybook/testing coverage for the overlay system.
 
-The branch must not treat the 809-row inventory or 703-row story manifest dashboard as proof that stories are implemented. The dashboard may remain as governance/backlog evidence, but actual component implementation means actual Storybook stories and exports exist for the components.
+This pass must harden:
+
+- Dialog primitives
+- AppModal / BlurModal / Modal
+- ResizableModal / FloatingModal / PopupWindow
+- ConfirmDialog / AlertDialog / DeleteConfirmDialog / UnsavedChangesDialog
+- Sheet / Drawer / SidePanel / InspectorDrawer
+- Popover / InfoPopover / HelpPopover / FilterPopover
+- Tooltip / ToolbarTooltip compatibility
+- HoverCard
+- CommandDialog / CommandPalette / CommandMenu
 
 PRIMARY GOAL:
-Make the Storybook sidebar clearly show real UI component categories and individual components such as:
+Make the overlay system safe enough to be the canonical future ArchEstimator overlay primitive family, while still keeping this branch Storybook-first and not migrating production routes.
 
-- Actions/Button
-- Actions/IconButton
-- Actions/ButtonGroup
-- Forms/Input
-- Forms/SearchInput
-- Forms/Select
-- Forms/Textarea
-- Forms/Checkbox
-- Forms/RadioGroup
-- Forms/Switch
-- Menus/ActionMenu
-- Menus/ContextMenu
-- Overlays/Modal
-- Overlays/ConfirmDialog
-- Overlays/Tooltip
-- Overlays/Popover
-- Feedback/Toast
-- Feedback/EmptyState
-- Feedback/Skeleton
-- Cards/Card
-- Cards/Panel
-- Data Display/Table
-- Data Display/EditableCell
-- Trees/TreeShell
-- Navigation/Tabs
-- Navigation/Sidebar
-- Layout/Stack
-- Layout/Toolbar
-- Domain/ProjectCard
-- Domain/EstimateRow
-- Domain/ComponentLibraryCard
-- Domain/ShareReviewPanel
-- Domain/NotificationCenter
+The final result should be reviewable in Storybook and validated by tests. The overlay primitives should support:
 
-The finished Storybook must feel like a proper UI component library, not a documentation dashboard.
+1. Focus trapping for modal dialogs.
+2. Initial focus and focus return.
+3. Body scroll lock for blocking modal overlays.
+4. No body scroll lock for floating/resizable non-modal pop-ups.
+5. Consistent Escape behavior.
+6. Consistent outside-click behavior.
+7. Overlay stack safety so Escape closes only the topmost dismissible overlay.
+8. Non-dismissible modal support.
+9. Internal scroll regions.
+10. Header contract: title upper left, close button upper right.
+11. Accessible title/description labelling.
+12. Predictable close button labelling.
+13. Reduced-motion-safe transitions if any are used.
+14. Storybook stories proving the behavior.
+15. DOM tests proving the behavior.
+16. No provider/server/data coupling.
 
 OWNER APPROVAL GRANTED BY THIS PROMPT:
-Philip approves this Storybook/UI-library completion pass, including:
+Philip approves this Storybook/UI-library overlay hardening pass, including:
 
-- Editing the existing `feat/ui-component-optimization` branch or creating a continuation branch from it.
-- Adding standalone Storybook story files.
-- Adding story-only examples, fixtures, decorators, docs pages, and component review helpers.
-- Adding new reusable UI components only when necessary to make a real library component inspectable.
-- Refactoring story organization and Storybook titles for clearer sidebar navigation.
-- Adding focused tests/scripts to verify actual standalone stories exist.
-- Updating `.ai` docs, logs, scorecards, and implementation closeout.
-- Fixing Storybook-only implementation issues discovered during validation.
+- Editing reusable UI components under `src/components/ui/overlays/**`.
+- Editing the compatibility barrel `src/components/ui/modal.tsx` only if backward compatibility is preserved.
+- Editing `src/components/ui/index.tsx` exports.
+- Adding internal overlay/focus/scroll-lock utilities.
+- Adding focused DOM/Vitest tests for overlay behavior.
+- Adding or updating Storybook stories under `src/stories/overlays/**`.
+- Updating `scripts/check-storybook-component-coverage.mjs`.
+- Updating `tests/vitest/storybook-component-coverage.test.ts`.
+- Updating `.ai` implementation logs, readiness docs, review packet, and state docs.
+- Adding a Radix package only if the local implementation becomes clearly unsafe or too fragile, and only after documenting the decision and alternatives.
 
 OWNER APPROVAL NOT GRANTED BY THIS PROMPT:
 - No production route migration.
@@ -80,19 +78,20 @@ OWNER APPROVAL NOT GRANTED BY THIS PROMPT:
 - No provider setting changes.
 - No Vercel deployment.
 - No public Storybook hosting.
+- No Flowbite runtime/plugin.
 - No Flowbite Pro paid-source copying or storage.
-- No Flowbite runtime/plugin by default.
-- No Motion/Framer/Aceternity runtime dependency by default.
+- No Aceternity runtime package.
+- No Motion/Framer dependency by default.
 - No broad dark mode implementation.
 - No replacement of React Complex Tree.
 - No production auth/provider/data behavior change.
-- No main-branch merge.
+- No main/staging merge.
 
 HARD BOUNDARY:
-This is still Storybook/UI-library work. Production app migration remains blocked until Philip separately approves a route-by-route migration plan after reviewing the completed Storybook.
+This pass hardens reusable overlay primitives and Storybook coverage. Production app migration remains blocked until Philip separately approves a route-by-route migration plan after reviewing the hardened Storybook.
 
-CRITICAL QUALITY RULE:
-A component is not “implemented in Storybook” merely because it appears as a row in the 809-row inventory or 703-row story manifest. A component counts only when it has an actual Storybook story/export that Philip can click in the sidebar and inspect.
+CRITICAL RULE:
+Do not fake accessibility with notes only. Focus trap, scroll lock, Escape handling, outside-click behavior, and overlay stack behavior must be implemented and tested where they are required.
 
 ================================================================================
 0. INITIAL REPO SAFETY CHECK
@@ -124,7 +123,7 @@ Do not:
 * delete branches;
 * delete worktrees;
 * touch secrets;
-* change Supabase/Vercel/Resend/GitHub provider settings;
+* change provider settings;
 * merge to main automatically.
 
 If unrelated dirty files exist, leave them alone and mention them in the final report.
@@ -134,30 +133,30 @@ If unrelated dirty files exist, leave them alone and mention them in the final r
 1. BRANCHING STRATEGY
    ================================================================================
 
-Inspect the existing branch first:
+Start from the overlay-system PR branch:
 
 ```bash
 git fetch --prune origin
-git checkout feat/ui-component-optimization
-git pull --ff-only origin feat/ui-component-optimization
+git checkout feat/storybook-complete-ui-component-system
+git pull --ff-only origin feat/storybook-complete-ui-component-system
 ```
 
-Then create a continuation branch unless the working process explicitly requires amending the existing branch:
+Create a continuation branch:
 
 ```bash
-git checkout -b fix/storybook-standalone-ui-components
+git checkout -b feat/storybook-overlay-production-hardening
 ```
 
-If that branch already exists, create a timestamped branch:
+If that branch already exists:
 
 ```bash
-git checkout -b fix/storybook-standalone-ui-components-$(date +%Y%m%d-%H%M)
+git checkout -b feat/storybook-overlay-production-hardening-$(date +%Y%m%d-%H%M)
 ```
 
 Do not direct-edit `main`.
 Do not merge to `main`.
 Push the final branch.
-Create a PR only if the repo workflow/tools support it; do not merge it.
+Create a PR only if available; do not merge it.
 
 ================================================================================
 2. REQUIRED READING ORDER
@@ -184,88 +183,86 @@ Before editing source/story/package/docs files, read:
 17. `components.json` if present
 18. `scripts/enforce-app-design-system.mjs`
 19. `scripts/check-storybook-boundary.mjs`
-20. `src/app/globals.css`
-21. Existing Storybook files:
+20. `scripts/check-storybook-component-coverage.mjs`
+21. `src/app/globals.css`
+22. `.storybook/main.ts`
+23. `.storybook/preview.tsx`
+24. Overlay primitives:
 
-    * `.storybook/main.ts`
-    * `.storybook/preview.tsx`
-    * `src/stories/**`
-22. Existing UI primitives:
+    * `src/components/ui/overlays/dialog.tsx`
+    * `src/components/ui/overlays/modal.tsx`
+    * `src/components/ui/overlays/resizable-modal.tsx`
+    * `src/components/ui/overlays/confirm-dialog.tsx`
+    * `src/components/ui/overlays/sheet-drawer.tsx`
+    * `src/components/ui/overlays/popover.tsx`
+    * `src/components/ui/overlays/tooltip.tsx`
+    * `src/components/ui/overlays/hover-card.tsx`
+    * `src/components/ui/overlays/command-dialog.tsx`
+    * `src/components/ui/modal.tsx`
+    * `src/components/ui/index.tsx`
+25. Overlay stories:
 
-    * `src/components/ui/**`
-23. Existing domain UI:
+    * `src/stories/overlays/dialog-system.stories.tsx`
+    * `src/stories/overlays/app-modal.stories.tsx`
+    * `src/stories/overlays/resizable-modal.stories.tsx`
+    * `src/stories/overlays/confirm-dialog.stories.tsx`
+    * `src/stories/overlays/sheet-drawer.stories.tsx`
+    * `src/stories/overlays/popover.stories.tsx`
+    * `src/stories/overlays/tooltip.stories.tsx`
+    * `src/stories/overlays/hover-card.stories.tsx`
+    * `src/stories/overlays/command-dialog.stories.tsx`
+26. Relevant tests:
 
-    * `src/components/workshop/**`
-    * `src/components/share/**`
-    * `src/features/notifications/**`
-24. Relevant tests:
-
+    * `tests/vitest/ui-modal-tooltip.test.tsx`
+    * `tests/vitest/release-announcement-modal.test.tsx`
+    * `tests/vitest/storybook-component-coverage.test.ts`
     * `tests/vitest/storybook-provider-boundary.test.ts`
-    * `tests/vitest/storybook-plan-matrix.test.ts`
-    * UI primitive tests
-    * component-library tests
-    * modal/tooltip/toast/header toolbar tests
-25. The full plan folder:
+27. Plan folder:
 
     * `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/00_INDEX.md`
     * `README.md`
     * `CURRENT_CANONICAL_PLAN.md`
-    * `15_COMPONENT_INVENTORY_MATRIX.md`
-    * `17_STORYBOOK_STORY_COVERAGE_MATRIX.md`
-    * `33_STORYBOOK_CONFIG_SKELETONS.md`
-    * `34_FIXTURE_AND_DECORATOR_CONTRACTS.md`
-    * `35_COMPONENT_API_REFERENCE_MATRIX.md`
-    * `36_P0_P1_IMPLEMENTATION_BACKLOG.md`
     * `37_PHILIP_STORYBOOK_REVIEW_PACKET.md`
     * `38_VALIDATION_COMMAND_MATRIX.md`
-    * all other relevant plan docs in that folder.
+    * `39_STANDALONE_COMPONENT_COVERAGE_AUDIT.md`
+    * `40_MODAL_DIALOG_SYSTEM_IMPLEMENTATION.md`
+    * `41_COMPLETE_COMPONENT_SYSTEM_COVERAGE.md`
 
-For Next.js/Storybook framework work, read relevant local Next.js docs under `node_modules/next/dist/docs/` before modifying framework or app-router-related config.
+For framework or Next.js behavior, read relevant local Next.js docs under `node_modules/next/dist/docs/` before modifying framework-related code.
 
 ================================================================================
 3. CURRENT BRANCH AUDIT REQUIREMENTS
 ====================================
 
-Before implementing, audit the current `feat/ui-component-optimization` branch and write findings to an `.ai/05_logs` run log.
+Before implementation, audit the current overlay system and write findings to `.ai/05_logs`.
 
-Inspect and record:
-
-* Current Storybook scripts.
-* Current Storybook packages.
-* Current `.storybook` config.
-* Current story file list.
-* Current story titles/paths.
-* Current actual story exports.
-* Current use of grouped/matrix stories.
-* Whether buttons are only inside a grouped `ButtonMatrix`.
-* Whether modals are only inside grouped menu/overlay stories.
-* Whether the coverage dashboard displays plan rows instead of real story implementation.
-* Which P0/P1 components have real standalone stories.
-* Which P0/P1 components are missing standalone stories.
-* Which production source files were modified on `feat/ui-component-optimization`.
-* Whether those production source changes were necessary, story-only, test repair, or accidental app behavior changes.
-* Whether `storybook:check-boundary` exists and passes.
-* Whether `build-storybook` passes.
-* Whether design-system lint passes.
-* Whether any stories import live providers/server actions/repos.
-
-Use:
+Run:
 
 ```bash
-git diff --stat main...HEAD
-git diff --name-status main...HEAD
-find src/stories -type f | sort
+git diff --stat fix/storybook-standalone-ui-components...HEAD
+git diff --name-status fix/storybook-standalone-ui-components...HEAD
+find src/components/ui/overlays -type f | sort
+find src/stories/overlays -type f | sort
+rg "focus|trap|Escape|scroll|overflow|overlay|outside|pointer|aria-modal|aria-labelledby|aria-describedby|Dialog" src/components/ui/overlays src/stories/overlays tests/vitest/ui-modal-tooltip.test.tsx
+bun run storybook:check-components
+bun run storybook:check-boundary
 ```
 
-Use grep/rg to list stories and exports:
+Record:
 
-```bash
-rg "title:" src/stories .storybook
-rg "export const" src/stories
-rg "ButtonMatrix|ModalDemo|StoryCoverageDashboard|inventoryRows|storyCoverageRows" src/stories
-```
-
-Do not assume the plan dashboard equals implementation.
+* Current overlay component files.
+* Current overlay story files.
+* Current tests.
+* Which behavior is implemented.
+* Which behavior is missing.
+* Whether focus trap exists.
+* Whether scroll lock exists.
+* Whether Escape handling is stack-safe.
+* Whether outside-click behavior is consistent.
+* Whether nested overlays are safe.
+* Whether floating/resizable pop-ups avoid background blur and scroll lock.
+* Whether AppModal still preserves current Modal compatibility.
+* Whether coverage script validates the new hardening stories.
 
 ================================================================================
 4. CODEBASE INTELLIGENCE REQUIREMENTS
@@ -275,24 +272,27 @@ Use GitNexus and/or code-review-graph tools first if available, per `AGENTS.md`.
 
 Before broad manual scanning, inspect:
 
-* architecture overview;
 * shared UI primitive blast radius;
-* `Button`;
-* `SearchInput`;
 * `Modal`;
-* `ContextMenu`;
-* `Toast`;
-* `WorkshopTree`;
-* storybook files;
-* existing story files;
-* modified production source files in the branch.
+* `AppModal`;
+* `Dialog`;
+* `ResizableModal`;
+* `ConfirmDialog`;
+* `Sheet`;
+* `Popover`;
+* `Tooltip`;
+* `HoverCard`;
+* `CommandDialog`;
+* `ReleaseAnnouncementModal` usage if affected;
+* current Storybook overlay files;
+* current Storybook coverage script.
 
-Before editing any production-used function, class, method, exported component, or shared primitive:
+Before editing any production-used component or exported primitive:
 
 * run GitNexus impact for the exact symbol if available;
 * run code-review-graph impact/context if available;
 * record HIGH/CRITICAL risks;
-* keep high-impact work isolated;
+* keep high-impact changes backward-compatible;
 * add focused tests if behavior changes.
 
 If graph tools are unavailable:
@@ -302,1324 +302,74 @@ If graph tools are unavailable:
 * do not hallucinate files/APIs/routes/components/tests.
 
 ================================================================================
-5. AUTOPILOT RULE
-=================
+5. EXTERNAL RESEARCH REQUIREMENTS
+=================================
 
-Work in a loop until every required standalone Storybook component story is either:
+Research and record a concise source posture before implementation.
 
-1. implemented and validated;
-2. explicitly marked `DEFERRED` because it is P2/P3/LANDING_ONLY/out-of-scope; or
-3. blocked by a real issue recorded in `.ai/15_Bugs`.
+Check current official/public docs for:
 
-Do not stop after the first failure. Diagnose, fix, re-run validation, and continue. If a blocker persists after reasonable attempts, create a bug/blocker plan, mark the affected component blocked, continue with non-dependent components, and report honestly.
+1. WAI-ARIA Authoring Practices:
 
-Do not ask follow-up questions unless a safety/owner gate is truly blocking. Make implementation decisions inside the approved scope using repo evidence and the plan docs.
+   * Dialog / Modal Dialog pattern.
+   * Tooltip pattern.
+   * Disclosure/popover-like guidance where relevant.
+   * Keyboard interaction expectations.
 
-================================================================================
-6. STORYBOOK LIBRARY SIDEBAR REQUIREMENTS
-=========================================
+2. shadcn/ui:
 
-The final Storybook sidebar must clearly expose individual component-level stories, not only grouped boards.
+   * Dialog.
+   * Alert Dialog.
+   * Sheet.
+   * Popover.
+   * Tooltip.
+   * Hover Card.
+   * Command.
+   * Scroll Area.
+   * Resizable.
 
-Required top-level Storybook groups:
+3. Radix UI:
 
-* Foundations
-* Icons
-* Typography
-* Actions
-* Forms
-* Status
-* Menus
-* Overlays
-* Navigation
-* Cards
-* Data Display
-* Trees
-* Feedback
-* Layout
-* Media
-* Charts
-* Domain / Workshop
-* Domain / Share
-* Domain / Notifications
-* Motion
-* Blocks
-* Governance
+   * Dialog.
+   * Popover.
+   * Tooltip.
+   * Hover Card.
+   * Focus management behavior.
+   * Dismissable layer behavior.
 
-Required rule:
-Each P0/P1 component below must have its own Storybook title/path or an explicit `DEFERRED` story/doc entry explaining why it is not implemented.
+4. Flowbite public docs:
 
-Preferred title examples:
+   * Modal.
+   * Drawer.
+   * Popover.
+   * Tooltip.
+   * Dropdown.
 
-```txt
-Actions/Button
-Actions/IconButton
-Actions/ButtonGroup
-Forms/Input
-Forms/SearchInput
-Forms/Select
-Overlays/Modal
-Menus/ActionMenu
-Feedback/Toast
-Cards/Card
-Data Display/Table
-Domain/Workshop/ProjectCard
-```
+5. Storybook:
 
-Do not hide Button, Modal, Input, Card, Table, or Menu inside a generic “Primitive Stories” board only.
+   * Interaction/play functions.
+   * Accessibility addon.
+   * Next.js Vite framework.
+   * Static build validation.
 
-Grouped preview boards are allowed as secondary overview stories, but not as the only implementation.
+Rules:
+
+* Prefer hardening the current local implementation first.
+* Add Radix packages only if local behavior would be unsafe or too complex.
+* Flowbite remains reference-only.
+* Aceternity remains motion/reference-only.
+* Do not record paid/pro/private source content.
+* All visual defaults must follow ArchEstimator `DESIGN.md`.
+
+Update `.ai/05_logs` and/or `40_MODAL_DIALOG_SYSTEM_IMPLEMENTATION.md` with concise research notes.
 
 ================================================================================
-7. COMPLETE UI COMPONENT LIST TO IMPLEMENT OR EXPLICITLY DISPOSITION
-====================================================================
-
-Implement standalone stories for P0/P1. For P2/P3/LANDING_ONLY, create backlog/docs/deferred entries unless safe and quick.
-
-A. FOUNDATIONS AND TOKENS
-
-P0:
-
-* ColorTokenGallery
-* SemanticColorTokenGallery
-* SurfaceTokenGallery
-* TypographyTokenGallery
-* FontStackDemo
-* FontWeightDemo
-* RadiusTokenGallery
-* SpacingTokenGallery
-* SizingTokenGallery
-* ShadowElevationGallery
-* BorderHairlineGallery
-* ZIndexLayerGallery
-* FocusRingGallery
-* MotionTokenGallery
-* ReducedMotionDemo
-* DensityTokenGallery
-* ResponsiveBreakpointDemo
-* StatusTokenGallery
-* SkeletonTokenGallery
-* ScrollAreaTokenDemo
-* DataVisualizationTokenGallery
-* TailwindUtilityExamples
-* DesignSystemDoDont
-* AppWorkshopVsLandingBoundaryDemo
-
-B. ICON SYSTEM AND ASSETS
-
-P0:
-
-* AppIcon
-* IconGallery
-* SemanticIconMap
-* IconButtonIcon
-* InlineIcon
-* StatusIcon
-* EmptyStateIcon
-* MenuItemIcon
-* TreeRowIcon
-* TableActionIcon
-* FileIcon
-* ImageIcon
-* MediaIcon
-* AlertIcon
-* SpinnerIcon
-* ExternalLinkIcon
-* ChevronIcon
-* DisclosureIcon
-* SortIcon
-* FilterIcon
-* GroupIcon
-* AddIcon
-* EditIcon
-* DeleteIcon
-* ArchiveIcon
-* ShareIcon
-* ExportIcon
-* ImportIcon
-* UploadIcon
-* DownloadIcon
-* CommentIcon
-* NotificationIcon
-* ActivityIcon
-* ProjectIcon
-* EstimateIcon
-* ComponentLibraryIcon
-* TemplateIcon
-* UserIcon
-* WorkspaceIcon
-* SettingsIcon
-* IconSizeDemo
-* DecorativeIconDemo
-* AccessibleIconOnlyDemo
-* AssetPlaceholder
-* LogoMark
-* LogoFull
-* ImagePlaceholder
-* DocumentPlaceholder
-
-C. TYPOGRAPHY AND TEXT PRIMITIVES
-
-P0:
-
-* Text
-* Heading
-* AppTitle
-* AppSubtitle
-* BodyText
-* MutedText
-* LabelText
-* HelperText
-* ErrorText
-* SuccessText
-* NumericText
-* CurrencyText
-* PercentText
-* UnitText
-* Kbd
-* CodeInline
-* TruncatedText
-* ClampText
-* CopyableText
-* LinkText
-* ExternalLink
-* EmptyStateCopy
-* SectionHeader
-* PanelTitle
-* TableHeaderText
-* BadgeText
-* TooltipText
-* DescriptionText
-* MetadataText
-* TimestampText
-
-P2:
-
-* CodeBlock
-
-D. ACTIONS AND BUTTONS
-
-P0:
-
-* Button
-* IconButton
-* ToolbarIconButton
-* ButtonLink
-* ButtonGroup
-* ToggleButton
-* ToggleGroup
-* SegmentedControl
-* DestructiveButton
-* GhostButton
-* PrimaryButton
-* SecondaryButton
-* QuietButton
-* LoadingButton
-* AsyncActionButton
-* CopyButton
-* FavoriteButton
-* ExpandCollapseButton
-* AddButton
-* SaveButton
-* CancelButton
-* DeleteButton
-* ArchiveButton
-* ImportButton
-* ExportButton
-* UploadButton
-* DownloadButton
-* ShareButton
-* FilterButton
-* SortButton
-* GroupButton
-* MoreActionsButton
-* OpenButton
-* CloseButton
-* RetryButton
-* ConfirmButton
-* ResetButton
-* ClearButton
-* ApplyButton
-* ButtonWithShortcut
-
-P2:
-
-* SplitButton
-* StatefulButton
-* OverlayButton
-* ScrimButton
-
-LANDING_ONLY / DEFERRED:
-
-* LandingHoverButton
-* LandingMovingBorderButton
-* LandingMagneticButton
-
-E. BADGES, PILLS, TAGS, INDICATORS
-
-P0:
-
-* Badge
-* Pill
-* StatusBadge
-* StatusPill
-* DenseStatusBadge
-* CountBadge
-* NotificationBadge
-* BetaBadge
-* RoleBadge
-* PermissionBadge
-* PriceBadge
-* CostBadge
-* CategoryTag
-* SupplierTag
-* BrandTag
-* FilterChip
-* RemovableChip
-* SelectionPill
-* KeyboardShortcutPill
-* DotIndicator
-* OnlinePresenceIndicator
-* OfflineIndicator
-* ErrorIndicator
-* WarningIndicator
-* SuccessIndicator
-* InfoIndicator
-* LoadingIndicator
-* ProgressIndicator
-* DirtyStateIndicator
-* UnsavedIndicator
-
-F. FORM FIELD PRIMITIVES
-
-P0:
-
-* Field
-* ControlField
-* Label
-* RequiredIndicator
-* HelperText
-* ErrorMessage
-* FieldDescription
-* Fieldset
-* Legend
-* Input
-* ControlInput
-* Textarea
-* ControlTextarea
-* NumberInput
-* CurrencyInput
-* QuantityInput
-* PercentageInput
-* UnitInput
-* MeasurementInput
-* SearchInput
-* SearchField
-* PasswordInput
-* EmailInput
-* PhoneInput
-* URLInput
-* Select
-* NativeSelect
-* ControlSelect
-* SearchableSelect
-* Combobox
-* CreatableCombobox
-* MultiSelect
-* Checkbox
-* CheckboxGroup
-* RadioGroup
-* Switch
-* Toggle
-* InputGroup
-* InputAddon
-* InputPrefix
-* InputSuffix
-* FormSection
-* ModalFormSection
-* TwoColumnControlRow
-* InlineEditableField
-* EditableTextCell
-* EditableMoneyCell
-* EditableNumberCell
-* EditableQuantityCell
-* EditableUnitCell
-* EditablePercentCell
-* ValidationSummary
-* FormActions
-* FieldGrid
-* FormErrorBanner
-
-P1/P2:
-
-* FileInput
-* FileDropzone
-* ImageUpload
-* ColorInput
-* DateInput
-* TimeInput
-* DatePicker
-* Calendar
-* DateRangePicker
-* TimePicker
-* Slider
-* RangeSlider
-* NumberStepper
-* FloatingLabel
-* InputOTP
-
-G. MENUS, DROPDOWNS, RIGHT-CLICK, COMMAND SURFACES
-
-P0:
-
-* DropdownMenu
-* ContextMenu
-* RightClickMenu
-* ActionMenu
-* ContextActionMenuContent
-* MenuItem
-* MenuCheckboxItem
-* MenuRadioItem
-* MenuLabel
-* MenuSeparator
-* MenuShortcut
-* MenuSub
-* MenuSubTrigger
-* MenuSubContent
-* MoreActionsMenu
-* RowActionMenu
-* SortMenu
-* FilterMenu
-* ViewOptionsMenu
-* ExportMenu
-* ImportMenu
-* ShareMenu
-* KebabMenu
-* RightClickTreeMenu
-* RightClickTableRowMenu
-* RightClickCardMenu
-
-P1:
-
-* Menubar
-* CommandPalette
-* CommandMenu
-* QuickActionMenu
-* SearchCommandMenu
-* BulkActionMenu
-* UserAccountMenu
-* NotificationMenu
-* CommandEmptyState
-* CommandLoadingState
-* CommandGroup
-* CommandItem
-
-H. OVERLAYS, DIALOGS, POPOVERS, FEEDBACK OVERLAYS
-
-P0:
-
-* Modal
-* Dialog
-* AlertDialog
-* ConfirmDialog
-* DeleteConfirmDialog
-* UnsavedChangesDialog
-* ReleaseAnnouncementDialog
-* Tooltip
-* ToolbarTooltip
-* Toast
-* ToastViewport
-* Banner
-* StickyBanner
-* Callout
-* Alert
-* InlineAlert
-* ValidationAlert
-* LoadingOverlay
-* RouteLoadingOverlay
-* Scrim
-* PortalLayer
-* FocusTrapDemo
-
-P1:
-
-* CommandDialog
-* Drawer
-* Sheet
-* SidePanel
-* InspectorPanel
-* Popover
-* HelpPopover
-* InfoPopover
-* DatePickerPopover
-* FilterPopover
-* HoverCard
-* AnimatedTooltip
-* LinkPreview
-* Snackbar
-* NotificationCenterPopover
-
-I. NAVIGATION AND APP SHELL
-
-P0:
-
-* Tabs
-* TabList
-* TabPanel
-* Header
-* HeaderActionCluster
-* HeaderIconToolbar
-* BackButton
-* RouteTitleBar
-* ViewSwitcher
-* SkipLink
-* SectionNav
-
-P1:
-
-* AppShell
-* WorkshopShell
-* PageShell
-* WorkspaceShell
-* Sidebar
-* AppSidebar
-* CollapsibleSidebar
-* ResizableSidebar
-* SidebarSection
-* SidebarItem
-* SidebarGroup
-* SidebarFooter
-* Topbar
-* Breadcrumb
-* BreadcrumbItem
-* NavigationMenu
-* Navbar
-* Pagination
-* PaginationControls
-* Stepper
-* WizardSteps
-* EntitySwitcher
-* WorkspaceSwitcher
-* ProjectSwitcher
-* EstimateSwitcher
-* MobileNav
-
-LANDING_ONLY / DEFERRED:
-
-* AnimatedTabs
-* MegaMenu
-* BottomNavigation
-* FloatingDock
-* FloatingNavbar
-
-J. CARDS, PANELS, SURFACES
-
-P0:
-
-* Surface
-* SurfaceMuted
-* Card
-* CardHeader
-* CardTitle
-* CardDescription
-* CardContent
-* CardFooter
-* ProductCard
-* ProjectCard
-* EstimateCard
-* ComponentCard
-* CatalogueCard
-* StatCard
-* MetricCard
-* SummaryCard
-* EmptyCard
-* ErrorCard
-* LoadingCard
-* SelectableCard
-* InteractiveCard
-* ExpandableCard
-* Panel
-* WorkspacePanel
-* DetailPanel
-* InspectorPanelSurface
-* SettingsPanel
-* Section
-* SectionHeader
-* SectionFooter
-* ToolbarPanel
-* CardGrid
-* CardList
-
-P2:
-
-* HoverCardSurface
-* SpotlightCard
-* FocusCard
-* BentoCard
-* BentoGrid
-* PricingCard
-
-LANDING_ONLY:
-
-* CardStack
-* LandingCardSpotlight
-* LandingGlareCard
-* LandingWobbleCard
-* LandingCardHoverEffect
-
-K. TABLES AND DATA GRIDS
-
-P0:
-
-* Table
-* DataTable
-* DenseDataTableShell
-* TableHeader
-* TableBody
-* TableRow
-* TableCell
-* TableFooter
-* TableToolbar
-* TableColumnHeader
-* SortableColumnHeader
-* EmptyTableState
-* LoadingTableState
-* ErrorTableState
-* TablePagination
-* TableFilters
-* TableSearch
-* TableSelectionCheckbox
-* BulkActionToolbar
-* InlineTableActionMenu
-* EditableTextCell
-* EditableMoneyCell
-* EditableQuantityCell
-* EditableUnitCell
-* EditableFormulaCell
-* NumericCell
-* CurrencyCell
-* StatusCell
-* AvatarCell
-* ActionCell
-* RowExpander
-* RowDetailsPanel
-* ColumnVisibilityMenu
-* TableColumnSizingVars
-* EmptyFillerRows
-* DenseRow
-* TableOverflowContainer
-
-P2 / DEFERRED:
-
-* ResizableColumn
-* StickyColumn
-* VirtualizedTable
-* DataGrid
-
-L. TREES AND HIERARCHY
-
-P0:
-
-* Tree
-* TreeSurfaceShell
-* TreeRowLayout
-* TreeNode
-* TreeBranch
-* TreeLeaf
-* TreeExpander
-* TreeCheckbox
-* TreeDragHandle
-* TreeIndentGuide
-* TreeToolbar
-* TreeSearch
-* TreeFilter
-* TreeEmptyState
-* TreeLoadingState
-* TreeErrorState
-* TreeContextMenu
-* TreeBulkActionBar
-* TreeNodeIcon
-* TreeNodeLabel
-* TreeNodeMeta
-* TreeDropIndicator
-* WorkshopTree story shell
-* ShareTreeSurface
-* ShareTreeNodeRow
-* ShareReviewTree
-* LibraryFolderTree story shell
-* ComponentLibraryTree story shell
-* ActivityScopeTree story shell
-* TemplateTree story shell
-* FolderTree
-* ControlledTreeAdapter
-* ReadOnlyTreeAdapter
-* TreeExpansionHook docs/story
-* TreeSelectionHook docs/story
-* TreeFilteringUtility docs/story
-* TreeFlatteningUtility docs/story
-* TreeAriaUtility docs/story
-
-P1:
-
-* EstimateSheetTree story shell
-* EstimateTreeRow
-* EstimateTreeSurface
-
-DEFERRED:
-
-* VirtualizedTreeRows
-
-M. LISTS AND ITEM ROWS
-
-P0:
-
-* List
-* ListGroup
-* ListItem
-* ItemRow
-* ItemHeader
-* ItemContent
-* ItemActions
-* DescriptionList
-* KeyValueList
-* CommandList
-* ActivityList
-* NotificationList
-* CommentList
-* FileList
-* ImageList
-* SearchResultsList
-* EmptyListState
-* LoadingListState
-* ErrorListState
-* SelectableListItem
-* RowActionListItem
-* Timeline
-* TimelineItem
-* AuditActivityItem
-* RecentActivityTimeline
-
-P2:
-
-* DraggableListItem
-
-N. FEEDBACK, LOADING, EMPTY, ERROR, PROGRESS
-
-P0:
-
-* Spinner
-* Loader
-* Skeleton
-* SkeletonText
-* SkeletonCard
-* SkeletonTable
-* SkeletonTree
-* SkeletonList
-* Progress
-* ProgressBar
-* CircularProgress
-* ProgressRing
-* StepProgress
-* Toast
-* Alert
-* Banner
-* EmptyState
-* ErrorState
-* SuccessState
-* LoadingState
-* NoResultsState
-* PermissionDeniedState
-* OfflineState
-* MaintenanceState
-* InlineValidationState
-* SaveStatusIndicator
-* AutoSaveIndicator
-* RetryState
-* PartialFailureState
-* FormErrorState
-* ImportProgressState
-* ExportProgressState
-
-P2:
-
-* MultiStepLoader
-
-O. LAYOUT PRIMITIVES
-
-P0:
-
-* Container
-* Stack
-* Inline
-* Cluster
-* Grid
-* ResponsiveGrid
-* SplitPane
-* ResizablePanel
-* ResizablePanelGroup
-* ScrollArea
-* AspectRatio
-* Separator
-* Divider
-* Spacer
-* StickyHeader
-* StickyFooter
-* Toolbar
-* ActionBar
-* SelectionActionBar
-* CommandBar
-* FilterBar
-* SearchToolbar
-* HeaderToolbar
-* PanelLayout
-* MasterDetailLayout
-* ThreeColumnWorkshopLayout
-* SidebarContentLayout
-* FormGrid
-* Center
-* Bleed
-* Frame
-* ViewportFrame
-* FullHeightShell
-* OverflowFade
-
-P2:
-
-* BentoGrid
-* MasonryGrid
-
-P. MEDIA AND ASSETS
-
-P1:
-
-* Avatar
-* AvatarGroup
-* UserAvatar
-* WorkspaceAvatar
-* Logo
-* LogoMark
-* LogoFull
-* Image
-* Thumbnail
-* Gallery
-* ImageCard
-* FilePreview
-* AttachmentPreview
-* PDFPreviewPlaceholder
-* VideoPlaceholder
-* ImageUploadPreview
-* EmptyImagePlaceholder
-* DocumentPreview
-* FileTypeBadge
-* AttachmentList
-* AttachmentCard
-* DropzonePreview
-
-LANDING_ONLY / P2:
-
-* DeviceMockup
-* BeforeAfterCompare
-
-Q. CHARTS AND VISUALIZATION
-
-P1:
-
-* ChartContainer
-* ChartTooltip
-* ChartLegend
-* MiniBarChart
-* MiniLineChart
-* DonutChart
-* ProgressRing
-* Sparkline
-* StatGrid
-* MetricTrend
-* CostBreakdownChart
-* CostSummaryChart
-* DistributionBar
-* DataVizEmptyState
-* DataVizLoadingState
-* DataVizErrorState
-
-P2 / LANDING_ONLY:
-
-* Gauge
-* Heatmap
-* WorldMap
-* Globe
-
-R. ARCHESTIMATOR DOMAIN COMPONENTS
-
-P1:
-
-* ProjectCard
-* ProjectListItem
-* ProjectEstimatesTable
-* ProjectEstimateRow
-* ProjectStatusBadge
-* ProjectFavoriteButton
-* EstimateCard
-* EstimateSummaryPanel
-* EstimateSheetHeader
-* EstimateSheetBranch
-* EstimateRowItemsTable
-* EstimateRowItem
-* EstimateRowEditor
-* EstimateTotalSummary
-* EstimateCostBreakdownPanel
-* EstimateVersionBadge
-* EstimateActivityItem
-* EstimateActivityTimeline
-* EstimateRowDetailsPanel
-* CostBreakdownPanel
-* ComponentCatalogueCard
-* CatalogueCardGrid
-* ComponentCatalogueBranch
-* LibraryTreePanel
-* LibraryFolderRow
-* ComponentLibraryCard
-* ComponentVersionBadge
-* AddComponentModalSections
-* AddComponentIdentitySection
-* AddComponentPricingSection
-* AddComponentClassificationSection
-* TemplateCard
-* TemplateListItem
-* TemplateTreePanel
-* ShareEstimateTreePanelStory
-* ShareEstimateTreeViewStory
-* ShareTreeSurface
-* ShareReviewHeader
-* ShareDecisionPanel
-* ShareDecisionBadge
-* ProposalPreviewCard
-* ProposalSectionCard
-* ProposalSummaryPanel
-* CommentThread
-* CommentComposer
-* DecisionBadge
-* ApprovalStatusBadge
-* NotificationBell
-* NotificationCenter
-* NotificationListItem
-* ReleaseAnnouncementModal
-* UserPresencePill
-* WorkspaceMemberAvatar
-* InviteStatusBadge
-* ImportEstimateDialog
-* ExportProposalDialog
-* ImageAttachmentCard
-* FileAttachmentList
-* AuditActivityItem
-* RecentActivityTimeline
-
-S. MOTION AND MICROINTERACTIONS
-
-App/workshop-safe P1:
-
-* FadeIn
-* ScaleIn
-* CollapseExpand
-* SlidePanel
-* FocusRingMotion
-* Pressable
-* StatefulButtonMotion
-* TooltipMotion
-* MenuMotion
-* ModalMotion
-* SkeletonShimmer
-* RowInsertHint
-* RowRemoveHint
-* ReducedMotionProvider
-* MotionTokenDemo
-
-LANDING_ONLY / DEFERRED:
-
-* MagneticButton
-* MovingBorder
-* HoverBorderGradient
-* BackgroundGradient
-* Sparkles
-* Spotlight
-* AuroraBackground
-* BackgroundBeams
-* WavyBackground
-* Vortex
-* TextGenerateEffect
-* TypewriterEffect
-* FlipWords
-* CardSpotlight
-* ThreeDCardEffect
-* ParallaxScroll
-* HeroParallax
-* FloatingDock
-* FloatingNavbar
-* TracingBeam
-* Lens
-* Compare
-* Globe
-* WorldMap
-* InfiniteMovingCards
-* AnimatedTestimonials
-* AnimatedTooltip
-* BackgroundLines
-* GridBackground
-* ShootingStars
-
-T. PAGE SECTIONS AND BLOCKS
-
-P1 / Storybook-only:
-
-* WorkshopShellBlock
-* EstimateEditorBlock
-* ComponentLibraryBlock
-* ProposalReviewBlock
-* EmptyStateSection
-* ProposalCoverSection
-* ProposalLineItemSection
-* ProposalSummarySection
-* ProposalAcceptanceSection
-
-LANDING_ONLY / DEFERRED:
-
-* HeroSection
-* FeatureSection
-* CTASection
-* TestimonialSection
-* LogoCloud
-* PricingSection
-* FAQSection
-* StatsSection
-* ContactSection
-* BlogCard
-* BlogGrid
-* Footer
-* AuthLoginSection
-* AuthSignupSection
-* BentoFeatureSection
-
-U. UTILITY PATTERNS AND HOOKS
-
-P1 docs/story examples:
-
-* cnPolicy
-* cvaVariantPolicy
-* useControllableState
-* useDisclosure
-* useCopyToClipboard
-* useMediaQuery
-* useReducedMotion
-* useFocusReturn
-* useKeyboardShortcut
-* useOutsideClick
-* useRovingFocus
-* useTreeExpansion
-* useTreeSelection
-* useCommandMenu
-* useDebouncedValue
-* useMeasureElement
-* formatCurrency
-* formatNumber
-* formatPercent
-* formatDate
-* formatRelativeTime
-* makeProjectFixture
-* makeEstimateFixture
-* makeComponentLibraryFixture
-* makeShareReviewFixture
-* makeNotificationFixture
-* withArchEstimatorTheme
-* withMockRouter
-* withMockQueryClient
-* withMockAuth
-* withReducedMotion
-
-V. DOCUMENTATION AND GOVERNANCE
-
-P0:
-
-* ComponentDocTemplate
-* StorybookDocsPageTemplate
-* DesignTokenDocsPage
-* IconGalleryDocsPage
-* ComponentStatusBadge
-* ComponentChecklistTable
-* DeprecationNotice
-* SourceAttributionNote
-* AgentUsageRuleNote
-* MigrationReadinessNote
-* ComponentReviewStatus
-* StoryCoverageDashboard
-* StorybookReviewChecklist
-* DoDontExample
-* ApprovedRejectedExamples
-
-================================================================================
-8. COMPONENT STORY REQUIREMENTS
-===============================
-
-For every standalone component story, create a proper Storybook `Meta` and `StoryObj` where practical.
-
-Required per component:
-
-* clear `title`;
-* `component` field when a real component exists;
-* docs description;
-* `args` and `argTypes` where meaningful;
-* multiple story exports, not only one matrix render;
-* static fixtures only;
-* accessibility notes;
-* keyboard/focus notes for interactive components;
-* no live provider calls;
-* migration status note.
-
-Minimum story exports for core components:
-
-For Button:
-
-* Default
-* Variants
-* Sizes
-* WithIcon
-* IconOnly
-* Disabled
-* Loading
-* Destructive
-* LongContent
-* KeyboardFocus
-
-For Modal/Dialog:
-
-* Default
-* WithDescription
-* FormDialog
-* DestructiveConfirm
-* Busy
-* ErrorState
-* LongContent
-* FocusNotes
-
-For Input/Search/Select/Textarea:
-
-* Default
-* WithHelper
-* Invalid
-* Disabled
-* Readonly
-* WithPrefixSuffix where applicable
-* LongValue
-* CompactDensity
-* KeyboardFocus
-
-For ActionMenu/ContextMenu:
-
-* Default
-* Grouped
-* DisabledItem
-* DestructiveItem
-* WithShortcut
-* NestedOrSubmenu if supported
-* RightClickExample
-* KeyboardFocus
-
-For Toast:
-
-* Info
-* Success
-* Warning
-* Error
-* Persistent
-* TriggeredProviderExample
-* StaticStateMatrix
-
-For Card/Panel:
-
-* Default
-* WithHeader
-* WithActions
-* Selected
-* Interactive
-* Loading
-* Empty
-* Error
-* LongContent
-
-For Table/DataTable:
-
-* Default
-* Empty
-* Loading
-* Sortable
-* Selectable
-* Overflow
-* EditableCell
-* ErrorState
-
-For Tree:
-
-* Default
-* Expanded
-* Collapsed
-* Selected
-* Empty
-* Loading
-* ContextMenu
-* InvalidDropTarget
-* KeyboardNotes
-
-================================================================================
-9. STORY FILE ORGANIZATION REQUIREMENTS
-=======================================
-
-Create or reorganize story files so component-level entries are clear.
-
-Preferred new files:
-
-```txt
-src/stories/foundations/colors.stories.tsx
-src/stories/foundations/typography.stories.tsx
-src/stories/foundations/density-and-tokens.stories.tsx
-
-src/stories/icons/app-icon.stories.tsx
-src/stories/icons/icon-gallery.stories.tsx
-
-src/stories/typography/text.stories.tsx
-src/stories/typography/heading.stories.tsx
-src/stories/typography/numeric-text.stories.tsx
-
-src/stories/actions/button.stories.tsx
-src/stories/actions/icon-button.stories.tsx
-src/stories/actions/button-group.stories.tsx
-src/stories/actions/action-buttons.stories.tsx
-
-src/stories/status/badge.stories.tsx
-src/stories/status/chip.stories.tsx
-src/stories/status/status-indicators.stories.tsx
-
-src/stories/forms/field.stories.tsx
-src/stories/forms/input.stories.tsx
-src/stories/forms/search-input.stories.tsx
-src/stories/forms/textarea.stories.tsx
-src/stories/forms/select.stories.tsx
-src/stories/forms/combobox.stories.tsx
-src/stories/forms/checkbox-radio-switch.stories.tsx
-src/stories/forms/editable-cell.stories.tsx
-
-src/stories/menus/action-menu.stories.tsx
-src/stories/menus/context-menu.stories.tsx
-src/stories/menus/dropdown-menu.stories.tsx
-src/stories/menus/command-palette.stories.tsx
-
-src/stories/overlays/modal.stories.tsx
-src/stories/overlays/confirm-dialog.stories.tsx
-src/stories/overlays/tooltip.stories.tsx
-src/stories/overlays/popover.stories.tsx
-src/stories/overlays/drawer-sheet.stories.tsx
-
-src/stories/feedback/toast.stories.tsx
-src/stories/feedback/empty-state.stories.tsx
-src/stories/feedback/skeleton.stories.tsx
-src/stories/feedback/alert-banner.stories.tsx
-src/stories/feedback/loading-error-success.stories.tsx
-
-src/stories/cards/card.stories.tsx
-src/stories/cards/panel.stories.tsx
-src/stories/cards/domain-cards.stories.tsx
-
-src/stories/data-display/table.stories.tsx
-src/stories/data-display/data-table.stories.tsx
-src/stories/data-display/list.stories.tsx
-src/stories/data-display/chart-container.stories.tsx
-
-src/stories/navigation/tabs.stories.tsx
-src/stories/navigation/sidebar.stories.tsx
-src/stories/navigation/breadcrumbs-pagination.stories.tsx
-src/stories/navigation/app-shell.stories.tsx
-
-src/stories/layout/stack-grid.stories.tsx
-src/stories/layout/toolbar.stories.tsx
-src/stories/layout/panels.stories.tsx
-
-src/stories/trees/tree-shell.stories.tsx
-src/stories/trees/share-review-tree.stories.tsx
-src/stories/trees/estimate-tree.stories.tsx
-src/stories/trees/library-folder-tree.stories.tsx
-
-src/stories/domain/project.stories.tsx
-src/stories/domain/estimate.stories.tsx
-src/stories/domain/component-library.stories.tsx
-src/stories/domain/share-review.stories.tsx
-src/stories/domain/notifications.stories.tsx
-src/stories/domain/proposal-review.stories.tsx
-
-src/stories/motion/workshop-safe-motion.stories.tsx
-src/stories/motion/landing-only-effects.stories.tsx
-
-src/stories/governance/story-coverage-dashboard.stories.tsx
-src/stories/governance/component-checklist.stories.tsx
-src/stories/governance/migration-boundary.stories.tsx
-```
-
-You may keep existing broad matrix stories as overview pages, but they must not be the only place core components appear.
-
-================================================================================
-10. DO NOT FAKE COVERAGE
-========================
-
-Update the coverage dashboard or add a new verification story/script so it distinguishes:
-
-* planned inventory rows;
-* planned story rows;
-* actual story files;
-* actual story exports;
-* actual component-level stories;
-* overview/matrix stories;
-* deferred items;
-* blocked items.
-
-Add or update a test/script such as:
-
-```txt
-scripts/check-storybook-component-coverage.mjs
-tests/vitest/storybook-component-coverage.test.ts
-```
-
-The check should fail if core standalone stories are missing, at minimum:
-
-* Actions/Button
-* Actions/IconButton
-* Forms/Input
-* Forms/SearchInput
-* Forms/Select
-* Forms/Textarea
-* Menus/ActionMenu
-* Menus/ContextMenu
-* Overlays/Modal
-* Overlays/ConfirmDialog
-* Overlays/Tooltip
-* Feedback/Toast
-* Feedback/EmptyState
-* Feedback/Skeleton
-* Cards/Card
-* Cards/Panel
-* Data Display/Table
-* Navigation/Tabs
-* Trees/TreeShell
-* Domain/Workshop/ProjectCard
-* Domain/Share/ShareReviewPanel
-* Domain/Notifications/NotificationCenter
-
-The test may inspect story files and exported story names statically.
-
-Do not pass this check by pointing it at the plan manifest only.
-
-================================================================================
-11. DESIGN SYSTEM RULES
-=======================
+6. DESIGN SYSTEM RULES
+======================
 
 All non-landing app/workshop UI must follow `DESIGN.md`.
 
-Hard visual constraints:
+Hard constraints:
 
 * SF Pro stack for app/workshop.
 * Regular/medium weights only.
@@ -1636,42 +386,779 @@ Hard visual constraints:
 
 Do not make ArchEstimator look like generic oversized Flowbite SaaS UI.
 Do not make workshop/product surfaces decorative, gradient-heavy, or motion-heavy.
-Do not introduce broad arbitrary Tailwind text/radius/shadow rules outside the token policy.
+Do not introduce arbitrary text sizes/radii/shadows outside token policy.
 
 ================================================================================
-12. PACKAGE AND DEPENDENCY RULES
-================================
+7. PACKAGE AND DEPENDENCY RULES
+===============================
 
-The branch already has Storybook installed. Do not add more packages unless truly necessary.
+Do not add packages unless local hardening cannot be made safe.
 
-Allowed:
+Preferred path:
 
-* Storybook files/stories/tests.
-* Storybook coverage verification scripts.
-* Small story-only helpers.
-* New local UI primitives when needed and dependency-free.
-* Existing dependencies already in the repo.
+* Implement local focus trap, overlay stack, scroll lock, and outside interaction utilities.
 
-Default forbidden unless separately justified and recorded:
+Allowed only if strongly justified:
+
+* `@radix-ui/react-dialog`
+* `@radix-ui/react-popover`
+* `@radix-ui/react-tooltip`
+* `@radix-ui/react-hover-card`
+
+Default forbidden:
 
 * Flowbite runtime/plugin.
-* Flowbite Pro source or screenshots.
+* Flowbite Pro source.
 * Motion/Framer.
-* New Radix packages.
+* Aceternity runtime package.
 * New chart package.
-* External component library runtime.
+* New utility package duplicating existing `class-variance-authority`, `clsx`, `tailwind-merge`, or `cn`.
 
-If a new dependency is unavoidable:
+If adding a package:
 
-1. create a decision entry in `.ai/10_state/decisions.md`;
-2. explain why existing primitives/native controls are insufficient;
-3. document alternatives;
-4. update package plan docs;
+1. document why local/native code is insufficient;
+2. update `.ai/10_state/decisions.md`;
+3. update `.ai/03_plans/.../40_MODAL_DIALOG_SYSTEM_IMPLEMENTATION.md`;
+4. run `bun install`;
 5. run full validation;
 6. include rollback notes.
 
 ================================================================================
-13. STATIC FIXTURE AND PROVIDER SAFETY RULES
+8. IMPLEMENTATION TARGET: OVERLAY HARDENING UTILITIES
+=====================================================
+
+Create internal reusable utilities under a clear location such as:
+
+```txt
+src/components/ui/overlays/overlay-utils.ts
+src/components/ui/overlays/focus-utils.ts
+src/components/ui/overlays/overlay-stack.ts
+```
+
+or one well-organized file if simpler.
+
+Implement the following capabilities.
+
+A. Focusable Element Discovery
+
+Create utility:
+
+```ts
+getFocusableElements(container: HTMLElement): HTMLElement[]
+```
+
+Must include common focusable selectors:
+
+* `a[href]`
+* `button:not([disabled])`
+* `textarea:not([disabled])`
+* `input:not([disabled])`
+* `select:not([disabled])`
+* `[tabindex]:not([tabindex="-1"])`
+* `[contenteditable="true"]`
+
+Must ignore:
+
+* disabled elements;
+* hidden elements;
+* elements with `aria-hidden="true"`;
+* elements with `display: none`;
+* elements with `visibility: hidden`.
+
+B. Focus Trap
+
+Create hook or utility:
+
+```ts
+useFocusTrap({
+  enabled,
+  containerRef,
+  initialFocusRef,
+  finalFocusRef,
+  restoreFocus,
+  onEscapeKeyDown,
+  isTopmost,
+})
+```
+
+Required behavior:
+
+* When enabled and open, move focus into the dialog.
+* Prefer `initialFocusRef`.
+* Else focus first focusable element.
+* Else focus the dialog content container.
+* Trap Tab and Shift+Tab inside the container.
+* If user Tabs from last focusable, wrap to first.
+* If user Shift+Tabs from first focusable, wrap to last.
+* If focus leaves by programmatic behavior, do not crash.
+* Return focus to previous active element or `finalFocusRef` on close.
+* Must work in JSDOM tests.
+* Must not trap focus for non-modal floating popups unless `trapFocus` is explicitly true.
+
+C. Body Scroll Lock
+
+Create hook or utility:
+
+```ts
+useBodyScrollLock(enabled: boolean)
+```
+
+Required behavior:
+
+* Lock body/document scroll only when blocking modal overlays are open.
+* Do not lock scroll for `ResizableModal` / `FloatingModal` / `PopupWindow` when `modal=false`.
+* Do not lock scroll for `SidePanel` / `InspectorDrawer` when non-modal.
+* Ref-count nested locks.
+* Restore previous `body.style.overflow`.
+* Restore previous `body.style.paddingRight`.
+* Optionally compensate scrollbar width.
+* Clean up on unmount.
+* Must be safe in SSR / Storybook.
+
+D. Overlay Stack
+
+Create a stack manager:
+
+```ts
+useOverlayStack({
+  open,
+  modal,
+  dismissible,
+})
+```
+
+or equivalent.
+
+Required behavior:
+
+* Each open overlay gets a stack id.
+* Only the topmost overlay responds to Escape.
+* Only the topmost overlay handles overlay-dismiss outside click.
+* Nested dialogs should not close parent when child closes.
+* Non-modal floating windows can be topmost for Escape if focus is inside them.
+* Cleanup stack entries on close/unmount.
+* Must be deterministic in tests.
+
+E. Escape Handling
+
+Standardize:
+
+* `closeOnEscape` default `true` for dismissible overlays.
+* `closeOnEscape={false}` prevents Escape dismissal.
+* Escape closes only topmost overlay.
+* Escape does not close non-dismissible confirm dialogs.
+* Escape behavior is documented in Storybook.
+* Escape behavior is tested.
+
+F. Outside Click / Overlay Click Handling
+
+Standardize:
+
+* AppModal / BlurModal:
+
+  * overlay click closes by default if `closeOnOverlayClick=true`;
+  * can disable overlay close.
+* ConfirmDialog / DeleteConfirmDialog:
+
+  * overlay click should default to disabled or carefully configurable for destructive dialogs.
+* ResizableModal / FloatingModal / PopupWindow:
+
+  * no overlay by default;
+  * outside background remains interactive by default when non-modal;
+  * if `withOverlay=true`, overlay behavior follows props.
+* Sheet / Drawer:
+
+  * scrim click closes when `withScrim=true` and dismissible.
+  * InspectorDrawer defaults no scrim and no outside close.
+* Popover:
+
+  * outside click closes.
+  * click inside does not close unless component action does.
+* Tooltip:
+
+  * closes on mouse leave, blur, and Escape when open.
+* HoverCard:
+
+  * closes on mouse leave/blur and Escape when open.
+
+G. Data Attributes
+
+Add consistent data attributes for testing and styling:
+
+* `data-state="open|closed"`
+* `data-modal="true|false"`
+* `data-dismissible="true|false"`
+* `data-resizable="true|false"`
+* `data-side`
+* `data-size`
+* `data-tone`
+
+Where useful.
+
+================================================================================
+9. HARDEN DIALOG PRIMITIVES
+===========================
+
+Update `src/components/ui/overlays/dialog.tsx`.
+
+Current good parts to preserve:
+
+* Portal behavior.
+* Overlay.
+* Header/title/description/body/footer/actions/close button.
+* Escape handling.
+* Focus return.
+* Compact design.
+* Phosphor close icon.
+
+Add or harden:
+
+* Focus trap support.
+* Body scroll lock support.
+* Overlay stack support.
+* `initialFocusRef`.
+* `finalFocusRef`.
+* `trapFocus`.
+* `lockScroll`.
+* `dismissible`.
+* `onEscapeKeyDown`.
+* `onPointerDownOutside` or equivalent.
+* topmost overlay guard.
+* `closeOnOverlayClick`.
+* `closeOnEscape`.
+* `modal`.
+* `returnFocusOnClose`.
+* data attributes.
+
+Target `DialogProps` shape:
+
+```ts
+type DialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+  closeLabel?: string;
+  closeOnEscape?: boolean;
+  closeOnOverlayClick?: boolean;
+  dismissible?: boolean;
+  modal?: boolean;
+  trapFocus?: boolean;
+  lockScroll?: boolean;
+  returnFocusOnClose?: boolean;
+  initialFocusRef?: RefObject<HTMLElement | null>;
+  finalFocusRef?: RefObject<HTMLElement | null>;
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
+  onPointerDownOutside?: (event: PointerEvent | MouseEvent) => void;
+};
+```
+
+Default behavior:
+
+* `modal=true` means `trapFocus=true` and `lockScroll=true` unless explicitly false.
+* `modal=false` means no focus trap and no scroll lock unless explicitly true.
+* `dismissible=true` by default.
+* `closeOnEscape=true` by default if dismissible.
+* `closeOnOverlayClick=true` by default if dismissible.
+* Non-dismissible dialogs ignore Escape and overlay click.
+
+Do not break existing `Dialog` usages.
+
+================================================================================
+10. HARDEN APP MODAL / BLUR MODAL / MODAL
+=========================================
+
+Update `src/components/ui/overlays/modal.tsx`.
+
+Requirements:
+
+* Preserve `AppModal`, `BlurModal`, `Modal`.
+* Preserve `src/components/ui/modal.tsx` compatibility export.
+* Preserve existing app import compatibility.
+* Add passthrough props:
+
+  * `dismissible`
+  * `trapFocus`
+  * `lockScroll`
+  * `initialFocusRef`
+  * `finalFocusRef`
+  * `returnFocusOnClose`
+  * `onEscapeKeyDown`
+  * `onPointerDownOutside`
+* AppModal default:
+
+  * `modal=true`
+  * `trapFocus=true`
+  * `lockScroll=true`
+  * `blurBackdrop=true`
+  * close button upper right
+  * title upper left
+  * internal body scroll
+* Destructive `AppModal`:
+
+  * `role="alertdialog"`
+  * safe focus handling.
+* Add `data-size`, `data-tone`, `data-state`.
+
+Backward compatibility:
+
+* Existing `Modal` import from `@/components/ui/modal` must still work.
+* Existing `Modal` props from the old API must still work:
+
+  * `open`
+  * `title`
+  * `children`
+  * `onOpenChange`
+  * `description`
+  * `closeLabel`
+  * `className`
+  * `bodyClassName`
+
+================================================================================
+11. HARDEN RESIZABLE MODAL / FLOATING MODAL / POPUP WINDOW
+==========================================================
+
+Update `src/components/ui/overlays/resizable-modal.tsx`.
+
+Requirements:
+
+* Keep no blur by default.
+* Keep no overlay by default.
+* Keep no scroll lock by default when `modal=false`.
+* Add optional `trapFocus` and `lockScroll`.
+* Add `dismissible`, `closeOnEscape`, `closeOnOverlayClick`.
+* Add `initialFocusRef`, `finalFocusRef`.
+* Add data attributes.
+* Escape closes only topmost floating modal if dismissible.
+* When `withOverlay=false`, background should not be blocked by the root wrapper.
+* Pointer events must remain correct:
+
+  * root can be `pointer-events-none`;
+  * dialog content must be `pointer-events-auto`;
+  * overlay if present must be clickable.
+* Keep CSS `resize: both`.
+* Keep min/max size.
+* Add `overflow: auto` or visible resize handle behavior without clipping critical content.
+* Document that drag/move behavior remains deferred unless implemented safely.
+
+Stories must show:
+
+* no backdrop;
+* transparent overlay;
+* inspector popup;
+* floating tool window;
+* internal scroll;
+* keyboard focus;
+* resize notes;
+* non-dismissible state if implemented.
+
+================================================================================
+12. HARDEN CONFIRM / ALERT / DELETE / UNSAVED DIALOGS
+=====================================================
+
+Update `src/components/ui/overlays/confirm-dialog.tsx`.
+
+Requirements:
+
+* ConfirmDialog supports:
+
+  * `dismissible`
+  * `closeOnEscape`
+  * `closeOnOverlayClick`
+  * `busy`
+  * `error`
+  * `onConfirm`
+  * `onCancel`
+* For destructive dialogs:
+
+  * default `dismissible` should be conservative.
+  * cancel should receive initial focus if destructive.
+  * confirm button disabled when busy.
+  * error shown in accessible status/alert block if relevant.
+* For unsaved changes:
+
+  * clear destructive/warning tone.
+* Tests:
+
+  * confirm callback fires once.
+  * busy confirm does not call confirm.
+  * overlay click behavior follows props.
+  * Escape behavior follows props.
+  * destructive dialog focuses cancel or safe action.
+
+================================================================================
+13. HARDEN SHEET / DRAWER / SIDEPANEL
+=====================================
+
+Update `src/components/ui/overlays/sheet-drawer.tsx`.
+
+Requirements:
+
+* Sheet/Drawer modal behavior:
+
+  * `modal=true` locks scroll and traps focus.
+  * `withScrim=true` can dismiss on scrim click.
+* SidePanel/InspectorDrawer:
+
+  * default `modal=false`;
+  * no blur;
+  * no scroll lock;
+  * no focus trap unless opted in;
+  * background remains usable if no scrim.
+* Add passthrough props:
+
+  * `dismissible`
+  * `trapFocus`
+  * `lockScroll`
+  * `closeOnEscape`
+  * `closeOnOverlayClick`
+  * `initialFocusRef`
+  * `finalFocusRef`
+* Add data attributes:
+
+  * `data-side`
+  * `data-size`
+  * `data-modal`
+* Tests:
+
+  * modal Sheet locks scroll.
+  * InspectorDrawer does not lock scroll.
+  * Escape closes topmost sheet if dismissible.
+  * Scrim click follows `withScrim` and `closeOnOverlayClick`.
+
+================================================================================
+14. HARDEN POPOVER
+==================
+
+Update `src/components/ui/overlays/popover.tsx`.
+
+Requirements:
+
+* Controlled/uncontrolled state remains.
+* Outside click closes when uncontrolled or calls `onOpenChange(false)` when controlled.
+* Escape closes when open.
+* Click inside does not close by default.
+* Trigger has:
+
+  * `aria-haspopup="dialog"` or appropriate role.
+  * `aria-expanded`.
+  * `aria-controls`.
+* Content has:
+
+  * role `dialog` or configurable role.
+  * id.
+  * optional title/description.
+* Add data attributes:
+
+  * `data-state`
+  * `data-side`
+  * `data-align`
+* Add `closeOnEscape`, `closeOnOutsideClick`, `modal` if useful.
+* Do not add collision detection unless simple and safe.
+* If robust anchoring becomes too complex, document a future Radix Popover migration bug/decision, but keep current story working.
+
+Tests:
+
+* opens on trigger click.
+* closes on outside click.
+* does not close on inside click.
+* closes on Escape.
+* controlled mode calls `onOpenChange`.
+
+================================================================================
+15. HARDEN TOOLTIP
+==================
+
+Update `src/components/ui/overlays/tooltip.tsx`.
+
+Requirements:
+
+* Tooltip opens on hover and focus.
+* Tooltip closes on mouse leave, blur, and Escape.
+* Tooltip supports controlled `open`.
+* Tooltip must set `aria-describedby` on the trigger when possible.
+* Avoid duplicate or conflicting `aria-describedby`.
+* If child is a valid element, clone it with `aria-describedby`.
+* If child is not a valid element, wrap safely and apply description to wrapper.
+* Tooltip content uses role `tooltip`.
+* Add `delayMs` only if simple and not flaky in tests.
+* Add data attributes:
+
+  * `data-state`
+  * `data-side`
+* Keep compact 9px styling.
+* Keep no heavy motion.
+
+Tests:
+
+* focus opens tooltip.
+* blur closes tooltip.
+* Escape closes tooltip.
+* accessible description is present.
+* controlled open renders.
+
+================================================================================
+16. HARDEN HOVER CARD
+=====================
+
+Update `src/components/ui/overlays/hover-card.tsx`.
+
+Requirements:
+
+* Opens on hover and focus.
+* Closes on mouse leave, blur, and Escape.
+* Supports controlled open if current API allows or extend API.
+* Has title/description/body.
+* Uses `aria-describedby` or `aria-controls` as appropriate.
+* Add `side` and `align` only if simple.
+* Add data attributes.
+* Do not add heavy motion.
+* If robust behavior becomes complex, keep lightweight and document future Radix HoverCard option.
+
+Tests:
+
+* focus opens hover card.
+* blur closes hover card.
+* Escape closes hover card.
+* content is labelled/described.
+
+================================================================================
+17. HARDEN COMMAND DIALOG / COMMAND MENU
+========================================
+
+Update `src/components/ui/overlays/command-dialog.tsx`.
+
+Requirements:
+
+* Keep no `cmdk` dependency unless necessary.
+* Search input focuses initially when dialog opens.
+* List items are buttons.
+* Arrow-key roving focus should be implemented if reasonable.
+* At minimum:
+
+  * Tab works through input and command items.
+  * Enter activates focused button.
+  * Escape closes dialog through Dialog primitive.
+  * Disabled items are skipped by keyboard where possible.
+* Add `aria-label`, `role`, and status for empty/loading.
+* Add stories:
+
+  * default;
+  * command palette;
+  * inline command menu;
+  * loading state;
+  * empty state;
+  * keyboard focus notes.
+* Add tests for search filtering and disabled item behavior if feasible.
+
+================================================================================
+18. STORYBOOK REQUIREMENTS
+==========================
+
+Add or update stories under `src/stories/overlays/**`.
+
+Required new or updated stories:
+
+```txt
+src/stories/overlays/dialog-hardening.stories.tsx
+src/stories/overlays/dialog-system.stories.tsx
+src/stories/overlays/app-modal.stories.tsx
+src/stories/overlays/resizable-modal.stories.tsx
+src/stories/overlays/confirm-dialog.stories.tsx
+src/stories/overlays/sheet-drawer.stories.tsx
+src/stories/overlays/popover.stories.tsx
+src/stories/overlays/tooltip.stories.tsx
+src/stories/overlays/hover-card.stories.tsx
+src/stories/overlays/command-dialog.stories.tsx
+```
+
+Create `Overlays/DialogHardening` with required exports:
+
+* FocusTrap
+* InitialFocus
+* FinalFocusReturn
+* ScrollLock
+* EscapeTopmost
+* OverlayClick
+* NonDismissable
+* NestedDialogs
+* FloatingNonModal
+* InspectorNoScrollLock
+* AccessibilityChecklist
+
+Update existing overlay stories to mention:
+
+* focus trap status;
+* scroll-lock status;
+* outside-click behavior;
+* Escape behavior;
+* modal vs non-modal behavior;
+* app migration remains blocked.
+
+Storybook must remain static/provider-free.
+
+================================================================================
+19. COVERAGE SCRIPT REQUIREMENTS
+================================
+
+Update:
+
+```txt
+scripts/check-storybook-component-coverage.mjs
+tests/vitest/storybook-component-coverage.test.ts
+```
+
+Add required title:
+
+```txt
+Overlays/DialogHardening
+```
+
+Required exports:
+
+```txt
+FocusTrap
+InitialFocus
+FinalFocusReturn
+ScrollLock
+EscapeTopmost
+OverlayClick
+NonDismissable
+NestedDialogs
+FloatingNonModal
+InspectorNoScrollLock
+AccessibilityChecklist
+```
+
+Keep existing required overlay titles:
+
+* `Overlays/DialogSystem`
+* `Overlays/AppModal`
+* `Overlays/ResizableModal`
+* `Overlays/Modal`
+* `Overlays/ConfirmDialog`
+* `Overlays/SheetDrawer`
+* `Overlays/Tooltip`
+* `Overlays/Popover`
+* `Overlays/HoverCard`
+* `Overlays/CommandDialog`
+
+Coverage script must still verify:
+
+* Actual story files exist.
+* Required story titles exist.
+* Required exports exist.
+* Required stories have component fields or explicit storybook contracts.
+* Plan rows are not counted as implementation proof.
+
+================================================================================
+20. TESTING REQUIREMENTS
+========================
+
+Update or add tests in:
+
+```txt
+tests/vitest/ui-modal-tooltip.test.tsx
+tests/vitest/storybook-component-coverage.test.ts
+```
+
+Add a new focused test file if cleaner:
+
+```txt
+tests/vitest/overlay-hardening.test.tsx
+```
+
+Required tests:
+
+A. Dialog Focus Trap
+
+* focuses initial focus target on open;
+* falls back to first focusable element;
+* falls back to content container if no focusable children;
+* Tab cycles from last to first;
+* Shift+Tab cycles from first to last;
+* focus returns to trigger/finalFocusRef on close.
+
+B. Body Scroll Lock
+
+* AppModal locks body scroll while open;
+* closing AppModal restores previous body styles;
+* nested locks ref-count correctly;
+* ResizableModal with `modal=false` does not lock body scroll;
+* InspectorDrawer does not lock body scroll;
+* modal Sheet locks body scroll.
+
+C. Escape Behavior
+
+* Escape closes dismissible AppModal;
+* Escape does not close when `closeOnEscape=false`;
+* Escape does not close non-dismissible ConfirmDialog;
+* Escape closes only topmost nested dialog.
+
+D. Outside / Overlay Click
+
+* overlay click closes AppModal by default;
+* overlay click does not close when disabled;
+* clicking dialog content does not close;
+* InspectorDrawer with no scrim has no overlay;
+* Popover outside click closes;
+* Popover inside click does not close.
+
+E. Tooltip / HoverCard
+
+* Tooltip focus opens and blur closes;
+* Tooltip Escape closes;
+* Tooltip gives accessible description;
+* HoverCard focus opens and Escape closes.
+
+F. CommandDialog
+
+* search filters grouped commands;
+* empty state appears;
+* disabled item does not activate;
+* Escape closes through Dialog primitive.
+
+G. Compatibility
+
+* `Modal` from `@/components/ui/modal` still renders and closes.
+* release announcement modal tests still pass.
+
+Do not test React internals.
+Do not test browser features impossible in JSDOM; if impossible, add Storybook/Playwright smoke instead.
+
+================================================================================
+21. STORYBOOK VISUAL / INTERACTION SMOKE
+========================================
+
+Run static Storybook and smoke these story IDs at desktop and mobile:
+
+* `overlays-dialoghardening--focus-trap`
+* `overlays-dialoghardening--scroll-lock`
+* `overlays-dialoghardening--escape-topmost`
+* `overlays-dialoghardening--non-dismissable`
+* `overlays-appmodal--default`
+* `overlays-resizablemodal--no-backdrop`
+* `overlays-resizablemodal--inspector-popup`
+* `overlays-confirmdialog--destructive`
+* `overlays-sheetdrawer--inspector-panel`
+* `overlays-popover--default`
+* `overlays-tooltip--default`
+* `overlays-hovercard--default`
+* `overlays-commanddialog--default`
+
+Verify:
+
+* story loads;
+* body text present;
+* component visible;
+* modal/dialog/tooltip role present where expected;
+* no console/page errors;
+* screenshots nonblank if screenshot tooling is available;
+* no external provider/network call.
+
+Record results in `.ai/05_logs`.
+
+================================================================================
+22. STATIC FIXTURE AND PROVIDER SAFETY RULES
 ============================================
 
 Stories, fixtures, and decorators must use static fake data only.
@@ -1699,166 +1186,68 @@ Do not call:
 * provider APIs
 * Vercel/Resend/Supabase external services
 
-If a production component cannot be safely rendered in Storybook because it imports provider/server code, create a story-only presentational wrapper using static fixtures.
+Keep `bun run storybook:check-boundary` passing.
 
 ================================================================================
-14. PRODUCTION SOURCE CHANGE AUDIT
-==================================
+23. PRODUCTION SOURCE SAFETY
+============================
 
-The current branch already touches some production source files. Audit every production source change in `main...HEAD`.
+Allowed:
 
-For each changed production file, classify:
+* UI primitive source under `src/components/ui/overlays/**`.
+* Compatibility barrel `src/components/ui/modal.tsx`.
+* UI barrel `src/components/ui/index.tsx`.
+* Storybook stories and tests.
+* `.ai` docs/logs.
 
-* REQUIRED_FOR_STORYBOOK_BUILD
-* TEST_REPAIR_ONLY
-* ACCIDENTAL_APP_BEHAVIOR_CHANGE
-* UNRELATED
-* NEEDS_REVERT
-* ACCEPT_WITH_EVIDENCE
+Not allowed:
 
-Production source files that need explicit review include at least:
+* production route migration;
+* estimate mutations;
+* Supabase actions;
+* provider clients;
+* API routes;
+* auth/middleware behavior;
+* app-wide route UI replacement.
 
-* `src/components/workshop/ProjectEstimateMetadataStrip.tsx`
-* `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
-* `src/components/workshop/component-library-manager/LibraryFolderTree.tsx`
-
-If a production source change is not necessary for Storybook or test repair, revert it safely or isolate it into a bug plan.
-
-Do not introduce new production app behavior changes while adding component stories.
-
-================================================================================
-15. TESTING AND VALIDATION REQUIREMENTS
-=======================================
-
-Use current repo scripts:
-
-```bash
-bun run storybook:check-boundary
-bun run build-storybook
-bun run lint:design-system
-bun run type-check
-bun run test
-bun run test:dom
-bun run validate
-bun run build
-git diff --check
-```
-
-Add a new check for actual standalone story coverage:
-
-```bash
-bun run storybook:check-components
-```
-
-or equivalent, if you create a script. Add it to `package.json` only if useful.
-
-Targeted tests to run/add:
-
-* Storybook provider boundary test.
-* Storybook plan matrix test.
-* New Storybook component coverage test.
-* Existing modal/tooltip test if Modal/Tooltip changes.
-* Existing toast test if Toast changes.
-* Existing header toolbar test if toolbar/icon button changes.
-* Existing component library tests if domain stories require source changes.
-* Existing table/project tests if table/project components change.
-
-Do not run `bun run test:e2e` unless production routes/auth/protected flows change, which this task must avoid.
-
-Final validation must include:
-
-```bash
-bun run storybook:check-boundary
-bun run build-storybook
-bun run lint:design-system
-bun run type-check
-bun run validate
-bun run build
-git diff --check
-```
-
-If `bun run storybook` is interactive, start it long enough to prove the sidebar/stories render, then stop it cleanly. Use `build-storybook` as the non-interactive proof.
-
-If validation fails:
-
-* identify whether failure is from your changes or baseline;
-* fix your change if caused by you;
-* if baseline or external blocker, create `.ai/15_Bugs/YYYY-MM-DD-{slug}.md`;
-* do not hide failures.
+If a production app component breaks due to the modal compatibility barrel, fix compatibility without migrating app UI.
 
 ================================================================================
-16. STORYBOOK VISUAL SMOKE REQUIREMENTS
-=======================================
-
-After implementing standalone stories, run local Storybook and smoke at least these story iframes/pages:
-
-* Actions/Button
-* Actions/IconButton
-* Forms/Input
-* Forms/SearchInput
-* Forms/Select
-* Overlays/Modal
-* Menus/ActionMenu
-* Menus/ContextMenu
-* Feedback/Toast
-* Cards/Card
-* Data Display/Table
-* Navigation/Tabs
-* Trees/TreeShell
-* Domain/Workshop/ProjectCard
-* Domain/Share/ShareReviewPanel
-* Domain/Notifications/NotificationCenter
-* Governance/StoryCoverageDashboard
-
-For each smoke story, verify:
-
-* page loads;
-* Storybook root is not blank;
-* no console/page errors;
-* visible component title text exists;
-* component examples are visible;
-* no live provider/network call occurs;
-* screenshot is nonblank if screenshot tooling is used.
-
-Record results in `.ai/05_logs`.
-
-================================================================================
-17. .ai MEMORY AND PLAN UPDATES
+24. .ai MEMORY AND PLAN UPDATES
 ===============================
 
-Update relevant `.ai` docs after implementation.
+Update or create:
 
-At minimum update or create:
-
-* `.ai/05_logs/YYYY-MM-DD-storybook-standalone-component-completion.md`
-* `.ai/10_state/current-state.md`
-* `.ai/10_state/decisions.md` if any package/source/disposition decisions changed
-* `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/CURRENT_CANONICAL_PLAN.md`
-* `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/37_PHILIP_STORYBOOK_REVIEW_PACKET.md`
-* `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/38_VALIDATION_COMMAND_MATRIX.md`
-
-Create or update closeout docs if they exist or are useful:
-
-* `39_IMPLEMENTATION_CLOSEOUT.md`
-* `40_STORYBOOK_REVIEW_STATUS.md`
-* `41_VALIDATION_EVIDENCE.md`
-* `42_STANDALONE_COMPONENT_COVERAGE_AUDIT.md`
+```txt
+.ai/05_logs/YYYY-MM-DD-overlay-production-hardening-implementation.md
+.ai/03_plans/2026-06-06-ui-component-optimization-componentization/40_MODAL_DIALOG_SYSTEM_IMPLEMENTATION.md
+.ai/03_plans/2026-06-06-ui-component-optimization-componentization/41_COMPLETE_COMPONENT_SYSTEM_COVERAGE.md
+.ai/03_plans/2026-06-06-ui-component-optimization-componentization/42_OVERLAY_PRODUCTION_HARDENING.md
+.ai/03_plans/2026-06-06-ui-component-optimization-componentization/43_OVERLAY_ACCESSIBILITY_VERIFICATION.md
+.ai/03_plans/2026-06-06-ui-component-optimization-componentization/37_PHILIP_STORYBOOK_REVIEW_PACKET.md
+.ai/03_plans/2026-06-06-ui-component-optimization-componentization/38_VALIDATION_COMMAND_MATRIX.md
+.ai/10_state/current-state.md
+.ai/10_state/decisions.md if dependencies or architecture decisions changed
+```
 
 Record:
 
-* actual standalone story files created;
-* actual components covered;
-* plan rows still backlog;
-* stories still deferred;
-* production source changes audited;
-* validation commands and results;
-* no app migration.
+* focus trap implementation;
+* scroll-lock implementation;
+* overlay stack implementation;
+* Escape/outside-click behavior;
+* modal vs non-modal behavior;
+* tests added;
+* stories added;
+* validation results;
+* remaining limitations;
+* no production route migration.
 
-Do not mark Philip approval unless Philip actually reviews and approves.
-Do not activate root `AGENTS.md` UI enforcement rules unless Philip separately approves.
+Do not mark app migration complete.
+Do not mark Philip approval unless Philip actually approves.
 
 ================================================================================
-18. BUG / BLOCKER PROTOCOL
+25. BUG / BLOCKER PROTOCOL
 ==========================
 
 If you discover a bug, failing test, blocker, stale assumption, package issue, Storybook issue, Tailwind CSS issue, security concern, provider import leak, test gap, design-system conflict, or serious ambiguity, create:
@@ -1892,76 +1281,50 @@ If a blocker affects only one component, defer that component and continue non-d
 If a blocker prevents Storybook static build, final status must be `BLOCKED` or `NEEDS_HUMAN_DECISION`.
 
 ================================================================================
-19. DO-NOT-TOUCH LIST
-=====================
-
-Do not modify:
-
-* Supabase migrations.
-* Generated Supabase types.
-* Provider settings.
-* Vercel settings.
-* Resend settings.
-* GitHub repo protection/settings.
-* Secrets.
-* Auth route behavior.
-* Server actions.
-* Production API routes.
-* Production app routing/middleware.
-* Existing production route UI for migration purposes.
-
-Allowed modifications:
-
-* Storybook story files.
-* Storybook component coverage scripts/tests.
-* `src/stories/**`.
-* story-only fixtures/decorators.
-* new reusable UI components when needed.
-* existing UI primitives only when necessary, backward-compatible, tested, and graph-reviewed.
-* docs and `.ai` memory updates.
-* package scripts only if adding validation script.
-* focused tests for changed components.
-
-================================================================================
-20. FINAL ACCEPTANCE CRITERIA
+26. FINAL ACCEPTANCE CRITERIA
 =============================
 
-The repair implementation is complete only when:
+The hardening pass is complete only when:
 
-1. Storybook still builds.
-2. `bun run build-storybook` succeeds.
-3. Tailwind v4/global CSS still loads in Storybook.
-4. The Storybook sidebar shows actual standalone component entries for core P0/P1 components.
-5. Button has its own component story.
-6. IconButton has its own component story.
-7. Modal/Dialog has its own component story.
-8. Input/SearchInput/Select/Textarea have their own component stories.
-9. ActionMenu and ContextMenu have their own component stories.
-10. Toast, EmptyState, Skeleton have their own component stories.
-11. Card/Panel have their own component stories.
-12. Table/DataTable has its own component story.
-13. TreeShell has its own component story.
-14. Domain Project/Estimate/ComponentLibrary/Share/Notification stories exist.
-15. A coverage check distinguishes actual story implementation from plan rows.
-16. Stories use static fixtures only.
-17. Provider boundary check passes.
-18. No production route migration exists in the diff.
-19. Production source changes from the prior branch are audited and justified/reverted.
-20. `bun run lint:design-system` passes.
-21. `bun run type-check` passes.
-22. `bun run validate` passes.
-23. `bun run build` passes.
-24. `git diff --check` passes.
-25. `.ai` docs/logs are updated.
-26. Final report clearly lists completed, deferred, blocked, and not-in-scope items.
-27. Branch is committed and pushed.
+1. Dialog focus trap is implemented.
+2. Initial focus behavior is implemented.
+3. Focus return behavior is implemented.
+4. Body scroll lock is implemented for blocking modals.
+5. Body scroll lock is not applied to non-modal floating/resizable pop-ups.
+6. Overlay stack safety exists.
+7. Escape closes only the topmost dismissible overlay.
+8. Non-dismissible overlays resist Escape and outside click.
+9. Overlay click behavior is consistent and configurable.
+10. Click inside dialog content does not close.
+11. AppModal remains blurred by default.
+12. ResizableModal remains no-blur/no-overlay by default.
+13. Sheet/Drawer modal vs inspector behavior is correct.
+14. Popover outside-click and Escape close are implemented.
+15. Tooltip focus/hover/Escape behavior is implemented.
+16. HoverCard focus/hover/Escape behavior is implemented.
+17. CommandDialog search/empty/loading and keyboard behavior are tested or documented.
+18. Compatibility `Modal` import still works.
+19. Release announcement modal tests still pass.
+20. Coverage script enforces hardening stories.
+21. Storybook overlay hardening stories exist.
+22. Provider boundary check passes.
+23. No production route migration exists.
+24. `bun run lint:design-system` passes.
+25. `bun run type-check` passes.
+26. `bun run validate` passes.
+27. `bun run build` passes.
+28. `bun run build-storybook` passes.
+29. `git diff --check` passes.
+30. `.ai` docs/logs are updated.
+31. Final report clearly lists completed, deferred, blocked, and not-in-scope items.
+32. Branch is committed and pushed.
 
+Do not claim complete if focus trap or scroll lock is only documented but not implemented.
 Do not claim complete if `build-storybook` fails.
-Do not claim complete if Button/Modal remain visible only inside broad matrix stories.
-Do not claim 703 stories are implemented unless actual story files/exports exist.
+Do not claim app migration.
 
 ================================================================================
-21. FINAL VERIFICATION BEFORE COMMIT
+27. FINAL VERIFICATION BEFORE COMMIT
 ====================================
 
 Run:
@@ -1971,31 +1334,28 @@ git status --short --branch
 git diff --stat
 git diff --check
 git diff --name-status
+bun run storybook:check-components
 bun run storybook:check-boundary
-bun run build-storybook
 bun run lint:design-system
 bun run type-check
+bunx vitest run tests/vitest/ui-modal-tooltip.test.tsx tests/vitest/storybook-component-coverage.test.ts tests/vitest/release-announcement-modal.test.tsx --maxWorkers=1
+bun run build-storybook
 bun run validate
 bun run build
 ```
 
-Also run the new standalone component coverage check if you create one:
+If a new `tests/vitest/overlay-hardening.test.tsx` is added, include it in focused test commands.
 
-```bash
-bun run storybook:check-components
-```
-
-If validation output is long, summarize key pass/fail lines in `.ai/05_logs` and the final report.
-
+If validation output is long, summarize key pass/fail lines in `.ai/05_logs` and final report.
 Do not record secrets or raw provider values.
 
 ================================================================================
-22. COMMIT AND PUSH REQUIREMENTS
+28. COMMIT AND PUSH REQUIREMENTS
 ================================
 
 Stage only intended files.
 
-Before staging, inspect:
+Before staging:
 
 ```bash
 git status --short
@@ -2005,19 +1365,18 @@ git diff --check
 
 Do not stage unrelated dirty files.
 
-Use separate commits for major green slices if practical. Suggested commit messages:
+Suggested commits:
 
 ```bash
-git commit -m "feat(storybook): add standalone action and form component stories"
-git commit -m "feat(storybook): add overlay menu feedback card table stories"
-git commit -m "feat(storybook): add domain component stories and coverage checks"
-git commit -m "docs(ai): record standalone storybook component completion"
+git commit -m "feat(ui): harden overlay focus and scroll behavior"
+git commit -m "feat(storybook): add overlay hardening stories and coverage"
+git commit -m "docs(ai): record overlay production hardening"
 ```
 
 If using one commit:
 
 ```bash
-git commit -m "feat(storybook): complete standalone ui component library stories"
+git commit -m "feat(ui): harden storybook overlay component system"
 ```
 
 Push:
@@ -2027,296 +1386,267 @@ git push -u origin HEAD
 ```
 
 Never force push.
-Do not merge to `main`.
-If `gh` is available and repo workflow allows it, create or update a PR without merging. Otherwise report the pushed branch.
+Do not merge to main.
+If GitHub tooling is available, create or update a PR without merging.
 
 ================================================================================
-23. FINAL REPORT REQUIREMENTS
+29. FINAL REPORT REQUIREMENTS
 =============================
 
 Return a final report with:
 
 * Final status:
 
-  * `READY_FOR_PHILIP_STORYBOOK_REVIEW`
-  * `READY_WITH_DEFERRED_ITEMS`
-  * `NEEDS_HUMAN_DECISION`
-  * `BLOCKED`
+  * READY_FOR_PHILIP_STORYBOOK_REVIEW
+  * READY_WITH_DEFERRED_ITEMS
+  * NEEDS_HUMAN_DECISION
+  * BLOCKED
 * Branch name.
 * Base branch.
+* PR URL if created.
 * Plan folder used.
-* Summary of what was wrong before.
-* Summary of what was fixed.
-* Storybook component categories now visible.
-* Exact standalone story files created.
-* Exact core components with standalone stories.
-* Components still deferred.
-* Components blocked.
-* Existing broad matrix stories kept/changed.
-* Dashboard/coverage check changes.
-* Production source change audit result.
-* Fixtures/decorators created or reused.
+* Summary of what was missing before.
+* Summary of what was hardened.
+* Focus trap implementation summary.
+* Body scroll lock summary.
+* Overlay stack summary.
+* Escape behavior summary.
+* Outside-click behavior summary.
+* Modal vs non-modal behavior summary.
+* Popover/Tooltip/HoverCard hardening summary.
+* CommandDialog hardening summary.
+* Files changed.
+* Reusable components changed.
+* Story files added/updated.
 * Tests added/updated.
-* Validation commands run and results.
+* Coverage script changes.
+* Dependencies added, if any.
+* Validation commands and results.
 * Design-system lint result.
 * Type-check result.
 * App build result.
 * Storybook static build result.
-* Provider/static fixture safety audit result.
+* Visual smoke result.
 * `.ai` docs updated.
 * Bug/blocker files created.
-* Package/dependency changes.
-* Files changed summary.
 * Commit hashes.
 * Push status.
-* PR URL if created.
 * Explicit statement: production app migration was not performed.
-* Explicit statement: Storybook is not publicly hosted unless separately approved.
+* Explicit statement: Storybook was not publicly hosted unless separately approved.
+* Remaining limitations.
 * Remaining owner decisions.
-* Next recommended step: Philip reviews local Storybook using the review packet.
+* Next recommended step: Philip reviews local Storybook overlay hardening stories.
 
 ================================================================================
-24. QUALITY BAR
+30. QUALITY BAR
 ===============
 
 Do not optimize for speed over correctness.
-Do not pretend plan rows are implemented stories.
+Do not claim focus trap if Tab can escape the modal.
+Do not claim scroll lock if body remains scrollable behind AppModal.
+Do not break existing Modal imports.
 Do not hide validation failures.
 Do not import live provider data.
 Do not migrate app routes.
-Do not copy external UI defaults blindly.
-Do not create giant unreviewable diffs if smaller commits are possible.
+Do not add dependencies unnecessarily.
 Do not leave generated output untracked unless intentionally ignored.
 Do not mark Philip approval unless Philip actually reviewed.
 
-The goal is a polished, inspectable Storybook UI Component Library where Philip can clearly click Buttons, Modals, Inputs, Menus, Cards, Tables, Trees, and Domain Components as separate library entries.
+The goal is a hardened, inspectable ArchEstimator overlay system that can safely become the future production modal/dialog/pop-up foundation after Philip review and a separate app migration plan.
 
 ```
 ```
-CONTEXT FOR HISTORICAL REFERENCE
 
-You’re right. The branch has **Storybook infrastructure** and a few broad “demo matrix” stories, but it does **not** yet implement the full UI component library. Buttons and modals technically exist inside grouped stories, but they are buried under composite story names, not exposed as proper standalone component stories like `Actions/Button`, `Overlays/Modal`, `Forms/Input`, `Cards/Card`, etc. My audit score: **49/100 for the full UI component library plan**, and **78/100 for Storybook infrastructure only**.
 
-## Verdict
 
-**Not enough. Do not treat `feat/ui-component-optimization` as the completed UI library.**
+I reviewed **PR #30 / `feat/storybook-complete-ui-component-system`** against `fix/storybook-standalone-ui-components`. This is a meaningful improvement: the branch now adds a real reusable overlay/modal system under `src/components/ui/overlays/**`, expands Storybook overlay coverage, and strengthens the coverage check. My verdict: **READY_FOR_PHILIP_STORYBOOK_REVIEW**, but **not yet production-adoption-ready** for the modal system.
 
-The branch successfully adds Storybook scripts and dependencies, including `storybook`, `@storybook/nextjs-vite`, docs/a11y addons, and `vite`. It also adds `storybook`, `build-storybook`, and `storybook:check-boundary` scripts.
-
-But the implementation is mostly a **Storybook shell + grouped demo canvases + documentation dashboard**, not a complete component library. The plan you asked for demanded a full component-library implementation loop, with all P0/P1 items either implemented, clearly deferred, or blocked.  The branch does not meet that bar.
+**Score: 88/100 for Storybook review readiness.**
+**Score: 76/100 for production-grade reusable overlay primitives.**
+**Score: 20/100 for production app migration, correctly deferred.**
 
 ---
 
-## 1. What exists
+## 1. PR status and scope
 
-The branch has a real Storybook setup:
+PR #30 is open, not merged, mergeable, and targets `fix/storybook-standalone-ui-components` from `feat/storybook-complete-ui-component-system`. It has **1 commit**, **34 changed files**, **2,463 additions**, and **205 deletions**. The PR body states that it adds reusable overlay primitives, expands Storybook overlay coverage, updates coverage enforcement/tests, and preserves the boundaries: no production route migration, no Supabase/provider mutation, no Vercel deployment, no public Storybook hosting, no new runtime dependency, and no main/staging merge.   
 
-* `.storybook/main.ts` uses `@storybook/nextjs-vite`, loads stories only from `src/stories/**/*.stories`, includes docs and a11y addons, and points static assets to `public`.
-* `.storybook/preview.tsx` imports `src/app/globals.css`, uses Storybook decorators, sets `nextjs.appDirectory: true`, expands controls, enables a11y TODO mode, and sorts story groups.
-* The branch adds static fixtures, decorators, story groups, a coverage dashboard, and provider-boundary checks. The implementation log claims `build-storybook`, `build`, `type-check`, lint, design-system lint, focused tests, and full `bun run validate` passed.
-
-So the **infrastructure exists**.
-
-**Storybook infrastructure score: 78/100.**
+The diff is focused. Compared to `fix/storybook-standalone-ui-components`, it adds overlay primitives, overlay stories, tests, coverage-script changes, and `.ai` evidence. It does **not** add packages in this PR.
 
 ---
 
-## 2. Why you don’t see buttons/modals clearly
+## 2. What is now implemented well
 
-Buttons are present, but only inside a grouped story:
+The branch now has an actual overlay system, not just story-only examples. It adds:
 
-* Story title: `Actions and status/Primitive Stories`
-* Story export: `ButtonAndIconButton`
-* It renders `<ButtonMatrix />`, not a direct `Button` component story.
+* `src/components/ui/overlays/dialog.tsx`
+* `modal.tsx`
+* `resizable-modal.tsx`
+* `confirm-dialog.tsx`
+* `sheet-drawer.tsx`
+* `popover.tsx`
+* `tooltip.tsx`
+* `hover-card.tsx`
+* `command-dialog.tsx`
 
-The actual button examples are hidden inside `story-canvas.tsx`, where `ButtonMatrix()` renders primary, secondary, ghost, danger, disabled, busy, long-label, and icon button examples.
+The new `src/components/ui/index.tsx` exports these primitives and types, including `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `AppModal`, `BlurModal`, `ResizableModal`, `FloatingModal`, `PopupWindow`, `Sheet`, `Drawer`, `SidePanel`, `InspectorDrawer`, `Popover`, `Tooltip`, `HoverCard`, and `CommandDialog`. 
 
-Same with modals:
+The implementation log says this pass added low-level Dialog primitives, AppModal/BlurModal/Modal, Confirm/Alert/Delete/Unsaved dialogs, ResizableModal/FloatingModal/PopupWindow, Sheet/Drawer/SidePanel/InspectorDrawer, Popover, Tooltip, HoverCard, and CommandDialog/CommandPalette/CommandMenu without adding `cmdk`, Flowbite, Aceternity, Motion, or new Radix dependencies. 
 
-* Story title: `Menus and overlays/P0 States`
-* Story export: `ModalDialogStates`
-* It renders `ModalDemo`, which uses the existing `Modal` primitive.
-
-So your instinct is correct: **they exist, but they are not presented as a real component library.** A proper library should have clear entries such as:
-
-* `Actions/Button`
-* `Actions/IconButton`
-* `Forms/Input`
-* `Forms/SearchInput`
-* `Forms/Select`
-* `Overlays/Modal`
-* `Overlays/ConfirmDialog`
-* `Menus/ActionMenu`
-* `Menus/ContextMenu`
-* `Feedback/Toast`
-* `Feedback/EmptyState`
-* `Cards/Card`
-* `Tables/DataTable`
-
-Right now, many components are lumped into “matrix” stories, which makes Storybook feel incomplete.
-
-**Component discoverability score: 32/100.**
+**This directly addresses your request for a more complete modal/pop-up system.**
 
 ---
 
-## 3. The biggest issue: the dashboard makes the plan look implemented when it isn’t
+## 3. Modal system audit
 
-The branch adds a `Story Coverage Dashboard` that imports the 809-row inventory and 703-row story manifest from the `.ai` plan markdown files.
+### Fixed blurred modal
 
-But that dashboard is not proof that 703 stories exist. It just parses the plan files and displays their rows. The dashboard itself says it imports the canonical plan matrices as static markdown.
+`AppModal` now supports size presets `xs`, `sm`, `md`, `lg`, `xl`, and `fullscreen`, tone variants, footer slots, scroll body, configurable close behavior, and blurred backdrop by default. The header consistently places the title/description on the left and the close button on the right.  
 
-Even more important: the story row table renders the plan status from the matrix, and `NOT_STARTED` rows get a warning badge.  The test also only verifies that the markdown matrix parses to 809 inventory rows and 703 story rows; it does not verify that actual Storybook component stories exist for those rows.
+The root `src/components/ui/modal.tsx` is now a compatibility barrel exporting `AppModal`, `BlurModal`, and `Modal`, which is good for current imports. 
 
-That means the implementation can claim “703 rows are visible” while not actually implementing 703 component stories. This is the core flaw.
+### Resizable pop-up modal
 
-**Coverage truthfulness score: 28/100.**
+`ResizableModal` exists and defaults to **no blur** and **no overlay** unless `withOverlay` or `modal` is enabled. It supports `defaultWidth`, `defaultHeight`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`, `resizable`, `modal`, `withOverlay`, `overlayBlur`, `transparentOverlay`, `position`, and `size`. It uses CSS `resize: both`, which is simple and dependency-free.  
 
----
+This satisfies your request for **resizable pop-up modals without background blur**.
 
-## 4. The actual stories are too few and too broad
+### Confirm / delete / unsaved dialogs
 
-From the branch diff, the implementation adds roughly these story files:
+`ConfirmDialog`, `AlertDialog`, `DeleteConfirmDialog`, and `UnsavedChangesDialog` now exist. The confirm dialog handles busy state, error block, tone, cancel/confirm labels, confirm callback, and close behavior.  
 
-* foundations
-* icon system
-* actions/status
-* forms
-* menus/overlays/feedback
-* navigation/layout
-* data display
-* compositions/domain
-* share review
-* notifications
-* motion boundaries
-* documentation dashboard
+### Sheet / drawer
 
-That is a reasonable **first Storybook scaffold**, not the “whole plan.” The stories mostly render broad matrix previews through `src/stories/ui-library/story-canvas.tsx`, rather than creating standalone stories for each component.
+`Sheet`, `Drawer`, `SidePanel`, and `InspectorDrawer` now exist, with left/right/bottom positions, size presets, scrim/blur controls, and header/body/footer structure. `SidePanel` and `InspectorDrawer` default toward no-scrim inspector behavior.  
 
-Example: form coverage is one story called `FieldInputSearchAndSelect`, which renders `FormControlMatrix()`. It mentions ControlField, ControlInput, SearchInput, ControlSelect, textarea, invalid, disabled, readonly, helper, and error states—but it is still one grouped story, not individual stories for each form component.
-
-That makes review harder. You cannot inspect a Button or Modal as a component with controls, API docs, args, states, and variants. You inspect a composite board.
-
-**Actual story coverage score: 40/100.**
+**Modal-system score: 86/100.**
 
 ---
 
-## 5. It did modify production source files
+## 4. Storybook coverage audit
 
-This is another concern. The original implementation prompt said no production app migration, and the canonical plan says production migration remains unimplemented.
+The branch adds dedicated overlay stories:
 
-But the branch does modify production source files, including:
+* `Overlays/DialogSystem`
+* `Overlays/AppModal`
+* `Overlays/ResizableModal`
+* `Overlays/SheetDrawer`
+* `Overlays/HoverCard`
+* `Overlays/CommandDialog`
 
-* `src/components/workshop/ProjectEstimateMetadataStrip.tsx`
-* `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
-* `src/components/workshop/component-library-manager/LibraryFolderTree.tsx`
+It also expands existing `Overlays/Modal`, `Overlays/ConfirmDialog`, `Overlays/Popover`, and `Overlays/Tooltip`. The `.ai` modal implementation doc lists the required story exports for each overlay family and says they are enforced by the coverage script. 
 
-The fetched `ProjectEstimateMetadataStrip.tsx` is a live workshop component that imports navigation and estimate actions, so this is not story-only code.
+`AppModal` stories cover default, all size presets, fullscreen, blur/no-blur, form content, table content, loading, error, and destructive states. 
 
-The implementation log says it “restored component-sheet result count display and updated stale component library UI tests.”  That may be legitimate test repair, but it means the branch is **not purely Storybook-only**. It touched live UI. This should be reviewed separately.
+`ResizableModal` stories cover default, no backdrop, transparent overlay, small/medium/large, min/max, inspector popup, floating tool window, footer actions, internal scroll, resize notes, and keyboard focus. 
 
-**Scope-control score: 62/100.**
+`SheetDrawer` stories cover right, left, bottom, inspector, form, table, loading, error, and no-blur. 
 
----
-
-## 6. Provider/data isolation is good
-
-This part is strong. The branch adds a provider boundary script that scans `.storybook`, `src/stories`, and story files for forbidden imports like Supabase, auth, email, API routes, server actions, repositories, Vercel analytics, `process.env`, and `fetch`.
-
-The corresponding Vitest test repeats those checks for story/config/fixture/decorator files.
-
-That is good. It means the Storybook surface is probably safe from live provider calls.
-
-**Provider-boundary score: 90/100.**
+**Storybook overlay coverage score: 92/100.**
 
 ---
 
-## 7. Scorecard
+## 5. Coverage enforcement is stronger now
 
-| Area                                        |      Score | Audit                                                  |
-| ------------------------------------------- | ---------: | ------------------------------------------------------ |
-| Storybook dependencies/scripts              | **90/100** | Installed and wired in `package.json`.                 |
-| Storybook config                            | **82/100** | Works structurally; simple config, good enough.        |
-| Tailwind/global CSS setup                   | **85/100** | Imports `src/app/globals.css`.                         |
-| Static fixtures/decorators                  | **78/100** | Present, but still lightweight.                        |
-| Provider-boundary guard                     | **90/100** | Strong script/test coverage.                           |
-| Actual standalone Button stories            | **35/100** | Buttons exist only inside a grouped matrix.            |
-| Actual standalone Modal stories             | **35/100** | Modal exists only inside a grouped overlay story.      |
-| Form component stories                      | **38/100** | One grouped form matrix, not full field library.       |
-| Menu/context-menu stories                   | **42/100** | Static menu example, not proper Radix-powered stories. |
-| Cards/panels                                | **30/100** | Mostly generic story panels, not a component library.  |
-| Data table                                  | **35/100** | Static compact table, not a DataTable component story. |
-| Domain components                           | **45/100** | Static previews exist, but not enough depth.           |
-| Story coverage truthfulness                 | **28/100** | Dashboard displays plan rows, not implemented stories. |
-| Plan compliance                             | **45/100** | Implements scaffold, not whole P0/P1 library.          |
-| Production scope control                    | **62/100** | Production files/tests changed. Needs review.          |
-| Overall UI component library implementation | **49/100** | Not enough.                                            |
+The coverage script now requires the overlay stories and exports, including `Overlays/DialogSystem`, `Overlays/AppModal`, `Overlays/ResizableModal`, `Overlays/ConfirmDialog`, `Overlays/SheetDrawer`, `Overlays/Tooltip`, `Overlays/Popover`, `Overlays/HoverCard`, and `Overlays/CommandDialog`. 
 
-**Final branch score: 49/100 for the full component-library MVP.**
+It also checks required top-level groups and verifies each required story has a `component` field plus either an import link from `@/components` or an explicit `storybookContract`. That is a strong correction from the previous “plan rows equal implementation” weakness.  
+
+The `.ai` coverage doc says the gate now checks actual story files and named exports, not only the 809-row inventory and 703-row manifest. Fresh output is: **62 story files, 62 titled stories, 295 exports, 55 component-level stories, 7 overview/governance stories, 21 linked repo component stories, 21 explicit fixture/composition contracts, and 41 required standalone titles checked**. 
+
+**Coverage truthfulness score: 94/100.**
 
 ---
 
-## 8. What should happen next
+## 6. Validation evidence
 
-The next implementation pass should not redo Storybook infrastructure. It should fix the core gap: **make the components inspectable as actual Storybook component stories.**
+The implementation log records these passing checks:
 
-Minimum required next pass:
+* `bun run storybook:check-components`
+* `bun run type-check`
+* `bun run storybook:check-boundary`
+* focused Vitest for overlay/component coverage
+* focused release modal regression
+* `git diff --check`
+* `bun run lint:design-system`
+* static Storybook build to `/tmp/archestimator-storybook-static-overlays`
+* local Playwright static Storybook smoke over 8 overlay families, desktop/mobile, 16 screenshots, zero console/page errors
+* `bun run validate`
+* `bun run build` 
 
-1. Add standalone stories:
+The complete component system coverage doc repeats the same validation and says `bun run validate` passed with existing ESLint warnings only, 9 Bun unit tests, 206 Vitest DOM files, 1 skipped file, 1522 tests passed, and 3 skipped. 
 
-   * `src/stories/primitives/button.stories.tsx`
-   * `src/stories/primitives/icon-button.stories.tsx`
-   * `src/stories/forms/input.stories.tsx`
-   * `src/stories/forms/search-input.stories.tsx`
-   * `src/stories/forms/select.stories.tsx`
-   * `src/stories/overlays/modal.stories.tsx`
-   * `src/stories/menus/action-menu.stories.tsx`
-   * `src/stories/menus/context-menu.stories.tsx`
-   * `src/stories/feedback/toast.stories.tsx`
-   * `src/stories/feedback/empty-state.stories.tsx`
-   * `src/stories/cards/card-panel.stories.tsx`
-   * `src/stories/data-display/table.stories.tsx`
-
-2. Each story must have:
-
-   * `Default`
-   * `Variants`
-   * `Sizes`
-   * `WithIcon`
-   * `Disabled`
-   * `Loading`
-   * `Error` or `Invalid`
-   * `LongContent`
-   * `KeyboardFocus`
-   * `CompactDensity`
-
-3. Replace the misleading dashboard claim:
-
-   * Do not imply 703 stories are implemented.
-   * Track actual story files/exports separately from plan rows.
-   * Keep plan manifest as backlog, not “coverage.”
-
-4. Add actual component docs/controls:
-
-   * `Meta<typeof Button>`
-   * `component: Button`
-   * args/argTypes
-   * typed story controls
-   * docs descriptions
-
-5. Audit/revert or justify live production source changes:
-
-   * `ProjectEstimateMetadataStrip.tsx`
-   * `ComponentLibraryManager.tsx`
-   * `LibraryFolderTree.tsx`
+**Validation score: 93/100.**
 
 ---
 
-## Decisive recommendation
+## 7. Main concerns before merge
 
-Do **not** approve this as the completed UI component library.
+### Concern 1 — no true focus trap yet
 
-Approve it only as:
+The `Dialog` primitive focuses content on mount, supports Escape close, and returns focus on close, but I do not see a real focus trap or tab-cycle containment.  
 
-**“Storybook infrastructure MVP + preliminary component preview board.”**
+That is acceptable for Storybook review, but for production-grade modal primitives, focus trap is important. If you plan to migrate app modals later, I would add a follow-up issue: **“Add focus-trap and scroll-lock hardening to Dialog before production migration.”**
 
-Your next prompt to the codebase AI should be: **“Create standalone Storybook stories for every P0 primitive and make Button, Modal, Input, Select, ActionMenu, ContextMenu, Toast, Card, Table, and EmptyState individually inspectable with controls, states, and docs. Do not count the plan dashboard rows as implemented stories.”**
+### Concern 2 — scroll lock is absent
+
+The dialog system does not appear to lock body scroll while a blocking modal is open. This may be fine in Storybook, but it can cause background scroll issues in real app flows.
+
+### Concern 3 — Popover/HoverCard are lightweight
+
+Popover and HoverCard are custom, dependency-free primitives. They support basic controlled/uncontrolled open state and focus/hover display, but they do not yet handle collision detection, outside click dismissal, Escape close, portal positioning, or robust anchored positioning.    
+
+That is okay for a first internal UI library, but not as robust as shadcn/Radix Popover/HoverCard.
+
+### Concern 4 — CommandDialog is functional but not a full command palette
+
+`CommandDialog` and `CommandMenu` are static, dependency-free, searchable grouped lists. They do not use `cmdk`, do not have full keyboard roving focus, and do not manage active descendant semantics beyond simple button rows.  
+
+Again: fine for review, not final for power-user command UX.
+
+---
+
+## 8. Scorecard
+
+| Area                           |      Score | Notes                                                                           |
+| ------------------------------ | ---------: | ------------------------------------------------------------------------------- |
+| PR hygiene                     | **92/100** | Focused, open, mergeable, no package/runtime dependency added in PR.            |
+| Reusable overlay primitives    | **86/100** | Real components exist; focus-trap/scroll-lock still missing.                    |
+| Fixed blurred modal            | **92/100** | Strong AppModal API with sizes, tones, footer, blur default.                    |
+| Resizable pop-up modal         | **88/100** | Real CSS-resize implementation, no blur by default; no drag/collision behavior. |
+| Confirm/alert/delete dialogs   | **88/100** | Solid first version, tested confirm behavior.                                   |
+| Sheet/drawer/side panel        | **86/100** | Good size/side/no-blur coverage.                                                |
+| Popover/tooltip/hover card     | **75/100** | Useful but lightweight vs Radix/shadcn-grade behavior.                          |
+| Command dialog                 | **72/100** | Good static/searchable version; not a full command palette yet.                 |
+| Storybook coverage             | **92/100** | Comprehensive overlay stories and exports.                                      |
+| Coverage enforcement           | **94/100** | Checks actual story files/exports and component contracts.                      |
+| Tests/validation               | **93/100** | Strong evidence recorded.                                                       |
+| Ready for Philip review        | **91/100** | Yes.                                                                            |
+| Ready for production migration | **20/100** | Correctly deferred.                                                             |
+
+**Overall: 88/100.**
+
+---
+
+## Final verdict
+
+This branch is **substantially better** than the last one. It now has the modal/dialog/pop-up family you asked for:
+
+* fixed blurred modals,
+* resizable non-blur pop-up modals,
+* confirm/delete/unsaved dialogs,
+* sheet/drawer/side panels,
+* popover/tooltip/hover card,
+* command dialog,
+* Storybook stories for all of them,
+* coverage and validation evidence.
+
+I would approve this as:
+
+**READY_FOR_PHILIP_STORYBOOK_REVIEW.**
+
+I would not yet approve it as:
+
+**READY_FOR_APP_MIGRATION.**
+
+Before app migration, I would require one hardening pass for focus trapping, body scroll lock, outside-click/Escape behavior consistency, and possibly Radix-backed Popover/Tooltip/HoverCard if these overlays will be heavily used in production.
