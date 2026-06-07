@@ -6,7 +6,30 @@ import { fileURLToPath } from "node:url";
 const defaultRoot = process.cwd();
 
 const requiredStories = [
-  { title: "Actions/Button", exports: ["Default", "Variants", "Sizes", "WithIcon", "IconOnly", "Disabled", "Loading", "Destructive", "LongContent", "KeyboardFocus"] },
+  {
+    title: "Actions/Button",
+    exports: [
+      "Default",
+      "Variants",
+      "Sizes",
+      "SizeScale",
+      "WithIcon",
+      "IconLeft",
+      "IconRight",
+      "IconOnly",
+      "IconSizeScale",
+      "SolidBackgrounds",
+      "NoBackground",
+      "ModeButtons",
+      "FullWidth",
+      "Disabled",
+      "Loading",
+      "Destructive",
+      "LongContent",
+      "CompleteMatrix",
+      "KeyboardFocus",
+    ],
+  },
   { title: "Actions/IconButton", exports: ["Default", "Toolbar", "WithVisibleLabel", "Disabled", "Destructive", "KeyboardFocus"] },
   { title: "Actions/ButtonGroup", exports: ["Default", "WithMixedActions"] },
   { title: "Forms/Input", exports: ["Default", "WithHelper", "Invalid", "Disabled", "Readonly", "WithPrefixSuffix", "LongValue", "CompactDensity", "KeyboardFocus"] },
