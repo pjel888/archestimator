@@ -37,7 +37,7 @@ Reference: `supabase/migrations/20260603160000_mass_deletion_governance.sql` for
 - **previewHash:** validated server-side in execute RPC (stale preview protection)
 - **Batch limits:** enforced (same limit as project deletion)
 - **Empty selection:** rejected before RPC call (returns `empty_selection` issue)
-- **Confirmation phrase:** for archive, simple confirm button (not typed phrase — archive is non-destructive)
+- **Confirmation UI:** for archive, simple confirm button (not typed phrase — archive is non-destructive)
 - **Correlation ID:** generated for audit trail (same as delete pattern)
 
 ## Secrets/Environment Variables

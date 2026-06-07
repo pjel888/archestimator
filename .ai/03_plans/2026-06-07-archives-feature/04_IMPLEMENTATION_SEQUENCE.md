@@ -18,9 +18,9 @@ This document outlines the step-by-step implementation order for the Project Arc
     - RLS prevents unauthorized archive/restore.
 - **Files Involved:**
   - `e2e/archives.spec.ts` (New)
-  - `tests/unit/lib/repositories/workspace-repository.test.ts`
+  - `tests/unit/lib/repositories/workspace-repository.test.ts` (New)
 - **Expected Changes:** New test files and test cases added to existing suites.
-- **Validation Commands:** `bun run test:e2e e2e/project-archives.spec.ts` (Expected to fail).
+- **Validation Commands:** `bun run test:e2e e2e/archives.spec.ts` (Expected to fail).
 - **Rollback Point:** Delete new test files.
 - **Dependencies:** None.
 
@@ -123,7 +123,7 @@ This document outlines the step-by-step implementation order for the Project Arc
   - `src/lib/publication/security.ts` (token/password handling)
   - `src/app/share/[token]/page.tsx` (shared-link receiver page)
 - **Expected Changes:** Updated publication logic and public view state.
-- **Validation Commands:** `bun run test:e2e e2e/project-archives.spec.ts`.
+- **Validation Commands:** `bun run test:e2e e2e/archives.spec.ts`.
 - **Rollback Point:** Revert publication logic changes.
 - **Dependencies:** Phase 5.
 

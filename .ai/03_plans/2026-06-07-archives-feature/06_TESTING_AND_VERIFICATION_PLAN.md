@@ -12,7 +12,7 @@ Use these baseline commands to ensure no regressions:
 
 ## Unit Tests
 
-Target: `src/lib/projects/archive-logic.test.ts` (or relevant logic files)
+Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test) and new archive-specific tests in `tests/vitest/`
 
 | Test Case | Description | Expected Result |
 |-----------|-------------|-----------------|
