@@ -31,8 +31,8 @@ Create a reversible archive/restore flow for workspace projects in Archestimator
 | Decision | Default | Rationale |
 |----------|---------|-----------|
 | What can be archived? | Workspace projects only | Lowest blast radius; library items already have lifecycle_state |
-| Who can archive? | Project owner or workspace admin | Mirrors delete authorization pattern |
-| Who can restore? | Project owner or workspace admin | Same as archive |
+| Who can archive? | Anyone with `can_edit_project` (workspace members, project editors, admins, owners) | Mirrors existing project mutation authorization; same gate as project deletion |
+| Who can restore? | Same as archive (`can_edit_project`) | Same authorization gate |
 | Direct URL access to archived projects? | Redirect to projects list with notice | Prevents data access confusion; consistent with removed-project pattern |
 | Archived projects: read-only or fully blocked? | Fully blocked (redirect + notice) | Simplest security posture; archived = not active |
 | Active shared links after archive? | Paused (link returns "project archived" state) | Publication RPCs already check project existence |

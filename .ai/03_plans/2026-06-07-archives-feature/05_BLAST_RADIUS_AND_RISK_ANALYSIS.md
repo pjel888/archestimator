@@ -5,7 +5,7 @@ This document analyzes the impact and risks associated with implementing the Pro
 ## Affected User Flows
 
 - **Project Browsing:** The projects page will transition from a 2-tab layout (Your Projects / Shared to you) to a 3-tab layout (Active / Shared / Archived).
-- **Project Archiving:** A new flow allowing users to select projects, preview the archive action, confirm with a phrase, and execute.
+- **Project Archiving:** A new flow allowing users to select projects, preview the archive action, confirm with a button click, and execute.
 - **Project Restoring:** A new flow within the "Archived" tab to select archived projects, preview restoration, and execute.
 - **Project Dashboard Access:** Users attempting to access an archived project's dashboard will be redirected to the workshop with a notification.
 - **Estimate Access:** Estimates belonging to archived projects will be blocked/inaccessible.
@@ -17,9 +17,9 @@ This document analyzes the impact and risks associated with implementing the Pro
 
 ## Affected Modules
 
-- **`src/lib/projects/actions.ts`:** New server actions for `archiveProject` and `restoreProject`.
+- **`src/lib/projects/actions.ts`:** New server actions: `previewBulkArchiveProjects`, `executeBulkArchiveProjects`, `previewBulkRestoreProjects`, `executeBulkRestoreProjects`.
 - **`src/lib/repositories/workspace-repository.ts`:** Filter logic changes in `listCurrentWorkspaceProjects` and `getWorkshopHomebaseData`.
-- **`src/lib/mass-deletion/bulk-action.ts`:** New confirmation phrases and type extensions for archive operations.
+- **`src/lib/mass-deletion/bulk-action.ts`:** New archive/restore action types (simple confirm button, NOT typed phrase — archive is non-destructive).
 - **`src/components/workshop/projects-page-client.tsx`:** UI changes for tabs and archive/restore state management.
 - **`src/components/workshop/LiveProjectCard.tsx`:** Addition of the archive action to the card UI.
 - **`src/components/workshop/ProjectDetailsModal.tsx`:** Addition of the archive action to the details view.
