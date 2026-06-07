@@ -35,7 +35,7 @@ export function PublicPageShell({
             {children}
           </main>
 
-          <LandingFooter isHomePage={isHomePage} isLoggedIn={isLoggedIn} />
+          <LandingFooter isHomePage={isHomePage} />
         </>
       )}
       <CookieConsentBanner />

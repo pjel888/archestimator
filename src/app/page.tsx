@@ -3,10 +3,14 @@ import { cookies } from "next/headers";
 import { parseLandingConsentValue } from "@/lib/landing/consent";
 import { getVariant } from "@/lib/ab-testing/variant-assigner";
 import {
+  CompanyProofCarouselSection,
+  FAQSection,
   FinalCTASection,
   HeroSection,
+  ProductShowcaseSection,
   SecondaryClaimSection,
   PricingSection,
+  SolutionSection,
   PublicPageShell,
   LandingHeader,
   LandingFooter,
@@ -34,12 +38,17 @@ export default async function LandingPage() {
           <main data-landing-page-root="true">
             <HeroSection variant={heroVariant} />
             <SecondaryClaimSection />
-            <PricingSection isLoggedIn={isLoggedIn} />
-            <FinalCTASection isLoggedIn={isLoggedIn} />
+            <CompanyProofCarouselSection />
+            <ProductShowcaseSection />
+            <SolutionSection />
+            <PricingSection />
+            <FAQSection />
+            <FinalCTASection />
           </main>
         </LandingSmoothScrollProvider>
-        <LandingFooter isLoggedIn={isLoggedIn} />
+        <LandingFooter />
       </ABExperimentProvider>
     </PublicPageShell>
   );
 }
+

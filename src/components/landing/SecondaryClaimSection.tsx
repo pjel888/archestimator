@@ -1,112 +1,56 @@
-import { Play } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
+import { ChartBar, FileXls, GitDiff, Package, TreeStructure } from "@phosphor-icons/react/dist/ssr";
 
 import { MotionReveal } from "./MotionReveal";
 
-const methodSteps = [
-  {
-    title: "Estimate",
-    body: "Quantities, rates, suppliers.",
-    status: "Build",
-  },
-  {
-    title: "Revise",
-    body: "Changes, assumptions, approvals.",
-    status: "Track",
-  },
-  {
-    title: "Propose",
-    body: "Inclusions, exclusions, totals.",
-    status: "Hand off",
-  },
-] as const;
-
-const walkthroughs = [
-  {
-    title: "Quote build",
-  },
-  {
-    title: "Revision review",
-  },
-  {
-    title: "Proposal handoff",
-  },
-] as const;
+const workflowPillars: { label: string; icon: Icon }[] = [
+  { label: "Structured quote sheets", icon: TreeStructure },
+  { label: "Reusable supplier catalogs", icon: Package },
+  { label: "Revision context", icon: GitDiff },
+  { label: "Proposal comparison path", icon: ChartBar },
+  { label: "Document handoff path", icon: FileXls },
+];
 
 export function SecondaryClaimSection() {
   return (
     <section
       id="method"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-white px-4 py-20 text-[#111111] sm:px-6 sm:py-24 lg:px-8"
+      className="relative overflow-hidden scroll-mt-[68px] bg-[#eeeeec] bg-[radial-gradient(circle_at_50%_-20%,rgba(255,122,26,0.04),transparent_65%)] px-4 pt-24 pb-24 sm:px-6 sm:pt-32 sm:pb-32 lg:px-8"
     >
-      <div className="mx-auto w-full max-w-[1120px]">
+      <div className="relative z-10 mx-auto w-full max-w-[1120px]">
         <MotionReveal>
-          <div className="grid gap-8 border-t border-[#dedbd6] pt-10 lg:grid-cols-[minmax(0,0.86fr)_minmax(260px,0.34fr)] lg:items-end">
-            <div>
-              <p className="text-[11px] font-medium text-[#7b7b78]">The method</p>
-              <h2 className="mt-4 max-w-[720px] text-[34px] font-normal leading-[1.04] tracking-normal text-[#111111] sm:text-[52px]">
-                Estimate. Revise. Propose.
-              </h2>
-            </div>
-            <p className="max-w-[360px] text-[15px] leading-[1.55] text-[#4f4f4d] sm:text-[16px]">
-              One commercial record from first quantity to final offer.
+          <div className="mx-auto max-w-[820px] text-center">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
+              The Archestimator way
+            </p>
+            <h2 className="mt-4 text-[38px] font-normal leading-[1.02] tracking-[-0.052em] text-[#111111] sm:text-[56px]">
+              A clearer way to create quotes, estimates, and proposal-ready documents
+            </h2>
+            <p className="mx-auto mt-5 max-w-[640px] text-[15px] leading-[1.55] tracking-[-0.015em] text-[#4f4f4d] sm:text-[16px]">
+              Keep line-item structure, reusable supplier catalogs, assumptions, revision context, and planned document handoff moving through one quote workspace.
             </p>
           </div>
         </MotionReveal>
 
-        <MotionReveal staggerIndex={1}>
-          <div id="proof" className="mt-12 border-y border-[#dedbd6] py-6">
-            <div className="grid gap-6 lg:grid-cols-[180px_1fr]">
-              <div>
-                <p className="text-[11px] font-medium text-[#7b7b78]">Workflow walkthroughs</p>
-              </div>
-              <div className="divide-y divide-[#dedbd6] border-t border-[#dedbd6] lg:border-t-0">
-                {walkthroughs.map((walkthrough) => (
-                  <div key={walkthrough.title} className="grid gap-3 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                    <p className="text-[16px] font-medium text-[#111111]">{walkthrough.title}</p>
-                    <button
-                      type="button"
-                      aria-label={`${walkthrough.title} video placeholder`}
-                      className="group relative aspect-video w-[112px] overflow-hidden rounded-[5px] border border-[#d8d4cd] bg-[#eee9df] text-[#111111] transition hover:border-[#ff7a1a]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                    >
-                      <span
-                        className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,122,26,0.22),transparent_52%),radial-gradient(circle_at_78%_26%,rgba(17,17,17,0.16),transparent_24%)]"
-                        aria-hidden="true"
-                      />
-                      <span
-                        className="absolute inset-x-2 bottom-2 h-px bg-[#111111]/18"
-                        aria-hidden="true"
-                      />
-                      <span
-                        className="absolute inset-0 flex items-center justify-center"
-                        aria-hidden="true"
-                      >
-                        <span className="flex size-7 items-center justify-center rounded-[5px] bg-white/88 text-[#111111] transition group-hover:bg-white">
-                          <Play className="ml-0.5 size-3.5" weight="fill" />
-                        </span>
-                      </span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </MotionReveal>
+        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {workflowPillars.map((pillar, index) => {
+            const IconComponent = pillar.icon;
 
-        <MotionReveal staggerIndex={2}>
-          <ol className="mt-10 grid border-t border-[#dedbd6] lg:grid-cols-3">
-            {methodSteps.map((step, index) => (
-              <li key={step.title} className="grid gap-5 border-b border-[#dedbd6] py-6 lg:border-r lg:px-6 lg:last:border-r-0">
-                <span className="text-[12px] font-medium text-[#7b7b78]">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <h3 className="text-[30px] font-normal leading-[1.02] tracking-normal text-[#111111]">{step.title}</h3>
-                  <p className="mt-3 text-[14px] leading-6 text-[#4f4f4d]">{step.body}</p>
-                </div>
-                <p className="text-[11px] font-medium text-[#7a5a42]">{step.status}</p>
-              </li>
-            ))}
-          </ol>
-        </MotionReveal>
+            return (
+              <MotionReveal key={pillar.label} staggerIndex={index + 1}>
+                <span className="group flex min-h-[92px] flex-col justify-between rounded-[10px] border border-[#dedbd6] bg-white p-4 text-[#313130] shadow-[0_10px_26px_rgba(17,17,17,0.04)] transition duration-300 hover:-translate-y-px hover:border-[#ff7a1a]/40 hover:shadow-[0_14px_34px_rgba(17,17,17,0.07)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                  <span className="flex size-9 items-center justify-center rounded-[8px] border border-[#dedbd6] bg-[#faf9f6] text-[#ff7a1a] transition duration-300 group-hover:border-[#ff7a1a]/35 group-hover:bg-[#fff3ea] motion-reduce:transition-none" aria-hidden="true">
+                    <IconComponent size={18} weight="bold" />
+                  </span>
+                  <span className="mt-4 text-[12px] font-semibold leading-[1.2] tracking-[-0.02em]">
+                    {pillar.label}
+                  </span>
+                </span>
+              </MotionReveal>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

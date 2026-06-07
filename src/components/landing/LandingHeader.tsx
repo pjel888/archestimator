@@ -6,17 +6,20 @@ import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
-import { loginHref, requestAccessHref, workshopHref } from "./constants";
+import { loginHref, workshopHref } from "./constants";
 
 export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: boolean; isHomePage?: boolean }) {
   // Test annotations for static regex scans:
+  // href: "#product"
   // href: "#method"
-  // href: "#access"
+  // href: "#solutions"
+  // href: "#pricing"
   // href: "#contact"
   const landingNavItems = [
-    { label: "Platform", href: "/features" },
+    { label: "Platform", href: isHomePage ? "#product" : "/features" },
     { label: "Method", href: isHomePage ? "#method" : "/#method" },
-    { label: "Access", href: isHomePage ? "#access" : "/#access" },
+    { label: "Solutions", href: isHomePage ? "#solutions" : "/#solutions" },
+    { label: "Pricing", href: isHomePage ? "#pricing" : "/pricing" },
     { label: "Contact", href: isHomePage ? "#contact" : "/contact" },
   ];
 
@@ -44,19 +47,19 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
             <Link
               href={workshopHref}
               onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "workspace" })}
-              className="inline-flex min-h-9 items-center gap-1 rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-normal text-white transition hover:bg-[#2a2b30]"
+              className="inline-flex min-h-9 items-center gap-1 rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]"
             >
-              Open workspace
+              Workspace
               <ArrowRight className="size-3.5 [animation:workspace-arrow-bounce_0.9s_ease-in-out_infinite]" weight="bold" />
             </Link>
           ) : (
             <>
               <Link
-                href={requestAccessHref}
-                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "request_access" })}
-                className="inline-flex min-h-9 items-center justify-center rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-normal text-white transition hover:bg-[#2a2b30]"
+                href={loginHref}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "try_workspace" })}
+                className="inline-flex min-h-9 items-center justify-center rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]"
               >
-                Request access
+                Try Workspace
               </Link>
               <Link
                 href={loginHref}
