@@ -42,7 +42,7 @@ This document outlines the step-by-step implementation order for the Project Arc
   - **Archive Execute:** Validate `previewHash`, set `archived_at = now()`, `archived_by = auth.uid()`.
   - **Restore Preview:** Check `can_edit_project`; return only currently-archived projects as eligible.
   - **Restore Execute:** Validate `previewHash`, set `archived_at = NULL`, `archived_by = NULL`.
-  - **RLS:** Verify existing policies cover SELECT/UPDATE via `can_edit_project`.
+  - **RLS:** Verify existing policies cover SELECT via `can_access_project` and UPDATE via `can_edit_project`.
 - **Stop Gate:** STOP before any schema/provider mutation. STOP if linked Supabase migration proof fails.
 - **Files Involved:**
 - **Migration naming:** `YYYYMMDDHHMMSS_project_archive_state.sql` (follows existing convention)
