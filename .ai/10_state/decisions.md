@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-06-06 - Storybook-first UI component library MVP implementation
+
+**Decision:** Implement the approved Storybook-first UI Component Library MVP on
+`feat/ui-component-optimization` without migrating production app routes.
+
+**Rationale:** Philip explicitly approved the package/config/story/fixture
+implementation scope for the existing plan pack. Storybook gives a reviewable
+surface for foundations, primitives, domain compositions, motion boundaries, and
+governance coverage while preserving the closed-beta app behavior and provider
+boundaries. The implementation uses static fixtures and a provider-boundary
+guard instead of live Supabase/auth/server-action wiring.
+
+**Follow-up:** Do not treat this as app/workshop route migration approval. Full
+branch validation is green for this implementation pass, but future production
+route migration still requires a separate route-by-route owner-approved plan and
+fresh graph/impact evidence.
+
 ## 2026-06-06 - UI component library docs handoff readiness
 
 **Decision:** Score the UI Component Library + Storybook plan pack as

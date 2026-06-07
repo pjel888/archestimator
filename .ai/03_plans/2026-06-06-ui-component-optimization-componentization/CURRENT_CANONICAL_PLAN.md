@@ -1,8 +1,8 @@
 # Current Canonical Plan
 
 **Canonical name:** ArchEstimator UI Component Library + Storybook
-**Updated:** 2026-06-06
-**Mode:** Future implementation plan only. No implementation happened in this refinement.
+**Updated:** 2026-06-07 local / 2026-06-06Z
+**Mode:** Implementation-aware Storybook MVP plan. The Storybook-only MVP is implemented on `feat/ui-component-optimization`; production app migration remains unimplemented and blocked on separate approval.
 
 ## Canonical Thesis
 
@@ -19,6 +19,21 @@ ArchEstimator needs a formal, Storybook-first product UI library before app-wide
 | 4 | ArchEstimator domain components and stories | Project, estimate, component library, share, notification, release modal, and tree stories using static fixtures. | Domain stories render without live provider calls. |
 | 5 | Selective microinteractions and motion wrappers | App/workshop-safe motion wrappers and landing-only Aceternity-inspired patterns after dependency/performance gates. | Reduced-motion fallbacks pass review. |
 | 6 | Governance docs and future migration readiness | Component acceptance checklist, agent usage rules draft, future migration roadmap. | Philip can review Storybook and approve or reject app migration separately. |
+
+## Implementation Addendum - 2026-06-07 local / 2026-06-06Z
+
+The Storybook-only MVP has been implemented on `feat/ui-component-optimization`
+with Storybook 10.4.2, `@storybook/nextjs-vite`, docs/a11y addons, static
+decorators/fixtures, P0/P1 story slices, a manifest coverage dashboard, and a
+provider-boundary guard. Local validation proves Storybook startup, static
+build, provider-boundary checks, focused Storybook matrix tests, focused
+changed-component DOM tests, Next production build, TypeScript, ESLint, and
+design-system lint; the final repo validation command `bun run validate` also
+passed. Local Playwright smoke loaded seven representative story
+iframes with nonblank screenshots and no final-run console/page errors.
+
+This does not approve or implement production route migration, Storybook
+publishing, hosted provider proof, or Philip review approval.
 
 ## Explicit Non-Goal
 

@@ -1,7 +1,23 @@
 # Validation Command Matrix
 
-**Status:** Planning-only command matrix.
+**Status:** Implementation-aware command matrix.
 **Repo fact:** The TypeScript script is `bun run type-check`, not `bun run typecheck`.
+
+## Storybook MVP Implementation Evidence - 2026-06-06
+
+| Command | Result | Notes |
+|---|---|---|
+| `bun run storybook -- --host 127.0.0.1 --port 6007` | Passed startup | Port 6006 was already occupied, so this implementation pass used `http://127.0.0.1:6007/` and stopped that temporary server after smoke. |
+| `bun run storybook:check-boundary` | Passed | 24 files scanned, 809 inventory rows, 703 story rows. |
+| `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static` | Passed | Static build generated in `/tmp`; generated output is not committed. |
+| `bun run build` | Passed | Next app build still succeeds after Storybook-only additions. |
+| `bun run type-check` | Passed | TypeScript accepts Storybook config, stories, and tests. |
+| `bun run lint` | Passed with warnings | Existing warning surfaces remain; no lint errors. |
+| `bun run lint:design-system` | Passed | Storybook additions and touched UI files satisfy design-system lint. |
+| Focused Storybook/provider/matrix tests | Passed | `storybook-provider-boundary`, `storybook-plan-matrix`, and focused changed-component DOM tests passed. |
+| Local Playwright Storybook smoke | Passed | Seven representative iframe stories loaded with nonblank screenshots and no final-run console/page errors; screenshots saved under `/tmp/archestimator-storybook-<story-id>.png`. |
+| In-app Browser plugin smoke | Not available | Browser plugin was installed, but the `iab` browser instance was unavailable in this session; local Playwright was used as the visual fallback. |
+| `bun run validate` | Passed | 205 Vitest DOM files passed, 1 skipped; 1514 tests passed, 3 skipped. |
 
 ## Docs-Only Plan Refinement
 

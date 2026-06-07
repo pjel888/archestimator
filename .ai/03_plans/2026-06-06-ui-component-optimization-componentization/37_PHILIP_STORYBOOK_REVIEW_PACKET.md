@@ -1,11 +1,39 @@
 # Philip Storybook Review Packet
 
-**Status:** Human review packet for the future implemented Storybook library.
+**Status:** Human review packet for the implemented Storybook MVP on
+`feat/ui-component-optimization`.
 **Review target:** local Storybook first; no public hosting unless separately approved.
+
+## Implementation Entry - 2026-06-06
+
+Local review target:
+
+- `bun run storybook`
+- Open `http://localhost:6006` when available; if that port is already in use,
+  start with `bun run storybook -- --host 127.0.0.1 --port 6007` and open
+  `http://127.0.0.1:6007/`
+- Start with `Documentation / Story Coverage Dashboard`, then review
+  `Foundations`, `Icon System`, `Actions and Status`, `Form Field Primitives`,
+  `Menus and Overlays`, `Navigation and Layout`, `Data Display`, `Domain
+  Workshop`, `Domain Share`, `Domain Notifications`, and `Motion`.
+
+Implemented proof:
+
+- Storybook manager loads locally.
+- Static build passes.
+- Storybook boundary check passes with 24 scanned files, 809 inventory rows,
+  and 703 story rows.
+- Local Playwright smoke loaded seven representative story iframes with
+  nonblank screenshots and no final-run console/page errors.
+- Stories use static fixtures and story-only decorators.
+- No production app migration is included.
+
+Full `bun run validate` passes. Treat local Storybook review approval as
+separate from app migration approval.
 
 ## Review Entry Conditions
 
-The future implementation agent may ask Philip to review only after:
+Review may start after:
 
 - `bun run storybook` starts locally.
 - `bun run build-storybook` succeeds.

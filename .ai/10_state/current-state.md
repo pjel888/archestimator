@@ -1,5 +1,44 @@
 # Current State
 
+**UI Component Library Storybook MVP Implemented On Feature Branch (2026-06-07 local / 2026-06-06Z):**
+Branch `feat/ui-component-optimization` now contains the Storybook-first UI
+Component Library MVP implementation for the canonical plan pack
+`.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`.
+Storybook is installed with `storybook@10.4.2`,
+`@storybook/nextjs-vite@10.4.2`, docs and a11y addons, and `vite@8.0.16`;
+`package.json` now exposes `bun run storybook`, `bun run build-storybook`,
+and `bun run storybook:check-boundary`. The implementation adds
+`.storybook/main.ts`, `.storybook/preview.tsx`, static fixture/decorator
+infrastructure under `src/stories/`, and reviewable story slices for
+foundations, icon system, primitive actions/status/forms/menus, navigation,
+data display, domain workshop/share/notifications, motion boundaries, and a
+documentation coverage dashboard backed by the canonical 809-row inventory and
+703-row story coverage matrices. The MVP intentionally does not migrate
+production app routes, does not introduce live Supabase/auth/provider stories,
+and keeps the Storybook provider boundary enforced by
+`scripts/check-storybook-boundary.mjs` plus
+`tests/vitest/storybook-provider-boundary.test.ts`.
+
+Implementation evidence: `bun run storybook` found port 6006 already in use, so
+this implementation pass started local Storybook on `http://127.0.0.1:6007/`
+and stopped that temporary server after smoke testing. `bun run
+storybook:check-boundary` reported 24 files scanned, 809 inventory rows, and
+703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook --
+--output-dir /tmp/archestimator-storybook-static` passed. `bun run build`,
+`bun run type-check`, `bun run lint`, `bun run lint:design-system`, focused
+Storybook/provider/matrix tests, and focused changed-component DOM tests passed.
+Local Playwright visual smoke loaded seven representative Storybook iframe
+stories, including the Documentation coverage dashboard, Foundations, Forms,
+Menus, Domain Workshop, Domain Share, and Domain Notifications; screenshots
+were saved under `/tmp/archestimator-storybook-<story-id>.png`, and the final
+smoke run had zero page or console errors. The in-app Browser plugin was
+installed but the `iab` browser instance was unavailable in this session, so the
+visual proof used local headless Playwright as a fallback. Full `bun run
+validate` now passes after stale DOM expectations were realigned to current
+compact UI behavior: 205 Vitest DOM files passed, 1 skipped, 1514 tests passed,
+and 3 skipped. Storybook hosting, provider-backed review, Philip approval, and
+production app migration remain explicitly unperformed.
+
 **UI Component Library + Storybook Plan Pack At 100/100 Docs Handoff (2026-06-06):**
 Docs-only plan pack
 `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
