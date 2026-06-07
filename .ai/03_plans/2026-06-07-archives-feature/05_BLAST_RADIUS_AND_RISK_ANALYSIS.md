@@ -54,7 +54,7 @@ This document analyzes the impact and risks associated with implementing the Pro
 - `projects-page-access-tabs.test.tsx`: Needs update for the new "Archived" tab.
 - `mass-deletion-action-contract.test.ts`: Needs new cases for archive actions.
 - `mass-deletion-ui-contract.test.ts`: Needs update for archive UI contract.
-- `bulk-action-validation.test.ts`: Needs new cases for archive confirmation phrases.
+- `bulk-action-validation.test.ts`: Needs new cases for archive confirmation UI (simple button confirm, not typed phrase).
 - `project-dashboard-ui.test.ts`: Needs cases for archived project redirection.
 - `project-publication-schema.test.ts`: Needs cases for archived publication states.
 - All project-list related tests: May need updates to account for default filtering of archived projects.

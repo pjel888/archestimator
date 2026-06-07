@@ -17,7 +17,7 @@ This document outlines the step-by-step implementation order for the Project Arc
     - Restore operation requires appropriate role.
     - RLS prevents unauthorized archive/restore.
 - **Files Involved:**
-  - `e2e/project-archives.spec.ts` (New)
+  - `e2e/archives.spec.ts` (New)
   - `tests/unit/lib/repositories/workspace-repository.test.ts`
 - **Expected Changes:** New test files and test cases added to existing suites.
 - **Validation Commands:** `bun run test:e2e e2e/project-archives.spec.ts` (Expected to fail).
