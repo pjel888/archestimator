@@ -1,5 +1,35 @@
 # Current State
 
+**Complete Storybook Overlay Component System Implemented (2026-06-07 local / 2026-06-07Z):**
+Continuation branch `feat/storybook-complete-ui-component-system` expands the
+Storybook-first UI library into a complete overlay/modal/dialog/popup system
+without production app route migration. Added reusable overlay primitives under
+`src/components/ui/overlays/**`: Dialog primitives, AppModal/BlurModal/Modal,
+Confirm/Alert/Delete/Unsaved dialogs, ResizableModal/FloatingModal/PopupWindow,
+Sheet/Drawer/SidePanel/InspectorDrawer, Popover, Tooltip, HoverCard, and
+CommandDialog/CommandMenu. `src/components/ui/modal.tsx` remains a compatibility
+barrel for existing imports. Storybook now includes required overlay titles for
+DialogSystem, AppModal, ResizableModal, SheetDrawer, HoverCard, and
+CommandDialog, while Popover and Tooltip are real primitives rather than
+deferred/static previews.
+
+Implementation evidence: `bun run storybook:check-components` passed with 62
+actual story files, 62 titled stories, 295 story exports, 55 component-level
+stories, 7 overview/governance stories, 21 linked repo component stories, 21
+explicit fixture/composition contracts, and 41 required standalone titles
+checked. `bun run storybook:check-boundary` passed with 75 files scanned, 809
+inventory rows, and 703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run
+build-storybook -- --output-dir /tmp/archestimator-storybook-static-overlays`
+passed. Local Playwright static Storybook overlay smoke loaded 8 overlay story
+families in desktop and mobile viewports, captured 16 screenshots under
+`/tmp/archestimator-storybook-overlay-smoke/*.png`, checked body text,
+dialog/tooltip roles, pixel range, and zero console/page errors. `bun run
+validate` passed with existing ESLint warnings only, 9 Bun unit tests passed,
+206 Vitest DOM files passed, 1 skipped, 1522 tests passed, and 3 skipped.
+`bun run build` passed on Next.js 16.2.6. No production app migration,
+Supabase/provider change, Vercel deployment, public Storybook hosting, new
+runtime dependency, or main/staging merge was performed.
+
 **Standalone Storybook Component Library Completion Implemented (2026-06-07 local / 2026-06-07Z):**
 Continuation branch `fix/storybook-standalone-ui-components`, stacked on
 `feat/ui-component-optimization`, now repairs the Storybook MVP from broad

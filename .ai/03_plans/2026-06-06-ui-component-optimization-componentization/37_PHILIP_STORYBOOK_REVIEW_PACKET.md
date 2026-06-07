@@ -5,6 +5,34 @@
 `feat/ui-component-optimization`.
 **Review target:** local Storybook first; no public hosting unless separately approved.
 
+## Complete Overlay Review Entry - 2026-06-07
+
+Continuation branch `feat/storybook-complete-ui-component-system` expands the
+review surface from standalone primitives into a complete overlay/modal/dialog
+system. Start the overlay review from `Overlays / DialogSystem`,
+`Overlays / AppModal`, `Overlays / ResizableModal`,
+`Overlays / ConfirmDialog`, `Overlays / SheetDrawer`,
+`Overlays / Popover`, `Overlays / Tooltip`, `Overlays / HoverCard`, and
+`Overlays / CommandDialog`.
+
+Implementation proof:
+
+- `bun run storybook:check-components` passed with 62 story files, 62 titled
+  stories, 295 story exports, 55 component-level stories, 7 overview/governance
+  stories, and 41 required standalone titles checked.
+- `bun run storybook:check-boundary` passed with 75 scanned files, 809
+  inventory rows, and 703 story rows.
+- Static Storybook build passed at
+  `/tmp/archestimator-storybook-static-overlays`.
+- Static iframe Playwright smoke passed across 8 overlay story families in
+  desktop and mobile viewports, with 16 screenshots under
+  `/tmp/archestimator-storybook-overlay-smoke/*.png` and zero console/page
+  errors.
+- Focused overlay and release-modal Vitest checks passed.
+- `bun run validate` and `bun run build` passed.
+- No production app migration, provider change, Vercel deployment, public
+  Storybook hosting, new dependency, or main/staging merge is included.
+
 ## Latest Standalone Review Entry - 2026-06-07
 
 This continuation branch changes the review surface from broad preview boards

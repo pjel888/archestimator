@@ -1,10 +1,13 @@
 # ArchEstimator UI Component Library + Storybook
 
 **Plan folder:** `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
-**Updated:** 2026-06-06
-**Mode:** Planning/documentation refinement only
-**Implementation status:** Not implemented. Storybook is not installed. No app surfaces have been migrated.
-**Docs handoff readiness:** 100/100 for Storybook/UI-library planning only. Production app migration remains deferred by design.
+**Updated:** 2026-06-07
+**Mode:** Implementation-aware Storybook component library plan pack
+**Implementation status:** Storybook-only component library is implemented for
+local review, including standalone primitives and the overlay/modal/dialog
+system. Production app surfaces have not been migrated.
+**Docs handoff readiness:** 100/100 for Storybook/UI-library planning and
+implementation evidence. Production app migration remains deferred by design.
 
 ## Thesis
 
@@ -22,12 +25,13 @@ ArchEstimator now needs a formal, Storybook-first product UI component library t
 
 ## Current Implementation Status
 
-- Storybook packages/scripts/config: not present in `package.json`.
-- `.storybook/`: not present.
-- Shared primitives present under `src/components/ui`: `Button`, `Badge`, `Chip`, `ControlInput`, `ControlSelect`, `CreatableCombobox`, `EmptyState`, `Modal`, `SearchInput`, `Skeleton`, `Toast`, `ContextMenu`, toolbar controls.
+- Storybook packages/scripts/config: present in `package.json` and `.storybook/`.
+- Shared primitives present under `src/components/ui`: `Button`, `Badge`, `Chip`, `ControlInput`, `ControlSelect`, `CreatableCombobox`, `EmptyState`, `Modal`, `SearchInput`, `Skeleton`, `Toast`, `ContextMenu`, toolbar controls, and the overlay family under `src/components/ui/overlays/**`.
 - Existing product/domain components present under `src/components/workshop`, `src/components/share`, `src/features/notifications`, `src/components/sidebar`, and `src/components/landing`.
 - Existing design-system lint is active through `bun run lint:design-system`.
-- No source/package/runtime/provider changes were made by this docs pass.
+- No production route migration, provider mutation, public Storybook hosting, or
+  app-wide route replacement has been performed by the Storybook implementation
+  passes.
 
 ## Reading Order
 
@@ -46,8 +50,11 @@ ArchEstimator now needs a formal, Storybook-first product UI component library t
 13. `36_P0_P1_IMPLEMENTATION_BACKLOG.md`
 14. `37_PHILIP_STORYBOOK_REVIEW_PACKET.md`
 15. `38_VALIDATION_COMMAND_MATRIX.md`
-16. `30_AGENT_UI_USAGE_RULES_DRAFT.md`
-17. Preserved tree sub-plan docs only after reading the canonical layer.
+16. `39_STANDALONE_COMPONENT_COVERAGE_AUDIT.md`
+17. `40_MODAL_DIALOG_SYSTEM_IMPLEMENTATION.md`
+18. `41_COMPLETE_COMPONENT_SYSTEM_COVERAGE.md`
+19. `30_AGENT_UI_USAGE_RULES_DRAFT.md`
+20. Preserved tree sub-plan docs only after reading the canonical layer.
 
 ## Source-Of-Truth Hierarchy
 

@@ -1,11 +1,11 @@
 # ArchEstimator UI Component Library + Storybook Plan Pack
 
 **Updated:** 2026-06-07
-**Status:** STORYBOOK_ONLY_IMPLEMENTED_STANDALONE_REVIEW_READY
+**Status:** STORYBOOK_ONLY_IMPLEMENTED_COMPLETE_OVERLAY_REVIEW_READY
 **Scope:** Implementation-aware Storybook pack. The current continuation branch
-adds standalone Storybook component entries and local validation evidence while
-still excluding production route migration, provider changes, public Storybook
-hosting, and main/staging merge.
+adds a complete overlay/modal/dialog/popup component system and local
+validation evidence while still excluding production route migration, provider
+changes, public Storybook hosting, and main/staging merge.
 
 ## Updated Task Goal
 
@@ -78,6 +78,8 @@ Start here:
 | 39 | `37_PHILIP_STORYBOOK_REVIEW_PACKET.md` | Owner review packet, inspection route, signoff states, and feedback loop. |
 | 40 | `38_VALIDATION_COMMAND_MATRIX.md` | Current docs-only and Storybook implementation validation commands. |
 | 41 | `39_STANDALONE_COMPONENT_COVERAGE_AUDIT.md` | Latest actual standalone story coverage audit and validation proof. |
+| 42 | `40_MODAL_DIALOG_SYSTEM_IMPLEMENTATION.md` | Latest modal/dialog/popup/sheet/tooltip/command overlay implementation proof. |
+| 43 | `41_COMPLETE_COMPONENT_SYSTEM_COVERAGE.md` | Latest complete component-system coverage, focused tests, and rendered overlay smoke proof. |
 
 Preserved tree/domain sub-plan:
 

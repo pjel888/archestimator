@@ -1,46 +1,56 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StoryPanel } from "../ui-library/story-canvas";
+import { Button } from "@/components/ui/button";
+import { FilterPopover, HelpPopover, InfoPopover, Popover } from "@/components/ui/overlays/popover";
+import { Note, StoryPanel } from "../ui-library/story-canvas";
 
-function PopoverPreview() {
+function PopoverFixture({ variant = "default" }: { variant?: "default" | "info" | "help" | "filter" | "footer" | "focus" }) {
+  const Component = variant === "info" ? InfoPopover : variant === "help" ? HelpPopover : variant === "filter" ? FilterPopover : Popover;
+
   return (
-    <StoryPanel className="space-y-2">
-      <Button>Open popover trigger</Button>
-      <div role="dialog" aria-label="Filter popover preview" className="w-56 rounded-xs border border-hairline bg-white p-2 shadow-[0_12px_32px_rgba(17,24,39,0.12)]">
-        <p className="text-[11px] font-medium leading-4 text-ink">Filter estimate rows</p>
-        <p className="mt-1 text-[9px] leading-3 text-tertiary">Static popover preview. Production Popover remains deferred until a shared primitive is approved.</p>
-        <div className="mt-2 flex flex-wrap gap-1">
-          <Badge>Draft</Badge>
-          <Badge tone="success">Approved</Badge>
-          <Badge tone="warning">Needs review</Badge>
+    <StoryPanel className="min-h-48">
+      <Component
+        trigger={variant === "filter" ? "Filters" : "Details"}
+        triggerLabel="Toggle story popover"
+        defaultOpen
+        title={variant === "filter" ? "Filter estimate rows" : "Popover surface"}
+        description="Compact anchored overlay with local state only."
+        footer={variant === "footer" ? <Button size="sm">Apply</Button> : undefined}
+      >
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1">
+            <Badge>Draft</Badge>
+            <Badge tone="success">Approved</Badge>
+            <Badge tone="warning">Needs review</Badge>
+          </div>
+          {variant === "focus" ? <Note>Keyboard contract: trigger exposes expanded state and controls the popover id.</Note> : null}
         </div>
-      </div>
+      </Component>
     </StoryPanel>
   );
 }
 
 const meta = {
   title: "Overlays/Popover",
-  component: PopoverPreview,
+  component: Popover,
   parameters: {
-    archestimator: {
-      storybookContract: "deferred",
-    },
     docs: {
       description: {
         component:
-          "DEFERRED shared primitive story. This static preview documents the expected compact Popover surface without adding a new runtime dependency.",
+          "Reusable Popover primitive with information, help, filter, footer-action, and keyboard-focused examples. This replaces the earlier deferred static preview.",
       },
     },
   },
-} satisfies Meta<typeof PopoverPreview>;
+} satisfies Meta<typeof Popover>;
 
 export default meta;
 
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj;
 
-export const DeferredPreview: Story = {
-  render: () => <PopoverPreview />,
-};
+export const Default: Story = { render: () => <PopoverFixture /> };
+export const Info: Story = { render: () => <PopoverFixture variant="info" /> };
+export const Help: Story = { render: () => <PopoverFixture variant="help" /> };
+export const Filter: Story = { render: () => <PopoverFixture variant="filter" /> };
+export const WithFooterActions: Story = { render: () => <PopoverFixture variant="footer" /> };
+export const KeyboardFocus: Story = { render: () => <PopoverFixture variant="focus" /> };

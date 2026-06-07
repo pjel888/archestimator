@@ -2,7 +2,7 @@
 
 **Canonical name:** ArchEstimator UI Component Library + Storybook
 **Updated:** 2026-06-07 local / 2026-06-06Z
-**Mode:** Implementation-aware Storybook MVP plan. The Storybook-only MVP is implemented on `feat/ui-component-optimization` and repaired/completed for standalone component inspection on continuation branch `fix/storybook-standalone-ui-components`; production app migration remains unimplemented and blocked on separate approval.
+**Mode:** Implementation-aware Storybook MVP plan. The Storybook-only MVP is implemented on `feat/ui-component-optimization`, repaired/completed for standalone component inspection on continuation branch `fix/storybook-standalone-ui-components`, and expanded into a complete overlay/modal/dialog system on `feat/storybook-complete-ui-component-system`; production app migration remains unimplemented and blocked on separate approval.
 
 ## Canonical Thesis
 
@@ -69,6 +69,23 @@ Fresh closeout validation passed:
 This addendum still does not approve or perform production route migration,
 Storybook publishing, hosted provider proof, Supabase changes, Vercel
 deployment, or Philip review approval.
+
+## Complete Overlay System Addendum - 2026-06-07 local / 2026-06-07Z
+
+Continuation branch `feat/storybook-complete-ui-component-system` implements
+the modal/dialog/popup overlay system required by the component library prompt.
+New reusable primitives live under `src/components/ui/overlays/**` and include
+Dialog primitives, AppModal/BlurModal/Modal, Confirm/Alert/Delete/Unsaved
+dialogs, ResizableModal/FloatingModal/PopupWindow, Sheet/Drawer/SidePanel,
+Popover, Tooltip, HoverCard, and CommandDialog/CommandMenu. The old
+`src/components/ui/modal.tsx` import path remains compatible.
+
+Storybook coverage now checks 41 required standalone titles and 295 exports.
+Rendered static Storybook smoke passed for 8 overlay story families across
+desktop and mobile viewports, with screenshots under
+`/tmp/archestimator-storybook-overlay-smoke/*.png`. Full `bun run validate`
+and `bun run build` passed. This remains Storybook-only implementation proof,
+not production route migration or hosted/provider proof.
 
 ## Explicit Non-Goal
 
