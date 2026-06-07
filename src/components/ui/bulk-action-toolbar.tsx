@@ -113,7 +113,7 @@ export function BulkActionToolbar({
             "pointer-events-auto flex items-center gap-0.5",
             "rounded-xs border border-hairline",
             "bg-white/90 p-1",
-            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_4px_8px_-2px_rgba(17,17,17,0.15)]",
+            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_-4px_rgba(17,17,17,0.25)]",
             "backdrop-blur-xl",
             "animate-in fade-in slide-in-from-bottom-4 duration-300"
           )}
