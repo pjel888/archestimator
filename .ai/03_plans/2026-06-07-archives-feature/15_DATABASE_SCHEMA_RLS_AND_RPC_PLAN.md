@@ -98,6 +98,7 @@ execute_bulk_restore_templates(target_workspace_id uuid, target_template_ids uui
 
 ### Auth
 - Archive/restore requires workspace membership with sufficient role (tightened from current `is_workspace_member` which includes viewers; intentionally elevated to `is_workspace_editor` for archive operations since archive is a mutation)
+- **Phase 4 RLS migration required:** Current `estimate_templates` RLS uses `for all ... using (public.is_workspace_member(workspace_id))` at `supabase/migrations/20260522091621_component_library_templates.sql:583`, allowing viewers to write. Phase 4 migration must split into SELECT (all members) and mutation (editors only) policies. Without this, viewers could directly UPDATE archived_at.
 
 ## Retention (Phase 5 — Planning Only)
 

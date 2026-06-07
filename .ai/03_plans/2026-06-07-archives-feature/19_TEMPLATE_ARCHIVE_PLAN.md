@@ -20,7 +20,7 @@ All follow existing preview→execute pattern. Workspace-scoped (templates are w
 
 ## Auth
 
-- Workspace editor (`is_workspace_editor`) for archive/restore — intentionally tighter than template read (`is_workspace_member`). Archive is a mutation, not a read.
+- Workspace editor (`is_workspace_editor`) for archive/restore — intentionally tighter than template read (`is_workspace_member`). Archive is a mutation, not a read. **Phase 4 migration must split template RLS**: SELECT for all members, UPDATE/DELETE for editors only. Current RLS at `supabase/migrations/20260522091621_component_library_templates.sql:583` grants all operations to `is_workspace_member`.
 
 ## UI
 
