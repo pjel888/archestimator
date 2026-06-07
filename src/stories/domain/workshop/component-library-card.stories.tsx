@@ -31,6 +31,9 @@ const meta = {
   title: "Domain/Workshop/ComponentLibraryCard",
   component: ComponentLibraryCardPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

@@ -75,6 +75,9 @@ const meta = {
   title: "Data Display/Table",
   component: EstimateRowsTable,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:

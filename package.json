@@ -9,6 +9,7 @@
     "build-storybook": "storybook build",
     "storybook:check-boundary": "node scripts/check-storybook-boundary.mjs",
     "storybook:check-components": "node scripts/check-storybook-component-coverage.mjs",
+    "storybook:validate": "bun run storybook:check-components && bun run storybook:check-boundary && STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone",
     "start": "next start",
     "lint": "eslint",
     "lint:design-system": "node scripts/enforce-app-design-system.mjs",

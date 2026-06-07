@@ -63,6 +63,9 @@ const meta = {
   title: "Cards/Card",
   component: CardPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:

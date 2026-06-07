@@ -60,6 +60,9 @@ const meta = {
   title: "Cards/Panel",
   component: PanelPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:

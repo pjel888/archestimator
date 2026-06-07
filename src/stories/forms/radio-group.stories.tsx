@@ -28,6 +28,9 @@ const meta = {
   title: "Forms/RadioGroup",
   component: RadioGroupPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

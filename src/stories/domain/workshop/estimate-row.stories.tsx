@@ -43,6 +43,9 @@ const meta = {
   title: "Domain/Workshop/EstimateRow",
   component: EstimateRowPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

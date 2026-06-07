@@ -25,6 +25,9 @@ const meta = {
   title: "Overlays/Popover",
   component: PopoverPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "deferred",
+    },
     docs: {
       description: {
         component:

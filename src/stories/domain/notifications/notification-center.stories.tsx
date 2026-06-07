@@ -53,6 +53,9 @@ const meta = {
   title: "Domain/Notifications/NotificationCenter",
   component: NotificationCenterPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

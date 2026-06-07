@@ -35,6 +35,9 @@ const meta = {
   title: "Navigation/Tabs",
   component: TabsPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "story-composition",
+    },
     docs: {
       description: {
         component:

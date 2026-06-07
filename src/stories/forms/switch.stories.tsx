@@ -24,6 +24,9 @@ const meta = {
   title: "Forms/Switch",
   component: SwitchPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:

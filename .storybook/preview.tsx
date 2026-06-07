@@ -18,6 +18,10 @@ const preview: Preview = {
     a11y: {
       test: "todo",
     },
+    archestimator: {
+      fixtureOnlyContext: true,
+      mockContextNote: "Storybook decorators use static auth, router, query-client, and reduced-motion fixtures only.",
+    },
     options: {
       storySort: {
         order: [

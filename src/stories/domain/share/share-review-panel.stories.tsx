@@ -33,6 +33,9 @@ const meta = {
   title: "Domain/Share/ShareReviewPanel",
   component: ShareReviewPanelPreview,
   parameters: {
+    archestimator: {
+      storybookContract: "fixture-only",
+    },
     docs: {
       description: {
         component:
