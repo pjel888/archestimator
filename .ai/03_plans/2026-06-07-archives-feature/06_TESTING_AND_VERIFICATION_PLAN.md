@@ -32,8 +32,8 @@ Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test)
 | Test Case | Description | Expected Result |
 |-----------|-------------|-----------------|
 | **Tab Rendering** | Render `ProjectsPageClient` | Both "Active" and "Archived" tabs are visible and accessible. |
-| **Archive Trigger** | Click Archive button on `LiveProjectCard` | The `ArchiveProjectModal` opens with the correct project context. |
-| **Modal Content** | Inspect `ArchiveProjectModal` copy | Uses non-destructive language: "Archive project?" and "You can restore it later." |
+| **Archive Trigger** | Click Archive button on `LiveProjectCard` | The `BulkArchivePreviewModal` (or extended `BulkDestructivePreviewModal`) opens with the correct project context. |
+| **Modal Content** | Inspect archive confirmation modal copy | Uses non-destructive language: "Archive project?" and "You can restore it later." |
 
 ## E2E Tests (Playwright)
 

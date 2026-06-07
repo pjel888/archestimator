@@ -36,7 +36,7 @@ Each document scored 0-100 across 8 categories:
 
 ## Overall Readiness Score
 
-**Average: 98.1%**
+**Average: 98.5%**
 
 | Category | Avg Score |
 |----------|-----------|

@@ -87,7 +87,7 @@ Archive/restore uses existing Supabase project `ebxxqidacheyapmmzavr` and existi
 - **No special rate limiting:** archive/restore are low-frequency operations; no abuse vector
 - **Stale preview protection:** execute RPC re-runs preview logic and compares hash; rejects if state changed since preview
 - **Concurrent archive/restore:** last write wins; stale preview prevents inconsistent intermediate states
-- **Idempotency:** archive of already-archived project is a no-op (archived_at already set); restore of already-active project is a no-op
+- **Idempotency:** archive of already-archived project is a no-op (archived_at already set). Restore of already-active project is a no-op at the RPC level (UPDATE archived_at=NULL WHERE it's already NULL), but the restore preview only returns currently-archived projects as eligible, so the UI won't present this case.
 
 ## Failure Modes
 
@@ -99,7 +99,7 @@ Archive/restore uses existing Supabase project `ebxxqidacheyapmmzavr` and existi
 | Stale preview (state changed between preview and execute) | Execute returns `stale_preview`; client shows error | User re-runs preview |
 | Network failure | Client shows error toast; state unchanged | User retries |
 | Concurrent archive by different user | Second archive is no-op (already archived) | No conflict |
-| Migration apply failure | UI doesn't show Archive tab (code checks column existence) | Fix migration; re-apply |
+| Migration apply failure | Feature not available (migration must precede code deployment per `09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md`) | Fix migration; re-apply before deploying code |
 
 ## Required Rules
 
