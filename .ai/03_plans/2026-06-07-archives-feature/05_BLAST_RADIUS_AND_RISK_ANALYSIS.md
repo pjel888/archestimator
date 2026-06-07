@@ -4,10 +4,10 @@ This document analyzes the impact and risks associated with implementing the Pro
 
 ## Affected User Flows
 
-- **Project Browsing:** The projects page will transition from a 2-tab layout (Your Projects / Shared to you) to a 3-tab layout (Active / Shared / Archived).
+- **Project Browsing:** The projects page preserves existing tabs (Your Projects / Shared to you) and adds an "Archived" tab as a third top-level tab. The existing tabs implicitly show active projects (filtered by `archived_at IS NULL`).
 - **Project Archiving:** A new flow allowing users to select projects, preview the archive action, confirm with a button click, and execute.
 - **Project Restoring:** A new flow within the "Archived" tab to select archived projects, preview restoration, and execute.
-- **Project Dashboard Access:** Users attempting to access an archived project's dashboard will be redirected to the workshop with a notification.
+- **Project Dashboard Access:** Users attempting to access an archived project's dashboard will be redirected to `/workshop/projects` with an "Archived" notification.
 - **Estimate Access:** Estimates belonging to archived projects will be blocked/inaccessible.
 - **Chart Access:** Charts belonging to archived projects will be blocked/inaccessible.
 - **Homebase:** The homebase view will exclude archived projects from "Recent" and "Favorites" sections.

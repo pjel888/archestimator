@@ -30,7 +30,9 @@ This document outlines the step-by-step implementation order for the Project Arc
 
 - **Tasks:**
   - Additive migration: `ALTER TABLE projects ADD COLUMN archived_at TIMESTAMPTZ, ADD COLUMN archived_by UUID`.
-  - Create partial index: `CREATE INDEX idx_projects_archived_at ON projects (archived_at) WHERE archived_at IS NOT NULL`.
+  - Create partial indexes:
+    - `CREATE INDEX idx_projects_active ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NULL`
+    - `CREATE INDEX idx_projects_archived ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NOT NULL`
   - Create RPCs following the `mass_deletion_governance.sql` pattern:
     - `preview_bulk_archive_projects`
     - `execute_bulk_archive_projects`
@@ -97,7 +99,7 @@ This document outlines the step-by-step implementation order for the Project Arc
 
 - **Tasks:**
   - Add archived-project guard to project route pages (redirect to `/workshop/projects` with notice).
-  - Add archived guard to estimate routes.
+  - Add archived guard to estimate routes and chart route (`src/app/workshop/projects/[projectId]/charts/page.tsx`).
   - Update homebase: Exclude archived projects from recent/favorites.
   - Update favorites: Hide archived project favorites; ensure they re-appear on restore.
   - Update collaboration: Preserve pending invites for archived projects; hide archived from shared lists.
