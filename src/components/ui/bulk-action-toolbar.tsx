@@ -93,12 +93,11 @@ export function BulkActionToolbar({
         role="region"
         aria-label="Bulk action toolbar"
         className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex justify-center",
-          "animate-in fade-in slide-in-from-bottom-4 duration-300",
+          "pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex flex-col items-center gap-1",
           className
         )}
-        style={{ animationFillMode: "backwards" }}
       >
+        {/* Level 1: Action buttons */}
         <div
           className={cn(
             "pointer-events-auto flex items-center gap-0.5",
@@ -106,31 +105,10 @@ export function BulkActionToolbar({
             "bg-white/90 p-1",
             "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
             "backdrop-blur-xl",
-            "transition-all duration-300 ease-out"
+            "animate-in fade-in slide-in-from-bottom-4 duration-300"
           )}
+          style={{ animationFillMode: "backwards", animationDelay: "0ms" }}
         >
-          {/* Selection count badge */}
-          <div
-            className={cn(
-              "flex h-10 items-center gap-1.5 rounded-xs px-2",
-              "bg-surfaceMuted/80",
-              "transition-all duration-200"
-            )}
-          >
-            <span
-              className="text-[10px] font-medium tabular-nums text-ink"
-              aria-live="polite"
-            >
-              {selectedCount}
-            </span>
-            <span className="text-[10px] font-normal text-tertiary">
-              {selectedLabel}
-            </span>
-          </div>
-
-          {/* Divider */}
-          <span className="mx-0.5 h-6 w-px bg-hairline" aria-hidden="true" />
-
           {/* Clear selection */}
           <FloatingDockItem
             label="Clear selection"
@@ -154,6 +132,29 @@ export function BulkActionToolbar({
               disabled={action.disabled}
             />
           ))}
+        </div>
+
+        {/* Level 2: Selection count — slides down from level 1 */}
+        <div
+          className={cn(
+            "pointer-events-auto flex items-center justify-center gap-1.5",
+            "rounded-xs border border-hairline",
+            "bg-white/90 px-3 py-1",
+            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
+            "backdrop-blur-xl",
+            "animate-in fade-in slide-in-from-top-1 duration-200"
+          )}
+          style={{ animationFillMode: "backwards", animationDelay: "100ms" }}
+        >
+          <span
+            className="text-[10px] font-medium tabular-nums text-ink"
+            aria-live="polite"
+          >
+            {selectedCount}
+          </span>
+          <span className="text-[10px] font-normal text-tertiary">
+            {selectedLabel}
+          </span>
         </div>
       </div>
     );
