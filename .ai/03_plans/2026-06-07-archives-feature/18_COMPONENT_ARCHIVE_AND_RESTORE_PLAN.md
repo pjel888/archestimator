@@ -38,7 +38,7 @@ Follow existing preview→execute pattern. Simple confirm button (not typed phra
 
 In `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`:
 
-- Add status filter: "Available" (default, WHERE lifecycle_state != 'archived') / "Archived" (WHERE lifecycle_state = 'archived')
+- Add status filter: "Non-archived" (default, WHERE lifecycle_state != 'archived') / "Archived" (WHERE lifecycle_state = 'archived')
 - In Archived view: "Restore Selected" action in toolbar
 - Individual restore action on component cards in Archived view
 - Confirmation: "Restore component?" with "Restore" button

@@ -70,7 +70,7 @@ Currently, Archestimator has no concept of paid access, subscriptions, or retain
 
 - **Separate RLS policies** for retained snapshot tables — not bound to live workspace data
 - Creator archive/delete does NOT cascade to retained snapshots
-- Recipient reads retained snapshots through `recipient_entitlements.status = 'active'` AND `expires_at > now()`
+- Recipient reads retained snapshots through `recipient_entitlements.status = 'active'` AND (`expires_at IS NULL` OR `expires_at > now()`)
 - Service role: writes retained snapshots (not recipient self-service)
 - Anon: denied all retained tables
 

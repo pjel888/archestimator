@@ -14,7 +14,6 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS archived_by UUID REFERENCES auth.u
 ### Indexes
 ```sql
 CREATE INDEX idx_projects_active ON projects (workspace_id, updated_at DESC) WHERE archived_at IS NULL;
-CREATE INDEX idx_projects_archived ON projects (workspace_id, archived_at DESC) WHERE archived_at IS NOT NULL;
 ```
 
 ### RPCs (following mass_deletion_governance.sql pattern)

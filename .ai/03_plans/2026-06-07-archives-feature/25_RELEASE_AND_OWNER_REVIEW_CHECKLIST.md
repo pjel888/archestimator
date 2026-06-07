@@ -46,7 +46,7 @@
 - [ ] Restore RPC migration applied
 - [ ] `bun run validate` + `build` + `lint:design-system` pass
 - [ ] Archived view in library shows only archived components
-- [ ] Restore sets lifecycle_state back to 'available'
+- [ ] Restore sets lifecycle_state to last pre-archive state (or 'available' if no history)
 - [ ] Existing archive flow still works
 
 ### Phase 4 — Templates
