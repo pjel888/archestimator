@@ -4,7 +4,7 @@ This document analyzes the impact and risks associated with implementing the Pro
 
 ## Affected User Flows
 
-- **Project Browsing:** The projects page preserves existing tabs (Your Projects / Shared to you) and adds an "Archived" tab as a third top-level tab. The existing tabs implicitly show active projects (filtered by `archived_at IS NULL`).
+- **Project Browsing:** The projects page preserves existing tabs (Your Projects / Shared to you) and adds "Archived" as a third top-level tab. The existing tabs implicitly show active projects only (filtered by `archived_at IS NULL`).
 - **Project Archiving:** A new flow allowing users to select projects, preview the archive action, confirm with a button click, and execute.
 - **Project Restoring:** A new flow within the "Archived" tab to select archived projects, preview restoration, and execute.
 - **Project Dashboard Access:** Users attempting to access an archived project's dashboard will be redirected to `/workshop/projects` with an "Archived" notification.

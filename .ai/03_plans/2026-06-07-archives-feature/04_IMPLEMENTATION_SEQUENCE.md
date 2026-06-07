@@ -86,6 +86,7 @@ This document outlines the step-by-step implementation order for the Project Arc
 - **Files Involved:**
   - `src/components/workshop/projects-page-client.tsx`
   - `src/components/workshop/LiveProjectCard.tsx`
+  - `src/components/workshop/ProjectDetailsModal.tsx`
   - `src/components/workshop/BulkActionToolbar.tsx`
   - `src/components/workshop/BulkArchivePreviewModal.tsx` (New or modified)
 - **Expected Changes:** New UI components, updated project list page, new modals.
@@ -107,6 +108,7 @@ This document outlines the step-by-step implementation order for the Project Arc
   - `src/app/workshop/projects/[projectId]/page.tsx`
   - `src/app/workshop/projects/[projectId]/layout.tsx`
   - `src/app/workshop/projects/[projectId]/estimates/page.tsx`
+  - `src/app/workshop/projects/[projectId]/charts/page.tsx`
   - `src/lib/repositories/workspace-repository.ts`
 - **Expected Changes:** Route guards, updated repository logic for favorites and homebase.
 - **Validation Commands:** `bun run test:e2e`.
