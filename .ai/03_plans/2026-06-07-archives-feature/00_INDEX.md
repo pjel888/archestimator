@@ -31,7 +31,7 @@ Create a reversible archive/restore flow for workspace projects in Archestimator
 | Decision | Default | Rationale |
 |----------|---------|-----------|
 | What can be archived? | Workspace projects only | Lowest blast radius; library items already have lifecycle_state |
-| Who can archive? | Anyone with `can_edit_project` (workspace members, project editors, admins, owners) | Mirrors existing project mutation authorization; same gate as project deletion |
+| Who can archive? | Anyone with `can_edit_project` (workspace members, project editors, admins, owners) | More permissive than delete since archive is reversible/non-destructive. Delete uses `can_manage_project_access` (owner/admin only) via `supabase/migrations/20260603160000_mass_deletion_governance.sql:95` |
 | Who can restore? | Same as archive (`can_edit_project`) | Same authorization gate |
 | Direct URL access to archived projects? | Redirect to projects list with notice | Prevents data access confusion; consistent with removed-project pattern |
 | Archived projects: read-only or fully blocked? | Fully blocked (redirect + notice) | Simplest security posture; archived = not active |

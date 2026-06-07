@@ -5,7 +5,7 @@
 
 ## Auth/Authorization
 
-- **Archive gate:** `can_edit_project(target_project_id)` — same RPC used by project deletion
+- **Archive gate:** `can_edit_project(target_project_id)` — allows workspace members + project editors/admins/owners. NOTE: this is DIFFERENT from deletion which uses `can_manage_project_access` (owner/admin only). Archive is intentionally more permissive since it's reversible/non-destructive.
 - **Restore gate:** same as archive (`can_edit_project`)
 - **Implementation:** Archive/restore RPCs call `can_edit_project` internally; server actions validate before RPC call; RPC acts as final authority
 - **Workspace admin override:** platform admins (`is_platform_admin()`) and workspace members with admin rank pass `can_edit_project`
