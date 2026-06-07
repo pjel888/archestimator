@@ -61,6 +61,8 @@ A project is considered "archived" if `archived_at` is not null.
 - `src/app/workshop/projects/[projectId]/layout.tsx`: Add a guard that redirects to `/workshop/projects` if the project is archived.
 - `src/app/workshop/projects/[projectId]/page.tsx`: Ensure the dashboard respects the archived state.
 - `src/app/workshop/projects/[projectId]/estimates/page.tsx`: Block access to estimates for archived projects.
+- `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx`: Block estimate sheet editing for archived projects.
+- `src/app/workshop/projects/[projectId]/charts/page.tsx`: Block chart access for archived projects.
 
 ## New Files
 

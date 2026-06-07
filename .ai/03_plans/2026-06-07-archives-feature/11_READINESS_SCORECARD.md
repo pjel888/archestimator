@@ -36,7 +36,7 @@ Each document scored 0-100 across 8 categories:
 
 ## Overall Readiness Score
 
-**Average: 98.5%**
+**Average: 98.0%**
 
 | Category | Avg Score |
 |----------|-----------|
@@ -44,21 +44,21 @@ Each document scored 0-100 across 8 categories:
 | Requirement Clarity | 100 |
 | Implementation Specificity | 99 |
 | Test/Verification Readiness | 95 |
-| Risk/Blast-Radius/Rollback Coverage | 95 |
+| Risk/Blast-Radius/Rollback Coverage | 96 |
 | Security/Performance/Data/UX Coverage | 96 |
 | .ai Documentation Hygiene | 100 |
-| Future Implementation Usability | 100 |
+| Future Implementation Usability | 99 |
 
 ## Evidence for Scores
 
-- **Repository Evidence (100):** All 14 documents reference specific file paths verified from live codebase reads on 2026-06-07. Background agents inspected 83+ migration files, generated types, server actions, UI components, and route handlers.
+- **Repository Evidence (100):** All 14 documents reference specific file paths verified from live codebase reads on 2026-06-07. Background agents inspected 83+ migration files, generated types, server actions, UI components, and route handlers. Multiple Oracle review passes corrected hallucinated paths.
 - **Requirement Clarity (100):** 30 traceable requirements with binary pass/fail acceptance criteria. Archive semantics explicitly defined (who, what, how).
 - **Implementation Specificity (99):** 7-phase sequence with specific files, RPC names, migration SQL, and validation commands. Minor deduction: exact UI component names for archive modal deferred to implementer.
 - **Test Readiness (95):** Tests specified with pass/fail criteria. Deduction: E2E test scenarios could be more detailed; some tests rely on implementer judgment for exact assertions.
-- **Risk Coverage (95):** Blast radius analyzed for all routes, modules, and flows. Deduction: merge conflict risks mentioned but no explicit conflict resolution protocol.
+- **Risk Coverage (96):** Blast radius analyzed for all routes, modules, and flows. Includes API/data access surfaces. Deduction: merge conflict risks mentioned but no explicit conflict resolution protocol.
 - **Security/UX (96):** RLS, auth, performance, accessibility, and design-system compliance all covered. Deduction: some UX edge cases (very large number of archived projects) not addressed.
 - **.ai Hygiene (100):** Follows .ai folder conventions. Uses numbered taxonomy. References existing source-of-truth docs. Does not create conflicting parallel docs.
-- **Usability (100):** Implementation prompt draft is complete. Plan is self-contained. Future agent can execute without external research.
+- **Usability (99):** Implementation prompt draft is complete. Plan is self-contained. Future agent can execute without external research. Minor deduction: some implementation details deferred to agent judgment.
 
 ## Missing Items
 
