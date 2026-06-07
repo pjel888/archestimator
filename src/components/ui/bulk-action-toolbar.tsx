@@ -4,7 +4,6 @@ import * as React from "react";
 import { X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { cn } from "@/lib/ui/cn";
 
 export interface BulkAction {
@@ -24,6 +23,58 @@ export interface BulkActionToolbarProps {
   className?: string;
 }
 
+function FloatingDockItem({
+  label,
+  icon,
+  onClick,
+  variant = "default",
+  disabled = false,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  variant?: "default" | "danger" | "ghost";
+  disabled?: boolean;
+}) {
+  const isDanger = variant === "danger";
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      title={label}
+      className={cn(
+        "group relative flex items-center justify-center",
+        "size-10 rounded-xs",
+        "transition-all duration-200 ease-out",
+        "hover:scale-[1.25] hover:z-10",
+        "focus-visible:scale-[1.25] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
+        "disabled:pointer-events-none disabled:opacity-40",
+        isDanger
+          ? "bg-dangerSoft/60 text-danger hover:bg-dangerSoft hover:text-danger"
+          : "bg-white text-secondary hover:bg-surfaceMuted hover:text-ink"
+      )}
+      aria-label={label}
+    >
+      <span className="flex items-center justify-center transition-transform duration-200 ease-out group-hover:scale-110">
+        {icon}
+      </span>
+      {/* Tooltip label appears on hover */}
+      <span
+        className={cn(
+          "pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2",
+          "whitespace-nowrap rounded-xs bg-ink px-2 py-0.5 text-[9px] font-medium text-white",
+          "opacity-0 transition-opacity duration-150",
+          "group-hover:opacity-100 group-focus-visible:opacity-100"
+        )}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
 export function BulkActionToolbar({
   selectedCount,
   selectedLabel = "selected",
@@ -35,6 +86,15 @@ export function BulkActionToolbar({
   if (selectedCount === 0) return null;
 
   const isBottomDock = placement === "bottom-dock";
+  const actionsRef = React.useRef<HTMLDivElement>(null);
+  const [actionsWidth, setActionsWidth] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    if (actionsRef.current) {
+      const w = actionsRef.current.getBoundingClientRect().width;
+      setActionsWidth(w);
+    }
+  }, [selectedCount, actions]);
 
   if (isBottomDock) {
     return (
@@ -42,65 +102,77 @@ export function BulkActionToolbar({
         role="region"
         aria-label="Bulk action toolbar"
         className={cn(
-          "pointer-events-none fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex min-h-[72px] max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center lg:left-[calc(50%+32px)]",
+          "pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex flex-col items-center",
           className
         )}
       >
+        {/* Level 1: Action buttons */}
         <div
-          data-bulk-action-dock-surface
-          className="pointer-events-auto flex flex-col items-center gap-1 rounded-xs border border-hairline bg-white/80 p-1 shadow-[0_22px_54px_-30px_rgba(17,17,17,0.75)] ring-1 ring-black/[0.04] backdrop-blur-md"
+          ref={actionsRef}
+          className={cn(
+            "pointer-events-auto flex items-center gap-0.5",
+            "rounded-xs border border-hairline",
+            "bg-white/90 p-1",
+            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_-4px_rgba(17,17,17,0.25)]",
+            "backdrop-blur-xl",
+            "animate-in fade-in slide-in-from-bottom-4 duration-300"
+          )}
+          style={{ animationFillMode: "backwards", animationDelay: "0ms" }}
         >
-          <div
-            data-bulk-action-count-floor
-            className="grid h-6 w-full place-items-center rounded-xs border border-hairline bg-surfaceMuted/80 px-2"
-          >
-            <p className="truncate text-center text-[10px] font-medium leading-3 tabular-nums text-ink" aria-live="polite">
-              {selectedCount} {selectedLabel}
-            </p>
-          </div>
-          <div
-            data-bulk-action-icon-floor
-            className="flex h-9 w-full items-center justify-center gap-1 rounded-xs border border-hairline bg-white p-0.5 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]"
-            role="group"
-            aria-label="Bulk selection actions"
-          >
-            <ToolbarIconButton
-              label="Clear selection"
-              className="size-8 rounded-xs border border-transparent text-secondary hover:-translate-y-0.5 hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-surfaceMuted focus-visible:text-ink"
-              onClick={onClear}
-            >
-              <X size={14} weight="regular" aria-hidden="true" />
-            </ToolbarIconButton>
-            
-            {actions.length > 0 && (
-              <span className="h-6 w-px bg-hairline mx-0.5" aria-hidden="true" />
-            )}
+          <FloatingDockItem
+            label="Clear selection"
+            icon={<X size={16} weight="regular" />}
+            onClick={onClear}
+          />
 
-            {actions.map((action, index) => {
-              const isDanger = action.variant === "danger";
-              return (
-                <ToolbarIconButton
-                  key={index}
-                  label={action.label}
-                  className={cn(
-                    "size-8 rounded-xs border border-transparent hover:-translate-y-0.5 focus-visible:-translate-y-0.5",
-                    isDanger
-                      ? "border-dangerSoft bg-dangerSoft/40 text-danger hover:bg-dangerSoft hover:text-danger focus-visible:bg-dangerSoft focus-visible:text-danger"
-                      : "text-secondary hover:border-hairline hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink"
-                  )}
-                  disabled={action.disabled}
-                  onClick={action.onClick}
-                >
-                  {action.icon}
-                </ToolbarIconButton>
-              );
-            })}
-          </div>
+          {actions.length > 0 && (
+            <span className="mx-0.5 h-6 w-px bg-hairline" aria-hidden="true" />
+          )}
+
+          {actions.map((action, index) => (
+            <FloatingDockItem
+              key={index}
+              label={action.label}
+              icon={action.icon}
+              onClick={action.onClick}
+              variant={action.variant}
+              disabled={action.disabled}
+            />
+          ))}
+        </div>
+
+        {/* Level 2: Selection count — matches Level 1 width exactly */}
+        <div
+          className={cn(
+            "pointer-events-auto flex items-center justify-center gap-1.5",
+            "rounded-xs",
+            "bg-white/80 p-1",
+            "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
+            "backdrop-blur-xl",
+            "min-h-8",
+            "animate-in fade-in slide-in-from-top-1 duration-200"
+          )}
+          style={{
+            width: actionsWidth || "auto",
+            animationFillMode: "backwards",
+            animationDelay: "100ms",
+          }}
+        >
+          <span
+            className="text-[10px] font-medium tabular-nums text-ink"
+            aria-live="polite"
+          >
+            {selectedCount}
+          </span>
+          <span className="text-[10px] font-normal text-tertiary">
+            {selectedLabel}
+          </span>
         </div>
       </div>
     );
   }
 
+  // Inline variant
   return (
     <div
       role="region"

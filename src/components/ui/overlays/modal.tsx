@@ -114,11 +114,13 @@ export function AppModal({
               <DialogCloseButton />
             </DialogHeader>
             <DialogBody className={bodyClassName}>{children}</DialogBody>
-            {footer ? (
-              <DialogFooter>
+            <DialogFooter>
+              {footer ? (
                 <DialogActions right={footer} />
-              </DialogFooter>
-            ) : null}
+              ) : (
+                <div className="min-h-8" aria-hidden="true" />
+              )}
+            </DialogFooter>
           </DialogContent>
         </div>
       </DialogPortal>
