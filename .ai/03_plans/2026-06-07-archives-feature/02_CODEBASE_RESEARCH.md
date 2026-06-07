@@ -74,7 +74,7 @@
 - `src/lib/publication/public-repository.ts` — publication resolution
 
 ### Test Research
-- 115 Vitest/DOM test files under `tests/vitest/`
+- 204 Vitest/DOM test files under `tests/vitest/` (count as of 2026-06-07)
 - 14 Playwright E2E specs under `e2e/`
 - 3 Bun unit tests under `tests/unit/`
 - Key archive-adjacent tests: `mass-deletion-action-contract.test.ts`, `mass-deletion-ui-contract.test.ts`, `bulk-action-validation.test.ts`
@@ -139,7 +139,7 @@ cleanup audit (service-role RPC)
 ### Component Library Lifecycle (`cost_library_items`)
 ```
 Columns:
-  lifecycle_state: component_lifecycle_state (enum: draft|in_review|available|discontinued|archived)
+  lifecycle_state: component_lifecycle_state (enum: draft|in_production|available|discontinued|archived)
   lifecycle_state_changed_at: timestamptz
   lifecycle_state_changed_by: uuid
 
@@ -218,7 +218,7 @@ created_by uuid?, created_at timestamptz, updated_at timestamptz
 - `tests/unit/tree-selection.test.ts` — bulk tree selection utilities
 - `tests/unit/p3-shared-link-migration-red.test.ts` — shared-link migration contract
 
-### Vitest/DOM Tests (~115 files)
+### Vitest/DOM Tests (~200 files)
 Key archive/project-adjacent tests:
 - `tests/vitest/mass-deletion-action-contract.test.ts` — delete/archive action wiring
 - `tests/vitest/mass-deletion-ui-contract.test.ts` — preview-first destructive UI contract

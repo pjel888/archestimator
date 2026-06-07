@@ -90,7 +90,7 @@ You are implementing the Archestimator Archives Feature — a reversible archive
   - `getWorkshopHomebaseData` — filter recent projects to active only
 
 ### Phase 4 — UI
-- Add Active/Archived tabs to `src/components/workshop/projects-page-client.tsx`
+- Add "Archived" tab to `src/components/workshop/projects-page-client.tsx` (alongside existing "Your Projects"/"Projects shared to you" tabs)
 - Add archive action to `src/components/workshop/LiveProjectCard.tsx`
 - Add archive action to `src/components/workshop/BulkActionToolbar.tsx`
 - Create archive confirmation modal (extend `BulkDestructivePreviewModal` or create new)
