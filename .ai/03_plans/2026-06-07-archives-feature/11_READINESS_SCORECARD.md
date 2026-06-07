@@ -58,7 +58,7 @@ Each document scored 0-100 across 8 categories:
 - **Risk Coverage (96):** Blast radius analyzed for all routes, modules, and flows. Includes API/data access surfaces. Deduction: merge conflict risks mentioned but no explicit conflict resolution protocol.
 - **Security/UX (96):** RLS, auth, performance, accessibility, and design-system compliance all covered. Deduction: some UX edge cases (very large number of archived projects) not addressed.
 - **.ai Hygiene (100):** Follows .ai folder conventions. Uses numbered taxonomy. References existing source-of-truth docs. Does not create conflicting parallel docs.
-- **Usability (99):** Implementation prompt draft is complete. Plan is self-contained. Future agent can execute without external research. Minor deduction: some implementation details deferred to agent judgment.
+- **Usability (100):** Implementation prompt draft is complete. Plan is self-contained. Future agent can execute without external research.
 
 ## Missing Items
 
