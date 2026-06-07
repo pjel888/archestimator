@@ -37,7 +37,7 @@ Target: `tests/vitest/projects-page-access-tabs.test.tsx` (extend existing test)
 
 ## E2E Tests (Playwright)
 
-Target: `tests/e2e/archives.spec.ts`
+Target: `e2e/archives.spec.ts`
 
 - **Archive/Restore Flow**:
   1. Create a new project.
@@ -49,8 +49,8 @@ Target: `tests/e2e/archives.spec.ts`
   7. Verify it returns to the "Active" tab.
 - **Direct Access Redirect**:
   1. Archive a project.
-  2. Attempt to navigate directly to `/projects/[id]`.
-  3. Verify redirect to `/projects` with an "Archived" status message (or appropriate detail view handling).
+   2. Attempt to navigate directly to `/workshop/projects/[projectId]`.
+   3. Verify redirect to `/workshop/projects` with an "Archived" status message (or appropriate detail view handling).
 
 ## Verification Commands
 

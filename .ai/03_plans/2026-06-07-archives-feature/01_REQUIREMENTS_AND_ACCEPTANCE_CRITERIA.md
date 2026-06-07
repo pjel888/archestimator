@@ -17,7 +17,7 @@ The Archives feature allows project owners and workspace admins to hide complete
 - **Homebase Exclusion**: Exclude archived projects from the Workshop Homebase dashboard and "Recent Projects" lists.
 - **Tabbed UI**: Provide "Active" and "Archived" tabs in the projects list to separate project states.
 - **Search Scoping**: Scope project search to the currently active tab (Active or Archived).
-- **Permissions**: Restrict archive and restore actions to project owners or workspace admins (matching `can_edit_project` logic).
+- **Permissions**: Restrict archive and restore actions to users with `can_edit_project` access (workspace members, project editors, admins, and owners — matching existing project mutation authorization).
 
 ### SHOULD (P1)
 - **Count Badges**: Display project counts on the Active and Archived tabs.

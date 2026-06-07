@@ -47,8 +47,8 @@ A project is considered "archived" if `archived_at` is not null.
 - `src/lib/supabase/types.ts`: Update generated types and add manual patches for new RPCs.
 
 ### Logic and Repositories
-- `src/lib/projects/actions.ts`: Add `archiveBulkProjects` and `restoreBulkProjects` actions.
-- `src/lib/mass-deletion/bulk-action.ts`: Add "archive" and "restore" action types and confirmation phrase logic.
+- `src/lib/projects/actions.ts`: Add `previewBulkArchiveProjects`, `executeBulkArchiveProjects`, `previewBulkRestoreProjects`, `executeBulkRestoreProjects` (following existing preview→execute naming convention from mass deletion).
+- `src/lib/mass-deletion/bulk-action.ts`: Add "archive" and "restore" action types. Simple confirm button (NOT typed phrase — archive is non-destructive).
 - `src/lib/repositories/workspace-repository.ts`: Update `listCurrentWorkspaceProjects` and `getWorkshopHomebaseData` to include `archived_at IS NULL` filters.
 
 ### UI Components

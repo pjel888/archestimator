@@ -83,8 +83,8 @@ You are implementing the Archestimator Archives Feature — a reversible archive
 - After migration apply: update generated types, add manual type patches for new RPCs
 
 ### Phase 3 — Server Actions & Repository Filters
-- Add archive/restore functions to `src/lib/projects/actions.ts`
-- Add archive confirmation phrase to `src/lib/mass-deletion/bulk-action.ts`
+- Add archive/restore functions to `src/lib/projects/actions.ts` (`previewBulkArchiveProjects`, `executeBulkArchiveProjects`, etc. — following existing naming convention)
+- Add archive/restore action types to `src/lib/mass-deletion/bulk-action.ts` (simple confirm button, NOT typed phrase — archive is non-destructive; typed confirmation reserved for delete)
 - Update `src/lib/repositories/workspace-repository.ts`:
   - `listCurrentWorkspaceProjects(includeArchived = false)`
   - `getWorkshopHomebaseData` — filter recent projects to active only
