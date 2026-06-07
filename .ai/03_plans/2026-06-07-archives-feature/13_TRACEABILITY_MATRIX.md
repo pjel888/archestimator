@@ -35,8 +35,9 @@
 | R26 | Delete flow unaffected | Project deletion still works; remains destructive with typed confirmation | src/lib/projects/actions.ts, components | Phase 7 | Regression test: delete flow unchanged | HIGH risk: regression in critical delete flow | Planned |
 | R27 | Design-system compliance | New UI passes bun run lint:design-system | UI components (Phase 4) | Phase 4, 7 | lint:design-system exit 0 | Blocking: design-system failures must be fixed | Planned |
 | R28 | Archive status messages accessible | aria-live region for archive/restore feedback | UI components (Phase 4) | Phase 4 | DOM test: aria-live present; accessibility audit | Low risk | Planned |
-| R29 | Keyboard navigation for tabs | Arrow keys navigate Active/Archived tabs | src/components/workshop/projects-page-client.tsx | Phase 4 | DOM test: keyboard navigation works | Low risk | Planned |
+| R29 | Keyboard navigation for tabs | Arrow keys navigate tabs including Archived | src/components/workshop/projects-page-client.tsx | Phase 4 | DOM test: keyboard navigation works | Low risk | Planned |
 | R30 | Build passes | bun run build exits 0 | All files | Phase 7 | bun run build | Blocking: build failure | Planned |
+| R31 | API surfaces check archive state | XLSX export, AI endpoints, project images reject/redirect for archived projects | src/app/api/projects/..., src/lib/ai/ | Phase 5 | Route test: API returns expected archive response | Medium risk | Planned |
 
 ## Summary
 

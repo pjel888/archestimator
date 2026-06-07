@@ -27,7 +27,7 @@ Reference: `src/lib/collaboration/actions.ts` role system, `supabase/migrations/
   - Validate `auth.uid()` against workspace/project membership
   - Same grant pattern as existing mass deletion RPCs (authenticated execute, anon denied)
 - **No new RLS policies needed:** archive/restore is an UPDATE operation, covered by existing `can_edit_project` policy
-- **Client-side filtering is NOT a security boundary:** RLS is the security layer; application-level `WHERE archived_at IS NULL` is UX filtering only
+- **Client-side filtering is NOT a security boundary:** RLS controls data access; application-level `WHERE archived_at IS NULL` controls visibility. Archived projects remain readable via RLS to authorized users (through the Archived tab or direct API). The application query layer is the visibility boundary — RLS is the data-access boundary. Both are needed: RLS prevents unauthorized data access; app queries prevent archived projects from appearing in active views.
 
 Reference: `supabase/migrations/20260603160000_mass_deletion_governance.sql` for RPC pattern, `supabase/migrations/20260603191903_harden_mass_deletion_actor_derivation.sql` for hardened actor derivation.
 
