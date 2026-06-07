@@ -47,7 +47,7 @@
 - **Phase 2 (Database):** R1-R5 (schema + RPCs)
 - **Phase 3 (Server Actions):** R6-R11 (actions + repository)
 - **Phase 4 (UI):** R12-R17, R27-R29 (components + design system)
-- **Phase 5 (Routes):** R18-R22 (route guards + homebase)
+- **Phase 5 (Routes):** R18-R22, R31-R32 (route guards + homebase + API + invite acceptance)
 - **Phase 6 (Publication):** R23 (shared links)
 - **Phase 7 (Verification):** R26, R30 (regression + build)
 - **Cross-cutting:** R24-R25 (authorization in RPCs)
