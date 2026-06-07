@@ -86,8 +86,8 @@ Archive/restore uses existing Supabase project `ebxxqidacheyapmmzavr` and existi
 
 - **No special rate limiting:** archive/restore are low-frequency operations; no abuse vector
 - **Stale preview protection:** execute RPC re-runs preview logic and compares hash; rejects if state changed since preview
-- **Concurrent archive/restore:** last write wins; stale preview prevents inconsistent intermediate states
-- **Idempotency:** archive of already-archived project is a no-op (archived_at already set). Restore of already-active project is a no-op at the RPC level (UPDATE archived_at=NULL WHERE it's already NULL), but the restore preview only returns currently-archived projects as eligible, so the UI won't present this case.
+- **Concurrent archive/restore:** If two users attempt conflicting operations (e.g., one archives, another restores the same project), one will succeed and the other will receive `stale_preview` because execute re-runs preview and validates the hash. This prevents inconsistent intermediate states. The "last write wins" is enforced by the hash, not by silent no-ops.
+- **Idempotency:** Archive of already-archived project is idempotent at the DB level (UPDATE sets the same values). However, the archive preview won't return already-archived projects as eligible, so this case won't arise in normal UI flow. Similarly, restore of already-active project won't appear in restore preview. If called directly via RPC, the UPDATE is a no-op (no rows changed).
 
 ## Failure Modes
 
