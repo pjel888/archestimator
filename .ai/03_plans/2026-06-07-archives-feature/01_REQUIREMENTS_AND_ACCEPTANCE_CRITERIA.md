@@ -22,7 +22,7 @@ The Archives feature allows users to archive and restore Projects, Estimate Shee
 - **Homebase Exclusion**: Exclude archived projects from the Workshop Homebase dashboard and "Recent Projects" lists.
 - **Tabbed UI**: Preserve existing "Your Projects" and "Projects shared to you" tabs. Add "Archived" as a third top-level tab to separate project states.
 - **Search Scoping**: Scope project search to the currently visible tab ("Your Projects", "Projects shared to you", or "Archived").
-- **Permissions**: Restrict archive and restore actions to users with `can_edit_project` access (workspace members, project editors, admins, and owners — matching existing project mutation authorization).
+- **Permissions**: Restrict archive and restore actions to users with `can_edit_project` access (workspace roles owner/admin/member excluding viewer, plus project roles editor/admin/owner — matching existing project mutation authorization per `supabase/migrations/20260526142913_project_sheet_collaboration_access.sql:254`).
 
 ### SHOULD (P1)
 - **Count Badges**: Display project counts on the existing "Your Projects"/"Projects shared to you" tabs and the "Archived" tab.

@@ -37,7 +37,7 @@ execute_bulk_restore_projects(target_project_ids uuid[], expected_preview_hash t
 - Application layer filters `WHERE archived_at IS NULL` for active views.
 
 ### Auth
-- Archive/restore: `can_edit_project` (workspace members + project editors/admins/owners)
+- Archive/restore: `can_edit_project` (workspace roles owner/admin/member, excluding viewer; plus project roles editor/admin/owner)
 - Delete: `can_manage_project_access` (owner/admin only) — SEPARATE gate
 
 ## Estimate Sheets (Phase 2)

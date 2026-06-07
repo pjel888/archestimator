@@ -37,7 +37,7 @@
 - [ ] Status filter renders on estimate list
 - [ ] Archived sheet redirects from editor route
 - [ ] Charts exclude archived sheets
-- [ ] Export excludes archived sheets
+- [ ] Export rejects archived sheet export (single-estimate XLSX route)
 - [ ] AI excludes archived sheet data
 - [ ] Project totals exclude archived sheets
 - [ ] TanStack Query invalidates correctly
