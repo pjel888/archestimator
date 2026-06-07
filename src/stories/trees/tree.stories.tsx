@@ -1,5 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Tree, type TreeNode } from "@/components/ui";
+import { useState, useCallback } from "react";
+import { Tree, type TreeNode, type TreeProps } from "@/components/ui";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+} from "@/components/ui";
 import { Folder, FileText, Cube } from "@phosphor-icons/react";
 
 const sampleNodes: TreeNode[] = [
@@ -50,6 +57,12 @@ const meta: Meta<typeof Tree> = {
 export default meta;
 type Story = StoryObj<typeof Tree>;
 
+function StatefulTree(props: Omit<TreeProps, "selectedIds" | "onSelectionChange">) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const handleSelectionChange = useCallback((ids: string[]) => setSelectedIds(ids), []);
+  return <Tree {...props} selectedIds={selectedIds} onSelectionChange={handleSelectionChange} />;
+}
+
 export const Default: Story = {
   args: {
     nodes: sampleNodes,
@@ -59,6 +72,7 @@ export const Default: Story = {
 };
 
 export const Selectable: Story = {
+  render: (args) => <StatefulTree {...args} />,
   args: {
     nodes: sampleNodes,
     expandable: true,
@@ -77,6 +91,7 @@ export const Draggable: Story = {
 };
 
 export const DraggableAndSelectable: Story = {
+  render: (args) => <StatefulTree {...args} />,
   args: {
     nodes: sampleNodes,
     expandable: true,
@@ -87,6 +102,7 @@ export const DraggableAndSelectable: Story = {
 };
 
 export const SingleLevel: Story = {
+  render: (args) => <StatefulTree {...args} />,
   args: {
     nodes: [
       { id: "a", label: "Item One", icon: <FileText weight="regular" className="h-3.5 w-3.5 text-tertiary" />, isLeaf: true },
@@ -104,6 +120,28 @@ export const AllExpanded: Story = {
     nodes: sampleNodes,
     expandable: true,
     defaultExpandedIds: ["1", "2", "2a", "3"],
+    className: "max-h-96",
+  },
+};
+
+export const WithContextMenu: Story = {
+  render: (args) => (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="block w-full">
+          <StatefulTree {...args} />
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem>Rename</ContextMenuItem>
+        <ContextMenuItem>Delete</ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  ),
+  args: {
+    nodes: sampleNodes,
+    expandable: true,
+    selectable: true,
     className: "max-h-96",
   },
 };
