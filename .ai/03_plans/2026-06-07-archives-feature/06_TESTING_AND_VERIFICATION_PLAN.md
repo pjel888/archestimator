@@ -89,7 +89,7 @@ Target: `e2e/archives.spec.ts`
 ## Alternative Verification
 
 If E2E tests are blocked by environment issues, use **Manual RPC Verification**:
-- Manually invoke the `archive_project` RPC via the Supabase SQL Editor and verify the `archived_at` column and UI response.
+- Manually invoke `preview_bulk_archive_projects` and `execute_bulk_archive_projects` RPCs via the Supabase SQL Editor and verify the `archived_at` column and UI response.
 
 ## Future Schema Commands
 

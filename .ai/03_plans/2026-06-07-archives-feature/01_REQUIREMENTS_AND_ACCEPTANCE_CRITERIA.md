@@ -4,7 +4,7 @@ This document outlines the functional and non-functional requirements for the pr
 
 ## Overview
 
-The Archives feature allows project owners and workspace admins to hide completed or inactive projects from their primary workspace without permanently deleting them. Archiving is a reversible state that blocks access and pauses collaboration until the project is restored.
+The Archives feature allows users with `can_edit_project` access (workspace members, project editors, admins, and owners) to hide completed or inactive projects from their primary workspace without permanently deleting them. Archiving is a reversible state that blocks access and pauses collaboration until the project is restored.
 
 ## Functional Requirements
 
@@ -64,9 +64,9 @@ The Archives feature allows project owners and workspace admins to hide complete
 
 | ID | Requirement | Pass/Fail Check |
 |---|---|---|
-| AC-01 | Permissions | Project owner can archive a project. |
-| AC-02 | Permissions | Workspace admin can archive a project. |
-| AC-03 | Permissions | Non-admin collaborators cannot archive projects. |
+| AC-01 | Permissions | Users with `can_edit_project` can archive a project. |
+| AC-02 | Permissions | Users without `can_edit_project` (viewers, sheet-only collaborators) cannot archive. |
+| AC-03 | Permissions | Users with `can_edit_project` can restore a project. |
 | AC-04 | Visibility | Archived projects appear in the "Archived" tab. |
 | AC-05 | Visibility | Archived projects do not appear in the "Active" tab. |
 | AC-06 | Access Control | Direct URL access to an archived project redirects to the projects list. |
