@@ -71,7 +71,7 @@ A multi-entity Archives Feature covering **projects, estimate sheets, cost-libra
 | 10 | IMPLEMENTATION_PROMPT | Phase-scoped implementation handoff |
 | 11 | READINESS | Honest before/after scoring |
 | 12 | OPEN_QUESTIONS | 15+ decisions + open questions |
-| 13 | TRACEABILITY | ~50 requirements across all entities |
+| 13 | TRACEABILITY | 32 project requirements; expansion to ~50+ planned |
 
 ### Specialist Documents (13)
 | # | Document | Purpose |

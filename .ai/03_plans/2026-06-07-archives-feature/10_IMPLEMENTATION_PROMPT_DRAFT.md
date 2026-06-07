@@ -10,7 +10,7 @@
 ## Implementation Prompt
 
 ```
-You are implementing the Archestimator Archives Feature — a reversible archive/restore flow for workspace projects.
+You are implementing the Archestimator Archives Feature — a reversible archive/restore flow across four entities (projects, estimate sheets, components, templates) phased across 5 implementation stages. See `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md` for the full phase plan.
 
 ## BEFORE YOU START (MANDATORY READING)
 

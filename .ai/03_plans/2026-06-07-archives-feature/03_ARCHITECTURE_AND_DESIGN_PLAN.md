@@ -1,6 +1,8 @@
 # Architecture and Design Plan: Archestimator Archives
 
-This document details the technical implementation plan for the project archiving feature.
+> **REFINEMENT NOTE (2026-06-07):** This document covers the core project-archive architecture. For the full multi-entity architecture (estimate sheets, components, templates, retention), see specialist docs: `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md`, `15_DATABASE_SCHEMA_RLS_AND_RPC_PLAN.md`, and per-entity plans `16-19`. This document remains as the detailed project-archive reference; the specialist docs extend it to all four entities.
+
+This document details the technical implementation plan for the project archiving feature (Phase 1), with cross-references to the multi-entity architecture in docs 14-19.
 
 ## Proposed Architecture
 

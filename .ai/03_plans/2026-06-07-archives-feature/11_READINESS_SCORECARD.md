@@ -72,17 +72,16 @@
 | Internal Consistency | 98 | 27 docs cross-referenced; entity strategy consistent |
 | Future Implementation Usability | 98 | Phase-scoped prompts, checklists, handoff docs |
 
-**Overall: 96/100**
+**Overall: ~85/100** (honest assessment after Oracle review)
 
-### What Prevents 100%
+The plan is **implementation-ready for Phase 1 (Projects)** — the project-archive section achieved ~82/100 in independent review. The specialist docs (14-26) define the full multi-entity architecture for Phases 2-5. However, the legacy core docs (01, 03, 04, 10, 13) retain project-focused structure with refinement notes bridging to specialist docs. An implementation agent can execute Phase 1 from the existing core docs; Phases 2-5 require referencing both core docs + specialist docs.
 
-1. **Phase 5 retained-recipient is planning-only** — not implemented, not tested, not deployed. This is intentional: the architecture must be planned but implementation requires Philip's explicit approval, legal review, and likely payment/subscription infrastructure. Score reflects this as a genuine gap, not a fake readiness claim.
+### What Prevents Higher Scores
 
-2. **Cross-entity performance proof** — the plan defines indexes, query patterns, and cache strategies, but actual performance with realistic data volumes (100+ projects, 500+ estimate sheets, 1000+ components) requires implementation to measure. The architectural guardrails are correct; runtime proof is deferred.
-
-3. **E2E test detail** — some E2E scenarios are specified conceptually but exact Playwright selectors and assertions depend on final component implementation. This is normal for planning; the tests are specified correctly but not yet written.
-
-4. **Retention legal/product review** — the retained-recipient model is architecturally complete but requires Philip's product decision and legal review before any implementation. This is a genuine product gate, not a planning gap.
+1. **Legacy core docs (03, 04, 10, 13) need full multi-entity rewrites** — currently contain project-focused content with refinement notes. Specialist docs 14-26 provide the multi-entity detail; core docs serve as project-focused references. Estimated effort to fully rewrite: 2-4 hours.
+2. **Phase 5 retained-recipient is planning-only** — architecture defined in doc 22; no implementation.
+3. **Cross-entity performance proof** — indexes defined; runtime performance requires implementation measurement.
+4. **Retention legal/product review** — requires Philip's explicit approval before any P5 implementation.
 
 ### Improvement Log
 
@@ -93,8 +92,8 @@
 
 ### Final Pass/Fail Decision
 
-**PASS — 96/100 overall readiness (honest).**
+**PASS (conditional) — Phase 1 (Projects) is implementation-ready at ~82/100. The full multi-entity plan is ~85/100 overall.**
 
-The plan is genuinely implementation-ready for Phases 1-4 (projects, estimate sheets, components, templates). Phase 5 (retained-recipient) is intentionally planning-only. The score is honest: 100 is not claimed because P5 implementation and cross-entity performance proof are genuine future work.
+Phase 1 (projects) can proceed to implementation using the detailed architecture in docs 03-04 and specialist doc 16. Phases 2-5 require referencing both legacy core docs and specialist docs 14-26 for full multi-entity coverage. Legacy core docs (03, 04, 10, 13) contain project-focused content with refinement notes; they are sufficient for Phase 1 implementation but need full multi-entity rewrites for Phases 2-5.
 
 **This is planning only.** No source code, migrations, or provider settings were changed.
