@@ -1,8 +1,33 @@
 # Philip Storybook Review Packet
 
 **Status:** Human review packet for the implemented Storybook MVP on
+`fix/storybook-standalone-ui-components`, stacked on
 `feat/ui-component-optimization`.
 **Review target:** local Storybook first; no public hosting unless separately approved.
+
+## Latest Standalone Review Entry - 2026-06-07
+
+This continuation branch changes the review surface from broad preview boards
+to individually inspectable component entries. Start review from the sidebar
+groups `Actions`, `Forms`, `Menus`, `Overlays`, `Feedback`, `Cards`, `Data
+Display`, `Navigation`, `Layout`, `Trees`, and `Domain`. Use
+`Governance / StoryCoverageDashboard` only as governance/backlog evidence.
+
+Implementation proof:
+
+- `bun run storybook:check-components` passed with 56 story files, 56 titled
+  stories, 230 story exports, 49 component-level stories, 7 overview/governance
+  stories, and 35 required standalone titles checked.
+- `bun run storybook:check-boundary` passed with 68 scanned files, 809
+  inventory rows, and 703 story rows.
+- Static Storybook build passed at
+  `/tmp/archestimator-storybook-standalone-static`.
+- Static iframe Playwright smoke passed across 17 representative stories,
+  including actions, forms, overlays, menus, cards, data display, navigation,
+  trees, domain workshop/share/notifications, and governance.
+- `bun run validate` and `bun run build` passed.
+- No production app migration, provider change, Vercel deployment, public
+  Storybook hosting, or main/staging merge is included.
 
 ## Implementation Entry - 2026-06-06
 

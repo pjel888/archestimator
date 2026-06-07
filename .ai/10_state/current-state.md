@@ -1,5 +1,32 @@
 # Current State
 
+**Standalone Storybook Component Library Completion Implemented (2026-06-07 local / 2026-06-07Z):**
+Continuation branch `fix/storybook-standalone-ui-components`, stacked on
+`feat/ui-component-optimization`, now repairs the Storybook MVP from broad
+matrix/preview boards into an inspectable component library surface. Actual
+component-level entries now exist for actions, forms, menus, overlays, feedback,
+cards, data display, navigation, layout, trees, media/charts/blocks placeholders,
+and ArchEstimator domain workshop/share/notification stories. The coverage
+dashboard was moved under `Governance/StoryCoverageDashboard` and now states
+that the canonical 809-row inventory and 703-row story manifest are planning
+backlog evidence, not proof of implemented stories.
+
+Implementation evidence: `bun run storybook:check-components` passed with 56
+actual story files, 56 titled stories, 230 story exports, 49 component-level
+stories, 7 overview/governance stories, and 35 required standalone titles
+checked. `bun run storybook:check-boundary` passed with 68 files scanned, 809
+inventory rows, and 703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run
+build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone`
+passed. Local Playwright iframe smoke against the static build loaded 17
+representative standalone stories, blocked external requests, captured
+screenshots under `/tmp/archestimator-storybook-smoke/*.png`, and reported zero
+failures. `bun run validate`
+passed with existing ESLint warnings only, 9 Bun unit tests passed, 206 Vitest
+DOM files passed, 1 skipped, 1515 tests passed, and 3 skipped. `bun run build`
+passed on Next.js 16.2.6. No production app migration, Supabase/provider change,
+Vercel deployment, public Storybook hosting, new runtime dependency, or
+main/staging merge was performed.
+
 **UI Component Library Storybook MVP Implemented On Feature Branch (2026-06-07 local / 2026-06-06Z):**
 Branch `feat/ui-component-optimization` now contains the Storybook-first UI
 Component Library MVP implementation for the canonical plan pack
