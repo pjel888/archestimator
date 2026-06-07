@@ -40,7 +40,7 @@ Create a reversible archive/restore flow for workspace projects in Archestimator
 | Pending invites when archived? | Preserved but inactive; restored projects re-enable | Avoids invite data loss |
 | Favorites for archived projects? | Hidden from favorites; re-appear on restore | Prevents broken favorite links |
 | Homebase/recent projects with archived? | Excluded | Archives are not recent/active work |
-| Search behavior | Scoped to active tab (Active/Archived separately) | Matches existing tab-scoped search pattern |
+| Search behavior | Scoped per-tab ("Your Projects", "Projects shared to you", and "Archived" separately) | Matches existing tab-scoped search pattern |
 | Count badges | Show per-tab count; totals exclude archived unless in Archived view | Clear user feedback |
 | Archive vs delete distinction | Archive = reversible, non-destructive, returns `archivedIds`. Delete = destructive, requires typed confirmation, returns `deletedIds` | Clear product semantics |
 
@@ -78,7 +78,7 @@ Create a reversible archive/restore flow for workspace projects in Archestimator
 1. **Phase 1 — Baseline & Tests:** Graph impact analysis, failing tests for archive/restore
 2. **Phase 2 — Database:** Migration for `archived_at`/`archived_by` on `projects`, archive/restore RPCs, RLS updates
 3. **Phase 3 — Server Actions:** Archive/restore preview/execute actions, repository filter updates
-4. **Phase 4 — UI:** Project list Active/Archived tabs, archive/restore actions, empty states
+4. **Phase 4 — UI:** Project list Archived tab (alongside existing tabs), archive/restore actions, empty states
 5. **Phase 5 — Route/Homebase/Collaboration:** Route guards, homebase exclusion, favorite/pending-invite semantics
 6. **Phase 6 — Publication:** Shared-link behavior for archived projects
 7. **Phase 7 — Verification:** Full test suite, design-system lint, build, E2E

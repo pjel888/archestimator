@@ -4,16 +4,16 @@ This document defines the user experience, visual design, and accessibility requ
 
 ## User Journeys
 
-1. **Archiving a Project**: A user wants to declutter their active project list. They select "Archive" from a project card, confirm the action in a non-destructive modal, and the project moves to the "Archived" tab.
-2. **Restoring a Project**: A user needs to access an old project. They switch to the "Archived" tab, find the project, and click "Restore". The project returns to the "Active" tab.
-3. **Discovering Archived Projects**: A user looks for a missing project and finds it by switching the view from "Active" to "Archived" using the tab navigation.
+1. **Archiving a Project**: A user wants to declutter their project list. They select "Archive" from a project card, confirm the action in a non-destructive modal, and the project moves to the "Archived" tab.
+2. **Restoring a Project**: A user needs to access an old project. They switch to the "Archived" tab, find the project, and click "Restore". The project returns to its original tab ("Your Projects" or "Projects shared to you").
+3. **Discovering Archived Projects**: A user looks for a missing project and finds it by switching to the "Archived" tab in the navigation.
 
 ## Screen and Component Impact
 
 - **Projects Page (`src/app/workshop/projects/page.tsx`)**: Server wrapper — passes new `includeArchived` parameter. The client component `src/components/workshop/projects-page-client.tsx` preserves existing "Your Projects"/"Projects shared to you" tabs and adds a third "Archived" tab.
 - **LiveProjectCard (`src/components/workshop/LiveProjectCard.tsx`)**: Added "Archive" action to the overflow menu or as a secondary action.
 - **ArchivedProjectCard**: A variant of the project card for the Archived tab, featuring a "Restore" action.
-- **BulkActionToolbar**: Updated to include "Archive" (in Active tab) and "Restore" (in Archived tab) actions.
+- **BulkActionToolbar**: Updated to include "Archive" (in default/non-Archived tabs) and "Restore" (in Archived tab) actions.
 - **ProjectDetailsModal**: Added "Archive" button to the settings or header area.
 
 ## Information Architecture
@@ -28,7 +28,7 @@ The project list will use a tabbed interface following the existing pattern in t
 
 ### Archive Actions
 - **Individual**: "Archive" option in the `LiveProjectCard` menu.
-- **Bulk**: "Archive" button in the `BulkActionToolbar` when one or more projects are selected in the Active tab.
+- **Bulk**: "Archive" button in the `BulkActionToolbar` when one or more projects are selected in a default (non-Archived) tab.
 - **Detail**: "Archive Project" button within the `ProjectDetailsModal`.
 
 ### Restore Actions
@@ -44,7 +44,7 @@ The project list will use a tabbed interface following the existing pattern in t
 
 ## Keyboard and Focus Behavior
 
-- **Tab Navigation**: Use arrow keys to move between "Active" and "Archived" tabs (W3C APG pattern).
+- **Tab Navigation**: Use arrow keys to move between tabs including the "Archived" tab (W3C APG pattern).
 - **Focus Return**: After closing an archive/restore modal, focus must return to the button that triggered it.
 - **List Updates**: When a project is archived, focus should move to the next item in the list or the tab itself if the list becomes empty.
 

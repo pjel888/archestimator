@@ -61,7 +61,7 @@ Verify the following after deployment:
 - **RPCs**: Ensure new functions exist and are executable by authenticated users.
 - **Active List**: Check that the active project list still loads correctly.
 - **Archive Flow**: Archive a test project. Verify it moves to the "Archived" tab.
-- **Restore Flow**: Restore that same test project. Verify it returns to the "Active" tab.
+- **Restore Flow**: Restore that same test project. Verify it returns to its original tab.
 - **Delete Flow**: Confirm that the existing delete functionality still works independently of archiving.
 - **Integrity Check**: Run `SELECT count(*) FROM projects WHERE archived_at IS NULL` before and after deployment to ensure no active projects vanished unexpectedly.
 
