@@ -14,7 +14,7 @@ backlog evidence, not proof of implemented stories.
 Implementation evidence: `bun run storybook:check-components` passed with 56
 actual story files, 56 titled stories, 230 story exports, 49 component-level
 stories, 7 overview/governance stories, and 35 required standalone titles
-checked. `bun run storybook:check-boundary` passed with 68 files scanned, 809
+checked. `bun run storybook:check-boundary` passed with 69 files scanned, 809
 inventory rows, and 703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run
 build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone`
 passed. Local Playwright iframe smoke against the static build loaded 17
@@ -22,7 +22,7 @@ representative standalone stories, blocked external requests, captured
 screenshots under `/tmp/archestimator-storybook-smoke/*.png`, and reported zero
 failures. `bun run validate`
 passed with existing ESLint warnings only, 9 Bun unit tests passed, 206 Vitest
-DOM files passed, 1 skipped, 1515 tests passed, and 3 skipped. `bun run build`
+DOM files passed, 1 skipped, 1517 tests passed, and 3 skipped. `bun run build`
 passed on Next.js 16.2.6. No production app migration, Supabase/provider change,
 Vercel deployment, public Storybook hosting, new runtime dependency, or
 main/staging merge was performed.

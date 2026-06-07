@@ -9,13 +9,13 @@
 |---|---|---|
 | `bun run storybook:check-components` | Passed | 56 actual story files, 56 titled stories, 230 story exports, 49 component-level stories, 7 overview/governance stories, 35 required standalone titles checked. |
 | `bun run type-check` | Passed | Storybook stories and coverage verifier compile under `tsc --noEmit`. |
-| `bun run storybook:check-boundary` | Passed | 68 files scanned, 809 inventory rows, 703 story rows; no forbidden provider/server imports in Storybook surfaces. |
-| `bunx vitest run tests/vitest/storybook-component-coverage.test.ts tests/vitest/storybook-provider-boundary.test.ts tests/vitest/storybook-plan-matrix.test.ts --maxWorkers=1` | Passed | 3 files, 4 tests. |
+| `bun run storybook:check-boundary` | Passed | 69 files scanned, 809 inventory rows, 703 story rows; no forbidden provider/server imports in Storybook surfaces. |
+| `bunx vitest run tests/vitest/storybook-component-coverage.test.ts tests/vitest/storybook-provider-boundary.test.ts tests/vitest/storybook-plan-matrix.test.ts --maxWorkers=1` | Passed | 3 files, 6 tests. |
 | `git diff --check` | Passed | No whitespace errors. |
 | `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone` | Passed | Static Storybook generated in `/tmp`; generated output is not committed. Vite emitted large chunk warnings for docs/axe/dashboard assets only. |
 | Local Playwright static Storybook smoke | Passed | 17 representative iframe stories loaded from `http://127.0.0.1:6210`, blocked external requests, captured screenshots under `/tmp/archestimator-storybook-smoke/`, and reported zero failures. |
 | `bun run lint:design-system` | Passed | Compact app/workshop design-system enforcement passed. |
-| `bun run validate` | Passed | Existing ESLint warnings only; 9 Bun unit tests passed; 206 Vitest DOM files passed, 1 skipped; 1515 tests passed, 3 skipped. |
+| `bun run validate` | Passed | Existing ESLint warnings only; 9 Bun unit tests passed; 206 Vitest DOM files passed, 1 skipped; 1517 tests passed, 3 skipped. |
 | `bun run build` | Passed | Next.js 16.2.6 production build completed. |
 
 ## Storybook MVP Implementation Evidence - 2026-06-06

@@ -33,11 +33,11 @@ new runtime dependencies, or main/staging merge.
   stories, 230 story exports, 49 component-level stories, 7 overview/governance
   stories, 35 required standalone titles checked.
 - `bun run type-check` passed.
-- `bun run storybook:check-boundary` passed: 68 files scanned, 809 inventory
+- `bun run storybook:check-boundary` passed: 69 files scanned, 809 inventory
   rows, 703 story rows.
 - Focused Storybook tests passed:
   `bunx vitest run tests/vitest/storybook-component-coverage.test.ts tests/vitest/storybook-provider-boundary.test.ts tests/vitest/storybook-plan-matrix.test.ts --maxWorkers=1`
-  reported 3 files and 4 tests passed.
+  reported 3 files and 6 tests passed.
 - `git diff --check` passed.
 - `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone`
   passed with only Vite large-chunk warnings for docs/axe/dashboard assets.
@@ -46,7 +46,7 @@ new runtime dependencies, or main/staging merge.
   iframe stories from `http://127.0.0.1:6210`; screenshots:
   `/tmp/archestimator-storybook-smoke/*.png`.
 - `bun run validate` passed with existing ESLint warnings only, 9 Bun unit tests
-  passed, 206 Vitest DOM files passed, 1 skipped, 1515 tests passed, and 3
+  passed, 206 Vitest DOM files passed, 1 skipped, 1517 tests passed, and 3
   skipped.
 - `bun run build` passed on Next.js 16.2.6.
 
