@@ -1,5 +1,127 @@
 # Current State
 
+**Complete Storybook Overlay Component System Implemented (2026-06-07 local / 2026-06-07Z):**
+Continuation branch `feat/storybook-complete-ui-component-system` expands the
+Storybook-first UI library into a complete overlay/modal/dialog/popup system
+without production app route migration. Added reusable overlay primitives under
+`src/components/ui/overlays/**`: Dialog primitives, AppModal/BlurModal/Modal,
+Confirm/Alert/Delete/Unsaved dialogs, ResizableModal/FloatingModal/PopupWindow,
+Sheet/Drawer/SidePanel/InspectorDrawer, Popover, Tooltip, HoverCard, and
+CommandDialog/CommandMenu. `src/components/ui/modal.tsx` remains a compatibility
+barrel for existing imports. Storybook now includes required overlay titles for
+DialogSystem, AppModal, ResizableModal, SheetDrawer, HoverCard, and
+CommandDialog, while Popover and Tooltip are real primitives rather than
+deferred/static previews.
+
+Implementation evidence: `bun run storybook:check-components` passed with 62
+actual story files, 62 titled stories, 295 story exports, 55 component-level
+stories, 7 overview/governance stories, 21 linked repo component stories, 21
+explicit fixture/composition contracts, and 41 required standalone titles
+checked. `bun run storybook:check-boundary` passed with 75 files scanned, 809
+inventory rows, and 703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run
+build-storybook -- --output-dir /tmp/archestimator-storybook-static-overlays`
+passed. Local Playwright static Storybook overlay smoke loaded 8 overlay story
+families in desktop and mobile viewports, captured 16 screenshots under
+`/tmp/archestimator-storybook-overlay-smoke/*.png`, checked body text,
+dialog/tooltip roles, pixel range, and zero console/page errors. `bun run
+validate` passed with existing ESLint warnings only, 9 Bun unit tests passed,
+206 Vitest DOM files passed, 1 skipped, 1522 tests passed, and 3 skipped.
+`bun run build` passed on Next.js 16.2.6. No production app migration,
+Supabase/provider change, Vercel deployment, public Storybook hosting, new
+runtime dependency, or main/staging merge was performed.
+
+**Standalone Storybook Component Library Completion Implemented (2026-06-07 local / 2026-06-07Z):**
+Continuation branch `fix/storybook-standalone-ui-components`, stacked on
+`feat/ui-component-optimization`, now repairs the Storybook MVP from broad
+matrix/preview boards into an inspectable component library surface. Actual
+component-level entries now exist for actions, forms, menus, overlays, feedback,
+cards, data display, navigation, layout, trees, media/charts/blocks placeholders,
+and ArchEstimator domain workshop/share/notification stories. The coverage
+dashboard was moved under `Governance/StoryCoverageDashboard` and now states
+that the canonical 809-row inventory and 703-row story manifest are planning
+backlog evidence, not proof of implemented stories.
+
+Implementation evidence: `bun run storybook:check-components` passed with 56
+actual story files, 56 titled stories, 230 story exports, 49 component-level
+stories, 7 overview/governance stories, and 35 required standalone titles
+checked. `bun run storybook:check-boundary` passed with 69 files scanned, 809
+inventory rows, and 703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run
+build-storybook -- --output-dir /tmp/archestimator-storybook-static-standalone`
+passed. Local Playwright iframe smoke against the static build loaded 17
+representative standalone stories, blocked external requests, captured
+screenshots under `/tmp/archestimator-storybook-smoke/*.png`, and reported zero
+failures. `bun run validate`
+passed with existing ESLint warnings only, 9 Bun unit tests passed, 206 Vitest
+DOM files passed, 1 skipped, 1517 tests passed, and 3 skipped. `bun run build`
+passed on Next.js 16.2.6. No production app migration, Supabase/provider change,
+Vercel deployment, public Storybook hosting, new runtime dependency, or
+main/staging merge was performed.
+
+**UI Component Library Storybook MVP Implemented On Feature Branch (2026-06-07 local / 2026-06-06Z):**
+Branch `feat/ui-component-optimization` now contains the Storybook-first UI
+Component Library MVP implementation for the canonical plan pack
+`.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`.
+Storybook is installed with `storybook@10.4.2`,
+`@storybook/nextjs-vite@10.4.2`, docs and a11y addons, and `vite@8.0.16`;
+`package.json` now exposes `bun run storybook`, `bun run build-storybook`,
+and `bun run storybook:check-boundary`. The implementation adds
+`.storybook/main.ts`, `.storybook/preview.tsx`, static fixture/decorator
+infrastructure under `src/stories/`, and reviewable story slices for
+foundations, icon system, primitive actions/status/forms/menus, navigation,
+data display, domain workshop/share/notifications, motion boundaries, and a
+documentation coverage dashboard backed by the canonical 809-row inventory and
+703-row story coverage matrices. The MVP intentionally does not migrate
+production app routes, does not introduce live Supabase/auth/provider stories,
+and keeps the Storybook provider boundary enforced by
+`scripts/check-storybook-boundary.mjs` plus
+`tests/vitest/storybook-provider-boundary.test.ts`.
+
+Implementation evidence: `bun run storybook` found port 6006 already in use, so
+this implementation pass started local Storybook on `http://127.0.0.1:6007/`
+and stopped that temporary server after smoke testing. `bun run
+storybook:check-boundary` reported 24 files scanned, 809 inventory rows, and
+703 story rows. `STORYBOOK_DISABLE_TELEMETRY=1 bun run build-storybook --
+--output-dir /tmp/archestimator-storybook-static` passed. `bun run build`,
+`bun run type-check`, `bun run lint`, `bun run lint:design-system`, focused
+Storybook/provider/matrix tests, and focused changed-component DOM tests passed.
+Local Playwright visual smoke loaded seven representative Storybook iframe
+stories, including the Documentation coverage dashboard, Foundations, Forms,
+Menus, Domain Workshop, Domain Share, and Domain Notifications; screenshots
+were saved under `/tmp/archestimator-storybook-<story-id>.png`, and the final
+smoke run had zero page or console errors. The in-app Browser plugin was
+installed but the `iab` browser instance was unavailable in this session, so the
+visual proof used local headless Playwright as a fallback. Full `bun run
+validate` now passes after stale DOM expectations were realigned to current
+compact UI behavior: 205 Vitest DOM files passed, 1 skipped, 1514 tests passed,
+and 3 skipped. Storybook hosting, provider-backed review, Philip approval, and
+production app migration remain explicitly unperformed.
+
+**UI Component Library + Storybook Plan Pack At 100/100 Docs Handoff (2026-06-06):**
+Docs-only plan pack
+`.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
+now supersedes the earlier narrow tree-only planning posture with a canonical
+Storybook-first ArchEstimator UI Component Library plan. The folder keeps the
+old tree optimization/componentization files as a domain tree sub-plan, while
+new docs `00_INDEX.md` through `38_VALIDATION_COMMAND_MATRIX.md` define requirements,
+codebase/graph/GitNexus evidence, architecture, implementation sequence,
+testing, UX/accessibility, security/data isolation, deployment/rollback,
+Storybook installation, component inventory, story coverage, design tokens,
+icons/assets, API contracts, external source adoption for shadcn/ui, Flowbite,
+Aceternity, Tailwind v4, visual QA, no-migration MVP scope, future migration
+roadmap, implementation prompts, acceptance checklist, dependency gates, and
+future agent usage rules. Supplemental docs now add a source-adoption
+crosswalk, Storybook config skeletons, fixture/decorator contracts, P0/P1 API
+reference, backlog, Philip review packet, and validation command matrix. The
+current scoped readiness is: docs package 100/100 for implementation handoff,
+Storybook setup planning 100/100 after package approval, primitives 100/100,
+full inventory 100/100 with 809 inventory rows, P0/P1 story coverage 100/100
+with 703 story rows, domain components 100/100 with graph gates, and production
+app migration 20/100 because migration is intentionally deferred.
+No source code, package file, dependency, lockfile, migration, runtime config,
+generated type, provider setting, secret, Storybook install, or production app
+behavior changed. App migration remains blocked until Philip reviews and
+approves an implemented Storybook library in a separate future pass.
+
 **UI Component Optimization Plan Pack Refined (2026-06-06):**
 Docs-only plan pack `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
 now has a canonical README/current-plan layer, measurement baseline/protocol,
@@ -1219,7 +1341,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 - Component-library inserts into live estimate rows generate UUID row ids before calling `insertEstimateRowItemFromLibrary()`, and the server action normalizes stale/non-UUID client row ids to server-generated UUIDs before Supabase sees the `estimate_row_items.id` UUID column. Static UI library items such as `lib-sofa` are treated as copied row snapshots, not `cost_library_items.id` foreign keys; only UUID-backed library items are persisted as `source_library_item_id` with `linked-clean`. Estimate row-item edits now expose quantity, adjustment percentage, and Misc Cost; discipline belongs to component-library metadata, and designation is not visible/editable on row items for now. Adjustment is displayed as a Contingency/Discount select plus positive percentage input and calculated peso value; contingency stores as a positive percentage, discount stores as a negative percentage, and total item cost includes the signed adjustment value. Migration `20260528184224_allow_estimate_row_discounts.sql` is applied to the linked remote and repaired into migration history, with remote constraints verified on `estimate_row_items` and `estimate_template_row_items` as `contingency_percentage >= -100 and contingency_percentage <= 100`.
 - Reusable estimate templates are active as of migration `20260522091621_component_library_templates.sql`. The template model is workspace scoped through `estimate_templates`, `estimate_template_nodes`, and `estimate_template_row_items` with RLS, explicit authenticated grants, deferred hierarchy triggers, and root-sort uniqueness that treats `parent_id = null` as a real sibling slot. The migration seeds default persisted templates for existing workspaces; the repository falls back to static seed templates only when the template tables are not present yet, not when migrated tables exist but are empty. Component surfaces do not apply their own static template defaults. Template insertion passes only `templateId` from the client and calls `public.insert_estimate_template_into_estimate`, which validates the source template tree and copies structures into `estimate_nodes` and `estimate_row_items` atomically with fresh UUIDs and snapshot metadata. Templates themselves remain immutable library source data during insertion.
 - Estimate area drop zones now support click and keyboard activation in addition to drag/drop. Activating the drop zone appends an unlinked manual row so users can enter quantity/Misc Cost before selecting a component; the component cell stays labeled `Drag or add a component here` and must not show a thumbnail/fallback image until replaced by a Component Library item.
-- `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md` is the active reusable UI primitive matrix and Storybook organization plan. Read it before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
+- `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/` is now the active reusable UI component library and Storybook planning pack. The older `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md` remains historical context only; read the 2026-06-06 plan before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 - `.ai/09_archive/store/2026-05-21-shadcn-context-menu-integration-complete/` is the archived closeout source for the first gradual shadcn/ui integration. The first target is implemented: estimate tree Group Node and Area Node rows use a compact shadcn/Radix Context Menu for Rename/Delete. Rename is inline in the tree row with optimistic local/query-cache updates and rollback; Delete uses the existing Modal confirmation before optimistic subtree removal, selected-node fallback, and route repair with `router.replace()` only when the active route is deleted. shadcn enters as copied shared primitives under the existing compact UI system; the reusable action-menu model is available for later filter/icon trigger adapters, but those future adapters are not implemented yet.
 - Estimate workspace persistence is state-first after RSC hydration. The `estimateQueryKeys.areaTree(estimateId)` TanStack Query cache is the live client tree source shared by `EstimateSheetTree` and `EstimateSheetContent`; RSC page props seed the cache, and Supabase server actions validate/persist mutations. Node rename is a scalar patch path that returns `{ nodeId, name }`, does not refetch/reapply the full tree, and does not call `revalidatePath()` on the active estimate route. Estimate row scalar edits for quantity, signed adjustment percentage, and Misc Cost now keep focused draft text local, patch the shared area-tree cache optimistically on commit, reconcile from the Supabase-returned canonical row fields, and rollback failed saves without visible row-level save pills. Rename rollback is scoped to the edited node so it cannot restore older whole-tree snapshots over newer cache writes. Delete/reorder remain structural mutation paths that can reconcile with a confirmed server tree, and route repair derives the current route node from the client pathname before falling back to server props. Shared area-tree cache revisions guard rollback paths from clobbering newer tree writes. The narrow Teamspaces Realtime foundation is active as private-channel code and migration policy: `project:{projectId}` Presence is for slow online/profile state, `estimate:{estimateId}` Broadcast is for throttled cursor messages, and access is authorized through `realtime.messages` RLS. It is not a table-wide Postgres Changes feed or an Activity feed; estimate sheets now mount visible, throttled, per-user colored cursor rendering with QA-visible channel/send status attributes.
 

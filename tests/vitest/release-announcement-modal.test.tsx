@@ -25,7 +25,8 @@ describe("ReleaseAnnouncementModal", () => {
     render(<ReleaseAnnouncementModal announcement={releaseAnnouncementView} />);
 
     expect(screen.getByRole("dialog", { name: "New release" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Close release announcement" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Close release announcement" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
     expect(screen.getByText(releaseAnnouncementView.body)).toHaveClass("break-words");
     expect(screen.getByText(releaseAnnouncementView.releaseVersion ?? "")).toHaveTextContent("0.1.0-notification-test");
   });

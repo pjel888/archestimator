@@ -281,7 +281,7 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     const rootTopDropZone = rootDropZone("top");
     const dataTransfer = mockDataTransfer();
 
-    expect(rootTopDropZone).toHaveClass("h-8");
+    expect(rootTopDropZone).toHaveClass("h-[9px]");
 
     fireEvent.dragStart(alternates, { dataTransfer });
     fireEvent.dragOver(rootTopDropZone, { dataTransfer });
