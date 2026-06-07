@@ -73,8 +73,8 @@ describe("workshop notification entry", () => {
       headerActionsStart,
       shellSource.indexOf("return (", headerActionsStart),
     );
-    expect(headerActionsSource.indexOf("<WorkshopSettingsModal>")).toBeLessThan(
-      headerActionsSource.indexOf("<WorkshopNotificationEntry"),
+    expect(headerActionsSource.indexOf("<WorkshopNotificationEntry")).toBeLessThan(
+      headerActionsSource.indexOf("<WorkshopSettingsModal>"),
     );
   });
 });

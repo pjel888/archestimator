@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { X } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 
@@ -8,6 +8,8 @@ type ChipProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   tone?: ChipTone;
   active?: boolean;
   removable?: boolean;
+  onRemove?: () => void;
+  removeLabel?: string;
   children: ReactNode;
 };
 
@@ -17,7 +19,29 @@ const toneClasses: Record<ChipTone, string> = {
   danger: "border-dangerSoft bg-dangerSoft text-danger hover:border-danger",
 };
 
-export function Chip({ className, tone = "neutral", active = false, removable = false, children, type = "button", ...props }: ChipProps) {
+export function Chip({
+  className,
+  tone = "neutral",
+  active = false,
+  removable = false,
+  onRemove,
+  removeLabel = "Remove",
+  children,
+  type = "button",
+  ...props
+}: ChipProps) {
+  function handleRemoveClick(event: MouseEvent<HTMLSpanElement>) {
+    event.stopPropagation();
+    onRemove?.();
+  }
+
+  function handleRemoveKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.stopPropagation();
+    onRemove?.();
+  }
+
   return (
     <button
       type={type}
@@ -30,7 +54,20 @@ export function Chip({ className, tone = "neutral", active = false, removable = 
       {...props}
     >
       <span className="truncate">{children}</span>
-      {removable ? <X size={9} weight="regular" aria-hidden="true" /> : null}
+      {removable && onRemove ? (
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={removeLabel}
+          className="inline-flex size-3 shrink-0 items-center justify-center rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          onClick={handleRemoveClick}
+          onKeyDown={handleRemoveKeyDown}
+        >
+          <X size={9} weight="regular" aria-hidden="true" />
+        </span>
+      ) : removable ? (
+        <X size={9} weight="regular" aria-hidden="true" />
+      ) : null}
     </button>
   );
 }

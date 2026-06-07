@@ -7,8 +7,10 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    ".vercel/**",
     "out/**",
     "build/**",
+    "storybook-static/**",
     "next-env.d.ts",
     "node_modules/**",
     ".ai/**",

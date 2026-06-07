@@ -229,6 +229,16 @@ function getLibraryFolderArrowWithin(scope: HTMLElement, folderId: string) {
   return arrow as HTMLElement;
 }
 
+function openComponentViewMenu() {
+  fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
+  return screen.getByRole("menu", { name: "Component view mode" });
+}
+
+function openAddComponentViewMenu(dialog: HTMLElement) {
+  fireEvent.click(within(dialog).getByRole("button", { name: /View by:/ }));
+  return within(dialog).getByRole("menu", { name: "Add component view mode" });
+}
+
 describe("component library manager bundle boundaries", () => {
   it("keeps the library folder tree surface behind a named dynamic import", () => {
     const managerSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
@@ -445,11 +455,11 @@ describe("component library manager UI", () => {
   it("moves supplier organization under Components instead of a top-level Suppliers tab", async () => {
     await renderLibrary();
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    const viewMode = openComponentViewMenu();
     expect(screen.getByText("View By")).toBeInTheDocument();
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(viewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
     const tree = screen.getByLabelText("Component library tree");
     const sheet = screen.getByLabelText("Component sheet");
@@ -472,13 +482,13 @@ describe("component library manager UI", () => {
   it("adds Brand as a component organization view and scopes the sheet directly to brands", async () => {
     await renderLibrary();
 
-    const viewMode = screen.getByRole("group", { name: "Component view mode" });
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Brand" }));
+    const viewMode = openComponentViewMenu();
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Brand" }));
 
     const tree = screen.getByLabelText("Component library tree");
     const sheet = screen.getByLabelText("Component sheet");
 
-    expect(within(viewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "View by: Brand" })).toHaveAttribute("aria-pressed", "false");
     expect(within(tree).getByRole("treeitem", { name: "All Brands" })).toHaveAttribute("aria-selected", "true");
     expect(within(tree).getByRole("treeitem", { name: "Database Brand" })).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Pull Studio" })).toBeInTheDocument();
@@ -553,8 +563,8 @@ describe("component library manager UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const viewMode = within(dialog).getByRole("group", { name: "Add component view mode" });
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
+    const viewMode = openAddComponentViewMenu(dialog);
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByRole("combobox", { name: "Supplier" }), {
@@ -562,13 +572,13 @@ describe("component library manager UI", () => {
     });
 
     expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toHaveValue("Future Fabricator");
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(dialog).queryByRole("treeitem", { name: "All Suppliers" })).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("treeitem", { name: "Future Fabricator" })).not.toBeInTheDocument();
 
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
-    expect(within(viewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(dialog).getByRole("button", { name: "View by: Suppliers" })).toHaveAttribute("aria-pressed", "false");
     expect(within(dialog).getByRole("treeitem", { name: "Future Fabricator" })).toHaveAttribute("aria-selected", "true");
   });
 
@@ -578,8 +588,8 @@ describe("component library manager UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
-    const viewMode = within(dialog).getByRole("group", { name: "Add component view mode" });
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
+    const viewMode = openAddComponentViewMenu(dialog);
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByRole("combobox", { name: "Brand" }), {
@@ -587,13 +597,13 @@ describe("component library manager UI", () => {
     });
 
     expect(within(dialog).getByRole("combobox", { name: "Brand" })).toHaveValue("Future Studio");
-    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(viewMode).getByRole("menuitemradio", { name: "Default" })).toHaveAttribute("aria-checked", "true");
     expect(within(dialog).queryByRole("treeitem", { name: "All Brands" })).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("treeitem", { name: "Future Studio" })).not.toBeInTheDocument();
 
-    fireEvent.click(within(viewMode).getByRole("button", { name: "Brand" }));
+    fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Brand" }));
 
-    expect(within(viewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(dialog).getByRole("button", { name: "View by: Brand" })).toHaveAttribute("aria-pressed", "false");
     expect(within(dialog).getByRole("treeitem", { name: "Future Studio" })).toHaveAttribute("aria-selected", "true");
   });
 
