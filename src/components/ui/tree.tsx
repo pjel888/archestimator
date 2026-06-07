@@ -124,7 +124,6 @@ const TreeRow = memo(function TreeRow({
           "group flex items-center h-9 text-[10px] text-ink tracking-normal transition-colors outline-none",
           "border border-transparent",
           isSelected && "bg-accentSoft",
-          isFocused && "ring-1 ring-inset ring-focus",
           isDragOver && dragPosition === "inside" && "bg-surfaceMuted",
           isDragOver && dragPosition === "before" && "border-t-2 border-t-primary",
           isDragOver && dragPosition === "after" && "border-b-2 border-b-primary",
