@@ -22,7 +22,7 @@ preview_bulk_restore_library_components(target_workspace_id uuid, target_item_id
   -- Returns only currently-archived items as eligible
 
 execute_bulk_restore_library_components(target_workspace_id uuid, target_item_ids uuid[], expected_preview_hash text, correlation_id uuid DEFAULT gen_random_uuid()) RETURNS jsonb
-  -- Sets lifecycle_state to last pre-archive state (from cost_library_item_state_history), or 'available' if no history
+  -- Sets lifecycle_state to 'available' (existing bulk archive RPCs do not record pre-archive state, so precise restoration is deferred to future migration)
   -- Updates lifecycle_state_changed_at = now(), lifecycle_state_changed_by = auth.uid()
 ```
 
