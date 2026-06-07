@@ -11,7 +11,7 @@
 
 A multi-entity Archives Feature covering **projects, estimate sheets, cost-library components, and estimate templates**. Each entity archives in-place within its domain route. A future retained-recipient/paid-client access layer is planned architecturally but NOT implemented in V1.
 
-**Before refinement:** Project-only plan, 66/100. **After refinement:** Multi-entity plan, targeting 96+/100.
+**Before refinement:** Project-only plan, 66/100. **After refinement:** Multi-entity plan, ~85/100 overall; Phase 1 (Projects) implementation-ready at ~82/100.
 
 ## Phase Breakdown
 
@@ -61,8 +61,8 @@ A multi-entity Archives Feature covering **projects, estimate sheets, cost-libra
 | 00 | INDEX | This file — refined overview and navigation |
 | 01 | REQUIREMENTS | Multi-entity requirements with 50+ AC items |
 | 02 | CODEBASE_RESEARCH | Live repo evidence for all four entities |
-| 03 | ARCHITECTURE | Multi-entity entity strategy matrix |
-| 04 | IMPLEMENTATION_SEQUENCE | 7-phase multi-entity execution plan |
+| 03 | ARCHITECTURE | Project-archive architecture (Phase 1); multi-entity in specialist docs 14-19 |
+| 04 | IMPLEMENTATION_SEQUENCE | Project-archive sequence (Phase 1); phased plan in specialist doc 14 |
 | 05 | BLAST_RADIUS | Per-entity blast radius with cross-cutting impacts |
 | 06 | TESTING | Multi-entity test matrices |
 | 07 | UI_UX | Per-entity IA, wireframes, accessibility, design system |
@@ -71,7 +71,7 @@ A multi-entity Archives Feature covering **projects, estimate sheets, cost-libra
 | 10 | IMPLEMENTATION_PROMPT | Phase-scoped implementation handoff |
 | 11 | READINESS | Honest before/after scoring |
 | 12 | OPEN_QUESTIONS | 15+ decisions + open questions |
-| 13 | TRACEABILITY | 32 project requirements; expansion to ~50+ planned |
+| 13 | TRACEABILITY | 32 project requirements; multi-entity expansion in specialist docs |
 
 ### Specialist Documents (13)
 | # | Document | Purpose |
@@ -131,7 +131,7 @@ git diff --check           # whitespace validation
 ## Readiness Score
 
 - **Before refinement (project-only):** 66/100
-- **After refinement (multi-entity, 27 docs):** ~96/100
+- **After refinement (multi-entity, 27 docs):** ~85/100 overall; Phase 1 (Projects) implementation-ready at ~82/100
 - **Gap preventing 100%:** Phase 5 retained-recipient is planning-only (not implemented); cross-entity performance proof with realistic data volumes requires implementation
 
 ## Current Status

@@ -96,7 +96,7 @@ A project is considered "archived" if `archived_at` is not null.
 - **Hard Delete as Archive**: Rejected because archiving must be reversible and non-destructive.
 - **Client-only Filtering**: Rejected because it is not secure and doesn't allow for server-side access blocking (redirects).
 - **Full Lifecycle State Machine**: Rejected as overengineered for V1. A simple boolean-like state is sufficient.
-- **Global Archive System**: Rejected to keep V1 scope focused on projects and minimize risk to other entities.
+- **Global Archive System**: Deferred — V1 uses in-place per-entity archives (see `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md`). A unified center is future work.
 
 ## Backward Compatibility
 

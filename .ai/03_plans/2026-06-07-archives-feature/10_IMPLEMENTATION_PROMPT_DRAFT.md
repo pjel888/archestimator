@@ -55,7 +55,9 @@ You are implementing the Archestimator Archives Feature — a reversible archive
 - Do NOT add new dependencies or packages
 - Do NOT modify provider settings, secrets, or environment variables
 
-## IMPLEMENTATION ORDER (from 04_IMPLEMENTATION_SEQUENCE.md)
+## IMPLEMENTATION ORDER (Phase 1 — Projects; see `14_ENTITY_ARCHIVE_SCOPE_AND_PHASE_STRATEGY.md` for full multi-entity plan)
+
+> **NOTE:** The 7 phases below implement Phase 1 (Projects) only. For Phases 2-5 (estimate sheets, components, templates, retention), see specialist docs `17-19` and `22`.
 
 ### Phase 1 — Baseline & Tests-First Scaffolding
 - Run GitNexus impact analysis on all symbols that will change
