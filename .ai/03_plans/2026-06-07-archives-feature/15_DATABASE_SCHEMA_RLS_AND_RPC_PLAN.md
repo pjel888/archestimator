@@ -68,7 +68,7 @@ execute_bulk_restore_estimate_sheets(target_project_id uuid, target_estimate_ids
 
 ### New RPCs (restore only — archive already exists)
 ```sql
--- Restore: sets lifecycle_state back to 'available'
+-- Restore: sets lifecycle_state to the last pre-archive state (read from cost_library_item_state_history), or 'available' if no history exists
 preview_bulk_restore_library_components(target_workspace_id uuid, target_item_ids uuid[]) RETURNS jsonb
 execute_bulk_restore_library_components(target_workspace_id uuid, target_item_ids uuid[], expected_preview_hash text, correlation_id uuid DEFAULT gen_random_uuid()) RETURNS jsonb
 ```

@@ -30,7 +30,7 @@ RPCs follow preview→execute pattern (same as project archive).
 |---------|------------------------------|
 | **Estimate editor** (`[nodeId]` route) | Redirect to estimate list with "Sheet Archived" notice |
 | **Project charts** | Exclude archived sheets from aggregation |
-| **Proposal export** | Exclude archived sheets from workbook |
+| **Proposal export** | Reject archived sheet export (single-estimate scoped route) |
 | **Publication snapshots** | Do not include archived sheets in new snapshots; existing snapshots preserved |
 | **AI Ask/read context** | Exclude archived sheet data (similar to existing component lifecycle exclusion) |
 | **AI package builder** | Reject operations on archived sheets |

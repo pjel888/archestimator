@@ -13,9 +13,9 @@
 | **Shared links** | Paused; show "Project Archived" | Excluded from new snapshots; existing preserved | N/A (components use lifecycle_state; no separate shared-link publication for individual components) | N/A |
 | **Publication snapshots** | Existing preserved; new blocked | Excluded from new snapshots | N/A | N/A |
 | **Comments/decisions** | Preserved; read-only during archive | Preserved | N/A | N/A |
-| **Proposal export** | N/A (export is sheet-level) | Exclude archived sheets | N/A | N/A |
-| **Project charts** | N/A (charts are sheet-level) | Exclude archived sheets from aggregation | N/A | N/A |
-| **AI Ask/read context** | Exclude archived project data | Exclude archived sheet data | Already excludes archived (existing) | N/A |
+| **Proposal export** | N/A (project-level; export blocked for archived projects) | Reject archived sheet export | N/A | N/A |
+| **Project charts** | N/A (blocked for archived projects) | Exclude archived sheets from aggregation | N/A | N/A |
+| **AI Ask/read context** | Exclude archived project data | Exclude archived sheet data | Already excludes archived (existing) | Exclude archived templates from AI search |
 | **AI package builder** | Reject operations on archived projects | Reject operations on archived sheets | Already rejects archived (existing) | N/A |
 | **Activity history** | Preserved; visible on restore | Preserved; visible on restore | N/A | N/A |
 | **Favorites** | Hide; re-appear on restore | Hide; re-appear on restore | N/A | N/A |

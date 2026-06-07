@@ -45,7 +45,7 @@ When inserting a template into an estimate:
 
 ## Minimal Blast Radius
 
-Templates are standalone: they only affect the `/workshop/templates` page and template insertion into estimates. No cross-cutting effects on charts, export, AI, publication, or collaboration.
+Templates are standalone: they affect the `/workshop/templates` page, template insertion into estimates, and AI template search (AI read-context and package-builder query `estimate_templates`). No cross-cutting effects on charts, export, or publication.
 
 ## Tests
 
