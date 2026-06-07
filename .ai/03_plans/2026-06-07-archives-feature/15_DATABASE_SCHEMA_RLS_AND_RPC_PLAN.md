@@ -97,7 +97,7 @@ execute_bulk_restore_templates(target_workspace_id uuid, target_template_ids uui
 ```
 
 ### Auth
-- Workspace editor for archive/restore (same as template creation)
+- Archive/restore requires workspace membership with sufficient role (tightened from current `is_workspace_member` which includes viewers; intentionally elevated to `is_workspace_editor` for archive operations since archive is a mutation)
 
 ## Retention (Phase 5 — Planning Only)
 
