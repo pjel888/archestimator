@@ -8,9 +8,9 @@
 | Entity | Proof Step | Command |
 |--------|-----------|---------|
 | Projects | Migration applied, columns exist | `SELECT column_name FROM information_schema.columns WHERE table_name='projects' AND column_name IN ('archived_at','archived_by')` |
-| Projects | RPCs exist and are callable | `SELECT preview_bulk_archive_projects(ARRAY['uuid']::uuid[])` |
+| Projects | RPCs exist and are callable | `SELECT preview_bulk_archive_projects(ARRAY['<fixture-project-uuid>']::uuid[])` |
 | Estimates | Migration applied | Same as projects |
-| Components | Restore RPCs exist | `SELECT preview_bulk_restore_library_components('uuid', ARRAY['uuid']::uuid[])` |
+| Components | Restore RPCs exist | `SELECT preview_bulk_restore_library_components('<fixture-workspace-uuid>', ARRAY['<fixture-component-uuid>']::uuid[])` |
 | Templates | Migration applied | Same as projects |
 
 ## RLS Proof Strategy
