@@ -44,4 +44,5 @@ Existing code in `src/lib/ai/package-builder/apply.ts` and `read-tools.ts` alrea
 ### Collaboration
 - `src/lib/collaboration/actions.ts` — `assertProjectAccessManager` / `assertEstimateAccessManager` should check archive state when relevant.
 - `src/app/invite/[token]/page.tsx` — block invite resolution if parent project is archived.
+- `src/app/invite/[token]/accept/route.ts` — block direct POST accept if parent project is archived.
 - `src/lib/collaboration/pending-invite-actions.ts` — `acceptPendingInvitationById` should reject if project archived.
