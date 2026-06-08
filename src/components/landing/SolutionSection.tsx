@@ -33,7 +33,7 @@ function WorkflowVisual() {
     <div className="relative flex h-full min-h-[420px] flex-col justify-center overflow-hidden rounded-[8px] border border-[#ded2c7] bg-[#f4eee7] p-6 lg:min-h-[520px]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.98),transparent_24%),linear-gradient(135deg,#f4f1ea,#fbfaf7_48%,#e5ded2)]" />
       <div className="relative">
-        <p className="mb-5 text-[12px] font-semibold text-[#9b4e29]">
+        <p className="mb-5 text-[12px] font-semibold text-brand-orange">
           Connected quote workflow
         </p>
         <div className="space-y-3">
@@ -52,7 +52,7 @@ function WorkflowVisual() {
             </div>
           ))}
         </div>
-        <div className="mt-5 rounded-[8px] border border-[#b65f2f]/20 bg-[#fff7ef] p-3">
+        <div className="mt-5 rounded-[8px] border border-brand-orange/20 bg-[#fff7ef] p-3">
           <p className="text-[12px] font-semibold text-[#171514]">
             Line-item structure drives connected quote logic
           </p>
@@ -76,7 +76,7 @@ export function SolutionSection() {
         <MotionReveal>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,0.55fr)] lg:items-end">
             <div>
-              <p className="text-[12px] font-semibold text-[#9b4e29]">
+              <p className="text-[12px] font-semibold text-brand-orange">
                 Estimate model
               </p>
               <h2 className="mt-4 max-w-[720px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[56px]">

@@ -142,7 +142,7 @@ export function ContactForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="John Doe"
-            className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50"
+            className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange disabled:bg-[#eeeeec]/50"
           />
         </div>
 
@@ -162,7 +162,7 @@ export function ContactForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="john@example.com"
-            className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50"
+            className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange disabled:bg-[#eeeeec]/50"
           />
         </div>
 
@@ -180,7 +180,7 @@ export function ContactForm() {
             value={org}
             onChange={(e) => setOrg(e.target.value)}
             placeholder="e.g. Acme Construction"
-            className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50"
+            className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange disabled:bg-[#eeeeec]/50"
           />
         </div>
 
@@ -197,7 +197,7 @@ export function ContactForm() {
               id="contact-inquiry"
               value={inquiryType}
               onChange={(e) => setInquiryType(e.target.value)}
-              className="w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] appearance-none disabled:bg-[#eeeeec]/50"
+              className="w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange appearance-none disabled:bg-[#eeeeec]/50"
             >
               <option value="access">Request Early Access</option>
               <option value="demo">Request a Product Demo</option>
@@ -226,7 +226,7 @@ export function ContactForm() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Tell us about your team and estimating workflow needs..."
-            className="mt-2 w-full rounded-[6px] border border-[#cfcfca] bg-white p-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50 resize-y"
+            className="mt-2 w-full rounded-[6px] border border-[#cfcfca] bg-white p-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-brand-orange focus:ring-1 focus:ring-brand-orange disabled:bg-[#eeeeec]/50 resize-y"
           />
         </div>
       </div>
@@ -238,7 +238,7 @@ export function ContactForm() {
 
         <button
           type="submit"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[5px] bg-[#ff7a1a] px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#e06610] disabled:bg-[#cfcfca] disabled:text-[#626260]"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[5px] bg-brand-orange px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-brand-orange-dark disabled:bg-[#cfcfca] disabled:text-[#626260]"
         >
           Open Email Draft
         </button>

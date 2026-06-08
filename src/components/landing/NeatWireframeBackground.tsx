@@ -9,9 +9,9 @@ const NEAT_TIMEOUT_ACTIVATION_DELAY_MS = 1200
 
 const neatConfig: NeatConfig = {
   colors: [
-    { color: '#f26f21', enabled: true, influence: 0.88 },
-    { color: '#e65a24', enabled: true, influence: 0.74 },
-    { color: '#c9412a', enabled: true, influence: 0.58 },
+    { color: '#aa412a', enabled: true, influence: 0.88 },
+    { color: '#8c3623', enabled: true, influence: 0.74 },
+    { color: '#aa412a', enabled: true, influence: 0.58 },
     { color: '#8d2f21', enabled: true, influence: 0.3 },
     { color: '#fff0df', enabled: false, influence: 0.08 },
     { color: '#2e0ec7', enabled: false },
@@ -28,7 +28,7 @@ const neatConfig: NeatConfig = {
   colorSaturation: -1.7,
   wireframe: true,
   colorBlending: 8.5,
-  backgroundColor: '#e96221',
+  backgroundColor: '#aa412a',
   backgroundAlpha: 0,
   grainScale: 0,
   grainSparsity: 0,
@@ -164,7 +164,7 @@ export function NeatWireframeBackground() {
         />
       ) : (
         <div
-          className='absolute inset-0 size-full bg-[linear-gradient(135deg,rgba(255,138,64,0.72),rgba(210,66,30,0.64)_45%,rgba(111,41,0,0.42))]'
+          className='absolute inset-0 size-full bg-[linear-gradient(135deg,rgba(170,65,42,0.72),rgba(140,54,35,0.64)_45%,rgba(100,38,24,0.42))]'
           data-neat-static-fallback='true'
           data-testid='neat-static-fallback'
           aria-hidden='true'

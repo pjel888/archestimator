@@ -76,7 +76,7 @@ export function ProductShowcaseSection() {
       <div className="mx-auto w-full max-w-[1952px]">
         <div className="mb-12 grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(320px,0.58fr)] lg:items-end">
           <div>
-            <p className="text-[12px] font-semibold text-[#9b4e29]">
+            <p className="text-[12px] font-semibold text-brand-orange">
               Platform method
             </p>
             <h2 className="mt-4 max-w-[760px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
@@ -111,7 +111,7 @@ export function ProductShowcaseSection() {
                 tabIndex={isSelected ? 0 : -1}
                 onClick={() => setActiveTab(tab.id)}
                 onKeyDown={handleKeyDown}
-                className={`flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 motion-reduce:transition-none ${
+                className={`flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 motion-reduce:transition-none ${
                   isSelected
                     ? "border-[#171514] text-[#171514]"
                     : "border-[#ded2c7] hover:text-[#171514]"
@@ -122,7 +122,7 @@ export function ProductShowcaseSection() {
                   aria-hidden="true"
                   className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     tab.status === "Planned preview"
-                      ? "bg-[#b65f2f]/10 text-[#8f4728]"
+                      ? "bg-brand-orange/10 text-brand-orange-dark"
                       : "bg-[#171514]/5 text-[#625950]"
                   }`}
                 >
