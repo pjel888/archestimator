@@ -101,7 +101,7 @@ export const heroCopyVariants = [
   },
   {
     id: 'review-ready-quotes',
-    headline: 'Winning teams use archestimator',
+    headline: 'Only the winning teams use archestimator',
     support:
       "The teams that win don't just work harder,\nthey have better tools.\n\narchestimator saves you time you can't afford to lose.\n\nIt makes the most out of every effort so nothing you build ever gets left behind.",
     evidenceGate: 'Closed beta preview',
