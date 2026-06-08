@@ -88,7 +88,7 @@ const heroSignalItems = [
   "Project-Shaped Workflow",
   "Reusable Component Library",
   "Proposal Handoff",
-  "Activity History & Version Tracking",
+  "Activity History",
 ] as const;
 
 export const heroCopyVariants = [
@@ -111,9 +111,9 @@ export const heroCopyVariants = [
 export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
   return (
-    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:px-8 lg:px-12 lg:pb-24 lg:pt-[150px]'>
+    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:px-8 lg:px-12 lg:py-[91px]'>
       <div
-        className='pointer-events-none absolute inset-x-0 top-24 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(170,65,42,0.24)_68%,rgba(170,65,42,0.34)_100%)]'
+        className='pointer-events-none absolute inset-x-0 top-12 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(170,65,42,0.24)_68%,rgba(170,65,42,0.34)_100%)] lg:top-[46px]'
         aria-hidden='true'
       />
       <div
@@ -135,7 +135,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               From cost proposal to client approval, in one connected workflow.
             </p>
 
-            <h1 className='mt-7 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-8 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
+            <h1 className='mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
               {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
                 seg.toLowerCase() === "archestimator" ? (
                   <span key={i} className="text-brand-orange">{seg}</span>
@@ -262,10 +262,12 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               </div>
             </div>
           </div>
-          <div className='landing-hero-status-bar absolute inset-x-0 bottom-0 z-10 flex items-center border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg min-h-16'>
-            <span className='inline-flex min-h-8 items-center rounded-[3px] border border-white/35 bg-white/16 px-4 text-[10px] font-semibold text-white backdrop-blur-md'>
-              Now On Closed Beta
-            </span>
+          <div className='landing-hero-status-bar absolute inset-x-0 bottom-0 z-10 min-h-16 border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg'>
+            <div className='landing-hero-status-card-area flex items-center'>
+              <span className='landing-hero-beta-badge inline-flex min-h-8 items-center justify-center rounded-[3px] border border-white/35 bg-white/16 px-3 text-center text-[10px] font-semibold text-white backdrop-blur-md'>
+                Now On Closed Beta
+              </span>
+            </div>
           </div>
         </div>
       </div>
