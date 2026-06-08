@@ -120,7 +120,7 @@ export default async function FeaturesPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-28">
         <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ff7a1a]">
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
             Product Capabilities
           </span>
           <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
@@ -173,7 +173,7 @@ export default async function FeaturesPage() {
                   </p>
 
                   <div className="rounded-[8px] bg-[#eeeeec]/50 p-4 border border-[#cfcfca]/30">
-                    <p className="text-[12px] font-mono font-semibold uppercase tracking-[0.08em] text-[#ff7a1a]">
+                    <p className="text-[12px] font-mono font-semibold uppercase tracking-[0.08em] text-brand-orange">
                       The Problem We Replace
                     </p>
                     <p className="mt-1 text-[13px] leading-5 text-[#626260]">
@@ -188,7 +188,7 @@ export default async function FeaturesPage() {
                     <ul className="mt-3 space-y-2.5">
                       {feat.details.map((detail, idx) => (
                         <li key={idx} className="flex items-start gap-2.5 text-[14px] leading-6 text-[#1f201f]">
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#ff7a1a]" />
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-orange" />
                           <span>{detail}</span>
                         </li>
                       ))}
@@ -213,7 +213,7 @@ export default async function FeaturesPage() {
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center justify-center rounded-[5px] bg-[#ff7a1a] px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#e06610] active:scale-95"
+              className="inline-flex min-h-11 items-center justify-center rounded-[5px] bg-brand-orange px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-brand-orange-dark active:scale-95"
             >
               Try Workspace
             </Link>

@@ -45,7 +45,7 @@ export default async function PricingPage() {
       {/* Page Header */}
       <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-28">
         <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ff7a1a]">
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
             Closed beta access
           </span>
           <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
@@ -104,7 +104,7 @@ export default async function PricingPage() {
               <div className="mt-8 pt-6 border-t border-[#cfcfca]/60">
                 <Link
                   href="/contact"
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-[5px] bg-[#ff7a1a] text-[13px] font-bold uppercase tracking-[0.04em] text-white transition hover:bg-[#e06610] active:scale-98"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-[5px] bg-brand-orange text-[13px] font-bold uppercase tracking-[0.04em] text-white transition hover:bg-brand-orange-dark active:scale-98"
                 >
                   Request access
                 </Link>
@@ -123,7 +123,7 @@ export default async function PricingPage() {
 
                 <div className="mt-8 space-y-6">
                   {futureHighlights.map((feat, index) => (
-                    <div key={index} className="border-l-2 border-[#ff7a1a] pl-4">
+                    <div key={index} className="border-l-2 border-brand-orange pl-4">
                       <h3 className="text-[14px] font-bold text-[#111111]">
                         {feat.title}
                       </h3>
@@ -141,7 +141,7 @@ export default async function PricingPage() {
                 </p>
                 <Link
                   href="/login"
-                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-[0.02em] text-[#ff7a1a] hover:underline"
+                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-[0.02em] text-brand-orange hover:underline"
                 >
                   Sign in with the invited Google account →
                 </Link>

@@ -30,7 +30,7 @@ export default async function AboutPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-28">
         <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ff7a1a]">
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
             Our Mission & Logic
           </span>
           <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
@@ -94,7 +94,7 @@ export default async function AboutPage() {
         <div className="mx-auto w-full max-w-[760px] px-6">
           <div className="rounded-[16px] border border-[#cfcfca]/80 bg-[#111111] p-8 text-white">
             <div className="flex items-center gap-3">
-              <Info className="size-6 text-[#ff7a1a]" weight="bold" />
+              <Info className="size-6 text-brand-orange" weight="bold" />
               <h2 className="text-[20px] font-semibold tracking-tight text-white md:text-[24px]">
                 What Archestimator is not
               </h2>
@@ -106,7 +106,7 @@ export default async function AboutPage() {
 
             <div className="mt-6 space-y-5 text-[14px] leading-6">
               <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-[#ff7a1a]">
+                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
                   Not a broad ERP
                 </strong>
                 <p className="text-white/60 mt-1">
@@ -114,7 +114,7 @@ export default async function AboutPage() {
                 </p>
               </div>
               <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-[#ff7a1a]">
+                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
                   Not a takeoff-first tool
                 </strong>
                 <p className="text-white/60 mt-1">
@@ -122,7 +122,7 @@ export default async function AboutPage() {
                 </p>
               </div>
               <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-[#ff7a1a]">
+                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
                   Not AI magic
                 </strong>
                 <p className="text-white/60 mt-1">
@@ -130,7 +130,7 @@ export default async function AboutPage() {
                 </p>
               </div>
               <div>
-                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-[#ff7a1a]">
+                <strong className="text-white block font-mono text-[11px] uppercase tracking-wider text-brand-orange">
                   Not a finished enterprise platform
                 </strong>
                 <p className="text-white/60 mt-1">
@@ -154,7 +154,7 @@ export default async function AboutPage() {
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center justify-center rounded-[5px] bg-[#ff7a1a] px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#e06610] active:scale-95"
+              className="inline-flex min-h-11 items-center justify-center rounded-[5px] bg-brand-orange px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-brand-orange-dark active:scale-95"
             >
               Try Workspace
             </Link>
