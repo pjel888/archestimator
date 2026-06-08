@@ -45,8 +45,11 @@ export const companyProofCopy = {
   eyebrow: "Sample quote workflows",
   headline: "Quote logic should stay connected from first quantity to proposal.",
   description:
-    "Placeholder profiles only. Real customer proof will replace this rail before any public trust claim.",
+    "A preview rail for the estimate patterns Archestimator is designed to support across builders, trades, studios, and supplier-led quoting teams.",
 };
+
+export const companyProofGovernanceNote =
+  "Placeholder profiles only. Real customer proof will replace this rail before any public trust claim.";
 
 export const placeholderCompanyProof: CompanyProofLogo[] = [
   {

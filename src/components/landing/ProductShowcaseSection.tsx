@@ -71,13 +71,27 @@ export function ProductShowcaseSection() {
     <section
       id="product"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-16 sm:px-6 sm:py-24 lg:px-8"
+      className="scroll-mt-[68px] border-b border-[#ebe4dc] bg-[#f7f1ea] px-6 py-20 sm:px-8 sm:py-28 lg:px-12"
     >
-      <div className="mx-auto w-full max-w-[1120px] border-t border-[#dedbd6] pt-7">
+      <div className="mx-auto w-full max-w-[1952px]">
+        <div className="mb-12 grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(320px,0.58fr)] lg:items-end">
+          <div>
+            <p className="text-[12px] font-semibold text-[#9b4e29]">
+              Platform method
+            </p>
+            <h2 className="mt-4 max-w-[760px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
+              The Archestimator estimate residency
+            </h2>
+          </div>
+          <p className="max-w-[500px] text-[15px] leading-7 text-[#5f554d]">
+            A structured workspace for training your own estimate logic: the project tree, reusable library, revision memory, and proposal path all stay visible as the quote matures.
+          </p>
+        </div>
+
         <div
           role="tablist"
           aria-label="Product features"
-          className="grid gap-3 text-[12px] font-semibold text-[#8c8a86] md:grid-cols-4"
+          className="grid gap-3 text-[12px] font-semibold text-[#87796f] md:grid-cols-4"
         >
           {productTabs.map((tab, index) => {
             const isSelected = activeTab === tab.id;
@@ -99,17 +113,17 @@ export function ProductShowcaseSection() {
                 onKeyDown={handleKeyDown}
                 className={`flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 motion-reduce:transition-none ${
                   isSelected
-                    ? "border-[#111111] text-[#111111]"
-                    : "border-[#dedbd6] hover:text-[#111111]"
+                    ? "border-[#171514] text-[#171514]"
+                    : "border-[#ded2c7] hover:text-[#171514]"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
                   aria-hidden="true"
-                  className={`w-fit rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] ${
+                  className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                     tab.status === "Planned preview"
-                      ? "bg-[#ff5600]/10 text-[#9d3900]"
-                      : "bg-[#111111]/5 text-[#626260]"
+                      ? "bg-[#b65f2f]/10 text-[#8f4728]"
+                      : "bg-[#171514]/5 text-[#625950]"
                   }`}
                 >
                   {tab.status}
@@ -130,7 +144,7 @@ export function ProductShowcaseSection() {
                 role="tabpanel"
                 aria-labelledby={`tab-${tab.id}`}
                 hidden={!isSelected}
-                className="rounded-[14px] bg-white p-2 shadow-[0_18px_46px_rgba(17,17,17,0.055)] transition-opacity duration-300 motion-reduce:transition-none"
+                className="rounded-[8px] border border-[#ded2c7] bg-white p-2 shadow-[0_18px_46px_rgba(71,49,31,0.07)] transition-opacity duration-300 motion-reduce:transition-none"
               >
                 {tabPanels[tab.id]}
               </div>

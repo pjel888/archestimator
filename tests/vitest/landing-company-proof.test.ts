@@ -127,6 +127,7 @@ describe("landing page company proof and Lenis integration", () => {
       readProjectFile("src/components/landing/SecondaryClaimSection.tsx"),
       readProjectFile("src/components/landing/SolutionSection.tsx"),
       readProjectFile("src/components/landing/PricingSection.tsx"),
+      readProjectFile("src/components/landing/FAQSection.tsx"),
       readProjectFile("src/components/landing/FinalCTASection.tsx"),
       readProjectFile("src/components/landing/LandingFooter.tsx"),
     ].join("\n");
@@ -138,7 +139,7 @@ describe("landing page company proof and Lenis integration", () => {
       "product",
       "method",
       "solutions",
-      "pricing",
+      "insights",
       "contact",
     ]);
     for (const hash of hashHrefs) {

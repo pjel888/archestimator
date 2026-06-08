@@ -37,8 +37,8 @@ export default async function LandingPage() {
         <LandingSmoothScrollProvider>
           <main data-landing-page-root="true">
             <HeroSection variant={heroVariant} />
-            <SecondaryClaimSection />
             <CompanyProofCarouselSection />
+            <SecondaryClaimSection />
             <ProductShowcaseSection />
             <SolutionSection />
             <PricingSection />
@@ -51,4 +51,3 @@ export default async function LandingPage() {
     </PublicPageShell>
   );
 }
-

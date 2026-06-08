@@ -5,6 +5,12 @@ import {
   type CompanyProofLogo,
 } from "./company-proof-data";
 
+const betaStats = [
+  { value: "3", label: "Connected surfaces", detail: "Estimate, revision, proposal handoff" },
+  { value: "6", label: "Workflow patterns", detail: "Contractors, trades, suppliers, and reps" },
+  { value: "0", label: "Payment required", detail: "Closed beta access before pricing" },
+] as const;
+
 function CompanyProofLogoIcon({ name }: { name: string }) {
   if (name.includes("Northline")) {
     return (
@@ -90,24 +96,43 @@ export function CompanyProofCarouselSection() {
       data-company-proof-section="true"
       data-company-proof-state={proofState}
       data-landing-snap-section="true"
-      className="relative scroll-mt-[68px] overflow-hidden bg-[#eeeeec] pt-12 pb-12 sm:pt-16 sm:pb-16 text-[#111111]"
+      className="relative scroll-mt-[68px] overflow-hidden border-b border-[#ebe4dc] bg-[#fffdf9] py-20 text-[#111111] sm:py-24"
     >
-      <div className="mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-8">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#8c8a86]">
-          {companyProofCopy.eyebrow}
-        </p>
-        <h2
-          id="company-proof-heading"
-          className="mt-2 max-w-[620px] text-[24px] font-normal leading-[1.05] tracking-[-0.045em] text-[#111111] sm:text-[34px]"
-        >
-          {companyProofCopy.headline}
-        </h2>
-        <p className="mt-3 max-w-[560px] text-[11px] font-medium leading-[1.5] text-[#626260] sm:text-[12px]">
-          {companyProofCopy.description}
-        </p>
+      <div className="w-full px-6 sm:px-8 lg:px-12">
+        <div className="grid gap-6 border-y border-[#e6ded5] py-8 lg:grid-cols-3">
+          {betaStats.map((stat) => (
+            <article key={stat.label} className="min-h-[132px] border-[#e6ded5] py-2 lg:border-r lg:pr-8 last:lg:border-r-0">
+              <p className="text-[48px] font-normal leading-none text-[#171514]">{stat.value}</p>
+              <h2 className="mt-4 text-[18px] font-medium tracking-normal text-[#171514]">
+                {stat.label}
+              </h2>
+              <p className="mt-2 text-[13px] leading-6 text-[#6a5f56]">{stat.detail}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="grid gap-10 py-16 lg:grid-cols-[minmax(0,0.96fr)_minmax(360px,0.64fr)] lg:items-end">
+          <blockquote className="max-w-[820px] text-[30px] font-normal leading-[1.14] tracking-normal text-[#171514] sm:text-[42px]">
+            “The estimate should explain itself before it becomes a proposal.”
+          </blockquote>
+          <div>
+            <p className="text-[12px] font-semibold text-[#9b4e29]">
+              {companyProofCopy.eyebrow}
+            </p>
+            <h2
+              id="company-proof-heading"
+              className="mt-3 text-[28px] font-normal leading-[1.12] tracking-normal text-[#111111] sm:text-[36px]"
+            >
+              {companyProofCopy.headline}
+            </h2>
+            <p className="mt-4 max-w-[560px] text-[13px] font-medium leading-6 text-[#626260]">
+              {companyProofCopy.description}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="landing-company-carousel-viewport relative mt-7 w-full overflow-hidden border-y border-white/10 bg-[#f8f6f1] !bg-[#111111] py-5 shadow-[0_18px_46px_rgba(17,17,17,0.08)]">
+      <div className="landing-company-carousel-viewport relative w-full overflow-hidden border-y border-white/10 bg-[#f8f6f1] !bg-[#111111] py-5 shadow-[0_18px_46px_rgba(17,17,17,0.08)]">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 bg-gradient-to-r from-[#111111] to-transparent sm:w-20" />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-[#111111] to-transparent sm:w-20" />
         <div
