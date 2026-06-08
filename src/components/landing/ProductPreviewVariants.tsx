@@ -1,12 +1,12 @@
 export function EstimateWorkspacePreview() {
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
-      <div className="absolute left-6 top-6 size-2 bg-[#006cff]" />
+      <div className="absolute left-6 top-6 size-2 bg-[#8d7664]" />
       <div className="absolute bottom-6 right-6 size-2 bg-[#111111]" />
       <div className="mx-auto overflow-hidden rounded-[6px] border border-black/15 bg-white shadow-[0_22px_70px_rgba(17,17,17,0.16)]">
         <div className="flex h-12 items-center justify-between border-b border-[#dedbd6] px-4">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-[#ff5600]" />
+            <span className="size-2 rounded-full bg-[#a9532d]" />
             <span className="text-[12px] font-semibold text-[#111111]">Interior Fit-out Estimate</span>
           </div>
           <span className="rounded-[4px] bg-[#111111] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">₱4.82M</span>
@@ -75,12 +75,12 @@ export function ComponentLibraryPreview() {
 
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
-      <div className="absolute left-6 top-6 size-2 bg-[#006cff]" />
+      <div className="absolute left-6 top-6 size-2 bg-[#8d7664]" />
       <div className="absolute bottom-6 right-6 size-2 bg-[#111111]" />
       <div className="mx-auto overflow-hidden rounded-[6px] border border-black/15 bg-white shadow-[0_22px_70px_rgba(17,17,17,0.16)]">
         <div className="flex h-12 items-center justify-between border-b border-[#dedbd6] px-4">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-[#ff5600]" />
+            <span className="size-2 rounded-full bg-[#a9532d]" />
             <span className="text-[12px] font-semibold text-[#111111]">Component Library</span>
           </div>
           <span className="rounded-[4px] bg-[#111111] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">42 items</span>
@@ -105,7 +105,7 @@ export function ComponentLibraryPreview() {
                   <span className="rounded-[3px] bg-[#faf9f6] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[#7b7b78]">
                     {c.category}
                   </span>
-                  <span className="text-[11px] font-semibold text-[#ff5600]">{c.rate}</span>
+                  <span className="text-[11px] font-semibold text-[#a9532d]">{c.rate}</span>
                 </div>
                 <p className="text-[13px] font-semibold text-[#111111]">{c.name}</p>
                 <div className="mt-2 flex items-center gap-2">
@@ -136,18 +136,18 @@ export function RevisionIntelligencePreview() {
 
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
-      <div className="absolute left-6 top-6 size-2 bg-[#006cff]" />
+      <div className="absolute left-6 top-6 size-2 bg-[#8d7664]" />
       <div className="absolute bottom-6 right-6 size-2 bg-[#111111]" />
       <div className="mx-auto overflow-hidden rounded-[6px] border border-black/15 bg-white shadow-[0_22px_70px_rgba(17,17,17,0.16)]">
         <div className="flex h-12 items-center justify-between border-b border-[#dedbd6] px-4">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-[#ff5600]" />
+            <span className="size-2 rounded-full bg-[#a9532d]" />
             <span className="text-[12px] font-semibold text-[#111111]">Revision Intelligence</span>
-            <span className="rounded-full bg-[#ff5600]/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-[#9d3900]">
+            <span className="rounded-full bg-[#a9532d]/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-[#8f4728]">
               Planned preview
             </span>
           </div>
-          <span className="rounded-[4px] bg-[#ff5600] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">+₱187,400</span>
+          <span className="rounded-[4px] bg-[#a9532d] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">+₱187,400</span>
         </div>
         <div className="min-h-[420px] bg-[#faf9f6] p-4">
           <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b7b78]">
@@ -167,8 +167,8 @@ export function RevisionIntelligencePreview() {
                 <span
                   className={`rounded-[4px] px-2 py-1 font-mono text-[10px] font-semibold ${
                     c.type === "up"
-                      ? "bg-[#ff5600]/10 text-[#ff5600]"
-                      : "bg-[#006cff]/10 text-[#006cff]"
+                      ? "bg-[#a9532d]/10 text-[#a9532d]"
+                      : "bg-[#8d7664]/10 text-[#8d7664]"
                   }`}
                 >
                   {c.delta}
@@ -191,14 +191,14 @@ export function RevisionIntelligencePreview() {
 export function ProposalComparisonsPreview() {
   return (
     <div className="relative w-full overflow-hidden rounded-[8px] border border-[#dedbd6] bg-[#e8dfd2] p-4 sm:p-8 lg:p-12">
-      <div className="absolute left-6 top-6 size-2 bg-[#006cff]" />
+      <div className="absolute left-6 top-6 size-2 bg-[#8d7664]" />
       <div className="absolute bottom-6 right-6 size-2 bg-[#111111]" />
       <div className="mx-auto overflow-hidden rounded-[6px] border border-black/15 bg-white shadow-[0_22px_70px_rgba(17,17,17,0.16)]">
         <div className="flex h-12 items-center justify-between border-b border-[#dedbd6] px-4">
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-[#ff5600]" />
+            <span className="size-2 rounded-full bg-[#a9532d]" />
             <span className="text-[12px] font-semibold text-[#111111]">Proposal Comparisons</span>
-            <span className="rounded-full bg-[#ff5600]/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-[#9d3900]">
+            <span className="rounded-full bg-[#a9532d]/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-[#8f4728]">
               Planned preview
             </span>
           </div>
@@ -220,10 +220,10 @@ export function ProposalComparisonsPreview() {
                 ))}
               </div>
             </div>
-            <div className="rounded-[10px] border border-[#ff5600]/30 bg-white p-4">
+            <div className="rounded-[10px] border border-[#a9532d]/30 bg-white p-4">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b7b78]">Option B</span>
-                <span className="rounded-[4px] bg-[#ff5600]/10 px-2 py-1 font-mono text-[10px] font-semibold text-[#ff5600]">Value engineering</span>
+                <span className="rounded-[4px] bg-[#a9532d]/10 px-2 py-1 font-mono text-[10px] font-semibold text-[#a9532d]">Value engineering</span>
               </div>
               <p className="mt-2 text-[18px] font-normal tracking-[-0.03em] text-[#111111]">₱4.31M</p>
               <div className="mt-3 space-y-1.5">
@@ -237,7 +237,7 @@ export function ProposalComparisonsPreview() {
           </div>
           <div className="mt-4 flex items-center justify-between rounded-[8px] border border-[#dedbd6] bg-white p-3">
             <span className="text-[12px] font-semibold text-[#111111]">Delta</span>
-            <span className="font-mono text-[14px] font-semibold text-[#ff5600]">−₱510,000 (−10.6%)</span>
+            <span className="font-mono text-[14px] font-semibold text-[#a9532d]">−₱510,000 (−10.6%)</span>
           </div>
           <p className="mt-3 text-[12px] text-[#7b7b78]">
             Planned comparison views should help teams compare estimate sheets, alternates, and value-engineering options before client handoff.

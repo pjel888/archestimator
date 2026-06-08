@@ -14,11 +14,11 @@ describe("landing page below-hero interactivity", () => {
   it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
     render(<HeroSection />);
 
-    expect(screen.getByRole("heading", { name: /clearer workspace for quote sheets and proposal handoff/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /proposal workspace for construction estimates/i })).toBeInTheDocument();
     expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
       expect.arrayContaining([
-        "A clearer workspace for quote sheets and proposal handoff.",
-        "Build estimate logic buyers can actually review.",
+        "The proposal workspace for construction estimates.",
+        "A calmer platform for estimate handoff.",
       ]),
     );
     expect(heroCopyVariants.map((variant) => variant.support).join(" ")).toMatch(
@@ -82,15 +82,16 @@ describe("landing page below-hero interactivity", () => {
   it("renders a professional footer with grounded quote-and-proposal navigation", () => {
     render(<LandingFooter />);
 
-    const footer = screen.getByRole("contentinfo", { name: /clearer quote and proposal workspace/i });
+    const footer = screen.getByRole("contentinfo", { name: /estimate infrastructure/i });
     expect(footer).toBeInTheDocument();
-    expect(screen.getByText(/A clearer quote and proposal workspace for sales teams, suppliers, and estimating teams/i)).toBeInTheDocument();
-    expect(screen.getByText(/Less file hunting/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /Open workspace/i }).map((link) => link.getAttribute("href"))).toContain("/workshop");
-    expect(screen.getAllByRole("link", { name: /Try Workspace/i }).map((link) => link.getAttribute("href"))).toContain("/login?next=/workshop/projects");
-    expect(screen.getByRole("link", { name: "Estimate Workspace" })).toHaveAttribute("href", "#product");
-    expect(screen.getByRole("link", { name: "Proposal-ready outputs" })).toHaveAttribute("href", "#solutions");
+    expect(footer).toHaveAttribute("data-visual-reference", "amigo-footer");
+    expect(footer).toHaveStyle({ backgroundColor: "#aa412a" });
+    expect(screen.getByText(/Estimate infrastructure for building and handing off construction proposals/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("href", "/workshop");
+    expect(screen.getByRole("link", { name: "Platform" })).toHaveAttribute("href", "#product");
+    expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute("href", "/contact");
+    expect(screen.getByRole("link", { name: "Privacy policy" })).toHaveAttribute("href", "/privacy");
     expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} Archestimator`))).toBeInTheDocument();
-    expect(footer).not.toHaveTextContent(/Trusted by|Used by|Customers include|testimonial/i);
+    expect(footer).not.toHaveTextContent(/Trusted by|Used by|Customers include|testimonial|MVP preview|Less file hunting/i);
   });
 });

@@ -11,23 +11,23 @@ export function FinalCTASection() {
     <section
       id="contact"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-20 text-[#111111] sm:px-6 sm:py-28 lg:px-8"
+      className="scroll-mt-[68px] bg-[#fffdf9] px-6 py-20 text-[#171514] sm:px-8 sm:py-28 lg:px-12"
     >
-      <div className="mx-auto w-full max-w-[1120px]">
+      <div className="mx-auto w-full max-w-[1952px]">
         <MotionReveal>
-          <div className="flex flex-col items-start justify-between gap-8 rounded-[14px] border border-[#dedbd6] bg-[#ff7a1a] p-8 text-white shadow-[0_18px_46px_rgba(111,41,0,0.13)] sm:p-10 lg:flex-row lg:items-end">
+          <div className="flex flex-col items-start justify-between gap-8 border-y border-[#e5ded5] py-12 lg:flex-row lg:items-end">
             <div>
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+              <p className="text-[12px] font-semibold text-[#9b4e29]">
                 Start quoting
               </p>
-              <h2 className="mt-4 max-w-[760px] text-[40px] font-normal leading-[1.02] tracking-[-0.052em] sm:text-[62px]">
-                Build your next quote with the logic still connected.
+              <h2 className="mt-4 max-w-[880px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
+                Reliable estimating infrastructure for construction proposals.
               </h2>
             </div>
             <Link
               href={workshopHref}
               onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "final_cta", target: "open_workspace" })}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[5px] bg-white px-4 text-[12px] font-semibold leading-none text-[#111111] transition hover:translate-y-[-1px] hover:bg-[#fff7ef] active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#ff7a1a]"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] bg-[#a9532d] px-5 text-[13px] font-semibold leading-none text-white transition hover:bg-[#8f4728] active:scale-95 focus-visible:ring-2 focus-visible:ring-[#b65f2f] focus-visible:ring-offset-2"
             >
               Open workspace <ArrowRight className="size-4" weight="bold" />
             </Link>

@@ -1,150 +1,165 @@
 import Link from "next/link";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import type { CSSProperties } from "react";
+import { EnvelopeSimple, LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
 import { MotionReveal } from "./MotionReveal";
-import { loginHref, workshopHref } from "./constants";
+import { workshopHref } from "./constants";
 
-const footerHighlights = [
-  "Build around the offer, not a blank spreadsheet.",
-  "Keep quantities, prices, supplier context, and proposal context connected.",
-  "See what changed before a revision becomes a buyer problem.",
+const footerColor = "#aa412a";
+
+const footerNavGroups = [
+  {
+    title: "Platform",
+    links: [
+      { label: "Platform", href: "#product" },
+      { label: "Workspace", href: workshopHref },
+    ],
+  },
+  {
+    title: "Insights",
+    links: [
+      { label: "Field notes", href: "#insights" },
+      { label: "Estimate guide", href: "#method" },
+      { label: "Workflow status", href: "#solutions" },
+      { label: "Pricing access", href: "#pricing" },
+    ],
+  },
+  {
+    title: "Connect",
+    links: [
+      { label: "Contact us", href: "/contact", icon: EnvelopeSimple },
+      { label: "LinkedIn", href: "https://www.linkedin.com/company/archestimator/", icon: LinkedinLogo },
+    ],
+  },
+  {
+    title: "Specialties",
+    links: [
+      { label: "General contractors", href: "#method" },
+      { label: "Specialty trades", href: "#method" },
+      { label: "Supplier teams", href: "#solutions" },
+      { label: "Proposal teams", href: "#solutions" },
+      { label: "Cost planning", href: "#product" },
+      { label: "Closed beta", href: "#pricing" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Careers", href: "/contact" },
+      { label: "Beta access", href: "/contact" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Trust notes", href: "#contact" },
+      { label: "Privacy policy", href: "/privacy" },
+      { label: "Terms of service", href: "/terms" },
+    ],
+  },
 ] as const;
+
+function FooterGraphBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-[44%] overflow-hidden opacity-70" aria-hidden="true">
+      <div className="absolute left-[23%] top-0 h-[58%] w-px bg-white/34" />
+      <div className="absolute left-[23%] top-[21%] size-2 bg-[#d8c3d2]" />
+      <div className="absolute left-[54%] top-0 h-[70%] w-px bg-white/26" />
+      <div className="absolute right-[28%] top-[16%] h-[62%] w-px bg-white/22" />
+      <div className="absolute left-[30%] top-[20%] h-28 w-[39%] bg-[linear-gradient(180deg,rgba(224,210,228,0.98),rgba(224,210,228,0.5)_36%,rgba(224,210,228,0)_100%)] blur-[0.5px]" />
+      <div className="absolute left-[30%] top-[20%] h-28 w-[12%] bg-[#d8c3d2]/70" />
+      <div className="absolute left-[42%] top-[25%] h-24 w-[12%] bg-[#d8c3d2]/60" />
+      <div className="absolute left-[54%] top-[20%] h-20 w-[13%] bg-[#d8c3d2]/70" />
+      <div className="absolute left-[67%] top-[16%] h-16 w-[13%] bg-[#d8c3d2]/65" />
+      <div className="absolute left-[14%] top-[9%] font-mono text-[12px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/22">
+        Scope
+        <br />
+        Logic
+      </div>
+      <div className="absolute right-[16%] top-[39%] font-mono text-[12px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/34">
+        Revision
+        <br />
+        Handoff
+      </div>
+    </div>
+  );
+}
 
 export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
   const currentYear = new Date().getFullYear();
-
-  const footerLinkGroups = [
-    {
-      title: "Product",
-      links: [
-        { label: "Estimate Workspace", href: isHomePage ? "#product" : "/features" },
-        { label: "Component Library", href: isHomePage ? "#product" : "/features" },
-        { label: "Revision Intelligence", href: isHomePage ? "#product" : "/features" },
-        { label: "Proposal Comparisons", href: isHomePage ? "#product" : "/features" },
-      ],
-    },
-    {
-      title: "Workflow",
-      links: [
-        { label: "Project hierarchy", href: isHomePage ? "#method" : "/#method" },
-        { label: "Visual cost breakdowns", href: isHomePage ? "#solutions" : "/#solutions" },
-        { label: "Proposal-ready outputs", href: isHomePage ? "#solutions" : "/#solutions" },
-        { label: "Excel and PDF handoff", href: isHomePage ? "#pricing" : "/#pricing" },
-      ],
-    },
-    {
-      title: "Access",
-      links: [
-        { label: "Open workspace", href: workshopHref },
-        { label: "Try Workspace", href: loginHref },
-        { label: "Pricing", href: isHomePage ? "#pricing" : "/pricing" },
-        { label: "About", href: "/about" },
-        { label: "Contact", href: isHomePage ? "#contact" : "/contact" },
-      ],
-    },
-  ];
+  const resolveHref = (href: string) => {
+    if (isHomePage || !href.startsWith("#")) return href;
+    return `/${href}`;
+  };
 
   return (
     <footer
-      className="scroll-mt-[68px] bg-[#111111] px-4 pb-12 pt-24 text-white sm:px-6 lg:min-h-[calc(100svh-68px)] lg:px-8"
+      className="relative isolate overflow-hidden px-5 pb-16 pt-28 text-white sm:px-8 lg:min-h-[1040px] lg:px-12 lg:pb-24 lg:pt-[360px]"
+      style={{ backgroundColor: footerColor }}
       aria-labelledby="landing-footer-heading"
       data-landing-snap-section="true"
+      data-visual-reference="amigo-footer"
     >
-      <MotionReveal>
-        <div className="mx-auto w-full max-w-[1120px]">
-          <div className="grid gap-10 border-b border-white/12 pb-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
-            <div>
-              <Link href="/" className="inline-flex items-center" aria-label="Archestimator home">
-                <ArchestimatorLogo
-                  tone="light"
-                  markSize={36}
-                  markClassName="size-9"
-                  separatorClassName="bg-white/20"
-                  wordmarkClassName="text-[17px] text-white"
-                />
-              </Link>
+      <FooterGraphBackdrop />
 
-              <h2 id="landing-footer-heading" className="mt-8 max-w-[680px] text-[34px] font-normal leading-[1.03] tracking-[-0.052em] text-white sm:text-[46px]">
-                A clearer quote and proposal workspace for sales teams, suppliers, and estimating teams.
-              </h2>
-              <p className="mt-5 max-w-[560px] text-[14px] leading-6 text-white/66">
-                Less file hunting. Less version confusion. More clarity around the quote, the revision, and the proposal the buyer needs to understand.
+      <MotionReveal className="relative z-10 mx-auto grid w-full max-w-[1480px] gap-16 lg:grid-cols-[minmax(280px,0.72fr)_minmax(680px,1.28fr)] lg:items-start">
+        <div className="max-w-[420px]">
+          <Link href="/" className="inline-flex items-center" aria-label="Archestimator home">
+            <ArchestimatorLogo
+              tone="light"
+              markSize={42}
+              markClassName="size-[42px]"
+              separatorClassName="hidden"
+              wordmarkClassName="text-[34px] text-white"
+            />
+          </Link>
+
+          <h2 id="landing-footer-heading" className="mt-8 max-w-[380px] text-[28px] font-normal leading-[1.13] tracking-normal text-white sm:text-[34px]">
+            Estimate infrastructure for building and handing off construction proposals.
+          </h2>
+        </div>
+
+        <div className="grid gap-y-12 border-white/24 lg:grid-cols-3">
+          {footerNavGroups.map((group) => (
+            <nav
+              key={group.title}
+              aria-label={`${group.title} footer links`}
+              className="border-white/24 pb-2 lg:min-h-[230px] lg:border-l lg:pl-8"
+            >
+              <p className="text-[18px] font-normal leading-none text-white">
+                {group.title}
               </p>
+              <ul className="mt-8 space-y-4">
+                {group.links.map((link) => {
+                  const Icon = "icon" in link ? link.icon : null;
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={workshopHref}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[5px] bg-white px-4 text-[12px] font-semibold leading-none text-[#111111] transition hover:translate-y-[-1px] hover:bg-[#fff7ef] active:scale-95 focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-                >
-                  Open workspace <ArrowRight className="size-4" weight="bold" />
-                </Link>
-                <Link
-                  href={loginHref}
-                  className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-white/18 px-4 text-[12px] font-semibold leading-none text-white transition hover:border-white/36 hover:bg-white/8 active:scale-95 focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111] motion-reduce:transition-none"
-                >
-                  Try Workspace
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid gap-7 sm:grid-cols-3 lg:pt-3">
-              {footerLinkGroups.map((group) => (
-                <nav key={group.title} aria-label={`${group.title} footer links`}>
-                  <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ff7a1a]">
-                    {group.title}
-                  </p>
-                  <ul className="mt-4 space-y-3 text-[13px] leading-none text-white/58">
-                    {group.links.map((link) => (
-                      <li key={`${group.title}-${link.label}`}>
-                        <Link href={link.href} className="transition hover:text-white focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111] motion-reduce:transition-none">
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-8 py-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
-            <div className="rounded-[12px] border border-white/10 bg-white/[0.04] p-5">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">
-                MVP preview
-              </p>
-              <p className="mt-3 text-[13px] leading-6 text-white/68">
-                Archestimator is being shaped as an early quote, estimate, and proposal workspace. It supports human review instead of replacing commercial, purchasing, or legal judgment.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              {footerHighlights.map((highlight) => (
-                <div key={highlight} className="min-h-[112px] rounded-[12px] border border-white/10 bg-white/[0.035] p-4">
-                  <span aria-hidden="true" className="text-[12px] font-bold leading-none text-[#ff7a1a]">
-                    ✱
-                  </span>
-                  <p className="mt-4 text-[13px] leading-5 text-white/72">{highlight}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-white/12 pt-6 text-[11px] text-white/42 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <span>© {currentYear} Archestimator. All rights reserved.</span>
-              <Link href="/privacy" className="transition hover:text-white">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="transition hover:text-white">
-                Terms of Service
-              </Link>
-            </div>
-            <p>Built for quote and proposal workflows. No fake logos, legal-document automation, or savings guarantees.</p>
-          </div>
+                  return (
+                    <li key={`${group.title}-${link.label}`}>
+                      <Link
+                        href={resolveHref(link.href)}
+                        className="inline-flex items-center gap-4 font-mono text-[12px] font-medium uppercase leading-none tracking-[0.14em] text-white/58 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 motion-reduce:transition-none"
+                        style={{ "--tw-ring-offset-color": footerColor } as CSSProperties}
+                      >
+                        {Icon ? <Icon className="size-3.5 text-white/58" weight="fill" aria-hidden="true" /> : null}
+                        {link.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          ))}
         </div>
       </MotionReveal>
+
+      <div className="relative z-10 mx-auto mt-24 flex w-full max-w-[1480px] justify-end lg:mt-28">
+        <p className="font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-white/28">
+          © {currentYear} Archestimator. All rights reserved.
+        </p>
+      </div>
     </footer>
   );
 }
