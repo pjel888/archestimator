@@ -5,6 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { loginHref } from './constants'
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
+import { Blueprint, FileText, Trophy } from "@phosphor-icons/react/dist/ssr";
 
 const NeatWireframeBackground = dynamic(() =>
   import("./NeatWireframeBackground").then((module) => module.NeatWireframeBackground),
@@ -65,15 +66,21 @@ const heroVisualSlides = [
 const heroDiagramSteps = [
   {
     number: "01",
-    label: "Build",
+    label: "Estimate",
+    icon: Blueprint,
+    detail: "Build precise, structured cost proposals from your own reusable library of components, materials, and services.",
   },
   {
     number: "02",
     label: "Bid",
+    icon: FileText,
+    detail: "Turn your finished estimate into a polished, client-ready proposal in one seamless flow.",
   },
   {
     number: "03",
     label: "Win",
+    icon: Trophy,
+    detail: "Send your proposal and close the deal in one seamless workflow where clients can review, comment, and approve directly.",
   },
 ] as const;
 
@@ -104,13 +111,13 @@ export const heroCopyVariants = [
 export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
   return (
-    <section className='relative isolate w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] sm:px-8 lg:px-12 lg:pb-24 lg:pt-[150px]'>
+    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:px-8 lg:px-12 lg:pb-24 lg:pt-[150px]'>
       <div
-        className='pointer-events-none absolute inset-x-0 top-24 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(190,91,45,0.24)_68%,rgba(134,55,28,0.34)_100%)]'
+        className='pointer-events-none absolute inset-x-0 top-24 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(170,65,42,0.24)_68%,rgba(170,65,42,0.34)_100%)]'
         aria-hidden='true'
       />
       <div
-        className='pointer-events-none absolute right-[-12vw] top-10 h-[640px] w-[82vw] max-w-[1180px] bg-[radial-gradient(ellipse_at_55%_38%,rgba(199,93,42,0.42),transparent_58%),linear-gradient(135deg,rgba(255,180,104,0.2),rgba(146,58,31,0.28)_58%,transparent)] blur-3xl'
+        className='pointer-events-none absolute right-[-12vw] top-10 h-[640px] w-[82vw] max-w-[1180px] bg-[radial-gradient(ellipse_at_55%_38%,rgba(170,65,42,0.42),transparent_58%),linear-gradient(135deg,rgba(170,65,42,0.2),rgba(170,65,42,0.28)_58%,transparent)] blur-3xl'
         aria-hidden='true'
       />
       <div
@@ -131,7 +138,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
             <h1 className='mt-7 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-8 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
               {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
                 seg.toLowerCase() === "archestimator" ? (
-                  <span key={i} className="text-[#a9532d]">{seg}</span>
+                  <span key={i} className="text-brand-orange">{seg}</span>
                 ) : (
                   <span key={i}>{seg}</span>
                 )
@@ -146,7 +153,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
                   {i > 0 && <br aria-hidden="true" />}
                   {part.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, j) =>
                     seg.toLowerCase() === "archestimator" ? (
-                      <span key={j} className="text-[#a9532d]">{seg}</span>
+                      <span key={j} className="text-brand-orange">{seg}</span>
                     ) : (
                       <span key={j}>{seg}</span>
                     )
@@ -159,14 +166,14 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               <Link
                 href="/contact"
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: "book_walkthrough", variant })}
-                className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-[#a9532d] px-4 text-[12px] font-semibold text-white transition hover:bg-[#8f4728] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b65f2f] focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
+                className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-brand-orange px-4 text-[12px] font-semibold text-white transition hover:bg-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
               >
                 Start Winning
               </Link>
               <Link
                 href={loginHref}
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: "open_workspace", variant })}
-                className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-white/82 px-4 text-[12px] font-semibold text-[#171514] ring-1 ring-[#ded6cc] transition hover:bg-[#f4f1ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b65f2f] focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
+                className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-white/82 px-4 text-[12px] font-semibold text-[#171514] ring-1 ring-[#ded6cc] transition hover:bg-[#f4f1ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
               >
                 Open workspace
               </Link>
@@ -200,7 +207,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               data-testid='landing-hero-slide'
             />
           ))}
-          <div className='absolute inset-0 bg-[linear-gradient(118deg,rgba(255,246,236,0.38),rgba(176,82,40,0.16)_38%,rgba(39,29,23,0.55)),radial-gradient(ellipse_at_28%_18%,rgba(255,168,90,0.5),transparent_46%)]' aria-hidden='true' />
+          <div className='absolute inset-0 bg-[linear-gradient(118deg,rgba(255,246,236,0.38),rgba(170,65,42,0.16)_38%,rgba(39,29,23,0.55)),radial-gradient(ellipse_at_28%_18%,rgba(170,65,42,0.42),transparent_46%)]' aria-hidden='true' />
           <div className='absolute inset-0 bg-[#1d1511]/[0.1] backdrop-blur-[1.5px]' aria-hidden='true' />
           <div className='absolute inset-0 opacity-45 mix-blend-screen' aria-hidden='true' data-testid='neat-wireframe-background'>
             <NeatWireframeBackground />
@@ -211,31 +218,39 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
             <div className='col-span-2 flex items-center px-[7%]'>
               <div className='flex w-full items-center'>
                 {heroDiagramSteps.map((step, index) => (
-                  <div key={step.label} className='flex min-w-0 flex-1 items-center last:flex-none'>
-                    <div className='landing-hero-diagram-node relative h-[420px] w-[118px] translate-y-[181px] px-3 pt-3'>
+                   <div key={step.label} className='group flex min-w-0 flex-1 items-center last:flex-none pointer-events-auto'>
+                    <div className='translate-y-[181px]'>
+                      <div className='landing-hero-diagram-node relative h-[420px] w-[209px] px-3 pt-3 rounded-[3px] overflow-hidden transition-transform duration-500 ease-out group-hover:-translate-y-2'>
                       <div
-                        className='absolute inset-x-0 top-0 h-full bg-white/58 blur-[0.5px]'
+                        className='absolute inset-x-0 top-0 h-full bg-white/90 blur-[0.5px]'
                         style={{
                           WebkitMaskImage:
-                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.72) 7%, rgba(0,0,0,0.46) 16%, rgba(0,0,0,0.24) 28%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.035) 50%, transparent 61%, transparent 100%)",
+                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.92) 7%, rgba(0,0,0,0.78) 16%, rgba(0,0,0,0.55) 28%, rgba(0,0,0,0.34) 40%, rgba(0,0,0,0.16) 50%, transparent 61%, transparent 100%)",
                           maskImage:
-                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.72) 7%, rgba(0,0,0,0.46) 16%, rgba(0,0,0,0.24) 28%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.035) 50%, transparent 61%, transparent 100%)",
+                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.92) 7%, rgba(0,0,0,0.78) 16%, rgba(0,0,0,0.55) 28%, rgba(0,0,0,0.34) 40%, rgba(0,0,0,0.16) 50%, transparent 61%, transparent 100%)",
                         }}
                         aria-hidden='true'
                       />
                       <div className='absolute inset-x-0 top-0 h-px bg-white/55' aria-hidden='true' />
-                      <p className='relative z-10 text-[8px] font-semibold leading-none text-[#8f4728]'>{step.number}</p>
-                      <p className='relative z-10 mt-1 text-[14px] font-semibold leading-none text-[#a9532d]'>{step.label}</p>
-                      <div className='relative z-10 mt-1.5 border-b border-[#a9532d]/40' aria-hidden='true' />
-                     </div>
+                      <p className='relative z-10 text-[8px] font-semibold leading-none text-brand-orange'>{step.number}</p>
+                      <p className='relative z-10 mt-1 text-[20px] font-semibold leading-none text-brand-orange'>{step.label}</p>
+                      <div className='relative z-10 mt-1.5 border-b border-brand-orange/40' aria-hidden='true' />
+                      {step.icon && (
+                        <step.icon size={16} weight="regular" className="relative z-10 mt-2 text-brand-orange" />
+                      )}
+                      {"detail" in step && step.detail ? (
+                        <p className='relative z-10 mt-2 text-[11px] font-normal leading-relaxed text-brand-orange text-pretty'>{step.detail}</p>
+                      ) : null}
+                      </div>
+                      </div>
                     {index < heroDiagramSteps.length - 1 ? (
-                      <div className='landing-hero-flow-line mx-3 h-px min-w-8 flex-1 bg-white/32' />
+                      <div className='landing-hero-flow-line mx-3 h-px min-w-8 flex-1 bg-white/50' />
                     ) : null}
                   </div>
                 ))}
               </div>
             </div>
-            <div className='flex items-center border-l border-white/16 px-[8%] text-white pointer-events-auto select-text'>
+            <div className='flex items-start border-l border-white/16 px-[8%] text-brand-orange pointer-events-auto select-text pt-[240px]'>
               <div className='w-full'>
                 {heroSignalItems.map((item, index) => (
                   <div
@@ -249,7 +264,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               </div>
             </div>
           </div>
-          <div className='absolute inset-x-0 bottom-0 z-10 flex items-center border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg min-h-16 px-4'>
+          <div className='absolute inset-x-0 bottom-0 z-10 flex items-center border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg min-h-16 pl-[4.6667%] pr-[7%]'>
             <span className='inline-flex min-h-8 items-center rounded-[3px] border border-white/35 bg-white/16 px-4 text-[10px] font-semibold text-white backdrop-blur-md'>
               Now On Closed Beta
             </span>

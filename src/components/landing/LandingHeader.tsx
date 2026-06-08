@@ -73,7 +73,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
 
         <nav aria-label="Primary" className={`hidden items-center gap-7 text-[12px] font-medium lg:flex ${isOverFooter ? "text-white" : "text-[#2c2925]"}`}>
           {landingNavItems.map((item) => (
-            <Link key={item.label} href={item.href} className={`transition focus-visible:outline-none focus-visible:ring-2 ${isOverFooter ? "hover:text-white/70 focus-visible:ring-white/70" : "hover:text-[#9b4e29] focus-visible:ring-[#b65f2f]"}`}>
+            <Link key={item.label} href={item.href} className={`transition focus-visible:outline-none focus-visible:ring-2 ${isOverFooter ? "hover:text-white/70 focus-visible:ring-white/70" : "hover:text-brand-orange focus-visible:ring-brand-orange"}`}>
               {item.label}
             </Link>
           ))}
@@ -85,7 +85,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
               href={workshopHref}
               onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "workspace" })}
               className={`inline-flex min-h-10 items-center gap-2 rounded-[6px] px-4 text-[12px] font-semibold text-white transition ${
-                isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-[#a9532d] hover:bg-[#8f4728]"
+                isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-brand-orange hover:bg-brand-orange-dark"
               }`}
             >
               Workspace
@@ -98,7 +98,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
                 aria-label="Book a walkthrough"
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "book_walkthrough" })}
                 className={`inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition ${
-                  isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-[#a9532d] hover:bg-[#8f4728]"
+                  isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-brand-orange hover:bg-brand-orange-dark"
                 }`}
               >
                 <span className="hidden sm:inline">Book a walkthrough</span>
@@ -107,7 +107,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
               <Link
                 href={loginHref}
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "login" })}
-                className={`hidden sm:inline ${isOverFooter ? "hover:text-white/70" : "hover:text-[#9b4e29]"}`}
+                className={`hidden sm:inline ${isOverFooter ? "hover:text-white/70" : "hover:text-brand-orange"}`}
               >
                 Log In
               </Link>
@@ -140,7 +140,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
                 className={`rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 ${
-                  isOverFooter ? "text-white hover:bg-white/10 focus-visible:ring-white/70" : "text-[#2c2925] hover:bg-[#f4f1ec] focus-visible:ring-[#b65f2f]"
+                  isOverFooter ? "text-white hover:bg-white/10 focus-visible:ring-white/70" : "text-[#2c2925] hover:bg-[#f4f1ec] focus-visible:ring-brand-orange"
                 }`}
               >
                 {item.label}

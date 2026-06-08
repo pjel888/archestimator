@@ -56,7 +56,7 @@ export function FAQSection() {
         <MotionReveal>
           <div className="mb-12 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
-              <p className="text-[12px] font-semibold text-[#9b4e29]">
+              <p className="text-[12px] font-semibold text-brand-orange">
                 Field notes
               </p>
               <h2 className="mt-4 text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[56px]">
@@ -73,7 +73,7 @@ export function FAQSection() {
           {insightCards.map((card, index) => (
             <MotionReveal key={card.title} staggerIndex={index + 1}>
               <article className="flex min-h-[240px] flex-col justify-between rounded-[8px] border border-[#ded2c7] bg-[#fbf7f2] p-6">
-                <span className="text-[12px] font-semibold text-[#9b4e29]">
+                <span className="text-[12px] font-semibold text-brand-orange">
                   0{index + 1}
                 </span>
                 <div>
@@ -90,7 +90,7 @@ export function FAQSection() {
         <div className="mt-14 grid gap-8 lg:grid-cols-[minmax(0,0.48fr)_minmax(0,0.72fr)]">
           <MotionReveal>
             <div>
-              <p className="text-[12px] font-semibold text-[#9b4e29]">
+              <p className="text-[12px] font-semibold text-brand-orange">
                 Closed beta FAQ
               </p>
               <h3 className="mt-3 text-[30px] font-normal leading-[1.12] tracking-normal text-[#171514]">
@@ -105,17 +105,17 @@ export function FAQSection() {
 
               return (
                 <MotionReveal key={item.question} staggerIndex={index + 4}>
-                  <div className="rounded-[8px] border border-[#ded2c7] bg-white transition duration-300 hover:border-[#c7835c]">
+                  <div className="rounded-[8px] border border-[#ded2c7] bg-white transition duration-300 hover:border-brand-orange">
                     <button
                       onClick={() => toggleFAQ(index)}
                       aria-expanded={isOpen}
-                      className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left font-medium text-[#171514] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b65f2f]"
+                      className="flex w-full items-center justify-between gap-5 px-5 py-4 text-left font-medium text-[#171514] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
                     >
                       <span className="text-[14px] font-semibold">
                         {item.question}
                       </span>
                       <span
-                        className={`flex size-6 shrink-0 items-center justify-center rounded-full border border-[#ded2c7] bg-[#fbf7f2] text-[#a9532d] transition-transform duration-300 ${
+                        className={`flex size-6 shrink-0 items-center justify-center rounded-full border border-[#ded2c7] bg-[#fbf7f2] text-brand-orange transition-transform duration-300 ${
                           isOpen ? "rotate-180" : ""
                         }`}
                       >

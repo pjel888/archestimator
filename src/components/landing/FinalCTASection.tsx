@@ -17,7 +17,7 @@ export function FinalCTASection() {
         <MotionReveal>
           <div className="flex flex-col items-start justify-between gap-8 border-y border-[#e5ded5] py-12 lg:flex-row lg:items-end">
             <div>
-              <p className="text-[12px] font-semibold text-[#9b4e29]">
+              <p className="text-[12px] font-semibold text-brand-orange">
                 Start quoting
               </p>
               <h2 className="mt-4 max-w-[880px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
@@ -27,7 +27,7 @@ export function FinalCTASection() {
             <Link
               href={workshopHref}
               onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "final_cta", target: "open_workspace" })}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] bg-[#a9532d] px-5 text-[13px] font-semibold leading-none text-white transition hover:bg-[#8f4728] active:scale-95 focus-visible:ring-2 focus-visible:ring-[#b65f2f] focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] bg-brand-orange px-5 text-[13px] font-semibold leading-none text-white transition hover:bg-brand-orange-dark active:scale-95 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
             >
               Open workspace <ArrowRight className="size-4" weight="bold" />
             </Link>

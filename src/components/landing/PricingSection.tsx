@@ -15,7 +15,7 @@ export function PricingSection() {
         <MotionReveal>
           <div className="grid gap-10 rounded-[8px] border border-[#ded2c7] bg-white p-6 shadow-[0_18px_46px_rgba(71,49,31,0.07)] sm:p-10 lg:grid-cols-[minmax(0,0.88fr)_minmax(320px,0.42fr)] lg:items-end">
             <div>
-              <p className="text-[12px] font-semibold text-[#9b4e29]">
+              <p className="text-[12px] font-semibold text-brand-orange">
                 Closed beta partnership
               </p>
               <h2 className="mt-4 max-w-[720px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[56px]">
