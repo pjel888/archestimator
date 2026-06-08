@@ -2,8 +2,10 @@ import {
   ClockCounterClockwise,
   Package,
   PaperPlaneTilt,
+  PlayCircle,
   TreeStructure,
 } from "@phosphor-icons/react/dist/ssr";
+import { MotionReveal } from "./MotionReveal";
 import {
   companyProofCopy,
   getRenderableCompanyProofItems,
@@ -44,6 +46,50 @@ const betaStats = [
     body: "Track every change across your entire proposal, who updated what, and when. Revisit any version, recover anything, and walk into every client meeting with the full story behind your numbers.",
   },
 ] as const;
+
+const proofWorkflowSteps = [
+  {
+    label: "Build",
+    body: "Start with a structured estimate, not a blank proposal page.",
+  },
+  {
+    label: "Send",
+    body: "Turn the same numbers into a client-ready proposal link.",
+  },
+  {
+    label: "Revise",
+    body: "Collect comments and revision requests without losing context.",
+  },
+  {
+    label: "Record",
+    body: "Keep decisions, updates, and client response tied to the original estimate.",
+  },
+] as const;
+
+function FeatureVideoPlaceholder({ label }: { label: string }) {
+  return (
+    <div
+      role="img"
+      aria-label={`${label} product video placeholder`}
+      data-youtube-video-placeholder="true"
+      className="group/video relative min-h-[112px] overflow-hidden rounded-[3px] border border-white/18 bg-[linear-gradient(145deg,rgba(255,255,255,0.20),rgba(255,255,255,0.07)_52%,rgba(64,25,16,0.18))]"
+    >
+      <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:18px_18px]" aria-hidden="true" />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/40" aria-hidden="true" />
+      <div className="relative flex h-full min-h-[112px] flex-col justify-between p-3">
+        <span className="text-[10px] font-medium leading-none text-white/64">
+          Video
+        </span>
+        <span className="inline-flex size-9 items-center justify-center rounded-[3px] border border-white/28 bg-white/16 text-white transition duration-300 group-hover/video:bg-white/24">
+          <PlayCircle size={22} weight="fill" aria-hidden="true" />
+        </span>
+        <span className="text-[10px] font-medium leading-none text-white/54">
+          YouTube
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function CompanyProofLogoIcon({ name }: { name: string }) {
   if (name.includes("Northline")) {
@@ -134,38 +180,75 @@ export function CompanyProofCarouselSection() {
     >
       <div className="w-full px-6 sm:px-8 lg:px-12">
         <div className="grid gap-6 border-y border-white/18 py-8 lg:grid-cols-4">
-          {betaStats.map((stat) => {
-              const IconComponent = iconMap[stat.icon];
-              return (
-            <article key={stat.label} className="min-h-[132px] border-white/18 py-2 lg:border-r lg:pr-8 last:lg:border-r-0">
-              <IconComponent size={32} weight="thin" className="text-white" />
-              <h2 className="mt-4 text-[26px] font-normal tracking-normal text-white">
-                {stat.label}
-              </h2>
-              <p className="mt-2 pb-4 border-b border-white/18 text-[13px] leading-6 text-white/62">{stat.detail}</p>
-              <p className="mt-3 text-[13px] leading-6 text-white/50">{stat.body}</p>
-            </article>
-              );
-            })}
+          {betaStats.map((stat, index) => {
+            const IconComponent = iconMap[stat.icon];
+
+            return (
+              <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
+                <article className={`min-h-[168px] border-white/18 py-2 lg:h-full lg:pr-6 ${index < betaStats.length - 1 ? "lg:border-r" : ""}`}>
+                  <IconComponent size={28} weight="thin" className="text-white" />
+                  <h2 className="mt-3 text-[21px] font-normal leading-[1.08] tracking-normal text-white xl:text-[24px] 2xl:text-[26px]">
+                    {stat.label}
+                  </h2>
+                  <p className="mt-2 border-b border-white/18 pb-3 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(76px,1fr)_minmax(0,2fr)]">
+                    <FeatureVideoPlaceholder label={stat.label} />
+                    <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
+                  </div>
+                </article>
+              </MotionReveal>
+            );
+          })}
         </div>
 
         <div className="grid justify-items-center gap-24 py-48 text-center">
-          <blockquote className="max-w-[820px] text-[30px] font-normal italic leading-[1.14] tracking-normal text-white sm:text-[42px]">
-            “The estimate should explain itself before it becomes a proposal.”
-          </blockquote>
-          <div className="max-w-[760px] rounded-[3px] border border-white/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.20),rgba(255,255,255,0.08))] p-4 shadow-[0_18px_46px_rgba(64,25,16,0.12)] backdrop-blur-md">
-            <p className="text-[12px] font-semibold text-white/68">
-              {companyProofCopy.eyebrow}
+          <div>
+            <p className="text-[13px] font-medium leading-6 text-white/50">
+              The cost proposal workspace for teams that need every number to hold up.
             </p>
-            <h2
-              id="company-proof-heading"
-              className="mt-3 text-[28px] font-normal leading-[1.12] tracking-normal text-white sm:text-[36px]"
-            >
-              {companyProofCopy.headline}
-            </h2>
-            <p className="mx-auto mt-4 max-w-[620px] text-[13px] font-medium leading-6 text-white/64">
-              {companyProofCopy.description}
-            </p>
+            <blockquote className="mt-5 max-w-[820px] text-[30px] font-normal italic leading-[1.14] tracking-normal text-white sm:text-[42px]">
+              &ldquo;Build structured estimates, turn them into client-ready proposal links, collect comments and revision requests, and keep every decision tied to the numbers behind it.&rdquo;
+            </blockquote>
+          </div>
+          <div className="grid w-full max-w-[1120px] gap-8 rounded-[3px] border border-white/18 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(340px,1.05fr)] lg:gap-12 lg:p-10">
+            <div className="flex flex-col justify-between gap-10">
+              <div>
+                <p className="text-[12px] font-semibold leading-5 text-white/68">
+                  {companyProofCopy.eyebrow}
+                </p>
+                <h2
+                  id="company-proof-heading"
+                  className="mt-5 max-w-[620px] text-[30px] font-normal leading-[1.08] tracking-normal text-white text-balance sm:text-[40px]"
+                >
+                  Every proposal stays tied to the estimate that created it.
+                </h2>
+              </div>
+              <p className="max-w-[580px] text-[14px] font-medium leading-7 text-white/64">
+                {companyProofCopy.description}
+              </p>
+            </div>
+            <div className="border-t border-white/18 pt-6 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
+              <p className="text-[12px] font-semibold leading-5 text-white/72">
+                Proposal workflow
+              </p>
+              <div className="mt-5 grid gap-0">
+                {proofWorkflowSteps.map((step, index) => (
+                  <div key={step.label} className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-4 border-t border-white/14 py-4 first:border-t-0 first:pt-0 last:pb-0">
+                    <span className="text-[12px] font-semibold leading-6 text-white/54">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div>
+                      <h3 className="text-[18px] font-normal leading-6 tracking-normal text-white">
+                        {step.label}
+                      </h3>
+                      <p className="mt-1 text-[13px] font-medium leading-6 text-white/58">
+                        {step.body}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

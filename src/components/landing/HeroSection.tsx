@@ -101,7 +101,7 @@ export const heroCopyVariants = [
   },
   {
     id: 'review-ready-quotes',
-    headline: 'Only the winning teams use archestimator',
+    headline: 'Only winning teams use archestimator',
     support:
       "The teams that win don't just work harder,\nthey have better tools.\n\narchestimator saves you time you can't afford to lose.\n\nIt makes the most out of every effort so nothing you build ever gets left behind.",
     evidenceGate: 'Closed beta preview',
@@ -132,7 +132,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
         >
           <div>
             <p className='max-w-[440px] text-[13px] font-medium leading-6 text-[#6b5f55]'>
-              The most intuitive way to build and deliver cost proposals.
+              From cost proposal to client approval, in one connected workflow.
             </p>
 
             <h1 className='mt-7 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-8 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
@@ -212,50 +212,48 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
           <div className='absolute inset-0 opacity-45 mix-blend-screen' aria-hidden='true' data-testid='neat-wireframe-background'>
             <NeatWireframeBackground />
           </div>
-          <div className='pointer-events-none absolute inset-x-0 bottom-16 top-0 z-10 hidden grid-cols-3 lg:grid' aria-hidden='true'>
-            <div className='absolute inset-y-0 left-1/3 w-px bg-white/10' />
-            <div className='absolute inset-y-0 left-2/3 w-px bg-white/10' />
-            <div className='col-span-2 flex items-center px-[7%]'>
-              <div className='flex w-full items-center'>
+          <div className='landing-hero-flow-stage pointer-events-none absolute inset-x-0 bottom-16 top-0 z-10 hidden lg:grid' aria-hidden='true'>
+            <div className='landing-hero-flow-card-area flex items-center'>
+              <div className='landing-hero-flow-track grid w-full items-center'>
                 {heroDiagramSteps.map((step, index) => (
-                   <div key={step.label} className='group flex min-w-0 flex-1 items-center last:flex-none pointer-events-auto'>
-                    <div className='translate-y-[181px]'>
-                      <div className='landing-hero-diagram-node relative h-[420px] w-[209px] px-3 pt-3 rounded-[3px] overflow-hidden transition-transform duration-500 ease-out group-hover:-translate-y-2'>
-                      <div
-                        className='absolute inset-x-0 top-0 h-full bg-white/90 blur-[0.5px]'
-                        style={{
-                          WebkitMaskImage:
-                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.92) 7%, rgba(0,0,0,0.78) 16%, rgba(0,0,0,0.55) 28%, rgba(0,0,0,0.34) 40%, rgba(0,0,0,0.16) 50%, transparent 61%, transparent 100%)",
-                          maskImage:
-                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.92) 7%, rgba(0,0,0,0.78) 16%, rgba(0,0,0,0.55) 28%, rgba(0,0,0,0.34) 40%, rgba(0,0,0,0.16) 50%, transparent 61%, transparent 100%)",
-                        }}
-                        aria-hidden='true'
-                      />
-                      <div className='absolute inset-x-0 top-0 h-px bg-white/55' aria-hidden='true' />
-                      <p className='relative z-10 text-[8px] font-semibold leading-none text-brand-orange'>{step.number}</p>
-                      <p className='relative z-10 mt-1 text-[20px] font-semibold leading-none text-brand-orange'>{step.label}</p>
-                      <div className='relative z-10 mt-1.5 border-b border-brand-orange/40' aria-hidden='true' />
-                      {step.icon && (
-                        <step.icon size={16} weight="regular" className="relative z-10 mt-2 text-brand-orange" />
-                      )}
-                      {"detail" in step && step.detail ? (
-                        <p className='relative z-10 mt-2 text-[11px] font-normal leading-relaxed text-brand-orange text-pretty'>{step.detail}</p>
-                      ) : null}
+                  <div key={step.label} className='contents'>
+                    <div className='translate-y-[181px] pointer-events-auto'>
+                      <div className={`landing-hero-diagram-node landing-hero-diagram-node-${index + 1} relative h-[420px] px-3 pt-3 rounded-[3px] overflow-hidden transition-transform duration-500 ease-out hover:-translate-y-2`}>
+                        <div
+                          className='absolute inset-x-0 top-0 h-full bg-white/90 blur-[0.5px]'
+                          style={{
+                            WebkitMaskImage:
+                              "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.92) 7%, rgba(0,0,0,0.78) 16%, rgba(0,0,0,0.55) 28%, rgba(0,0,0,0.34) 40%, rgba(0,0,0,0.16) 50%, transparent 61%, transparent 100%)",
+                            maskImage:
+                              "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.92) 7%, rgba(0,0,0,0.78) 16%, rgba(0,0,0,0.55) 28%, rgba(0,0,0,0.34) 40%, rgba(0,0,0,0.16) 50%, transparent 61%, transparent 100%)",
+                          }}
+                          aria-hidden='true'
+                        />
+                        <div className='absolute inset-x-0 top-0 h-px bg-white/55' aria-hidden='true' />
+                        <p className='relative z-10 text-[8px] font-semibold leading-none text-brand-orange'>{step.number}</p>
+                        {step.icon && (
+                          <step.icon size={16} weight="regular" className="relative z-10 mt-2 text-brand-orange" />
+                        )}
+                        <p className='landing-hero-diagram-title relative z-10 mt-1 font-semibold leading-none text-brand-orange'>{step.label}</p>
+                        <div className='landing-hero-diagram-divider relative z-10 mt-1.5 border-b border-brand-orange/40' aria-hidden='true' />
+                        {"detail" in step && step.detail ? (
+                          <p className='landing-hero-diagram-detail relative z-10 mt-2 font-normal text-brand-orange text-pretty'>{step.detail}</p>
+                        ) : null}
                       </div>
-                      </div>
+                    </div>
                     {index < heroDiagramSteps.length - 1 ? (
-                      <div className='landing-hero-flow-line mx-3 h-px min-w-8 flex-1 bg-white/50' />
+                      <div className={`landing-hero-flow-line landing-hero-flow-line-${index + 1} h-px bg-white/50`} />
                     ) : null}
                   </div>
                 ))}
               </div>
             </div>
-            <div className='flex items-start border-l border-white/16 px-[8%] text-brand-orange pointer-events-auto select-text pt-[240px]'>
+            <div className='landing-hero-signal-rail flex items-start border-l border-white/16 text-white pointer-events-auto select-text pt-[240px]'>
               <div className='w-full'>
                 {heroSignalItems.map((item, index) => (
                   <div
                     key={item}
-                    className={`landing-hero-signal-row landing-hero-signal-row-${index + 1} flex items-center gap-2 border-b border-white/10 py-1.5 text-[12px] font-medium leading-none last:border-b-0`}
+                    className={`landing-hero-signal-row landing-hero-signal-row-${index + 1} flex items-center border-b border-white/10 py-1.5 font-medium leading-none last:border-b-0`}
                   >
                     <span className='h-1.5 w-1.5 rounded-full bg-white/46' />
                     <span>{item}</span>
@@ -264,7 +262,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               </div>
             </div>
           </div>
-          <div className='absolute inset-x-0 bottom-0 z-10 flex items-center border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg min-h-16 pl-[4.6667%] pr-[7%]'>
+          <div className='landing-hero-status-bar absolute inset-x-0 bottom-0 z-10 flex items-center border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg min-h-16'>
             <span className='inline-flex min-h-8 items-center rounded-[3px] border border-white/35 bg-white/16 px-4 text-[10px] font-semibold text-white backdrop-blur-md'>
               Now On Closed Beta
             </span>

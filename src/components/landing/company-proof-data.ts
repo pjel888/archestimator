@@ -42,10 +42,10 @@ export function getRenderableCompanyProofItems(items: CompanyProofLogo[]): {
 }
 
 export const companyProofCopy = {
-  eyebrow: "Sample quote workflows",
-  headline: "Quote logic should stay connected from first quantity to proposal.",
+  eyebrow: "Build it. Send it. Revise it. Get it approved.",
+  headline: "Build structured estimates, turn them into client-ready proposal links, collect comments and revision requests, and keep every decision tied to the numbers behind it.",
   description:
-    "A preview rail for the estimate patterns Archestimator is designed to support across builders, trades, studios, and supplier-led quoting teams.",
+    "No scattered spreadsheets, lost email threads, or disconnected PDFs. Archestimator keeps the estimate, proposal, comments, revisions, and client response moving through the same workflow.",
 };
 
 export const companyProofGovernanceNote =
