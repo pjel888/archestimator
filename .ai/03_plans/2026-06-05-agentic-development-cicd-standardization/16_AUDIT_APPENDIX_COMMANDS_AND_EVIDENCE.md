@@ -82,6 +82,10 @@ OMX Team `read-only-audit-only-b6760d5e` completed 3/3 read-only tasks, then shu
 <!-- STAGING-ADVISORY-2026-06-05:START -->
 ## 2026-06-05 08:47Z advisory staging branch evidence
 
+This section records a later owner-requested branch-bootstrap pass. It is not evidence for the original docs-only upgrade pass and does not weaken the proof boundary above: the 98-100 readiness plan itself did not require or perform GitHub, provider, source-code, CI, branch-protection, or Vercel mutations.
+Treat the staging branch creation as a separate advisory scope with its own
+evidence and residual risk.
+
 The owner asked whether the agentic-development docs require a staging/testing
 branch and to implement the safe required change. Fresh audit found:
 
