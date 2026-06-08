@@ -7,11 +7,11 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { MotionReveal } from "./MotionReveal";
 import {
-  companyProofCopy,
   getRenderableCompanyProofItems,
   placeholderCompanyProof,
   type CompanyProofLogo,
 } from "./company-proof-data";
+import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
 const iconMap = {
   TreeStructure,
@@ -41,7 +41,7 @@ const betaStats = [
   },
   {
     icon: "ClockCounterClockwise" as const,
-    label: "Activity History & Version Tracking",
+    label: "Activity History",
     detail: "Every revision. Every decision. Always on record.",
     body: "Track every change across your entire proposal, who updated what, and when. Revisit any version, recover anything, and walk into every client meeting with the full story behind your numbers.",
   },
@@ -49,20 +49,16 @@ const betaStats = [
 
 const proofWorkflowSteps = [
   {
-    label: "Build",
-    body: "Start with a structured estimate, not a blank proposal page.",
+    label: "Estimate",
+    body: "Build a structured cost proposal from reusable components, materials, services, labor, and assumptions.",
   },
   {
-    label: "Send",
-    body: "Turn the same numbers into a client-ready proposal link.",
+    label: "Bid",
+    body: "Turn that estimate into a client-ready proposal link with scope, totals, exclusions, and comments intact.",
   },
   {
-    label: "Revise",
-    body: "Collect comments and revision requests without losing context.",
-  },
-  {
-    label: "Record",
-    body: "Keep decisions, updates, and client response tied to the original estimate.",
+    label: "Win",
+    body: "Track approvals, revisions, and decisions back to the original numbers so the handoff stays defensible.",
   },
 ] as const;
 
@@ -76,15 +72,10 @@ function FeatureVideoPlaceholder({ label }: { label: string }) {
     >
       <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:18px_18px]" aria-hidden="true" />
       <div className="absolute inset-x-0 top-0 h-px bg-white/40" aria-hidden="true" />
-      <div className="relative flex h-full min-h-[112px] flex-col justify-between p-3">
-        <span className="text-[10px] font-medium leading-none text-white/64">
-          Video
-        </span>
-        <span className="inline-flex size-9 items-center justify-center rounded-[3px] border border-white/28 bg-white/16 text-white transition duration-300 group-hover/video:bg-white/24">
+      <div className="relative flex h-full min-h-[112px] items-center justify-center p-3">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.16),transparent_48%)] opacity-80 transition duration-300 group-hover/video:opacity-100" aria-hidden="true" />
+        <span className="relative inline-flex size-10 items-center justify-center rounded-[3px] border border-white/34 bg-white/18 text-white shadow-[0_10px_26px_rgba(64,25,16,0.14)] transition duration-300 group-hover/video:scale-105 group-hover/video:bg-white/26">
           <PlayCircle size={22} weight="fill" aria-hidden="true" />
-        </span>
-        <span className="text-[10px] font-medium leading-none text-white/54">
-          YouTube
         </span>
       </div>
     </div>
@@ -185,12 +176,12 @@ export function CompanyProofCarouselSection() {
 
             return (
               <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
-                <article className={`min-h-[168px] border-white/18 py-2 lg:h-full lg:pr-6 ${index < betaStats.length - 1 ? "lg:border-r" : ""}`}>
+                <article className={`grid min-h-[276px] grid-rows-[28px_48px_48px_1fr] border-white/18 py-2 lg:h-full lg:pr-6 ${index < betaStats.length - 1 ? "lg:border-r" : ""}`}>
                   <IconComponent size={28} weight="thin" className="text-white" />
-                  <h2 className="mt-3 text-[21px] font-normal leading-[1.08] tracking-normal text-white xl:text-[24px] 2xl:text-[26px]">
+                  <h2 className="pt-2 text-[21px] font-normal leading-[1.08] tracking-normal text-white xl:text-[22px] 2xl:text-[24px]">
                     {stat.label}
                   </h2>
-                  <p className="mt-2 border-b border-white/18 pb-3 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
+                  <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
                   <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(76px,1fr)_minmax(0,2fr)]">
                     <FeatureVideoPlaceholder label={stat.label} />
                     <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
@@ -202,34 +193,42 @@ export function CompanyProofCarouselSection() {
         </div>
 
         <div className="grid justify-items-center gap-24 py-48 text-center">
-          <div>
+          <div className="w-full max-w-[1120px]">
             <p className="text-[13px] font-medium leading-6 text-white/50">
               The cost proposal workspace for teams that need every number to hold up.
             </p>
-            <blockquote className="mt-5 max-w-[820px] text-[30px] font-normal italic leading-[1.14] tracking-normal text-white sm:text-[42px]">
-              &ldquo;Build structured estimates, turn them into client-ready proposal links, collect comments and revision requests, and keep every decision tied to the numbers behind it.&rdquo;
+            <blockquote className="mt-5 text-[30px] font-normal italic leading-[1.14] tracking-normal text-white sm:text-[42px]">
+              &ldquo;Create structured estimates, turn them into client-ready proposals, gather feedback and revisions, and keep every decision grounded in real numbers.&rdquo;
             </blockquote>
+            <div className="mt-10 flex justify-center">
+              <ArchestimatorLogo
+                tone="light"
+                markSize={44}
+                showWordmark={false}
+                markClassName="size-11"
+              />
+            </div>
           </div>
           <div className="grid w-full max-w-[1120px] gap-8 rounded-[3px] border border-white/18 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(340px,1.05fr)] lg:gap-12 lg:p-10">
             <div className="flex flex-col justify-between gap-10">
               <div>
                 <p className="text-[12px] font-semibold leading-5 text-white/68">
-                  {companyProofCopy.eyebrow}
+                  Estimate. Bid. Win.
                 </p>
                 <h2
                   id="company-proof-heading"
                   className="mt-5 max-w-[620px] text-[30px] font-normal leading-[1.08] tracking-normal text-white text-balance sm:text-[40px]"
                 >
-                  Every proposal stays tied to the estimate that created it.
+                  One workflow from cost build to signed proposal.
                 </h2>
               </div>
               <p className="max-w-[580px] text-[14px] font-medium leading-7 text-white/64">
-                {companyProofCopy.description}
+                Start with structured estimating, turn the same numbers into a polished bid, then keep approvals, revisions, and decisions tied to the proposal you won with.
               </p>
             </div>
             <div className="border-t border-white/18 pt-6 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
               <p className="text-[12px] font-semibold leading-5 text-white/72">
-                Proposal workflow
+                Estimate, Bid, Win
               </p>
               <div className="mt-5 grid gap-0">
                 {proofWorkflowSteps.map((step, index) => (
