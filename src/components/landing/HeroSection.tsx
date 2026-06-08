@@ -214,12 +214,12 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
                   <div key={step.label} className='flex min-w-0 flex-1 items-center last:flex-none'>
                     <div className='landing-hero-diagram-node relative h-[420px] w-[118px] translate-y-[181px] px-3 pt-3'>
                       <div
-                        className='absolute inset-x-0 top-0 h-full bg-white/56 blur-[0.5px]'
+                        className='absolute inset-x-0 top-0 h-full bg-white/58 blur-[0.5px]'
                         style={{
                           WebkitMaskImage:
-                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.7) 9%, rgba(0,0,0,0.42) 22%, rgba(0,0,0,0.2) 36%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.025) 63%, transparent 76%, transparent 100%)",
+                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.72) 7%, rgba(0,0,0,0.46) 16%, rgba(0,0,0,0.24) 28%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.035) 50%, transparent 61%, transparent 100%)",
                           maskImage:
-                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.7) 9%, rgba(0,0,0,0.42) 22%, rgba(0,0,0,0.2) 36%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.025) 63%, transparent 76%, transparent 100%)",
+                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.72) 7%, rgba(0,0,0,0.46) 16%, rgba(0,0,0,0.24) 28%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.035) 50%, transparent 61%, transparent 100%)",
                         }}
                         aria-hidden='true'
                       />
