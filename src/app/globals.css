@@ -18,7 +18,8 @@
   --hairline: #f2f2f2;
   --divider: #f2f2f2;
   --muted: #7f7f7f;
-  --accent: #3D3D3D;
+  --brand-orange: rgb(170, 65, 42);
+  --brand-orange-dark: rgb(140, 54, 35);
   --accent-dark: #2A2A2A;
   --accent-soft: #f5f5f5;
   --focus: #3D3D3D;
@@ -52,6 +53,8 @@
   --color-divider: var(--divider);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-dark: var(--brand-orange-dark);
   --color-accent-dark: var(--accent-dark);
   --color-accentDark: var(--accent-dark);
   --color-accent-soft: var(--accent-soft);
@@ -296,7 +299,7 @@ body:has([data-workshop-page-shell-root]) {
   inset-block: -1px;
   left: -28%;
   width: 28%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 1), transparent);
   animation: landing-hero-flow-pulse 4.8s ease-in-out infinite;
 }
 
