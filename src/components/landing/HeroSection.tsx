@@ -66,42 +66,37 @@ const heroDiagramSteps = [
   {
     number: "01",
     label: "Build",
-    detail: "Scope map",
   },
   {
     number: "02",
-    label: "Estimate",
-    detail: "Rate logic",
+    label: "Bid",
   },
   {
     number: "03",
-    label: "Propose",
-    detail: "Handoff",
+    label: "Win",
   },
 ] as const;
 
 const heroSignalItems = [
-  "Site scope",
-  "Supplier pricing",
-  "Labor logic",
-  "Assumptions",
-  "Proposal package",
-  "Change control",
+  "Project-Shaped Workflow",
+  "Reusable Component Library",
+  "Proposal Handoff",
+  "Activity History & Version Tracking",
 ] as const;
 
 export const heroCopyVariants = [
   {
     id: 'connected-workflow',
-    headline: 'The proposal workspace for construction estimates.',
+    headline: 'Your competitors are winning because of archestimator',
     support:
-      'Keep scope, rates, assumptions, and closed-beta revisions connected before handoff.',
+      "The teams that win don't just work harder,\nthey have better tools.\n\narchestimator saves you time you can't afford to lose.\n\nIt makes the most out of every effort so nothing you build ever gets left behind.",
     evidenceGate: 'Closed beta preview',
   },
   {
     id: 'review-ready-quotes',
-    headline: 'A calmer platform for estimate handoff.',
+    headline: 'Winning teams use archestimator',
     support:
-      'Keep quote sheets, supplier context, and buyer-ready outputs aligned during closed-beta review.',
+      "The teams that win don't just work harder,\nthey have better tools.\n\narchestimator saves you time you can't afford to lose.\n\nIt makes the most out of every effort so nothing you build ever gets left behind.",
     evidenceGate: 'Closed beta preview',
   },
 ] as const
@@ -130,17 +125,34 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
         >
           <div>
             <p className='max-w-[440px] text-[13px] font-medium leading-6 text-[#6b5f55]'>
-              Built for the teams turning site scope, supplier pricing, and revision pressure into proposal-ready decisions.
+              The most intuitive way to build and deliver cost proposals.
             </p>
 
             <h1 className='mt-7 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-8 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
-              {activeHeroCopy.headline}
+              {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
+                seg.toLowerCase() === "archestimator" ? (
+                  <span key={i} className="text-[#a9532d]">{seg}</span>
+                ) : (
+                  <span key={i}>{seg}</span>
+                )
+              )}
             </h1>
           </div>
 
           <div className='mt-8 lg:mt-10'>
-            <p className='max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[15px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[17px] sm:leading-7 lg:border-l-0 lg:pl-0'>
-              {activeHeroCopy.support}
+            <p className='max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0'>
+              {activeHeroCopy.support.split("\n").map((part, i) => (
+                <span key={i}>
+                  {i > 0 && <br aria-hidden="true" />}
+                  {part.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, j) =>
+                    seg.toLowerCase() === "archestimator" ? (
+                      <span key={j} className="text-[#a9532d]">{seg}</span>
+                    ) : (
+                      <span key={j}>{seg}</span>
+                    )
+                  )}
+                </span>
+              ))}
             </p>
 
             <div className='mt-7 flex flex-row flex-wrap gap-3'>
@@ -149,7 +161,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
                 onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: "book_walkthrough", variant })}
                 className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-[#a9532d] px-4 text-[12px] font-semibold text-white transition hover:bg-[#8f4728] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b65f2f] focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
               >
-                Book a walkthrough
+                Start Winning
               </Link>
               <Link
                 href={loginHref}
@@ -165,7 +177,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
         <div
           data-testid='landing-hero-frosted-visual'
           data-visual-reference='amigo-right-rail'
-          className='relative min-h-[320px] overflow-hidden rounded-[24px] bg-[#9f4b29] shadow-[0_18px_44px_rgba(83,51,30,0.14)] sm:min-h-[470px] lg:h-[603px] lg:min-h-0'
+          className='relative min-h-[320px] overflow-hidden rounded-[6px] bg-[#9f4b29] shadow-[0_18px_44px_rgba(83,51,30,0.14)] sm:min-h-[470px] lg:h-[603px] lg:min-h-0'
         >
           <Image
             src={heroVisualSlides[0].src}
@@ -193,44 +205,54 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
           <div className='absolute inset-0 opacity-45 mix-blend-screen' aria-hidden='true' data-testid='neat-wireframe-background'>
             <NeatWireframeBackground />
           </div>
-          <div className='pointer-events-none absolute inset-0 z-10 hidden sm:block' aria-hidden='true'>
-            <div className='absolute left-[7%] right-[7%] top-[42%] flex items-center justify-between'>
-              {heroDiagramSteps.map((step, index) => (
-                <div key={step.label} className='flex min-w-0 flex-1 items-center last:flex-none'>
-                  <div className='landing-hero-diagram-node min-w-[118px] rounded-full border border-white/24 bg-white/[0.13] px-3 py-2 text-white shadow-[0_12px_30px_rgba(36,20,13,0.16)] backdrop-blur-md'>
-                    <p className='text-[10px] font-semibold leading-none text-white/62'>{step.number}</p>
-                    <p className='mt-1 text-[12px] font-semibold leading-none text-white'>{step.label}</p>
-                    <p className='mt-1 text-[10px] font-medium leading-none text-white/62'>{step.detail}</p>
+          <div className='pointer-events-none absolute inset-x-0 bottom-16 top-0 z-10 hidden grid-cols-3 lg:grid' aria-hidden='true'>
+            <div className='absolute inset-y-0 left-1/3 w-px bg-white/10' />
+            <div className='absolute inset-y-0 left-2/3 w-px bg-white/10' />
+            <div className='col-span-2 flex items-center px-[7%]'>
+              <div className='flex w-full items-center'>
+                {heroDiagramSteps.map((step, index) => (
+                  <div key={step.label} className='flex min-w-0 flex-1 items-center last:flex-none'>
+                    <div className='landing-hero-diagram-node relative h-[420px] w-[118px] translate-y-[181px] px-3 pt-3'>
+                      <div
+                        className='absolute inset-x-0 top-0 h-full bg-white/56 blur-[0.5px]'
+                        style={{
+                          WebkitMaskImage:
+                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.7) 9%, rgba(0,0,0,0.42) 22%, rgba(0,0,0,0.2) 36%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.025) 63%, transparent 76%, transparent 100%)",
+                          maskImage:
+                            "linear-gradient(180deg, #000 0%, rgba(0,0,0,0.7) 9%, rgba(0,0,0,0.42) 22%, rgba(0,0,0,0.2) 36%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.025) 63%, transparent 76%, transparent 100%)",
+                        }}
+                        aria-hidden='true'
+                      />
+                      <div className='absolute inset-x-0 top-0 h-px bg-white/55' aria-hidden='true' />
+                      <p className='relative z-10 text-[8px] font-semibold leading-none text-[#8f4728]'>{step.number}</p>
+                      <p className='relative z-10 mt-1 text-[14px] font-semibold leading-none text-[#a9532d]'>{step.label}</p>
+                      <div className='relative z-10 mt-1.5 border-b border-[#a9532d]/40' aria-hidden='true' />
+                     </div>
+                    {index < heroDiagramSteps.length - 1 ? (
+                      <div className='landing-hero-flow-line mx-3 h-px min-w-8 flex-1 bg-white/32' />
+                    ) : null}
                   </div>
-                  {index < heroDiagramSteps.length - 1 ? (
-                    <div className='landing-hero-flow-line mx-3 h-px min-w-10 flex-1 bg-white/32' />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            <div className='absolute right-[8%] top-[17%] w-[220px] max-w-[34%] text-white/64'>
-              {heroSignalItems.map((item, index) => (
-                <div
-                  key={item}
-                  className={`landing-hero-signal-row landing-hero-signal-row-${index + 1} flex items-center gap-2 border-b border-white/10 py-1.5 text-[12px] font-medium leading-none last:border-b-0`}
-                >
-                  <span className='h-1.5 w-1.5 rounded-full bg-white/46' />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className='absolute left-5 top-5 z-10 inline-flex min-h-8 items-center rounded-full border border-white/35 bg-white/16 px-4 text-[12px] font-semibold text-white backdrop-blur-md'>
-            Closed beta workspace preview
-          </div>
-          <div className='absolute inset-x-0 bottom-0 z-10 grid grid-cols-3 border-t border-white/22 bg-[#56301f]/72 text-white backdrop-blur-sm'>
-            {heroDiagramSteps.map(({ number, label, detail }) => (
-              <div key={label} className='min-h-16 border-r border-white/22 px-4 py-3 last:border-r-0'>
-                <p className='text-[11px] font-semibold leading-none text-white/92'>{number}</p>
-                <p className='mt-2 text-[12px] font-semibold leading-none text-white/92'>{label}</p>
-                <p className='mt-1 text-[10px] font-medium leading-none text-white/62'>{detail}</p>
+                ))}
               </div>
-            ))}
+            </div>
+            <div className='flex items-center border-l border-white/16 px-[8%] text-white pointer-events-auto select-text'>
+              <div className='w-full'>
+                {heroSignalItems.map((item, index) => (
+                  <div
+                    key={item}
+                    className={`landing-hero-signal-row landing-hero-signal-row-${index + 1} flex items-center gap-2 border-b border-white/10 py-1.5 text-[12px] font-medium leading-none last:border-b-0`}
+                  >
+                    <span className='h-1.5 w-1.5 rounded-full bg-white/46' />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className='absolute inset-x-0 bottom-0 z-10 flex items-center border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg min-h-16 px-4'>
+            <span className='inline-flex min-h-8 items-center rounded-[3px] border border-white/35 bg-white/16 px-4 text-[10px] font-semibold text-white backdrop-blur-md'>
+              Now On Closed Beta
+            </span>
           </div>
         </div>
       </div>
