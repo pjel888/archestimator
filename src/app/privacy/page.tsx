@@ -9,7 +9,7 @@ export default async function PrivacyPage() {
     <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={false}>
       <section className="bg-[#eeeeec] px-6 py-10">
         <div className="mx-auto max-w-[760px]">
-          <p className="text-[9px] font-medium uppercase tracking-normal text-[#ff7a1a]">
+          <p className="text-[9px] font-medium uppercase tracking-normal text-brand-orange">
             Closed beta privacy notice
           </p>
           <h1 className="mt-3 text-[12px] font-medium leading-4 tracking-normal text-[#111111]">

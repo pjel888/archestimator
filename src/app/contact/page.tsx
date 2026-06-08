@@ -10,7 +10,7 @@ export default async function ContactPage() {
       {/* Hero Header */}
       <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-24">
         <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ff7a1a]">
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-orange">
             Connect With Us
           </span>
           <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
@@ -40,7 +40,7 @@ export default async function ContactPage() {
                 <div className="mt-8 space-y-6">
                   {/* Item 1 */}
                   <div className="flex items-start gap-3.5">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#ff7a1a]/10 text-[#ff7a1a]">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
                       <Sparkle className="size-5" />
                     </div>
                     <div>
@@ -55,7 +55,7 @@ export default async function ContactPage() {
 
                   {/* Item 2 */}
                   <div className="flex items-start gap-3.5">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#ff7a1a]/10 text-[#ff7a1a]">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
                       <Envelope className="size-5" />
                     </div>
                     <div>
@@ -70,7 +70,7 @@ export default async function ContactPage() {
 
                   {/* Item 3 */}
                   <div className="flex items-start gap-3.5">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#ff7a1a]/10 text-[#ff7a1a]">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
                       <MapPin className="size-5" />
                     </div>
                     <div>
