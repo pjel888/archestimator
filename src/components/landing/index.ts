@@ -1,4 +1,5 @@
 export { AnnouncementBanner } from "./AnnouncementBanner";
+export { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
 export { CompanyProofCarouselSection } from "./CompanyProofCarouselSection";
 export { CookieConsentBanner } from "./CookieConsentBanner";
 export { CtaLink } from "./CtaLink";
@@ -24,8 +25,3 @@ export { ContactForm } from "./ContactForm";
 export { ClarityScript } from "./ClarityScript";
 export { LandingAnalyticsLoader } from "./LandingAnalyticsLoader";
 export { ABExperimentProvider } from "./ABExperimentProvider";
-
-
-
-
-

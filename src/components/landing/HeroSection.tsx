@@ -5,7 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { loginHref } from './constants'
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
-import { Blueprint, FileText, Trophy } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsClockwise, ArrowsLeftRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 const NeatWireframeBackground = dynamic(() =>
   import("./NeatWireframeBackground").then((module) => module.NeatWireframeBackground),
@@ -66,27 +66,28 @@ const heroVisualSlides = [
 const heroDiagramSteps = [
   {
     number: "01",
-    label: "Estimate",
-    icon: Blueprint,
-    detail: "Build precise, structured cost proposals from your own reusable library of components, materials, and services.",
+    label: "Save Time",
+    icon: ArrowsClockwise,
+    detail: "Spend less time rebuilding estimates and more time moving proposals forward, with past pricing, scopes, and cost logic ready to reuse.",
   },
   {
     number: "02",
-    label: "Bid",
-    icon: FileText,
-    detail: "Turn your finished estimate into a polished, client-ready proposal in one seamless flow.",
+    label: "One Workflow",
+    icon: ArrowsLeftRight,
+    detail: "Keep estimates, proposals, feedback, and revisions connected in one place, so nothing gets lost across spreadsheets, PDFs, emails, and comments.",
   },
   {
     number: "03",
-    label: "Win",
-    icon: Trophy,
-    detail: "Send your proposal and close the deal in one seamless workflow where clients can review, comment, and approve directly.",
+    label: "Decision Record",
+    icon: CheckCircle,
+    detail: "Preserve what changed, what was reviewed, and what was approved, so every proposal has a clear path from estimate to decision.",
   },
 ] as const;
 
 const heroSignalItems = [
   "Project-Shaped Workflow",
   "Reusable Component Library",
+  "Intuitive Estimating Experience",
   "Proposal Handoff",
   "Activity History",
 ] as const;
@@ -229,6 +230,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
                           }}
                           aria-hidden='true'
                         />
+                        <div className='landing-hero-diagram-text-scrim' aria-hidden='true' />
                         <div className='absolute inset-x-0 top-0 h-px bg-white/55' aria-hidden='true' />
                         <p className='relative z-10 text-[8px] font-semibold leading-none text-brand-orange'>{step.number}</p>
                         {step.icon && (

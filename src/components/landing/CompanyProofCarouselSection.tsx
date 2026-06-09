@@ -11,7 +11,7 @@ import {
   placeholderCompanyProof,
   type CompanyProofLogo,
 } from "./company-proof-data";
-import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+import { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
 
 const iconMap = {
   TreeStructure,
@@ -166,28 +166,7 @@ export function CompanyProofCarouselSection() {
 
   return (
     <>
-      <section
-        aria-labelledby="company-proof-heading"
-        data-company-proof-quote="true"
-        className="landing-quote-grid-paper border-y border-[#e5e0d8] px-6 py-12 text-center before:![background-size:16px_16px] sm:px-8 sm:py-14 lg:px-12"
-      >
-        <div className="relative z-10 mx-auto w-full max-w-[1220px]">
-          <p id="company-proof-heading" className="text-[13px] font-medium leading-6 text-brand-orange">
-            One workflow for cost proposals, with every decision documented.
-          </p>
-          <blockquote className="mx-auto mt-4 max-w-[1120px] text-[30px] font-light leading-[1.14] tracking-normal text-[#171514] text-balance sm:text-[36px]">
-            Create structured estimates, turn them into client-ready proposals, gather feedback and revisions, and track every comment, change, and decision in one connected workflow.
-          </blockquote>
-          <div className="mt-8 flex justify-center">
-            <ArchestimatorLogo
-              tone="dark"
-              markSize={40}
-              showWordmark={false}
-              markClassName="size-10"
-            />
-          </div>
-        </div>
-      </section>
+      <AnimatedProposalRecordSection />
 
       <section
         aria-label="Company proof and workflow highlights"
