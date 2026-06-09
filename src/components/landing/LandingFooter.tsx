@@ -7,7 +7,7 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { MotionReveal } from "./MotionReveal";
 import { workshopHref } from "./constants";
 
-const footerColor = "#aa412a";
+const footerColor = "rgb(8, 50, 65)";
 
 const footerNavGroups = [
   {
@@ -20,9 +20,7 @@ const footerNavGroups = [
   {
     title: "Insights",
     links: [
-      { label: "Field notes", href: "#insights" },
       { label: "Estimate guide", href: "#method" },
-      { label: "Workflow status", href: "#solutions" },
       { label: "Pricing access", href: "#pricing" },
     ],
   },
@@ -38,8 +36,6 @@ const footerNavGroups = [
     links: [
       { label: "General contractors", href: "#method" },
       { label: "Specialty trades", href: "#method" },
-      { label: "Supplier teams", href: "#solutions" },
-      { label: "Proposal teams", href: "#solutions" },
       { label: "Cost planning", href: "#product" },
       { label: "Closed beta", href: "#pricing" },
     ],
