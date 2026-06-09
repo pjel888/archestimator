@@ -64,6 +64,8 @@
     "react-complex-tree": "^2.6.1",
     "react-dom": "19.2.6",
     "resend": "^6.12.4",
+    "rough-notation": "^0.5.1",
+    "roughjs": "^4.6.6",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0",

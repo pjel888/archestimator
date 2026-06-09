@@ -398,13 +398,44 @@ body:has([data-workshop-page-shell-root]) {
 
 .landing-hero-diagram-node {
   width: clamp(6.25rem, 9vw, 13.0625rem);
-  opacity: 0.18;
-  filter: saturate(0.82) brightness(0.96);
+  opacity: 1;
+  filter: saturate(1) brightness(1);
   animation-duration: 20s;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-iteration-count: infinite;
   animation-fill-mode: both;
-  will-change: opacity, filter;
+  will-change: translate, filter;
+}
+
+.landing-hero-diagram-text-scrim {
+  position: absolute;
+  inset-inline: 0.375rem;
+  top: 0.375rem;
+  z-index: 5;
+  height: clamp(7.75rem, 11vw, 11.5rem);
+  border-radius: 3px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.94) 44%,
+    rgba(255, 255, 255, 0.62) 74%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.96) 58%,
+    rgba(0, 0, 0, 0.5) 84%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.96) 58%,
+    rgba(0, 0, 0, 0.5) 84%,
+    transparent 100%
+  );
 }
 
 .landing-hero-flow-stage {
@@ -688,73 +719,59 @@ body:has([data-workshop-page-shell-root]) {
 
 @keyframes landing-hero-node-estimate-flow {
   0%,
-  14% {
-    opacity: 1;
-    filter: saturate(1.08) brightness(1.06);
+  6% {
+    translate: 0 -4px;
+    filter: saturate(1.04) brightness(1.04);
   }
 
-  20%,
-  80% {
-    opacity: 0.86;
-    filter: saturate(0.96) brightness(1);
+  14%,
+  86% {
+    translate: 0 0;
+    filter: saturate(1) brightness(1);
   }
 
   92%,
   100% {
-    opacity: 1;
-    filter: saturate(1.08) brightness(1.06);
+    translate: 0 -4px;
+    filter: saturate(1.04) brightness(1.04);
   }
 }
 
 @keyframes landing-hero-node-bid-flow {
   0%,
-  13% {
-    opacity: 0.18;
-    filter: saturate(0.82) brightness(0.96);
+  19% {
+    translate: 0 0;
+    filter: saturate(1) brightness(1);
   }
 
-  21%,
-  28% {
-    opacity: 1;
-    filter: saturate(1.08) brightness(1.06);
+  24%,
+  29% {
+    translate: 0 -4px;
+    filter: saturate(1.04) brightness(1.04);
   }
 
-  34%,
-  80% {
-    opacity: 0.86;
-    filter: saturate(0.96) brightness(1);
-  }
-
-  92%,
   100% {
-    opacity: 0.18;
-    filter: saturate(0.82) brightness(0.96);
+    translate: 0 0;
+    filter: saturate(1) brightness(1);
   }
 }
 
 @keyframes landing-hero-node-win-flow {
   0%,
-  25% {
-    opacity: 0.18;
-    filter: saturate(0.82) brightness(0.96);
+  32% {
+    translate: 0 0;
+    filter: saturate(1) brightness(1);
   }
 
-  33%,
+  36%,
   42% {
-    opacity: 1;
-    filter: saturate(1.08) brightness(1.06);
+    translate: 0 -4px;
+    filter: saturate(1.04) brightness(1.04);
   }
 
-  48%,
-  80% {
-    opacity: 0.9;
-    filter: saturate(0.98) brightness(1);
-  }
-
-  92%,
   100% {
-    opacity: 0.18;
-    filter: saturate(0.82) brightness(0.96);
+    translate: 0 0;
+    filter: saturate(1) brightness(1);
   }
 }
 
