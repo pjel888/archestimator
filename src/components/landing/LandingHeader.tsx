@@ -55,14 +55,14 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
         }
       }}
     >
-      <div className="relative flex h-[72px] w-full items-center justify-between px-4 sm:px-6">
+      <div className="relative flex h-[72px] w-full items-center justify-between px-6 sm:px-8 lg:px-12">
         <Link href="/" className="inline-flex items-center text-[18px] font-semibold" aria-label="Archestimator home">
           <ArchestimatorLogo
             tone={isOverFooter ? "light" : "dark"}
             markSize={42}
             priority
             markClassName="size-[42px]"
-            separatorClassName={isOverFooter ? "bg-white/30" : "bg-[#d5cec5]"}
+            separatorClassName="hidden"
             wordmarkClassName={isOverFooter ? "text-[17px] text-white" : "text-[17px] text-[#111111]"}
           />
         </Link>
@@ -125,7 +125,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
         <div
           id="landing-mobile-menu"
           hidden={!isMenuOpen}
-          className={`absolute left-4 right-4 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] lg:hidden ${
+          className={`absolute left-6 right-6 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] sm:left-8 sm:right-8 lg:hidden ${
             isOverFooter ? "border-white/16 bg-[#aa412a] text-white" : "border-[#e4ddd3] bg-[#fffdf9]"
           }`}
         >

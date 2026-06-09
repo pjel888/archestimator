@@ -47,21 +47,6 @@ const betaStats = [
   },
 ] as const;
 
-const proofWorkflowSteps = [
-  {
-    label: "Estimate",
-    body: "Build a structured cost proposal from reusable components, materials, services, labor, and assumptions.",
-  },
-  {
-    label: "Bid",
-    body: "Turn that estimate into a client-ready proposal link with scope, totals, exclusions, and comments intact.",
-  },
-  {
-    label: "Win",
-    body: "Track approvals, revisions, and decisions back to the original numbers so the handoff stays defensible.",
-  },
-] as const;
-
 const testimonialSlides = [
   {
     quote: "The estimate finally reads like the work, not a spreadsheet we have to explain after the fact.",
@@ -182,121 +167,84 @@ export function CompanyProofCarouselSection() {
   return (
     <>
       <section
-      aria-labelledby="company-proof-heading"
-      data-company-proof-section="true"
-      data-company-proof-state={proofState}
-      data-landing-snap-section="true"
-      className="relative scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange pb-20 pt-8 text-white sm:pb-24 sm:pt-10"
-    >
-      <div className="w-full px-6 sm:px-8 lg:px-12">
-        <MotionReveal replayOnExit className="mb-10 sm:mb-12">
-          <div
-            aria-label="Closed beta testimonial carousel"
-            className="landing-testimonial-rotator relative mx-auto grid min-h-[90px] w-full max-w-[960px] place-items-center text-center sm:min-h-[100px]"
-          >
-            {testimonialSlides.map((testimonial, index) => (
-              <figure
-                key={testimonial.quote}
-                className={`landing-testimonial-slide landing-testimonial-slide-${index + 1}`}
-              >
-                <blockquote className="mx-auto max-w-[780px] text-[22px] font-normal italic leading-[1.18] tracking-normal text-white text-balance sm:text-[30px]">
-                  &ldquo;{testimonial.quote}&rdquo;
-                </blockquote>
-                <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-medium leading-5 text-white/62">
-                  <span className="text-white/78">{testimonial.source}</span>
-                  <span aria-hidden="true" className="text-white/34">/</span>
-                  <span>{testimonial.context}</span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </MotionReveal>
-
-        <div className="grid gap-6 border-y border-white/18 py-8 lg:grid-cols-4">
-          {betaStats.map((stat, index) => {
-            const IconComponent = iconMap[stat.icon];
-
-            return (
-              <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
-                <article className={`grid min-h-[276px] grid-rows-[28px_48px_48px_1fr] border-white/18 py-2 lg:h-full lg:pr-6 ${index < betaStats.length - 1 ? "lg:border-r" : ""}`}>
-                  <IconComponent size={28} weight="thin" className="text-white" />
-                  <h2 className="pt-2 text-[21px] font-normal leading-[1.08] tracking-normal text-white xl:text-[22px] 2xl:text-[24px]">
-                    {stat.label}
-                  </h2>
-                  <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
-                  <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(76px,1fr)_minmax(0,2fr)]">
-                    <FeatureVideoPlaceholder label={stat.label} />
-                    <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
-                  </div>
-                </article>
-              </MotionReveal>
-            );
-          })}
-        </div>
-
-        <div className="grid justify-items-center gap-24 text-center">
-          <div className="w-full max-w-[1120px]">
-            <p className="text-[13px] font-medium leading-6 text-white/50">
-              The cost proposal workspace for teams that need every number to hold up.
-            </p>
-            <blockquote className="mt-5 text-[30px] font-normal italic leading-[1.14] tracking-normal text-white sm:text-[42px]">
-              &ldquo;Create structured estimates, turn them into client-ready proposals, gather feedback and revisions, and keep every decision grounded in real numbers.&rdquo;
-            </blockquote>
-            <div className="mt-10 flex justify-center">
-              <ArchestimatorLogo
-                tone="light"
-                markSize={44}
-                showWordmark={false}
-                markClassName="size-11"
-              />
-            </div>
-          </div>
-          <div className="grid w-full max-w-[1120px] gap-8 rounded-[3px] border border-white/18 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(340px,1.05fr)] lg:gap-12 lg:p-10">
-            <div className="flex flex-col justify-between gap-10">
-              <div>
-                <p className="text-[12px] font-semibold leading-5 text-white/68">
-                  Estimate. Bid. Win.
-                </p>
-                <h2
-                  id="company-proof-heading"
-                  className="mt-5 max-w-[620px] text-[30px] font-normal leading-[1.08] tracking-normal text-white text-balance sm:text-[40px]"
-                >
-                  One workflow from cost build to signed proposal.
-                </h2>
-              </div>
-              <p className="max-w-[580px] text-[14px] font-medium leading-7 text-white/64">
-                Start with structured estimating, turn the same numbers into a polished bid, then keep approvals, revisions, and decisions tied to the proposal you won with.
-              </p>
-            </div>
-            <div className="border-t border-white/18 pt-6 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
-              <p className="text-[12px] font-semibold leading-5 text-white/72">
-                Estimate, Bid, Win
-              </p>
-              <div className="mt-5 grid gap-0">
-                {proofWorkflowSteps.map((step, index) => (
-                  <div key={step.label} className="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-4 border-t border-white/14 py-4 first:border-t-0 first:pt-0 last:pb-0">
-                    <span className="text-[12px] font-semibold leading-6 text-white/54">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <h3 className="text-[18px] font-normal leading-6 tracking-normal text-white">
-                        {step.label}
-                      </h3>
-                      <p className="mt-1 text-[13px] font-medium leading-6 text-white/58">
-                        {step.body}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+        aria-labelledby="company-proof-heading"
+        data-company-proof-quote="true"
+        className="landing-quote-grid-paper border-y border-[#e5e0d8] px-6 py-12 text-center before:![background-size:16px_16px] sm:px-8 sm:py-14 lg:px-12"
+      >
+        <div className="relative z-10 mx-auto w-full max-w-[1220px]">
+          <p id="company-proof-heading" className="text-[13px] font-medium leading-6 text-brand-orange">
+            One workflow for cost proposals, with every decision documented.
+          </p>
+          <blockquote className="mx-auto mt-4 max-w-[1120px] text-[30px] font-light leading-[1.14] tracking-normal text-[#171514] text-balance sm:text-[36px]">
+            Create structured estimates, turn them into client-ready proposals, gather feedback and revisions, and track every comment, change, and decision in one connected workflow.
+          </blockquote>
+          <div className="mt-8 flex justify-center">
+            <ArchestimatorLogo
+              tone="dark"
+              markSize={40}
+              showWordmark={false}
+              markClassName="size-10"
+            />
           </div>
         </div>
-      </div>
-
       </section>
 
-      <div className="landing-company-carousel-viewport relative w-full overflow-hidden border-y border-[#e7ded6] bg-[#f6f2ec] py-12">
+      <section
+        aria-label="Company proof and workflow highlights"
+        data-company-proof-section="true"
+        data-company-proof-state={proofState}
+        data-landing-snap-section="true"
+        className="relative scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white sm:py-14 lg:py-16"
+      >
+        <div className="grid w-full gap-10 px-6 sm:gap-12 sm:px-8 lg:gap-14 lg:px-12">
+          <div className="grid border-y border-white/18 py-2 sm:py-3 lg:grid-cols-4 lg:py-0">
+            {betaStats.map((stat, index) => {
+              const IconComponent = iconMap[stat.icon];
+
+              return (
+                <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
+                  <article className={`grid min-h-[252px] grid-rows-[28px_48px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
+                    <IconComponent size={28} weight="thin" className="text-white" />
+                    <h2 className="pt-2 text-[21px] font-normal leading-[1.08] tracking-normal text-white text-balance xl:text-[22px] 2xl:text-[24px]">
+                      {stat.label}
+                    </h2>
+                    <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)] lg:grid-cols-1 xl:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)]">
+                      <FeatureVideoPlaceholder label={stat.label} />
+                      <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
+                    </div>
+                  </article>
+                </MotionReveal>
+              );
+            })}
+          </div>
+
+          <MotionReveal replayOnExit>
+            <div
+              aria-label="Closed beta testimonial carousel"
+              className="landing-testimonial-rotator relative mx-auto grid min-h-[90px] w-full max-w-[960px] place-items-center text-center sm:min-h-[100px]"
+            >
+              {testimonialSlides.map((testimonial, index) => (
+                <figure
+                  key={testimonial.quote}
+                  className={`landing-testimonial-slide landing-testimonial-slide-${index + 1}`}
+                >
+                  <blockquote className="mx-auto max-w-[780px] text-[22px] font-normal italic leading-[1.18] tracking-normal text-white text-balance sm:text-[30px]">
+                    &ldquo;{testimonial.quote}&rdquo;
+                  </blockquote>
+                  <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-medium leading-5 text-white/62">
+                    <span className="text-white/78">{testimonial.source}</span>
+                    <span aria-hidden="true" className="text-white/34">/</span>
+                    <span>{testimonial.context}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </MotionReveal>
+        </div>
+      </section>
+
+      <div className="landing-company-carousel-viewport relative w-full overflow-hidden border-y border-[#e7ded6] bg-[#f6f2ec] py-10 sm:py-11">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 bg-gradient-to-r from-[#f6f2ec] to-transparent sm:w-20" />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-[#f6f2ec] to-transparent sm:w-20" />
         <div
