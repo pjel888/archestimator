@@ -248,6 +248,36 @@ body:has([data-workshop-page-shell-root]) {
   mask-image: linear-gradient(to bottom left, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.62) 36%, rgba(0, 0, 0, 0.2) 60%, transparent 84%);
 }
 
+.landing-quote-grid-paper {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #f3eee6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.landing-quote-grid-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.62) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.62) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.5;
+}
+
+.landing-quote-grid-paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.38), transparent 68%);
+}
+
 .landing-hero-slide {
   opacity: 0;
   transform: scale(1.08);
