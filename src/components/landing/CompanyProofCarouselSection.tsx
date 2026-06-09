@@ -62,6 +62,24 @@ const proofWorkflowSteps = [
   },
 ] as const;
 
+const testimonialSlides = [
+  {
+    quote: "The estimate finally reads like the work, not a spreadsheet we have to explain after the fact.",
+    source: "Estimating lead",
+    context: "Commercial interiors beta workflow",
+  },
+  {
+    quote: "Reusable assemblies make review calmer because the team can see what changed, where it changed, and why.",
+    source: "Preconstruction manager",
+    context: "General contractor beta workflow",
+  },
+  {
+    quote: "The handoff feels cleaner when the client-ready proposal is still tied to the original numbers.",
+    source: "Proposal owner",
+    context: "Specialty trade beta workflow",
+  },
+] as const;
+
 function FeatureVideoPlaceholder({ label }: { label: string }) {
   return (
     <div
@@ -85,41 +103,41 @@ function FeatureVideoPlaceholder({ label }: { label: string }) {
 function CompanyProofLogoIcon({ name }: { name: string }) {
   if (name.includes("Northline")) {
     return (
-      <svg className="size-5 text-white/50 group-hover:text-white transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <svg className="size-5 text-current transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
       </svg>
     );
   }
   if (name.includes("Formworks")) {
     return (
-      <svg className="size-5 text-white/50 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
       </svg>
     );
   }
   if (name.includes("Civic")) {
     return (
-      <svg className="size-5 text-white/50 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
     );
   }
   if (name.includes("Atlas")) {
     return (
-      <svg className="size-5 text-white/50 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
       </svg>
     );
   }
   if (name.includes("Draftline")) {
     return (
-      <svg className="size-5 text-white/50 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16M4 20V4l16 16" />
       </svg>
     );
   }
   return (
-    <svg className="size-5 text-white/50 group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+    <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 18h16M12 6v12" />
     </svg>
   );
@@ -130,10 +148,10 @@ function CompanyProofLogoItem({ item }: { item: CompanyProofLogo }) {
     <div
       role="listitem"
       data-placeholder={item.isPlaceholder ? "true" : undefined}
-      className="group flex items-center gap-2.5 transition duration-300"
+      className="group flex items-center gap-2.5 text-[#8b8179] transition duration-300 hover:text-[#4a443f]"
     >
       <CompanyProofLogoIcon name={item.name} />
-      <span className="font-mono text-[12px] font-bold uppercase tracking-[0.2em] text-white/50 group-hover:text-white transition-colors duration-300">
+      <span className="font-mono text-[12px] font-bold uppercase tracking-[0.2em] text-current transition-colors duration-300">
         {item.name}
       </span>
     </div>
@@ -162,14 +180,38 @@ export function CompanyProofCarouselSection() {
   }
 
   return (
-    <section
+    <>
+      <section
       aria-labelledby="company-proof-heading"
       data-company-proof-section="true"
       data-company-proof-state={proofState}
       data-landing-snap-section="true"
-      className="relative scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-20 text-white sm:py-24"
+      className="relative scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange pb-20 pt-8 text-white sm:pb-24 sm:pt-10"
     >
       <div className="w-full px-6 sm:px-8 lg:px-12">
+        <MotionReveal replayOnExit className="mb-10 sm:mb-12">
+          <div
+            aria-label="Closed beta testimonial carousel"
+            className="landing-testimonial-rotator relative mx-auto grid min-h-[90px] w-full max-w-[960px] place-items-center text-center sm:min-h-[100px]"
+          >
+            {testimonialSlides.map((testimonial, index) => (
+              <figure
+                key={testimonial.quote}
+                className={`landing-testimonial-slide landing-testimonial-slide-${index + 1}`}
+              >
+                <blockquote className="mx-auto max-w-[780px] text-[22px] font-normal italic leading-[1.18] tracking-normal text-white text-balance sm:text-[30px]">
+                  &ldquo;{testimonial.quote}&rdquo;
+                </blockquote>
+                <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-medium leading-5 text-white/62">
+                  <span className="text-white/78">{testimonial.source}</span>
+                  <span aria-hidden="true" className="text-white/34">/</span>
+                  <span>{testimonial.context}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </MotionReveal>
+
         <div className="grid gap-6 border-y border-white/18 py-8 lg:grid-cols-4">
           {betaStats.map((stat, index) => {
             const IconComponent = iconMap[stat.icon];
@@ -192,7 +234,7 @@ export function CompanyProofCarouselSection() {
           })}
         </div>
 
-        <div className="grid justify-items-center gap-24 py-48 text-center">
+        <div className="grid justify-items-center gap-24 text-center">
           <div className="w-full max-w-[1120px]">
             <p className="text-[13px] font-medium leading-6 text-white/50">
               The cost proposal workspace for teams that need every number to hold up.
@@ -252,9 +294,11 @@ export function CompanyProofCarouselSection() {
         </div>
       </div>
 
-      <div className="landing-company-carousel-viewport relative w-full overflow-hidden border-y border-white/10 bg-[rgb(112,43,28)] py-5 shadow-[0_18px_46px_rgba(0,0,0,0.16)]">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 bg-gradient-to-r from-[rgb(112,43,28)] to-transparent sm:w-20" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-[rgb(112,43,28)] to-transparent sm:w-20" />
+      </section>
+
+      <div className="landing-company-carousel-viewport relative w-full overflow-hidden border-y border-[#e7ded6] bg-[#f6f2ec] py-12">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 bg-gradient-to-r from-[#f6f2ec] to-transparent sm:w-20" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-[#f6f2ec] to-transparent sm:w-20" />
         <div
           id="company-proof-rail"
           className="landing-company-marquee flex w-max gap-12 lg:gap-16"
@@ -264,6 +308,6 @@ export function CompanyProofCarouselSection() {
           <CompanyProofTrack items={proofItems} duplicate />
         </div>
       </div>
-    </section>
+    </>
   );
 }

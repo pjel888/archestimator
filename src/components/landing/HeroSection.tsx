@@ -111,9 +111,9 @@ export const heroCopyVariants = [
 export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
   return (
-    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:px-8 lg:px-12 lg:py-[91px]'>
+    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:px-8 lg:px-12 lg:py-[59px]'>
       <div
-        className='pointer-events-none absolute inset-x-0 top-12 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(170,65,42,0.24)_68%,rgba(170,65,42,0.34)_100%)] lg:top-[46px]'
+        className='pointer-events-none absolute inset-x-0 top-12 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(170,65,42,0.24)_68%,rgba(170,65,42,0.34)_100%)] lg:top-[30px]'
         aria-hidden='true'
       />
       <div
@@ -125,7 +125,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
         aria-hidden='true'
       />
 
-      <div className='relative z-10 grid w-full gap-12 lg:grid-cols-[minmax(0,635px)_minmax(0,1fr)] lg:items-start'>
+      <div className='relative z-10 grid w-full gap-y-12 lg:grid-cols-[minmax(0,635px)_minmax(0,1fr)] lg:gap-x-0 lg:items-start'>
         <div
           data-testid='landing-hero-copy-block'
           className='flex max-w-[635px] flex-col lg:h-[603px] lg:justify-between lg:border-l lg:border-[#d6cec5] lg:pl-7'
