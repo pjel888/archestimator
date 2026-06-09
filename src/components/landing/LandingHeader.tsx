@@ -15,14 +15,10 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
   // Test annotations for static regex scans:
   // href: "#product"
   // href: "#method"
-  // href: "#solutions"
-  // href: "#insights"
   // href: "#contact"
   const landingNavItems = [
     { label: "Platform", href: isHomePage ? "#product" : "/features" },
     { label: "Specialties", href: isHomePage ? "#method" : "/#method" },
-    { label: "Workflow", href: isHomePage ? "#solutions" : "/#solutions" },
-    { label: "Insights", href: isHomePage ? "#insights" : "/#insights" },
     { label: "Company", href: isHomePage ? "#contact" : "/contact" },
   ];
 

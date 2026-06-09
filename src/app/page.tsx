@@ -4,13 +4,11 @@ import { parseLandingConsentValue } from "@/lib/landing/consent";
 import { getVariant } from "@/lib/ab-testing/variant-assigner";
 import {
   CompanyProofCarouselSection,
-  FAQSection,
   FinalCTASection,
   HeroSection,
   ProductShowcaseSection,
   SecondaryClaimSection,
   PricingSection,
-  SolutionSection,
   PublicPageShell,
   LandingHeader,
   LandingFooter,
@@ -40,9 +38,7 @@ export default async function LandingPage() {
             <CompanyProofCarouselSection />
             <SecondaryClaimSection />
             <ProductShowcaseSection />
-            <SolutionSection />
             <PricingSection />
-            <FAQSection />
             <FinalCTASection />
           </main>
         </LandingSmoothScrollProvider>
