@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const appLayout = readFileSync("src/app/layout.tsx", "utf8");
+const workshopLayout = readFileSync("src/app/workshop/layout.tsx", "utf8");
 const estimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
 const estimateTree = readFileSync("src/components/workshop/EstimateSheetTree.tsx", "utf8");
 const treeVisualStyle = readFileSync("src/components/workshop/tree-visual-style.ts", "utf8");
@@ -37,7 +38,11 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("canDrag={handleTreeCanDrag}");
     expect(estimateTree).toContain("canDrop={handleTreeCanDrop}");
     expect(estimateTree).toContain("onDrop={handleTreeDrop}");
-    expect(appLayout).toContain('import "react-complex-tree/lib/style-modern.css"');
+    // Vendor tree CSS is workshop-scoped: public/marketing routes must not
+    // pay for it (path-to-estimate-sheet performance plan U6).
+    expect(workshopLayout).toContain('import "react-complex-tree/lib/style-modern.css"');
+    expect(appLayout).not.toContain("react-complex-tree");
+    expect(appLayout).not.toContain("lenis/dist/lenis.css");
     expect(estimateTree).toContain("useEstimateAreaTreeQuery");
     expect(estimateContent).toContain("useEstimateAreaTreeQuery");
     expect(estimateTree).toContain("setLocalNodes(nextNodes)");
