@@ -1,6 +1,4 @@
 export { LibraryTree } from "./LibraryTree";
-export { LibraryFolderRow } from "./LibraryFolderRow";
-export { LibraryItemRow } from "./LibraryItemRow";
 export {
   buildComponentLibraryNavigationTree,
   buildLibraryTreeWithComponentRows,
@@ -12,11 +10,13 @@ export {
   findNode,
   getAllNodeIds,
   collectComponentIds,
+  applyLibraryTreeOrder,
+  findLibrarySiblingOrder,
+  LIBRARY_TREE_ROOT_ORDER_KEY,
 } from "./helpers";
+export type { LibraryTreeOrder } from "./helpers";
 export type {
   LibraryTreeTab,
   LibraryTreeNode,
   LibraryTreeProps,
-  LibraryFolderRowProps,
-  LibraryItemRowProps,
 } from "./types";
