@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 import type { Json } from "@/lib/supabase/types";
@@ -29,9 +28,11 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
   const { projectId, nodeId } = await params;
   assertRouteErrorSmoke({ routeLabel: "Estimate workspace", searchParams: await searchParams });
 
-  const [estimateTreeResult, componentLibrary, currentUser] = await Promise.all([
+  // The component-library dataset intentionally stays out of this Promise.all:
+  // the sheet client lazy-loads it through a server action so first paint is
+  // not gated on library queries.
+  const [estimateTreeResult, currentUser] = await Promise.all([
     getProjectEstimateTreeByNode(projectId, nodeId),
-    getCurrentWorkspaceComponentLibrary(),
     requireCurrentUserContext(),
   ]);
   const { project, estimate, selectedNodeId, tree } = estimateTreeResult;
@@ -71,12 +72,6 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
         collaborationUserId={currentUser.userId}
         collaborationDisplayName={currentUser.displayName}
         proposalExportMetadata={proposalExportMetadata}
-        libraryItems={componentLibrary.libraryItems}
-        libraryTemplates={componentLibrary.templates}
-        libraryCategoryTree={componentLibrary.categoryTree}
-        librarySuppliers={componentLibrary.suppliers}
-        libraryBrands={componentLibrary.brands}
-        libraryFolders={componentLibrary.libraryFolders}
       />
     </>
   );

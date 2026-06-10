@@ -9,10 +9,14 @@ import { ControlField, ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
+import { useQuery } from "@tanstack/react-query";
+
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
+import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
@@ -3498,7 +3502,20 @@ export function EstimateSheetContent({
     inspectorScopeRef.current = scopeKey;
     historyRequestGenerationRef.current += 1;
   }, []);
-  const availableTemplates = libraryTemplates ?? EMPTY_ESTIMATE_TEMPLATES;
+  // Lazy library path: production pages no longer pass library props, so the
+  // dataset loads through a server action once the sidebar (or palette) needs
+  // it. Server-provided props short-circuit the fetch for tests/embeds.
+  const hasServerProvidedLibrary = Boolean(libraryItems);
+  const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
+  const libraryQuery = useQuery({
+    queryKey: ["workspace-component-library"],
+    queryFn: () => loadCurrentWorkspaceComponentLibrary(),
+    enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
+    staleTime: 5 * 60 * 1000,
+  });
+  const lazyLibrary = shouldLoadLibraryLazily ? libraryQuery.data : undefined;
+  const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
+  const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
     if (proposalExportMetadata) return proposalExportMetadata;
     if (!projectId || !estimateId) return null;
@@ -4256,7 +4273,7 @@ export function EstimateSheetContent({
     <>
       <CommandPalette
         open={showCommandPalette}
-        items={libraryItems}
+        items={shouldLoadLibraryLazily ? resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS : libraryItems}
         canInsert={canInsertIntoSelectedNode}
         targetLabel={insertionTargetLabel}
         onClose={() => setShowCommandPalette(false)}
@@ -4429,26 +4446,57 @@ export function EstimateSheetContent({
         )}
       </section>
       {renderSidebar ? (
-        <EstimateRightSidebar
-          onInsertComponent={insertIntoSelectedNode}
-          projectId={projectId}
-          estimateId={estimateId}
-          selectedNodeId={resolvedSelectedNodeId}
-          selectedNodeKind={selectedNode?.kind ?? null}
-          selectedNodeName={selectedNode?.name ?? null}
-          templateTargetName={templateInsertionTargetLabel}
-          canInsertTemplate={canInsertTemplateIntoSelectedNode}
-          nodes={estimateTree}
-          initialLibraryItems={libraryItems}
-          templates={availableTemplates}
-          categoryTree={libraryCategoryTree}
-          suppliers={librarySuppliers}
-          brands={libraryBrands}
-          libraryFolders={libraryFolders}
-          onInsertTemplate={insertTemplateIntoSelectedGroup}
-          onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
-        />
+        shouldLoadLibraryLazily && !lazyLibrary ? (
+          <ComponentLibrarySidebarFallback isError={libraryQuery.isError} onRetry={() => libraryQuery.refetch()} />
+        ) : (
+          <EstimateRightSidebar
+            onInsertComponent={insertIntoSelectedNode}
+            projectId={projectId}
+            estimateId={estimateId}
+            selectedNodeId={resolvedSelectedNodeId}
+            selectedNodeKind={selectedNode?.kind ?? null}
+            selectedNodeName={selectedNode?.name ?? null}
+            templateTargetName={templateInsertionTargetLabel}
+            canInsertTemplate={canInsertTemplateIntoSelectedNode}
+            nodes={estimateTree}
+            initialLibraryItems={resolvedLibraryItems}
+            templates={availableTemplates}
+            categoryTree={libraryCategoryTree ?? lazyLibrary?.categoryTree}
+            suppliers={librarySuppliers ?? lazyLibrary?.suppliers}
+            brands={libraryBrands ?? lazyLibrary?.brands}
+            libraryFolders={libraryFolders ?? lazyLibrary?.libraryFolders}
+            onInsertTemplate={insertTemplateIntoSelectedGroup}
+            onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
+          />
+        )
       ) : null}
     </>
+  );
+}
+
+// Placeholder column while the lazy component-library dataset loads. Keeps
+// the sidebar footprint stable so the sheet does not reflow, and keeps load
+// failures visible and retryable without blocking sheet editing.
+function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolean; onRetry: () => void }) {
+  return (
+    <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white p-2">
+      {isError ? (
+        <div role="alert" className="mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
+          <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
+          <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate sheet is still editable. Retry to load components and templates.</p>
+          <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <div role="status" aria-label="Loading component library" className="space-y-1">
+          <Skeleton className="h-7 w-full" />
+          {Array.from({ length: 12 }, (_, index) => (
+            <Skeleton key={index} className="h-6 w-full" />
+          ))}
+          <span className="sr-only">Loading component library</span>
+        </div>
+      )}
+    </aside>
   );
 }
