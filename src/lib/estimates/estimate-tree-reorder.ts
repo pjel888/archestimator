@@ -1,10 +1,14 @@
-import type { DraggingPosition, TreeItemIndex } from "react-complex-tree";
-
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { canNestEstimateNodeKind, getEstimateNodeKindSortRank } from "@/lib/estimates/tree-hierarchy";
 
-export const ESTIMATE_TREE_ROOT_ITEM_ID = "estimate-tree-root";
 export const ESTIMATE_TREE_SORT_ORDER_STEP = 10;
+
+export type EstimateTreeDropPosition = "before" | "after" | "inside";
+
+export type EstimateTreeDropTarget = {
+  targetNodeId: string;
+  position: EstimateTreeDropPosition;
+};
 
 export type EstimateNodeReorderUpdate = {
   id: string;
@@ -25,13 +29,11 @@ export type EstimateNodeReorderPlan = {
 type ReorderFailureCode =
   | "unknown-dragged-node"
   | "unknown-target-parent"
-  | "synthetic-root-drag"
   | "multi-drag-unsupported"
   | "invalid-parent"
   | "self-drop"
   | "cycle"
-  | "no-op"
-  | "unsupported-target";
+  | "no-op";
 
 export type EstimateNodeReorderResult =
   | { ok: true; plan: EstimateNodeReorderPlan }
@@ -58,15 +60,6 @@ function cloneNode(node: EstimateTreeNode): EstimateTreeNode {
     children: node.children?.map(cloneNode),
     estimateRowItems: node.estimateRowItems ? [...node.estimateRowItems] : node.estimateRowItems,
   };
-}
-
-function toItemId(itemId: TreeItemIndex): string {
-  return String(itemId);
-}
-
-function normalizeParentId(parentItem: TreeItemIndex): string | null {
-  const parentId = toItemId(parentItem);
-  return parentId === ESTIMATE_TREE_ROOT_ITEM_ID ? null : parentId;
 }
 
 function findNodeLocation(nodes: EstimateTreeNode[], id: string, parentId: string | null = null): NodeLocation | null {
@@ -328,40 +321,30 @@ export function buildEstimateNodeReorderPlan({
 
 export function evaluateEstimateTreeDrop({
   nodes,
-  draggedItemIds,
+  draggedNodeIds,
   target,
 }: {
   nodes: EstimateTreeNode[];
-  draggedItemIds: TreeItemIndex[];
-  target: DraggingPosition;
+  draggedNodeIds: string[];
+  target: EstimateTreeDropTarget;
 }): EstimateNodeReorderResult {
-  if (draggedItemIds.length !== 1) return fail("multi-drag-unsupported", "Only one estimate tree node can be moved at a time.");
+  if (draggedNodeIds.length !== 1) return fail("multi-drag-unsupported", "Only one estimate tree node can be moved at a time.");
 
-  const draggedNodeId = toItemId(draggedItemIds[0]);
-  if (draggedNodeId === ESTIMATE_TREE_ROOT_ITEM_ID) return fail("synthetic-root-drag", "The estimate tree root cannot be moved.");
+  const draggedNodeId = draggedNodeIds[0];
 
-  if (target.targetType === "between-items") {
-    return buildEstimateNodeReorderPlan({
-      nodes,
-      draggedNodeId,
-      targetParentId: normalizeParentId(target.parentItem),
-      targetIndex: target.childIndex,
-    });
-  }
-
-  if (target.targetType === "item") {
-    const targetParentId = toItemId(target.targetItem);
-    if (targetParentId === ESTIMATE_TREE_ROOT_ITEM_ID) {
-      return buildEstimateNodeReorderPlan({ nodes, draggedNodeId, targetParentId: null, targetIndex: nodes.length });
-    }
-    const childCount = getChildCount(nodes, targetParentId);
+  if (target.position === "inside") {
+    const childCount = getChildCount(nodes, target.targetNodeId);
     if (childCount === null) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
-    return buildEstimateNodeReorderPlan({ nodes, draggedNodeId, targetParentId, targetIndex: childCount });
+    return buildEstimateNodeReorderPlan({ nodes, draggedNodeId, targetParentId: target.targetNodeId, targetIndex: childCount });
   }
 
-  if (target.targetType === "root") {
-    return buildEstimateNodeReorderPlan({ nodes, draggedNodeId, targetParentId: null, targetIndex: nodes.length });
-  }
+  const targetLocation = findNodeLocation(nodes, target.targetNodeId);
+  if (!targetLocation) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
 
-  return fail("unsupported-target", "Unsupported estimate tree drop target.");
+  return buildEstimateNodeReorderPlan({
+    nodes,
+    draggedNodeId,
+    targetParentId: targetLocation.parentId,
+    targetIndex: target.position === "before" ? targetLocation.index : targetLocation.index + 1,
+  });
 }

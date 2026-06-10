@@ -225,6 +225,13 @@ type RenameEstimateNodeResult = {
   name: string;
 };
 
+type CreateEstimateNodeResult = {
+  nodeId: string;
+  name: string;
+  kind: CreateEstimateNodeKind;
+  parentId: string | null;
+};
+
 type DeleteEstimateNodeResult = {
   tree: EstimateTreeNode[];
   deletedNodeIds: string[];
@@ -1749,9 +1756,10 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
       : "";
   if (!nodeId) throw new Error("Estimate node history RPC did not return the created node id.");
 
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
-  redirect(`/workshop/projects/${project.id}/estimates/${nodeId}`);
+  // No revalidatePath/redirect here: the client reconciles its optimistic node
+  // with this id in place, so a server-driven navigation would remount the
+  // whole workspace mid-edit.
+  return { nodeId, name, kind, parentId: parentId ?? null } satisfies CreateEstimateNodeResult;
 }
 
 export async function renameEstimateNode(
@@ -1760,6 +1768,7 @@ export async function renameEstimateNode(
   nodeId: string,
   formDataOrName: FormData | string,
 ): Promise<RenameEstimateNodeResult> {
+  assertNotOptimisticEstimateNodeId(nodeId, "Estimate node");
   const name = readEstimateNodeName(formDataOrName);
   const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
   const currentUser = await requireCurrentUserContext();
@@ -1801,10 +1810,6 @@ export async function deleteEstimateNode(
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${node.id}`);
 
   return {
     tree,
@@ -1879,9 +1884,6 @@ export async function deleteEstimateNodesBulk(
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
 
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
-
   return {
     tree,
     deletedNodeIds: Array.from(deletedNodeIds),
@@ -1914,9 +1916,6 @@ export async function insertEstimateTemplateIntoEstimate({
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${targetParentNodeId}`);
 
   return { tree, insertedRootNodeIds };
 }
@@ -1984,9 +1983,6 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   });
 
   if (insertError) throw insertError;
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${targetNodeId}`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
 }
 
 export async function updateEstimateRowItem({ projectId, estimateId, rowId, quantity, contingencyPercentage, miscCost, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
@@ -2011,7 +2007,6 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, quan
   if (error) throw error;
 
   const updatedRow = readHistoryRowResult(data);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
   return updatedRow;
 }
 
@@ -2048,8 +2043,6 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   });
 
   if (error) throw error;
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
 }
 
 export async function detachEstimateRowItemFromLibrary({
@@ -2077,7 +2070,6 @@ export async function detachEstimateRowItemFromLibrary({
   if (error) throw error;
 
   const detachedRow = readHistoryRowResult(data);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
   return detachedRow;
 }
 
@@ -2093,6 +2085,4 @@ export async function deleteEstimateRowItem({ projectId, estimateId, rowId, muta
     correlation_id: getMutationCorrelationId(mutationId),
   });
   if (error) throw error;
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
 }
