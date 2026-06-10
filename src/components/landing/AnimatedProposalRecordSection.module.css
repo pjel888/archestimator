@@ -2,7 +2,7 @@
   position: relative;
   width: 100%;
   min-width: 0;
-  aspect-ratio: 1000 / 470;
+  aspect-ratio: 1000 / 320;
   isolation: isolate;
 }
 
@@ -110,8 +110,7 @@ path.revisionLoopSketch {
     stroke-width 180ms ease;
 }
 
-.stepCard:focus-visible,
-.replayButton:focus-visible {
+.stepCard:focus-visible {
   border-radius: 3px;
   outline: 2px solid rgba(169, 83, 45, 0.82);
   outline-offset: 4px;
@@ -157,7 +156,8 @@ path.revisionLoopSketch {
 
 .inputCard .stepLabel {
   max-width: 100%;
-  font-size: 8.5px;
+  color: var(--step-color, #171514);
+  font-size: 12px;
   line-height: 1.08;
   overflow-wrap: anywhere;
 }
@@ -167,43 +167,43 @@ path.revisionLoopSketch {
 }
 
 .projectWorkflowCard {
-  left: 4.4%;
-  top: 61%;
+  left: 0.2%;
+  top: 12%;
   width: 7.1%;
 }
 
 .componentLibraryCard {
-  left: 13.3%;
-  top: 61%;
+  left: 25.4%;
+  top: 66.5%;
   width: 7.1%;
 }
 
 .estimatingExperienceCard {
-  left: 22.2%;
-  top: 61%;
+  left: 1.2%;
+  top: 68.5%;
   width: 7.1%;
 }
 
 .estimateCard {
-  left: 3.9%;
-  top: 34%;
+  left: 5.2%;
+  top: 41.5%;
   width: 18.8%;
 }
 
 .estimateCard .stepBody {
   font-size: 10.5px;
-  white-space: nowrap;
+  line-height: 1.28;
 }
 
 .proposalCard {
   left: 41.6%;
-  top: 34%;
+  top: 41.5%;
   width: 18.8%;
 }
 
 .feedbackCard {
-  left: 63.5%;
-  top: 8%;
+  left: 60.5%;
+  top: 15.5%;
   width: 18.8%;
 }
 
@@ -213,7 +213,7 @@ path.revisionLoopSketch {
 
 .approvedCard {
   left: 79.2%;
-  top: 35.3%;
+  top: 42.8%;
   width: 18.8%;
 }
 
@@ -225,39 +225,6 @@ path.revisionLoopSketch {
   transition:
     opacity 180ms ease,
     stroke-width 180ms ease;
-}
-
-.activityPulse {
-  pointer-events: none;
-  opacity: 0;
-  mix-blend-mode: multiply;
-  animation: activityPulseTravel var(--pulse-duration) cubic-bezier(0.16, 1, 0.3, 1) infinite;
-  animation-delay: var(--pulse-delay);
-}
-
-.replayButton {
-  position: absolute;
-  bottom: 7%;
-  left: 3.5%;
-  z-index: 3;
-  display: inline-flex;
-  min-height: 28px;
-  min-width: 28px;
-  align-items: center;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  color: #8f3d21;
-  justify-content: center;
-  padding: 0;
-  transition:
-    color 180ms ease,
-    transform 180ms ease;
-}
-
-.replayButton:hover {
-  color: #a9532d;
-  transform: rotate(-18deg);
 }
 
 .mobileFlow {
@@ -291,8 +258,7 @@ path.revisionLoopSketch {
   .drawPath,
   .fillPath,
   .isVisible .stepCard,
-  .dashedLoopPath,
-  .activityPulse {
+  .dashedLoopPath {
     animation: none !important;
     opacity: 1 !important;
     stroke-dashoffset: 0 !important;
@@ -307,12 +273,7 @@ path.revisionLoopSketch {
     opacity: 0.8 !important;
   }
 
-  .activityPulse {
-    display: none !important;
-  }
-
-  .stepCard,
-  .replayButton {
+  .stepCard {
     transition: none !important;
   }
 }
@@ -349,20 +310,5 @@ path.revisionLoopSketch {
   }
   to {
     opacity: 0.8;
-  }
-}
-
-@keyframes activityPulseTravel {
-  0%,
-  9% {
-    opacity: 0;
-  }
-  16%,
-  58% {
-    opacity: 0.72;
-  }
-  72%,
-  100% {
-    opacity: 0;
   }
 }
