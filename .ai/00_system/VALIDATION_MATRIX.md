@@ -1,6 +1,6 @@
 # Validation Matrix
 
-**Last updated:** 2026-05-25
+**Last updated:** 2026-06-10
 
 ## Active code-change gate
 
@@ -17,8 +17,42 @@ git diff --check
 - TypeScript type-check
 - ESLint
 - app/workshop design-system lint, enforcing the non-landing SF Pro scale, regular/medium weights, xs radius, zero tracking, reference color tokens, and regular icon weights
+- `npx impeccable detect --strict` design quality audit
 - Bun unit tests
 - Vitest DOM/helper tests
+
+Storybook validation (review surface only, not production gate):
+
+```bash
+bun run storybook:validate  # check-components + check-boundary + static build
+bun run storybook:check-components  # verify story file coverage
+bun run storybook:check-boundary    # enforce provider boundary
+```
+
+Notification RLS proof (no-Docker, temporary local Postgres):
+
+```bash
+bun run prove:notification-rls
+```
+
+Launch readiness probes (read-only, no provider mutation):
+
+```bash
+bun run launch:verify-hosted-auth
+bun run launch:verify-hosted-export
+bun run launch:verify-hosted-sensitive-routes
+bun run launch:supabase-readiness
+bun run launch:check-supabase-backup
+bun run launch:check-supabase-migrations
+bun run launch:check-support-dns
+bun run launch:check-support-monitoring
+bun run launch:check-vercel-env
+bun run launch:check-vercel-health
+bun run launch:check-vercel-production
+bun run launch:check-legal-owner
+bun run launch:check-resend-readiness
+bun run launch:check-supabase-linked-readiness
+```
 
 Add `bun run test:e2e` when auth, protected-route behavior, login rendering, route redirects, or other browser-only flows are changed. `test:e2e` is a separate Playwright command, not part of the default app gate.
 
@@ -31,20 +65,24 @@ Add `bun run test:e2e` when auth, protected-route behavior, login rendering, rou
 /pricing
 /contact
 /login
-/auth/callback
 /privacy
 /terms
-/api/invite/[token]/accept, continue, sign-out
-/share/[token]
-/api/ai/ask
-/api/ai/package-builder
+/auth/callback
+/api/health
+/api/webhooks/resend
+/api/ai/ask                                         (disabled for closed beta)
+/api/ai/package-builder                              (disabled for closed beta)
 /api/component-library/images
 /api/component-library/attachments
 /api/projects/images
 /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
-/api/share/[token]                                   (publication access/snapshot/password/comment/decision/activity/events sub-routes)
+/api/share/[token]                                   (publication access/snapshot/password/comment/decision/activity/events/session/unsubscribe sub-routes)
+/invite/[token]                                      (accept, continue, sign-out sub-routes)
+/share/[token]
+/beta/access-required
 /workshop
 /workshop/onboarding                                  (redirects to /workshop/settings)
+/workshop/terms                                       (authenticated clickwrap acceptance)
 /workshop/projects
 /workshop/projects/[projectId]
 /workshop/projects/[projectId]/charts
@@ -53,10 +91,13 @@ Add `bun run test:e2e` when auth, protected-route behavior, login rendering, rou
 /workshop/library
 /workshop/templates
 /workshop/components                                  (redirects to /workshop/library)
+/workshop/feedback                                    (beta feedback submission)
 /workshop/settings
 /workshop/settings/profile
 /workshop/settings/workspace
-/invite/[token]
+/workshop/settings/beta-users                         (admin-only)
+/workshop/settings/feedback                           (admin-only review queue)
+/workshop/pending-invite                              (bridge handler)
 ```
 
 Do not use the old reset-era assumption that `/workshop` is intentionally blank or that `/workshop/projects` is deleted. The authenticated Supabase-backed workshop path is now active.
@@ -83,6 +124,21 @@ Do not use the old reset-era assumption that `/workshop` is intentionally blank 
   - `EmptyState`
 - Add or update tests when a feature adds a new reusable-control pattern.
 - Do not create raw feature-local button/search/icon-button class strings.
+
+## Required checks for Storybook (review surface only)
+
+- Run `bun run storybook:check-components` to verify story file count and required standalone titles.
+- Run `bun run storybook:check-boundary` to enforce the provider boundary (no Supabase/auth dependencies in stories).
+- Run `bun run storybook:validate` for the full gate (components + boundary + static build).
+- Storybook stories must not import live Supabase clients, server actions, or auth hooks.
+- New UI components must have story coverage before merging.
+- Storybook is a review surface only. Do NOT migrate production app routes to new component library without Philip's explicit approval and a separate route-by-route migration plan.
+
+## Required checks for notification system
+
+- Run `bun run prove:notification-rls` to verify notification RLS policies with a temporary local Postgres cluster.
+- Notification stories exist under `src/stories/domain/notifications/`.
+- The notification system uses server-authoritative reads and RLS-protected writes; do not expose direct browser INSERT/UPDATE/DELETE on notification tables.
 
 ## Required checks for feature areas
 

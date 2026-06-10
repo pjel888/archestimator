@@ -397,7 +397,7 @@ body:has([data-workshop-page-shell-root]) {
 }
 
 .landing-hero-diagram-node {
-  width: clamp(6.25rem, 9vw, 13.0625rem);
+  width: clamp(6.25rem, 9vw, calc(13.0625rem * 1.25));
   opacity: 1;
   filter: saturate(1) brightness(1);
   animation-duration: 20s;
@@ -472,7 +472,7 @@ body:has([data-workshop-page-shell-root]) {
 @supports (width: 1cqi) {
   .landing-hero-diagram-node,
   .landing-hero-beta-badge {
-    width: clamp(4.5rem, 24cqi, 13.0625rem);
+    width: clamp(4.5rem, 24cqi, calc(13.0625rem * 1.25));
   }
 }
 

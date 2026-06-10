@@ -28,11 +28,12 @@ This folder is the project brain. It stores product thinking, implementation pla
 - Mode: Post-reset MVP — active implementation with Supabase/Auth/Postgres backend.
 - Preserved: `/` landing page with active A/B testing, consent banner, and CSP Report-Only.
 - Current implemented routes: full workshop ecosystem with projects, estimates, library, templates, charts, settings, shared links, invite entry, and AI copilot.
-- Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` with 48 migrations applied. TanStack Query, Zustand, React Complex Tree, D3, shadcn/Radix context menu, and Phosphor icons are installed.
-- Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript, Tailwind CSS v4.
-- Current codebase: 279 source files, 112 test files, 23 page routes, 12 API routes, 7 domain action modules.
-- Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), and Kimi. Ollama is not approved for agent chat models.
+- Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` with 67+ local migration files (50+ applied to linked remote). TanStack Query, Zustand, React Complex Tree, D3, Radix context menu, Phosphor icons, Storybook 10.4.2 (review surface only, no production route migration), and ExcelJS are installed.
+- Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript 6.0.3, Tailwind CSS v4, Storybook 10.4.2, Vitest 4.1.7.
+- Current codebase: ~498 source files, ~218 test files (115 Vitest DOM, 2 Bun unit, 7 Playwright E2E), ~51 app routes/pages, ~17 API routes.
+- Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, and DeepSeek. Ollama is not approved for agent chat models. Gemini is phased out unless explicitly reapproved.
 - Superseded: the deleted full prototype. Do not resume old plans without explicit reapproval.
+- Storybook 10.4.2 is installed and implemented as a review surface with 60+ UI components and 85+ stories. Production app route migration, public Storybook hosting, and Supabase/provider-backed stories remain explicitly unperformed. See `.ai/10_state/decisions.md` (2026-06-07) for implementation boundaries.
 - Read first for restart: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/10_state/current-state.md`, `.ai/06_specs/feature-inventory.md`, `.ai/10_state/decisions.md`.
 
 ---

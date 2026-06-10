@@ -6,12 +6,8 @@ import {
   TreeStructure,
 } from "@phosphor-icons/react/dist/ssr";
 import { MotionReveal } from "./MotionReveal";
-import {
-  getRenderableCompanyProofItems,
-  placeholderCompanyProof,
-  type CompanyProofLogo,
-} from "./company-proof-data";
 import { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
+import { LaunchFeatureHeading } from "./LaunchFeatureHeading";
 
 const iconMap = {
   TreeStructure,
@@ -85,97 +81,70 @@ function FeatureVideoPlaceholder({ label }: { label: string }) {
   );
 }
 
-function CompanyProofLogoIcon({ name }: { name: string }) {
-  if (name.includes("Northline")) {
-    return (
-      <svg className="size-5 text-current transition-colors duration-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
-      </svg>
-    );
-  }
-  if (name.includes("Formworks")) {
-    return (
-      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-      </svg>
-    );
-  }
-  if (name.includes("Civic")) {
-    return (
-      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-      </svg>
-    );
-  }
-  if (name.includes("Atlas")) {
-    return (
-      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-      </svg>
-    );
-  }
-  if (name.includes("Draftline")) {
-    return (
-      <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16M4 20V4l16 16" />
-      </svg>
-    );
-  }
-  return (
-    <svg className="size-5 text-current transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 18h16M12 6v12" />
-    </svg>
-  );
-}
-
-function CompanyProofLogoItem({ item }: { item: CompanyProofLogo }) {
+function LaunchFeatureVideoPlaceholder() {
   return (
     <div
-      role="listitem"
-      data-placeholder={item.isPlaceholder ? "true" : undefined}
-      className="group flex items-center gap-2.5 text-[#8b8179] transition duration-300 hover:text-[#4a443f]"
+      role="img"
+      aria-label="Full launch feature video placeholder"
+      data-launch-feature-video-placeholder="true"
+      className="group/video relative aspect-video w-full overflow-hidden rounded-[3px] border border-white/20 bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.08)_52%,rgba(64,25,16,0.22))]"
     >
-      <CompanyProofLogoIcon name={item.name} />
-      <span className="font-mono text-[12px] font-bold uppercase tracking-[0.2em] text-current transition-colors duration-300">
-        {item.name}
-      </span>
-    </div>
-  );
-}
-
-function CompanyProofTrack({ items, duplicate = false }: { items: CompanyProofLogo[]; duplicate?: boolean }) {
-  return (
-    <div
-      role={duplicate ? undefined : "list"}
-      aria-hidden={duplicate ? "true" : undefined}
-      className="flex shrink-0 gap-12 items-center lg:gap-16"
-    >
-      {items.map((item) => (
-        <CompanyProofLogoItem key={`${duplicate ? "duplicate" : "primary"}-${item.name}`} item={item} />
-      ))}
+      <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:22px_22px]" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.2),transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.12),rgba(64,25,16,0.18))]" aria-hidden="true" />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/46" aria-hidden="true" />
+      <div className="relative flex size-full flex-col items-center justify-center gap-4 p-6 text-center">
+        <span className="inline-flex size-14 items-center justify-center rounded-[3px] border border-white/36 bg-white/18 text-white shadow-[0_18px_42px_rgba(64,25,16,0.18)] transition duration-300 group-hover/video:scale-105 group-hover/video:bg-white/26">
+          <PlayCircle size={30} weight="fill" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="text-[12px] font-medium leading-5 text-white/66">Full launch feature vid</p>
+          <p className="mt-1 text-[16px] font-normal leading-6 text-white sm:text-[18px]">
+            Product walkthrough placeholder
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
 export function CompanyProofCarouselSection() {
-  const { items: proofItems, state: proofState } = getRenderableCompanyProofItems(placeholderCompanyProof);
-
-  if (proofItems.length === 0) {
-    return null;
-  }
+  const companyProofRail = (
+    <div
+      className="landing-company-carousel-viewport relative z-10 w-full overflow-hidden border-y border-[#e7ded6] bg-[#fffdf9] py-10 shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:py-11"
+      aria-hidden="true"
+    />
+  );
 
   return (
     <>
+      {companyProofRail}
+
       <AnimatedProposalRecordSection />
 
       <section
         aria-label="Company proof and workflow highlights"
         data-company-proof-section="true"
-        data-company-proof-state={proofState}
+        data-company-proof-state="empty"
         data-landing-snap-section="true"
-        className="relative scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white sm:py-14 lg:py-16"
+        className="relative z-20 scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white shadow-[0_-34px_72px_rgba(71,31,20,0.3)] sm:py-14 lg:py-16"
       >
         <div className="grid w-full gap-10 px-6 sm:gap-12 sm:px-8 lg:gap-14 lg:px-12">
+          <MotionReveal replayOnExit>
+            <article className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-7 border-y border-white/18 py-7 text-center sm:py-8 lg:gap-9 lg:py-9">
+              <div className="mx-auto max-w-[760px]">
+                <p className="text-[12px] font-medium leading-5 text-white/62">Launch feature video</p>
+                <LaunchFeatureHeading />
+                <p className="mx-auto mt-5 max-w-[620px] text-[13px] leading-6 text-white/64 sm:text-[14px] sm:leading-7">
+                    A single launch-ready walkthrough for estimating, reusable components, proposal handoff, review, and client decision records.
+                </p>
+              </div>
+
+              <div className="w-full max-w-[1040px]">
+                <LaunchFeatureVideoPlaceholder />
+              </div>
+            </article>
+          </MotionReveal>
+
           <div className="grid border-y border-white/18 py-2 sm:py-3 lg:grid-cols-4 lg:py-0">
             {betaStats.map((stat, index) => {
               const IconComponent = iconMap[stat.icon];
@@ -222,19 +191,6 @@ export function CompanyProofCarouselSection() {
           </MotionReveal>
         </div>
       </section>
-
-      <div className="landing-company-carousel-viewport relative w-full overflow-hidden border-y border-[#e7ded6] bg-[#f6f2ec] py-10 sm:py-11">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-10 bg-gradient-to-r from-[#f6f2ec] to-transparent sm:w-20" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-[#f6f2ec] to-transparent sm:w-20" />
-        <div
-          id="company-proof-rail"
-          className="landing-company-marquee flex w-max gap-12 lg:gap-16"
-          aria-label={proofState === "placeholder" ? "Placeholder company proof rail" : "Company proof rail"}
-        >
-          <CompanyProofTrack items={proofItems} />
-          <CompanyProofTrack items={proofItems} duplicate />
-        </div>
-      </div>
     </>
   );
 }
