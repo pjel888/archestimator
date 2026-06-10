@@ -1427,6 +1427,40 @@ type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
 type EstimateNodeRow = Tables<"estimate_nodes">;
 type EstimateRowItemRow = Tables<"estimate_row_items">;
 
+// Estimate-sheet tree loads fetch every node and row of the estimate, so the
+// column list is explicit: only fields consumed by buildEstimateTree/toUiRow.
+// source_snapshot stays — linked-row display (image, category, price option,
+// lifecycle, pricing provenance) reads it. If toUiRow gains a field, add the
+// column here or the Pick types below fail the build.
+const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id";
+const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
+  "id, node_id, material, description, supplier, supplier_id, unit, unit_cost, quantity, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
+
+export type EstimateTreeNodeQueryRow = Pick<EstimateNodeRow, "id" | "kind" | "name" | "parent_id">;
+export type EstimateTreeRowItemQueryRow = Pick<
+  EstimateRowItemRow,
+  | "id"
+  | "node_id"
+  | "material"
+  | "description"
+  | "supplier"
+  | "supplier_id"
+  | "unit"
+  | "unit_cost"
+  | "quantity"
+  | "contingency_percentage"
+  | "misc_cost"
+  | "row_revision"
+  | "category_node_id"
+  | "discipline"
+  | "designation"
+  | "source_library_item_id"
+  | "link_state"
+  | "source_snapshot"
+  | "metadata"
+  | "created_at"
+>;
+
 type LiveEstimateTreeResult = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects"> | null;
@@ -1463,7 +1497,7 @@ function readJsonRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
+function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const quantity = Number(row.quantity);
   const itemCost = Number(row.unit_cost);
   const contingencyPercentage = Number(row.contingency_percentage ?? 0);
@@ -1526,7 +1560,7 @@ function limitTreeRows<T>(rows: T[], limit: number | null): { rows: T[]; didExce
   };
 }
 
-export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]): EstimateTreeNode[] {
+export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: EstimateTreeRowItemQueryRow[]): EstimateTreeNode[] {
   const rowItemsByNode = new Map<string, EstimateRowItem[]>();
   for (const row of rows) {
     const current = rowItemsByNode.get(row.node_id) ?? [];
@@ -1601,8 +1635,8 @@ export async function getProjectEstimateTreeByEstimate(
 
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const nodesQuery = supabase.from("estimate_nodes").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
-  const rowsQuery = supabase.from("estimate_row_items").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
+  const nodesQuery = supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
+  const rowsQuery = supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
 
   const [nodesResult, rowsResult] = await Promise.all([
     maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
@@ -1649,8 +1683,8 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
 
   const estimate = normalizeEstimateRecord(selectedNode.estimates as EstimateRecordWithLegacy);
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase.from("estimate_nodes").select("*").eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
-    supabase.from("estimate_row_items").select("*").eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
+    supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
+    supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
   ]);
 
   if (nodesResult.error) throw nodesResult.error;
