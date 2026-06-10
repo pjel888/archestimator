@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from 'next/link'
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { loginHref } from './constants'
+import { annotate } from "rough-notation";
+import { workshopHref } from './constants'
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 import { ArrowsClockwise, ArrowsLeftRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
@@ -66,21 +68,21 @@ const heroVisualSlides = [
 const heroDiagramSteps = [
   {
     number: "01",
-    label: "Save Time",
+    label: "Estimate Faster",
     icon: ArrowsClockwise,
-    detail: "Spend less time rebuilding estimates and more time moving proposals forward, with past pricing, scopes, and cost logic ready to reuse.",
+    detail: "Work in an intuitive interface that actually understands how you build. By componentizing your pricing, archestimator ensures you never start from scratch. Build your scopes and assemblies once, then instantly reuse them across future projects.",
   },
   {
     number: "02",
-    label: "One Workflow",
+    label: "Centralized Workflow",
     icon: ArrowsLeftRight,
-    detail: "Keep estimates, proposals, feedback, and revisions connected in one place, so nothing gets lost across spreadsheets, PDFs, emails, and comments.",
+    detail: "Eliminate the chaos of disconnected tools by keeping your estimates, revisions, and client feedback united in a single workflow.",
   },
   {
     number: "03",
-    label: "Decision Record",
+    label: "Accelerate Approvals",
     icon: CheckCircle,
-    detail: "Preserve what changed, what was reviewed, and what was approved, so every proposal has a clear path from estimate to decision.",
+    detail: "Move from draft to decision with absolute clarity by tracking every revision and review along the way.",
   },
 ] as const;
 
@@ -92,33 +94,92 @@ const heroSignalItems = [
   "Activity History",
 ] as const;
 
+const HERO_BRAND_ANNOTATION_COLOR = "rgb(170,65,42)";
+
 export const heroCopyVariants = [
   {
     id: 'connected-workflow',
-    headline: 'Your competitors are winning because of archestimator',
+    headline: 'The fastest path from proposal to approval.',
     support:
-      "The teams that win don't just work harder,\nthey have better tools.\n\narchestimator saves you time you can't afford to lose.\n\nIt makes the most out of every effort so nothing you build ever gets left behind.",
+      "Stop wasting time on messy spreadsheets and scattered feedback. archestimator gives you a single, centralized workflow to build pricing, manage revisions, and get faster approvals.",
     evidenceGate: 'Closed beta preview',
   },
   {
     id: 'review-ready-quotes',
-    headline: 'Only winning teams use archestimator',
+    headline: 'Estimate with Precision. Win with Clarity.',
     support:
-      "The teams that win don't just work harder,\nthey have better tools.\n\narchestimator saves you time you can't afford to lose.\n\nIt makes the most out of every effort so nothing you build ever gets left behind.",
+      "Replace the chaos of manual data entry with a system that scales. archestimator connects your proven pricing data directly to your client proposals, keeping every revision organized until the contract is signed.",
     evidenceGate: 'Closed beta preview',
   },
 ] as const
 
-export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
+export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "A" | "B"; isLoggedIn?: boolean }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
+  const heroBrandRef = useRef<HTMLSpanElement | null>(null);
+  const supportBrandRef = useRef<HTMLSpanElement | null>(null);
+  const primaryCtaHref = isLoggedIn ? workshopHref : "/contact";
+  const primaryCtaTarget = isLoggedIn ? "workspace" : "book_walkthrough";
+
+  useEffect(() => {
+    const headlineTarget = heroBrandRef.current;
+    const supportTarget = supportBrandRef.current;
+
+    if (!headlineTarget && !supportTarget) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timers: number[] = [];
+    const annotations: Array<ReturnType<typeof annotate>> = [];
+
+    if (headlineTarget) {
+      const annotation = annotate(headlineTarget, {
+        type: "underline",
+        color: HERO_BRAND_ANNOTATION_COLOR,
+        strokeWidth: 2.2,
+        padding: 3,
+        iterations: 2,
+        animationDuration: prefersReducedMotion ? 0 : 720,
+        animate: !prefersReducedMotion,
+      });
+      annotations.push(annotation);
+      timers.push(window.setTimeout(
+        () => annotation.show(),
+        prefersReducedMotion ? 0 : 520,
+      ));
+    }
+
+    if (supportTarget) {
+      const annotation = annotate(supportTarget, {
+        type: "underline",
+        color: HERO_BRAND_ANNOTATION_COLOR,
+        strokeWidth: 1.7,
+        padding: 2,
+        iterations: 2,
+        animationDuration: prefersReducedMotion ? 0 : 620,
+        animate: !prefersReducedMotion,
+      });
+      annotations.push(annotation);
+      timers.push(window.setTimeout(
+        () => annotation.show(),
+        prefersReducedMotion ? 0 : 980,
+      ));
+    }
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      annotations.forEach((annotation) => annotation.remove());
+    };
+  }, [activeHeroCopy.headline, activeHeroCopy.support]);
+
   return (
-    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-14 pt-20 text-[#171514] shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:px-8 lg:px-12 lg:py-[59px]'>
+    <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-[184px] pt-20 text-[#171514] sm:px-8 lg:px-12 lg:pb-[187px] lg:pt-[59px]'>
       <div
-        className='pointer-events-none absolute inset-x-0 top-12 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(170,65,42,0.24)_68%,rgba(170,65,42,0.34)_100%)] lg:top-[30px]'
+        className='pointer-events-none absolute inset-x-0 top-12 h-[620px] bg-[linear-gradient(112deg,rgba(255,253,249,0)_0%,rgba(255,253,249,0.84)_32%,rgba(139,83,68,0.12)_68%,rgba(111,88,78,0.16)_100%)] lg:top-[30px]'
         aria-hidden='true'
       />
       <div
-        className='pointer-events-none absolute right-[-12vw] top-10 h-[640px] w-[82vw] max-w-[1180px] bg-[radial-gradient(ellipse_at_55%_38%,rgba(170,65,42,0.42),transparent_58%),linear-gradient(135deg,rgba(170,65,42,0.2),rgba(170,65,42,0.28)_58%,transparent)] blur-3xl'
+        className='pointer-events-none absolute right-[-12vw] top-10 h-[640px] w-[82vw] max-w-[1180px] bg-[radial-gradient(ellipse_at_55%_38%,rgba(139,83,68,0.18),transparent_58%),linear-gradient(135deg,rgba(139,83,68,0.08),rgba(111,88,78,0.12)_58%,transparent)] blur-3xl'
         aria-hidden='true'
       />
       <div
@@ -129,17 +190,17 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
       <div className='relative z-10 grid w-full gap-y-12 lg:grid-cols-[minmax(0,635px)_minmax(0,1fr)] lg:gap-x-0 lg:items-start'>
         <div
           data-testid='landing-hero-copy-block'
-          className='flex max-w-[635px] flex-col lg:h-[603px] lg:justify-between lg:border-l lg:border-[#d6cec5] lg:pl-7'
+          className='relative flex max-w-[635px] flex-col lg:h-[603px] lg:justify-between lg:border-l lg:border-[#d6cec5] lg:pl-7'
         >
-          <div>
-            <p className='max-w-[440px] text-[13px] font-medium leading-6 text-[#6b5f55]'>
-              Cost proposal to client approval, all in one workflow.
+          <div className='relative z-10'>
+            <p className='max-w-[440px] text-[13px] font-medium leading-6 text-brand-orange'>
+              {variant === "B" ? "Win More Bids." : "Close Projects Faster."}
             </p>
 
             <h1 className='mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
               {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
                 seg.toLowerCase() === "archestimator" ? (
-                  <span key={i} className="text-brand-orange">{seg}</span>
+                  <span key={i} ref={heroBrandRef} className="relative inline-block text-brand-orange">{seg}</span>
                 ) : (
                   <span key={i}>{seg}</span>
                 )
@@ -147,14 +208,14 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
             </h1>
           </div>
 
-          <div className='mt-8 lg:mt-10'>
+          <div className='relative z-10 mt-4 lg:mt-5'>
             <p className='max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0'>
               {activeHeroCopy.support.split("\n").map((part, i) => (
                 <span key={i}>
                   {i > 0 && <br aria-hidden="true" />}
                   {part.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, j) =>
                     seg.toLowerCase() === "archestimator" ? (
-                      <span key={j} className="text-brand-orange">{seg}</span>
+                      <span key={j} ref={supportBrandRef} className="relative inline-block text-brand-orange">{seg}</span>
                     ) : (
                       <span key={j}>{seg}</span>
                     )
@@ -165,18 +226,11 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
 
             <div className='mt-7 flex flex-row flex-wrap gap-3'>
               <Link
-                href="/contact"
-                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: "book_walkthrough", variant })}
+                href={primaryCtaHref}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: primaryCtaTarget, variant })}
                 className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-brand-orange px-4 text-[12px] font-semibold text-white transition hover:bg-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
               >
                 Start Winning
-              </Link>
-              <Link
-                href={loginHref}
-                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: "open_workspace", variant })}
-                className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-white/82 px-4 text-[12px] font-semibold text-[#171514] ring-1 ring-[#ded6cc] transition hover:bg-[#f4f1ec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
-              >
-                Open workspace
               </Link>
             </div>
           </div>
@@ -208,7 +262,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               data-testid='landing-hero-slide'
             />
           ))}
-          <div className='absolute inset-0 bg-[linear-gradient(118deg,rgba(255,246,236,0.38),rgba(170,65,42,0.16)_38%,rgba(39,29,23,0.55)),radial-gradient(ellipse_at_28%_18%,rgba(170,65,42,0.42),transparent_46%)]' aria-hidden='true' />
+          <div className='absolute inset-0 bg-[linear-gradient(118deg,rgba(255,246,236,0.28),rgba(139,83,68,0.08)_38%,rgba(39,34,30,0.5)),radial-gradient(ellipse_at_28%_18%,rgba(139,83,68,0.18),transparent_46%)]' aria-hidden='true' />
           <div className='absolute inset-0 bg-[#1d1511]/[0.1] backdrop-blur-[1.5px]' aria-hidden='true' />
           <div className='absolute inset-0 opacity-45 mix-blend-screen' aria-hidden='true' data-testid='neat-wireframe-background'>
             <NeatWireframeBackground />
@@ -232,14 +286,14 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
                         />
                         <div className='landing-hero-diagram-text-scrim' aria-hidden='true' />
                         <div className='absolute inset-x-0 top-0 h-px bg-white/55' aria-hidden='true' />
-                        <p className='relative z-10 text-[8px] font-semibold leading-none text-brand-orange'>{step.number}</p>
+                        <p className='relative z-10 text-[8px] font-semibold leading-none text-[#6b625c]'>{step.number}</p>
                         {step.icon && (
-                          <step.icon size={16} weight="regular" className="relative z-10 mt-2 text-brand-orange" />
+                          <step.icon size={16} weight="regular" className="relative z-10 mt-2 text-[#6b625c]" />
                         )}
                         <p className='landing-hero-diagram-title relative z-10 mt-1 font-semibold leading-none text-brand-orange'>{step.label}</p>
-                        <div className='landing-hero-diagram-divider relative z-10 mt-1.5 border-b border-brand-orange/40' aria-hidden='true' />
+                        <div className='landing-hero-diagram-divider relative z-10 mt-1.5 border-b border-[#d8d2cc]' aria-hidden='true' />
                         {"detail" in step && step.detail ? (
-                          <p className='landing-hero-diagram-detail relative z-10 mt-2 font-normal text-brand-orange text-pretty'>{step.detail}</p>
+                          <p className='landing-hero-diagram-detail relative z-10 mt-2 font-normal text-[#3f3934] text-pretty'>{step.detail}</p>
                         ) : null}
                       </div>
                     </div>
@@ -264,7 +318,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               </div>
             </div>
           </div>
-          <div className='landing-hero-status-bar absolute inset-x-0 bottom-0 z-10 min-h-16 border-t border-white/22 bg-[#56301f]/45 backdrop-blur-lg'>
+          <div className='landing-hero-status-bar absolute inset-x-0 bottom-0 z-10 min-h-16 border-t border-white/22 bg-[#4a403a]/42 backdrop-blur-lg'>
             <div className='landing-hero-status-card-area flex items-center'>
               <span className='landing-hero-beta-badge inline-flex min-h-8 items-center justify-center rounded-[3px] border border-white/35 bg-white/16 px-3 text-center text-[10px] font-semibold text-white backdrop-blur-md'>
                 Now On Closed Beta

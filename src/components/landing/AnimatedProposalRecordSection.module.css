@@ -6,14 +6,6 @@
   isolation: isolate;
 }
 
-.detailPanel {
-  min-height: 184px;
-}
-
-.detailBody {
-  min-height: 48px;
-}
-
 .sketchSvg {
   position: absolute;
   inset: 0;
@@ -55,43 +47,12 @@
   border: 0;
   background: transparent;
   color: #171514;
-  cursor: pointer;
   padding: 10px 12px;
   text-align: left;
   transition:
     color 180ms ease,
     opacity 180ms ease,
     transform 180ms ease;
-}
-
-.stepCard:hover,
-.stepCard:focus-visible,
-.stepCardActive {
-  transform: translateY(-1px);
-}
-
-.stepCard:hover .stepLabel,
-.stepCard:focus-visible .stepLabel,
-.stepCardActive .stepLabel {
-  color: var(--step-color, #a9532d);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-}
-
-.activeEstimate .estimateSketch path,
-.activeEstimate .estimateInputSketch path,
-.activeEstimateInput .estimateSketch path,
-.activeEstimateInput .estimateInputSketch path,
-.activeProposal .proposalSketch path,
-.activeProposal .proposalToFeedbackSketch path,
-.activeFeedback .feedbackSketch path,
-.activeFeedback .revisionLoopSketch path,
-.activeFeedback path.revisionLoopSketch,
-.activeFeedback .estimateSketch path,
-.activeApproved .approvedSketch path,
-.activeApproved .feedbackToApprovedSketch path {
-  stroke-width: 1.75px;
 }
 
 .estimateInputSketch path,
@@ -108,12 +69,6 @@ path.revisionLoopSketch {
     opacity 180ms ease,
     stroke 180ms ease,
     stroke-width 180ms ease;
-}
-
-.stepCard:focus-visible {
-  border-radius: 3px;
-  outline: 2px solid rgba(169, 83, 45, 0.82);
-  outline-offset: 4px;
 }
 
 .stepLabel {
@@ -233,10 +188,6 @@ path.revisionLoopSketch {
 }
 
 @media (max-width: 1023px) {
-  .detailPanel {
-    min-height: 174px;
-  }
-
   .stepCard {
     padding: 8px;
   }

@@ -1,6 +1,16 @@
 # Known Issues / Open Risks
 
-## Live Closed-Beta Launch Gates - OPEN
+**Note (2026-06-10):** The historical blocker sections below (2026-06-02 through 2026-06-04) document the launch-proof journey in detail. Many items listed as "blocked" were subsequently resolved by later proof artifacts recorded in `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/`. See `.ai/10_state/current-state.md` for the current implementation evidence. The condensed current state:
+
+- **Closed beta:** Vercel production deploy is healthy at `www.archestimator.com`. Owner-only beta journey proven. Resend email delivery/webhook proven. Linked Supabase readiness proven. Owner/legal/support signoff recorded.
+- **Storybook:** Installed and implemented as review surface (60+ components, 85+ stories). Production app migration explicitly deferred.
+- **Notifications:** Implemented, RLS-proven (no-Docker), Storybook stories present.
+- **Terms acceptance:** Implemented, linked Supabase proof, merged to main.
+- **CI/CD:** Intentionally deferred per 2026-06-06 decision.
+- **Codex Security:** Two history-exposure findings remain open (owner-accepted for single-owner beta). Other findings closed/already-fixed.
+- **Native spreadsheet app proof:** Remains unproven (synthetic Google Sheets proof captured).
+
+## Live Closed-Beta Launch Gates - RESOLVED (historical record)
 
 - Fresh 2026-06-04T13:11Z proof shows production deployment
   `DEPLOYMENT_ID_PLACEHOLDER` Ready on both custom domains after a small
@@ -148,7 +158,7 @@
 - A 2026-06-04 linked/repo batch at migration `20260604031000` completes the cleanup-result branch of `Mass deletion audit records are caller-tamperable`: `record_mass_deletion_storage_cleanup_result(uuid,jsonb)` is now service-role-only, rejects anon/authenticated browser RPC calls, updates only pending project cleanup events, and the project deletion server action records cleanup results through a server-only service-role client. Exact-file linked apply/repair succeeded and readback proves `anon_execute=false`, `authenticated_execute=false`, `service_role_execute=true`, guard clauses present, and migration history records `20260604031000`. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json`. Production deployment proof for the server-action code and Codex Security rescan/closure remain open.
 - Post-deploy Codex Security refresh is still stale: Findings now shows `1-20 of 35`, `critical` and `high` filters show `0-0 of 0`, the newly selected `Project deletion no longer cleans project image objects` finding pointed at old commit `ea4aa95`, earlier findings still point at old commits, and dashboard rescan/closure remains pending.
 
-**Last updated:** 2026-06-04
+**Last updated:** 2026-06-10
 
 ## 2026-06-04 cheap launch refresh
 

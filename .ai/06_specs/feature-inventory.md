@@ -1,6 +1,6 @@
 # Feature Inventory — Codebase ↔ Documentation Cross-Reference
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-06-10
 **Purpose:** Single source of truth mapping every implemented feature to its spec, plan, tests, and archive evidence.
 
 ## How to use
@@ -250,9 +250,86 @@ For any feature, this table tells you:
 | Project workspace header | `src/components/workshop/ProjectWorkspaceHeaderRow.tsx` | (estimate spec) | — | — | — |
 | Project workspace code | `src/components/workshop/ProjectWorkspaceProjectCode.tsx` | (project spec) | — | — | — |
 
+## Notifications & Release Announcements
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| Notification system (in-app + release modals) | `src/features/notifications/`, `src/lib/notifications/` | (plan) | `2026-06-06-notification-system/` | `notifications-*.test.tsx` (Storybook) | `2026-06-06-notification-system-implementation/` |
+| Notification DB schema | `supabase/migrations/20260606090000_notification_system.sql` | same | same | `notification-rls-*.test.ts` | same |
+| Notification RLS proof (no-Docker) | `scripts/prove-notification-rls-postgres.mjs` | same | same | RLS postgres smoke | same |
+| Notification center UI | `src/features/notifications/components/NotificationCenter.tsx` | same | same | Storybook stories | same |
+| Header bell badge | `WorkshopPageShell` action slot | same | same | Storybook stories | same |
+
+## Terms & Legal
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| Public Terms/Privacy pages | `src/app/terms/page.tsx`, `src/app/privacy/page.tsx` | (roadmap Phase 1) | — | `terms-*.test.tsx` | `2026-06-06-terms-and-conditions-sheet-implementation-complete/` |
+| Authenticated Terms acceptance (clickwrap) | `src/app/workshop/terms/page.tsx`, `src/lib/legal/` | same | — | `terms-acceptance-*.test.tsx` | same |
+| Terms acceptance DB schema | `supabase/migrations/20260606095935_legal_terms_acceptance.sql` | same | — | schema tests | same |
+| Workshop layout terms gate | `src/app/workshop/layout.tsx` | same | — | gate tests | same |
+
+## Beta Access & Governance
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| Closed beta allowlist | `supabase/migrations/20260601182522_closed_beta_allowed_emails.sql` | (roadmap Phase 7) | `mvp-launch-readiness-2026-06-01/` | `closed-beta-*.test.ts` | `2026-06-02-mvp-closed-beta-manual-proof/` |
+| Beta access check RPC | `src/lib/auth/closed-beta-access.ts` | same | same | `beta-access-*.test.ts` | same |
+| Beta access-required page | `src/app/beta/access-required/page.tsx` | same | same | route guard tests | same |
+| Beta feedback submissions | `src/app/workshop/feedback/page.tsx`, `supabase/migrations/20260602083000_beta_feedback_submissions.sql` | same | same | `beta-feedback-*.test.ts` | same |
+| Beta feedback admin review | `src/app/workshop/settings/feedback/page.tsx`, `supabase/migrations/20260602084500_beta_feedback_review_queue.sql` | same | same | `feedback-admin-*.test.ts` | same |
+| Beta user management | `src/app/workshop/settings/beta-users/page.tsx` | same | same | `beta-users-*.test.ts` | same |
+
+## Storybook Component Library (Review Surface)
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| Storybook installation (10.4.2) | `.storybook/main.ts`, `.storybook/preview.tsx` | `DESIGN.md` | `2026-06-06-ui-component-optimization-componentization/` | `storybook-provider-boundary.test.ts` | `2026-06-07-storybook-standalone-component-completion/` |
+| UI component library (60+ components) | `src/components/ui/**` | `DESIGN.md` | same | Vitest + Storybook stories | same |
+| Storybook stories (85+ story files) | `src/stories/**` | `DESIGN.md` | same | Storybook stories | same |
+| Overlay system (Dialog, Modal, Sheet, etc.) | `src/components/ui/overlays/**` | `DESIGN.md` | same | Storybook overlay stories + Playwright smoke | `2026-06-07-complete-ui-component-system-implementation/` |
+| Storybook validation scripts | `scripts/check-storybook-boundary.mjs`, `scripts/check-storybook-component-coverage.mjs` | same | same | `storybook:validate` | same |
+| Provider boundary guard | `scripts/check-storybook-boundary.mjs` | same | same | `storybook-provider-boundary.test.ts` | same |
+
+_Note: Storybook is a review surface only. Production app routes have NOT migrated to the new component library. Public Storybook hosting and Supabase/provider-backed stories remain unperformed._
+
+## Security Hardening (2026-06-04 Codex Security Batch)
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| CSV formula injection hardening | `src/components/workshop/component-library/helpers.ts` | (Codex Security finding) | — | `component-library-helpers.test.ts` | `csv-formula-escape-2026-06-04.json` |
+| Share image URL validation | `src/lib/publication/snapshot.ts` | (Codex Security finding) | — | `project-publication-snapshot.test.ts` | `codex-security-share-image-url-finding-close/` |
+| Share tree designation DoS bounds | `src/lib/share/reconstruct-share-tree.ts` | (Codex Security finding) | — | `reconstruct-share-tree.test.ts` | share-tree-dos bounds artifact |
+| Comment bad-UUID DoS hardening | `src/app/api/share/[token]/comment/route.ts` | (Codex Security finding) | — | `project-publication-comments.test.tsx` | comment-circuit DoS artifact |
+| Password-protected share metadata hardening | `src/app/share/[token]/page.tsx` | (Codex Security finding) | — | `project-publication-page.test.tsx` | password-metadata artifact |
+| Republish scope hardening | `src/components/workshop/ProjectPublicationHeader.tsx` | (Codex Security finding) | — | `project-publication-header.test.tsx` | republish-scope artifact |
+| Project image private storage | `src/app/api/projects/images/route.ts` | (Codex Security finding) | — | `auth-sensitive-api-boundaries.test.ts` | project-images-private artifact |
+| Component price audit RLS hardening | `supabase/migrations/20260603234326_harden_component_price_audit_grants.sql` | (Codex Security finding) | — | `component-library-schema.test.ts` | component-price-audit artifact |
+| Library folder editor-only RLS | `supabase/migrations/20260603235355_harden_library_folder_editor_access.sql` | (Codex Security finding) | — | `library-folder-*.test.ts` | library-folder-editor artifact |
+| Mass deletion actor derivation | `supabase/migrations/20260603191903_harden_mass_deletion_actor_derivation.sql` | (Codex Security finding) | — | `mass-deletion-*.test.ts` | mass-deletion-actor artifact |
+| AI Ask quota + audit fail-closed | `src/lib/ai/audit.ts`, `src/app/api/ai/ask/route.ts` | (Codex Security finding) | — | `ai-ask-*.test.ts` | ai-ask-quota-audit artifact |
+| Chart/XLSX export load bounds | `src/lib/project-charts/`, `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts` | (Codex Security finding) | — | `proposal-export-route.test.ts` | chart-xlsx-load-bounds artifact |
+
+## Mass Deletion & Governance
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| Mass deletion governance | `supabase/migrations/20260603160000_mass_deletion_governance.sql` | (plan) | `2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md` | `mass-deletion-*.test.ts` | `2026-06-03-mass-deletion-implementation-log/` |
+| Transactional library folder delete | `supabase/migrations/20260605113000_transactional_library_folder_delete.sql` | same | same | `library-folder-delete.test.ts` | same |
+| Mass deletion storage cleanup RPC lock | `supabase/migrations/20260604031000_lock_mass_deletion_cleanup_result_rpc.sql` | (security) | same | `mass-deletion-*.test.ts` | cleanup-rpc-lock artifact |
+
+## Email (Resend) Integration
+
+| Feature | Code | Spec | Plan | Tests | Archive |
+|---------|------|------|------|-------|---------|
+| Resend email client | `src/lib/email/resend-client.ts` | `shared-link-and-publication-spec.md` | `mvp-launch-readiness-2026-06-01/` | `resend-*.test.ts` | `2026-06-02-mvp-closed-beta-manual-proof/` |
+| Webhook receiver (signed) | `src/app/api/webhooks/resend/route.ts` | same | same | webhook route tests | `resend-signed-delivered-webhook-reconciliation/` |
+| Shared link recipient emails | `src/components/workshop/publication/RecipientEmailComposer.tsx` | same | same | `project-publication-actions.test.ts` | shared-link email artifacts |
+| Production Resend domain verification | DNS + Resend dashboard | same | same | — | `resend-domain-verified-email-enabled/` |
+
 ---
 
-## Documentation Gaps (verified 2026-05-29)
+## Documentation Gaps (verified 2026-06-10)
 
 These features are implemented but lack dedicated spec files (covered by other docs):
 

@@ -7,6 +7,12 @@
         "serve"
       ],
       "type": "stdio"
+    },
+    "ChunkHound": {
+      "command": "chunkhound",
+      "args": [
+        "mcp"
+      ]
     }
   }
 }

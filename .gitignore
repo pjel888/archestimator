@@ -18,6 +18,12 @@
 /.next/
 /out/
 
+# chunkhound
+.chunkhound.json
+.auto_doc/
+*.duckdb
+*.duckdb.wal
+
 # production
 /build
 

@@ -11,7 +11,6 @@ import {
 } from "react";
 import rough from "roughjs";
 import type { Options } from "roughjs/bin/core";
-import { annotate, annotationGroup } from "rough-notation";
 import styles from "./AnimatedProposalRecordSection.module.css";
 
 type DiagramStepId =
@@ -22,8 +21,6 @@ type DiagramStepId =
   | "proposal"
   | "feedback"
   | "approved";
-type ProposalRecordStepId = DiagramStepId | "activity";
-type ProposalRecordAnnotation = ReturnType<typeof annotate>;
 
 type ProposalRecordStep = {
   id: DiagramStepId;
@@ -35,11 +32,6 @@ type ProposalRecordStep = {
   fill: string;
   variant?: "input" | "workflow" | "feedback";
   quote?: string;
-};
-
-type DetailCopy = {
-  title: string;
-  body: string;
 };
 
 type SketchRect = {
@@ -90,7 +82,7 @@ const flowSteps: ProposalRecordStep[] = [
   },
   {
     id: "estimate",
-    label: "Estimate Workspace",
+    label: "Estimate",
     body: "Scope, quantities, rates, and assumptions in one structured sheet.",
     positionClassName: styles.estimateCard,
     delay: 720,
@@ -100,7 +92,7 @@ const flowSteps: ProposalRecordStep[] = [
   },
   {
     id: "proposal",
-    label: "Client Proposal",
+    label: "Proposal",
     body: "Share a review-ready cost proposal without losing the estimate context.",
     positionClassName: styles.proposalCard,
     delay: 1140,
@@ -110,7 +102,7 @@ const flowSteps: ProposalRecordStep[] = [
   },
   {
     id: "feedback",
-    label: "Client Review",
+    label: "Review",
     quote: "Can we revise this?",
     body: "Capture comments, questions, approvals, and revision requests.",
     positionClassName: styles.feedbackCard,
@@ -121,7 +113,7 @@ const flowSteps: ProposalRecordStep[] = [
   },
   {
     id: "approved",
-    label: "Approval Record",
+    label: "Decide",
     body: "Keep the decision and next action attached to the proposal.",
     positionClassName: styles.approvedCard,
     delay: 2680,
@@ -130,65 +122,6 @@ const flowSteps: ProposalRecordStep[] = [
     variant: "workflow",
   },
 ];
-
-const detailCopy = new Map<ProposalRecordStepId, DetailCopy>([
-  [
-    "activity",
-    {
-      title: "One iterative workflow",
-      body: "Feedback loops back into the estimate workspace, then moves forward as the same client proposal record.",
-    },
-  ],
-  [
-    "projectWorkflow",
-    {
-      title: "Project-Shaped Workflow",
-      body: "Organize costs by area, phase, package, or scope.",
-    },
-  ],
-  [
-    "componentLibrary",
-    {
-      title: "Reusable Component Library",
-      body: "Reuse saved costs, components, services, and assemblies.",
-    },
-  ],
-  [
-    "estimatingExperience",
-    {
-      title: "Intuitive Estimating Experience",
-      body: "Build and adjust estimates without spreadsheet friction.",
-    },
-  ],
-  [
-    "estimate",
-    {
-      title: "Estimate Workspace",
-      body: "Scope, quantities, rates, and assumptions come together here.",
-    },
-  ],
-  [
-    "proposal",
-    {
-      title: "Client Proposal",
-      body: "The estimate sheet becomes a review-ready cost proposal link.",
-    },
-  ],
-  [
-    "feedback",
-    {
-      title: "Client Review",
-      body: "Comments and revision requests loop back into the estimate without creating a separate workflow.",
-    },
-  ],
-  [
-    "approved",
-    {
-      title: "Approval Record",
-      body: "The client decision becomes part of the activity history.",
-    },
-  ],
-]);
 
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 
@@ -539,10 +472,10 @@ function drawMeasuredSketch(
         roughSvg,
         layer,
         {
-          from: { x: input.x + input.width * 0.76, y: input.y + input.height + 5 },
-          control1: { x: input.x + input.width + 28, y: input.y + input.height + 25 },
-          control2: { x: estimate.x - 20, y: estimate.y + estimate.height * 0.54 },
-          to: { x: estimate.x + 8, y: estimate.y + estimate.height * 0.54 },
+          from: { x: input.x + input.width + 5, y: input.y + input.height * 0.5 },
+          control1: { x: input.x + input.width + 54, y: input.y + input.height * 0.42 },
+          control2: { x: estimate.x + estimate.width * 0.18, y: estimate.y - 34 },
+          to: { x: estimate.x + estimate.width * 0.18, y: estimate.y - 7 },
           delay: 480,
           prefersReducedMotion,
           options,
@@ -600,8 +533,6 @@ function drawMeasuredSketch(
 
   appendOutline(flowSteps.find((step) => step.id === "estimate")!);
 
-  const estimateToProposalPath = `M ${estimate.x + estimate.width + 4} ${estimate.y + estimate.height * 0.5} L ${proposal.x - 6} ${proposal.y + proposal.height * 0.5}`;
-
   drawArrow(
     roughSvg,
     layer,
@@ -616,13 +547,6 @@ function drawMeasuredSketch(
   );
 
   appendOutline(flowSteps.find((step) => step.id === "proposal")!);
-
-  const proposalToFeedbackPath = [
-    `M ${proposal.x + proposal.width + 6} ${proposal.y + proposal.height * 0.5}`,
-    `C ${proposal.x + proposal.width + 52} ${proposal.y + proposal.height * 0.46},`,
-    `${feedback.x + feedback.width * 0.32} ${feedback.y + feedback.height + 34},`,
-    `${feedback.x + feedback.width * 0.48} ${feedback.y + feedback.height + 24}`,
-  ].join(" ");
 
   drawCurvedArrow(
     roughSvg,
@@ -640,13 +564,6 @@ function drawMeasuredSketch(
   );
 
   appendOutline(flowSteps.find((step) => step.id === "feedback")!);
-
-  const revisionLoopPath = [
-    `M ${feedback.x + feedback.width * 0.16} ${feedback.y + 5}`,
-    `C ${feedback.x - 150} ${Math.max(20, feedback.y - 68)},`,
-    `${estimate.x + estimate.width + 190} ${Math.max(20, feedback.y - 74)},`,
-    `${estimate.x + estimate.width * 0.78} ${estimate.y - 9}`,
-  ].join(" ");
 
   drawCurvedArrow(
     roughSvg,
@@ -666,13 +583,6 @@ function drawMeasuredSketch(
       opacity: 0.8,
     },
   );
-
-  const feedbackToApprovedPath = [
-    `M ${feedback.x + feedback.width * 0.66} ${feedback.y + feedback.height + 10}`,
-    `C ${feedback.x + feedback.width * 0.76} ${feedback.y + feedback.height + 48},`,
-    `${approved.x - 62} ${approved.y + approved.height * 0.5},`,
-    `${approved.x - 8} ${approved.y + approved.height * 0.5}`,
-  ].join(" ");
 
   drawCurvedArrow(
     roughSvg,
@@ -717,28 +627,11 @@ export function AnimatedProposalRecordSection() {
   const diagramStageRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const roughLayerRef = useRef<SVGGElement | null>(null);
-  const activityNotationRef = useRef<HTMLSpanElement | null>(null);
-  const stepRefs = useRef(new Map<DiagramStepId, HTMLButtonElement>());
-  const annotationRefs = useRef<ProposalRecordAnnotation[]>([]);
+  const stepRefs = useRef(new Map<DiagramStepId, HTMLElement>());
   const [isVisible, setIsVisible] = useState(false);
-  const [activeStepId, setActiveStepId] = useState<ProposalRecordStepId>("activity");
-  const [lockedStepId, setLockedStepId] = useState<ProposalRecordStepId | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  const activeStep = detailCopy.get(activeStepId) ?? detailCopy.get("activity")!;
   const shouldShowSketch = isVisible || prefersReducedMotion;
-  const activeStageClassName =
-    activeStepId === "estimate"
-      ? styles.activeEstimate
-      : activeStepId === "proposal"
-        ? styles.activeProposal
-        : activeStepId === "feedback"
-          ? styles.activeFeedback
-          : activeStepId === "approved"
-            ? styles.activeApproved
-            : activeStepId === "activity"
-              ? styles.activeActivity
-              : styles.activeEstimateInput;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -797,74 +690,8 @@ export function AnimatedProposalRecordSection() {
     };
   }, [prefersReducedMotion, shouldShowSketch]);
 
-  useEffect(() => {
-    annotationRefs.current.forEach((annotation) => annotation.remove());
-    annotationRefs.current = [];
-
-    if (!shouldShowSketch) {
-      return;
-    }
-
-    const timer = window.setTimeout(
-      () => {
-        const annotations: ProposalRecordAnnotation[] = [];
-
-        if (activityNotationRef.current) {
-          annotations.push(
-            annotate(activityNotationRef.current, {
-              type: "underline",
-              color: ORANGE,
-              strokeWidth: 1.4,
-              padding: 2,
-              animationDuration: prefersReducedMotion ? 0 : 560,
-              animate: !prefersReducedMotion,
-            }),
-          );
-        }
-
-        if (annotations.length > 0) {
-          annotationGroup(annotations).show();
-          annotationRefs.current = annotations;
-        }
-      },
-      prefersReducedMotion ? 0 : 4050,
-    );
-
-    return () => {
-      window.clearTimeout(timer);
-      annotationRefs.current.forEach((annotation) => annotation.remove());
-      annotationRefs.current = [];
-    };
-  }, [prefersReducedMotion, shouldShowSketch]);
-
-  const activateStep = useCallback((stepId: ProposalRecordStepId) => {
-    setActiveStepId(stepId);
-  }, []);
-
-  const isStepVisuallyActive = useCallback(
-    (step: ProposalRecordStep) => activeStepId === step.id || (activeStepId === "estimate" && step.variant === "input"),
-    [activeStepId],
-  );
-
-  const handleStepHover = useCallback(
-    (stepId: ProposalRecordStepId) => {
-      if (!lockedStepId) {
-        activateStep(stepId);
-      }
-    },
-    [activateStep, lockedStepId],
-  );
-
-  const handleStepClick = useCallback(
-    (stepId: ProposalRecordStepId) => {
-      setLockedStepId(stepId);
-      activateStep(stepId);
-    },
-    [activateStep],
-  );
-
   const setStepRef = useCallback(
-    (stepId: DiagramStepId) => (node: HTMLButtonElement | null) => {
+    (stepId: DiagramStepId) => (node: HTMLElement | null) => {
       if (node) {
         stepRefs.current.set(stepId, node);
         return;
@@ -898,14 +725,14 @@ export function AnimatedProposalRecordSection() {
       className="landing-quote-grid-paper border-y border-[#e5e0d8] px-6 py-14 before:![background-size:16px_16px] sm:px-8 sm:py-[72px] lg:px-12 lg:py-[59px]"
       data-animated-proposal-record="true"
     >
-      <div className="relative z-10 grid w-full gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,635px)] lg:items-start lg:gap-x-0">
+      <div className="relative z-10 grid w-full gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,635px)] lg:items-stretch lg:gap-x-0">
         <div
           data-testid="landing-workflow-diagram-visual"
           className="hidden min-w-0 md:block lg:pr-0"
         >
           <div
             ref={diagramStageRef}
-            className={`${styles.diagramStage} ${shouldShowSketch ? styles.isVisible : ""} ${activeStageClassName}`}
+            className={`${styles.diagramStage} ${shouldShowSketch ? styles.isVisible : ""}`}
             aria-label="Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity History records the full process."
           >
             <svg ref={svgRef} className={styles.sketchSvg} viewBox={`0 0 ${SKETCH_WIDTH} ${SKETCH_HEIGHT}`} aria-hidden="true">
@@ -913,21 +740,16 @@ export function AnimatedProposalRecordSection() {
             </svg>
 
             {flowSteps.map((step) => (
-              <button
+              <div
                 key={step.id}
                 ref={setStepRef(step.id)}
-                type="button"
-                className={`${styles.stepCard} ${step.variant === "input" ? styles.inputCard : ""} ${step.variant === "feedback" ? styles.feedbackCardInner : ""} ${step.positionClassName} ${isStepVisuallyActive(step) ? styles.stepCardActive : ""}`}
+                className={`${styles.stepCard} ${step.variant === "input" ? styles.inputCard : ""} ${step.variant === "feedback" ? styles.feedbackCardInner : ""} ${step.positionClassName}`}
                 style={customProperties({ "--card-delay": `${step.delay}ms`, "--step-color": step.color })}
-                onMouseEnter={() => handleStepHover(step.id)}
-                onFocus={() => handleStepHover(step.id)}
-                onClick={() => handleStepClick(step.id)}
-                aria-label={`${detailCopy.get(step.id)?.title ?? step.label}. ${detailCopy.get(step.id)?.body ?? step.body}`}
               >
                 <span className={styles.stepLabel}>{step.label}</span>
                 {step.quote ? <span className={styles.feedbackQuote}>&ldquo;{step.quote}&rdquo;</span> : null}
                 {step.variant === "input" ? null : <span className={styles.stepBody}>{step.body}</span>}
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -973,9 +795,9 @@ export function AnimatedProposalRecordSection() {
 
         <div
           data-testid="landing-workflow-copy-block"
-          className="flex max-w-[635px] flex-col justify-between lg:border-l lg:border-[#d6cec5] lg:pl-7"
+          className="flex max-w-[635px] flex-col lg:h-full lg:border-l lg:border-[#d6cec5] lg:pl-7"
         >
-          <div>
+          <div className="border-b border-[#d9d1c8] pb-7">
             <p
               className="max-w-[440px] text-[13px] font-medium leading-6 text-brand-orange"
             >
@@ -984,24 +806,21 @@ export function AnimatedProposalRecordSection() {
 
             <h2
               id="proposal-record-heading"
-              className="mt-3 max-w-[560px] text-[34px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[44px] sm:leading-[1.05] lg:text-[54px]"
+              className="mt-3 text-[36px] font-normal leading-none tracking-normal text-[#171514] sm:mt-4 sm:text-[48px] lg:text-[58px]"
             >
-              One workflow from estimate creation to client decision
+              One Workflow
             </h2>
+            <p className="mt-3 max-w-full whitespace-nowrap text-[16px] font-normal leading-6 tracking-normal text-[#6f6258] sm:text-[18px] lg:text-[18px] lg:leading-7">
+              From estimate creation to client decision
+            </p>
           </div>
 
-          <div className="mt-8 lg:mt-10">
+          <div className="mt-7 lg:mt-8">
             <p className="max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[14px] font-normal leading-7 text-[#473f39] text-pretty lg:border-l-0 lg:pl-0">
-              Build the estimate, send the proposal, collect client feedback, and capture the decision without stitching together spreadsheets, PDFs, emails, and comments by hand.
+              Build the estimate and turn it into a clear cost proposal your client can review, comment on, and approve.
             </p>
-
-            <div className={`${styles.detailPanel} mt-8 max-w-[560px]`} aria-live="polite">
-              <h3 className="text-[22px] font-normal leading-7 tracking-normal text-[#171514]">{activeStep.title}</h3>
-              <p className={`${styles.detailBody} mt-2 text-[13px] leading-6 text-[#625950]`}>{activeStep.body}</p>
-            </div>
-
-            <p className="mt-4 text-[12px] leading-5 text-[#6f6258]">
-              <span ref={activityNotationRef}>Activity History</span> records every comment, change, and decision.
+            <p className="mt-4 max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[14px] font-normal leading-7 text-[#473f39] text-pretty lg:border-l-0 lg:pl-0">
+              Keep the pricing, scope, feedback, revisions, and final decision in one place, without stitching together spreadsheets, PDFs, email threads, and scattered comments by hand.
             </p>
           </div>
         </div>

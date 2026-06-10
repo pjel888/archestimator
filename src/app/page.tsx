@@ -34,7 +34,7 @@ export default async function LandingPage() {
         <LandingHeader isLoggedIn={isLoggedIn} isHomePage={true} />
         <LandingSmoothScrollProvider>
           <main data-landing-page-root="true">
-            <HeroSection variant={heroVariant} />
+            <HeroSection variant={heroVariant} isLoggedIn={isLoggedIn} />
             <CompanyProofCarouselSection />
             <SecondaryClaimSection />
             <ProductShowcaseSection />
