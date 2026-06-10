@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type SetStateAction, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, FunnelSimple, Plus, Trash, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -12,6 +12,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
@@ -89,6 +90,9 @@ type EstimateSheetContentProps = {
 };
 
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
+// Shared empty-rows identity: branches render a row table per node, and a
+// fresh [] per render would defeat the table's memo comparator.
+const EMPTY_ESTIMATE_ROW_ITEMS: EstimateRowItem[] = [];
 const LIBRARY_ITEM_DRAG_MIME_TYPE = "application/x-archestimator-library-item";
 const ESTIMATE_COMPONENT_DRAG_MIME_TYPE = "application/x-archestimator-estimate-component";
 
@@ -994,24 +998,7 @@ function MoneyInput({
   );
 }
 
-function EstimateRowItemsTable({
-  items,
-  editableRows,
-  setEditableRows,
-  targetNodeId,
-  onInsertLibraryItem,
-  onReplaceRowItem,
-  onDeleteRowItem,
-  onUpdateRowItem,
-  onMarkRowDirty,
-  onOpenRowDetails,
-  onClearRowComponent,
-  onRequestProjectSpecific,
-  onMoveRowComponent,
-  selectedRowIds,
-  onToggleRowSelection,
-  onToggleRowsSelection,
-}: {
+type EstimateRowItemsTableProps = {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
@@ -1028,7 +1015,56 @@ function EstimateRowItemsTable({
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
-}) {
+};
+
+// The comparator slices shared sheet state per table: a keystroke in one
+// area's table must not re-render every other table. Callback props must be
+// identity-stable (useStableCallback in EstimateSheetContent) — a changed
+// callback identity forces a re-render to avoid stale closures.
+function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTableProps, next: EstimateRowItemsTableProps) {
+  if (
+    prev.items !== next.items ||
+    prev.targetNodeId !== next.targetNodeId ||
+    prev.setEditableRows !== next.setEditableRows ||
+    prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
+    prev.onReplaceRowItem !== next.onReplaceRowItem ||
+    prev.onDeleteRowItem !== next.onDeleteRowItem ||
+    prev.onUpdateRowItem !== next.onUpdateRowItem ||
+    prev.onMarkRowDirty !== next.onMarkRowDirty ||
+    prev.onOpenRowDetails !== next.onOpenRowDetails ||
+    prev.onClearRowComponent !== next.onClearRowComponent ||
+    prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
+    prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.onToggleRowSelection !== next.onToggleRowSelection ||
+    prev.onToggleRowsSelection !== next.onToggleRowsSelection
+  ) {
+    return false;
+  }
+  for (const item of next.items) {
+    if (prev.editableRows[item.id] !== next.editableRows[item.id]) return false;
+    if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return false;
+  }
+  return true;
+}
+
+const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
+  items,
+  editableRows,
+  setEditableRows,
+  targetNodeId,
+  onInsertLibraryItem,
+  onReplaceRowItem,
+  onDeleteRowItem,
+  onUpdateRowItem,
+  onMarkRowDirty,
+  onOpenRowDetails,
+  onClearRowComponent,
+  onRequestProjectSpecific,
+  onMoveRowComponent,
+  selectedRowIds,
+  onToggleRowSelection,
+  onToggleRowsSelection,
+}: EstimateRowItemsTableProps) {
   reportEstimateRowItemsTableRender(targetNodeId);
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
@@ -1326,7 +1362,7 @@ function EstimateRowItemsTable({
       </table>
     </div>
   );
-}
+}, areEstimateRowItemsTablePropsEqual);
 
 function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
   nodeId: string;
@@ -1497,7 +1533,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
-  const estimateRowItems = node.estimateRowItems ?? [];
+  const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
   const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
   const canReceiveRows = node.kind === "area";
   const isGroup = node.kind === "group";
@@ -3416,7 +3452,10 @@ export function EstimateSheetContent({
   libraryFolders,
 }: EstimateSheetContentProps) {
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const { saveState, markRowDirty, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  // Row tables are memoized on callback identity: every handler that reaches
+  // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
+  const markRowDirty = useStableCallback(markRowDirtyNow);
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
@@ -3571,7 +3610,10 @@ export function EstimateSheetContent({
   const canInsertTemplateIntoSelectedNode = Boolean(templateTargetParentNode);
   const insertionTargetLabel = selectedNode?.kind === "area" ? selectedNode.name : "selected area";
   const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected group";
-  const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
+  const projectTotal = useMemo(
+    () => estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0),
+    [editableRows, estimateTree],
+  );
   const currentRows = useMemo(() => flattenEstimateRows(estimateTree, editableRows), [editableRows, estimateTree]);
   const inspectorScopeKey = getActivityScopeKey(inspector);
   const activityFilterKey = useMemo(() => createActivityFilterKey(activityFilters), [activityFilters]);
@@ -3885,7 +3927,7 @@ export function EstimateSheetContent({
     return () => window.cancelAnimationFrame(frameId);
   }, [pendingFocusRowId]);
 
-  function updateRowItem(rowItemId: string, values: Partial<EditableRowValue>) {
+  const updateRowItem = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
     if (!projectId || !estimateId) return;
     const previousTree = estimateTree;
     const previousRows = collectEditableRows(estimateTree);
@@ -3907,9 +3949,9 @@ export function EstimateSheetContent({
       ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
     });
-  }
+  });
 
-  const insertLibraryItem = useCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
+  const insertLibraryItem = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
     const targetNode = findEstimateNode(estimateTree, targetNodeId);
     if (targetNode?.kind !== "area") return;
 
@@ -3940,7 +3982,7 @@ export function EstimateSheetContent({
         rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
       });
     }
-  }, [editableRows, estimateId, estimateTree, insertRow, projectId, restoreEstimateState, setEstimateTree]);
+  });
 
   const insertIntoSelectedNode = useCallback(
     (libraryItem: EstimateRowItem) => {
@@ -3951,7 +3993,7 @@ export function EstimateSheetContent({
     [insertLibraryItem, insertTargetNodeId],
   );
 
-  const insertTemplateIntoParent = useCallback(
+  const insertTemplateIntoParent = useStableCallback(
     (targetParentNodeId: string, template: EstimateTemplate) => {
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (targetParentNode?.kind !== "group") return false;
@@ -3980,7 +4022,6 @@ export function EstimateSheetContent({
 
       return true;
     },
-    [editableRows, estimateId, estimateTree, getEstimateTreeRevision, projectId, restoreEstimateState, setEstimateTree, setEstimateTreeData, setSelectedNodeId],
   );
 
   const insertTemplateIntoParentById = useCallback(
@@ -4003,7 +4044,7 @@ export function EstimateSheetContent({
   // Inserts ONE node of a template (a group or area inside it) with its
   // subtree. Same optimistic shape as whole-template insertion; the server
   // recreates the subtree through the history-aware node/row RPCs.
-  const insertTemplateNodeIntoParent = useCallback(
+  const insertTemplateNodeIntoParent = useStableCallback(
     (targetParentNodeId: string, template: EstimateTemplate, templateNode: EstimateTreeNode) => {
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
       if (targetParentNode?.kind !== "group") return false;
@@ -4033,7 +4074,6 @@ export function EstimateSheetContent({
 
       return true;
     },
-    [editableRows, estimateId, estimateTree, getEstimateTreeRevision, projectId, restoreEstimateState, setEstimateTree, setEstimateTreeData, setSelectedNodeId],
   );
 
   const insertTemplateNodeIntoParentById = useCallback(
@@ -4118,7 +4158,7 @@ export function EstimateSheetContent({
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
   }, [insertTemplateIntoParentById, insertTemplateNodeIntoParentById]);
 
-  function replaceRowItem(rowItemId: string, libraryItem: EstimateRowItem) {
+  const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const editableReplacement = previousRows[rowItemId];
@@ -4145,17 +4185,17 @@ export function EstimateSheetContent({
     if (projectId && estimateId) {
       replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem: replacementLibraryItem, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
     }
-  }
+  });
 
-  function clearRowComponent(rowItemId: string) {
+  const clearRowComponent = useStableCallback((rowItemId: string) => {
     replaceRowItem(rowItemId, createBlankEstimateRowTemplate());
-  }
+  });
 
-  function requestProjectSpecific(rowItemId: string) {
+  const requestProjectSpecific = useStableCallback((rowItemId: string) => {
     const row = currentRows.find((candidate) => candidate.item.id === rowItemId);
     if (!row || !canMakeProjectSpecific(row.item)) return;
     setProjectSpecificRowId(rowItemId);
-  }
+  });
 
   function confirmProjectSpecific() {
     if (!projectId || !estimateId || !projectSpecificRow) {
@@ -4176,13 +4216,13 @@ export function EstimateSheetContent({
     setProjectSpecificRowId("");
   }
 
-  function moveRowComponent(sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) {
+  const moveRowComponent = useStableCallback((sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => {
     if (sourceRowItemId === targetRowItemId) return;
     replaceRowItem(targetRowItemId, movedItem);
     clearRowComponent(sourceRowItemId);
-  }
+  });
 
-  function deleteRowItem(rowItemId: string) {
+  const deleteRowItem = useStableCallback((rowItemId: string) => {
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const rollbackRevision = setEstimateTree((current) =>
@@ -4205,7 +4245,7 @@ export function EstimateSheetContent({
     if (projectId && estimateId) {
       deleteRow({ projectId, estimateId, rowId: rowItemId, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
     }
-  }
+  });
 
   function deleteSelectedRows() {
     bulkSelectedRowIds.forEach((rowItemId) => deleteRowItem(rowItemId));
