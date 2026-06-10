@@ -3,6 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
+import {
+  ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  INSERT_ESTIMATE_TEMPLATE_EVENT,
+} from "@/components/workshop/component-library/templates";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
@@ -205,6 +209,18 @@ describe("estimate sheet tree DOM integration", () => {
     expect(screen.getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
   });
 
+  it("scopes the drag/select rail reveal to the whole sidebar, not just the rows", () => {
+    renderTree();
+
+    // The panel header (search, Add Group, Add Node) must live inside the same
+    // `group/tree` scope as the rows: hovering or focusing the toolbar keeps
+    // the rail space open instead of shifting the tree back and forth.
+    const header = screen.getByLabelText("Tree tools");
+    const railScope = header.closest(".group\\/tree");
+    expect(railScope).not.toBeNull();
+    expect(railScope).toContainElement(screen.getByRole("tree", { name: "Modern Bungalow estimate areas" }));
+  });
+
   it("moves focus between rows with arrow keys and activates with Enter", () => {
     renderTree();
 
@@ -236,6 +252,74 @@ describe("estimate sheet tree DOM integration", () => {
     fireEvent.dragOver(alternates, { clientY: 14, dataTransfer });
 
     expect(treeNodeButton("alternates")).toHaveClass("bg-surfaceMuted");
+  });
+
+  it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {
+    renderTree();
+
+    const insertEvents: Array<{ targetParentNodeId: string; templateIds: string[] }> = [];
+    const recordInsert = (event: Event) => {
+      insertEvents.push((event as CustomEvent<{ targetParentNodeId: string; templateIds: string[] }>).detail);
+    };
+    window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
+
+    try {
+      // No dragStart in this tree: the payload comes from the right sidebar.
+      const dataTransfer = Object.assign(mockDataTransfer(), {
+        types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, "text/plain"],
+      });
+      dataTransfer.setData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, JSON.stringify({ templateId: "tpl-9" }));
+
+      const alternates = treeNodeButton("alternates");
+      setMiddleDropRect(alternates);
+      fireEvent.dragOver(alternates, { clientY: 0, dataTransfer });
+      expect(treeNodeButton("alternates")).toHaveClass("bg-surfaceMuted");
+      fireEvent.drop(alternates, { dataTransfer });
+
+      expect(insertEvents).toEqual([{ targetParentNodeId: "alternates", templateIds: ["tpl-9"] }]);
+
+      // Area rows never accept templates: areas cannot nest nodes.
+      const kitchen = treeNodeButton("kitchen");
+      setMiddleDropRect(kitchen);
+      fireEvent.dragOver(kitchen, { clientY: 0, dataTransfer });
+      expect(treeNodeButton("kitchen")).not.toHaveClass("bg-surfaceMuted");
+      fireEvent.drop(kitchen, { dataTransfer });
+
+      expect(insertEvents).toHaveLength(1);
+    } finally {
+      window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
+    }
+  });
+
+  it("hands node-from-template drops to the sheet with the subtree payload", () => {
+    renderTree();
+
+    const insertEvents: Array<Record<string, unknown>> = [];
+    const recordInsert = (event: Event) => {
+      insertEvents.push((event as CustomEvent<Record<string, unknown>>).detail);
+    };
+    window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
+
+    try {
+      const dataTransfer = Object.assign(mockDataTransfer(), {
+        types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, "text/plain"],
+      });
+      dataTransfer.setData(
+        ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+        JSON.stringify({ templateId: "tpl-9", templateNodeId: "tpl-9-area" }),
+      );
+
+      const alternates = treeNodeButton("alternates");
+      setMiddleDropRect(alternates);
+      fireEvent.dragOver(alternates, { clientY: 0, dataTransfer });
+      fireEvent.drop(alternates, { dataTransfer });
+
+      expect(insertEvents).toEqual([
+        { targetParentNodeId: "alternates", templateId: "tpl-9", templateNodeId: "tpl-9-area" },
+      ]);
+    } finally {
+      window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
+    }
   });
 
   it("shows a large top root drop target for moving a Group Node before the first root item", async () => {
