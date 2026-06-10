@@ -22,7 +22,7 @@ export function StaticWorkshopLoadingShell({
   alignChromeToProjectSidebar = false,
   children,
 }: StaticWorkshopLoadingShellProps) {
-  const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:pr-2 lg:pl-[25px]" : "p-2";
+  const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:px-2" : "p-2";
 
   return (
     <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden bg-canvas text-ink" aria-label={`${title} loading`}>

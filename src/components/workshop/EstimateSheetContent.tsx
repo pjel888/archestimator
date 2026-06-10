@@ -3,11 +3,13 @@
 import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, FunnelSimple, Plus, Trash, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
+import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
@@ -23,9 +25,11 @@ import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "./component-library";
+import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
+import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { CommandPalette } from "./component-library/CommandPalette";
 import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, type EstimateTemplate } from "./component-library/templates";
-import type { ComponentLibraryBrandOption, ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
+import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "./tree-visual-style";
@@ -72,7 +76,8 @@ type EstimateSheetContentProps = {
   libraryTemplates?: EstimateTemplate[];
   libraryCategoryTree?: ComponentLibraryTaxonomyNode[];
   librarySuppliers?: ComponentLibrarySupplierOption[];
-  libraryBrands?: ComponentLibraryBrandOption[];
+  libraryBrands?: ComponentLibraryBrand[];
+  libraryFolders?: LibraryFolderRecord[];
 };
 
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
@@ -121,6 +126,9 @@ type EstimateSheetBranchProps = {
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  selectedRowIds: ReadonlySet<string>;
+  onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
+  onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
   depth?: number;
   usesSiblingGroupRhythm?: boolean;
 };
@@ -1031,6 +1039,9 @@ function EstimateRowItemsTable({
   onClearRowComponent,
   onRequestProjectSpecific,
   onMoveRowComponent,
+  selectedRowIds,
+  onToggleRowSelection,
+  onToggleRowsSelection,
 }: {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
@@ -1045,9 +1056,15 @@ function EstimateRowItemsTable({
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  selectedRowIds: ReadonlySet<string>;
+  onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
+  onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
 }) {
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
+  const selectableRowIds = useMemo(() => items.map((item) => item.id), [items]);
+  const allRowsSelected = selectableRowIds.length > 0 && selectableRowIds.every((rowId) => selectedRowIds.has(rowId));
+  const someRowsSelected = !allRowsSelected && selectableRowIds.some((rowId) => selectedRowIds.has(rowId));
   const computedRows = useMemo(
     () =>
       items.map((item) => {
@@ -1103,7 +1120,15 @@ function EstimateRowItemsTable({
           <tr className={cn("grid min-h-10 border-b border-hairline", rowColumns)}>
             <th className="flex items-center justify-center border-r border-hairline text-[9px] font-sans text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">
-              <input type="checkbox" aria-label="Select all estimate row items" />
+              <input
+                type="checkbox"
+                aria-label="Select all estimate row items"
+                checked={allRowsSelected}
+                ref={(element) => {
+                  if (element) element.indeterminate = someRowsSelected;
+                }}
+                onChange={(event) => onToggleRowsSelection(selectableRowIds, event.currentTarget.checked)}
+              />
             </th>
             <th className="flex items-center justify-center border-r border-hairline">Materials</th>
             <th className="flex items-center justify-center border-r border-hairline">Qty</th>
@@ -1133,11 +1158,16 @@ function EstimateRowItemsTable({
                   {String(rowIndex + 1).padStart(2, "0")}
                 </td>
                 <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
-                  <span className="flex h-6 items-center justify-center">
-                    <DotsSixVertical size={14} weight="regular" aria-label={`Drag material ${item.material}`} />
+                  <span className="flex h-6 cursor-grab items-center justify-center active:cursor-grabbing">
+                    <DotsSixVertical size={14} weight="regular" className="cursor-grab active:cursor-grabbing" aria-label={`Drag material ${item.material}`} />
                   </span>
                   <span className="flex h-6 items-center justify-center">
-                    <input type="checkbox" aria-label={`Select ${item.material}`} />
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${item.material}`}
+                      checked={selectedRowIds.has(item.id)}
+                      onChange={(event) => onToggleRowSelection(item.id, event.currentTarget.checked)}
+                    />
                   </span>
                   <span className="flex h-6 items-center justify-center">
                     <span className="size-3" aria-hidden="true" />
@@ -1198,7 +1228,7 @@ function EstimateRowItemsTable({
                 <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(item.subTotal).replace("₱", "₱ ")}</td>
                 <td
                   className={cn(
-                    "relative flex flex-col items-stretch justify-center gap-1 border-r border-hairline px-1 py-1 text-center",
+                    "relative flex items-center justify-center border-r border-hairline px-1 py-1 text-center",
                     activeCellIndex === 1 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
                   )}
                   data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
@@ -1206,8 +1236,8 @@ function EstimateRowItemsTable({
                   <ControlSelect
                     value={item.editableContingencyMode}
                     aria-label={`${item.material} adjustment type`}
-                    wrapperClassName="mx-auto w-full max-w-[92px] justify-center"
-                    className="h-4 w-full border-0 bg-transparent pl-1 pr-4 text-center !text-[9px]"
+                    wrapperClassName="absolute left-1.5 top-1.5 w-[74px] justify-start"
+                    className="h-3.5 w-full border-0 bg-transparent pl-0 pr-3 text-left !text-[8px] leading-[10px] text-secondary"
                     onChange={(event) => {
                       const nextMode = event.target.value as CostAdjustmentMode;
                       setEditableRows((current) => updateEditableRowValue(current, item, { contingencyMode: nextMode }));
@@ -1224,35 +1254,40 @@ function EstimateRowItemsTable({
                       </option>
                     ))}
                   </ControlSelect>
-                  <ControlInput
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={item.editableContingencyPercentage}
-                    onChange={(event) => {
-                      setEditableRows((current) => updateEditableRowValue(current, item, { contingencyPercentage: event.target.value }));
-                      onMarkRowDirty(item.id);
-                    }}
-                    onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
-                    onBlur={() => {
-                      setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current));
-                      const nextContingencyPercentage = toEditableContingencyPercentage(item.contingencyPercentage);
-                      setEditableRows((current) => updateEditableRowValue(current, item, { contingencyPercentage: nextContingencyPercentage }));
-                      if (item.contingencyPercentage !== item.storedContingencyPercentage) {
-                        onUpdateRowItem(item.id, { contingencyMode: item.editableContingencyMode, contingencyPercentage: nextContingencyPercentage });
-                      }
-                    }}
-                    onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
-                    data-estimate-row-index={rowIndex}
-                    data-estimate-cell-index={1}
-                    aria-label={`${item.material} adjustment percentage`}
-                    align="center"
-                    className="h-5 w-full border-0 bg-transparent p-0 text-center text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                  <p className="max-w-full truncate text-center text-[9px] font-medium leading-3 tabular-nums text-tertiary">
-                    {formatPeso(item.contingencyValue)}
-                  </p>
+                  <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 pt-2">
+                    <div className="flex h-5 items-baseline justify-center leading-none">
+                      <ControlInput
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={item.editableContingencyPercentage}
+                        onChange={(event) => {
+                          setEditableRows((current) => updateEditableRowValue(current, item, { contingencyPercentage: event.target.value }));
+                          onMarkRowDirty(item.id);
+                        }}
+                        onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
+                        onBlur={() => {
+                          setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current));
+                          const nextContingencyPercentage = toEditableContingencyPercentage(item.contingencyPercentage);
+                          setEditableRows((current) => updateEditableRowValue(current, item, { contingencyPercentage: nextContingencyPercentage }));
+                          if (item.contingencyPercentage !== item.storedContingencyPercentage) {
+                            onUpdateRowItem(item.id, { contingencyMode: item.editableContingencyMode, contingencyPercentage: nextContingencyPercentage });
+                          }
+                        }}
+                        onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
+                        data-estimate-row-index={rowIndex}
+                        data-estimate-cell-index={1}
+                        aria-label={`${item.material} adjustment percentage`}
+                        align="center"
+                        className="h-5 w-9 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      />
+                      <span className="text-[10px] font-medium leading-none tabular-nums text-ink" aria-hidden="true">%</span>
+                    </div>
+                    <p className="max-w-full truncate text-center text-[8px] font-medium leading-[10px] tabular-nums text-tertiary">
+                      {formatPeso(item.contingencyValue)}
+                    </p>
+                  </div>
                 </td>
                 <td
                   className={cn(
@@ -1406,7 +1441,7 @@ function InlineDropZone({
   );
 }
 
-function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -1525,6 +1560,9 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
                 onMoveRowComponent={onMoveRowComponent}
+                selectedRowIds={selectedRowIds}
+                onToggleRowSelection={onToggleRowSelection}
+                onToggleRowsSelection={onToggleRowsSelection}
                 depth={depth + 1}
                 usesSiblingGroupRhythm={hasMixedChildKinds}
               />
@@ -1544,6 +1582,9 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
             onClearRowComponent={onClearRowComponent}
             onRequestProjectSpecific={onRequestProjectSpecific}
             onMoveRowComponent={onMoveRowComponent}
+            selectedRowIds={selectedRowIds}
+            onToggleRowSelection={onToggleRowSelection}
+            onToggleRowsSelection={onToggleRowsSelection}
           />
           {!hasContents ? (
             <EmptyAreaMessage
@@ -3145,29 +3186,32 @@ function EstimateSheetHeader({
   onPreviewProposalExport,
   canPreviewProposalExport = false,
   onOpenSheetActivity,
+  searchQuery,
+  onSearchQueryChange,
 }: {
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
   onPreviewProposalExport?: () => void;
   canPreviewProposalExport?: boolean;
   onOpenSheetActivity?: (opener: HTMLElement) => void;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Sheet controls">
-      <div className="flex h-[38px] items-center">
-        <SearchInput
-          wrapperClassName="w-full"
-          placeholder="Search Sheet"
-          aria-label="Search Sheet"
-          disabled
-          title="Coming soon"
-        />
-      </div>
-      <HeaderIconToolbar
+    // z-30: the search dropdown must paint above the sheet's sticky branch
+    // headers (z-20), which sit later in the DOM.
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Sheet controls">
+      <TreePanelHeader
+        className="static z-auto bg-transparent"
         ariaLabel="Sheet tools"
         labelPrefix="sheet"
         onExpandAll={onExpandAll}
         onCollapseAll={onCollapseAll}
+        startActionsLabel="Sheet search"
+        searchValue={searchQuery}
+        onSearchValueChange={onSearchQueryChange}
+        searchPlaceholder="Search Sheet"
+        searchLabel="Search Sheet"
         addActions={[
           {
             label: "Activity",
@@ -3191,6 +3235,38 @@ function EstimateSheetHeader({
       />
     </header>
   );
+}
+
+const EMPTY_COLLAPSED_NODE_IDS = new Set<string>();
+
+function estimateSheetRowMatchesQuery(item: EstimateRowItem, normalizedQuery: string) {
+  return [item.material, item.name, item.category, item.supplier, item.description]
+    .some((value) => typeof value === "string" && value.toLowerCase().includes(normalizedQuery));
+}
+
+/**
+ * Name/row filter for the sheet: a node whose name matches keeps its whole
+ * subtree; otherwise it survives only with matching descendants or rows.
+ */
+function filterEstimateSheetNode(node: EstimateTreeNode, query: string): EstimateTreeNode | null {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return node;
+
+  function visit(current: EstimateTreeNode): EstimateTreeNode | null {
+    if (current.name.toLowerCase().includes(normalizedQuery)) return current;
+    const children = (current.children ?? [])
+      .map(visit)
+      .filter((child): child is EstimateTreeNode => child !== null);
+    const estimateRowItems = (current.estimateRowItems ?? []).filter((item) =>
+      estimateSheetRowMatchesQuery(item, normalizedQuery),
+    );
+    if (children.length > 0 || estimateRowItems.length > 0) {
+      return { ...current, children, estimateRowItems };
+    }
+    return null;
+  }
+
+  return visit(node);
 }
 
 function getRemoteCursorLabel(cursor: RemoteEstimateCursor) {
@@ -3251,6 +3327,7 @@ export function EstimateSheetContent({
   libraryCategoryTree,
   librarySuppliers,
   libraryBrands,
+  libraryFolders,
 }: EstimateSheetContentProps) {
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const { saveState, markRowDirty, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
@@ -3269,6 +3346,7 @@ export function EstimateSheetContent({
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
+  const [bulkSelectedRowIds, setBulkSelectedRowIds] = useState<Set<string>>(() => new Set());
   const [isProposalPreviewOpen, setIsProposalPreviewOpen] = useState(false);
   const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
@@ -3330,6 +3408,70 @@ export function EstimateSheetContent({
       }),
     [activeSelectedNodeId, estimateTree],
   );
+  const [sheetSearchQuery, setSheetSearchQuery] = useState("");
+  const sheetSearchActive = sheetSearchQuery.trim().length > 0;
+  // Render-only filtered copy: row edits and inserts keep targeting the real
+  // tree state by node/item id.
+  const displayedSheetNode = useMemo(
+    () => (selectedNode && sheetSearchActive ? filterEstimateSheetNode(selectedNode, sheetSearchQuery) : selectedNode),
+    [selectedNode, sheetSearchActive, sheetSearchQuery],
+  );
+  // Searches reveal every match: collapse state pauses while filtering.
+  const sheetExpansionContextValue = useMemo(
+    () => ({
+      collapsedNodeIds: sheetSearchActive ? EMPTY_COLLAPSED_NODE_IDS : collapsedNodeIds,
+      setCollapsedNodeIds,
+    }),
+    [collapsedNodeIds, sheetSearchActive],
+  );
+  const visibleSheetRowIds = useMemo(() => {
+    const rowIds = new Set<string>();
+    if (!displayedSheetNode) return rowIds;
+    function visit(currentNode: EstimateTreeNode) {
+      currentNode.estimateRowItems?.forEach((item) => rowIds.add(item.id));
+      currentNode.children?.forEach(visit);
+    }
+    visit(displayedSheetNode);
+    return rowIds;
+  }, [displayedSheetNode]);
+
+  // Selections only make sense for rows that are still on screen: deletes,
+  // searches, and node switches silently drop stale ids.
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setBulkSelectedRowIds((current) => {
+        if (current.size === 0) return current;
+        const next = new Set([...current].filter((rowId) => visibleSheetRowIds.has(rowId)));
+        return next.size === current.size ? current : next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visibleSheetRowIds]);
+
+  const toggleRowSelection = useCallback((rowItemId: string, checked: boolean) => {
+    setBulkSelectedRowIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(rowItemId);
+      else next.delete(rowItemId);
+      return next;
+    });
+  }, []);
+  const toggleRowsSelection = useCallback((rowItemIds: string[], checked: boolean) => {
+    setBulkSelectedRowIds((current) => {
+      const next = new Set(current);
+      rowItemIds.forEach((rowId) => {
+        if (checked) next.add(rowId);
+        else next.delete(rowId);
+      });
+      return next;
+    });
+  }, []);
+  const clearRowSelection = useCallback(() => setBulkSelectedRowIds(new Set()), []);
+  const bulkSelectedRowCount = bulkSelectedRowIds.size;
   const insertTargetNodeId = selectedNode?.kind === "area" ? selectedNode.id : "";
   const selectedNodePath = useMemo(
     () => (resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId) : []),
@@ -3903,6 +4045,11 @@ export function EstimateSheetContent({
     }
   }
 
+  function deleteSelectedRows() {
+    bulkSelectedRowIds.forEach((rowItemId) => deleteRowItem(rowItemId));
+    setBulkSelectedRowIds(new Set());
+  }
+
   return (
     <>
       <CommandPalette
@@ -3995,35 +4142,63 @@ export function EstimateSheetContent({
               onPreviewProposalExport={openProposalPreview}
               canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
               onOpenSheetActivity={openActivityHistory}
+              searchQuery={sheetSearchQuery}
+              onSearchQueryChange={setSheetSearchQuery}
             />
-            <div
-              className="relative min-h-0 flex-1 overflow-auto px-2 pb-2"
-              data-estimate-pointer-surface
-              data-estimate-cursor-channel={cursorChannelStatus}
-              data-estimate-cursor-send={cursorLastSendStatus}
-              onPointerMove={handleSheetPointerMove}
-            >
-              <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
-              <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
-                <EstimateSheetBranch
-                  node={selectedNode}
-                  nodeCode={resolvedSelectedNodeId ? computeNodeCode(estimateTree, resolvedSelectedNodeId) : ""}
-                  ancestorPath={resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId).slice(0, -1).map((n) => ({ id: n.id, name: n.name })) : []}
-                  editableRows={editableRows}
-                  setEditableRows={setEditableRows}
-                  onInsertLibraryItem={insertLibraryItem}
-                  onInsertTemplate={insertTemplateIntoParentById}
-                  onAddBlankRow={insertBlankRow}
-                  onReplaceRowItem={replaceRowItem}
-                  onDeleteRowItem={deleteRowItem}
-                  onUpdateRowItem={updateRowItem}
-                  onMarkRowDirty={markRowDirty}
-                  onOpenRowDetails={openRowDetails}
-                  onClearRowComponent={clearRowComponent}
-                  onRequestProjectSpecific={requestProjectSpecific}
-                  onMoveRowComponent={moveRowComponent}
-                />
-              </EstimateSheetExpansionContext.Provider>
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div
+                className={cn("relative min-h-0 flex-1 overflow-auto px-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
+                data-estimate-pointer-surface
+                data-estimate-cursor-channel={cursorChannelStatus}
+                data-estimate-cursor-send={cursorLastSendStatus}
+                onPointerMove={handleSheetPointerMove}
+              >
+                <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
+                {displayedSheetNode ? (
+                <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
+                  <EstimateSheetBranch
+                    node={displayedSheetNode}
+                    nodeCode={resolvedSelectedNodeId ? computeNodeCode(estimateTree, resolvedSelectedNodeId) : ""}
+                    ancestorPath={resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId).slice(0, -1).map((n) => ({ id: n.id, name: n.name })) : []}
+                    editableRows={editableRows}
+                    setEditableRows={setEditableRows}
+                    onInsertLibraryItem={insertLibraryItem}
+                    onInsertTemplate={insertTemplateIntoParentById}
+                    onAddBlankRow={insertBlankRow}
+                    onReplaceRowItem={replaceRowItem}
+                    onDeleteRowItem={deleteRowItem}
+                    onUpdateRowItem={updateRowItem}
+                    onMarkRowDirty={markRowDirty}
+                    onOpenRowDetails={openRowDetails}
+                    onClearRowComponent={clearRowComponent}
+                    onRequestProjectSpecific={requestProjectSpecific}
+                    onMoveRowComponent={moveRowComponent}
+                    selectedRowIds={bulkSelectedRowIds}
+                    onToggleRowSelection={toggleRowSelection}
+                    onToggleRowsSelection={toggleRowsSelection}
+                  />
+                </EstimateSheetExpansionContext.Provider>
+                ) : (
+                  <div className="mt-4 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center text-[10px] leading-4 text-tertiary">
+                    No sheet rows match &quot;{sheetSearchQuery}&quot;.
+                  </div>
+                )}
+              </div>
+              <BulkActionToolbar
+                placement="bottom-dock"
+                dockTo="container"
+                selectedCount={bulkSelectedRowCount}
+                selectedLabel={bulkSelectedRowCount === 1 ? "row selected" : "rows selected"}
+                onClear={clearRowSelection}
+                actions={[
+                  {
+                    label: "Delete selected rows",
+                    icon: <Trash size={12} weight="regular" />,
+                    variant: "danger",
+                    onClick: deleteSelectedRows,
+                  },
+                ]}
+              />
             </div>
           </>
         ) : (
@@ -4034,6 +4209,8 @@ export function EstimateSheetContent({
               onPreviewProposalExport={openProposalPreview}
               canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
               onOpenSheetActivity={openActivityHistory}
+              searchQuery={sheetSearchQuery}
+              onSearchQueryChange={setSheetSearchQuery}
             />
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" onPointerMove={handleSheetPointerMove}>
               <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
@@ -4063,6 +4240,7 @@ export function EstimateSheetContent({
           categoryTree={libraryCategoryTree}
           suppliers={librarySuppliers}
           brands={libraryBrands}
+          libraryFolders={libraryFolders}
           onInsertTemplate={insertTemplateIntoSelectedGroup}
         />
       ) : null}

@@ -87,24 +87,6 @@ function AvatarBubble({
   );
 }
 
-function AvatarPlaceholder({ offset }: { offset: number }) {
-  const placeholderStyle: CSSProperties = {
-    marginLeft: offset ? -6 : 0,
-    zIndex: TEAMSPACE_AVATAR_SLOT_COUNT - offset,
-  };
-
-  return (
-    <span
-      className="relative grid size-6 shrink-0 place-items-center rounded-xs border border-hairline bg-white opacity-75 shadow-[0_0_0_1px_#F2F2F2]"
-      style={placeholderStyle}
-      aria-hidden="true"
-      data-teamspace-collaborator-placeholder="true"
-    >
-      <span className="size-3 rounded-xs border border-hairline bg-surfaceMuted/35" />
-    </span>
-  );
-}
-
 function RoleBadge({ role }: { role: CollaborationRole }) {
   return (
     <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
@@ -115,12 +97,14 @@ function RoleBadge({ role }: { role: CollaborationRole }) {
 
 function EmptyTeamspaceRail() {
   return (
-    <div
-      className="flex h-full items-center gap-2 px-2 text-[9px] font-medium leading-3 text-tertiary"
+    <button
+      type="button"
       aria-label="Project teamspaces unavailable"
+      disabled
+      className="relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary opacity-50 transition"
     >
-      <span>Teamspaces unavailable</span>
-    </div>
+      <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
+    </button>
   );
 }
 
@@ -324,50 +308,33 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     });
   }
 
-  const visibleCollaborators = activeSummary.collaborators.slice(0, TEAMSPACE_AVATAR_SLOT_COUNT);
-  const placeholderCount = Math.max(0, TEAMSPACE_AVATAR_SLOT_COUNT - visibleCollaborators.length);
-  const hiddenCollaboratorCount = Math.max(0, activeSummary.collaborators.length - visibleCollaborators.length);
   const onlineCollaboratorCount = activeSummary.collaborators.filter((collaborator) => collaborator.online || onlineUserIds.has(collaborator.id)).length;
 
   return (
     <>
-      <div
-        className="flex h-full items-center justify-end gap-2 px-2"
+      <button
+        type="button"
+        className={cn(
+          "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          open ? "bg-surfaceMuted text-ink" : null,
+        )}
         aria-label="Project teamspaces"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title="Teamspace settings"
         data-workshop-layout="project-teamspace-header"
+        onClick={() => setOpen(true)}
       >
-        <div
-          className="flex items-center"
-          aria-label={`${activeSummary.collaborators.length} project collaborators, ${placeholderCount} open teamspace seats`}
-        >
-          {visibleCollaborators.map((collaborator, index) => (
-            <AvatarBubble
-              key={collaborator.id}
-              collaborator={collaborator}
-              online={collaborator.online || onlineUserIds.has(collaborator.id)}
-              offset={index}
-            />
-          ))}
-          {Array.from({ length: placeholderCount }, (_, index) => (
-            <AvatarPlaceholder key={`teamspace-placeholder-${index}`} offset={visibleCollaborators.length + index} />
-          ))}
-          {hiddenCollaboratorCount ? (
-            <span className="grid size-6 shrink-0 place-items-center rounded-xs border border-white bg-surfaceMuted text-[8px] font-medium leading-none text-tertiary shadow-[0_0_0_1px_#F2F2F2]">
-              +{hiddenCollaboratorCount}
-            </span>
-          ) : null}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label="Open teamspace settings"
-          onClick={() => setOpen(true)}
-        >
-          <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
-        </Button>
-      </div>
+        <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
+        {onlineCollaboratorCount > 0 ? (
+          <span
+            aria-hidden="true"
+            className="absolute -right-1 -top-1 grid h-3.5 min-w-3.5 place-items-center rounded-xs border border-white bg-success px-0.5 text-[8px] font-medium leading-none text-white"
+          >
+            {onlineCollaboratorCount > 9 ? "9+" : onlineCollaboratorCount}
+          </span>
+        ) : null}
+      </button>
 
       <Modal
         open={open}

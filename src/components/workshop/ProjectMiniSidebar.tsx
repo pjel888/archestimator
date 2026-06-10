@@ -45,9 +45,6 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
 
   return (
     <aside className="relative z-10 hidden w-[104px] shrink-0 border-r border-hairline bg-white lg:block" aria-label="Project navigation">
-      <div className="flex h-10 items-center border-b border-hairline pl-4 pr-2">
-        <h2 className="truncate text-[9px] font-medium uppercase tracking-normal text-tertiary">Project</h2>
-      </div>
       <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
         {links.map((link) => {
           const Icon = link.icon;

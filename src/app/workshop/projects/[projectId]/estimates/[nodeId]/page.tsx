@@ -76,6 +76,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
         libraryCategoryTree={componentLibrary.categoryTree}
         librarySuppliers={componentLibrary.suppliers}
         libraryBrands={componentLibrary.brands}
+        libraryFolders={componentLibrary.libraryFolders}
       />
     </>
   );

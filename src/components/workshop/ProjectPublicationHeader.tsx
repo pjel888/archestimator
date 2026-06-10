@@ -300,33 +300,36 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
   return (
     <>
-      <div className="flex h-full items-center justify-end gap-1 px-1" aria-label="Shared link">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="relative size-6 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label="Open shared link"
-          onClick={() => {
-            setActiveTab("link");
-            setOpen(true);
-          }}
-        >
-          <LinkSimple size={12} weight="regular" aria-hidden="true" />
-          {hasHeaderActivity ? (
-            <span
-              aria-hidden="true"
-              data-shared-link-activity-dot="true"
-              className="absolute right-1 top-1 size-1.5 rounded-xs bg-orange-500 ring-1 ring-white"
-            />
-          ) : null}
-        </Button>
-        {actionMessage ? (
-          <span className="sr-only" role="status">
-            {actionMessage}
-          </span>
+      <button
+        type="button"
+        className={cn(
+          "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          open ? "bg-surfaceMuted text-ink" : null,
+        )}
+        aria-label="Open shared link"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title="Shared link"
+        data-workshop-layout="project-publication-header"
+        onClick={() => {
+          setActiveTab("link");
+          setOpen(true);
+        }}
+      >
+        <LinkSimple size={14} weight="regular" aria-hidden="true" />
+        {hasHeaderActivity ? (
+          <span
+            aria-hidden="true"
+            data-shared-link-activity-dot="true"
+            className="absolute -right-1 -top-1 size-2 rounded-xs border border-white bg-warning"
+          />
         ) : null}
-      </div>
+      </button>
+      {actionMessage ? (
+        <span className="sr-only" role="status">
+          {actionMessage}
+        </span>
+      ) : null}
 
       <Modal
         open={open}

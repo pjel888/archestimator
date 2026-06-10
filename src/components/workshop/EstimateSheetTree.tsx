@@ -1,48 +1,30 @@
 "use client";
 
 import { unstable_rethrow, usePathname } from "next/navigation";
-import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type DragEvent, type HTMLAttributes } from "react";
-import {
-  ControlledTreeEnvironment,
-  InteractionMode,
-  Tree,
-  type TreeItem,
-  type TreeItemIndex,
-  type TreeViewState,
-  type DraggingPosition,
-} from "react-complex-tree";
-import { ArrowCounterClockwise, CaretDown, Check, Cube, FolderSimple, Plus } from "@phosphor-icons/react/dist/ssr";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowCounterClockwise, Check, Cube, FolderSimple, Trash } from "@phosphor-icons/react/dist/ssr";
 
-import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
-import { SearchInput } from "@/components/ui/search-input";
+import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { Button } from "@/components/ui/button";
-import type { ActionMenuGroup } from "@/components/ui/action-menu";
+import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
   dedupeSelectedRoots,
-  getSelectionState,
   pruneSelection,
   toggleCascadeSelection,
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
-import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
+import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
 import {
-  WORKSHOP_TREE_ICON_SLOT_CLASS,
-  WORKSHOP_TREE_INDENT_STEP,
-  WORKSHOP_TREE_ROW_GAP_CLASS,
-  WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
-} from "./tree-visual-style";
-import { WorkshopTreeRow } from "./workshop-tree";
-import { TreeBulkActionBar, TreeDragHandle, TreeSelectionCheckbox } from "./tree-row-affordances";
-import {
-  ESTIMATE_TREE_ROOT_ITEM_ID,
   evaluateEstimateTreeDrop,
   getEstimateTreeContentSignature,
   mergeEstimateTreeStructureWithCachedNodes,
@@ -60,37 +42,8 @@ type EstimateSheetTreeProps = {
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
-const ESTIMATE_TREE_ID = "estimate-sheet-tree";
 const ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE = "application/x-archestimator-estimate-tree-item";
 const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheets" }] as const;
-
-type EstimateTreeItemData = {
-  node: EstimateTreeNode | null;
-};
-
-function EstimateTreeTabStrip() {
-  return (
-    <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Estimate tree views">
-      {ESTIMATE_TREE_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected="true"
-          className="relative z-10 -mb-px h-full rounded-xs border border-b-0 border-hairline bg-white px-3 text-[10px] font-medium leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        >
-          {tab.label}
-        </button>
-      ))}
-      <div className="h-full min-w-0 flex-1 bg-surfaceMuted" aria-hidden="true" />
-    </div>
-  );
-}
-
-type EstimateTreeModel = {
-  items: Record<TreeItemIndex, TreeItem<EstimateTreeItemData>>;
-  folderIds: Set<string>;
-};
 
 type ReorderStatus =
   | { state: "idle" }
@@ -98,27 +51,16 @@ type ReorderStatus =
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
 
-type NestIntentHint = {
-  targetId: string;
-  targetName: string;
-  sourceName: string;
-};
-
-type RootDropEdge = "top" | "bottom";
-
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={12} weight="regular" aria-hidden="true" />;
-  return <Cube size={12} weight="regular" aria-hidden="true" />;
+  if (getEstimateNodeDisplayKind(kind) === "group") {
+    return <FolderSimple weight="regular" className="h-3.5 w-3.5 text-tertiary" aria-hidden="true" />;
+  }
+  return <Cube weight="regular" className="h-3.5 w-3.5 text-tertiary" aria-hidden="true" />;
 }
 
 function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : Cube;
-  return (
-    <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
-      <Icon size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
-      <Plus size={8} weight="regular" className="absolute right-0 top-0" />
-    </span>
-  );
+  return <Icon size={13} weight="regular" aria-hidden="true" />;
 }
 
 function cloneEstimateTreeNode(node: EstimateTreeNode): EstimateTreeNode {
@@ -167,6 +109,20 @@ function makeOptimisticTreeNodeId(kind: EstimateTreeNode["kind"]) {
   return `optimistic-${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function isOptimisticEstimateNodeId(nodeId: string) {
+  return nodeId.startsWith("optimistic-");
+}
+
+/** Swaps an optimistic node id for its server-confirmed id without touching the rest of the node. */
+function replaceLocalEstimateTreeNodeId(nodes: EstimateTreeNode[], fromId: string, toId: string): EstimateTreeNode[] {
+  return nodes.map((node) => {
+    const cloned = cloneEstimateTreeNode(node);
+    if (cloned.id === fromId) return { ...cloned, id: toId };
+    if (cloned.children?.length) return { ...cloned, children: replaceLocalEstimateTreeNodeId(cloned.children, fromId, toId) };
+    return cloned;
+  });
+}
+
 function createOptimisticEstimateTreeNode(kind: EstimateTreeNode["kind"], id: string, name: string): EstimateTreeNode {
   return {
     id,
@@ -178,35 +134,53 @@ function createOptimisticEstimateTreeNode(kind: EstimateTreeNode["kind"], id: st
   };
 }
 
-function buildTreeModel(nodes: EstimateTreeNode[]): EstimateTreeModel {
-  const items: Record<TreeItemIndex, TreeItem<EstimateTreeItemData>> = {
-    [ESTIMATE_TREE_ROOT_ITEM_ID]: {
-      index: ESTIMATE_TREE_ROOT_ITEM_ID,
-      isFolder: true,
-      canMove: false,
-      children: nodes.map((node) => node.id),
-      data: { node: null },
-    },
-  };
+type UiTreeModel = {
+  uiNodes: UiTreeNode[];
+  folderIds: Set<string>;
+};
+
+function buildUiTreeModel(nodes: EstimateTreeNode[]): UiTreeModel {
   const folderIds = new Set<string>();
 
-  function visit(node: EstimateTreeNode) {
-    const children = node.children?.map((child) => child.id) ?? [];
+  function toUiNode(node: EstimateTreeNode): UiTreeNode {
     const isFolder = isEstimateGroupNodeKind(node.kind);
     if (isFolder) folderIds.add(node.id);
-
-    items[node.id] = {
-      index: node.id,
-      isFolder,
-      children: isFolder ? children : undefined,
+    return {
+      id: node.id,
+      label: node.name,
+      isLeaf: !isFolder,
+      icon: <NodeIcon kind={node.kind} />,
+      children: node.children?.map(toUiNode),
       data: { node },
     };
-
-    node.children?.forEach((child) => visit(child));
   }
 
-  nodes.forEach((node) => visit(node));
-  return { items, folderIds };
+  return { uiNodes: nodes.map(toUiNode), folderIds };
+}
+
+/** Name-match filter keeping matching nodes with their full subtree, and the ancestors of matches. */
+function filterEstimateTreeNodes(nodes: EstimateTreeNode[], query: string): EstimateTreeNode[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return nodes;
+
+  function visit(node: EstimateTreeNode): EstimateTreeNode | null {
+    if (node.name.toLowerCase().includes(normalizedQuery)) return node;
+    const children = (node.children ?? [])
+      .map(visit)
+      .filter((child): child is EstimateTreeNode => child !== null);
+    if (children.length > 0) return { ...node, children };
+    return null;
+  }
+
+  return nodes.map(visit).filter((node): node is EstimateTreeNode => node !== null);
+}
+
+function collectEstimateFolderIds(nodes: EstimateTreeNode[], into: string[] = []): string[] {
+  for (const node of nodes) {
+    if (isEstimateGroupNodeKind(node.kind)) into.push(node.id);
+    if (node.children?.length) collectEstimateFolderIds(node.children, into);
+  }
+  return into;
 }
 
 function buildEstimateTreeSelectionNodes(nodes: EstimateTreeNode[]): TreeSelectionNode[] {
@@ -237,7 +211,6 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
 }
 
 export function EstimateSheetTree({ projectId, estimateId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
-  const router = useNavigationRouter();
   const pathname = usePathname();
   const { toast, dismissToast } = useToast();
   const {
@@ -250,8 +223,13 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   } = useEstimateAreaTreeQuery({ projectId, estimateId, initialNodes: nodes });
   const pendingReordersRef = useRef(0);
   const suppressPrimaryActionUntilRef = useRef(0);
-  const draggedTreeItemRef = useRef<TreeItem<EstimateTreeItemData> | null>(null);
   const renameCommitInFlightRef = useRef(false);
+  // Optimistic node ids resolve to server ids here; mutations fired before the
+  // create settles await the pending promise instead of erroring server-side.
+  const pendingNodeCreatesRef = useRef<Map<string, Promise<string>>>(new Map());
+  const resolvedNodeIdsRef = useRef<Map<string, string>>(new Map());
+  const skipRenameAutoSelectRef = useRef(false);
+  const renameDraftDirtyRef = useRef(false);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const suppressContextMenuCloseAutoFocusRef = useRef(false);
   const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
@@ -261,8 +239,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const stalePropSignatureToIgnoreRef = useRef<string | null>(null);
   const pendingPropNodesRef = useRef<EstimateTreeNode[] | null>(null);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
-  const [nestIntentHint, setNestIntentHint] = useState<NestIntentHint | null>(null);
-  const [activeRootDropEdge, setActiveRootDropEdge] = useState<RootDropEdge | null>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingNodeName, setEditingNodeName] = useState("");
   const [editingNodeError, setEditingNodeError] = useState<string | null>(null);
@@ -271,21 +247,29 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [bulkDeletePending, setBulkDeletePending] = useState(false);
   const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
+  const [contextMenuNode, setContextMenuNode] = useState<EstimateTreeNode | null>(null);
+  const [treeSearchQuery, setTreeSearchQuery] = useState("");
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const currentRouteNodeId = useMemo(
     () => getEstimateRouteNodeIdFromPathname(pathname, estimateId) ?? selectedNodeId,
     [estimateId, pathname, selectedNodeId],
   );
-  const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
+  const treeSearchActive = treeSearchQuery.trim().length > 0;
+  const displayedNodes = useMemo(
+    () => (treeSearchActive ? filterEstimateTreeNodes(localNodes, treeSearchQuery) : localNodes),
+    [localNodes, treeSearchActive, treeSearchQuery],
+  );
+  const { uiNodes: uiTreeNodes } = useMemo(() => buildUiTreeModel(displayedNodes), [displayedNodes]);
+  const folderIds = useMemo(() => new Set(collectEstimateFolderIds(localNodes)), [localNodes]);
   const treeSelectionNodes = useMemo(() => buildEstimateTreeSelectionNodes(localNodes), [localNodes]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
+  const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkDeleteRootNodeIds = useMemo(
     () => dedupeSelectedRoots(treeSelectionNodes, bulkSelectedNodeIds),
     [bulkSelectedNodeIds, treeSelectionNodes],
   );
-  const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
+  const allFolderItemIds = useMemo(() => Array.from(folderIds), [folderIds]);
   const { expandedNodeIds, setExpandedNodeIds } = useEstimateWorkspaceExpansion(estimateId, allFolderItemIds);
-  const [focusedOverride, setFocusedOverride] = useState<{ routeNodeId: string | null; item: TreeItemIndex } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -391,6 +375,24 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
       ignoreRenameBlurDuringContextMenuCloseRef.current = false;
       return undefined;
     }
+    if (skipRenameAutoSelectRef.current) {
+      // The editing id was remapped to the server id mid-edit and the row
+      // remounted. Untouched drafts get the select-all back so typing still
+      // replaces the placeholder; in-progress typing keeps its caret at the
+      // end instead of being re-selected and clobbered.
+      skipRenameAutoSelectRef.current = false;
+      const input = renameInputRef.current;
+      if (input) {
+        if (document.activeElement !== input) input.focus();
+        if (renameDraftDirtyRef.current) {
+          const caretPosition = input.value.length;
+          input.setSelectionRange(caretPosition, caretPosition);
+        } else {
+          input.select();
+        }
+      }
+      return undefined;
+    }
     let focusAnimationFrame: number | null = null;
     let focusTimeout: number | null = null;
     const focusRenameInput = () => {
@@ -416,17 +418,15 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   }, [editingNodeId]);
 
   const expandedItems = useMemo(() => {
-    return expandedNodeIds.filter((itemId) => treeModel.items[itemId]);
-  }, [expandedNodeIds, treeModel.items]);
+    return expandedNodeIds.filter((itemId) => folderIds.has(itemId));
+  }, [expandedNodeIds, folderIds]);
 
-  const routeSelectedItems = useMemo<TreeItemIndex[]>(
-    () => (activeSelectedNodeId && treeModel.items[activeSelectedNodeId] ? [activeSelectedNodeId] : []),
-    [activeSelectedNodeId, treeModel.items],
+  // Active searches reveal every match; stored expansion resumes when cleared.
+  const treeExpandedIds = useMemo(
+    () => (treeSearchActive ? collectEstimateFolderIds(displayedNodes) : expandedItems),
+    [displayedNodes, expandedItems, treeSearchActive],
   );
-  const focusedItem = useMemo<TreeItemIndex | undefined>(() => {
-    if (focusedOverride?.routeNodeId === activeSelectedNodeId && treeModel.items[focusedOverride.item]) return focusedOverride.item;
-    return routeSelectedItems[0];
-  }, [activeSelectedNodeId, focusedOverride, routeSelectedItems, treeModel.items]);
+
   const handleExpandAll = useCallback(() => {
     setExpandedNodeIds(allFolderItemIds);
   }, [allFolderItemIds, setExpandedNodeIds]);
@@ -436,110 +436,64 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
   }, []);
-  const handleToggleBulkSelectedNode = useCallback((nodeId: string, checked: boolean) => {
-    setBulkSelectedNodeIds((current) => toggleCascadeSelection(treeSelectionNodes, current, nodeId, checked));
-  }, [treeSelectionNodes]);
-
-  const viewState = useMemo<TreeViewState>(() => ({
-    [ESTIMATE_TREE_ID]: {
-      expandedItems,
-      selectedItems: routeSelectedItems,
-      focusedItem,
-    },
-  }), [expandedItems, focusedItem, routeSelectedItems]);
-
   const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
   const canReorderNow = !isTreeMutationSaving;
-  const handleCanDrag = useCallback((items: TreeItem<EstimateTreeItemData>[]) => (
-    canReorderNow && !editingNodeId && items.length === 1 && Boolean(items[0]?.data.node)
-  ), [canReorderNow, editingNodeId]);
 
-  const handleCanDropAt = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
-    if (!handleCanDrag(items)) return false;
+  /** Maps an optimistic node id to its server id, awaiting an in-flight create when needed. */
+  const resolveServerNodeId = useCallback((nodeId: string): Promise<string> => {
+    if (!isOptimisticEstimateNodeId(nodeId)) return Promise.resolve(nodeId);
+    const resolvedNodeId = resolvedNodeIdsRef.current.get(nodeId);
+    if (resolvedNodeId) return Promise.resolve(resolvedNodeId);
+    const pendingCreate = pendingNodeCreatesRef.current.get(nodeId);
+    if (pendingCreate) return pendingCreate;
+    return Promise.reject(new Error("This node is still being created. Try again in a moment."));
+  }, []);
+
+  // Selection is client state: syncing the URL with replaceState keeps deep
+  // links shareable without re-running the server route, which would remount
+  // the whole workspace just to change the middle sheet.
+  const syncEstimateRouteUrl = useCallback((nodeId: string | null) => {
+    if (typeof window === "undefined") return;
+    const routeNodeId = nodeId && !isOptimisticEstimateNodeId(nodeId) ? nodeId : null;
+    const href = routeNodeId
+      ? `/workshop/projects/${projectId}/estimates/${routeNodeId}`
+      : `/workshop/projects/${projectId}/estimates/${estimateId}`;
+    if (window.location.pathname === href) return;
+    window.history.replaceState(null, "", href);
+  }, [estimateId, projectId]);
+
+  // Reordering pauses while a search filters the tree: visible sibling order
+  // no longer matches the real tree, so drops would land unpredictably.
+  // Nodes whose create has not settled yet cannot be dragged: the server
+  // does not know their id.
+  const handleTreeCanDrag = useCallback(
+    (treeNode: UiTreeNode) => canReorderNow && !editingNodeId && !treeSearchActive && !isOptimisticEstimateNodeId(treeNode.id),
+    [canReorderNow, editingNodeId, treeSearchActive],
+  );
+
+  const handleTreeCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
+    if (!canReorderNow || editingNodeId || treeSearchActive) return false;
+    if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return false;
     return evaluateEstimateTreeDrop({
       nodes: localNodes,
-      draggedItemIds: items.map((item) => item.index),
-      target,
+      draggedNodeIds: [draggedId],
+      target: { targetNodeId: targetId, position },
     }).ok;
-  }, [handleCanDrag, localNodes]);
-
-  const clearNestIntentHint = useCallback(() => {
-    setNestIntentHint(null);
-  }, []);
-
-  const clearRootDropActive = useCallback(() => {
-    setActiveRootDropEdge(null);
-  }, []);
-
-  const getDraggedTreeItemFromEvent = useCallback((event: DragEvent<HTMLElement>) => {
-    const draggedItemId = event.dataTransfer.getData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE);
-    return draggedTreeItemRef.current ?? (draggedItemId ? treeModel.items[draggedItemId] : null);
-  }, [treeModel.items]);
-
-  const markNestIntentHint = useCallback((targetNode: EstimateTreeNode, draggedItem: TreeItem<EstimateTreeItemData>) => {
-    const sourceName = draggedItem.data.node?.name ?? "item";
-    setNestIntentHint((current) => {
-      if (current?.targetId === targetNode.id && current.sourceName === sourceName) return current;
-      return { targetId: targetNode.id, targetName: targetNode.name, sourceName };
-    });
-  }, []);
-
-  const clearNestIntentHintForTarget = useCallback((targetNode: EstimateTreeNode) => {
-    setNestIntentHint((current) => (current?.targetId === targetNode.id ? null : current));
-  }, []);
+  }, [canReorderNow, editingNodeId, localNodes, treeSearchActive]);
 
   const suppressPrimaryActionAfterDrag = useCallback(() => {
     suppressPrimaryActionUntilRef.current = Date.now() + 500;
   }, []);
 
-  const createDirectFolderDropTarget = useCallback((node: EstimateTreeNode, depth: number): DraggingPosition => ({
-    targetType: "item",
-    treeId: ESTIMATE_TREE_ID,
-    targetItem: node.id,
-    parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
-    depth,
-    linearIndex: 0,
-  }), []);
-
-  const rootDropTargets = useMemo<Record<RootDropEdge, DraggingPosition>>(() => ({
-    top: {
-      targetType: "between-items",
-      treeId: ESTIMATE_TREE_ID,
-      parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
-      childIndex: 0,
-      linePosition: "top",
-      linearIndex: 0,
-      depth: 0,
-    },
-    bottom: {
-      targetType: "between-items",
-      treeId: ESTIMATE_TREE_ID,
-      parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
-      childIndex: localNodes.length,
-      linePosition: "bottom",
-      linearIndex: localNodes.length,
-      depth: 0,
-    },
-  }), [localNodes.length]);
-
-  const isMiddleRowDrop = useCallback((event: DragEvent<HTMLElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (rect.height <= 0) return false;
-    const clientY = Number.isFinite(event.clientY) ? event.clientY : rect.top + rect.height / 2;
-    const relativeY = (clientY - rect.top) / rect.height;
-    return relativeY > 0.25 && relativeY < 0.75;
-  }, []);
-
-  const handleDrop = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
+  const handleTreeDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
     suppressPrimaryActionAfterDrag();
-    clearNestIntentHint();
-    clearRootDropActive();
-    if (!handleCanDrag(items)) return;
+    if (!canReorderNow || editingNodeId || treeSearchActive) return;
+    if (isOptimisticEstimateNodeId(draggedId) || isOptimisticEstimateNodeId(targetId)) return;
 
-    const draggedItemIds = items.map((item) => item.index);
+    const target = { targetNodeId: targetId, position };
     const result = evaluateEstimateTreeDrop({
       nodes: localNodes,
-      draggedItemIds,
+      draggedNodeIds: [draggedId],
       target,
     });
     if (!result.ok) return;
@@ -554,11 +508,18 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         previousNodes = await prepareAreaTreeOptimisticUpdate();
         const freshResult = evaluateEstimateTreeDrop({
           nodes: previousNodes,
-          draggedItemIds,
+          draggedNodeIds: [draggedId],
           target,
         });
         if (!freshResult.ok) {
           setReorderStatus({ state: "error", message: freshResult.message });
+          return;
+        }
+        const touchesPendingCreate = freshResult.plan.updates.some(
+          (update) => isOptimisticEstimateNodeId(update.id) || (update.parentId ? isOptimisticEstimateNodeId(update.parentId) : false),
+        );
+        if (touchesPendingCreate) {
+          setReorderStatus({ state: "error", message: "A nearby node is still being created. Try the move again in a moment." });
           return;
         }
 
@@ -587,48 +548,19 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
       }
     })();
   }, [
-    clearNestIntentHint,
-    clearRootDropActive,
+    canReorderNow,
+    editingNodeId,
     estimateId,
     finishPendingReorder,
     getLocalTreeRevision,
-    handleCanDrag,
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
     restoreLocalNodes,
     setLocalNodes,
     suppressPrimaryActionAfterDrag,
+    treeSearchActive,
   ]);
-
-  const handleRootDropZoneDragOver = useCallback((edge: RootDropEdge, event: DragEvent<HTMLDivElement>) => {
-    const draggedItem = getDraggedTreeItemFromEvent(event);
-    const target = rootDropTargets[edge];
-    if (!draggedItem || !handleCanDropAt([draggedItem], target)) {
-      clearRootDropActive();
-      return;
-    }
-
-    draggedTreeItemRef.current = draggedItem;
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = "move";
-    setActiveRootDropEdge(edge);
-  }, [clearRootDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, rootDropTargets]);
-
-  const handleRootDropZoneDrop = useCallback((edge: RootDropEdge, event: DragEvent<HTMLDivElement>) => {
-    const draggedItem = getDraggedTreeItemFromEvent(event);
-    const target = rootDropTargets[edge];
-    if (!draggedItem || !handleCanDropAt([draggedItem], target)) {
-      clearRootDropActive();
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    handleDrop([draggedItem], target);
-    draggedTreeItemRef.current = null;
-  }, [clearRootDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, handleDrop, rootDropTargets]);
 
   const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"]) => {
     if (kind === "area" && !selectedGroupId) {
@@ -640,57 +572,116 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     const optimisticNodeId = makeOptimisticTreeNodeId(kind);
     const optimisticNode = createOptimisticEstimateTreeNode(kind, optimisticNodeId, nodeName);
     const nextNodes = insertLocalEstimateTreeNode(localNodes, selectedGroupId, optimisticNode);
+    const previousSelectedNodeId = activeSelectedNodeId;
 
     setLocalNodes(nextNodes);
     if (selectedGroupId) {
-      setExpandedNodeIds(Array.from(new Set([...expandedItems.map(String), selectedGroupId])));
+      setExpandedNodeIds(Array.from(new Set([...expandedItems, selectedGroupId])));
     }
+    // The node is usable immediately: select it and open inline rename while
+    // the create settles in the background.
+    setSelectedNodeId(optimisticNodeId);
+    renameDraftDirtyRef.current = false;
+    setEditingNodeId(optimisticNodeId);
+    setEditingNodeName(nodeName);
+    setEditingNodeError(null);
     setReorderStatus({ state: "saving", message: kind === "group" ? "Adding Group" : "Adding Node" });
 
-    const formData = new FormData();
-    formData.set("kind", kind);
-    formData.set("name", nodeName);
-    if (selectedGroupId) formData.set("parentId", selectedGroupId);
+    function createOnServer(serverParentId: string | null) {
+      const formData = new FormData();
+      formData.set("kind", kind);
+      formData.set("name", nodeName);
+      if (serverParentId) formData.set("parentId", serverParentId);
+      return createEstimateNode(projectId, estimateId, formData).then((result) => result.nodeId);
+    }
 
-    startTransition(() => {
-      function handleCreateFailure(error: unknown) {
-        unstable_rethrow(error);
-        setLocalNodes((currentNodes) => {
-          const rolledBackNodes = removeLocalEstimateTreeNode(currentNodes, optimisticNodeId);
-          return rolledBackNodes;
-        });
-        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not add estimate tree node." });
-      }
+    // A parent created moments ago may still carry an optimistic id; chain
+    // this create behind the parent's create instead of sending an id the
+    // server has never seen.
+    const knownParentId = selectedGroupId ? resolvedNodeIdsRef.current.get(selectedGroupId) ?? selectedGroupId : null;
+    const createPromise = knownParentId && isOptimisticEstimateNodeId(knownParentId)
+      ? resolveServerNodeId(knownParentId).then(createOnServer)
+      : createOnServer(knownParentId);
+    pendingNodeCreatesRef.current.set(optimisticNodeId, createPromise);
 
-      try {
-        const result = createEstimateNode(projectId, estimateId, formData) as Promise<unknown> | undefined;
-        if (!result || typeof result.then !== "function") {
-          setReorderStatus({ state: "saved", message: kind === "group" ? "Group added" : "Node added" });
-          return;
+    void createPromise
+      .then((serverNodeId) => {
+        resolvedNodeIdsRef.current.set(optimisticNodeId, serverNodeId);
+        pendingNodeCreatesRef.current.delete(optimisticNodeId);
+        setLocalNodes((currentNodes) => replaceLocalEstimateTreeNodeId(currentNodes, optimisticNodeId, serverNodeId));
+        const expandedForEstimate = useEstimateWorkspaceState.getState().expandedNodeIdsByEstimateId[estimateId];
+        if (expandedForEstimate?.includes(optimisticNodeId)) {
+          setExpandedNodeIds(expandedForEstimate.map((nodeId) => (nodeId === optimisticNodeId ? serverNodeId : nodeId)));
         }
-        void result
-          .then(() => {
-            setReorderStatus({ state: "saved", message: kind === "group" ? "Group added" : "Node added" });
-          })
-          .catch(handleCreateFailure);
-      } catch (error) {
-        handleCreateFailure(error);
-      }
-    });
+        setBulkSelectedNodeIds((current) => {
+          if (!current.has(optimisticNodeId)) return current;
+          const next = new Set(current);
+          next.delete(optimisticNodeId);
+          next.add(serverNodeId);
+          return next;
+        });
+        setEditingNodeId((current) => {
+          if (current !== optimisticNodeId) return current;
+          skipRenameAutoSelectRef.current = true;
+          return serverNodeId;
+        });
+        const { selectedNodeIdByEstimateId } = useEstimateWorkspaceState.getState();
+        if (selectedNodeIdByEstimateId[estimateId] === optimisticNodeId) {
+          setSelectedNodeId(serverNodeId);
+          syncEstimateRouteUrl(serverNodeId);
+        }
+        setReorderStatus({ state: "saved", message: kind === "group" ? "Group added" : "Node added" });
+      })
+      .catch((error: unknown) => {
+        unstable_rethrow(error);
+        pendingNodeCreatesRef.current.delete(optimisticNodeId);
+        setLocalNodes((currentNodes) => removeLocalEstimateTreeNode(currentNodes, optimisticNodeId));
+        setEditingNodeId((current) => (current === optimisticNodeId ? null : current));
+        const { selectedNodeIdByEstimateId } = useEstimateWorkspaceState.getState();
+        if (selectedNodeIdByEstimateId[estimateId] === optimisticNodeId) {
+          setSelectedNodeId(previousSelectedNodeId);
+        }
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not add estimate tree node." });
+      });
   }, [
+    activeSelectedNodeId,
     estimateId,
     expandedItems,
     localNodes,
     projectId,
+    resolveServerNodeId,
     selectedGroupId,
     setExpandedNodeIds,
     setLocalNodes,
+    setSelectedNodeId,
+    syncEstimateRouteUrl,
   ]);
+
+  // Focus from the ref callback: the rename editor for a just-created node
+  // mounts a render after the focus effect fires, so timer-based focusing
+  // misses it. Untouched drafts select the whole placeholder; dirty drafts
+  // keep their caret at the end across the optimistic-id remount.
+  const attachRenameInputRef = useCallback((input: HTMLInputElement | null) => {
+    renameInputRef.current = input;
+    if (!input || document.activeElement === input) return;
+    // Context-menu renames are focused by the menu-close dance instead:
+    // grabbing focus while the Radix menu is still closing makes its focus
+    // return win and the editor ends up blurred.
+    if (suppressContextMenuCloseAutoFocusRef.current || ignoreRenameBlurDuringContextMenuCloseRef.current) return;
+    input.focus();
+    if (renameDraftDirtyRef.current) {
+      const caretPosition = input.value.length;
+      input.setSelectionRange(caretPosition, caretPosition);
+    } else {
+      input.select();
+    }
+  }, []);
 
   const beginRenameNode = useCallback((node: EstimateTreeNode) => {
     if (isTreeMutationSaving) return;
     suppressContextMenuCloseAutoFocusRef.current = true;
     ignoreRenameBlurDuringContextMenuCloseRef.current = true;
+    renameDraftDirtyRef.current = false;
     setEditingNodeId(node.id);
     setEditingNodeName(node.name);
     setEditingNodeError(null);
@@ -745,18 +736,22 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         previousNodes = await prepareAreaTreeOptimisticUpdate();
         const nextNodes = renameEstimateTreeNode(previousNodes, node.id, nextName);
         setLocalNodes(nextNodes);
-        const confirmed = await renameEstimateNode(projectId, estimateId, node.id, nextName);
+        // A rename right after create targets the optimistic id; wait for the
+        // in-flight create to hand back the server id instead of erroring.
+        const serverNodeId = await resolveServerNodeId(node.id);
+        const confirmed = await renameEstimateNode(projectId, estimateId, serverNodeId, nextName);
         if (confirmed.nodeId !== node.id || confirmed.name !== nextName) {
           setLocalNodes((currentNodes) => renameEstimateTreeNode(currentNodes, confirmed.nodeId, confirmed.name));
         }
         setReorderStatus({ state: "saved", message: "Node renamed" });
       } catch (error) {
         unstable_rethrow(error);
+        const localNodeId = resolvedNodeIdsRef.current.get(node.id) ?? node.id;
         const currentNodes = snapshotLocalNodes();
-        const currentNode = findEstimateNode(currentNodes, node.id);
+        const currentNode = findEstimateNode(currentNodes, localNodeId);
         if (currentNode?.name === nextName) {
-          setLocalNodes(renameEstimateTreeNode(currentNodes, node.id, node.name));
-          setEditingNodeId(node.id);
+          setLocalNodes(renameEstimateTreeNode(currentNodes, localNodeId, node.name));
+          setEditingNodeId(localNodeId);
           setEditingNodeName(nextName);
           setEditingNodeError(error instanceof Error ? error.message : "Could not rename node.");
         } else {
@@ -776,25 +771,18 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
+    resolveServerNodeId,
     setLocalNodes,
     snapshotLocalNodes,
   ]);
 
-  const replaceEstimateRoute = useCallback((nodeId: string | null) => {
-    const href = nodeId
-      ? `/workshop/projects/${projectId}/estimates/${nodeId}`
-      : `/workshop/projects/${projectId}/estimates/${estimateId}`;
-    startTransition(() => {
-      router.replace(href);
-    });
-  }, [estimateId, projectId, router]);
+  const replaceEstimateRoute = syncEstimateRouteUrl;
 
   const handleConfirmDeleteNode = useCallback(() => {
     if (!deleteTargetNode || isTreeMutationSaving) return;
 
     const targetNode = deleteTargetNode;
     const previousSelectedNodeId = activeSelectedNodeId;
-    const previousFocusedOverride = focusedOverride;
     const routeNodeIdBeforeDelete = currentRouteNodeId;
     let routeWasDeleted = false;
 
@@ -817,11 +805,11 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         optimisticRevision = getLocalTreeRevision();
         if (activeSelectionWasDeleted) {
           setSelectedNodeId(deletePlan.fallbackNodeId);
-          setFocusedOverride(deletePlan.fallbackNodeId ? { routeNodeId: deletePlan.fallbackNodeId, item: deletePlan.fallbackNodeId } : null);
         }
         if (routeWasDeleted) replaceEstimateRoute(deletePlan.fallbackNodeId);
 
-        const confirmed = await deleteEstimateNode(projectId, estimateId, targetNode.id);
+        const serverTargetNodeId = await resolveServerNodeId(targetNode.id);
+        const confirmed = await deleteEstimateNode(projectId, estimateId, serverTargetNodeId);
         const confirmedDeletedNodeIds = new Set(confirmed.deletedNodeIds);
         const confirmedFallbackNodeId = resolveConfirmedDeleteFallbackNodeId(confirmed.tree, confirmed.fallbackNodeId);
         const confirmedActiveNodeStillExists = activeSelectedNodeId ? Boolean(findEstimateNode(confirmed.tree, activeSelectedNodeId)) : true;
@@ -837,7 +825,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         setLocalNodes(confirmed.tree);
         if (activeSelectionWasDeletedOnServer) {
           setSelectedNodeId(confirmedFallbackNodeId);
-          setFocusedOverride(confirmedFallbackNodeId ? { routeNodeId: confirmedFallbackNodeId, item: confirmedFallbackNodeId } : null);
         }
         if ((routeWasDeleted || routeWasDeletedOnServer) && optimisticRouteNodeId !== serverRouteNodeId) {
           replaceEstimateRoute(serverRouteNodeId);
@@ -853,7 +840,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         }
         if (didRestoreTree) {
           setSelectedNodeId(previousSelectedNodeId);
-          setFocusedOverride(previousFocusedOverride);
           if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
         }
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete node." });
@@ -866,13 +852,13 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     currentRouteNodeId,
     deleteTargetNode,
     estimateId,
-    focusedOverride,
     getLocalTreeRevision,
     isTreeMutationSaving,
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
     replaceEstimateRoute,
+    resolveServerNodeId,
     restoreLocalNodes,
     setSelectedNodeId,
     setLocalNodes,
@@ -886,7 +872,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     if (bulkDeletePending || isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0) return;
 
     const previousSelectedNodeId = activeSelectedNodeId;
-    const previousFocusedOverride = focusedOverride;
     const previousBulkSelection = new Set(bulkSelectedNodeIds);
     const routeNodeIdBeforeDelete = currentRouteNodeId;
     let routeWasDeleted = false;
@@ -921,11 +906,11 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         optimisticRevision = getLocalTreeRevision();
         if (activeSelectionWasDeleted) {
           setSelectedNodeId(fallbackNodeId);
-          setFocusedOverride(fallbackNodeId ? { routeNodeId: fallbackNodeId, item: fallbackNodeId } : null);
         }
         if (routeWasDeleted) replaceEstimateRoute(fallbackNodeId);
 
-        const confirmed = await deleteEstimateNodesBulk(projectId, estimateId, bulkDeleteRootNodeIds);
+        const serverRootNodeIds = await Promise.all(bulkDeleteRootNodeIds.map(resolveServerNodeId));
+        const confirmed = await deleteEstimateNodesBulk(projectId, estimateId, serverRootNodeIds);
         const confirmedDeletedNodeIds = new Set(confirmed.deletedNodeIds);
         const confirmedFallbackNodeId = resolveConfirmedDeleteFallbackNodeId(confirmed.tree, confirmed.fallbackNodeId);
         const confirmedActiveNodeStillExists = activeSelectedNodeId ? Boolean(findEstimateNode(confirmed.tree, activeSelectedNodeId)) : true;
@@ -941,7 +926,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         setLocalNodes(confirmed.tree);
         if (activeSelectionWasDeletedOnServer) {
           setSelectedNodeId(confirmedFallbackNodeId);
-          setFocusedOverride(confirmedFallbackNodeId ? { routeNodeId: confirmedFallbackNodeId, item: confirmedFallbackNodeId } : null);
         }
         if ((routeWasDeleted || routeWasDeletedOnServer) && optimisticRouteNodeId !== serverRouteNodeId) {
           replaceEstimateRoute(serverRouteNodeId);
@@ -957,7 +941,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         }
         if (didRestoreTree) {
           setSelectedNodeId(previousSelectedNodeId);
-          setFocusedOverride(previousFocusedOverride);
           setBulkSelectedNodeIds(previousBulkSelection);
           if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
         }
@@ -973,16 +956,192 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     bulkSelectedNodeIds,
     currentRouteNodeId,
     estimateId,
-    focusedOverride,
     getLocalTreeRevision,
     isTreeMutationSaving,
     localNodes,
     prepareAreaTreeOptimisticUpdate,
     projectId,
     replaceEstimateRoute,
+    resolveServerNodeId,
     restoreLocalNodes,
     setLocalNodes,
     setSelectedNodeId,
+  ]);
+
+  // Selecting a node only swaps the middle sheet: state + shallow URL sync,
+  // never a router navigation, which would re-render the entire route.
+  const handlePrimaryAction = useCallback((nodeId: string) => {
+    if (Date.now() < suppressPrimaryActionUntilRef.current) return;
+    if (editingNodeId) return;
+    const node = findEstimateNode(localNodes, nodeId);
+    if (!node) return;
+    setSelectedNodeId(node.id);
+    syncEstimateRouteUrl(node.id);
+  }, [editingNodeId, localNodes, setSelectedNodeId, syncEstimateRouteUrl]);
+
+  const handleCheckboxToggle = useCallback((nodeId: string, checked: boolean) => {
+    if (isTreeMutationSaving) return;
+    setBulkSelectedNodeIds((current) => toggleCascadeSelection(treeSelectionNodes, current, nodeId, checked));
+  }, [isTreeMutationSaving, treeSelectionNodes]);
+
+  const handleTreeContextMenu = useCallback((nodeId: string) => {
+    setContextMenuNode(findEstimateNode(localNodes, nodeId) ?? null);
+  }, [localNodes]);
+
+  const handleContextMenuCloseAutoFocus = useCallback((event: Event) => {
+    if (suppressContextMenuCloseAutoFocusRef.current) {
+      event.preventDefault();
+      window.setTimeout(() => {
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+        suppressContextMenuCloseAutoFocusRef.current = false;
+        ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+      }, 0);
+    }
+  }, []);
+
+  const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
+    if (!contextMenuNode) return [];
+    return [
+      {
+        id: "node-actions",
+        items: [
+          {
+            id: "rename",
+            label: "Rename",
+            disabled: isTreeMutationSaving,
+            disabledReason: "Finish the current tree save before renaming another node.",
+            onSelect: () => beginRenameNode(contextMenuNode),
+          },
+          {
+            id: "delete",
+            label: "Delete",
+            tone: "destructive",
+            disabled: isTreeMutationSaving,
+            disabledReason: "Finish the current tree save before deleting another node.",
+            onSelect: () => setDeleteTargetNode(contextMenuNode),
+          },
+        ],
+      },
+    ];
+  }, [beginRenameNode, contextMenuNode, isTreeMutationSaving]);
+
+  const renderEstimateTreeRowLabel = useCallback((treeNode: UiTreeNode) => {
+    const node = (treeNode.data?.node as EstimateTreeNode | undefined) ?? findEstimateNode(localNodes, treeNode.id);
+    if (!node) return null;
+
+    if (editingNodeId !== node.id) {
+      return <span className="min-w-0 flex-1 truncate text-left">{node.name}</span>;
+    }
+
+    const errorId = `estimate-tree-rename-error-${node.id}`;
+    return (
+      <span className="relative flex min-w-0 flex-1 items-center gap-1">
+        <ControlInput
+          ref={attachRenameInputRef}
+          value={editingNodeName}
+          aria-label={`Rename ${node.name}`}
+          aria-invalid={editingNodeError ? "true" : undefined}
+          aria-describedby={editingNodeError ? errorId : undefined}
+          draggable={false}
+          onChange={(event) => {
+            renameDraftDirtyRef.current = true;
+            setEditingNodeName(event.currentTarget.value);
+            if (editingNodeError) setEditingNodeError(null);
+          }}
+          onBlur={(event) => {
+            if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("[data-estimate-tree-rename-control='true']")) return;
+            if (ignoreRenameBlurDuringContextMenuCloseRef.current && editingNodeName === node.name) return;
+            commitRenameNode(node);
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onDragStart={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitRenameNode(node);
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              cancelRenameNode();
+            }
+          }}
+          className={cn(
+            "h-5 min-h-0 flex-1 rounded-xs border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:border-accent focus:bg-white focus-visible:ring-2 focus-visible:ring-accentSoft",
+            editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger" : "",
+          )}
+        />
+        <button
+          type="button"
+          data-estimate-tree-rename-control="true"
+          aria-label={`Confirm rename ${node.name}`}
+          title="Confirm rename"
+          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            commitRenameNode(node);
+          }}
+        >
+          <Check size={12} weight="regular" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          data-estimate-tree-rename-control="true"
+          aria-label={`Reset rename ${node.name}`}
+          title="Reset name"
+          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent/70 bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            resetRenameNode(node);
+          }}
+        >
+          <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
+        </button>
+        {editingNodeError ? (
+          <span
+            id={errorId}
+            role="alert"
+            className="absolute left-0 top-[22px] z-20 max-w-[180px] truncate rounded-xs border border-dangerSoft bg-white px-1 py-0.5 text-[9px] font-medium leading-3 text-danger shadow-sm"
+          >
+            {editingNodeError}
+          </span>
+        ) : null}
+      </span>
+    );
+  }, [
+    attachRenameInputRef,
+    cancelRenameNode,
+    commitRenameNode,
+    editingNodeError,
+    editingNodeId,
+    editingNodeName,
+    localNodes,
+    resetRenameNode,
   ]);
 
   const deleteTargetDisplayKind = deleteTargetNode ? getEstimateNodeDisplayKind(deleteTargetNode.kind) : null;
@@ -1004,520 +1163,109 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
       >
         <div className="flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
-        <div className="sticky top-0 z-20 shrink-0 bg-white">
-          <div className="flex h-[38px] items-center">
-            <SearchInput
-              wrapperClassName="w-full"
-              placeholder="Search Tree"
-              aria-label="Search Tree"
-            />
-          </div>
-          <HeaderIconToolbar
-            ariaLabel="Tree tools"
-            labelPrefix="tree"
-            onExpandAll={handleExpandAll}
-            onCollapseAll={handleCollapseAll}
-            addActions={[
-              {
-                label: "Add Group",
-                icon: <AddTreeActionIcon kind="group" />,
-                onClick: () => handleAddTreeNode("group"),
-              },
-              {
-                label: "Add Node",
-                icon: <AddTreeActionIcon kind="area" />,
-                onClick: () => handleAddTreeNode("area"),
-              },
-            ]}
-          />
-          <EstimateTreeTabStrip />
-        </div>
+        <TreePanelHeader
+          ariaLabel="Tree tools"
+          labelPrefix="tree"
+          onExpandAll={handleExpandAll}
+          onCollapseAll={handleCollapseAll}
+          startActionsLabel="Tree search"
+          searchValue={treeSearchQuery}
+          onSearchValueChange={setTreeSearchQuery}
+          searchPlaceholder="Search Tree"
+          searchLabel="Search Tree"
+          addActions={[
+            {
+              label: "Add Group",
+              icon: <AddTreeActionIcon kind="group" />,
+              onClick: () => handleAddTreeNode("group"),
+            },
+            {
+              label: "Add Node",
+              icon: <AddTreeActionIcon kind="area" />,
+              onClick: () => handleAddTreeNode("area"),
+            },
+          ]}
+          tabs={ESTIMATE_TREE_TABS}
+          activeTab="sheets"
+          tabsAriaLabel="Estimate tree views"
+        />
 
+        <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className="h-8 w-full bg-white">
-            <TreeBulkActionBar
-              selectedCount={bulkSelectionCount}
-              entityLabel="node"
-              onClearSelection={clearBulkSelection}
-              onDelete={() => setBulkDeleteConfirmOpen(true)}
-              deleteDisabled={isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0}
-              disabledReason={
-                isTreeMutationSaving
-                  ? "Finish the current tree save before deleting selected nodes."
-                  : "Select at least one node."
-              }
-              className="static h-full border-0 bg-transparent px-2 py-0"
-              iconOnly
-            />
-          </div>
-          <div className="px-2 pb-2 pt-0">
+          <div className={cn("px-2 pb-2 pt-0", bulkSelectionCount > 0 && "pb-16")}>
           {localNodes.length === 0 ? (
             <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
               This estimate has no tree nodes yet. Add a Group Node or Area Node to begin rebuilding the estimate structure.
             </div>
+          ) : uiTreeNodes.length === 0 ? (
+            <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+              No tree nodes match &quot;{treeSearchQuery}&quot;.
+            </div>
           ) : (
-            <ControlledTreeEnvironment<EstimateTreeItemData>
-              items={treeModel.items}
-              getItemTitle={(item) => item.data.node?.name ?? projectName}
-              viewState={viewState}
-              defaultInteractionMode={InteractionMode.ClickArrowToExpand}
-              canInvokePrimaryActionOnItemContainer
-              canSearch={false}
-              canDragAndDrop
-              canReorderItems
-              canDropOnFolder
-              canDropOnNonFolder={false}
-              canDropBelowOpenFolders
-              canDrag={handleCanDrag}
-              canDropAt={handleCanDropAt}
-              onDrop={handleDrop}
-              renderDepthOffset={WORKSHOP_TREE_INDENT_STEP}
-              onPrimaryAction={(item) => {
-                if (Date.now() < suppressPrimaryActionUntilRef.current) {
-                  return;
-                }
-                if (editingNodeId) return;
-                const node = item.data.node;
-                if (!node) return;
-                setSelectedNodeId(node.id);
-                setFocusedOverride({ routeNodeId: node.id, item: node.id });
-                startTransition(() => {
-                  router.push(`/workshop/projects/${projectId}/estimates/${node.id}`);
-                });
-              }}
-              onExpandItem={(item) => {
-                const itemId = String(item.index);
-                setExpandedNodeIds(expandedItems.includes(itemId) ? expandedItems.map(String) : [...expandedItems.map(String), itemId]);
-              }}
-              onCollapseItem={(item) => {
-                const itemId = String(item.index);
-                setExpandedNodeIds(expandedItems.map(String).filter((expandedItemId) => expandedItemId !== itemId));
-              }}
-              onFocusItem={(item) => setFocusedOverride({ routeNodeId: activeSelectedNodeId, item: item.index })}
-              renderTreeContainer={({ children, containerProps }) => {
-                const { className, ...treeContainerProps } = containerProps as HTMLAttributes<HTMLDivElement>;
-                return (
-                  <nav aria-label={`${projectName} estimate areas`}>
-                    <div {...treeContainerProps} className={cn("relative min-h-7 outline-none", className)}>
-                      {children}
-                    </div>
-                  </nav>
-                );
-              }}
-              renderItemsContainer={({ children, containerProps }) => {
-                const { className, ...itemsContainerProps } = containerProps as HTMLAttributes<HTMLOListElement>;
-                return (
-                  <ol {...itemsContainerProps} className={cn(WORKSHOP_TREE_ROW_GAP_CLASS, className)}>
-                    {children}
-                  </ol>
-                );
-              }}
-              renderItemTitle={({ title, item }) => {
-                const node = item.data.node;
-                if (!node) return null;
-                const isEditing = editingNodeId === node.id;
-                const errorId = `estimate-tree-rename-error-${node.id}`;
-                return (
-                  <>
-                    <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
-                      <NodeIcon kind={node.kind} />
-                    </span>
-                    {isEditing ? (
-                      <span className="relative flex min-w-0 flex-1 items-center gap-1">
-                        <ControlInput
-                          ref={renameInputRef}
-                          value={editingNodeName}
-                          aria-label={`Rename ${node.name}`}
-                          aria-invalid={editingNodeError ? "true" : undefined}
-                          aria-describedby={editingNodeError ? errorId : undefined}
-                          draggable={false}
-                          onChange={(event) => {
-                            setEditingNodeName(event.currentTarget.value);
-                            if (editingNodeError) setEditingNodeError(null);
-                          }}
-                          onBlur={(event) => {
-                            if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("[data-estimate-tree-rename-control='true']")) return;
-                            if (ignoreRenameBlurDuringContextMenuCloseRef.current && editingNodeName === node.name) return;
-                            commitRenameNode(node);
-                          }}
-                          onPointerDown={(event) => event.stopPropagation()}
-                          onMouseDown={(event) => event.stopPropagation()}
-                          onClick={(event) => event.stopPropagation()}
-                          onDoubleClick={(event) => event.stopPropagation()}
-                          onDragStart={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onKeyDown={(event) => {
-                            event.stopPropagation();
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              commitRenameNode(node);
-                            }
-                            if (event.key === "Escape") {
-                              event.preventDefault();
-                              cancelRenameNode();
-                            }
-                          }}
-                          className={cn(
-                            "h-5 min-h-0 flex-1 rounded-xs border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:border-accent focus:bg-white focus-visible:ring-2 focus-visible:ring-accentSoft",
-                            editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger" : "",
-                          )}
-                        />
-                        <button
-                          type="button"
-                          data-estimate-tree-rename-control="true"
-                          aria-label={`Confirm rename ${node.name}`}
-                          title="Confirm rename"
-                          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
-                          onPointerDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            commitRenameNode(node);
-                          }}
-                        >
-                          <Check size={12} weight="regular" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          data-estimate-tree-rename-control="true"
-                          aria-label={`Reset rename ${node.name}`}
-                          title="Reset name"
-                          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent/70 bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
-                          onPointerDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                          }}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            resetRenameNode(node);
-                          }}
-                        >
-                          <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
-                        </button>
-                        {editingNodeError ? (
-                          <span
-                            id={errorId}
-                            role="alert"
-                            className="absolute left-0 top-[22px] z-20 max-w-[180px] truncate rounded-xs border border-dangerSoft bg-white px-1 py-0.5 text-[9px] font-medium leading-3 text-danger shadow-sm"
-                          >
-                            {editingNodeError}
-                          </span>
-                        ) : null}
-                      </span>
-                    ) : (
-                      <span className="min-w-0 truncate text-left">{title}</span>
-                    )}
-                  </>
-                );
-              }}
-              renderItemArrow={({ item, context }) => {
-                const node = item.data.node;
-                const { className, ...arrowProps } = context.arrowProps as HTMLAttributes<HTMLSpanElement>;
-                if (!item.isFolder || !node) return <span className="size-4" aria-hidden="true" />;
-                return (
-                  <span
-                    {...arrowProps}
-                    className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surface-muted", className)}
-                  >
-                    <CaretDown size={11} aria-hidden="true" className={context.isExpanded ? "" : "-rotate-90"} />
-                  </span>
-                );
-              }}
-              renderItem={({ item, depth, children, title, arrow, context }) => {
-                const node = item.data.node;
-                if (!node) return null;
-
-                const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
-                const { className: rowClassName, style: rowStyle, onDragOver: rowOnDragOver, onDrop: rowOnDrop, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
-                const {
-                  className: buttonClassName,
-                  onDragStart,
-                  onDragOver,
-                  onDrop,
-                  onDragEnd,
-                  onContextMenu,
-                  ...interactiveProps
-                } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
-                const isRouteSelected = activeSelectedNodeId === node.id;
-                const isEditing = editingNodeId === node.id;
-                const bulkSelectionState = getSelectionState(treeSelectionNodes, bulkSelectedNodeIds, node.id);
-                const nodeActionGroups: ActionMenuGroup[] = [
-                  {
-                    id: "node-actions",
-                    items: [
-                      {
-                        id: "rename",
-                        label: "Rename",
-                        disabled: isTreeMutationSaving,
-                        disabledReason: "Finish the current tree save before renaming another node.",
-                        onSelect: () => beginRenameNode(node),
-                      },
-                      {
-                        id: "delete",
-                        label: "Delete",
-                        tone: "destructive",
-                        disabled: isTreeMutationSaving,
-                        disabledReason: "Finish the current tree save before deleting another node.",
-                        onSelect: () => setDeleteTargetNode(node),
-                      },
-                    ],
-                  },
-                ];
-                const directFolderDropTarget = isEstimateGroupNodeKind(node.kind) ? createDirectFolderDropTarget(node, depth) : null;
-                const isNestIntentTarget = nestIntentHint?.targetId === node.id;
-                const handleDirectFolderNestDragOver = (event: DragEvent<HTMLElement>) => {
-                  const draggedItem = getDraggedTreeItemFromEvent(event);
-                  if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event) || !handleCanDropAt([draggedItem], directFolderDropTarget)) {
-                    if (directFolderDropTarget) clearNestIntentHintForTarget(node);
-                    return false;
-                  }
-                  draggedTreeItemRef.current = draggedItem;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  event.dataTransfer.dropEffect = "move";
-                  markNestIntentHint(node, draggedItem);
-                  return true;
-                };
-                const handleDirectFolderNestDrop = (event: DragEvent<HTMLElement>) => {
-                  const draggedItem = getDraggedTreeItemFromEvent(event);
-                  if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event) || !handleCanDropAt([draggedItem], directFolderDropTarget)) return false;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  clearNestIntentHint();
-                  handleDrop([draggedItem], directFolderDropTarget);
-                  draggedTreeItemRef.current = null;
-                  return true;
-                };
-                const nodeInteractiveClassName = cn(
-                  "relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
-                  bulkSelectionState.checked && !isRouteSelected && "border-accent bg-accent-soft",
-                  buttonClassName,
-                );
-                const nodeContextMenuContentProps = {
-                  "data-estimate-tree-context-menu": "true",
-                  alignOffset: 4,
-                  onCloseAutoFocus: (event: Event) => {
-                    if (suppressContextMenuCloseAutoFocusRef.current) {
-                      event.preventDefault();
-                      window.setTimeout(() => {
-                        renameInputRef.current?.focus();
-                        renameInputRef.current?.select();
-                        suppressContextMenuCloseAutoFocusRef.current = false;
-                        ignoreRenameBlurDuringContextMenuCloseRef.current = false;
-                      }, 0);
-                    }
-                  },
-                };
-                const nodeTitleContent = (
-                  <span
-                    data-estimate-tree-title-offset
-                    className="flex h-full min-w-0 flex-1 items-center"
-                  >
-                    {title}
-                  </span>
-                );
-                const nodeContent = (
-                  <>
-                    {arrow}
-                    {nodeTitleContent}
-                  </>
-                );
-                const nodeButton = isEditing ? (
-                  <WorkshopTreeRow
-                    as="div"
-                    aria-current={isRouteSelected ? "page" : undefined}
-                    data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
-                    data-estimate-tree-node-id={node.id}
-                    draggable={false}
-                    depth={depth}
-                    selected={isRouteSelected}
-                    editing
-                    intent={isNestIntentTarget}
-                    contextMenuGroups={nodeActionGroups}
-                    contextMenuContentProps={nodeContextMenuContentProps}
+            <nav aria-label={`${projectName} estimate areas`}>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div
+                    className="block w-full"
                     onContextMenu={(event) => {
-                      event.stopPropagation();
-                    }}
-                    onDragStart={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                    }}
-                    onDragEnd={() => {
-                      clearNestIntentHint();
-                      clearRootDropActive();
-                      window.setTimeout(() => {
-                        draggedTreeItemRef.current = null;
-                      }, 0);
-                    }}
-                    className={nodeInteractiveClassName}
-                  >
-                    {nodeContent}
-                  </WorkshopTreeRow>
-                ) : (
-                  <WorkshopTreeRow
-                    {...interactiveProps}
-                    type="button"
-                    aria-current={isRouteSelected ? "page" : undefined}
-                    data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
-                    data-estimate-tree-bulk-selected={bulkSelectionState.checked ? "true" : undefined}
-                    data-estimate-tree-node-id={node.id}
-                    draggable={interactiveProps.draggable}
-                    depth={depth}
-                    selected={isRouteSelected}
-                    selectionMode={bulkSelectionCount > 0}
-                    dragHandleSlot={<TreeDragHandle forceVisible={bulkSelectionCount > 0} />}
-                    leadingSlot={
-                      <TreeSelectionCheckbox
-                        checked={bulkSelectionState.checked}
-                        indeterminate={bulkSelectionState.indeterminate}
-                        disabled={isTreeMutationSaving}
-                        onChange={(event) => handleToggleBulkSelectedNode(node.id, event.currentTarget.checked)}
-                        aria-label={`Select ${node.name}`}
-                      />
-                    }
-                    intent={isNestIntentTarget}
-                    contextMenuGroups={nodeActionGroups}
-                    contextMenuContentProps={nodeContextMenuContentProps}
-                    onContextMenu={(event) => {
-                      onContextMenu?.(event);
-                      event.stopPropagation();
-                    }}
-                    onDragStart={(event) => {
-                      if (isEditing) {
+                      // Only rows open the node menu; right-clicks on empty
+                      // tree space keep the menu closed.
+                      if (!(event.target instanceof Element) || !event.target.closest("[data-tree-row]")) {
                         event.preventDefault();
-                        event.stopPropagation();
-                        return;
                       }
-                      clearNestIntentHint();
-                      draggedTreeItemRef.current = item;
-                      event.dataTransfer.setData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE, String(item.index));
-                      suppressPrimaryActionAfterDrag();
-                      onDragStart?.(event);
                     }}
-                    onDragOver={(event) => {
-                      if (isEditing) return;
-                      if (handleDirectFolderNestDragOver(event)) return;
-                      onDragOver?.(event);
-                    }}
-                    onDrop={(event) => {
-                      if (isEditing) return;
-                      if (handleDirectFolderNestDrop(event)) return;
-                      onDrop?.(event);
-                    }}
-                    onDragEnd={(event) => {
-                      onDragEnd?.(event);
-                      clearNestIntentHint();
-                      clearRootDropActive();
-                      window.setTimeout(() => {
-                        draggedTreeItemRef.current = null;
-                      }, 0);
-                    }}
-                    className={nodeInteractiveClassName}
                   >
-                    {nodeContent}
-                  </WorkshopTreeRow>
-                );
-
-                return (
-                  <li {...liProps} className={cn("list-none", liClassName)}>
-                    <div
-                      {...rowProps}
-                      onDragOver={(event) => {
-                        if (handleDirectFolderNestDragOver(event)) return;
-                        rowOnDragOver?.(event);
-                      }}
-                      onDrop={(event) => {
-                        if (handleDirectFolderNestDrop(event)) return;
-                        rowOnDrop?.(event);
-                      }}
-                      data-estimate-tree-row="true"
-                      className={cn(
-                        "relative flex items-center gap-0.5 py-0",
-                        WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
-                        rowClassName,
-                      )}
-                      style={rowStyle}
-                    >
-                      <div className="min-w-0 flex-1">{nodeButton}</div>
-                      {isNestIntentTarget ? (
-                        <div
-                          role="status"
-                          aria-live="polite"
-                          className="pointer-events-none absolute right-7 top-1/2 z-10 max-w-[62%] -translate-y-1/2 truncate rounded-xs border border-[#8bbce8] bg-white px-1.5 py-0.5 text-[9px] leading-3 text-[#155f9f] shadow-sm"
-                        >
-                          Nest inside {nestIntentHint.targetName}
-                        </div>
-                      ) : null}
-                    </div>
-                    {children}
-                  </li>
-                );
-              }}
-            >
-              <>
-                <div
-                  aria-hidden="true"
-                  data-estimate-tree-root-top-drop="true"
-                  data-estimate-tree-root-top-drop-active={activeRootDropEdge === "top" ? "true" : undefined}
-                  onDragOver={(event) => handleRootDropZoneDragOver("top", event)}
-                  onDrop={(event) => handleRootDropZoneDrop("top", event)}
-                  onDragLeave={clearRootDropActive}
-                  className={cn(
-                    "relative px-1 transition-colors",
-                    activeRootDropEdge === "top" ? "h-8 rounded-xs bg-[#eef7ff] py-2" : "h-[9px] bg-transparent py-0",
-                  )}
+                    <Tree
+                      nodes={uiTreeNodes}
+                      ariaLabel={`${projectName} estimate areas`}
+                      className="relative min-h-7 overflow-visible"
+                      expandedIds={treeExpandedIds}
+                      onExpandedChange={setExpandedNodeIds}
+                      selectedIds={bulkSelectedIds}
+                      onCheckboxToggle={handleCheckboxToggle}
+                      currentId={activeSelectedNodeId}
+                      draggable
+                      selectable
+                      dragDataType={ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE}
+                      canDrag={handleTreeCanDrag}
+                      canDrop={handleTreeCanDrop}
+                      onDrop={handleTreeDrop}
+                      onNodeDragStart={suppressPrimaryActionAfterDrag}
+                      onRowClick={handlePrimaryAction}
+                      onContextMenu={handleTreeContextMenu}
+                      rootDropZones
+                      renderRow={renderEstimateTreeRowLabel}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent
+                  data-estimate-tree-context-menu="true"
+                  alignOffset={4}
+                  onCloseAutoFocus={handleContextMenuCloseAutoFocus}
                 >
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-xs transition-colors",
-                      activeRootDropEdge === "top" ? "bg-[#1976d2] shadow-[0_0_0_1px_rgba(25,118,210,0.15)]" : "bg-transparent",
-                    )}
-                  />
-                </div>
-                <Tree treeId={ESTIMATE_TREE_ID} rootItem={ESTIMATE_TREE_ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
-                <div
-                  aria-hidden="true"
-                  data-estimate-tree-root-bottom-drop="true"
-                  data-estimate-tree-root-bottom-drop-active={activeRootDropEdge === "bottom" ? "true" : undefined}
-                  onDragOver={(event) => handleRootDropZoneDragOver("bottom", event)}
-                  onDrop={(event) => handleRootDropZoneDrop("bottom", event)}
-                  onDragLeave={clearRootDropActive}
-                  className={cn(
-                    "relative h-8 px-1 py-2 transition-colors",
-                    activeRootDropEdge === "bottom" ? "rounded-xs bg-[#eef7ff]" : "bg-transparent",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-xs transition-colors",
-                      activeRootDropEdge === "bottom" ? "bg-[#1976d2] shadow-[0_0_0_1px_rgba(25,118,210,0.15)]" : "bg-transparent",
-                    )}
-                  />
-                </div>
-              </>
-            </ControlledTreeEnvironment>
+                  <ContextActionMenuContent groups={contextMenuGroups} />
+                </ContextMenuContent>
+              </ContextMenu>
+            </nav>
           )}
           </div>
+        </div>
+        <BulkActionToolbar
+          placement="bottom-dock"
+          dockTo="container"
+          selectedCount={bulkSelectionCount}
+          selectedLabel={bulkSelectionCount === 1 ? "node selected" : "nodes selected"}
+          onClear={clearBulkSelection}
+          actions={[
+            {
+              label: "Delete selected",
+              icon: <Trash size={12} weight="regular" />,
+              variant: "danger",
+              disabled: isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0,
+              onClick: () => setBulkDeleteConfirmOpen(true),
+            },
+          ]}
+        />
         </div>
         </div>
       </ResizableSidePanel>

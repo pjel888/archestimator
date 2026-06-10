@@ -90,6 +90,8 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
 export function ProjectEstimateMetadataStrip() {
   const metadata = useProjectEstimateMetadata();
 
+  if (!metadata) return null;
+
   return <ProjectEstimateMetadataStripGrid metadata={metadata} />;
 }
 
