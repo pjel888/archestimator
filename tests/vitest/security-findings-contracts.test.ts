@@ -271,12 +271,12 @@ describe("Codex security findings hardening contracts", () => {
   it("sanitizes estimate row source snapshot image URLs before persistence and legacy rendering", () => {
     const estimateActions = read("src/lib/estimates/actions.ts");
     const workspaceRepository = read("src/lib/repositories/workspace-repository.ts");
-    const estimateSheetContent = read("src/components/workshop/EstimateSheetContent.tsx");
+    const estimateActivityHistory = read("src/components/workshop/estimate-sheet/activity-history.tsx");
 
     expect(estimateActions).toContain("return sanitizeEstimateRowSourceSnapshot({");
     expect(estimateActions).toContain("source_snapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot)");
     expect(workspaceRepository).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
-    expect(estimateSheetContent).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
+    expect(estimateActivityHistory).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
   });
 
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
