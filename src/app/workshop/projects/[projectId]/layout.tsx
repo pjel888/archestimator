@@ -52,15 +52,14 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       centerHeader={<ProjectEstimateMetadataStrip />}
       projectId={projectId}
       actions={
-        <div className="flex h-10 min-w-0 items-center justify-end">
+        <>
           <ProjectPublicationHeader
             summary={publicationSummary}
             currentUserEmail={currentUserEmail}
             projectEstimateSheets={projectEstimateSheets}
           />
-          <span className="mx-2 h-4 w-px bg-hairline" aria-hidden="true" />
           <ProjectTeamspaceHeader summary={collaborationSummary} />
-        </div>
+        </>
       }
     >
       <div className="flex h-full min-h-0 overflow-hidden bg-white">
