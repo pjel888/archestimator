@@ -106,6 +106,30 @@ Use a sheet with:
 
 The blank cells above are intentional. They mean the current pack has a measurement protocol, not a measured runtime baseline.
 
+### Recorded Baseline — 2026-06-11 implementation run
+
+**Sheet**: synthetic jsdom fixtures (5×10, 10×20, 10×50 areas×rows)
+**Route**: `EstimateSheetContent` rendered directly (vitest/jsdom), mocked server actions
+**Fixture source**: local generated (`tests/vitest/perf/estimate-sheet-render-baseline.test.tsx`)
+**Worktree state**: `perf/path-to-estimate-sheet` @ 626d44a + 7 unrelated dirty templates-panel files (preserved untouched)
+
+| Metric | 50 rows | 200 rows | 500 rows |
+|--------|---------|----------|----------|
+| TTFB | BLOCKED¹ | BLOCKED¹ | BLOCKED¹ |
+| FCP | BLOCKED¹ | BLOCKED¹ | BLOCKED¹ |
+| LCP | BLOCKED¹ | BLOCKED¹ | BLOCKED¹ |
+| TBT | BLOCKED¹ | BLOCKED¹ | BLOCKED¹ |
+| Payload (transferred) | BLOCKED¹ | BLOCKED¹ | BLOCKED¹ |
+| DB query count | BLOCKED¹ | BLOCKED¹ | BLOCKED¹ |
+| Initial render (jsdom) | 176.7ms | 287.3ms | 1119.3ms |
+| Keystroke lag (jsdom avg 10 chars) | 19.6ms | 82.0ms | 212.8ms |
+| Keystroke lag (jsdom worst) | 36.7ms | 197.0ms | 314.0ms |
+| Non-edited table renders / 10 keystrokes | 45 | 90 | 90 |
+
+¹ Browser metrics for authenticated routes BLOCKED this run: workshop requires real auth (dev-auth bypass disabled), Docker/local Supabase unavailable, hosted Supabase access denied by permission classifier. See `.ai/09_archive/store/2026-06-11-path-to-estimate-sheet-performance-implementation/environment-status.md`. jsdom values are relative-comparison evidence for the render-path units; the keystroke render cascade (every table re-renders on every keystroke) is proven by the render-count rows.
+
+Raw artifact: `.ai/09_archive/store/2026-06-11-path-to-estimate-sheet-performance-implementation/baseline/jsdom-render-baseline-before.json`
+
 ---
 
 ## Per-Sprint Measurement Gates

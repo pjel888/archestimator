@@ -36,6 +36,7 @@ import {
   type InsertEstimateTemplateEventDetail,
 } from "./component-library/templates";
 import { useEstimateWorkshopDrag } from "./estimate-workshop-drag";
+import { reportEstimateRowItemsTableRender } from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
@@ -1028,6 +1029,7 @@ function EstimateRowItemsTable({
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
 }) {
+  reportEstimateRowItemsTableRender(targetNodeId);
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
   const selectableRowIds = useMemo(() => items.map((item) => item.id), [items]);
