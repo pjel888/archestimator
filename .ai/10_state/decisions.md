@@ -411,3 +411,16 @@ Confidence: high
 Scope-risk: moderate
 Directive: Implement Phase 1 canonical `.ai` docs first; do not enforce branch protections or Notion workflows until Philip/GitHub/Notion/provider admin decisions are recorded.
 - 2026-06-03 — Agentic-Driven Development framework refinement decision: `.ai/12_agents` remains the canonical agent contract folder; existing `.agents/` is a skills/playbook compatibility surface and should get only a thin `.ai` pointer if used. Gemini remains deprecated unless OWNER_NAME_PLACEHOLDER explicitly reapproves it, Ollama remains non-agent/embedding-only, and Hermes/Cursor require explicit payload/status decisions before global enforcement. GitHub rulesets/protections, provider actions, and Notion sync remain approval-gated; dry-runs must pass before enforcement.
+
+## 2026-06-11 — Path-to-estimate-sheet performance implementation decisions
+
+Decision: Keystroke performance is solved with identity-stable callbacks (useStableCallback ref pattern) plus a slice-aware React.memo comparator on EstimateRowItemsTable, not with useDeferredValue, useOptimistic, or row virtualization. Component-library data lazy-loads through a fail-closed server action with TanStack client caching instead of being fetched in the estimate page's blocking Promise.all. Landing CTA auth state is a display-only Supabase cookie-presence hint with no auth network round-trip; protected routes keep fail-closed server-side user validation. react-complex-tree CSS is workshop-scoped and lenis CSS is landing-scoped. Estimate-list SQL aggregation and index migrations are deferred until a database channel with parity/EXPLAIN proof exists.
+
+Constraint: No database channel this run (Docker absent, hosted Supabase SQL denied by permission classifier, no provider authority); no authenticated browser session for trace capture; unrelated dirty templates-panel files had to be preserved untouched.
+Rejected: useDeferredValue/useOptimistic scheduling | 200-row keystroke budget (<16ms) already met after render relief (8.4ms avg jsdom).
+Rejected: @tanstack/react-virtual | non-edited table renders dropped to 0 per keystroke; DOM count not the limiting bottleneck.
+Rejected: Redis/Upstash/KV or `use cache: remote` | protected user-specific data; decision-matrix default upheld with no measured shared-cache trigger.
+Rejected: dropping source_snapshot from sheet tree queries | toUiRow consumes it for linked-row display; plan assumption corrected in doc 12.
+Confidence: high
+Scope-risk: moderate
+Directive: Every handler passed into EstimateSheetBranch/EstimateRowItemsTable must stay identity-stable; node row arrays must reuse EMPTY_ESTIMATE_ROW_ITEMS; getLandingAuthState must never gate access; reopen U3/U5 only with DB parity/EXPLAIN proof, and U7/U10 only on real-browser budget misses.

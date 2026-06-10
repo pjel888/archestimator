@@ -5,6 +5,26 @@
 
 ---
 
+## Implementation Status — 2026-06-11 run (branch `perf/path-to-estimate-sheet`)
+
+| Unit | Status | Evidence |
+|------|--------|----------|
+| U0 baseline + characterization | DONE (jsdom + static; browser channel blocked, recorded) | store `baseline/` + `environment-status.md` |
+| U0A blast-radius + decision receipts | DONE | store `decisions/u0a-decision-receipts.md` |
+| U1 safe render relief | DONE — 200-row keystroke 82.0→8.4ms avg; non-edited table renders 90→0 | commit 96563ca, `baseline/jsdom-render-baseline-*.json` |
+| U2 explicit columns (sheet tree) | DONE — corrected scope: source_snapshot is consumed; dropped only unused columns | commit aa7c10d |
+| U3 estimate-list SQL aggregate | DEFERRED with ready design (no DB channel) | `decisions/u3-u5-database-deferral.md` |
+| U4 library lazy load | DONE — page render no longer gated on library queries; skeleton/error/retry/cached | commit 959f9d9 |
+| U5 index EXPLAIN proof | DEFERRED (no DB channel; provider authority absent) | `decisions/u3-u5-database-deferral.md` |
+| U6 landing CSS/auth | DONE — anonymous `/` TTFB median ~0.60s→~0.057s; CSS scoped; hero preload | commit c978527 |
+| U7 scheduling | DEFERRED with evidence (budget met post-U1) | `decisions/u7-scheduling-deferral.md` |
+| U8 cursor isolation | DONE — cursor frames render only the cursor layer | commit b7f4d34 |
+| U9 component split | First boundary (activity/row-details modals) extracted | see implementation commits |
+| U10 virtualization | SKIPPED with evidence — measurements met budgets without the dependency | `decisions/u10-virtualization-decision.md` |
+| QA matrix | Executed; per-row results | store `qa/qa-matrix-results.md` |
+
+---
+
 ## Readiness Summary
 
 | Area | Score | Status |

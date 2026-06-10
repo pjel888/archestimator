@@ -72,3 +72,20 @@ Future implementation must start with the baseline and characterization gates in
 - Re-run blast-radius analysis from `17-blast-radius-and-impact-analysis-plan.md` before every source edit.
 - Decide the database proof path for any future migration: local-only first, linked exact-file proof only with owner-approved provider authority.
 - Re-run graph impact analysis against the future code-bearing branch before editing symbols.
+
+---
+
+## Implementation-Run Corrections — 2026-06-11 (branch perf/path-to-estimate-sheet)
+
+Evidence root: `.ai/09_archive/store/2026-06-11-path-to-estimate-sheet-performance-implementation/`
+
+| Stale assumption | Current truth | Effect |
+|------------------|---------------|--------|
+| Sheet component is 4,336 lines | 4,412 lines at implementation start (further drift since planning snapshot) | Line anchors re-validated before every edit |
+| `select("*")` JSONB overfetch on the sheet tree path is droppable | `source_snapshot` IS consumed by `toUiRow` (image, category, price option, lifecycle, pricing provenance); only `estimate_id/sort_order/updated_at` (rows) and `metadata/timestamps` (nodes) were droppable | U2 shipped as explicit column lists with Pick-typed contracts; payload claim downgraded from "50-300KB" to ~100B/row theoretical |
+| "Load library behind sidebar open" | The right sidebar has NO closed state today (always rendered, min-w-[320px]) | U4 shipped as: page render no longer gated on library queries; client lazy-fetch with skeleton/error/retry + TanStack session cache |
+| React.memo on row table is the U1 fix | All 9+ row-table callbacks were identity-unstable per keystroke (plain fns / editableRows deps), so memo alone was useless and comparator-without-callbacks was stale-closure-dangerous | U1 shipped stable-callback ref wrappers + slice-aware comparator; also fixed fresh-`[]` rows identity (EMPTY_ESTIMATE_ROW_ITEMS) |
+| Keystroke fix may need useDeferredValue (Sprint 2) | 200-row keystroke 82.0→8.4ms avg after U1 alone (budget <16ms met) | U7 scheduling deferred with reopen trigger (decisions/u7-scheduling-deferral.md) |
+| Virtualization may be needed (Sprint 3) | Non-edited table renders 0/keystroke; computation, not DOM count, was limiting | U10 skipped with evidence (decisions/u10-virtualization-decision.md) |
+| Landing auth round-trip cost unproven | Anonymous `/` TTFB median ~0.60s→~0.057s after replacing hosted `auth.getUser()` with a display-only cookie hint | U6 shipped; fail-closed protected-route validation untouched |
+| DB aggregate/index work executable | No database channel this run: Docker absent, hosted SQL denied by permission classifier, no provider authority | U3/U5 deferred with ready design (decisions/u3-u5-database-deferral.md) |
