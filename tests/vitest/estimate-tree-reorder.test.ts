@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { DraggingPosition } from "react-complex-tree";
 
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import {
-  ESTIMATE_TREE_ROOT_ITEM_ID,
   ESTIMATE_TREE_SORT_ORDER_STEP,
   buildEstimateNodeReorderPlan,
   evaluateEstimateTreeDrop,
@@ -90,24 +88,12 @@ function byId(nodes: EstimateTreeNode[], id: string): EstimateTreeNode {
   throw new Error(`Node ${id} not found.`);
 }
 
-function between(parentItem: string, childIndex: number): DraggingPosition {
-  return {
-    targetType: "between-items",
-    treeId: "estimate-sheet-tree",
-    parentItem,
-    childIndex,
-    linePosition: "bottom",
-    linearIndex: 0,
-    depth: 2,
-  };
-}
-
 describe("estimate tree reorder planning", () => {
-  it("translates same-parent RCT between-items drops into an optimistic sibling reorder", () => {
+  it("translates same-parent after-sibling drops into an optimistic sibling reorder", () => {
     const result = evaluateEstimateTreeDrop({
       nodes: fixtureTree(),
-      draggedItemIds: ["kitchen"],
-      target: between("ground-floor", 2),
+      draggedNodeIds: ["kitchen"],
+      target: { targetNodeId: "living", position: "after" },
     });
 
     expect(result.ok).toBe(true);
@@ -121,18 +107,11 @@ describe("estimate tree reorder planning", () => {
     ]);
   });
 
-  it("translates RCT item drops into appending inside the target Group Node", () => {
+  it("translates inside drops into appending inside the target Group Node", () => {
     const result = evaluateEstimateTreeDrop({
       nodes: fixtureTree(),
-      draggedItemIds: ["kitchen"],
-      target: {
-        targetType: "item",
-        treeId: "estimate-sheet-tree",
-        targetItem: "site-works",
-        parentItem: "project-scope",
-        linearIndex: 0,
-        depth: 1,
-      },
+      draggedNodeIds: ["kitchen"],
+      target: { targetNodeId: "site-works", position: "inside" },
     });
 
     expect(result.ok).toBe(true);
@@ -147,17 +126,11 @@ describe("estimate tree reorder planning", () => {
     ]);
   });
 
-  it("translates RCT root drops into appending a valid Group Node at estimate root", () => {
+  it("translates after-last-root drops into appending a valid Group Node at estimate root", () => {
     const result = evaluateEstimateTreeDrop({
       nodes: fixtureTree(),
-      draggedItemIds: ["ground-floor"],
-      target: {
-        targetType: "root",
-        treeId: "estimate-sheet-tree",
-        targetItem: ESTIMATE_TREE_ROOT_ITEM_ID,
-        linearIndex: 0,
-        depth: 0,
-      },
+      draggedNodeIds: ["ground-floor"],
+      target: { targetNodeId: "alternates", position: "after" },
     });
 
     expect(result.ok).toBe(true);
@@ -214,11 +187,12 @@ describe("estimate tree reorder planning", () => {
     expect(cycleDrop.code).toBe("cycle");
   });
 
-  it("rejects unknown dragged nodes, unknown targets, synthetic root drags, multi-drag, and no-op drops", () => {
+  it("rejects unknown dragged nodes, unknown targets, multi-drag, and no-op drops", () => {
     expect(buildEstimateNodeReorderPlan({ nodes: fixtureTree(), draggedNodeId: "missing", targetParentId: null, targetIndex: 0 })).toMatchObject({ ok: false, code: "unknown-dragged-node" });
     expect(buildEstimateNodeReorderPlan({ nodes: fixtureTree(), draggedNodeId: "kitchen", targetParentId: "missing", targetIndex: 0 })).toMatchObject({ ok: false, code: "unknown-target-parent" });
-    expect(evaluateEstimateTreeDrop({ nodes: fixtureTree(), draggedItemIds: [ESTIMATE_TREE_ROOT_ITEM_ID], target: between("ground-floor", 0) })).toMatchObject({ ok: false, code: "synthetic-root-drag" });
-    expect(evaluateEstimateTreeDrop({ nodes: fixtureTree(), draggedItemIds: ["kitchen", "living"], target: between("ground-floor", 2) })).toMatchObject({ ok: false, code: "multi-drag-unsupported" });
+    expect(evaluateEstimateTreeDrop({ nodes: fixtureTree(), draggedNodeIds: ["kitchen"], target: { targetNodeId: "missing", position: "after" } })).toMatchObject({ ok: false, code: "unknown-target-parent" });
+    expect(evaluateEstimateTreeDrop({ nodes: fixtureTree(), draggedNodeIds: ["kitchen"], target: { targetNodeId: "missing", position: "inside" } })).toMatchObject({ ok: false, code: "unknown-target-parent" });
+    expect(evaluateEstimateTreeDrop({ nodes: fixtureTree(), draggedNodeIds: ["kitchen", "living"], target: { targetNodeId: "living", position: "after" } })).toMatchObject({ ok: false, code: "multi-drag-unsupported" });
     expect(buildEstimateNodeReorderPlan({ nodes: fixtureTree(), draggedNodeId: "kitchen", targetParentId: "ground-floor", targetIndex: 0 })).toMatchObject({ ok: false, code: "no-op" });
   });
 
@@ -282,15 +256,8 @@ describe("estimate tree reorder planning", () => {
   it("applies confirmed tree structure while preserving cached node content", () => {
     const planned = evaluateEstimateTreeDrop({
       nodes: fixtureTree(),
-      draggedItemIds: ["kitchen"],
-      target: {
-        targetType: "item",
-        treeId: "estimate-sheet-tree",
-        targetItem: "site-works",
-        parentItem: "project-scope",
-        linearIndex: 0,
-        depth: 1,
-      },
+      draggedNodeIds: ["kitchen"],
+      target: { targetNodeId: "site-works", position: "inside" },
     });
     expect(planned.ok).toBe(true);
     if (!planned.ok) throw new Error(planned.message);

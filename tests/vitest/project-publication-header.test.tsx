@@ -3,9 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
 import { ProjectPublicationHeader, SheetPickerList } from "@/components/workshop/ProjectPublicationHeader";
-import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
 import type { ProjectEstimateSheet, ProjectPublicationSummary } from "@/lib/publication/types";
 
 const workspaceRepositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
@@ -27,34 +25,6 @@ vi.mock("@/lib/publication/actions", () => publicationActions);
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/projects/project-1/estimates/estimate-1",
 }));
-
-const collaborationSummary: ProjectCollaborationSummary = {
-  projectId: "project-1",
-  workspaceId: "workspace-1",
-  currentUserId: "user-1",
-  currentUserRole: "owner",
-  canManageAccess: true,
-  collaborators: [
-    {
-      id: "user-1",
-      displayName: "Philip Lewis",
-      email: "philip@example.com",
-      avatarUrl: null,
-      role: "owner",
-      source: "project",
-      online: true,
-    },
-  ],
-  pendingInvitations: [],
-  estimateSheets: [],
-  realtime: {
-    privateChannels: true,
-    projectChannel: "project:project-1",
-    estimateChannelPrefix: "estimate:",
-    presenceTransport: "presence",
-    cursorTransport: "broadcast",
-  },
-};
 
 const publicationSummary: ProjectPublicationSummary = {
   projectId: "project-1",
@@ -79,7 +49,7 @@ const sampleEstimateSheets: ProjectEstimateSheet[] = [
   { id: "est-2", name: "Framing", sheetCode: "S-200" },
 ];
 
-describe("ProjectWorkspaceHeaderRow publication control", () => {
+describe("ProjectPublicationHeader publication control", () => {
   beforeEach(() => {
     window.localStorage.clear();
     publicationActions.addSharedLinkRecipients.mockReset();
@@ -104,26 +74,24 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     });
   });
 
-  it("places Publish before Teamspaces and keeps the client link in its own modal", async () => {
+  it("renders the shared-link header button and keeps the client link in its own modal", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={collaborationSummary}
-        publicationSummary={publicationSummary}
+    render(
+      <ProjectPublicationHeader
+        summary={publicationSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
 
-    const actions = container.querySelector('[data-workshop-layout="project-workspace-header-actions"]');
-    const sharedLink = within(actions as HTMLElement).getByLabelText("Shared link");
-    const teamspaces = within(actions as HTMLElement).getByLabelText("Project teamspaces");
-    expect(sharedLink.compareDocumentPosition(teamspaces) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const sharedLinkButton = screen.getByRole("button", { name: "Open shared link" });
+    expect(sharedLinkButton).toHaveClass("size-10", "border", "bg-white");
+    expect(sharedLinkButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(sharedLinkButton).toHaveAttribute("aria-expanded", "false");
 
-    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    await user.click(sharedLinkButton);
 
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    expect(sharedLinkButton).toHaveAttribute("aria-expanded", "true");
     expect(within(dialog).getAllByText("Shared link").length).toBeGreaterThan(0);
     expect(within(dialog).getByRole("textbox", { name: "Shared link" })).toHaveValue("http://localhost:3000/share/client-token");
     expect(within(dialog).getByText("Password on")).toBeInTheDocument();
@@ -149,18 +117,20 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
       value: { writeText },
     });
     const { container } = render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={collaborationSummary}
-        publicationSummary={publicationSummary}
+      <ProjectPublicationHeader
+        summary={publicationSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
 
+    const sharedLinkButton = screen.getByRole("button", { name: "Open shared link" });
+    expect(sharedLinkButton).toHaveClass("size-10", "border", "bg-white");
+    expect(sharedLinkButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(sharedLinkButton).toHaveAttribute("aria-expanded", "false");
     expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    await user.click(sharedLinkButton);
     expect(screen.getByRole("dialog", { name: "Shared link" })).toBeInTheDocument();
+    expect(sharedLinkButton).toHaveAttribute("aria-expanded", "true");
     expect(writeText).not.toHaveBeenCalled();
   });
 
@@ -218,11 +188,8 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     };
 
     render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={null}
-        publicationSummary={unpublishedSummary}
+      <ProjectPublicationHeader
+        summary={unpublishedSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
@@ -255,11 +222,8 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
 
     const user = userEvent.setup();
     render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={null}
-        publicationSummary={publicationSummary}
+      <ProjectPublicationHeader
+        summary={publicationSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
@@ -295,11 +259,8 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
 
     const user = userEvent.setup();
     render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={null}
-        publicationSummary={subsetSummary}
+      <ProjectPublicationHeader
+        summary={subsetSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
@@ -325,11 +286,8 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
 
     const user = userEvent.setup();
     render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={null}
-        publicationSummary={publicationSummary}
+      <ProjectPublicationHeader
+        summary={publicationSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
@@ -356,11 +314,8 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
 
     const user = userEvent.setup();
     render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={null}
-        publicationSummary={publicationSummary}
+      <ProjectPublicationHeader
+        summary={publicationSummary}
         projectEstimateSheets={sampleEstimateSheets}
       />,
     );
@@ -388,11 +343,8 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     const user = userEvent.setup();
     const noSheetSummary = { ...publicationSummary, status: "unpublished" as const, selectedEstimateCount: 0 };
     render(
-      <ProjectWorkspaceHeaderRow
-        projectId="project-1"
-        projectCode="PRJ-001"
-        collaborationSummary={null}
-        publicationSummary={noSheetSummary}
+      <ProjectPublicationHeader
+        summary={noSheetSummary}
         projectEstimateSheets={[]}
       />,
     );
