@@ -1,5 +1,25 @@
 # Current State
 
+**Path-To-Estimate-Sheet Performance Implementation (2026-06-11 local, branch `perf/path-to-estimate-sheet`):**
+The 2026-06-11 performance plan pack was implemented: U1 stable-callback + slice-aware
+memoized row tables (200-row keystroke 82.0→8.4ms avg jsdom, non-edited table renders
+90→0), U2 explicit columns for estimate-sheet tree loads (source_snapshot retained —
+it is consumed by linked-row display; only unused columns dropped), U4 component-library
+lazy load off the page's blocking Promise.all (skeleton/error/retry + TanStack session
+cache; fail-closed server action), U6 landing fixes (anonymous `/` TTFB median
+~0.60s→~0.057s by replacing the hosted auth round-trip with a display-only cookie hint;
+react-complex-tree CSS scoped to workshop layout; lenis CSS scoped to the landing
+provider; hero `priority`→`preload`), U8 cursor isolation (remote cursor frames render
+only EstimateSheetCursorLayer), U9 first extraction batch (activity/row-details modals).
+U3/U5 (SQL aggregate + EXPLAIN/index proof) are DEFERRED with ready designs — no DB
+channel this run (Docker absent, hosted SQL denied, no provider authority). U7
+(useDeferredValue/useOptimistic) deferred: budget met after U1. U10 virtualization
+skipped with evidence; `@tanstack/react-virtual` still not installed. Evidence root:
+`.ai/09_archive/store/2026-06-11-path-to-estimate-sheet-performance-implementation/`.
+Unrelated dirty templates-panel files were preserved untouched; two pre-existing test
+failures (bulk-selection toolbar label from a dirty mid-edit; `Stack` source assertion
+vs committed StackPlus) are documented as not caused by this work.
+
 **Complete Storybook Overlay Component System Implemented (2026-06-07 local / 2026-06-07Z):**
 Continuation branch `feat/storybook-complete-ui-component-system` expands the
 Storybook-first UI library into a complete overlay/modal/dialog/popup system

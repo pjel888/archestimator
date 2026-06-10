@@ -2,7 +2,7 @@
 
 **Date**: 2026-06-11
 **Purpose**: Define the behavior-level QA gates a future implementation must run before claiming the performance plan succeeded.
-**Status**: Planning matrix only; no scenarios have been executed in this docs-only pass.
+**Status**: Executed 2026-06-11 on branch `perf/path-to-estimate-sheet`. Per-row PASS/PARTIAL/DEFERRED/BLOCKED results with evidence paths: `.ai/09_archive/store/2026-06-11-path-to-estimate-sheet-performance-implementation/qa/qa-matrix-results.md`. Browser-channel rows are blocked by the recorded auth/DB environment boundary, not skipped silently.
 
 ---
 
