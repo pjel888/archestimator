@@ -133,7 +133,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
         >
           <div>
             <p className='max-w-[440px] text-[13px] font-medium leading-6 text-[#6b5f55]'>
-              From cost proposal to client approval, in one connected workflow.
+              Cost proposal to client approval, all in one workflow.
             </p>
 
             <h1 className='mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
