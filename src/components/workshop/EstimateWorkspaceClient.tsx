@@ -3,9 +3,11 @@
 import dynamic from "next/dynamic";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
-import type { ComponentLibraryBrandOption, ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
+import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
+import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import type { EstimateTemplate } from "./component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "./estimate-tree-data";
 
@@ -36,7 +38,8 @@ type EstimateWorkspaceClientProps = {
   libraryTemplates?: EstimateTemplate[];
   libraryCategoryTree?: ComponentLibraryTaxonomyNode[];
   librarySuppliers?: ComponentLibrarySupplierOption[];
-  libraryBrands?: ComponentLibraryBrandOption[];
+  libraryBrands?: ComponentLibraryBrand[];
+  libraryFolders?: LibraryFolderRecord[];
 };
 
 export function EstimateWorkspaceClient({
@@ -53,6 +56,7 @@ export function EstimateWorkspaceClient({
   libraryCategoryTree,
   librarySuppliers,
   libraryBrands,
+  libraryFolders,
 }: EstimateWorkspaceClientProps) {
   return (
     <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${projectName} estimates`}>
@@ -70,6 +74,7 @@ export function EstimateWorkspaceClient({
         libraryCategoryTree={libraryCategoryTree}
         librarySuppliers={librarySuppliers}
         libraryBrands={libraryBrands}
+        libraryFolders={libraryFolders}
       />
     </section>
   );
