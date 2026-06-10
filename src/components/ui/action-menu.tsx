@@ -59,6 +59,9 @@ const contextMenuRenderer: ActionMenuRenderer = {
 export function ContextActionMenuContent({ groups, renderer = contextMenuRenderer }: ContextActionMenuContentProps) {
   const visibleGroups = groups.filter((group) => group.items.length > 0);
   const { Group, Item, Label, Separator, Shortcut } = renderer;
+  // Mixed menus keep their labels on one vertical axis: once any item in the
+  // menu carries an icon, every item reserves the icon slot.
+  const reserveIconSlot = visibleGroups.some((group) => group.items.some((item) => item.icon));
 
   return visibleGroups.map((group, groupIndex) => (
     <MenuGroupFragment key={group.id} separator={groupIndex > 0} Separator={Separator}>
@@ -74,7 +77,11 @@ export function ContextActionMenuContent({ groups, renderer = contextMenuRendere
               if (!item.disabled) item.onSelect();
             }}
           >
-            {item.icon ? <span className="flex size-3 shrink-0 items-center justify-center">{item.icon}</span> : null}
+            {item.icon || reserveIconSlot ? (
+              <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden={item.icon ? undefined : true}>
+                {item.icon}
+              </span>
+            ) : null}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {item.shortcut ? <Shortcut>{item.shortcut}</Shortcut> : null}
           </Item>
