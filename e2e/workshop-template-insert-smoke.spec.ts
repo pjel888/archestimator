@@ -257,7 +257,9 @@ test.describe("workshop template insertion smoke", () => {
       const libraryTreeTabs = page.getByRole("tablist", { name: "Library tree views" });
       await libraryTreeTabs.getByRole("tab", { name: "Templates" }).click();
       await expect(libraryTreeTabs.getByRole("tab", { name: "Templates" })).toHaveAttribute("aria-selected", "true");
-      await page.getByRole("button", { name: `Add template ${template.name} to Second Floor` }).click();
+      // Rows carry no add buttons: inserting goes through the context menu.
+      await page.getByRole("treeitem", { name: `${template.name} estimate template` }).click({ button: "right" });
+      await page.getByRole("menuitem", { name: "Add to Second Floor" }).click();
 
       await expect
         .poll(async () => countEstimateRows(fixture!.estimateId), { timeout: 20_000 })

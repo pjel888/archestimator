@@ -291,7 +291,9 @@ describe("estimate sheet library insertion persistence", () => {
     );
 
     await user.click(screen.getByRole("tab", { name: "Templates" }));
-    await user.click(screen.getByRole("button", { name: "Add template Condo Fit-Out Starter to Ground Floor" }));
+    // Rows carry no add buttons: inserting goes through the context menu.
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Condo Fit-Out Starter estimate template" }), { clientX: 16, clientY: 16 });
+    await user.click(await screen.findByRole("menuitem", { name: "Add to Ground Floor" }));
 
     await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
     expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({

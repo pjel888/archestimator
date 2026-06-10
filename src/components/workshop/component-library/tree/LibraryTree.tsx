@@ -1,7 +1,19 @@
 "use client";
 
 import { useCallback, useMemo, useState, type DragEvent } from "react";
-import { FolderSimple, Package, Plus } from "@phosphor-icons/react/dist/ssr";
+import {
+  CaretDown,
+  CaretRight,
+  CopySimple,
+  Eye,
+  FolderSimple,
+  Package,
+  PencilSimple,
+  Plus,
+  PlusSquare,
+  Star,
+  Trash,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { Button } from "@/components/ui/button";
@@ -12,27 +24,49 @@ import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
 import { findNode, getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";
 
+function menuIcon(Icon: typeof Plus) {
+  return <Icon size={12} weight="regular" aria-hidden="true" />;
+}
+
 function createFolderActionGroups({
   hasChildren,
   expanded,
   onSelect,
   onToggle,
+  onCreateComponent,
 }: {
   hasChildren: boolean;
   expanded: boolean;
   onSelect: () => void;
   onToggle: () => void;
+  onCreateComponent?: () => void;
 }): ActionMenuGroup[] {
   return [
+    ...(onCreateComponent
+      ? [
+          {
+            id: "folder-create",
+            items: [
+              {
+                id: "new-component",
+                label: "New Component",
+                icon: menuIcon(PlusSquare),
+                onSelect: onCreateComponent,
+              },
+            ],
+          },
+        ]
+      : []),
     {
       id: "folder-actions",
       items: [
-        { id: "select", label: "Select", onSelect },
+        { id: "select", label: "Select", icon: menuIcon(Eye), onSelect },
         ...(hasChildren
           ? [
               {
                 id: expanded ? "collapse" : "expand",
                 label: expanded ? "Collapse" : "Expand",
+                icon: expanded ? menuIcon(CaretDown) : menuIcon(CaretRight),
                 onSelect: onToggle,
               },
             ]
@@ -43,26 +77,37 @@ function createFolderActionGroups({
 }
 
 function createItemActionGroups({
+  item,
   addDisabled,
   addLabel,
   onAdd,
   onPreview,
+  onEdit,
+  onDuplicate,
+  onToggleFavorite,
+  onDelete,
 }: {
+  item: EstimateRowItem;
   addDisabled?: boolean;
   addLabel?: string;
   onAdd?: () => void;
   onPreview: () => void;
+  onEdit?: () => void;
+  onDuplicate?: () => void;
+  onToggleFavorite?: () => void;
+  onDelete?: () => void;
 }): ActionMenuGroup[] {
   return [
     {
       id: "component-actions",
       items: [
-        { id: "preview", label: "Preview", onSelect: onPreview },
+        { id: "preview", label: "Preview", icon: menuIcon(Eye), onSelect: onPreview },
         ...(onAdd
           ? [
               {
                 id: "add",
                 label: addDisabled ? "Add" : (addLabel ?? "Add"),
+                icon: menuIcon(Plus),
                 disabled: addDisabled,
                 disabledReason: addDisabled ? "Select an area before adding this component." : undefined,
                 onSelect: onAdd,
@@ -70,6 +115,29 @@ function createItemActionGroups({
             ]
           : []),
       ],
+    },
+    {
+      id: "component-edit",
+      items: [
+        ...(onEdit ? [{ id: "edit", label: "Edit", icon: menuIcon(PencilSimple), onSelect: onEdit }] : []),
+        ...(onDuplicate ? [{ id: "duplicate", label: "Duplicate", icon: menuIcon(CopySimple), onSelect: onDuplicate }] : []),
+        ...(onToggleFavorite
+          ? [
+              {
+                id: "favorite",
+                label: item.isFavorite ? "Remove from favorites" : "Add to favorites",
+                icon: menuIcon(Star),
+                onSelect: onToggleFavorite,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      id: "component-danger",
+      items: onDelete
+        ? [{ id: "delete", label: "Delete", icon: menuIcon(Trash), tone: "destructive" as const, onSelect: onDelete }]
+        : [],
     },
   ];
 }
@@ -177,6 +245,11 @@ export function LibraryTree({
   onToggle,
   onItemAdd,
   onItemPreview,
+  onItemEdit,
+  onItemDuplicate,
+  onItemToggleFavorite,
+  onItemDelete,
+  onCreateComponent,
   addDisabled,
   addLabel,
   showItemAddAction,
@@ -188,6 +261,7 @@ export function LibraryTree({
   reorderDisabled = false,
 }: LibraryTreeProps) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
 
   const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
   const uiNodes = useMemo(() => toUiNodes(nodes, reorderEnabled), [nodes, reorderEnabled]);
@@ -265,10 +339,15 @@ export function LibraryTree({
     if (contextNode.item) {
       const item = contextNode.item;
       return createItemActionGroups({
+        item,
         addDisabled,
         addLabel,
         onAdd: canShowAddAction ? () => onItemAdd?.(item) : undefined,
         onPreview: () => onItemPreview?.(contextNode.id),
+        onEdit: onItemEdit ? () => onItemEdit(item) : undefined,
+        onDuplicate: onItemDuplicate ? () => onItemDuplicate(item) : undefined,
+        onToggleFavorite: onItemToggleFavorite ? () => onItemToggleFavorite(item) : undefined,
+        onDelete: onItemDelete ? () => onItemDelete(item) : undefined,
       });
     }
     return createFolderActionGroups({
@@ -276,6 +355,7 @@ export function LibraryTree({
       expanded: effectiveExpandedIds.includes(contextNode.id),
       onSelect: () => (onSelect ?? onToggle)(contextNode.id),
       onToggle: () => onToggle(contextNode.id),
+      onCreateComponent,
     });
   }, [
     addDisabled,
@@ -284,8 +364,13 @@ export function LibraryTree({
     contextMenuNodeId,
     effectiveExpandedIds,
     nodes,
+    onCreateComponent,
     onItemAdd,
+    onItemDelete,
+    onItemDuplicate,
+    onItemEdit,
     onItemPreview,
+    onItemToggleFavorite,
     onSelect,
     onToggle,
   ]);
@@ -318,7 +403,7 @@ export function LibraryTree({
   }
 
   return (
-    <ContextMenu>
+    <ContextMenu onOpenChange={setContextMenuOpen}>
       <ContextMenuTrigger asChild>
         <div
           className="block w-full"
@@ -342,6 +427,7 @@ export function LibraryTree({
               selectable && onCheckToggle ? (nodeId, checked) => onCheckToggle(nodeId, checked) : undefined
             }
             currentId={selectable ? selectedNodeId : undefined}
+            railsPinned={contextMenuOpen}
             draggable={Boolean(onItemDragStart) || reorderEnabled}
             canDrag={handleCanDrag}
             canDrop={handleCanReorderDrop}

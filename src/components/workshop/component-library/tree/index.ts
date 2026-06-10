@@ -1,5 +1,15 @@
 export { LibraryTree } from "./LibraryTree";
 export {
+  TemplatesTree,
+  buildTemplatesTreeNodes,
+  buildTemplatesSelectionNodes,
+  getCheckedTemplates,
+  getCheckedTemplateUnits,
+  getTemplatesTreeAllNodeIds,
+  templatesTreeCategoryId,
+} from "./TemplatesTree";
+export type { CheckedTemplateUnits, TemplatesTreeDatum, TemplatesTreeProps } from "./TemplatesTree";
+export {
   buildComponentLibraryNavigationTree,
   buildLibraryTreeWithComponentRows,
   getLibraryItemsForTreeNode,
