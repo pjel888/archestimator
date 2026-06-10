@@ -35,7 +35,11 @@ describe("project collaboration realtime hooks", () => {
     expect(estimateSheetContent).toContain("data-estimate-remote-cursor-color");
     expect(estimateSheetContent).toContain("data-estimate-cursor-channel");
     expect(estimateSheetContent).toContain("data-estimate-cursor-send");
-    expect(estimateSheetContent).toContain("onPointerMove={handleSheetPointerMove}");
+    // U8 cursor isolation: the realtime hook and pointer listener live in an
+    // isolated layer so cursor frames never re-render sheet rows.
+    expect(estimateSheetContent).toContain("function EstimateSheetCursorLayer");
+    expect(estimateSheetContent).toContain('surface.addEventListener("pointermove"');
+    expect(estimateSheetContent).toContain("<EstimateSheetCursorLayer");
     expect(estimateSheetPage).toContain("requireCurrentUserContext");
     expect(estimateSheetPage).toContain("collaborationUserId={currentUser.userId}");
     expect(estimateSheetPage).toContain("collaborationDisplayName={currentUser.displayName}");

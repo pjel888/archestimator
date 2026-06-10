@@ -11,3 +11,13 @@ export function setEstimateSheetRenderProbe(probe: EstimateSheetRenderProbe | nu
 export function reportEstimateRowItemsTableRender(tableNodeId: string) {
   activeProbe?.(tableNodeId);
 }
+
+let sheetContentProbe: (() => void) | null = null;
+
+export function setEstimateSheetContentRenderProbe(probe: (() => void) | null) {
+  sheetContentProbe = probe;
+}
+
+export function reportEstimateSheetContentRender() {
+  sheetContentProbe?.();
+}

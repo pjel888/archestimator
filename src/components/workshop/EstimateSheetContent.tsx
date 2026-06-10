@@ -41,7 +41,7 @@ import {
   type InsertEstimateTemplateEventDetail,
 } from "./component-library/templates";
 import { useEstimateWorkshopDrag } from "./estimate-workshop-drag";
-import { reportEstimateRowItemsTableRender } from "./estimate-sheet-render-probe";
+import { reportEstimateRowItemsTableRender, reportEstimateSheetContentRender } from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
@@ -3399,6 +3399,62 @@ function getRemoteCursorLabel(cursor: RemoteEstimateCursor) {
   return cursor.displayName ?? `User ${cursor.userId.slice(0, 8)}`;
 }
 
+// Isolates collaboration cursor traffic: the realtime hook lives here so
+// remote cursor frames re-render only this layer, never the sheet branches
+// or row tables. Pointer broadcasting and channel-status attributes attach to
+// the enclosing [data-estimate-pointer-surface] element imperatively.
+function EstimateSheetCursorLayer({
+  estimateId,
+  userId,
+  displayName,
+}: {
+  estimateId?: string;
+  userId: string | null;
+  displayName: string | null;
+}) {
+  const { broadcastCursor, channelStatus, lastSendStatus, remoteCursors } = useEstimateCursorCollaboration({
+    estimateId,
+    userId,
+    displayName,
+    enabled: Boolean(estimateId && userId),
+  });
+  const layerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const surface = layerRef.current?.closest<HTMLElement>("[data-estimate-pointer-surface]");
+    if (!surface || !estimateId || !userId) return;
+
+    function handlePointerMove(event: globalThis.PointerEvent) {
+      if (!(event.target instanceof Element) || !surface) return;
+      const bounds = surface.getBoundingClientRect();
+      const rowElement = event.target.closest<HTMLElement>("[data-estimate-row-id]");
+      const cellElement = event.target.closest<HTMLElement>("[data-estimate-cell-index]");
+      broadcastCursor({
+        x: Math.round(event.clientX - bounds.left + surface.scrollLeft),
+        y: Math.round(event.clientY - bounds.top + surface.scrollTop),
+        rowId: rowElement?.dataset.estimateRowId ?? null,
+        columnId: cellElement?.dataset.estimateCellIndex ?? null,
+      });
+    }
+
+    surface.addEventListener("pointermove", handlePointerMove);
+    return () => surface.removeEventListener("pointermove", handlePointerMove);
+  }, [broadcastCursor, estimateId, userId]);
+
+  useEffect(() => {
+    const surface = layerRef.current?.closest<HTMLElement>("[data-estimate-pointer-surface]");
+    if (!surface) return;
+    surface.setAttribute("data-estimate-cursor-channel", channelStatus);
+    surface.setAttribute("data-estimate-cursor-send", lastSendStatus);
+  }, [channelStatus, lastSendStatus]);
+
+  return (
+    <div ref={layerRef} className="contents">
+      <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
+    </div>
+  );
+}
+
 function RemoteEstimateCursorsOverlay({ cursors }: { cursors: RemoteEstimateCursor[] }) {
   if (cursors.length === 0) return null;
 
@@ -3455,6 +3511,7 @@ export function EstimateSheetContent({
   libraryBrands,
   libraryFolders,
 }: EstimateSheetContentProps) {
+  reportEstimateSheetContentRender();
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
   // Row tables are memoized on callback identity: every handler that reaches
@@ -3488,12 +3545,6 @@ export function EstimateSheetContent({
   const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
-  const { broadcastCursor, channelStatus: cursorChannelStatus, lastSendStatus: cursorLastSendStatus, remoteCursors } = useEstimateCursorCollaboration({
-    estimateId,
-    userId: collaborationUserId,
-    displayName: collaborationDisplayName,
-    enabled: Boolean(estimateId && collaborationUserId),
-  });
   const inspectorOpenerRef = useRef<HTMLElement | null>(null);
   const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
   const inspectorScopeRef = useRef("");
@@ -3802,22 +3853,6 @@ export function EstimateSheetContent({
     buildProposalPreview();
   }, [buildProposalPreview]);
   const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
-  const handleSheetPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (!estimateId || !collaborationUserId) return;
-    if (!(event.target instanceof Element)) return;
-
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const rowElement = event.target.closest<HTMLElement>("[data-estimate-row-id]");
-    const cellElement = event.target.closest<HTMLElement>("[data-estimate-cell-index]");
-
-    broadcastCursor({
-      x: Math.round(event.clientX - bounds.left + event.currentTarget.scrollLeft),
-      y: Math.round(event.clientY - bounds.top + event.currentTarget.scrollTop),
-      rowId: rowElement?.dataset.estimateRowId ?? null,
-      columnId: cellElement?.dataset.estimateCellIndex ?? null,
-    });
-  }, [broadcastCursor, collaborationUserId, estimateId]);
-
   useEffect(() => {
     if (!inspectorScopeKey) return;
 
@@ -4368,11 +4403,8 @@ export function EstimateSheetContent({
               <div
                 className={cn("relative min-h-0 flex-1 overflow-auto px-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
                 data-estimate-pointer-surface
-                data-estimate-cursor-channel={cursorChannelStatus}
-                data-estimate-cursor-send={cursorLastSendStatus}
-                onPointerMove={handleSheetPointerMove}
               >
-                <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
+                <EstimateSheetCursorLayer estimateId={estimateId} userId={collaborationUserId} displayName={collaborationDisplayName} />
                 {displayedSheetNode ? (
                 <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
                   <EstimateSheetBranch
@@ -4432,8 +4464,8 @@ export function EstimateSheetContent({
               searchQuery={sheetSearchQuery}
               onSearchQueryChange={setSheetSearchQuery}
             />
-            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" onPointerMove={handleSheetPointerMove}>
-              <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" data-estimate-pointer-surface>
+              <EstimateSheetCursorLayer estimateId={estimateId} userId={collaborationUserId} displayName={collaborationDisplayName} />
               <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
                 <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
                 <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>
