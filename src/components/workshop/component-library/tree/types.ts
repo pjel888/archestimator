@@ -27,6 +27,13 @@ export type LibraryTreeProps = {
   onToggle: (nodeId: string) => void;
   onItemAdd?: (item: EstimateRowItem | undefined) => void;
   onItemPreview?: (itemId: string) => void;
+  /** Context-menu CRUD on component rows; items appear only when provided. */
+  onItemEdit?: (item: EstimateRowItem) => void;
+  onItemDuplicate?: (item: EstimateRowItem) => void;
+  onItemToggleFavorite?: (item: EstimateRowItem) => void;
+  onItemDelete?: (item: EstimateRowItem) => void;
+  /** Context-menu create on folder rows (opens the add-component flow). */
+  onCreateComponent?: () => void;
   addDisabled?: boolean;
   addLabel?: string;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;

@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, PlusSquare, SquaresFour, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Plus, PlusSquare, SquaresFour, StackPlus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
+import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
@@ -15,29 +16,39 @@ import {
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
+import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
+import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { ComponentViewControls, type ComponentViewMode } from "../component-library-manager/LibraryFolderTree";
 import { COMPONENT_VIEW_MODES } from "../component-library-manager/library-folder-tree-shared";
 import { NewComponentForm } from "./NewComponentForm";
+import { NewTemplateModal } from "./NewTemplateModal";
 import {
+  CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
-  summarizeEstimateTemplate,
+  type CreateEstimateTemplateFromNodeEventDetail,
   type EstimateTemplate,
 } from "./templates";
 import type { NewComponentForm as NewComponentFormType } from "./types";
 import {
   applyLibraryTreeOrder,
   buildLibraryTreeWithComponentRows,
+  buildTemplatesSelectionNodes,
+  buildTemplatesTreeNodes,
   filterTree,
   findLibrarySiblingOrder,
   findNode,
   getAllNodeIds,
+  getCheckedTemplateUnits,
+  getTemplatesTreeAllNodeIds,
   LibraryTree,
+  TemplatesTree,
+  templatesTreeCategoryId,
   type LibraryTreeNode,
   type LibraryTreeOrder,
 } from "./tree";
@@ -208,100 +219,14 @@ function PreviewPanel({
   );
 }
 
-function templateMatchesQuery(template: EstimateTemplate, query: string) {
-  if (!query.trim()) return true;
-  const normalizedQuery = query.trim().toLowerCase();
-  const nodeNames: string[] = [];
-
-  function visit(node: EstimateTreeNode) {
-    nodeNames.push(node.name);
-    node.children?.forEach(visit);
-  }
-
-  template.nodes.forEach(visit);
-  return [template.name, template.description, template.category, ...nodeNames]
-    .some((value) => value.toLowerCase().includes(normalizedQuery));
-}
-
-function TemplateSidebarList({
-  templates,
-  searchQuery,
-  canInsertTemplate,
-  targetName,
-  onAddTemplate,
-  onTemplateDragStart,
-}: {
-  templates: EstimateTemplate[];
-  searchQuery: string;
-  canInsertTemplate: boolean;
-  targetName: string;
-  onAddTemplate: (template: EstimateTemplate) => void;
-  onTemplateDragStart: (event: React.DragEvent<HTMLElement>, template: EstimateTemplate) => void;
-}) {
-  const filteredTemplates = templates.filter((template) => templateMatchesQuery(template, searchQuery));
-  const categories = Array.from(new Set(filteredTemplates.map((template) => template.category))).sort();
-
-  if (!filteredTemplates.length) {
-    return (
-      <div className="flex min-h-24 items-center justify-center border border-dashed border-hairline bg-surfaceMuted/30 px-3 text-center text-[10px] font-medium text-tertiary">
-        No templates match this search.
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3" aria-label="Estimate templates">
-      {categories.map((category) => (
-        <section key={category} className="space-y-1" aria-label={`${category} templates`}>
-          <p className="px-1 text-[8px] font-medium uppercase tracking-normal text-tertiary">{category}</p>
-          {filteredTemplates.filter((template) => template.category === category).map((template) => {
-            const summary = summarizeEstimateTemplate(template);
-            return (
-              <div
-                key={template.id}
-                draggable
-                onDragStart={(event) => onTemplateDragStart(event, template)}
-                className="group border border-hairline bg-white p-2 text-left transition hover:bg-surfaceMuted/40"
-                aria-label={`${template.name} estimate template`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-[11px] font-medium text-ink">{template.name}</p>
-                    <p className="mt-0.5 line-clamp-2 text-[9px] leading-3 text-tertiary">{template.description}</p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-6 min-h-6 shrink-0 px-2 text-[9px]"
-                    disabled={!canInsertTemplate}
-                    aria-label={`Add template ${template.name} to ${targetName}`}
-                    onClick={() => onAddTemplate(template)}
-                  >
-                    Add
-                  </Button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-medium uppercase tracking-normal text-tertiary">
-                  <span>{summary.groupCount} groups</span>
-                  <span>{summary.areaCount} areas</span>
-                  <span>{summary.rowCount} rows</span>
-                </div>
-                <p className="mt-1 font-sans text-[10px] font-medium tabular-nums text-ink">
-                  {pesoFormatter.format(summary.total)}
-                </p>
-              </div>
-            );
-          })}
-        </section>
-      ))}
-    </div>
-  );
-}
-
 /* ─── Main Sidebar ─── */
 
 type EstimateRightSidebarProps = {
   onInsertComponent?: (item: EstimateRowItem) => boolean | void;
   onInsertTemplate?: (template: EstimateTemplate) => boolean | void;
+  /** Inserts one group/area from inside a template, with its subtree. */
+  onInsertTemplateNode?: (template: EstimateTemplate, node: EstimateTreeNode) => boolean | void;
+  projectId?: string;
   estimateId?: string;
   selectedNodeId?: string | null;
   selectedNodeKind?: EstimateTreeNode["kind"] | null;
@@ -350,6 +275,8 @@ function componentToForm(item: EstimateRowItem): NewComponentFormType {
 export function EstimateRightSidebar({
   onInsertComponent,
   onInsertTemplate,
+  onInsertTemplateNode,
+  projectId,
   estimateId,
   selectedNodeId = null,
   selectedNodeKind,
@@ -387,6 +314,12 @@ export function EstimateRightSidebar({
     suppliers: [],
     brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, [], [], { categoryTree, suppliers, brands })),
   }));
+  // Like libraryItems, the template list seeds from the server prop once and
+  // then evolves locally (created templates append without a route refresh).
+  const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
+  const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
+    Array.from(new Set(templates.map((template) => templatesTreeCategoryId(template.category)))),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
@@ -397,6 +330,18 @@ export function EstimateRightSidebar({
   );
   const [showNewComponent, setShowNewComponent] = useState(false);
   const [addComponentOpen, setAddComponentOpen] = useState(false);
+  const [addTemplateOpen, setAddTemplateOpen] = useState(false);
+  // "Save as template" from the sheets tree targets the right-clicked node
+  // instead of the current selection; categories prefill from their menu.
+  const [templateSourceNodeId, setTemplateSourceNodeId] = useState<string | null>(null);
+  const [templateDefaultCategory, setTemplateDefaultCategory] = useState<string | null>(null);
+  const [renameTemplateTarget, setRenameTemplateTarget] = useState<EstimateTemplate | null>(null);
+  const [renameTemplateName, setRenameTemplateName] = useState("");
+  const [renameTemplateError, setRenameTemplateError] = useState("");
+  const [renameTemplatePending, setRenameTemplatePending] = useState(false);
+  const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<EstimateTemplate | null>(null);
+  const [deleteTemplateError, setDeleteTemplateError] = useState("");
+  const [deleteTemplatePending, setDeleteTemplatePending] = useState(false);
   const [form, setForm] = useState<NewComponentFormType>(defaultForm);
   const [formError, setFormError] = useState("");
   const [editItemId, setEditItemId] = useState<string | null>(null);
@@ -478,7 +423,7 @@ export function EstimateRightSidebar({
       }
 
       const storedTab = storedPrefs.activeTab ?? legacyStoredTab;
-      if (storedTab === "templates" && templates.length) setActiveTab("templates");
+      if (storedTab === "templates") setActiveTab("templates");
 
       const storedMode = storedPrefs.componentViewMode ?? legacyStoredTab;
       if (storedMode === "brand") setComponentViewMode("brand");
@@ -508,6 +453,8 @@ export function EstimateRightSidebar({
         !showNewComponent &&
         !addComponentOpen &&
         !deleteCandidate &&
+        !renameTemplateTarget &&
+        !deleteTemplateTarget &&
         activeTag !== "INPUT" &&
         activeTag !== "TEXTAREA" &&
         activeTag !== "SELECT"
@@ -520,6 +467,8 @@ export function EstimateRightSidebar({
         if (viewModeMenuOpen) setViewModeMenuOpen(false);
         else if (bulkDeleteConfirmOpen) setBulkDeleteConfirmOpen(false);
         else if (deleteCandidate) setDeleteCandidate(null);
+        else if (renameTemplateTarget) setRenameTemplateTarget(null);
+        else if (deleteTemplateTarget) setDeleteTemplateTarget(null);
         else if (showNewComponent) closeNewComponent();
         else if (searchQuery) setSearchQuery("");
         else if (searchOpen) setSearchOpen(false);
@@ -528,7 +477,7 @@ export function EstimateRightSidebar({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, previewItemId, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
+  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, deleteTemplateTarget, previewItemId, renameTemplateTarget, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
 
   useEffect(() => {
     if (!viewModeMenuOpen) return;
@@ -561,10 +510,6 @@ export function EstimateRightSidebar({
 
   const favoriteIds = useMemo(() => libraryItems.filter((item) => item.isFavorite).map((item) => item.id), [libraryItems]);
   const componentTreeTab = getComponentTreeTab(componentViewMode);
-  const visibleTreeTabs = useMemo(
-    () => LIBRARY_TREE_TABS.filter((tab) => tab.id === "components" || templates.length > 0),
-    [templates.length],
-  );
 
   const treeNodes = useMemo(() => {
     if (activeTab === "templates") return [];
@@ -575,6 +520,12 @@ export function EstimateRightSidebar({
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, searchQuery), [treeNodes, searchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
+  const templatesSelectionNodes = useMemo(() => buildTemplatesSelectionNodes(templateList), [templateList]);
+  const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
+  const templatesAllNodeIds = useMemo(
+    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList)),
+    [templateList],
+  );
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -590,15 +541,23 @@ export function EstimateRightSidebar({
     return items;
   }, [bulkSelectedNodeIds, treeNodes]);
 
+  // Cascade selections resolve to top-most insertable units: whole
+  // templates, group/area subtrees, and bare component rows.
+  const bulkTemplateUnits = useMemo(
+    () => getCheckedTemplateUnits(templateList, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, templateList],
+  );
+  const bulkTemplateUnitCount = bulkTemplateUnits.templates.length + bulkTemplateUnits.templateNodes.length;
+
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
   }, []);
 
   const handleBulkCheckToggle = useCallback(
     (nodeId: string, checked: boolean) => {
-      setBulkSelectedNodeIds((current) => toggleCascadeSelection(librarySelectionNodes, current, nodeId, checked));
+      setBulkSelectedNodeIds((current) => toggleCascadeSelection(activeSelectionNodes, current, nodeId, checked));
     },
-    [librarySelectionNodes],
+    [activeSelectionNodes],
   );
 
   // Drop selections whose nodes left the tree (deletes, view-mode switches).
@@ -607,7 +566,7 @@ export function EstimateRightSidebar({
     queueMicrotask(() => {
       if (cancelled) return;
       setBulkSelectedNodeIds((current) => {
-        const next = pruneSelection(librarySelectionNodes, current);
+        const next = pruneSelection(activeSelectionNodes, current);
         if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
         return next;
       });
@@ -615,7 +574,7 @@ export function EstimateRightSidebar({
     return () => {
       cancelled = true;
     };
-  }, [librarySelectionNodes]);
+  }, [activeSelectionNodes]);
 
   const previewItem = libraryItems.find((item) => item.id === previewItemId) ?? null;
 
@@ -690,6 +649,25 @@ export function EstimateRightSidebar({
     [canInsertTemplate, effectiveTemplateTargetName, onInsertTemplate],
   );
 
+  const addTemplateNode = useCallback(
+    (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+      if (!canInsertTemplate) {
+        setLastActionMessage("Select a Group Node before adding template nodes.");
+        return false;
+      }
+
+      const didInsert = onInsertTemplateNode ? onInsertTemplateNode(template, templateNode) !== false : false;
+      if (!didInsert) {
+        setLastActionMessage(`${templateNode.name} was not inserted. Select a Group Node and try again.`);
+        return false;
+      }
+
+      setLastActionMessage(`${templateNode.name} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      return true;
+    },
+    [canInsertTemplate, effectiveTemplateTargetName, onInsertTemplateNode],
+  );
+
   const duplicateItem = useCallback((item: EstimateRowItem) => {
     const now = new Date().toISOString();
     setLibraryItems((items) => [
@@ -715,11 +693,110 @@ export function EstimateRightSidebar({
     setAddComponentOpen(true);
   }, []);
 
+  const startNewTemplate = useCallback(() => {
+    setAddTemplateOpen(true);
+  }, []);
+
+  const startNewTemplateInCategory = useCallback((category: string) => {
+    setTemplateDefaultCategory(category);
+    setAddTemplateOpen(true);
+  }, []);
+
+  const handleAddTemplateOpenChange = useCallback((open: boolean) => {
+    setAddTemplateOpen(open);
+    if (!open) {
+      setTemplateSourceNodeId(null);
+      setTemplateDefaultCategory(null);
+    }
+  }, []);
+
+  // "Save as template" from the sheets tree context menu: that panel cannot
+  // host the modal, so it hands the source node over via a window event.
+  useEffect(() => {
+    function handleCreateTemplateFromNode(event: Event) {
+      const detail = (event as CustomEvent<Partial<CreateEstimateTemplateFromNodeEventDetail>>).detail;
+      if (typeof detail?.sourceNodeId !== "string" || !detail.sourceNodeId) return;
+      setTemplateSourceNodeId(detail.sourceNodeId);
+      setAddTemplateOpen(true);
+    }
+    window.addEventListener(CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT, handleCreateTemplateFromNode);
+    return () => window.removeEventListener(CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT, handleCreateTemplateFromNode);
+  }, []);
+
+  const templateModalSourceNode = useMemo(() => {
+    if (templateSourceNodeId) {
+      return nodes?.length ? findEstimateNode(nodes, templateSourceNodeId) ?? null : null;
+    }
+    return selectedTargetNode;
+  }, [nodes, selectedTargetNode, templateSourceNodeId]);
+
   const handleComponentCreated = useCallback((item: EstimateRowItem) => {
     setLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
     setPreviewItemId(item.id);
     setLastActionMessage(`${getComponentName(item)} created in the component library.`);
   }, []);
+
+  const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
+    setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
+    setActiveTab("templates");
+    setTemplatesExpandedIds((current) => Array.from(new Set([...current, templatesTreeCategoryId(template.category)])));
+    setLastActionMessage(`${template.name} saved to templates.`);
+  }, []);
+
+  const startRenameTemplate = useCallback((template: EstimateTemplate) => {
+    setRenameTemplateTarget(template);
+    setRenameTemplateName(template.name);
+    setRenameTemplateError("");
+  }, []);
+
+  const commitRenameTemplate = useCallback(async () => {
+    if (!renameTemplateTarget || renameTemplatePending) return;
+    const nextName = renameTemplateName.trim();
+    if (!nextName) {
+      setRenameTemplateError("Template name is required.");
+      return;
+    }
+    if (nextName === renameTemplateTarget.name) {
+      setRenameTemplateTarget(null);
+      return;
+    }
+
+    setRenameTemplatePending(true);
+    setRenameTemplateError("");
+    try {
+      const confirmed = await renameEstimateTemplate({ templateId: renameTemplateTarget.id, name: nextName });
+      setTemplateList((current) =>
+        current.map((template) => (template.id === confirmed.templateId ? { ...template, name: confirmed.name } : template)),
+      );
+      setLastActionMessage(`${renameTemplateTarget.name} renamed to ${confirmed.name}.`);
+      setRenameTemplateTarget(null);
+    } catch (error) {
+      setRenameTemplateError(error instanceof Error ? error.message : "Could not rename template.");
+    } finally {
+      setRenameTemplatePending(false);
+    }
+  }, [renameTemplateName, renameTemplatePending, renameTemplateTarget]);
+
+  const startDeleteTemplate = useCallback((template: EstimateTemplate) => {
+    setDeleteTemplateTarget(template);
+    setDeleteTemplateError("");
+  }, []);
+
+  const confirmDeleteTemplate = useCallback(async () => {
+    if (!deleteTemplateTarget || deleteTemplatePending) return;
+    setDeleteTemplatePending(true);
+    setDeleteTemplateError("");
+    try {
+      await deleteEstimateTemplate({ templateId: deleteTemplateTarget.id });
+      setTemplateList((current) => current.filter((template) => template.id !== deleteTemplateTarget.id));
+      setLastActionMessage(`${deleteTemplateTarget.name} deleted from templates.`);
+      setDeleteTemplateTarget(null);
+    } catch (error) {
+      setDeleteTemplateError(error instanceof Error ? error.message : "Could not delete template.");
+    } finally {
+      setDeleteTemplatePending(false);
+    }
+  }, [deleteTemplatePending, deleteTemplateTarget]);
 
   const startEditComponent = useCallback((item: EstimateRowItem) => {
     setForm(componentToForm(item));
@@ -822,6 +899,23 @@ export function EstimateRightSidebar({
     if (insertLibraryItems(bulkSelectedItems)) clearBulkSelection();
   }, [bulkSelectedItems, clearBulkSelection, insertLibraryItems]);
 
+  const handleBulkAddSelectedTemplates = useCallback(() => {
+    const { templates: checkedTemplates, templateNodes, items } = bulkTemplateUnits;
+    let insertedCount = 0;
+    if (canInsertTemplate) {
+      checkedTemplates.forEach((template) => {
+        if (addTemplate(template)) insertedCount += 1;
+      });
+      templateNodes.forEach(({ template, node }) => {
+        if (addTemplateNode(template, node)) insertedCount += 1;
+      });
+    }
+    if (items.length > 0 && insertLibraryItems(items)) insertedCount += items.length;
+    if (insertedCount === 0) return;
+    if (insertedCount > 1) setLastActionMessage(`${insertedCount} template selections added.`);
+    clearBulkSelection();
+  }, [addTemplate, addTemplateNode, bulkTemplateUnits, canInsertTemplate, clearBulkSelection, insertLibraryItems]);
+
   const handleConfirmBulkDelete = useCallback(() => {
     if (bulkSelectedItems.length === 0) {
       setBulkDeleteConfirmOpen(false);
@@ -841,24 +935,41 @@ export function EstimateRightSidebar({
   }, [bulkSelectedItems, clearBulkSelection]);
 
   const handleExpandAll = useCallback(() => {
+    if (activeTab === "templates") {
+      setTemplatesExpandedIds(templatesAllNodeIds);
+      return;
+    }
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
       [componentViewMode]: getAllNodeIds(treeNodes),
     }));
-  }, [componentViewMode, treeNodes]);
+  }, [activeTab, componentViewMode, templatesAllNodeIds, treeNodes]);
 
   const handleCollapseAll = useCallback(() => {
+    if (activeTab === "templates") {
+      setTemplatesExpandedIds([]);
+      return;
+    }
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
       [componentViewMode]: [],
     }));
-  }, [componentViewMode]);
+  }, [activeTab, componentViewMode]);
+
+  const handleTemplatesToggle = useCallback((nodeId: string) => {
+    setTemplatesExpandedIds((current) =>
+      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
+    );
+  }, []);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData("application/x-archestimator-library-item", JSON.stringify(item));
     event.dataTransfer.setData("text/plain", getComponentName(item));
+    // Publishing the drag lets the sheet and the left tree reveal their drop
+    // zones for exactly this drag's lifetime.
+    beginEstimateWorkshopDrag({ kind: "library-item" });
 
     const dragGhost = document.createElement("div");
     dragGhost.className = "fixed -top-96 left-0 flex items-center gap-2 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
@@ -872,6 +983,7 @@ export function EstimateRightSidebar({
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, JSON.stringify({ templateId: template.id }));
     event.dataTransfer.setData("text/plain", template.name);
+    beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: template.id, templateName: template.name });
 
     const dragGhost = document.createElement("div");
     dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
@@ -881,9 +993,57 @@ export function EstimateRightSidebar({
     window.setTimeout(() => dragGhost.remove(), 0);
   }, []);
 
+  // Dragging a group/area from inside a template carries that subtree; the
+  // drop recreates it under the target group.
+  const handleTemplateNodeDragStart = useCallback(
+    (event: React.DragEvent<HTMLElement>, template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData(
+        ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+        JSON.stringify({ templateId: template.id, templateNodeId: templateNode.id }),
+      );
+      event.dataTransfer.setData("text/plain", templateNode.name);
+      beginEstimateWorkshopDrag({ kind: "estimate-template", templateName: templateNode.name });
+
+      const dragGhost = document.createElement("div");
+      dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
+      dragGhost.textContent = `${templateNode.name} · template ${templateNode.kind === "group" ? "group" : "area"}`;
+      document.body.appendChild(dragGhost);
+      event.dataTransfer.setDragImage(dragGhost, 12, 12);
+      window.setTimeout(() => dragGhost.remove(), 0);
+    },
+    [],
+  );
+
+  // Dragging a category header carries every template in it; the drop
+  // inserts them all under the target group, in tree order.
+  const handleCategoryDragStart = useCallback(
+    (event: React.DragEvent<HTMLElement>, category: string, categoryTemplates: EstimateTemplate[]) => {
+      if (!categoryTemplates.length) return;
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData(
+        ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+        JSON.stringify({ templateIds: categoryTemplates.map((template) => template.id) }),
+      );
+      event.dataTransfer.setData("text/plain", category);
+      beginEstimateWorkshopDrag({ kind: "estimate-template", templateName: `${category} templates` });
+
+      const dragGhost = document.createElement("div");
+      dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
+      dragGhost.textContent = `${category} · ${categoryTemplates.length} ${categoryTemplates.length === 1 ? "template" : "templates"}`;
+      document.body.appendChild(dragGhost);
+      event.dataTransfer.setDragImage(dragGhost, 12, 12);
+      window.setTimeout(() => dragGhost.remove(), 0);
+    },
+    [],
+  );
+
   return (
     <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
-      <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
+      {/* group/tree on the panel keeps the tree's drag/select rail space open
+          while the pointer or focus is anywhere in this sidebar, matching the
+          estimate tree's behavior. */}
+      <aside className="group/tree flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
         {/* Sticky header */}
         <TreePanelHeader
           ref={treeHeaderRef}
@@ -914,8 +1074,13 @@ export function EstimateRightSidebar({
               icon: <PlusSquare size={13} weight="regular" aria-hidden="true" />,
               onClick: startNewComponent,
             },
+            {
+              label: "Add Template",
+              icon: <StackPlus size={13} weight="regular" aria-hidden="true" />,
+              onClick: startNewTemplate,
+            },
           ]}
-          tabs={visibleTreeTabs}
+          tabs={LIBRARY_TREE_TABS}
           activeTab={activeTab}
           tabsAriaLabel="Library tree views"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
@@ -935,13 +1100,28 @@ export function EstimateRightSidebar({
         <div className="min-h-0 flex-1 overflow-auto">
           <div className={cn("p-2", bulkSelectionCount > 0 && "pb-16")}>
             {activeTab === "templates" ? (
-              <TemplateSidebarList
-                templates={templates}
+              <TemplatesTree
+                templates={templateList}
                 searchQuery={searchQuery}
+                expandedNodeIds={templatesExpandedIds}
+                onToggle={handleTemplatesToggle}
                 canInsertTemplate={canInsertTemplate}
-                targetName={effectiveTemplateTargetName || "selected group"}
+                templateTargetName={effectiveTemplateTargetName || "selected group"}
                 onAddTemplate={addTemplate}
+                onAddTemplateNode={addTemplateNode}
                 onTemplateDragStart={handleTemplateDragStart}
+                onCategoryDragStart={handleCategoryDragStart}
+                onTemplateNodeDragStart={handleTemplateNodeDragStart}
+                onRenameTemplate={startRenameTemplate}
+                onDeleteTemplate={startDeleteTemplate}
+                onCreateTemplate={startNewTemplateInCategory}
+                componentAddDisabled={!canInsert}
+                componentAddLabel={targetLabel}
+                onAddComponent={(item) => addComponent(item)}
+                onItemDragStart={handleItemDragStart}
+                selectable
+                checkedIds={bulkSelectedIds}
+                onCheckToggle={handleBulkCheckToggle}
               />
             ) : (
               <LibraryTree
@@ -952,6 +1132,11 @@ export function EstimateRightSidebar({
                 onToggle={handleToggleNode}
                 onItemAdd={(item) => { if (item) addComponent(item); }}
                 onItemPreview={(itemId) => setPreviewItemId(itemId)}
+                onItemEdit={startEditComponent}
+                onItemDuplicate={duplicateItem}
+                onItemToggleFavorite={toggleFavorite}
+                onItemDelete={setDeleteCandidate}
+                onCreateComponent={startNewComponent}
                 addDisabled={!canInsert}
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
@@ -970,21 +1155,34 @@ export function EstimateRightSidebar({
           selectedCount={bulkSelectionCount}
           selectedLabel="selected"
           onClear={clearBulkSelection}
-          actions={[
-            {
-              label: "Add selected components",
-              icon: <Plus size={12} weight="regular" />,
-              disabled: !canInsert || bulkSelectedItems.length === 0,
-              onClick: handleBulkAddSelected,
-            },
-            {
-              label: "Delete selected components",
-              icon: <Trash size={12} weight="regular" />,
-              variant: "danger",
-              disabled: bulkSelectedItems.length === 0,
-              onClick: () => setBulkDeleteConfirmOpen(true),
-            },
-          ]}
+          actions={
+            activeTab === "templates"
+              ? [
+                  {
+                    label: "Add selected to estimate",
+                    icon: <Plus size={12} weight="regular" />,
+                    disabled:
+                      (!canInsertTemplate || bulkTemplateUnitCount === 0) &&
+                      (!canInsert || bulkTemplateUnits.items.length === 0),
+                    onClick: handleBulkAddSelectedTemplates,
+                  },
+                ]
+              : [
+                  {
+                    label: "Add selected components",
+                    icon: <Plus size={12} weight="regular" />,
+                    disabled: !canInsert || bulkSelectedItems.length === 0,
+                    onClick: handleBulkAddSelected,
+                  },
+                  {
+                    label: "Delete selected components",
+                    icon: <Trash size={12} weight="regular" />,
+                    variant: "danger",
+                    disabled: bulkSelectedItems.length === 0,
+                    onClick: () => setBulkDeleteConfirmOpen(true),
+                  },
+                ]
+          }
         />
         </div>
 
@@ -1017,6 +1215,21 @@ export function EstimateRightSidebar({
             selectedFolderId={null}
             onOpenChange={setAddComponentOpen}
             onComponentCreated={handleComponentCreated}
+          />
+        ) : null}
+
+        {/* Create flow: save an estimate node (selected, or handed over by
+            the sheets tree context menu) as a template. */}
+        {addTemplateOpen ? (
+          <NewTemplateModal
+            open={addTemplateOpen}
+            onOpenChange={handleAddTemplateOpenChange}
+            projectId={projectId}
+            estimateId={estimateId}
+            sourceNode={templateModalSourceNode}
+            existingCategories={Array.from(new Set(templateList.map((template) => template.category))).sort()}
+            defaultCategory={templateDefaultCategory ?? undefined}
+            onCreated={handleTemplateCreated}
           />
         ) : null}
 
@@ -1073,6 +1286,94 @@ export function EstimateRightSidebar({
                 </Button>
                 <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" onClick={handleConfirmBulkDelete}>
                   Delete selected
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Rename template */}
+        {renameTemplateTarget ? (
+          <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Rename template ${renameTemplateTarget.name}`}
+              className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl"
+            >
+              <h3 className="text-[11px] font-medium text-ink">Rename template</h3>
+              <ControlInput
+                value={renameTemplateName}
+                aria-label="Template name"
+                aria-invalid={renameTemplateError ? "true" : undefined}
+                autoFocus
+                className="mt-2 h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent"
+                onChange={(event) => {
+                  setRenameTemplateName(event.currentTarget.value);
+                  if (renameTemplateError) setRenameTemplateError("");
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void commitRenameTemplate();
+                  }
+                }}
+              />
+              {renameTemplateError ? (
+                <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">{renameTemplateError}</p>
+              ) : null}
+              <div className="mt-3 flex justify-end gap-1">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-6 min-h-6 text-[9px]"
+                  disabled={renameTemplatePending}
+                  onClick={() => setRenameTemplateTarget(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-6 min-h-6 text-[9px]"
+                  disabled={renameTemplatePending}
+                  onClick={() => void commitRenameTemplate()}
+                >
+                  {renameTemplatePending ? "Saving…" : "Save name"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Delete template confirmation */}
+        {deleteTemplateTarget ? (
+          <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
+            <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
+              <h3 className="text-[11px] font-medium text-ink">Delete template?</h3>
+              <p className="mt-1 text-[9px] leading-4 text-tertiary">
+                Remove {deleteTemplateTarget.name} from this workspace&apos;s templates. Estimates already built from it keep their nodes and rows.
+              </p>
+              {deleteTemplateError ? (
+                <p role="alert" className="mt-1 text-[9px] leading-3 text-danger">{deleteTemplateError}</p>
+              ) : null}
+              <div className="mt-3 flex justify-end gap-1">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-6 min-h-6 text-[9px]"
+                  disabled={deleteTemplatePending}
+                  onClick={() => setDeleteTemplateTarget(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="h-6 min-h-6 text-[9px]"
+                  disabled={deleteTemplatePending}
+                  onClick={() => void confirmDeleteTemplate()}
+                >
+                  {deleteTemplatePending ? "Deleting…" : "Delete template"}
                 </Button>
               </div>
             </div>
