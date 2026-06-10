@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { Cube, FolderSimplePlus, PencilSimple, StackPlus, Trash } from "@phosphor-icons/react/dist/ssr";
 
+import { ContextActionMenuContent } from "@/components/ui/action-menu";
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -105,6 +107,62 @@ export const DisabledAndDestructive: Story = {
 
 export const NestedOrSubmenu: Story = {
   render: () => <ContextMenuDemo />,
+};
+
+/**
+ * The tree CRUD pattern used by the estimate workspace trees (sheets,
+ * components, templates): icon-aligned items via `ContextActionMenuContent`,
+ * grouped create / edit / destructive sections, disabled reasons on hover.
+ */
+export const TreeCrudPattern: Story = {
+  render: () => (
+    <StoryPanel className="space-y-2">
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div className="flex h-28 max-w-sm items-center justify-center rounded-xs border border-dashed border-hairline bg-surfaceMuted text-[10px] font-medium leading-4 text-secondary">
+            Right-click this estimate tree group row
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextActionMenuContent
+            groups={[
+              {
+                id: "create",
+                items: [
+                  { id: "new-group", label: "New Group inside", icon: <FolderSimplePlus size={12} weight="regular" />, onSelect: () => {} },
+                  { id: "new-area", label: "New Area Node inside", icon: <Cube size={12} weight="regular" />, onSelect: () => {} },
+                ],
+              },
+              {
+                id: "actions",
+                items: [
+                  { id: "save-template", label: "Save as template", icon: <StackPlus size={12} weight="regular" />, onSelect: () => {} },
+                  {
+                    id: "rename",
+                    label: "Rename",
+                    icon: <PencilSimple size={12} weight="regular" />,
+                    disabled: true,
+                    disabledReason: "Finish the current tree save before renaming another node.",
+                    onSelect: () => {},
+                  },
+                ],
+              },
+              {
+                id: "danger",
+                items: [
+                  { id: "delete", label: "Delete", icon: <Trash size={12} weight="regular" />, tone: "destructive", onSelect: () => {} },
+                ],
+              },
+            ]}
+          />
+        </ContextMenuContent>
+      </ContextMenu>
+      <Note>
+        Create, edit, and destructive actions live in separated groups; every item carries an icon so labels stay on one
+        axis, and disabled items explain themselves through their hover title.
+      </Note>
+    </StoryPanel>
+  ),
 };
 
 export const KeyboardFocus: Story = {
