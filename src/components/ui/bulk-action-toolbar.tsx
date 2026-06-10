@@ -155,7 +155,7 @@ export function BulkActionToolbar({
         {/* Level 2: Selection count — matches Level 1 width exactly */}
         <div
           className={cn(
-            "pointer-events-auto flex items-center justify-center gap-1",
+            "pointer-events-auto flex items-center justify-center",
             "rounded-xs",
             "bg-white/80 p-0.5",
             "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
@@ -172,11 +172,9 @@ export function BulkActionToolbar({
           <span
             className="text-[9px] font-medium tabular-nums text-ink"
             aria-live="polite"
+            aria-label={`${selectedCount} ${selectedLabel}`}
           >
             {selectedCount}
-          </span>
-          <span className="text-[9px] font-normal text-tertiary">
-            {selectedLabel}
           </span>
         </div>
       </div>

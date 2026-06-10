@@ -95,6 +95,29 @@ export type TreeRootDropZonesOption =
       render?: (edge: TreeRootDropEdge, active: boolean) => ReactNode;
     };
 
+export interface TreeExternalDropOptions {
+  /** dataTransfer MIME types accepted from outside this tree instance. */
+  types: string[];
+  /**
+   * Domain validation for an external payload hovering a row. Drag payloads
+   * are unreadable during dragover (HTML5 DnD protected mode), so validation
+   * can only key off the payload's MIME types and the target row.
+   */
+  canDrop: (
+    types: readonly string[],
+    targetId: string,
+    position: TreeDropPosition,
+    node: TreeNode
+  ) => boolean;
+  /** Apply the drop; read the payload from `event.dataTransfer`. */
+  onDrop: (
+    event: DragEvent<HTMLElement>,
+    targetId: string,
+    position: TreeDropPosition,
+    node: TreeNode
+  ) => void;
+}
+
 export interface TreeProps {
   nodes: TreeNode[];
   /** Accessible name for the tree container. */
@@ -137,6 +160,13 @@ export interface TreeProps {
   /** Extra MIME type stamped on drag data, for cross-surface drop targeting. */
   dragDataType?: string;
   /**
+   * Accept drags that originate outside this tree (other trees, panels).
+   * Independent of `draggable`/`onDrop`, which only govern intra-tree moves.
+   * Rows reuse the same before/after/inside indicators; "inside" drops expand
+   * collapsed folders so the result stays visible.
+   */
+  externalDrop?: TreeExternalDropOptions;
+  /**
    * Drop zones above/below the rows for moving nodes before the first or
    * after the last root item. Maps to `onDrop(draggedId, firstOrLastRootId,
    * "before" | "after")`. Only rendered while `draggable`.
@@ -144,6 +174,14 @@ export interface TreeProps {
   rootDropZones?: TreeRootDropZonesOption;
   className?: string;
   emptyState?: ReactNode;
+  /**
+   * Keep the drag/select rail space open regardless of hover or focus.
+   * Hover and focus-within both drop while an overlay owns the pointer and
+   * focus (e.g. a context menu portal), so consumers pin the rails for the
+   * overlay's lifetime to stop rows shifting under it. Selection already
+   * pins the rails internally.
+   */
+  railsPinned?: boolean;
   /** Custom content for the label area of the default row. */
   renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
   /** Full row control: replaces the default row entirely. Spread `rowProps` onto your row element. */
@@ -328,9 +366,12 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
         {/* Left rail: drag handle and checkbox sit at the row edge, outside
             the depth indent. The rails take no width at rest so content owns
             the full left edge; they open when the pointer or focus is inside
-            the tree (or while a selection exists), and the icons themselves
-            only show on the hovered row. Slots render on every row so
-            siblings with mixed capabilities still align. */}
+            the nearest `group/tree` scope (or while a selection exists), and
+            the icons themselves only show on the hovered row. The tree root
+            carries `group/tree` by default; panels can also place that class
+            on a wrapping sidebar so toolbar interactions outside the rows
+            keep the rail space open. Slots render on every row so siblings
+            with mixed capabilities still align. */}
         {draggable && (
           <span
             data-tree-rail="drag"
@@ -463,9 +504,11 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       selectable = false,
       expandable = true,
       dragDataType,
+      externalDrop,
       rootDropZones,
       className,
       emptyState,
+      railsPinned = false,
       renderRow,
       renderItem,
     },
@@ -611,6 +654,65 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       setActiveRootDropEdge(null);
     }, []);
 
+    // ─── External drops (payloads from other surfaces) ─────────────
+
+    /**
+     * MIME types of an external drag hovering this tree, or null when the
+     * drag is internal (this tree set `dragSourceId`) or carries none of the
+     * accepted types.
+     */
+    const readExternalDragTypes = useCallback(
+      (event: DragEvent<HTMLElement>): readonly string[] | null => {
+        if (!externalDrop || dragSourceId) return null;
+        const eventTypes = event.dataTransfer?.types;
+        if (!eventTypes) return null;
+        const matched = externalDrop.types.filter((type) => eventTypes.includes(type));
+        return matched.length > 0 ? matched : null;
+      },
+      [externalDrop, dragSourceId]
+    );
+
+    /**
+     * Resolve where an external payload hovering `flat` may land: the
+     * pointer-band position first, then "inside" as a fallback so rows whose
+     * domain only accepts containment (e.g. templates into groups) light up
+     * across the whole row instead of dead-zoning the outer bands.
+     */
+    const resolveExternalDropIntent = useCallback(
+      (
+        flat: FlatNode,
+        event: DragEvent<HTMLElement>,
+        types: readonly string[]
+      ): { id: string; position: TreeDropPosition } | null => {
+        if (!externalDrop) return null;
+        const banded = readDropPositionFromEvent(event, flat.isFolder);
+        const candidates: TreeDropPosition[] = banded === "inside" ? ["inside"] : [banded, "inside"];
+        for (const position of candidates) {
+          if (externalDrop.canDrop(types, flat.id, position, flat.node)) {
+            return { id: flat.id, position };
+          }
+        }
+        return null;
+      },
+      [externalDrop]
+    );
+
+    // External drags end outside this tree's rows (drop elsewhere, Escape),
+    // so row-level dragleave/drop cannot be relied on to clear the indicator.
+    useEffect(() => {
+      if (!externalDrop) return undefined;
+      const handleDragFinished = () => {
+        setDropTarget(null);
+        setActiveRootDropEdge(null);
+      };
+      window.addEventListener("dragend", handleDragFinished);
+      window.addEventListener("drop", handleDragFinished);
+      return () => {
+        window.removeEventListener("dragend", handleDragFinished);
+        window.removeEventListener("drop", handleDragFinished);
+      };
+    }, [externalDrop]);
+
     const handleDragStart = useCallback(
       (flat: FlatNode, event: DragEvent<HTMLElement>) => {
         if (!isNodeDraggable(flat.node)) {
@@ -655,6 +757,21 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
 
     const handleDragOver = useCallback(
       (flat: FlatNode, event: DragEvent<HTMLElement>) => {
+        const externalTypes = readExternalDragTypes(event);
+        if (externalTypes) {
+          const intent = resolveExternalDropIntent(flat, event, externalTypes);
+          if (!intent) {
+            setDropTarget((current) => (isDropIntentForRow(current, flat) ? null : current));
+            return;
+          }
+          event.preventDefault();
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+          setDropTarget((current) =>
+            current?.id === intent.id && current.position === intent.position ? current : intent
+          );
+          setActiveRootDropEdge(null);
+          return;
+        }
         if (!draggable || !onDrop) return;
         const draggedId = readDraggedId(event);
         if (!draggedId) return;
@@ -672,7 +789,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         );
         setActiveRootDropEdge(null);
       },
-      [draggable, onDrop, readDraggedId, resolveDropIntent, isDropAllowed, isDropIntentForRow]
+      [draggable, onDrop, readDraggedId, readExternalDragTypes, resolveDropIntent, resolveExternalDropIntent, isDropAllowed, isDropIntentForRow]
     );
 
     const handleDragLeave = useCallback(
@@ -691,6 +808,19 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     const handleDrop = useCallback(
       (flat: FlatNode, event: DragEvent<HTMLElement>) => {
         event.preventDefault();
+        const externalTypes = readExternalDragTypes(event);
+        if (externalTypes && externalDrop) {
+          const intent = resolveExternalDropIntent(flat, event, externalTypes);
+          clearDragState();
+          if (!intent) return;
+          externalDrop.onDrop(event, intent.id, intent.position, flat.node);
+          // Dropping into a collapsed folder would hide the inserted nodes;
+          // expand the target so the result of the drop stays visible.
+          if (intent.position === "inside" && flat.isFolder && !flat.isExpanded) {
+            handleToggle(flat.id);
+          }
+          return;
+        }
         const draggedId = readDraggedId(event);
         const intent = isDropIntentForRow(dropTarget, flat) && dropTarget
           ? dropTarget
@@ -704,7 +834,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
           handleToggle(flat.id);
         }
       },
-      [readDraggedId, dropTarget, isDropIntentForRow, resolveDropIntent, clearDragState, isDropAllowed, onDrop, handleToggle]
+      [readDraggedId, readExternalDragTypes, externalDrop, resolveExternalDropIntent, dropTarget, isDropIntentForRow, resolveDropIntent, clearDragState, isDropAllowed, onDrop, handleToggle]
     );
 
     const handleDragEnd = useCallback(
@@ -994,7 +1124,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
               selectable={selectable}
               expandable={expandable}
               nodeDraggable={isNodeDraggable(flat.node)}
-              railsPinned={selectable && selectedSet.size > 0}
+              railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
               onCheckboxClick={handleCheckboxClick}
               renderRow={renderRow}
             />
