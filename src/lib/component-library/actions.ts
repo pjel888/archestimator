@@ -12,7 +12,7 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { buildEstimateTemplatesFromRows } from "@/lib/repositories/component-library-repository";
+import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -340,6 +340,14 @@ function getRpcPriceOptions(result: unknown): Array<{ id: string; label: string;
       ? [{ id: option.id, label: option.label, isDefault: option.isDefault === true }]
       : [];
   });
+}
+
+// Lazy estimate-sheet path: the sheet renders without the library dataset and
+// the client fetches it on demand. requireCurrentUserContext keeps this server
+// action fail-closed for anonymous callers, matching the page-load auth gate.
+export async function loadCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceComponentLibrary();
 }
 
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
