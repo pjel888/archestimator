@@ -110,18 +110,23 @@ describe("ProjectTeamspaceHeader", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the compact Teamspaces rail and opens the settings modal", async () => {
+  it("renders one Teamspaces icon button and opens the settings modal", async () => {
     const user = userEvent.setup();
 
     render(<ProjectTeamspaceHeader summary={summary} />);
 
-    const rail = screen.getByLabelText("Project teamspaces");
-    expect(within(rail).getByText("PL")).toBeInTheDocument();
-    expect(within(rail).getByRole("img", { name: "Ana Builder" })).toBeInTheDocument();
+    const teamspaceButton = screen.getByRole("button", { name: "Project teamspaces" });
+    expect(teamspaceButton).toHaveClass("size-10", "border", "bg-white");
+    expect(teamspaceButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(teamspaceButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("PL")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(teamspaceButton);
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
+    expect(teamspaceButton).toHaveAttribute("aria-expanded", "true");
+    expect(within(dialog).getByText("PL")).toBeInTheDocument();
+    expect(within(dialog).getByRole("img", { name: "Ana Builder" })).toBeInTheDocument();
     expect(within(dialog).getByText("Project access")).toBeInTheDocument();
     expect(within(dialog).getByRole("textbox", { name: "Invite by email" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Send invite" })).toBeInTheDocument();
@@ -145,7 +150,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summary} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     const shareLink = within(dialog).getByRole("textbox", { name: "Private project link" });
@@ -177,7 +182,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summaryWithInvite} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     expect(within(dialog).getByRole("button", { name: "Copy private link" })).toBeInTheDocument();
@@ -215,7 +220,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summaryWithInvite} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     expect(await within(dialog).findByText(/Teamspace invite delivery is disabled until project invite entry/)).toBeInTheDocument();
@@ -233,7 +238,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summary} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
     await user.click(screen.getByRole("button", { name: "Remove Ana Builder" }));
 
     const dialog = screen.getByRole("dialog", { name: "Remove Ana Builder?" });

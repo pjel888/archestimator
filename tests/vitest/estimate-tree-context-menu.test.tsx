@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
@@ -284,7 +284,7 @@ function renderTreeWithSheet(nodes = fixtureTree(), selectedNodeId: string | nul
 }
 
 function treeNodeButton(id: string) {
-  const element = document.querySelector(`[data-estimate-tree-node-id="${id}"]`);
+  const element = document.querySelector(`[data-tree-row="${id}"]`);
   if (!(element instanceof HTMLElement)) throw new Error(`Missing tree node row ${id}`);
   return element;
 }
@@ -313,18 +313,30 @@ beforeAll(() => {
 });
 
 describe("estimate tree context menu", () => {
+  let replaceStateSpy: ReturnType<typeof vi.spyOn>;
+
+  function replacedPaths() {
+    return replaceStateSpy.mock.calls.map((call) => String(call[2]));
+  }
+
   beforeEach(() => {
     resetEstimateWorkspaceState();
     routerMock.push.mockReset();
     routerMock.replace.mockReset();
     routerMock.refresh.mockReset();
     pathnameMock.current = "/workshop/projects/project-1/estimates/kitchen";
+    window.history.replaceState(null, "", "/");
+    replaceStateSpy = vi.spyOn(window.history, "replaceState");
     actionMocks.createEstimateNode.mockReset();
     actionMocks.fetchEstimateTree.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
     actionMocks.renameEstimateNode.mockReset();
     actionMocks.deleteEstimateNode.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
+  });
+
+  afterEach(() => {
+    replaceStateSpy.mockRestore();
   });
 
   it("opens compact Rename and Delete actions for Group Node and Area Node right-clicks without routing", async () => {
@@ -555,7 +567,7 @@ describe("estimate tree context menu", () => {
     act(() => {
       queryClient.setQueryData(estimateQueryKeys.areaTree("estimate-1"), newerTree);
     });
-    await waitFor(() => expect(document.querySelector('[data-estimate-tree-node-id="kitchen"]')).not.toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-tree-row="kitchen"]')).not.toBeInTheDocument());
 
     await act(async () => {
       pending.reject(new Error("Rename failed"));
@@ -564,7 +576,7 @@ describe("estimate tree context menu", () => {
 
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(newerTree);
     expect(screen.queryByLabelText("Rename Kitchen")).not.toBeInTheDocument();
-    expect(document.querySelector('[data-estimate-tree-node-id="kitchen"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-tree-row="kitchen"]')).not.toBeInTheDocument();
   });
 
   it("disables Rename and Delete while another tree mutation is saving", async () => {
@@ -633,6 +645,7 @@ describe("estimate tree context menu", () => {
 
     await waitFor(() => expect(screen.queryByRole("button", { name: /Front Yard/ })).not.toBeInTheDocument());
     await waitFor(() => expect(actionMocks.deleteEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "front-yard"));
+    expect(replaceStateSpy).not.toHaveBeenCalled();
     expect(routerMock.replace).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
     expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).not.toContain("front-yard");
@@ -643,7 +656,7 @@ describe("estimate tree context menu", () => {
     });
   });
 
-  it("deleting the selected node updates selection and repairs the route with router.replace", async () => {
+  it("deleting the selected node updates selection and repairs the route with a shallow URL sync", async () => {
     actionMocks.deleteEstimateNode.mockResolvedValue({ tree: deleteKitchenTree(), deletedNodeIds: ["kitchen"], fallbackNodeId: "living" });
     renderTree();
     await chooseMenuItem("kitchen", "Delete");
@@ -652,7 +665,8 @@ describe("estimate tree context menu", () => {
 
     await waitFor(() => expect(screen.queryByRole("button", { name: /Kitchen/ })).not.toBeInTheDocument());
     await waitFor(() => expect(treeNodeButton("living")).toHaveAttribute("aria-current", "page"));
-    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/living"));
+    await waitFor(() => expect(replacedPaths()).toContain("/workshop/projects/project-1/estimates/living"));
+    expect(routerMock.replace).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
@@ -665,7 +679,7 @@ describe("estimate tree context menu", () => {
     fireEvent.click(within(screen.getByRole("dialog", { name: "Delete Living Area" })).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(screen.queryByRole("button", { name: /Living Area/ })).not.toBeInTheDocument());
-    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/kitchen"));
+    await waitFor(() => expect(replacedPaths()).toContain("/workshop/projects/project-1/estimates/kitchen"));
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
@@ -677,8 +691,8 @@ describe("estimate tree context menu", () => {
 
     fireEvent.click(within(screen.getByRole("dialog", { name: "Delete Kitchen" })).getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/living"));
-    await waitFor(() => expect(routerMock.replace).toHaveBeenLastCalledWith("/workshop/projects/project-1/estimates/front-yard"));
+    await waitFor(() => expect(replacedPaths()).toContain("/workshop/projects/project-1/estimates/living"));
+    await waitFor(() => expect(replacedPaths().at(-1)).toBe("/workshop/projects/project-1/estimates/front-yard"));
     await waitFor(() => expect(treeNodeButton("front-yard")).toHaveAttribute("aria-current", "page"));
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree);
     expect(routerMock.refresh).not.toHaveBeenCalled();
@@ -698,8 +712,10 @@ describe("estimate tree context menu", () => {
     expect(deleteFailureAlert.closest("[data-toast-viewport='true']")).not.toBeNull();
     expect(treeNodeButton("kitchen")).toHaveAttribute("aria-current", "page");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
-    expect(routerMock.replace).toHaveBeenNthCalledWith(1, "/workshop/projects/project-1/estimates/living");
-    expect(routerMock.replace).toHaveBeenNthCalledWith(2, "/workshop/projects/project-1/estimates/kitchen");
+    expect(replacedPaths()).toEqual([
+      "/workshop/projects/project-1/estimates/living",
+      "/workshop/projects/project-1/estimates/kitchen",
+    ]);
   });
 
   it("ports menu content outside the clipped sidebar container", async () => {
@@ -711,12 +727,13 @@ describe("estimate tree context menu", () => {
     expect(container.querySelector("[data-estimate-tree-context-menu='true']")).toBeNull();
   });
 
-  it("keeps primary left-click navigation intact", async () => {
+  it("keeps primary left-click selection intact without a router navigation", async () => {
     const user = userEvent.setup();
     renderTree();
 
     await user.click(treeNodeButton("living"));
 
-    expect(routerMock.push).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/living");
+    expect(window.location.pathname).toBe("/workshop/projects/project-1/estimates/living");
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
 });

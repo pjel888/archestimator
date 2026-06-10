@@ -322,7 +322,7 @@ describe("createEstimateNode server action", () => {
     formData.set("parentId", "second-floor");
     const { createEstimateNode } = await import("@/lib/estimates/actions");
 
-    await createEstimateNode("project-1", "estimate-1", formData);
+    const result = await createEstimateNode("project-1", "estimate-1", formData);
 
     expect(supabase.rpc).toHaveBeenCalledWith("create_estimate_node_with_history", {
       target_project_id: "project-1",
@@ -334,9 +334,11 @@ describe("createEstimateNode server action", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
-    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates");
-    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
-    expect(nextNavigationMocks.redirect).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/new-bedroom");
+    // Create resolves in place so the client can reconcile its optimistic
+    // node; navigations or RSC refreshes here would remount the workspace.
+    expect(result).toEqual({ nodeId: "new-bedroom", name: "New Bedroom", kind: "area", parentId: "second-floor" });
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+    expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
   it("orders a new Group Node before existing Area Node siblings", async () => {
@@ -366,7 +368,7 @@ describe("createEstimateNode server action", () => {
     formData.set("parentId", "main-house");
     const { createEstimateNode } = await import("@/lib/estimates/actions");
 
-    await createEstimateNode("project-1", "estimate-1", formData);
+    const result = await createEstimateNode("project-1", "estimate-1", formData);
 
     expect(supabase.rpc).toHaveBeenCalledWith("create_estimate_node_with_history", {
       target_project_id: "project-1",
@@ -378,7 +380,8 @@ describe("createEstimateNode server action", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     });
-    expect(nextNavigationMocks.redirect).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/new-group");
+    expect(result).toEqual({ nodeId: "new-group", name: "New Group", kind: "group", parentId: "main-house" });
+    expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
   it("surfaces create RPC failures without app-side rollback writes", async () => {
@@ -651,8 +654,9 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         children: [{ id: "site-works", name: "Site Works", kind: "group", total: "₱0.00", children: [] }],
       },
     ]);
-    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates");
-    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
+    // Bulk delete resolves with the refreshed tree; the client reconciles its
+    // own cache, so no RSC revalidation churn is wanted here.
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("rejects bulk delete when any selected node is outside the scoped estimate", async () => {

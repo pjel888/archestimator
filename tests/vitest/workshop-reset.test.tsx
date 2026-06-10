@@ -156,6 +156,23 @@ describe("workshop sidebar baseline", () => {
     );
   });
 
+  test("keeps project-aligned chrome padding symmetrical", async () => {
+    const { container } = render(
+      await WorkshopPageShell({
+        title: "Lewis Residence",
+        eyebrow: "Workshop",
+        breadcrumbs: ["Workshop", "Projects", "Lewis Residence"],
+        alignChromeToProjectSidebar: true,
+        contentClassName: "",
+        children: <div className="h-full bg-white" aria-label="Project canvas" />,
+      }),
+    );
+
+    const header = container.querySelector("header");
+    expect(header).toHaveClass("p-2", "lg:py-2", "lg:px-2");
+    expect(header?.className).not.toContain("lg:pl-[25px]");
+  });
+
   test("renders a sparse dynamic greeting without search chrome, route cards, or favorites", async () => {
     const { container } = render(<WorkshopHomebaseClient homebase={workshopHomebase} userDisplayName="Philip Lewis" />);
 

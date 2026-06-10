@@ -307,9 +307,12 @@ describe("estimate sheet cost inputs", () => {
     expect(subtotalCell).toHaveClass("justify-center");
     expect(adjustmentCell).toHaveClass("relative", "justify-center");
     expect(adjustmentType).toHaveValue("contingency");
-    expect(adjustmentInput).toHaveClass("text-center");
+    expect(adjustmentType).toHaveClass("!text-[8px]", "text-left");
+    expect(adjustmentType.closest("span")).toHaveClass("absolute", "left-1.5", "top-1.5");
+    expect(adjustmentInput).toHaveClass("text-right");
     expect(adjustmentInput).toHaveClass("h-5");
-    expect(within(adjustmentCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center");
+    expect(within(adjustmentCell as HTMLElement).getAllByText("%")).toHaveLength(1);
+    expect(within(adjustmentCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center", "text-[8px]");
     expect(miscCostInput.closest("td")).toHaveClass("justify-center");
     expect(miscCostInput).toHaveClass("text-center");
   });
@@ -544,9 +547,11 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("living-area");
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    const rowDragIcon = screen.getByLabelText("Drag material Hardwood Oak Flooring");
     expect(materialCell).not.toHaveAttribute("draggable", "true");
     expect(within(materialCell).getByText("Hardwood Oak Flooring")).toBeInTheDocument();
     expect(within(materialCell).getByText("₱ 1,200.00")).toBeInTheDocument();
+    expect(rowDragIcon).toHaveClass("cursor-grab", "active:cursor-grabbing");
     expect(within(materialCell).getByLabelText("Component actions for Hardwood Oak Flooring")).toBeInTheDocument();
     expect(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" })).toBeInTheDocument();
     expect(within(materialCell).getByRole("button", { name: "Open component details for Hardwood Oak Flooring" })).toBeInTheDocument();
@@ -631,11 +636,14 @@ describe("estimate sheet cost inputs", () => {
     const actionHeader = screen.getByLabelText("Sheet controls");
     expect(within(actionHeader).queryByRole("heading", { name: "Sheet" })).not.toBeInTheDocument();
     expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();
-    expect(within(actionHeader).getByLabelText("Search Sheet")).toBeInTheDocument();
-    expect(within(actionHeader).getByPlaceholderText("Search Sheet")).toBeInTheDocument();
+    expect(within(actionHeader).queryByLabelText("Search Sheet")).not.toBeInTheDocument();
+    expect(within(actionHeader).queryByPlaceholderText("Search Sheet")).not.toBeInTheDocument();
     const sheetTools = within(actionHeader).getByLabelText("Sheet tools");
     expect(sheetTools).not.toHaveClass("border-y");
     expect(within(sheetTools).queryByText("Sheet tools")).not.toBeInTheDocument();
+    const showSearchButton = within(sheetTools).getByRole("button", { name: "Show sheet search" });
+    expect(showSearchButton).toHaveAttribute("title", "Show sheet search");
+    expect(showSearchButton).toHaveAttribute("aria-expanded", "false");
     expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toHaveAttribute("title", "Filter sheet");
     expect(within(sheetTools).getByRole("button", { name: "Group sheet" })).toHaveAttribute("title", "Group sheet");
     expect(within(sheetTools).getByRole("button", { name: "Collapse all sheet" })).toHaveAttribute("title", "Collapse all sheet");
@@ -643,6 +651,22 @@ describe("estimate sheet cost inputs", () => {
     expect(within(sheetTools).queryByRole("button", { name: "Add sheet" })).not.toBeInTheDocument();
     expect(within(sheetTools).getByRole("button", { name: "Activity" })).toHaveAttribute("title", "Activity");
     expect(within(sheetTools).getByRole("button", { name: "Preview Excel Export" })).toHaveAttribute("title", "Preview Excel Export");
+
+    fireEvent.click(showSearchButton);
+    const searchPanel = within(actionHeader).getByRole("search");
+    expect(searchPanel).toHaveAttribute("data-tree-search-panel", "true");
+    expect(searchPanel).toHaveClass("absolute", "left-0", "right-0", "top-[40px]");
+    expect(within(searchPanel).getByLabelText("Search Sheet")).toBeEnabled();
+    expect(within(sheetTools).getByRole("button", { name: "Hide sheet search" })).toHaveAttribute("aria-expanded", "true");
+
+    // A non-empty query pins the panel open through outside clicks.
+    fireEvent.change(within(searchPanel).getByLabelText("Search Sheet"), { target: { value: "oak" } });
+    fireEvent.pointerDown(document.body);
+    expect(within(actionHeader).getByRole("search")).toBeInTheDocument();
+
+    fireEvent.change(within(searchPanel).getByLabelText("Search Sheet"), { target: { value: "" } });
+    fireEvent.pointerDown(document.body);
+    expect(within(actionHeader).queryByRole("search")).not.toBeInTheDocument();
 
     expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
   });
