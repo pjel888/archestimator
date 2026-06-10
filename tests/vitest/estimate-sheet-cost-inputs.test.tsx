@@ -73,6 +73,7 @@ describe("estimate shell chrome", () => {
     expect(within(breadcrumbs).getByText("Projects")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Estimates")).toBeInTheDocument();
+    expect(within(breadcrumbs).queryByText("Modern Bungalow - 001")).not.toBeInTheDocument();
     expect(screen.getByRole("banner")).toContainElement(breadcrumbs);
     expect(screen.getByRole("contentinfo")).not.toContainElement(breadcrumbs);
   });
@@ -88,6 +89,8 @@ describe("estimate shell chrome", () => {
           <>
             <ProjectEstimateMetadataPublisher
               metadata={{
+                projectId: "project-1",
+                estimateId: "estimate-1",
                 projectName: "Modern Bungalow",
                 estimateName: "Modern Bungalow - 001",
                 estimateSheetCode: "ES-001",
@@ -104,6 +107,7 @@ describe("estimate shell chrome", () => {
     const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
     expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeVisible();
     expect(within(breadcrumbs).getByText("Estimates")).toBeVisible();
+    await waitFor(() => expect(within(breadcrumbs).getByText("Modern Bungalow - 001")).toBeVisible());
   });
 });
 
@@ -242,13 +246,16 @@ describe("estimate sheet cost inputs", () => {
     expect(within(manualAreaSection).queryByLabelText("Drag or add a component here reference image")).not.toBeInTheDocument();
   });
 
-  it("keeps populated area drop prompts out of the estimate row table", () => {
+  it("keeps drop prompts hidden at rest and offers a quiet add-row affordance instead", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     expect(within(livingAreaSection).queryByText("Add or drag estimate component")).not.toBeInTheDocument();
     expect(within(livingAreaSection).queryByText("Drag and drop here")).not.toBeInTheDocument();
-    expect(within(livingAreaSection).getByText("Drag and drop estimate component here")).toBeInTheDocument();
+    // Drop zones only appear while a drag is in flight; at rest the area
+    // keeps a quiet add-row button.
+    expect(within(livingAreaSection).queryByText(/Drag and drop estimate component/i)).not.toBeInTheDocument();
+    expect(within(livingAreaSection).getByRole("button", { name: "Add blank estimate row to Living Area" })).toBeInTheDocument();
   });
 
   it("opens row details from the row action menu", async () => {

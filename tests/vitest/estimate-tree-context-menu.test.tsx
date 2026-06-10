@@ -339,19 +339,64 @@ describe("estimate tree context menu", () => {
     replaceStateSpy.mockRestore();
   });
 
-  it("opens compact Rename and Delete actions for Group Node and Area Node right-clicks without routing", async () => {
+  it("opens full CRUD actions for Group Node and Area Node right-clicks without routing", async () => {
     renderTree();
 
     await openContextMenu("ground-floor");
+    expect(screen.getByRole("menuitem", { name: "New Group inside" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "New Area Node inside" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Save as template" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
     expect(routerMock.push).not.toHaveBeenCalled();
 
     fireEvent.keyDown(document, { key: "Escape" });
     await openContextMenu("kitchen");
+    // Areas cannot nest nodes, so the create actions stay group-only.
+    expect(screen.queryByRole("menuitem", { name: "New Group inside" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "New Area Node inside" })).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Save as template" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
     expect(routerMock.push).not.toHaveBeenCalled();
+  });
+
+  it("creates an Area Node under the right-clicked group, not the current selection", async () => {
+    const pendingCreate = deferred<{ nodeId: string }>();
+    actionMocks.createEstimateNode.mockReturnValue(pendingCreate.promise);
+    renderTree();
+
+    await chooseMenuItem("ground-floor", "New Area Node inside");
+
+    expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
+    const [, , formData] = actionMocks.createEstimateNode.mock.calls[0];
+    expect(formData.get("kind")).toBe("area");
+    expect(formData.get("name")).toBe("New Area Node");
+    expect(formData.get("parentId")).toBe("ground-floor");
+    // The optimistic node opens straight into inline rename (the row arrives
+    // with the next query-cache notification).
+    expect(await screen.findByLabelText("Rename New Area Node")).toBeInTheDocument();
+
+    await act(async () => {
+      pendingCreate.resolve({ nodeId: "server-new-area" });
+      await pendingCreate.promise;
+    });
+  });
+
+  it("hands Save as template over to the sidebar with the right-clicked node", async () => {
+    renderTree();
+    const createEvents: Array<{ sourceNodeId: string }> = [];
+    const recordCreate = (event: Event) => {
+      createEvents.push((event as CustomEvent<{ sourceNodeId: string }>).detail);
+    };
+    window.addEventListener("archestimator:create-template-from-node", recordCreate);
+
+    try {
+      await chooseMenuItem("kitchen", "Save as template");
+      expect(createEvents).toEqual([{ sourceNodeId: "kitchen" }]);
+    } finally {
+      window.removeEventListener("archestimator:create-template-from-node", recordCreate);
+    }
   });
 
   it("selecting Rename converts only that row title into a focused inline input", async () => {
@@ -716,6 +761,22 @@ describe("estimate tree context menu", () => {
       "/workshop/projects/project-1/estimates/living",
       "/workshop/projects/project-1/estimates/kitchen",
     ]);
+  });
+
+  it("pins the drag/select rail space open while the context menu is up", async () => {
+    renderTree();
+
+    // At rest the rails are collapsed and only open on sidebar hover/focus.
+    expect(treeNodeButton("kitchen").querySelector('[data-tree-rail="drag"]')).toHaveClass("w-0");
+
+    // The menu portal steals hover and focus from the sidebar, so the rails
+    // must pin open for the menu's lifetime instead of shifting the rows.
+    await openContextMenu("kitchen");
+    expect(treeNodeButton("kitchen").querySelector('[data-tree-rail="drag"]')).toHaveClass("w-4");
+    expect(treeNodeButton("kitchen").querySelector('[data-tree-rail="select"]')).toHaveClass("w-3.5");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(treeNodeButton("kitchen").querySelector('[data-tree-rail="drag"]')).toHaveClass("w-0"));
   });
 
   it("ports menu content outside the clipped sidebar container", async () => {
