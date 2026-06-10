@@ -20,6 +20,11 @@ export interface BulkActionToolbarProps {
   actions: BulkAction[];
   onClear: () => void;
   placement?: "inline" | "bottom-dock";
+  /**
+   * Where the bottom dock floats: the viewport (default) or the nearest
+   * positioned ancestor, e.g. a sidebar panel that owns its own tree.
+   */
+  dockTo?: "viewport" | "container";
   className?: string;
 }
 
@@ -45,11 +50,13 @@ function FloatingDockItem({
       onClick={onClick}
       title={label}
       className={cn(
-        "group relative flex items-center justify-center",
-        "size-10 rounded-xs",
+        // Named group: a plain `group` here would inherit hover state from
+        // ancestor `group` containers like ResizableSidePanel.
+        "group/dock-item relative flex items-center justify-center",
+        "size-6 rounded-xs",
         "transition-all duration-200 ease-out",
-        "hover:scale-[1.25] hover:z-10",
-        "focus-visible:scale-[1.25] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
+        "hover:scale-[1.15] hover:z-10",
+        "focus-visible:scale-[1.15] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-focus",
         "disabled:pointer-events-none disabled:opacity-40",
         isDanger
           ? "bg-dangerSoft/60 text-danger hover:bg-dangerSoft hover:text-danger"
@@ -57,16 +64,16 @@ function FloatingDockItem({
       )}
       aria-label={label}
     >
-      <span className="flex items-center justify-center transition-transform duration-200 ease-out group-hover:scale-110">
+      <span className="flex items-center justify-center transition-transform duration-200 ease-out group-hover/dock-item:scale-110">
         {icon}
       </span>
       {/* Tooltip label appears on hover */}
       <span
         className={cn(
-          "pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2",
-          "whitespace-nowrap rounded-xs bg-ink px-2 py-0.5 text-[9px] font-medium text-white",
+          "pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2",
+          "whitespace-nowrap rounded-xs bg-ink px-1.5 py-0.5 text-[9px] font-medium text-white",
           "opacity-0 transition-opacity duration-150",
-          "group-hover:opacity-100 group-focus-visible:opacity-100"
+          "group-hover/dock-item:opacity-100 group-focus-visible/dock-item:opacity-100"
         )}
       >
         {label}
@@ -81,10 +88,9 @@ export function BulkActionToolbar({
   actions,
   onClear,
   placement = "inline",
+  dockTo = "viewport",
   className,
 }: BulkActionToolbarProps) {
-  if (selectedCount === 0) return null;
-
   const isBottomDock = placement === "bottom-dock";
   const actionsRef = React.useRef<HTMLDivElement>(null);
   const [actionsWidth, setActionsWidth] = React.useState<number>(0);
@@ -96,13 +102,18 @@ export function BulkActionToolbar({
     }
   }, [selectedCount, actions]);
 
+  if (selectedCount === 0) return null;
+
   if (isBottomDock) {
     return (
       <div
         role="region"
         aria-label="Bulk action toolbar"
         className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 flex flex-col items-center",
+          "pointer-events-none z-40 flex flex-col items-center",
+          dockTo === "container"
+            ? "absolute inset-x-0 bottom-2"
+            : "fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))]",
           className
         )}
       >
@@ -112,21 +123,21 @@ export function BulkActionToolbar({
           className={cn(
             "pointer-events-auto flex items-center gap-0.5",
             "rounded-xs border border-hairline",
-            "bg-white/90 p-1",
+            "bg-white/90 p-0.5",
             "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04),0_8px_16px_-4px_rgba(17,17,17,0.25)]",
             "backdrop-blur-xl",
-            "animate-in fade-in slide-in-from-bottom-4 duration-300"
+            "animate-in fade-in slide-in-from-bottom-4 duration-300 motion-reduce:animate-none"
           )}
           style={{ animationFillMode: "backwards", animationDelay: "0ms" }}
         >
           <FloatingDockItem
             label="Clear selection"
-            icon={<X size={16} weight="regular" />}
+            icon={<X size={12} weight="regular" />}
             onClick={onClear}
           />
 
           {actions.length > 0 && (
-            <span className="mx-0.5 h-6 w-px bg-hairline" aria-hidden="true" />
+            <span className="mx-0.5 h-4 w-px bg-hairline" aria-hidden="true" />
           )}
 
           {actions.map((action, index) => (
@@ -144,13 +155,13 @@ export function BulkActionToolbar({
         {/* Level 2: Selection count — matches Level 1 width exactly */}
         <div
           className={cn(
-            "pointer-events-auto flex items-center justify-center gap-1.5",
+            "pointer-events-auto flex items-center justify-center gap-1",
             "rounded-xs",
-            "bg-white/80 p-1",
+            "bg-white/80 p-0.5",
             "shadow-[0_16px_48px_-24px_rgba(17,17,17,0.35),0_0_0_1px_rgba(0,0,0,0.04)]",
             "backdrop-blur-xl",
-            "min-h-8",
-            "animate-in fade-in slide-in-from-top-1 duration-200"
+            "min-h-5",
+            "animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none"
           )}
           style={{
             width: actionsWidth || "auto",
@@ -159,12 +170,12 @@ export function BulkActionToolbar({
           }}
         >
           <span
-            className="text-[10px] font-medium tabular-nums text-ink"
+            className="text-[9px] font-medium tabular-nums text-ink"
             aria-live="polite"
           >
             {selectedCount}
           </span>
-          <span className="text-[10px] font-normal text-tertiary">
+          <span className="text-[9px] font-normal text-tertiary">
             {selectedLabel}
           </span>
         </div>
@@ -178,7 +189,7 @@ export function BulkActionToolbar({
       role="region"
       aria-label="Bulk action toolbar"
       className={cn(
-        "flex min-h-9 shrink-0 items-center gap-2 px-2 py-1",
+        "flex min-h-7 shrink-0 items-center gap-2 px-2 py-0.5",
         "border-b border-hairline bg-surface",
         className
       )}
@@ -187,7 +198,7 @@ export function BulkActionToolbar({
         {selectedCount} {selectedLabel}
       </p>
       <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
-        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={onClear}>
+        <Button type="button" variant="ghost" size="sm" className="h-6 min-h-6 px-1.5 text-[10px]" onClick={onClear}>
           Clear
         </Button>
         {actions.map((action, index) => (
@@ -196,7 +207,7 @@ export function BulkActionToolbar({
             type="button"
             variant={action.variant === "danger" ? "danger" : action.variant === "ghost" ? "ghost" : "secondary"}
             size="sm"
-            className="h-7 gap-1 px-2 text-[10px]"
+            className="h-6 min-h-6 gap-1 px-1.5 text-[10px]"
             disabled={action.disabled}
             onClick={action.onClick}
           >
