@@ -1,0 +1,14 @@
+## U2 select("*") count — after
+repositories:       25
+source-wide:       44
+Remaining sheet-path wildcard selects (single-row, full-shape contracts):
+647:      .select("*")
+659:      .select("*")
+669:        .select("*")
+684:    .select("*")
+693:    .select("*")
+708:      .select("*")
+756:      .select("*")
+1085:    .select("*")
+1096:    .select("*")
+1343:    .select("*")

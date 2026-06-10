@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEstimateTree } from "@/lib/repositories/workspace-repository";
+import { buildEstimateTree, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
 import type { Tables } from "@/lib/supabase/types";
 
 const createdAt = "2026-05-20T00:00:00.000Z";
@@ -240,5 +240,67 @@ describe("workspace repository estimate tree projection", () => {
     );
 
     expect(tree[0]?.children?.map((child) => child.id)).toEqual(["site-work", "kitchen", "living"]);
+  });
+
+  it("builds complete display rows from the narrowed estimate-sheet query columns only", () => {
+    // Exactly the columns ESTIMATE_TREE_ROW_ITEM_COLUMNS / _NODE_COLUMNS
+    // fetch — no estimate_id, sort_order, or updated_at. Guards that the
+    // explicit column selection stays sufficient for linked-row display.
+    const narrowedNode: EstimateTreeNodeQueryRow = { id: "kitchen", parent_id: null, kind: "area", name: "Kitchen" };
+    const narrowedRow: EstimateTreeRowItemQueryRow = {
+      id: "row-1",
+      node_id: "kitchen",
+      material: "Tile",
+      description: "Glazed ceramic",
+      supplier: "Tile Depot",
+      supplier_id: null,
+      unit: "sqm",
+      unit_cost: 100,
+      quantity: 2,
+      contingency_percentage: 10,
+      misc_cost: 50,
+      row_revision: 3,
+      category_node_id: null,
+      discipline: null,
+      designation: null,
+      source_library_item_id: "lib-1",
+      link_state: "linked",
+      source_snapshot: {
+        category: "Finishes",
+        priceOptionId: "price-1",
+        priceOptionLabel: "Standard",
+        lifecycleState: "active",
+        pricingSource: "Library snapshot",
+        pricingDate: "2026-05-01",
+        componentVersionId: "ver-1",
+        componentVersionNumber: 4,
+      },
+      metadata: { tags: ["wet-area"] },
+      created_at: createdAt,
+    };
+
+    const tree = buildEstimateTree([narrowedNode], [narrowedRow]);
+    expect(tree[0]?.estimateRowItems?.[0]).toMatchObject({
+      id: "row-1",
+      material: "Tile",
+      supplier: "Tile Depot",
+      source: "library",
+      linkState: "linked",
+      category: "Finishes",
+      priceOptionId: "price-1",
+      priceOptionLabel: "Standard",
+      lifecycleState: "active",
+      pricingSource: "Library snapshot",
+      pricingDate: "2026-05-01",
+      componentVersionId: "ver-1",
+      componentVersionNumber: 4,
+      rowRevision: 3,
+      tags: ["wet-area"],
+      subTotal: 200,
+      contingencyValue: 20,
+      miscCost: 50,
+      totalItemCosts: 270,
+    });
+    expect(tree[0]?.total).toBe("₱270.00");
   });
 });
