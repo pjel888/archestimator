@@ -1,19 +1,26 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SquaresFour, X } from "@phosphor-icons/react/dist/ssr";
+import { Plus, PlusSquare, SquaresFour, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
+import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
-import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { Modal } from "@/components/ui/modal";
-import { SearchInput } from "@/components/ui/search-input";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import {
+  pruneSelection,
+  toggleCascadeSelection,
+  type TreeSelectionNode,
+} from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
+import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import { ResizableSidePanel } from "../ResizableSidePanel";
-import { WorkshopTreeTabs } from "../workshop-tree";
 import { ComponentViewControls, type ComponentViewMode } from "../component-library-manager/LibraryFolderTree";
 import { COMPONENT_VIEW_MODES } from "../component-library-manager/library-folder-tree-shared";
 import { NewComponentForm } from "./NewComponentForm";
@@ -24,12 +31,23 @@ import {
 } from "./templates";
 import type { NewComponentForm as NewComponentFormType } from "./types";
 import {
+  applyLibraryTreeOrder,
   buildLibraryTreeWithComponentRows,
   filterTree,
+  findLibrarySiblingOrder,
+  findNode,
   getAllNodeIds,
   LibraryTree,
+  type LibraryTreeNode,
+  type LibraryTreeOrder,
 } from "./tree";
-import type { ComponentLibraryBrandOption, ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
+import type { ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
+
+// The single create-component modal, shared with the Components page: the
+// estimate sidebar must not grow its own variant of this form.
+const AddComponentModal = dynamic(() =>
+  import("../component-library-manager/AddComponentModal").then((module) => module.AddComponentModal),
+);
 import {
   createComponent,
   defaultForm,
@@ -44,6 +62,7 @@ import {
   LIBRARY_FAVORITES_KEY,
   LIBRARY_PREFS_KEY,
   LIBRARY_RECENTS_KEY,
+  LIBRARY_TREE_ORDER_KEY,
   pesoFormatter,
   readJsonStorage,
   safeSetJsonStorage,
@@ -294,8 +313,19 @@ type EstimateRightSidebarProps = {
   templates?: EstimateTemplate[];
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
-  brands?: ComponentLibraryBrandOption[];
+  brands?: ComponentLibraryBrand[];
+  libraryFolders?: LibraryFolderRecord[];
 };
+
+const EMPTY_LIBRARY_TREE_ORDER: Record<ComponentViewMode, LibraryTreeOrder> = { default: {}, suppliers: {}, brand: {} };
+
+function buildLibrarySelectionNodes(nodes: LibraryTreeNode[]): TreeSelectionNode[] {
+  return nodes.map((node) => ({
+    id: node.id,
+    selectable: true,
+    children: node.children?.length ? buildLibrarySelectionNodes(node.children) : undefined,
+  }));
+}
 
 function componentToForm(item: EstimateRowItem): NewComponentFormType {
   return {
@@ -332,51 +362,41 @@ export function EstimateRightSidebar({
   categoryTree = componentCategoryTree,
   suppliers = [],
   brands = [],
+  libraryFolders = [],
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const [recentIds, setRecentIds] = useState<string[]>(() => readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []));
-  const [libraryItems, setLibraryItems] = useState<EstimateRowItem[]>(() => {
-    const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
-    const storedRecentIds = readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []);
-    return initialLibraryItems.map((item, index) => ({
+  // Initial state must not read localStorage: SSR renders the fallbacks, so a
+  // storage-aware initializer makes the client's first render diverge and
+  // throws a hydration mismatch. Stored prefs apply in the mount effect below.
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [libraryItems, setLibraryItems] = useState<EstimateRowItem[]>(() =>
+    initialLibraryItems.map((item, index) => ({
       ...item,
       createdAt: item.createdAt ?? new Date(Date.now() - (index % 18) * 86400000).toISOString(),
       discipline: getComponentDiscipline(item),
       designation: getComponentDesignation(item),
       tags: item.tags ?? [item.category, item.supplier, getComponentDiscipline(item)].filter(Boolean),
-      isFavorite: item.isFavorite || favoriteIds.includes(item.id),
-      lastUsedAt: storedRecentIds.includes(item.id) ? new Date().toISOString() : item.lastUsedAt,
-    }));
-  });
+    })),
+  );
 
-  const [activeTab, setActiveTab] = useState<EstimateLibraryTab>(() => {
-    if (typeof window === "undefined") return "components";
-    const storedPrefs = readJsonStorage<{ activeTab?: string }>(LIBRARY_PREFS_KEY, {});
-    const legacyStoredTab = localStorage.getItem("estimate_library_active_tab");
-    const stored = storedPrefs.activeTab ?? legacyStoredTab;
-    return stored === "templates" && templates.length ? "templates" : "components";
-  });
-  const [componentViewMode, setComponentViewMode] = useState<ComponentViewMode>(() => {
-    if (typeof window === "undefined") return "default";
-    const storedPrefs = readJsonStorage<{ componentViewMode?: string }>(LIBRARY_PREFS_KEY, {});
-    const legacyStoredTab = localStorage.getItem("estimate_library_active_tab");
-    if (storedPrefs.componentViewMode === "brand" || legacyStoredTab === "brand") return "brand";
-    return storedPrefs.componentViewMode === "suppliers" || legacyStoredTab === "suppliers" ? "suppliers" : "default";
-  });
+  const [activeTab, setActiveTab] = useState<EstimateLibraryTab>("components");
+  const [componentViewMode, setComponentViewMode] = useState<ComponentViewMode>("default");
   const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
-  const [expandedNodeIdsByViewMode, setExpandedNodeIdsByViewMode] = useState<Record<ComponentViewMode, string[]>>(() => {
-    const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
-    const storedRecentIds = readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []);
-
-    return {
-      default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
-      suppliers: [],
-      brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands })),
-    };
-  });
+  const [expandedNodeIdsByViewMode, setExpandedNodeIdsByViewMode] = useState<Record<ComponentViewMode, string[]>>(() => ({
+    default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, [], [], { categoryTree, suppliers })),
+    suppliers: [],
+    brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, [], [], { categoryTree, suppliers, brands })),
+  }));
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+  const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [customOrderByViewMode, setCustomOrderByViewMode] = useState<Record<ComponentViewMode, LibraryTreeOrder>>(
+    () => EMPTY_LIBRARY_TREE_ORDER,
+  );
   const [showNewComponent, setShowNewComponent] = useState(false);
+  const [addComponentOpen, setAddComponentOpen] = useState(false);
   const [form, setForm] = useState<NewComponentFormType>(defaultForm);
   const [formError, setFormError] = useState("");
   const [editItemId, setEditItemId] = useState<string | null>(null);
@@ -387,6 +407,7 @@ export function EstimateRightSidebar({
   const searchRef = useRef<HTMLInputElement>(null);
   const treeHeaderRef = useRef<HTMLDivElement>(null);
   const deleteUndoTimerRef = useRef<number | null>(null);
+  const libraryPrefsHydratedRef = useRef(false);
 
   const selectedTargetNode = useMemo(() => {
     if (!nodes?.length || !activeSelectedNodeId) return null;
@@ -422,6 +443,59 @@ export function EstimateRightSidebar({
   }, [form, resetComponentForm]);
 
   useEffect(() => {
+    // Stored values must be read synchronously: the prefs-persist effect below
+    // runs in the same flush and would overwrite them with the defaults.
+    const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
+    const storedRecentIds = readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []);
+    const storedPrefs = readJsonStorage<{ activeTab?: string; componentViewMode?: string }>(LIBRARY_PREFS_KEY, {});
+    const storedTreeOrder = readJsonStorage<Partial<Record<ComponentViewMode, LibraryTreeOrder>>>(LIBRARY_TREE_ORDER_KEY, {});
+    const legacyStoredTab = window.localStorage.getItem("estimate_library_active_tab");
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (storedTreeOrder.default || storedTreeOrder.suppliers || storedTreeOrder.brand) {
+        setCustomOrderByViewMode({
+          default: storedTreeOrder.default ?? {},
+          suppliers: storedTreeOrder.suppliers ?? {},
+          brand: storedTreeOrder.brand ?? {},
+        });
+      }
+      if (favoriteIds.length || storedRecentIds.length) {
+        setRecentIds(storedRecentIds);
+        setLibraryItems((items) =>
+          items.map((item) => ({
+            ...item,
+            isFavorite: item.isFavorite || favoriteIds.includes(item.id),
+            lastUsedAt: storedRecentIds.includes(item.id) ? new Date().toISOString() : item.lastUsedAt,
+          })),
+        );
+        setExpandedNodeIdsByViewMode((current) => ({
+          ...current,
+          default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
+          brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands })),
+        }));
+      }
+
+      const storedTab = storedPrefs.activeTab ?? legacyStoredTab;
+      if (storedTab === "templates" && templates.length) setActiveTab("templates");
+
+      const storedMode = storedPrefs.componentViewMode ?? legacyStoredTab;
+      if (storedMode === "brand") setComponentViewMode("brand");
+      else if (storedMode === "suppliers") setComponentViewMode("suppliers");
+      libraryPrefsHydratedRef.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Stored prefs hydrate exactly once, after the SSR markup is committed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Persisting before stored prefs hydrate would clobber them with the
+    // defaults (Strict Mode runs this effect before the hydrate microtask).
+    if (!libraryPrefsHydratedRef.current) return;
     safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
   }, [activeTab, componentViewMode]);
 
@@ -432,25 +506,29 @@ export function EstimateRightSidebar({
       if (
         event.key === "/" &&
         !showNewComponent &&
+        !addComponentOpen &&
         !deleteCandidate &&
         activeTag !== "INPUT" &&
         activeTag !== "TEXTAREA" &&
         activeTag !== "SELECT"
       ) {
         event.preventDefault();
+        setSearchOpen(true);
         searchRef.current?.focus();
       }
       if (event.key === "Escape") {
         if (viewModeMenuOpen) setViewModeMenuOpen(false);
+        else if (bulkDeleteConfirmOpen) setBulkDeleteConfirmOpen(false);
         else if (deleteCandidate) setDeleteCandidate(null);
         else if (showNewComponent) closeNewComponent();
         else if (searchQuery) setSearchQuery("");
+        else if (searchOpen) setSearchOpen(false);
         else if (previewItemId) setPreviewItemId(null);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [closeNewComponent, deleteCandidate, previewItemId, searchQuery, showNewComponent, viewModeMenuOpen]);
+  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, previewItemId, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
 
   useEffect(() => {
     if (!viewModeMenuOpen) return;
@@ -491,10 +569,53 @@ export function EstimateRightSidebar({
   const treeNodes = useMemo(() => {
     if (activeTab === "templates") return [];
     const tree = buildLibraryTreeWithComponentRows(componentTreeTab, libraryItems, favoriteIds, recentIds, { categoryTree, suppliers, brands });
-    return tree;
-  }, [activeTab, brands, categoryTree, componentTreeTab, favoriteIds, libraryItems, recentIds, suppliers]);
+    return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
+  }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, favoriteIds, libraryItems, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, searchQuery), [treeNodes, searchQuery]);
+
+  const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
+  const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
+  const bulkSelectionCount = bulkSelectedNodeIds.size;
+  const bulkSelectedItems = useMemo(() => {
+    const seenItemIds = new Set<string>();
+    const items: EstimateRowItem[] = [];
+    for (const nodeId of bulkSelectedNodeIds) {
+      const item = findNode(treeNodes, nodeId)?.item;
+      if (item && !seenItemIds.has(item.id)) {
+        seenItemIds.add(item.id);
+        items.push(item);
+      }
+    }
+    return items;
+  }, [bulkSelectedNodeIds, treeNodes]);
+
+  const clearBulkSelection = useCallback(() => {
+    setBulkSelectedNodeIds(new Set());
+  }, []);
+
+  const handleBulkCheckToggle = useCallback(
+    (nodeId: string, checked: boolean) => {
+      setBulkSelectedNodeIds((current) => toggleCascadeSelection(librarySelectionNodes, current, nodeId, checked));
+    },
+    [librarySelectionNodes],
+  );
+
+  // Drop selections whose nodes left the tree (deletes, view-mode switches).
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setBulkSelectedNodeIds((current) => {
+        const next = pruneSelection(librarySelectionNodes, current);
+        if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [librarySelectionNodes]);
 
   const previewItem = libraryItems.find((item) => item.id === previewItemId) ?? null;
 
@@ -591,9 +712,14 @@ export function EstimateRightSidebar({
   );
 
   const startNewComponent = useCallback(() => {
-    resetComponentForm();
-    setShowNewComponent(true);
-  }, [resetComponentForm]);
+    setAddComponentOpen(true);
+  }, []);
+
+  const handleComponentCreated = useCallback((item: EstimateRowItem) => {
+    setLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
+    setPreviewItemId(item.id);
+    setLastActionMessage(`${getComponentName(item)} created in the component library.`);
+  }, []);
 
   const startEditComponent = useCallback((item: EstimateRowItem) => {
     setForm(componentToForm(item));
@@ -648,16 +774,20 @@ export function EstimateRightSidebar({
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
     setActiveTab(tab);
     setSearchQuery("");
+    setSearchOpen(false);
     setPreviewItemId(null);
     setViewModeMenuOpen(false);
+    setBulkSelectedNodeIds(new Set());
   }, []);
 
   const handleComponentViewModeChange = useCallback((mode: ComponentViewMode) => {
     setComponentViewMode(mode);
     setActiveTab("components");
     setSearchQuery("");
+    setSearchOpen(false);
     setPreviewItemId(null);
     setViewModeMenuOpen(false);
+    setBulkSelectedNodeIds(new Set());
   }, []);
 
   const handleToggleNode = useCallback((nodeId: string) => {
@@ -667,6 +797,48 @@ export function EstimateRightSidebar({
       return { ...current, [componentViewMode]: next };
     });
   }, [componentViewMode]);
+
+  const handleLibraryReorder = useCallback(
+    (draggedId: string, targetId: string, position: "before" | "after") => {
+      const siblingInfo = findLibrarySiblingOrder(treeNodes, draggedId, targetId);
+      if (!siblingInfo) return;
+      const withoutDragged = siblingInfo.siblingIds.filter((id) => id !== draggedId);
+      const targetIndex = withoutDragged.indexOf(targetId);
+      if (targetIndex < 0) return;
+      const insertAt = position === "before" ? targetIndex : targetIndex + 1;
+      const nextOrder = [...withoutDragged.slice(0, insertAt), draggedId, ...withoutDragged.slice(insertAt)];
+      const next = {
+        ...customOrderByViewMode,
+        [componentViewMode]: { ...customOrderByViewMode[componentViewMode], [siblingInfo.parentKey]: nextOrder },
+      };
+      setCustomOrderByViewMode(next);
+      safeSetJsonStorage(LIBRARY_TREE_ORDER_KEY, next);
+    },
+    [componentViewMode, customOrderByViewMode, treeNodes],
+  );
+
+  const handleBulkAddSelected = useCallback(() => {
+    if (bulkSelectedItems.length === 0) return;
+    if (insertLibraryItems(bulkSelectedItems)) clearBulkSelection();
+  }, [bulkSelectedItems, clearBulkSelection, insertLibraryItems]);
+
+  const handleConfirmBulkDelete = useCallback(() => {
+    if (bulkSelectedItems.length === 0) {
+      setBulkDeleteConfirmOpen(false);
+      return;
+    }
+    const deletedItemIds = new Set(bulkSelectedItems.map((item) => item.id));
+    setLibraryItems((items) => items.filter((entry) => !deletedItemIds.has(entry.id)));
+    setDeletedItems(bulkSelectedItems);
+    setBulkDeleteConfirmOpen(false);
+    clearBulkSelection();
+    setPreviewItemId((current) => (current && deletedItemIds.has(current) ? null : current));
+    setLastActionMessage(
+      `${bulkSelectedItems.length} ${bulkSelectedItems.length === 1 ? "component" : "components"} deleted. Undo is available.`,
+    );
+    if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
+    deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
+  }, [bulkSelectedItems, clearBulkSelection]);
 
   const handleExpandAll = useCallback(() => {
     setExpandedNodeIdsByViewMode((current) => ({
@@ -713,56 +885,55 @@ export function EstimateRightSidebar({
     <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
       <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
         {/* Sticky header */}
-        <div ref={treeHeaderRef} className="sticky top-0 z-20 shrink-0 border-b border-hairline bg-white">
-          <div className="flex h-[38px] items-center">
-            <SearchInput
-              ref={searchRef}
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search Library Tree"
-              aria-label="Search Library Tree"
-              onClear={() => setSearchQuery("")}
-              wrapperClassName="w-full"
-            />
-          </div>
-
-          <HeaderIconToolbar
-            ariaLabel="Library tree tools"
-            labelPrefix="library tree"
-            onExpandAll={handleExpandAll}
-            onCollapseAll={handleCollapseAll}
-            leadingActions={[
-              {
-                label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === componentViewMode)?.label ?? "Default"}`,
-                icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
-                onClick: () => setViewModeMenuOpen((current) => !current),
-                pressed: viewModeMenuOpen,
-                disabled: activeTab !== "components",
-              },
-            ]}
-            leadingActionsLabel="Component tree view mode"
-            onAdd={startNewComponent}
-          />
-
-          <WorkshopTreeTabs
-            tabs={visibleTreeTabs}
-            activeTab={activeTab}
-            ariaLabel="Library tree views"
-            onTabChange={handleTabChange}
-          />
+        <TreePanelHeader
+          ref={treeHeaderRef}
+          ariaLabel="Library tree tools"
+          labelPrefix="library tree"
+          onExpandAll={handleExpandAll}
+          onCollapseAll={handleCollapseAll}
+          searchValue={searchQuery}
+          onSearchValueChange={setSearchQuery}
+          searchPlaceholder="Search Library Tree"
+          searchLabel="Search Library Tree"
+          searchOpen={searchOpen}
+          onSearchOpenChange={setSearchOpen}
+          searchInputRef={searchRef}
+          leadingActions={[
+            {
+              label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === componentViewMode)?.label ?? "Default"}`,
+              icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
+              onClick: () => setViewModeMenuOpen((current) => !current),
+              pressed: viewModeMenuOpen,
+              disabled: activeTab !== "components",
+            },
+          ]}
+          leadingActionsLabel="Component tree view mode"
+          addActions={[
+            {
+              label: "Add Component",
+              icon: <PlusSquare size={13} weight="regular" aria-hidden="true" />,
+              onClick: startNewComponent,
+            },
+          ]}
+          tabs={visibleTreeTabs}
+          activeTab={activeTab}
+          tabsAriaLabel="Library tree views"
+          onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
+        >
           {activeTab === "components" && viewModeMenuOpen ? (
             <ComponentViewControls
               mode={componentViewMode}
               ariaLabel="Component view mode"
               onModeChange={handleComponentViewModeChange}
+              className="top-[40px]"
             />
           ) : null}
-        </div>
+        </TreePanelHeader>
 
-        {/* Scrollable tree */}
+        {/* Scrollable tree with a floating bulk-action dock */}
+        <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className="h-8 w-full bg-white" aria-hidden="true" />
-          <div className="p-2">
+          <div className={cn("p-2", bulkSelectionCount > 0 && "pb-16")}>
             {activeTab === "templates" ? (
               <TemplateSidebarList
                 templates={templates}
@@ -778,16 +949,43 @@ export function EstimateRightSidebar({
                 selectedNodeId={previewItemId}
                 expandedNodeIds={expandedNodeIdsByViewMode[componentViewMode]}
                 searchQuery={searchQuery}
-                onSelect={(nodeId) => handleToggleNode(nodeId)}
                 onToggle={handleToggleNode}
                 onItemAdd={(item) => { if (item) addComponent(item); }}
                 onItemPreview={(itemId) => setPreviewItemId(itemId)}
                 addDisabled={!canInsert}
                 addLabel={targetLabel}
                 onItemDragStart={handleItemDragStart}
+                selectable
+                checkedIds={bulkSelectedIds}
+                onCheckToggle={handleBulkCheckToggle}
+                onReorder={handleLibraryReorder}
+                reorderDisabled={searchQuery.trim().length > 0}
               />
             )}
           </div>
+        </div>
+        <BulkActionToolbar
+          placement="bottom-dock"
+          dockTo="container"
+          selectedCount={bulkSelectionCount}
+          selectedLabel="selected"
+          onClear={clearBulkSelection}
+          actions={[
+            {
+              label: "Add selected components",
+              icon: <Plus size={12} weight="regular" />,
+              disabled: !canInsert || bulkSelectedItems.length === 0,
+              onClick: handleBulkAddSelected,
+            },
+            {
+              label: "Delete selected components",
+              icon: <Trash size={12} weight="regular" />,
+              variant: "danger",
+              disabled: bulkSelectedItems.length === 0,
+              onClick: () => setBulkDeleteConfirmOpen(true),
+            },
+          ]}
+        />
         </div>
 
         {/* Preview panel */}
@@ -807,12 +1005,27 @@ export function EstimateRightSidebar({
           />
         ) : null}
 
-        {/* New component form */}
+        {/* Create flow: the shared Components-page modal. */}
+        {addComponentOpen ? (
+          <AddComponentModal
+            open={addComponentOpen}
+            folders={libraryFolders}
+            categoryTree={categoryTree}
+            suppliers={suppliers}
+            brands={brands}
+            libraryItems={libraryItems}
+            selectedFolderId={null}
+            onOpenChange={setAddComponentOpen}
+            onComponentCreated={handleComponentCreated}
+          />
+        ) : null}
+
+        {/* Edit component form */}
         <Modal
           open={showNewComponent}
-          title={editItemId ? "Edit component" : "New component"}
-          description={editItemId ? "Update this reusable cost component in the local library." : "Add a reusable cost component to the local library."}
-          closeLabel="Cancel new component"
+          title="Edit component"
+          description="Update this reusable cost component in the local library."
+          closeLabel="Cancel component edit"
           className="max-w-3xl"
           onOpenChange={(open) => {
             if (open) setShowNewComponent(true);
@@ -843,6 +1056,28 @@ export function EstimateRightSidebar({
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {lastActionMessage}
         </div>
+
+        {/* Bulk delete confirmation */}
+        {bulkDeleteConfirmOpen ? (
+          <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
+            <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
+              <h3 className="text-[11px] font-medium text-ink">
+                Delete {bulkSelectedItems.length} selected {bulkSelectedItems.length === 1 ? "component" : "components"}?
+              </h3>
+              <p className="mt-1 text-[9px] leading-4 text-tertiary">
+                Removes them from this local library view. Existing estimate rows stay unchanged, and Undo is available for a few seconds.
+              </p>
+              <div className="mt-3 flex justify-end gap-1">
+                <Button variant="secondary" size="sm" className="h-6 min-h-6 text-[9px]" onClick={() => setBulkDeleteConfirmOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="danger" size="sm" className="h-6 min-h-6 text-[9px]" onClick={handleConfirmBulkDelete}>
+                  Delete selected
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Delete confirmation */}
         {deleteCandidate ? (
