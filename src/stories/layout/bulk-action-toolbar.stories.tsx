@@ -35,12 +35,12 @@ type Story = StoryObj<typeof meta>;
 const defaultActions = [
   {
     label: "Duplicate",
-    icon: <Copy size={14} weight="regular" />,
+    icon: <Copy size={12} weight="regular" />,
     onClick: () => console.log("Duplicate"),
   },
   {
     label: "Archive",
-    icon: <Archive size={14} weight="regular" />,
+    icon: <Archive size={12} weight="regular" />,
     onClick: () => console.log("Archive"),
   },
 ];
@@ -49,7 +49,7 @@ const dangerActions = [
   ...defaultActions,
   {
     label: "Delete",
-    icon: <Trash size={14} weight="regular" />,
+    icon: <Trash size={12} weight="regular" />,
     onClick: () => console.log("Delete"),
     variant: "danger" as const,
   },
@@ -86,7 +86,7 @@ export const BottomDock: Story = {
         actions={defaultActions}
         onClear={() => console.log("Clear")}
         placement="bottom-dock"
-        className="absolute"
+        dockTo="container"
       />
     </StoryPanel>
   ),
