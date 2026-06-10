@@ -2,7 +2,16 @@
 
 import { unstable_rethrow, usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowCounterClockwise, Check, Cube, FolderSimple, Trash } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowCounterClockwise,
+  Check,
+  Cube,
+  FolderSimple,
+  FolderSimplePlus,
+  PencilSimple,
+  StackPlus,
+  Trash,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
@@ -12,7 +21,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
@@ -30,6 +39,14 @@ import {
   mergeEstimateTreeStructureWithCachedNodes,
 } from "@/lib/estimates/estimate-tree-reorder";
 import { planEstimateTreeDelete, renameEstimateTreeNode } from "@/lib/estimates/estimate-tree-edit";
+import {
+  CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
+  ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  INSERT_ESTIMATE_TEMPLATE_EVENT,
+  readEstimateTemplateDragPayload,
+  type CreateEstimateTemplateFromNodeEventDetail,
+  type InsertEstimateTemplateEventDetail,
+} from "./component-library/templates";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
@@ -248,6 +265,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const [bulkDeletePending, setBulkDeletePending] = useState(false);
   const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
   const [contextMenuNode, setContextMenuNode] = useState<EstimateTreeNode | null>(null);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [treeSearchQuery, setTreeSearchQuery] = useState("");
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const currentRouteNodeId = useMemo(
@@ -562,8 +580,36 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     treeSearchActive,
   ]);
 
-  const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"]) => {
-    if (kind === "area" && !selectedGroupId) {
+  // Templates dragged from the right sidebar drop "inside" group rows only:
+  // the server's template insert requires an existing group parent (no root
+  // or area placement), so other bands never light up.
+  const treeExternalDrop = useMemo<TreeExternalDropOptions>(() => ({
+    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE],
+    canDrop: (types, targetId, position) => {
+      if (!types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return false;
+      if (position !== "inside") return false;
+      if (isOptimisticEstimateNodeId(targetId)) return false;
+      const node = findEstimateNode(localNodes, targetId);
+      return Boolean(node && isEstimateGroupNodeKind(node.kind));
+    },
+    onDrop: (event, targetId) => {
+      const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
+      if (!payload) return;
+      suppressPrimaryActionAfterDrag();
+      // The sheet owns template insertion (optimistic update + rollback);
+      // hand the drop over instead of duplicating that flow here.
+      const detail: InsertEstimateTemplateEventDetail = payload.kind === "template-node"
+        ? { targetParentNodeId: targetId, templateId: payload.templateId, templateNodeId: payload.templateNodeId }
+        : { targetParentNodeId: targetId, templateIds: payload.templateIds };
+      window.dispatchEvent(new CustomEvent<InsertEstimateTemplateEventDetail>(INSERT_ESTIMATE_TEMPLATE_EVENT, { detail }));
+    },
+  }), [localNodes, suppressPrimaryActionAfterDrag]);
+
+  const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"], parentGroupIdOverride?: string) => {
+    // Context-menu creates target the right-clicked group; header buttons
+    // fall back to the current selection.
+    const targetParentGroupId = parentGroupIdOverride ?? selectedGroupId;
+    if (kind === "area" && !targetParentGroupId) {
       setReorderStatus({ state: "error", message: "you must select a group first before adding an area node" });
       return;
     }
@@ -571,12 +617,12 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     const nodeName = kind === "group" ? "New Group" : "New Area Node";
     const optimisticNodeId = makeOptimisticTreeNodeId(kind);
     const optimisticNode = createOptimisticEstimateTreeNode(kind, optimisticNodeId, nodeName);
-    const nextNodes = insertLocalEstimateTreeNode(localNodes, selectedGroupId, optimisticNode);
+    const nextNodes = insertLocalEstimateTreeNode(localNodes, targetParentGroupId, optimisticNode);
     const previousSelectedNodeId = activeSelectedNodeId;
 
     setLocalNodes(nextNodes);
-    if (selectedGroupId) {
-      setExpandedNodeIds(Array.from(new Set([...expandedItems, selectedGroupId])));
+    if (targetParentGroupId) {
+      setExpandedNodeIds(Array.from(new Set([...expandedItems, targetParentGroupId])));
     }
     // The node is usable immediately: select it and open inline rename while
     // the create settles in the background.
@@ -598,7 +644,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     // A parent created moments ago may still carry an optimistic id; chain
     // this create behind the parent's create instead of sending an id the
     // server has never seen.
-    const knownParentId = selectedGroupId ? resolvedNodeIdsRef.current.get(selectedGroupId) ?? selectedGroupId : null;
+    const knownParentId = targetParentGroupId ? resolvedNodeIdsRef.current.get(targetParentGroupId) ?? targetParentGroupId : null;
     const createPromise = knownParentId && isOptimisticEstimateNodeId(knownParentId)
       ? resolveServerNodeId(knownParentId).then(createOnServer)
       : createOnServer(knownParentId);
@@ -677,15 +723,24 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     }
   }, []);
 
-  const beginRenameNode = useCallback((node: EstimateTreeNode) => {
-    if (isTreeMutationSaving) return;
+  /**
+   * Menu-triggered flows that open the inline rename editor must survive the
+   * Radix close-auto-focus: without these refs the menu's focus return blurs
+   * the just-mounted editor and silently commits the untouched name.
+   */
+  const armContextMenuRenameHandoff = useCallback(() => {
     suppressContextMenuCloseAutoFocusRef.current = true;
     ignoreRenameBlurDuringContextMenuCloseRef.current = true;
+  }, []);
+
+  const beginRenameNode = useCallback((node: EstimateTreeNode) => {
+    if (isTreeMutationSaving) return;
+    armContextMenuRenameHandoff();
     renameDraftDirtyRef.current = false;
     setEditingNodeId(node.id);
     setEditingNodeName(node.name);
     setEditingNodeError(null);
-  }, [isTreeMutationSaving]);
+  }, [armContextMenuRenameHandoff, isTreeMutationSaving]);
 
   const cancelRenameNode = useCallback(() => {
     suppressContextMenuCloseAutoFocusRef.current = false;
@@ -1002,21 +1057,72 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     if (!contextMenuNode) return [];
+    const nodeIsGroup = isEstimateGroupNodeKind(contextMenuNode.kind);
+    const nodeIsPendingCreate = isOptimisticEstimateNodeId(contextMenuNode.id);
+
     return [
+      ...(nodeIsGroup
+        ? [
+            {
+              id: "create-nodes",
+              items: [
+                {
+                  id: "new-group-inside",
+                  label: "New Group inside",
+                  icon: <FolderSimplePlus size={12} weight="regular" aria-hidden="true" />,
+                  onSelect: () => {
+                    armContextMenuRenameHandoff();
+                    handleAddTreeNode("group", contextMenuNode.id);
+                  },
+                },
+                {
+                  id: "new-area-inside",
+                  label: "New Area Node inside",
+                  icon: <Cube size={12} weight="regular" aria-hidden="true" />,
+                  onSelect: () => {
+                    armContextMenuRenameHandoff();
+                    handleAddTreeNode("area", contextMenuNode.id);
+                  },
+                },
+              ],
+            },
+          ]
+        : []),
       {
         id: "node-actions",
         items: [
           {
+            id: "save-as-template",
+            label: "Save as template",
+            icon: <StackPlus size={12} weight="regular" aria-hidden="true" />,
+            disabled: nodeIsPendingCreate,
+            disabledReason: "Wait for this node to finish saving first.",
+            onSelect: () => {
+              window.dispatchEvent(
+                new CustomEvent<CreateEstimateTemplateFromNodeEventDetail>(CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT, {
+                  detail: { sourceNodeId: contextMenuNode.id },
+                }),
+              );
+            },
+          },
+          {
             id: "rename",
             label: "Rename",
+            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
             disabled: isTreeMutationSaving,
             disabledReason: "Finish the current tree save before renaming another node.",
             onSelect: () => beginRenameNode(contextMenuNode),
           },
+        ],
+      },
+      {
+        id: "node-danger",
+        items: [
           {
             id: "delete",
             label: "Delete",
-            tone: "destructive",
+            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            tone: "destructive" as const,
             disabled: isTreeMutationSaving,
             disabledReason: "Finish the current tree save before deleting another node.",
             onSelect: () => setDeleteTargetNode(contextMenuNode),
@@ -1024,7 +1130,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         ],
       },
     ];
-  }, [beginRenameNode, contextMenuNode, isTreeMutationSaving]);
+  }, [armContextMenuRenameHandoff, beginRenameNode, contextMenuNode, handleAddTreeNode, isTreeMutationSaving]);
 
   const renderEstimateTreeRowLabel = useCallback((treeNode: UiTreeNode) => {
     const node = (treeNode.data?.node as EstimateTreeNode | undefined) ?? findEstimateNode(localNodes, treeNode.id);
@@ -1162,7 +1268,11 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         maxWidth={432}
         widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
       >
-        <div className="flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
+        {/* group/tree on the panel widens the rail-reveal scope: rows keep
+            their drag/select space while the pointer or focus is anywhere in
+            this sidebar (header tools included), so reaching for Add Group or
+            search no longer shifts the tree back and forth. */}
+        <div className="group/tree flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
         <TreePanelHeader
           ariaLabel="Tree tools"
           labelPrefix="tree"
@@ -1203,7 +1313,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
             </div>
           ) : (
             <nav aria-label={`${projectName} estimate areas`}>
-              <ContextMenu>
+              <ContextMenu onOpenChange={setContextMenuOpen}>
                 <ContextMenuTrigger asChild>
                   <div
                     className="block w-full"
@@ -1224,12 +1334,14 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                       selectedIds={bulkSelectedIds}
                       onCheckboxToggle={handleCheckboxToggle}
                       currentId={activeSelectedNodeId}
+                      railsPinned={contextMenuOpen}
                       draggable
                       selectable
                       dragDataType={ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE}
                       canDrag={handleTreeCanDrag}
                       canDrop={handleTreeCanDrop}
                       onDrop={handleTreeDrop}
+                      externalDrop={treeExternalDrop}
                       onNodeDragStart={suppressPrimaryActionAfterDrag}
                       onRowClick={handlePrimaryAction}
                       onContextMenu={handleTreeContextMenu}

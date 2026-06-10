@@ -15,7 +15,7 @@ import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { composeEstimateActivity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } from "@/lib/activity";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
@@ -28,7 +28,14 @@ import { EstimateRightSidebar } from "./component-library";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { CommandPalette } from "./component-library/CommandPalette";
-import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, type EstimateTemplate } from "./component-library/templates";
+import {
+  ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  INSERT_ESTIMATE_TEMPLATE_EVENT,
+  readEstimateTemplateDragPayload,
+  type EstimateTemplate,
+  type InsertEstimateTemplateEventDetail,
+} from "./component-library/templates";
+import { useEstimateWorkshopDrag } from "./estimate-workshop-drag";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
@@ -117,6 +124,7 @@ type EstimateSheetBranchProps = {
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onInsertTemplate: (targetParentNodeId: string, templateId: string) => void;
+  onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
   onAddBlankRow: (targetNodeId: string) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
@@ -693,62 +701,22 @@ function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows:
   return parts.join("\n");
 }
 
-function EstimateDropZone({
-  label,
-  compact = false,
-  isDragOver = false,
-  onActivate,
-  ariaLabel,
-}: {
-  label: string;
-  compact?: boolean;
-  isDragOver?: boolean;
-  onActivate?: () => void;
-  ariaLabel?: string;
-}) {
-  const className = cn(
-    "border border-dashed text-tertiary transition-opacity",
-    compact
-      ? "flex min-h-20 items-center justify-center border-divider bg-surfaceWarm/80"
-      : "flex h-16 w-full items-center justify-center gap-1.5 border-hairline bg-surfaceMuted/30 opacity-50 hover:opacity-100",
-    !compact && isDragOver && "opacity-100",
-    onActivate &&
-      "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1",
-  );
-  const content = (
-    <>
-      {compact ? (
-        <div className="flex flex-col items-center justify-center gap-1 text-center text-[8px] font-medium uppercase tracking-normal">
-          <span className="flex size-5 items-center justify-center rounded-xs border border-dashed border-divider bg-white text-ink">
-            <Plus size={12} weight="regular" aria-hidden="true" />
-          </span>
-          <span>{label}</span>
-        </div>
-      ) : (
-        <div className="flex items-center gap-1.5 text-[10px] font-normal">
-          <Plus size={12} weight="regular" aria-hidden="true" />
-          <span>{label}</span>
-        </div>
-      )}
-    </>
-  );
-
-  if (onActivate) {
-    return (
-      <button
-        type="button"
-        className={className}
-        onClick={onActivate}
-        aria-label={ariaLabel ?? label}
-      >
-        {content}
-      </button>
-    );
-  }
-
+/**
+ * Dashed drop surface, rendered only while a compatible drag is in flight
+ * (drag suppresses CSS hover, so the highlight is driven by `isDragOver`).
+ */
+function EstimateDropZone({ label, isDragOver = false }: { label: string; isDragOver?: boolean }) {
   return (
-    <div className={className}>
-      {content}
+    <div
+      className={cn(
+        "flex h-16 w-full items-center justify-center gap-1.5 border border-dashed border-hairline bg-surfaceMuted/30 text-tertiary transition-opacity",
+        isDragOver ? "opacity-100" : "opacity-60",
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[10px] font-normal">
+        <Plus size={12} weight="regular" aria-hidden="true" />
+        <span>{label}</span>
+      </div>
     </div>
   );
 }
@@ -1358,19 +1326,66 @@ function EstimateRowItemsTable({
   );
 }
 
-function EmptyAreaMessage({
+function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
+  nodeId: string;
+  nodeName: string;
+  onAddBlankRow: (targetNodeId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onAddBlankRow(nodeId)}
+      aria-label={`Add blank estimate row to ${nodeName}`}
+      className="flex h-6 w-full items-center gap-1.5 rounded-xs border border-transparent px-1.5 text-[9px] font-medium text-tertiary transition-colors hover:bg-surfaceMuted/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <Plus size={11} weight="regular" aria-hidden="true" />
+      <span>Add row</span>
+    </button>
+  );
+}
+
+/**
+ * Library-item drop target for an area. The dashed zone only exists while a
+ * component drag is in flight; at rest the area keeps a quiet add-row
+ * affordance (and, when empty, a short empty-state line) so the sheet is not
+ * littered with permanent drop targets.
+ */
+function ComponentDropTarget({
   nodeId,
   nodeName,
+  empty,
   onInsertLibraryItem,
   onAddBlankRow,
 }: {
   nodeId: string;
   nodeName: string;
+  empty: boolean;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onAddBlankRow: (targetNodeId: string) => void;
 }) {
+  const activeDrag = useEstimateWorkshopDrag();
   const [dragCount, setDragCount] = useState(0);
+  const componentDragActive = activeDrag?.kind === "library-item";
   const isDragOver = dragCount > 0;
+
+  // A cancelled drag never delivers the balancing dragleave; adjust the
+  // stale counter during render once the drag store empties.
+  if (!componentDragActive && dragCount !== 0) setDragCount(0);
+
+  if (!componentDragActive) {
+    if (!empty) return <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />;
+    return (
+      <div className="flex min-h-9 items-center justify-between gap-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 px-1.5 py-0.5">
+        <span className="text-[9px] leading-3 text-tertiary">
+          No estimate components yet. Add a row, or drag components from the library.
+        </span>
+        <span className="w-24 shrink-0">
+          <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
       className="py-1"
@@ -1391,57 +1406,92 @@ function EmptyAreaMessage({
       }}
     >
       <EstimateDropZone
-        label="Drag and drop estimate component here"
+        label={`Drag and drop estimate component into ${nodeName}`}
         isDragOver={isDragOver}
-        onActivate={() => onAddBlankRow(nodeId)}
-        ariaLabel={`Add blank estimate row to ${nodeName}`}
       />
     </div>
   );
 }
 
-function InlineDropZone({
+/**
+ * Template drop target inside a group section, rendered only while a
+ * template drag is in flight. It sits after the group's children — exactly
+ * where the server appends inserted template roots. The surrounding section
+ * also accepts template drops; this zone stops propagation so a drop here is
+ * handled once.
+ */
+function TemplateDropZone({
   nodeId,
   nodeName,
-  onInsertLibraryItem,
-  onAddBlankRow,
+  templateName,
+  onInsertTemplate,
+  onInsertTemplateNode,
 }: {
   nodeId: string;
   nodeName: string;
-  onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
-  onAddBlankRow: (targetNodeId: string) => void;
+  templateName: string;
+  onInsertTemplate: (targetParentNodeId: string, templateId: string) => void;
+  onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
 }) {
   const [dragCount, setDragCount] = useState(0);
   const isDragOver = dragCount > 0;
   return (
     <div
-      onDragEnter={() => setDragCount((c) => c + 1)}
-      onDragLeave={() => setDragCount((c) => Math.max(0, c - 1))}
+      className="py-1"
+      data-estimate-template-drop-zone={nodeId}
+      onDragEnter={(event) => {
+        if (!event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+        setDragCount((c) => c + 1);
+      }}
+      onDragLeave={(event) => {
+        if (!event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+        setDragCount((c) => Math.max(0, c - 1));
+      }}
       onDragOver={(event) => {
-        if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "copy";
-        }
+        if (!event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = "copy";
       }}
       onDrop={(event) => {
         setDragCount(0);
-        const payload = event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE);
+        const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
         if (!payload) return;
         event.preventDefault();
-        onInsertLibraryItem(nodeId, JSON.parse(payload) as EstimateRowItem);
+        event.stopPropagation();
+        if (payload.kind === "template-node") {
+          onInsertTemplateNode(nodeId, payload.templateId, payload.templateNodeId);
+          return;
+        }
+        payload.templateIds.forEach((templateId) => onInsertTemplate(nodeId, templateId));
       }}
     >
       <EstimateDropZone
-        label="Drag and drop estimate component here"
+        label={`Drop ${templateName || "template"} into ${nodeName}`}
         isDragOver={isDragOver}
-        onActivate={() => onAddBlankRow(nodeId)}
-        ariaLabel={`Add blank estimate row to ${nodeName}`}
       />
     </div>
   );
 }
 
-function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+/**
+ * Empty-group guidance. Groups never take component rows, so the old
+ * component drop zone was a dead affordance here; templates are the one
+ * thing droppable into a group, and the TemplateDropZone takes over while a
+ * template drag is active.
+ */
+function EmptyGroupMessage({ templateDragActive }: { templateDragActive: boolean }) {
+  if (templateDragActive) return null;
+  return (
+    <div className="flex min-h-9 items-center rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 px-1.5 py-0.5">
+      <span className="text-[9px] leading-3 text-tertiary">
+        No nodes in this group yet. Add a group or area from the tree, or drag an estimate template here.
+      </span>
+    </div>
+  );
+}
+
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -1455,6 +1505,14 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
   const displayKind = isGroup ? "group" : "area";
   const showBreadcrumbs = !collapsed && !isGroup && ancestorPath.length > 0;
   const canReceiveTemplates = isGroup;
+  const activeDrag = useEstimateWorkshopDrag();
+  const templateDragActive = activeDrag?.kind === "estimate-template";
+  const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
+  const [templateDragOverCount, setTemplateDragOverCount] = useState(0);
+
+  // A cancelled drag never delivers the balancing dragleave; adjust the
+  // stale counter during render once the drag store empties.
+  if (!templateDragActive && templateDragOverCount !== 0) setTemplateDragOverCount(0);
 
   function handleTemplateDragOver(event: DragEvent<HTMLElement>) {
     if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
@@ -1463,25 +1521,47 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
     event.dataTransfer.dropEffect = "copy";
   }
 
+  // Groups stop enter/leave propagation so an ancestor group's highlight
+  // turns off while the pointer is over a nested group (where the drop would
+  // actually land). Areas let the events bubble: hovering an area highlights
+  // the ancestor group that would receive the template.
+  function handleTemplateDragEnter(event: DragEvent<HTMLElement>) {
+    if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+    event.stopPropagation();
+    setTemplateDragOverCount((count) => count + 1);
+  }
+
+  function handleTemplateDragLeave(event: DragEvent<HTMLElement>) {
+    if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+    event.stopPropagation();
+    setTemplateDragOverCount((count) => Math.max(0, count - 1));
+  }
+
   function handleTemplateDrop(event: DragEvent<HTMLElement>) {
     if (!canReceiveTemplates) return;
-    const payload = event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE);
+    setTemplateDragOverCount(0);
+    const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
     if (!payload) return;
     event.preventDefault();
     event.stopPropagation();
-    try {
-      const parsed = JSON.parse(payload) as { templateId?: unknown };
-      if (typeof parsed.templateId === "string") onInsertTemplate(node.id, parsed.templateId);
-    } catch {
-      // Ignore malformed drag payloads from outside the template sidebar.
+    if (payload.kind === "template-node") {
+      onInsertTemplateNode(node.id, payload.templateId, payload.templateNodeId);
+      return;
     }
+    payload.templateIds.forEach((templateId) => onInsertTemplate(node.id, templateId));
   }
 
   return (
     <section
-      className={cn(groupGap(depth, node.kind, usesSiblingGroupRhythm), !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20"))}
+      className={cn(
+        groupGap(depth, node.kind, usesSiblingGroupRhythm),
+        !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20"),
+        templateDragActive && canReceiveTemplates && templateDragOverCount > 0 && "bg-surfaceWarm/30",
+      )}
       aria-label={node.name}
       onDragOver={handleTemplateDragOver}
+      onDragEnter={handleTemplateDragEnter}
+      onDragLeave={handleTemplateDragLeave}
       onDrop={handleTemplateDrop}
     >
       <div className={cn("sticky top-0 z-[20]", !isGroup && "bg-white")}>
@@ -1551,6 +1631,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
                 setEditableRows={setEditableRows}
                 onInsertLibraryItem={onInsertLibraryItem}
                 onInsertTemplate={onInsertTemplate}
+                onInsertTemplateNode={onInsertTemplateNode}
                 onAddBlankRow={onAddBlankRow}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
@@ -1586,20 +1667,23 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
             onToggleRowSelection={onToggleRowSelection}
             onToggleRowsSelection={onToggleRowsSelection}
           />
-          {!hasContents ? (
-            <EmptyAreaMessage
+          {canReceiveRows ? (
+            <ComponentDropTarget
               nodeId={node.id}
               nodeName={node.name}
+              empty={!hasContents}
               onInsertLibraryItem={onInsertLibraryItem}
               onAddBlankRow={onAddBlankRow}
             />
           ) : null}
-          {hasContents && canReceiveRows ? (
-            <InlineDropZone
+          {isGroup && !hasContents ? <EmptyGroupMessage templateDragActive={templateDragActive} /> : null}
+          {isGroup && templateDragActive ? (
+            <TemplateDropZone
               nodeId={node.id}
               nodeName={node.name}
-              onInsertLibraryItem={onInsertLibraryItem}
-              onAddBlankRow={onAddBlankRow}
+              templateName={activeTemplateName}
+              onInsertTemplate={onInsertTemplate}
+              onInsertTemplateNode={onInsertTemplateNode}
             />
           ) : null}
         </div>
@@ -3914,6 +3998,61 @@ export function EstimateSheetContent({
     [insertTemplateIntoParent, templateTargetParentNode],
   );
 
+  // Inserts ONE node of a template (a group or area inside it) with its
+  // subtree. Same optimistic shape as whole-template insertion; the server
+  // recreates the subtree through the history-aware node/row RPCs.
+  const insertTemplateNodeIntoParent = useCallback(
+    (targetParentNodeId: string, template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
+      if (targetParentNode?.kind !== "group") return false;
+
+      const previousTree = estimateTree;
+      const previousRows = editableRows;
+      const rollbackRevision = getEstimateTreeRevision();
+      const optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
+      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
+      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
+      setSelectedNodeId(targetParentNodeId);
+
+      if (projectId && estimateId) {
+        insertEstimateTemplateNodeIntoEstimate({
+          projectId,
+          estimateId,
+          targetParentNodeId,
+          templateId: template.id,
+          templateNodeId: templateNode.id,
+        })
+          .then((result) => {
+            setEstimateTreeData(() => result.tree);
+          })
+          .catch(() => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision));
+      }
+
+      return true;
+    },
+    [editableRows, estimateId, estimateTree, getEstimateTreeRevision, projectId, restoreEstimateState, setEstimateTree, setEstimateTreeData, setSelectedNodeId],
+  );
+
+  const insertTemplateNodeIntoParentById = useCallback(
+    (targetParentNodeId: string, templateId: string, templateNodeId: string) => {
+      const template = templateById.get(templateId);
+      if (!template) return false;
+      const templateNode = findEstimateNode(template.nodes, templateNodeId);
+      if (!templateNode) return false;
+      return insertTemplateNodeIntoParent(targetParentNodeId, template, templateNode);
+    },
+    [insertTemplateNodeIntoParent, templateById],
+  );
+
+  const insertTemplateNodeIntoSelectedGroup = useCallback(
+    (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+      if (!templateTargetParentNode) return false;
+      return insertTemplateNodeIntoParent(templateTargetParentNode.id, template, templateNode);
+    },
+    [insertTemplateNodeIntoParent, templateTargetParentNode],
+  );
+
   const insertBlankRow = useCallback(
     (targetNodeId: string) => {
       insertLibraryItem(targetNodeId, createBlankEstimateRowTemplate());
@@ -3955,6 +4094,27 @@ export function EstimateSheetContent({
     window.addEventListener("archestimator:add-library-item", handleSidebarAdd);
     return () => window.removeEventListener("archestimator:add-library-item", handleSidebarAdd);
   }, [insertLibraryItem, insertTargetNodeId]);
+
+  // Template drops on the left estimate tree arrive here: that panel can
+  // target a group row but the optimistic insert + rollback flow lives in
+  // this component. Category drags carry several template ids; dragging a
+  // node from inside a template carries that node's id.
+  useEffect(() => {
+    function handleInsertTemplateEvent(event: Event) {
+      const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
+      if (typeof detail?.targetParentNodeId !== "string") return;
+      if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
+        insertTemplateNodeIntoParentById(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
+        return;
+      }
+      if (!Array.isArray(detail.templateIds)) return;
+      for (const templateId of detail.templateIds) {
+        if (typeof templateId === "string" && templateId) insertTemplateIntoParentById(detail.targetParentNodeId, templateId);
+      }
+    }
+    window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
+    return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
+  }, [insertTemplateIntoParentById, insertTemplateNodeIntoParentById]);
 
   function replaceRowItem(rowItemId: string, libraryItem: EstimateRowItem) {
     const previousTree = estimateTree;
@@ -4164,6 +4324,7 @@ export function EstimateSheetContent({
                     setEditableRows={setEditableRows}
                     onInsertLibraryItem={insertLibraryItem}
                     onInsertTemplate={insertTemplateIntoParentById}
+                    onInsertTemplateNode={insertTemplateNodeIntoParentById}
                     onAddBlankRow={insertBlankRow}
                     onReplaceRowItem={replaceRowItem}
                     onDeleteRowItem={deleteRowItem}
@@ -4228,6 +4389,7 @@ export function EstimateSheetContent({
       {renderSidebar ? (
         <EstimateRightSidebar
           onInsertComponent={insertIntoSelectedNode}
+          projectId={projectId}
           estimateId={estimateId}
           selectedNodeId={resolvedSelectedNodeId}
           selectedNodeKind={selectedNode?.kind ?? null}
@@ -4242,6 +4404,7 @@ export function EstimateSheetContent({
           brands={libraryBrands}
           libraryFolders={libraryFolders}
           onInsertTemplate={insertTemplateIntoSelectedGroup}
+          onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
         />
       ) : null}
     </>
