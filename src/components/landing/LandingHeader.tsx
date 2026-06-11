@@ -102,7 +102,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
               </Link>
               <Link
                 href={loginHref}
-                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "login" })}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "login", cta_label: "Log In" })}
                 className={`hidden sm:inline ${isOverFooter ? "hover:text-white/70" : "hover:text-brand-orange"}`}
               >
                 Log In

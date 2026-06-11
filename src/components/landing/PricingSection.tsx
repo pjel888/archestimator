@@ -27,7 +27,7 @@ export function PricingSection() {
               <div className="mt-8">
                 <CtaLink
                   href="/contact"
-                  onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "pricing", target: "request_access" })}
+                  onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "pricing", target: "request_access", cta_label: "Request access" })}
                 >
                   Request access
                 </CtaLink>
