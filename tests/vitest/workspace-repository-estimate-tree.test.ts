@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { buildEstimateTree, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -228,7 +229,9 @@ describe("workspace repository estimate tree projection", () => {
     ]);
   });
 
-  it("projects Group Node siblings before Area Node siblings even when persisted sort orders are mixed", () => {
+  it("preserves persisted sort order when group and area siblings interleave", () => {
+    // One order everywhere: the tree, the sheet, and node codes all read the
+    // stored sort_order, so the projection must not re-rank kinds.
     const tree = buildEstimateTree(
       [
         node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
@@ -239,7 +242,7 @@ describe("workspace repository estimate tree projection", () => {
       [],
     );
 
-    expect(tree[0]?.children?.map((child) => child.id)).toEqual(["site-work", "kitchen", "living"]);
+    expect(tree[0]?.children?.map((child) => child.id)).toEqual(["kitchen", "site-work", "living"]);
   });
 
   it("builds complete display rows from the narrowed estimate-sheet query columns only", () => {

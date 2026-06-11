@@ -10,6 +10,7 @@ import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   canNestEstimateNodeKind,
   getEstimateNodeNestingError,
+  getEstimateWrapGroupName,
   normalizeEstimateTreeNodeKind,
   type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
@@ -2098,6 +2099,111 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template node.");
 
   return { tree, insertedRootNodeId };
+}
+
+type WrapEstimateAreaAndInsertTemplateInput = {
+  projectId: string;
+  estimateId: string;
+  areaNodeId: string;
+  insert:
+    | { templateIds: string[] }
+    | { templateId: string; templateNodeId: string };
+};
+
+type WrapEstimateAreaAndInsertTemplateResult = {
+  tree: EstimateTreeNode[];
+  newGroupNodeId: string;
+};
+
+/**
+ * Template drop on an area node: areas cannot take child nodes, so this
+ * creates a wrapper group in the area's slot, moves the area inside it, and
+ * inserts the template content as the area's new siblings. Composed from the
+ * history-aware RPCs; a mid-way failure leaves the already-created nodes
+ * visible and deletable rather than rolling back (same contract as
+ * insertEstimateTemplateNodeIntoEstimate).
+ */
+export async function wrapEstimateAreaAndInsertTemplate({
+  projectId,
+  estimateId,
+  areaNodeId,
+  insert,
+}: WrapEstimateAreaAndInsertTemplateInput): Promise<WrapEstimateAreaAndInsertTemplateResult> {
+  assertNotOptimisticEstimateNodeId(areaNodeId, "Estimate area node");
+  if ("templateIds" in insert && insert.templateIds.length === 0) throw new Error("At least one estimate template is required.");
+
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const currentUser = await requireCurrentUserContext();
+
+  const { data: areaNode, error: areaError } = await supabase
+    .from("estimate_nodes")
+    .select("id, kind, name, parent_id, sort_order, estimates!inner(project_id)")
+    .eq("id", areaNodeId)
+    .eq("estimate_id", estimateId)
+    .eq("kind", "area")
+    .eq("estimates.project_id", project.id)
+    .maybeSingle();
+  if (areaError) throw areaError;
+  if (!areaNode) throw new Error("Area node not found in the current estimate.");
+  if (!areaNode.parent_id) throw new Error("Area node has no parent group to wrap under.");
+
+  const { data: groupResult, error: groupError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    parent_node_id: areaNode.parent_id,
+    node_kind: "group",
+    node_name: getEstimateWrapGroupName(areaNode.name),
+    initial_sort_order: areaNode.sort_order,
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+  });
+  if (groupError) throw new Error(`Could not create the wrapper group: ${groupError.message}`);
+  const groupResultRecord = readJsonRecord(groupResult);
+  const groupResultPayload = readJsonRecord(groupResultRecord.payload);
+  const newGroupNodeId = typeof groupResultRecord.nodeId === "string"
+    ? groupResultRecord.nodeId
+    : typeof groupResultPayload.nodeId === "string"
+      ? groupResultPayload.nodeId
+      : "";
+  if (!newGroupNodeId) throw new Error("Estimate node history RPC did not return the created wrapper group id.");
+
+  const { error: moveError } = await asEstimateHistoryRpcClient(supabase).rpc("reorder_estimate_nodes_with_history", {
+    target_estimate_id: estimateId,
+    move_updates: [{ id: areaNodeId, parent_id: newGroupNodeId, sort_order: 0 }],
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+  });
+  if (moveError) throw new Error(`Could not move the area into the wrapper group: ${moveError.message}`);
+
+  if ("templateNodeId" in insert) {
+    await insertEstimateTemplateNodeIntoEstimate({
+      projectId,
+      estimateId,
+      targetParentNodeId: newGroupNodeId,
+      templateId: insert.templateId,
+      templateNodeId: insert.templateNodeId,
+    });
+  } else {
+    for (const templateId of insert.templateIds) {
+      const { error: copyError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_template_into_estimate_with_history", {
+        target_project_id: project.id,
+        target_estimate_id: estimateId,
+        target_parent_node_id: newGroupNodeId,
+        source_template_id: templateId,
+        acting_user_id: currentUser.userId,
+        correlation_id: randomUUID(),
+      });
+      if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
+    }
+  }
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after grouping the area.");
+
+  return { tree, newGroupNodeId };
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {

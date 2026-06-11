@@ -162,22 +162,6 @@ function confirmedGroupReparentTree(): EstimateTreeNode[] {
           total: "₱0.00",
           children: [
             {
-              id: "site-works",
-              name: "Site Works",
-              kind: "group",
-              total: "₱0.00",
-              children: [
-                {
-                  id: "front-yard",
-                  name: "Front Yard",
-                  kind: "area",
-                  total: "₱0.00",
-                  estimateRowItems: [],
-                  children: [],
-                },
-              ],
-            },
-            {
               id: "kitchen",
               name: "Kitchen",
               kind: "area",
@@ -192,6 +176,22 @@ function confirmedGroupReparentTree(): EstimateTreeNode[] {
               total: "₱0.00",
               estimateRowItems: [],
               children: [],
+            },
+            {
+              id: "site-works",
+              name: "Site Works",
+              kind: "group",
+              total: "₱0.00",
+              children: [
+                {
+                  id: "front-yard",
+                  name: "Front Yard",
+                  kind: "area",
+                  total: "₱0.00",
+                  estimateRowItems: [],
+                  children: [],
+                },
+              ],
             },
           ],
         },
@@ -431,13 +431,15 @@ describe("estimate sheet tree drag/drop", () => {
     });
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
-    expect(renderedIds()).toEqual(["project-scope", "ground-floor", "site-works", "front-yard", "kitchen", "living"]);
+    // "Inside" drops append after the existing children — the dropped group
+    // does not jump above area siblings.
+    expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
     expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
       updates: [
         { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
-        { id: "site-works", parentId: "ground-floor", sortOrder: 10 },
-        { id: "kitchen", parentId: "ground-floor", sortOrder: 20 },
-        { id: "living", parentId: "ground-floor", sortOrder: 30 },
+        { id: "kitchen", parentId: "ground-floor", sortOrder: 10 },
+        { id: "living", parentId: "ground-floor", sortOrder: 20 },
+        { id: "site-works", parentId: "ground-floor", sortOrder: 30 },
       ],
     });
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedGroupReparentTree());
@@ -514,6 +516,30 @@ describe("estimate sheet tree drag/drop", () => {
     expect(document.querySelector('[data-tree-row^="optimistic-group-"]')).not.toBeNull();
     expect(screen.getByLabelText("Rename New Group")).toHaveValue("New Group");
     expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).toContain("New Group");
+  });
+
+  it("appends an optimistic Add Group row after area siblings and keeps that slot on settle", async () => {
+    const pending = deferred<{ nodeId: string; name: string; kind: "group"; parentId: string }>();
+    actionMocks.createEstimateNode.mockReturnValue(pending.promise);
+    renderTree(fixtureTree(), "ground-floor");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+
+    // Position is the contract: the removed groups-before-areas rule would
+    // hoist the new group above kitchen/living, then snap on settle.
+    const optimisticIds = renderedIds();
+    const optimisticRow = optimisticIds.find((id) => id?.startsWith("optimistic-group-"));
+    expect(optimisticRow).toBeTruthy();
+    expect(optimisticIds).toEqual(["project-scope", "ground-floor", "kitchen", "living", optimisticRow, "site-works", "front-yard"]);
+
+    await act(async () => {
+      pending.resolve({ nodeId: "server-group-1", name: "New Group", kind: "group", parentId: "ground-floor" });
+      await pending.promise;
+    });
+
+    await waitFor(() =>
+      expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "server-group-1", "site-works", "front-yard"]),
+    );
   });
 
   it("does not call persistence for invalid or no-op drops", async () => {

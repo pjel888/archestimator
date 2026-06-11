@@ -1,5 +1,5 @@
 import type { EstimateTreeNode } from "@/lib/estimates/types";
-import { canNestEstimateNodeKind, getEstimateNodeKindSortRank } from "@/lib/estimates/tree-hierarchy";
+import { canNestEstimateNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 export const ESTIMATE_TREE_SORT_ORDER_STEP = 10;
 
@@ -104,19 +104,16 @@ function removeNode(nodes: EstimateTreeNode[], id: string): RemoveNodeResult {
   return { removed, nodes: nextNodes };
 }
 
-function sortEstimateTreeSiblings(nodes: EstimateTreeNode[]) {
-  return nodes
-    .map((node, index) => ({ node, index }))
-    .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
-    .map(({ node }) => node);
-}
-
+// Drops land exactly where the user released them: the splice index is the
+// final sibling position. No kind-based re-sorting — a drop that visually
+// lands above a group must persist above that group, or the tree "snaps"
+// after settle.
 function insertNode(nodes: EstimateTreeNode[], parentId: string | null, rawIndex: number, nodeToInsert: EstimateTreeNode): EstimateTreeNode[] {
   const targetIndex = Math.max(0, rawIndex);
   if (parentId === null) {
     const nextNodes = nodes.map(cloneNode);
     nextNodes.splice(Math.min(targetIndex, nextNodes.length), 0, cloneNode(nodeToInsert));
-    return sortEstimateTreeSiblings(nextNodes);
+    return nextNodes;
   }
 
   return nodes.map((node) => {
@@ -124,7 +121,7 @@ function insertNode(nodes: EstimateTreeNode[], parentId: string | null, rawIndex
     if (cloned.id === parentId) {
       const nextChildren = cloned.children?.map(cloneNode) ?? [];
       nextChildren.splice(Math.min(targetIndex, nextChildren.length), 0, cloneNode(nodeToInsert));
-      return { ...cloned, children: sortEstimateTreeSiblings(nextChildren) };
+      return { ...cloned, children: nextChildren };
     }
     if (cloned.children?.length) return { ...cloned, children: insertNode(cloned.children, parentId, targetIndex, nodeToInsert) };
     return cloned;

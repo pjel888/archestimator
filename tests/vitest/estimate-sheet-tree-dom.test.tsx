@@ -273,9 +273,9 @@ describe("estimate sheet tree DOM integration", () => {
   it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {
     renderTree();
 
-    const insertEvents: Array<{ targetParentNodeId: string; templateIds: string[] }> = [];
+    const insertEvents: Array<Record<string, unknown>> = [];
     const recordInsert = (event: Event) => {
-      insertEvents.push((event as CustomEvent<{ targetParentNodeId: string; templateIds: string[] }>).detail);
+      insertEvents.push((event as CustomEvent<Record<string, unknown>>).detail);
     };
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
 
@@ -294,14 +294,16 @@ describe("estimate sheet tree DOM integration", () => {
 
       expect(insertEvents).toEqual([{ targetParentNodeId: "alternates", templateIds: ["tpl-9"] }]);
 
-      // Area rows never accept templates: areas cannot nest nodes.
+      // Area rows accept templates too: areas cannot nest nodes, so the
+      // sheet wraps the area and the template in a new group.
       const kitchen = treeNodeButton("kitchen");
       setMiddleDropRect(kitchen);
       fireEvent.dragOver(kitchen, { clientY: 0, dataTransfer });
-      expect(treeNodeButton("kitchen")).not.toHaveClass("bg-surfaceMuted");
+      expect(treeNodeButton("kitchen")).toHaveClass("bg-surfaceMuted");
       fireEvent.drop(kitchen, { dataTransfer });
 
-      expect(insertEvents).toHaveLength(1);
+      expect(insertEvents).toHaveLength(2);
+      expect(insertEvents[1]).toEqual({ wrapAreaNodeId: "kitchen", templateIds: ["tpl-9"] });
     } finally {
       window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
     }

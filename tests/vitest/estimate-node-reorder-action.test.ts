@@ -341,7 +341,7 @@ describe("createEstimateNode server action", () => {
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("orders a new Group Node before existing Area Node siblings", async () => {
+  it("appends a new Group Node after existing siblings at max sibling sort_order + 1", async () => {
     const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
     const parentQuery = queryResult({
       data: { id: "main-house", kind: "group", estimate_id: "estimate-1", estimates: { project_id: "project-1" } },

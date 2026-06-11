@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowCounterClockwise,
   Check,
-  Cube,
   FolderSimple,
+  MapPin,
   FolderSimplePlus,
   PencilSimple,
   StackPlus,
@@ -22,7 +22,7 @@ import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
-import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { getEstimateNodeDisplayKind, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
   dedupeSelectedRoots,
@@ -74,11 +74,11 @@ function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") {
     return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
   }
-  return <Cube size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+  return <MapPin size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : Cube;
+  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : MapPin;
   return <Icon size={13} weight="regular" aria-hidden="true" />;
 }
 
@@ -90,16 +90,12 @@ function cloneEstimateTreeNode(node: EstimateTreeNode): EstimateTreeNode {
   };
 }
 
-function sortLocalEstimateTreeSiblings(nodes: EstimateTreeNode[]) {
-  return nodes
-    .map((node, index) => ({ node, index }))
-    .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
-    .map(({ node }) => node);
-}
-
+// New nodes append after their siblings — the same slot the server assigns
+// (max sibling sort_order + 1) — so the optimistic tree and the settled tree
+// agree without any kind-based re-sorting.
 function insertLocalEstimateTreeNode(nodes: EstimateTreeNode[], parentId: string | null, nodeToInsert: EstimateTreeNode): EstimateTreeNode[] {
   if (parentId === null) {
-    return sortLocalEstimateTreeSiblings([...nodes.map(cloneEstimateTreeNode), cloneEstimateTreeNode(nodeToInsert)]);
+    return [...nodes.map(cloneEstimateTreeNode), cloneEstimateTreeNode(nodeToInsert)];
   }
 
   return nodes.map((node) => {
@@ -107,7 +103,7 @@ function insertLocalEstimateTreeNode(nodes: EstimateTreeNode[], parentId: string
     if (cloned.id === parentId && isEstimateGroupNodeKind(cloned.kind)) {
       return {
         ...cloned,
-        children: sortLocalEstimateTreeSiblings([...(cloned.children ?? []), cloneEstimateTreeNode(nodeToInsert)]),
+        children: [...(cloned.children ?? []), cloneEstimateTreeNode(nodeToInsert)],
       };
     }
     if (cloned.children?.length) return { ...cloned, children: insertLocalEstimateTreeNode(cloned.children, parentId, nodeToInsert) };
@@ -582,27 +578,34 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     treeSearchActive,
   ]);
 
-  // Templates dragged from the right sidebar drop "inside" group rows only:
-  // the server's template insert requires an existing group parent (no root
-  // or area placement), so other bands never light up.
+  // Templates dragged from the right sidebar drop "inside" group and area
+  // rows (no root or between-row placement). Group targets insert directly;
+  // area targets cannot take child nodes, so the sheet wraps the area and
+  // the template in a new group occupying the area's slot.
   const treeExternalDrop = useMemo<TreeExternalDropOptions>(() => ({
     types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE],
     canDrop: (types, targetId, position) => {
       if (!types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return false;
       if (position !== "inside") return false;
       if (isOptimisticEstimateNodeId(targetId)) return false;
-      const node = findEstimateNode(localNodes, targetId);
-      return Boolean(node && isEstimateGroupNodeKind(node.kind));
+      return Boolean(findEstimateNode(localNodes, targetId));
     },
     onDrop: (event, targetId) => {
       const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
       if (!payload) return;
+      const targetNode = findEstimateNode(localNodes, targetId);
+      if (!targetNode) return;
       suppressPrimaryActionAfterDrag();
       // The sheet owns template insertion (optimistic update + rollback);
       // hand the drop over instead of duplicating that flow here.
+      const isGroupTarget = isEstimateGroupNodeKind(targetNode.kind);
       const detail: InsertEstimateTemplateEventDetail = payload.kind === "template-node"
-        ? { targetParentNodeId: targetId, templateId: payload.templateId, templateNodeId: payload.templateNodeId }
-        : { targetParentNodeId: targetId, templateIds: payload.templateIds };
+        ? isGroupTarget
+          ? { targetParentNodeId: targetId, templateId: payload.templateId, templateNodeId: payload.templateNodeId }
+          : { wrapAreaNodeId: targetId, templateId: payload.templateId, templateNodeId: payload.templateNodeId }
+        : isGroupTarget
+          ? { targetParentNodeId: targetId, templateIds: payload.templateIds }
+          : { wrapAreaNodeId: targetId, templateIds: payload.templateIds };
       window.dispatchEvent(new CustomEvent<InsertEstimateTemplateEventDetail>(INSERT_ESTIMATE_TEMPLATE_EVENT, { detail }));
     },
   }), [localNodes, suppressPrimaryActionAfterDrag]);
@@ -1080,11 +1083,11 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 {
                   id: "new-area-inside",
                   label: "New Area Node inside",
-                  icon: <Cube size={12} weight="regular" aria-hidden="true" />,
-                  onSelect: () => {
-                    armContextMenuRenameHandoff();
-                    handleAddTreeNode("area", contextMenuNode.id);
-                  },
+                  icon: <MapPin size={12} weight="regular" aria-hidden="true" />,
+                    onSelect: () => {
+                      armContextMenuRenameHandoff();
+                      handleAddTreeNode("area", contextMenuNode.id);
+                    },
                 },
               ],
             },

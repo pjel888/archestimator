@@ -424,3 +424,14 @@ Rejected: dropping source_snapshot from sheet tree queries | toUiRow consumes it
 Confidence: high
 Scope-risk: moderate
 Directive: Every handler passed into EstimateSheetBranch/EstimateRowItemsTable must stay identity-stable; node row arrays must reuse EMPTY_ESTIMATE_ROW_ITEMS; getLandingAuthState must never gate access; reopen U3/U5 only with DB parity/EXPLAIN proof, and U7/U10 only on real-browser budget misses.
+
+## 2026-06-11 — Estimate tree sibling order: stored sort_order is the single source of truth
+
+Decision: Removed the groups-before-areas display convention everywhere. Sibling order in the sheets tree, the estimate sheet, and node codes is now purely the persisted sort_order: buildEstimateTree projects query order verbatim, the reorder planner persists the exact splice index of a drop (no kind re-rank), and optimistic tree inserts append at the end to match the server's max-sibling+1 slot. Template drops on area nodes wrap the area and the payload in a new "{Area} Group" occupying the area's slot, with selection re-scoping to the new group (drag to sheet, drag to tree area rows, and the right-panel Add path all share this behavior). A ready-design migration (supabase/migrations/20260611031500_estimate_node_sibling_order_stored.sql) backfills legacy rows to freeze the previously displayed order and redefines create_estimate_node_with_history to renormalize by (sort_order, created_at, id) only — it must be applied for the contract to fully hold, since the RPC currently still re-ranks kinds server-side.
+
+Constraint: No database channel for agents this run; the migration is prepared but unapplied, so until it lands, node creates under mixed-kind parents are hoisted above areas server-side and diverge from the optimistic client order until the next load.
+Rejected: keeping groups-before-areas and applying it to the sheet too | order carries meaning (node codes derive from sibling index) and drop previews must match persisted results; a cosmetic second ordering rule can only disagree with sort_order.
+Rejected: wrap-case-only fix (insert template before area) | the snap-back and tree/sheet mismatch were systemic, not wrap-specific.
+Confidence: high
+Scope-risk: moderate
+Directive: Never reintroduce kind-based sibling sorting in any layer (display, reorder math, repository projection, or SQL RPCs); new ordering features must read and write sort_order only. Apply the 20260611031500 migration before relying on slot-preserving inserts.

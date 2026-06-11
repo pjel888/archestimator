@@ -115,6 +115,18 @@ function renderSheet() {
   );
 }
 
+// Wrap-on-drop needs a real estimate id: selection moves through the shared
+// workspace store, which is keyed by estimate. No projectId keeps every
+// server call skipped, so the flows stay optimistic-only like renderSheet.
+function renderAreaScopedSheet() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <EstimateSheetContent estimateId="estimate-1" selectedNodeId="kitchen" nodes={fixtureTree()} libraryTemplates={templates} renderSidebar={false} />
+    </QueryClientProvider>,
+  );
+}
+
 describe("estimate sheet drag-aware drop zones", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
@@ -189,7 +201,7 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(screen.queryByText("Starter Wing")).not.toBeInTheDocument();
   });
 
-  it("offers template drop zones for groups only, never for areas", () => {
+  it("offers plain insert zones for groups only, never for areas nested in a group-scoped sheet", () => {
     renderSheet();
 
     act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "tpl-1", templateName: "Kitchen Starter" }));
@@ -197,8 +209,66 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(screen.getByText("Drop Kitchen Starter into Lot")).toBeInTheDocument();
     expect(screen.getByText("Drop Kitchen Starter into Annex")).toBeInTheDocument();
     expect(screen.queryByText("Drop Kitchen Starter into Kitchen")).not.toBeInTheDocument();
+    expect(screen.queryByText(/group it with Kitchen/i)).not.toBeInTheDocument();
 
     act(() => endEstimateWorkshopDrag());
     expect(screen.queryByText(/Drop Kitchen Starter into/i)).not.toBeInTheDocument();
+  });
+
+  it("wraps an area-scoped sheet and the dropped template in a new group and re-scopes to it", async () => {
+    renderAreaScopedSheet();
+
+    expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
+    act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "tpl-1", templateName: "Kitchen Starter" }));
+
+    // Areas take no child nodes, so the only target is the wrap zone.
+    expect(screen.queryByText(/Drop Kitchen Starter into/i)).not.toBeInTheDocument();
+    const wrapZoneLabel = screen.getByText("Drop Kitchen Starter here to group it with Kitchen");
+    const wrapZone = wrapZoneLabel.closest("[data-estimate-template-drop-zone]");
+    expect(wrapZone).not.toBeNull();
+
+    const dataTransfer = createDataTransferStub([ESTIMATE_TEMPLATE_DRAG_MIME_TYPE]);
+    dataTransfer.setData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, JSON.stringify({ templateId: "tpl-1" }));
+    fireEvent.drop(wrapZone as HTMLElement, { dataTransfer });
+    act(() => endEstimateWorkshopDrag());
+
+    // The sheet now shows the wrapper group holding the original area and
+    // the template structure; names can repeat in headers and breadcrumbs.
+    expect((await screen.findAllByText("Kitchen Group")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Kitchen").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Starter Wing").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Starter Pantry").length).toBeGreaterThan(0);
+
+    // Order is part of the wrap contract: the original area leads, the
+    // dropped template content follows.
+    const kitchenSection = screen.getByRole("region", { name: "Kitchen" });
+    const starterWingSection = screen.getByRole("region", { name: "Starter Wing" });
+    expect(kitchenSection.compareDocumentPosition(starterWingSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("wraps only the dragged subtree when a node from inside a template drops on an area-scoped sheet", async () => {
+    renderAreaScopedSheet();
+
+    act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateName: "Starter Pantry" }));
+
+    const wrapZoneLabel = screen.getByText("Drop Starter Pantry here to group it with Kitchen");
+    const wrapZone = wrapZoneLabel.closest("[data-estimate-template-drop-zone]");
+    expect(wrapZone).not.toBeNull();
+
+    const dataTransfer = createDataTransferStub([ESTIMATE_TEMPLATE_DRAG_MIME_TYPE]);
+    dataTransfer.setData(
+      ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+      JSON.stringify({ templateId: "tpl-1", templateNodeId: "tpl-1-area" }),
+    );
+    fireEvent.drop(wrapZone as HTMLElement, { dataTransfer });
+    act(() => endEstimateWorkshopDrag());
+
+    expect((await screen.findAllByText("Kitchen Group")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Starter Pantry").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Starter Wing")).not.toBeInTheDocument();
+
+    const kitchenSection = screen.getByRole("region", { name: "Kitchen" });
+    const pantrySection = screen.getByRole("region", { name: "Starter Pantry" });
+    expect(kitchenSection.compareDocumentPosition(pantrySection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

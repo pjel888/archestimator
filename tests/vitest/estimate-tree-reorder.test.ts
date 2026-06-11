@@ -211,7 +211,7 @@ describe("estimate tree reorder planning", () => {
     expect(getEstimateTreeStructureSignature(result.plan.nextNodes)).toContain("ground-floor/site-works:group");
   });
 
-  it("keeps Group Nodes before Area Nodes when mixed siblings are reordered", () => {
+  it("lands mixed-kind siblings exactly at the drop index", () => {
     const result = buildEstimateNodeReorderPlan({
       nodes: fixtureTree(),
       draggedNodeId: "site-works",
@@ -221,16 +221,48 @@ describe("estimate tree reorder planning", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.message);
-    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["site-works", "kitchen", "living"]);
+    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["kitchen", "living", "site-works"]);
     expect(result.plan.updates).toEqual([
       { id: "ground-floor", parentId: "project-scope", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
-      { id: "site-works", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
-      { id: "kitchen", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 2 },
-      { id: "living", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 3 },
+      { id: "kitchen", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
+      { id: "living", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 2 },
+      { id: "site-works", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 3 },
     ]);
   });
 
-  it("treats drops neutralized by group-before-area sorting as no-op drops", () => {
+  it("maps a 'before' drop so an area lands above a sibling group through the UI path", () => {
+    // The tree's top-quarter band emits position "before"; this is the path
+    // the UI actually takes when dropping a row directly above a group.
+    const result = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["kitchen"],
+      target: { targetNodeId: "site-works", position: "before" },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "project-scope")).toEqual(["ground-floor", "kitchen", "site-works"]);
+    expect(result.plan.updates).toEqual([
+      { id: "living", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
+      { id: "ground-floor", parentId: "project-scope", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
+      { id: "kitchen", parentId: "project-scope", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 2 },
+      { id: "site-works", parentId: "project-scope", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 3 },
+    ]);
+  });
+
+  it("treats a 'before' drop directly above the node's next sibling as a no-op", () => {
+    // Same-parent index adjustment: dropping ground-floor above site-works
+    // is where it already sits, and must not produce phantom updates.
+    const result = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["ground-floor"],
+      target: { targetNodeId: "site-works", position: "before" },
+    });
+
+    expect(result).toMatchObject({ ok: false, code: "no-op" });
+  });
+
+  it("lets an area land above a sibling group and persists that order", () => {
     const nodes = [
       node({
         id: "main-house",
@@ -250,7 +282,13 @@ describe("estimate tree reorder planning", () => {
       targetIndex: 0,
     });
 
-    expect(result).toMatchObject({ ok: false, code: "no-op" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "main-house")).toEqual(["kitchen", "first-floor"]);
+    expect(result.plan.updates).toEqual([
+      { id: "kitchen", parentId: "main-house", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
+      { id: "first-floor", parentId: "main-house", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 2 },
+    ]);
   });
 
   it("applies confirmed tree structure while preserving cached node content", () => {

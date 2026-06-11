@@ -22,10 +22,6 @@ export function getEstimateNodeDisplayKind(kind: EstimateTreeNodeKind): Estimate
   return kind;
 }
 
-export function getEstimateNodeKindSortRank(kind: EstimateTreeNodeKind) {
-  return kind === "group" ? 0 : 1;
-}
-
 export function canNestEstimateNodeKind(childKind: EstimateTreeNodeKind, parentKind: EstimateTreeNodeKind | null) {
   if (parentKind === null) return childKind === "group";
   return parentKind === "group";
@@ -34,6 +30,17 @@ export function canNestEstimateNodeKind(childKind: EstimateTreeNodeKind, parentK
 export function formatEstimateNodeKind(kind: EstimateTreeNodeKind | null) {
   if (!kind) return "estimate root";
   return getEstimateNodeDisplayKind(kind);
+}
+
+/**
+ * Name for the group auto-created when a template drops onto an area node.
+ * Areas cannot take child nodes, so the drop wraps the area and the template
+ * in a new sibling-replacing group; client (optimistic) and server both
+ * derive the same name from here.
+ */
+export function getEstimateWrapGroupName(areaName: string) {
+  const trimmed = areaName.trim();
+  return trimmed ? `${trimmed} Group` : "New Group";
 }
 
 export function getEstimateNodeNestingError(childKind: EstimateTreeNodeKind, parentKind: EstimateTreeNodeKind | null) {
