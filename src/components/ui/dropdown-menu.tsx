@@ -6,6 +6,12 @@ import {
   type ActionMenuGroup,
   ContextActionMenuContent,
 } from "@/components/ui/action-menu";
+import {
+  composeRefs,
+  DropdownPopupPanel,
+  scrollPopupItemIntoView,
+  useDropdownPopup,
+} from "@/components/ui/dropdown-popup";
 import { cn } from "@/lib/ui/cn";
 
 export type DropdownMenuItemProps = {
@@ -60,37 +66,45 @@ const DropdownMenu = Object.assign(function DropdownMenuRoot({
   side = "bottom",
   className,
 }: DropdownMenuProps) {
-  const [open, setOpen] = React.useState(false);
-  const rootRef = React.useRef<HTMLDivElement>(null);
-  const triggerRef = React.useRef<HTMLElement | null>(null);
   const menuId = React.useId();
-  const groups = React.useMemo(() => buildActionGroups(children, () => setOpen(false)), [children]);
+  const { open, position, rootRef, triggerRef, panelRef, togglePopup, openPopup, close } =
+    useDropdownPopup({ align, side });
+  const groups = React.useMemo(() => buildActionGroups(children, () => close("select")), [children, close]);
 
-  const focusMenuItem = React.useCallback((direction: "first" | "last" | "next" | "previous") => {
-    const root = rootRef.current;
-    if (!root) return;
+  // Menu variant uses real roving DOM focus over the portaled items; the
+  // select variant keeps DOM focus on its trigger instead (virtual focus via
+  // aria-activedescendant in dropdown-select.tsx).
+  const focusMenuItem = React.useCallback(
+    (direction: "first" | "last" | "next" | "previous") => {
+      const panel = panelRef.current;
+      if (!panel) return;
 
-    const items = Array.from(
-      root.querySelectorAll<HTMLElement>("[data-dropdown-menu-item]:not([data-disabled='true'])")
-    );
-    if (items.length === 0) return;
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>("[data-dropdown-menu-item]:not([data-disabled='true'])")
+      );
+      if (items.length === 0) return;
 
-    const activeIndex = items.findIndex((item) => item === document.activeElement);
-    const nextIndex =
-      direction === "first"
-        ? 0
-        : direction === "last"
-          ? items.length - 1
-          : direction === "next"
-            ? activeIndex < 0
-              ? 0
-              : (activeIndex + 1) % items.length
-            : activeIndex < 0
-              ? items.length - 1
-              : (activeIndex - 1 + items.length) % items.length;
+      const activeIndex = items.findIndex((item) => item === document.activeElement);
+      const nextIndex =
+        direction === "first"
+          ? 0
+          : direction === "last"
+            ? items.length - 1
+            : direction === "next"
+              ? activeIndex < 0
+                ? 0
+                : (activeIndex + 1) % items.length
+              : activeIndex < 0
+                ? items.length - 1
+                : (activeIndex - 1 + items.length) % items.length;
 
-    items[nextIndex]?.focus();
-  }, []);
+      const nextItem = items[nextIndex];
+      if (!nextItem) return;
+      nextItem.focus({ preventScroll: true });
+      scrollPopupItemIntoView(panel, nextItem);
+    },
+    [panelRef]
+  );
 
   React.useEffect(() => {
     if (!open) return;
@@ -99,28 +113,18 @@ const DropdownMenu = Object.assign(function DropdownMenuRoot({
     return () => cancelAnimationFrame(frame);
   }, [focusMenuItem, open]);
 
-  React.useEffect(() => {
-    if (!open) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [open]);
-
-  const closeAndFocusTrigger = React.useCallback(() => {
-    setOpen(false);
-    requestAnimationFrame(() => triggerRef.current?.focus());
-  }, []);
-
   const handleMenuKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeAndFocusTrigger();
+      // Escape is handled by the popup core's capture-phase document
+      // listener (native event), which closes and refocuses the trigger
+      // before this handler could run.
+
+      if (event.key === "Tab") {
+        // Menu pattern: Tab closes without activating. Refocusing the
+        // trigger first lets the default Tab move focus to the element
+        // after it instead of wherever the portal sits in DOM order.
+        triggerRef.current?.focus?.();
+        close("manual");
         return;
       }
 
@@ -156,38 +160,34 @@ const DropdownMenu = Object.assign(function DropdownMenuRoot({
         (item as HTMLElement).click();
       }
     },
-    [closeAndFocusTrigger, focusMenuItem]
+    [close, focusMenuItem, triggerRef]
   );
 
   const renderedTrigger = renderTrigger(trigger, {
     menuId,
     open,
     triggerRef,
-    onOpen: () => setOpen((value) => !value),
-    onKeyboardOpen: () => setOpen(true),
+    onToggle: togglePopup,
+    onKeyboardOpen: openPopup,
   });
 
   return (
     <div ref={rootRef} className="relative inline-flex" data-slot="dropdown-menu-root">
       {renderedTrigger}
-      {open ? (
-        <div
-          id={menuId}
-          aria-orientation="vertical"
-          className={cn(
-            "absolute z-[1050] min-w-32 overflow-hidden rounded-xs border border-hairline bg-white p-1 font-sans text-[10px] font-normal leading-3 text-ink shadow-[0_12px_32px_rgba(17,24,39,0.12)] outline-none",
-            side === "bottom" ? "top-full mt-1" : "bottom-full mb-1",
-            align === "end" ? "right-0" : "left-0",
-            className
-          )}
-          data-side={side}
-          data-slot="dropdown-menu-content"
-          role="menu"
-          onKeyDown={handleMenuKeyDown}
-        >
-          <ContextActionMenuContent groups={groups} renderer={dropdownRenderer} />
-        </div>
-      ) : null}
+      <DropdownPopupPanel
+        open={open}
+        position={position}
+        panelRef={panelRef}
+        id={menuId}
+        aria-orientation="vertical"
+        className={cn(className)}
+        data-side={side}
+        data-slot="dropdown-menu-content"
+        role="menu"
+        onKeyDown={handleMenuKeyDown}
+      >
+        <ContextActionMenuContent groups={groups} renderer={dropdownRenderer} />
+      </DropdownPopupPanel>
     </div>
   );
 }, { Item: DropdownMenuItem, Group: DropdownMenuGroup }) satisfies DropdownMenuComponent;
@@ -198,7 +198,7 @@ function renderTrigger(
     menuId: string;
     open: boolean;
     triggerRef: React.MutableRefObject<HTMLElement | null>;
-    onOpen: () => void;
+    onToggle: () => void;
     onKeyboardOpen: () => void;
   }
 ) {
@@ -212,7 +212,7 @@ function renderTrigger(
         ? (trigger.props as { onClick?: (event: React.MouseEvent<HTMLElement>) => void }).onClick
         : undefined;
       originalOnClick?.(event);
-      if (!event.defaultPrevented) options.onOpen();
+      if (!event.defaultPrevented) options.onToggle();
     },
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
       const originalOnKeyDown = React.isValidElement(trigger)
@@ -335,18 +335,5 @@ const dropdownRenderer = {
     </button>
   ),
 };
-
-function composeRefs<T>(...refs: Array<React.Ref<T> | undefined>) {
-  return (node: T | null) => {
-    refs.forEach((ref) => {
-      if (!ref) return;
-      if (typeof ref === "function") {
-        ref(node);
-        return;
-      }
-      (ref as React.MutableRefObject<T | null>).current = node;
-    });
-  };
-}
 
 export { DropdownMenu, DropdownMenuGroup, DropdownMenuItem };
