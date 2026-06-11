@@ -205,6 +205,9 @@ export function ProjectChartsClient({
                           // estimate id), which unmounts this trigger; re-find
                           // the replacement so keyboard users keep their place.
                           requestAnimationFrame(() => {
+                            // Restore only if focus actually fell to body —
+                            // never steal it from wherever the user moved.
+                            if (document.activeElement !== document.body) return;
                             document
                               .querySelector<HTMLElement>(`[data-testid="chart-estimate-trigger-${index}"]`)
                               ?.focus();

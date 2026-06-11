@@ -31,7 +31,7 @@ import { cn } from "@/lib/ui/cn";
 
 export type DropdownPopupAlign = "start" | "end";
 export type DropdownPopupSide = "bottom" | "top";
-export type DropdownPopupPlacement = "bottom" | "top";
+type DropdownPopupPlacement = "bottom" | "top";
 
 export type DropdownPopupCloseReason = "escape" | "outside-pointer" | "ancestor-scroll" | "resize" | "select" | "manual";
 
@@ -65,18 +65,31 @@ function suppressGestureAfterDismiss() {
     document.removeEventListener("mousedown", suppressMouseDown, true);
   };
   const suppressClick = (event: MouseEvent) => {
+    // Keyboard/programmatic activations (detail 0) are not part of the
+    // dismissing pointer gesture and must never be eaten.
+    if (event.detail === 0) {
+      cleanup();
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     cleanup();
   };
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   const cleanup = () => {
+    if (timeout) clearTimeout(timeout);
     document.removeEventListener("mousedown", suppressMouseDown, true);
     document.removeEventListener("click", suppressClick, true);
     document.removeEventListener("pointerdown", cleanup, true);
+    document.removeEventListener("keydown", cleanup, true);
   };
   document.addEventListener("mousedown", suppressMouseDown, true);
   document.addEventListener("click", suppressClick, true);
   document.addEventListener("pointerdown", cleanup, true);
+  // Keyboard activity means the pointer gesture is over, and the timeout
+  // bounds a suppressor stranded by drag/cancel or route navigation.
+  document.addEventListener("keydown", cleanup, true);
+  timeout = setTimeout(cleanup, 1500);
 }
 
 type UseDropdownPopupOptions = {
@@ -160,7 +173,9 @@ export function useDropdownPopup({ align = "start", side = "bottom", onClose }: 
       if (!target) return;
       if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
       close("outside-pointer");
-      suppressGestureAfterDismiss();
+      // Only primary-button gestures get their follow-up events swallowed;
+      // a right-click dismiss should not eat the context-menu interaction.
+      if (event.button === 0) suppressGestureAfterDismiss();
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);

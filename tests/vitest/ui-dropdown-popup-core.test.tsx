@@ -71,14 +71,22 @@ describe("dropdown popup core", () => {
     expect(screen.queryByRole("menu")).toBeNull();
     expect(onSelectItem).not.toHaveBeenCalled();
 
-    // The same gesture's click is suppressed: native selects swallow it too.
-    fireEvent.click(outside);
+    // The same gesture's click (detail >= 1) is suppressed: native selects
+    // swallow it too.
+    fireEvent.click(outside, { detail: 1 });
     expect(outsideClick).not.toHaveBeenCalled();
 
     // A later, separate click goes through normally.
     fireEvent.pointerDown(outside);
-    fireEvent.click(outside);
+    fireEvent.click(outside, { detail: 1 });
     expect(outsideClick).toHaveBeenCalledTimes(1);
+
+    // Keyboard-synthesized activations (detail 0) are never eaten, even
+    // right after a pointer dismissal.
+    openMenu();
+    fireEvent.pointerDown(outside);
+    fireEvent.click(outside, { detail: 0 });
+    expect(outsideClick).toHaveBeenCalledTimes(2);
   });
 
   it("closes when an ancestor scrolls but stays open for scrolls inside the panel", () => {

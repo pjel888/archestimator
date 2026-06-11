@@ -195,6 +195,75 @@ describe("DropdownSelect", () => {
     expect(new FormData(form).get("status")).toBe("estimate-2");
   });
 
+  it("does not fire onValueChange when the same value is re-committed (native change parity)", () => {
+    const onValueChange = vi.fn();
+    render(
+      <DropdownSelect options={MODE_OPTIONS} defaultValue="contingency" onValueChange={onValueChange} aria-label="Adjustment type" />,
+    );
+
+    fireEvent.click(trigger());
+    fireEvent.click(screen.getByRole("option", { name: "Contingency" }));
+
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(trigger()).toHaveTextContent("Contingency");
+  });
+
+  it("resets the typeahead buffer after the idle timeout", () => {
+    render(<DropdownSelect options={ESTIMATE_OPTIONS} defaultValue="estimate-2" aria-label="Estimate" />);
+
+    const combobox = trigger("Estimate");
+    fireEvent.click(combobox);
+
+    fireEvent.keyDown(combobox, { key: "e" });
+    expect(combobox.getAttribute("aria-activedescendant")).toBe(screen.getByRole("option", { name: "Estimate 1" }).id);
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    // A fresh single-character match cycles onward; a stale "ee" buffer
+    // would match nothing and leave the highlight stuck.
+    fireEvent.keyDown(combobox, { key: "e" });
+    expect(combobox.getAttribute("aria-activedescendant")).toBe(screen.getByRole("option", { name: "Estimate 10" }).id);
+  });
+
+  it("treats space as a buffer character while typeahead is active, without committing or closing", () => {
+    const onValueChange = vi.fn();
+    render(
+      <DropdownSelect options={ESTIMATE_OPTIONS} defaultValue="estimate-2" onValueChange={onValueChange} aria-label="Estimate" />,
+    );
+
+    const combobox = trigger("Estimate");
+    fireEvent.click(combobox);
+    fireEvent.keyDown(combobox, { key: "x" });
+
+    // Space with an active buffer is typed, not an activation: the event is
+    // prevented so the trigger button's default click cannot close the listbox.
+    const spaceNotPrevented = fireEvent.keyDown(combobox, { key: " " });
+    expect(spaceNotPrevented).toBe(false);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("opens from a closed trigger with the first/last enabled option active on Home/End", () => {
+    render(<DropdownSelect options={ESTIMATE_OPTIONS} defaultValue="estimate-10" aria-label="Estimate" />);
+
+    const combobox = trigger("Estimate");
+    combobox.focus();
+
+    fireEvent.keyDown(combobox, { key: "Home" });
+    expect(combobox.getAttribute("aria-activedescendant")).toBe(screen.getByRole("option", { name: "Estimate 1" }).id);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    });
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    fireEvent.keyDown(combobox, { key: "End" });
+    expect(combobox.getAttribute("aria-activedescendant")).toBe(screen.getByRole("option", { name: "Estimate 2" }).id);
+  });
+
   it("omits a hard-disabled picker from FormData, matching native disabled selects", () => {
     render(
       <form data-testid="parity-form">

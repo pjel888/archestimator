@@ -121,9 +121,11 @@ export function DropdownSelect({
   // blur-commit between open and select cannot produce stale writes.
   const optionsRef = React.useRef(options);
   const onValueChangeRef = React.useRef(onValueChange);
+  const currentValueRef = React.useRef(currentValue);
   React.useEffect(() => {
     optionsRef.current = options;
     onValueChangeRef.current = onValueChange;
+    currentValueRef.current = currentValue;
   });
 
   const { open, position, rootRef, triggerRef, panelRef, openPopup, close } = useDropdownPopup({ align, side });
@@ -156,6 +158,10 @@ export function DropdownSelect({
   const commitValue = React.useCallback(
     (nextValue: string) => {
       setInvalid(false);
+      // Native parity: a select does not fire change when the same value is
+      // re-picked. Without this guard a same-value commit would mark
+      // estimate rows dirty and re-fire teamspace server actions.
+      if (nextValue === currentValueRef.current) return;
       if (!isControlled) setUncontrolledValue(nextValue);
       onValueChangeRef.current?.(nextValue);
     },
@@ -181,6 +187,19 @@ export function DropdownSelect({
     const item = panel?.querySelector<HTMLElement>(`[data-dropdown-option-index="${activeIndex}"]`);
     if (panel && item) scrollPopupItemIntoView(panel, item);
   }, [activeIndex, open, panelRef, position]);
+
+  // Options can change while the listbox is open (realtime refetch); the
+  // index-based highlight must re-anchor on the selected value or the
+  // visible highlight silently shifts to whatever occupies the old index.
+  const previousOptionsRef = React.useRef(options);
+  React.useEffect(() => {
+    if (previousOptionsRef.current === options) return;
+    previousOptionsRef.current = options;
+    if (!open) return;
+    const selected = options.findIndex((option) => option.value === currentValue && !option.disabled);
+    const fallback = options.findIndex((option) => !option.disabled);
+    setActiveIndex(selected >= 0 ? selected : fallback);
+  }, [currentValue, open, options]);
 
   // Form resets (including React 19's post-action reset) must resync the
   // visible trigger with the hidden control or the next submit posts a
@@ -282,6 +301,10 @@ export function DropdownSelect({
       return;
     }
     if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      // A typed space is part of the buffer and must never fall through to
+      // the trigger button's default space activation, which would
+      // synthesize a click and close the listbox mid-typeahead.
+      if (event.key === " ") event.preventDefault();
       const buffer = pushTypeahead(event.key);
       const match = findTypeaheadMatch(list, buffer, activeIndex);
       if (match >= 0) {
@@ -294,13 +317,18 @@ export function DropdownSelect({
   const triggerLabel = selectedOption?.label ?? placeholder;
   const activeOptionId = open && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
 
+  // Stable ref callback: an inline closure would be re-invoked
+  // (cleanup + attach) on every render of every mounted instance — at one
+  // picker per estimate row that is hundreds of DOM ref calls per keystroke.
+  const setTriggerRefs = React.useCallback((node: HTMLButtonElement | null) => {
+    triggerButtonRef.current = node;
+    triggerRef.current = node;
+  }, [triggerRef]);
+
   return (
     <div ref={rootRef} className="relative inline-flex w-full min-w-0" data-slot="dropdown-select-root">
       <button
-        ref={(node) => {
-          triggerButtonRef.current = node;
-          triggerRef.current = node;
-        }}
+        ref={setTriggerRefs}
         id={id}
         type="button"
         role="combobox"
