@@ -81,16 +81,21 @@ export function readEstimateTemplateDragPayload(rawPayload: string): EstimateTem
 export function templateMatchesQuery(template: EstimateTemplate, query: string) {
   if (!query.trim()) return true;
   const normalizedQuery = query.trim().toLowerCase();
-  const nodeNames: string[] = [];
+  const searchableValues: string[] = [];
 
   function visit(node: EstimateTreeNode) {
-    nodeNames.push(node.name);
+    searchableValues.push(node.name);
+    // Row content searches too (audit rec 7): material/name, description,
+    // and supplier of every row inside the template.
+    for (const row of node.estimateRowItems ?? []) {
+      searchableValues.push(row.material, row.name ?? "", row.description ?? "", row.supplier ?? "");
+    }
     node.children?.forEach(visit);
   }
 
   template.nodes.forEach(visit);
-  return [template.name, template.description, template.category, ...nodeNames]
-    .some((value) => value.toLowerCase().includes(normalizedQuery));
+  return [template.name, template.description, template.category, ...searchableValues]
+    .some((value) => Boolean(value) && value.toLowerCase().includes(normalizedQuery));
 }
 
 export function filterTemplatesByQuery(templates: EstimateTemplate[], query: string) {

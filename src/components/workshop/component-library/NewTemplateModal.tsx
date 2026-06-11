@@ -6,7 +6,7 @@ import { Cube, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { ControlInput, ControlTextarea } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
-import { createEstimateTemplateFromEstimateNode } from "@/lib/component-library/actions";
+import { createEstimateTemplate, createEstimateTemplateFromEstimateNode } from "@/lib/component-library/actions";
 import type { EstimateTreeNode } from "../estimate-tree-data";
 import type { EstimateTemplate } from "./templates";
 
@@ -47,12 +47,19 @@ export type NewTemplateModalProps = {
   /** Pre-filled category, e.g. when creating from a category's context menu. */
   defaultCategory?: string;
   onCreated: (template: EstimateTemplate) => void;
+  /**
+   * "estimate-node" (default) saves a selected estimate node's subtree;
+   * "scratch" creates an empty template with no estimate context (the
+   * Templates browse flow) — its structure is built in the template editor.
+   */
+  mode?: "estimate-node" | "scratch";
 };
 
 /**
  * Saves the currently selected estimate node (group or area) as a reusable
  * template. Mirrors the user model: a template *is* a group node or an area
- * node at its top level, with everything nested inside it.
+ * node at its top level, with everything nested inside it. In "scratch" mode
+ * it instead creates an empty template straight in the library.
  */
 export function NewTemplateModal({
   open,
@@ -63,6 +70,7 @@ export function NewTemplateModal({
   existingCategories,
   defaultCategory,
   onCreated,
+  mode = "estimate-node",
 }: NewTemplateModalProps) {
   const [name, setName] = useState("");
   // Consumers mount this modal per open, so the default lands on first render.
@@ -72,7 +80,8 @@ export function NewTemplateModal({
   const [pending, setPending] = useState(false);
 
   const summary = useMemo(() => (sourceNode ? summarizeSourceNode(sourceNode) : null), [sourceNode]);
-  const canSubmit = Boolean(sourceNode && projectId && estimateId && !pending);
+  const scratchMode = mode === "scratch";
+  const canSubmit = scratchMode ? !pending : Boolean(sourceNode && projectId && estimateId && !pending);
 
   const resetForm = useCallback(() => {
     setName("");
@@ -91,7 +100,8 @@ export function NewTemplateModal({
   );
 
   const handleSubmit = useCallback(async () => {
-    if (!sourceNode || !projectId || !estimateId || pending) return;
+    if (pending) return;
+    if (!scratchMode && (!sourceNode || !projectId || !estimateId)) return;
     if (!name.trim()) {
       setError("Template name is required.");
       return;
@@ -100,14 +110,16 @@ export function NewTemplateModal({
     setPending(true);
     setError("");
     try {
-      const { template } = await createEstimateTemplateFromEstimateNode({
-        projectId,
-        estimateId,
-        sourceNodeId: sourceNode.id,
-        name,
-        category,
-        description,
-      });
+      const { template } = scratchMode
+        ? await createEstimateTemplate({ name, category, description })
+        : await createEstimateTemplateFromEstimateNode({
+            projectId: projectId!,
+            estimateId: estimateId!,
+            sourceNodeId: sourceNode!.id,
+            name,
+            category,
+            description,
+          });
       resetForm();
       onOpenChange(false);
       onCreated(template);
@@ -116,13 +128,17 @@ export function NewTemplateModal({
     } finally {
       setPending(false);
     }
-  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, sourceNode]);
+  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, scratchMode, sourceNode]);
 
   return (
     <Modal
       open={open}
       title="New template"
-      description="Save the selected estimate node and everything inside it as a reusable template."
+      description={
+        scratchMode
+          ? "Create an empty template in the library. Open it to build its structure."
+          : "Save the selected estimate node and everything inside it as a reusable template."
+      }
       closeLabel="Cancel template creation"
       className="max-w-md"
       onOpenChange={handleOpenChange}
@@ -130,7 +146,7 @@ export function NewTemplateModal({
       <div className="grid gap-3">
         {error ? <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{error}</p> : null}
 
-        {sourceNode && summary ? (
+        {scratchMode ? null : sourceNode && summary ? (
           <div className="flex items-center gap-2 border border-hairline bg-surfaceMuted/30 p-2">
             <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
               {sourceNode.kind === "group" ? (

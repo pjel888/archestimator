@@ -13,7 +13,12 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
-import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
+import {
+  ensureDefaultWorkspace,
+  listCurrentWorkspaceProjects,
+  listProjectEstimateSheets,
+} from "@/lib/repositories/workspace-repository";
+import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
@@ -860,6 +865,320 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
   if (!template) throw new Error("Template not found in the current workspace.");
   revalidatePath("/workshop/library/templates");
   return { templateId: template.id };
+}
+
+/**
+ * Creates an empty workspace estimate template (no nodes, no rows). The
+ * Templates browse "New template" flow uses this when there is no estimate
+ * node to capture; the template editor fills in the structure later.
+ */
+export async function createEstimateTemplate(input: { name: string; category?: string; description?: string }) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const templateName = input.name.trim();
+  if (!templateName) throw new Error("Template name is required.");
+  const templateCategory = (input.category ?? "").trim() || "General";
+  const templateDescription = (input.description ?? "").trim();
+
+  const supabase = await createSupabaseServerClient();
+  const { data: siblingTemplates, error: sortError } = await supabase
+    .from("estimate_templates")
+    .select("sort_order")
+    .eq("workspace_id", workspace.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (sortError) throw new Error(`Could not create the template: ${sortError.message}`);
+  const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
+
+  const { data: insertedTemplate, error: templateError } = await supabase
+    .from("estimate_templates")
+    .insert({
+      workspace_id: workspace.id,
+      name: templateName,
+      description: templateDescription,
+      category: templateCategory,
+      sort_order: nextSortOrder,
+      created_by: currentUser.userId,
+      metadata: { savedFrom: "library-templates-browse" },
+    })
+    .select("*")
+    .single();
+  if (templateError || !insertedTemplate) {
+    throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
+  }
+
+  revalidatePath("/workshop/library/templates");
+
+  const [template] = buildEstimateTemplatesFromRows({
+    templates: [insertedTemplate],
+    nodes: [],
+    rowItems: [],
+  });
+  if (!template) throw new Error("Could not read back the created template.");
+  return { template };
+}
+
+/**
+ * Copies a workspace estimate template: the template row plus every node and
+ * every row item (all columns). The copy lands in the same category with the
+ * next sort_order in that category and the name `{name} copy`.
+ */
+export async function duplicateEstimateTemplate(input: { templateId: string }) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: sourceTemplate, error: sourceError } = await supabase
+    .from("estimate_templates")
+    .select("*")
+    .eq("id", input.templateId)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+  if (sourceError) throw new Error(`Could not duplicate template: ${sourceError.message}`);
+  if (!sourceTemplate) throw new Error("Template not found in the current workspace.");
+
+  const [nodesResult, rowItemsResult, siblingResult] = await Promise.all([
+    supabase
+      .from("estimate_template_nodes")
+      .select("*")
+      .eq("template_id", sourceTemplate.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("estimate_template_row_items")
+      .select("*")
+      .eq("template_id", sourceTemplate.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("estimate_templates")
+      .select("sort_order")
+      .eq("workspace_id", workspace.id)
+      .eq("category", sourceTemplate.category)
+      .order("sort_order", { ascending: false })
+      .limit(1),
+  ]);
+  if (nodesResult.error) throw new Error(`Could not duplicate template: ${nodesResult.error.message}`);
+  if (rowItemsResult.error) throw new Error(`Could not duplicate template: ${rowItemsResult.error.message}`);
+  if (siblingResult.error) throw new Error(`Could not duplicate template: ${siblingResult.error.message}`);
+  const nextSortOrder = (siblingResult.data?.[0]?.sort_order ?? -1) + 1;
+
+  const { data: insertedTemplate, error: templateError } = await supabase
+    .from("estimate_templates")
+    .insert({
+      workspace_id: workspace.id,
+      name: `${sourceTemplate.name} copy`,
+      description: sourceTemplate.description,
+      category: sourceTemplate.category,
+      sort_order: nextSortOrder,
+      created_by: currentUser.userId,
+      metadata: {
+        ...readMetadataObject(sourceTemplate.metadata),
+        duplicatedFrom: sourceTemplate.id,
+      },
+    })
+    .select("*")
+    .single();
+  if (templateError || !insertedTemplate) {
+    throw new Error(`Could not duplicate template: ${templateError?.message ?? "no template row returned"}`);
+  }
+
+  try {
+    const sourceNodes = nodesResult.data ?? [];
+    const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
+    const nodeInserts = sourceNodes.map((node) => ({
+      id: templateNodeIdBySourceId.get(node.id)!,
+      template_id: insertedTemplate.id,
+      parent_id: node.parent_id ? templateNodeIdBySourceId.get(node.parent_id) ?? null : null,
+      kind: node.kind,
+      name: node.name,
+      sort_order: node.sort_order,
+      metadata: node.metadata,
+    }));
+
+    let insertedNodes: Tables<"estimate_template_nodes">[] = [];
+    if (nodeInserts.length > 0) {
+      const { data, error: nodeInsertError } = await supabase
+        .from("estimate_template_nodes")
+        .insert(nodeInserts)
+        .select("*");
+      if (nodeInsertError) throw new Error(`Could not copy the node structure: ${nodeInsertError.message}`);
+      insertedNodes = data ?? [];
+    }
+
+    const rowInserts = (rowItemsResult.data ?? []).map((row) => ({
+      template_id: insertedTemplate.id,
+      template_node_id: templateNodeIdBySourceId.get(row.template_node_id)!,
+      sort_order: row.sort_order,
+      source_library_item_id: row.source_library_item_id,
+      source_snapshot: row.source_snapshot,
+      category_node_id: row.category_node_id,
+      supplier_id: row.supplier_id,
+      material: row.material,
+      description: row.description,
+      supplier: row.supplier,
+      unit: row.unit,
+      quantity: row.quantity,
+      unit_cost: row.unit_cost,
+      contingency_percentage: row.contingency_percentage,
+      misc_cost: row.misc_cost,
+      discipline: row.discipline,
+      designation: row.designation,
+      link_state: row.link_state,
+      metadata: row.metadata,
+    }));
+
+    let insertedRowItems: Tables<"estimate_template_row_items">[] = [];
+    if (rowInserts.length > 0) {
+      const { data, error: rowInsertError } = await supabase
+        .from("estimate_template_row_items")
+        .insert(rowInserts)
+        .select("*");
+      if (rowInsertError) throw new Error(`Could not copy the template rows: ${rowInsertError.message}`);
+      insertedRowItems = data ?? [];
+    }
+
+    revalidatePath("/workshop/library/templates");
+
+    const [template] = buildEstimateTemplatesFromRows({
+      templates: [insertedTemplate],
+      nodes: insertedNodes,
+      rowItems: insertedRowItems,
+    });
+    if (!template) throw new Error("Could not read back the duplicated template.");
+    return { template };
+  } catch (error) {
+    // Without a cross-statement transaction, a partial failure leaves an
+    // orphan template; deleting it cascades to any copied nodes/rows.
+    await supabase.from("estimate_templates").delete().eq("id", insertedTemplate.id);
+    throw error;
+  }
+}
+
+/** Moves a template to another category (group), optionally repositioning it. */
+export async function moveEstimateTemplateToCategory(input: { templateId: string; category: string; sortOrder?: number }) {
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const category = input.category.trim();
+  if (!category) throw new Error("Group name is required.");
+  if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
+  if (input.sortOrder !== undefined && (!Number.isFinite(input.sortOrder) || input.sortOrder < 0)) {
+    throw new Error("Template position must be a non-negative number.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const patch: { category: string; sort_order?: number } = { category };
+  if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
+  const { data: template, error } = await supabase
+    .from("estimate_templates")
+    .update(patch)
+    .eq("id", input.templateId)
+    .eq("workspace_id", workspace.id)
+    .select("id, category, sort_order")
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not move template: ${error.message}`);
+  if (!template) throw new Error("Template not found in the current workspace.");
+  revalidatePath("/workshop/library/templates");
+  return { templateId: template.id, category: template.category, sortOrder: template.sort_order };
+}
+
+/** Renames a template category (group): bulk text update scoped to the workspace. */
+export async function renameTemplateCategory(input: { from: string; to: string }) {
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const from = input.from.trim();
+  const to = input.to.trim();
+  if (!from) throw new Error("Group name is required.");
+  if (!to) throw new Error("Group name is required.");
+  if (from === to) return { category: to, updatedCount: 0 };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("estimate_templates")
+    .update({ category: to })
+    .eq("workspace_id", workspace.id)
+    .eq("category", from)
+    .select("id");
+
+  if (error) throw new Error(`Could not rename group: ${error.message}`);
+  revalidatePath("/workshop/library/templates");
+  return { category: to, updatedCount: data?.length ?? 0 };
+}
+
+export type EstimateInsertTargetProject = {
+  id: string;
+  name: string;
+  estimates: Array<{ id: string; name: string; sheetCode: string | null }>;
+};
+
+/**
+ * Projects and their estimate sheets for the "Insert into estimate" picker.
+ * Wraps the workspace project list and the lightweight per-project sheet
+ * list; pending-invite projects are excluded (no insert access yet).
+ */
+export async function listEstimateInsertTargets(): Promise<{ projects: EstimateInsertTargetProject[] }> {
+  await requireCurrentUserContext();
+  const { projects } = await listCurrentWorkspaceProjects();
+  const accessibleProjects = projects.filter((item) => item.accessKind !== "pending-invite");
+  const estimatesByProject = await Promise.all(
+    accessibleProjects.map((item) => listProjectEstimateSheets(item.project.id)),
+  );
+
+  return {
+    projects: accessibleProjects.map((item, index) => ({
+      id: item.project.id,
+      name: item.project.name,
+      estimates: estimatesByProject[index] ?? [],
+    })),
+  };
+}
+
+type EstimateInsertTargetNodeRow = {
+  id: string;
+  parent_id: string | null;
+  kind: string;
+};
+
+/**
+ * Resolves where a whole template may insert inside an estimate: the first
+ * root GROUP node in tree order (templates must insert under a group). Rows
+ * arrive in sort_order, so the first qualifying root is the tree-order pick;
+ * children of unknown-kind nodes promote to roots, mirroring
+ * buildEstimateTree.
+ */
+export async function resolveEstimateTemplateInsertTarget(input: { projectId: string; estimateId: string }) {
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!isUuid(input.projectId) || !isUuid(input.estimateId)) {
+    throw new Error("Estimate not found in the current workspace.");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id, projects!inner(id, workspace_id)")
+    .eq("id", input.estimateId)
+    .eq("project_id", input.projectId)
+    .eq("projects.workspace_id", workspace.id)
+    .maybeSingle();
+  if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
+  if (!estimate) throw new Error("Estimate not found in the current workspace.");
+
+  const { data: nodeRows, error: nodesError } = await supabase
+    .from("estimate_nodes")
+    .select("id, parent_id, kind")
+    .eq("estimate_id", input.estimateId)
+    .order("sort_order", { ascending: true });
+  if (nodesError) throw new Error(`Could not load the estimate tree: ${nodesError.message}`);
+
+  const nodes = (nodeRows ?? []) as EstimateInsertTargetNodeRow[];
+  const kindById = new Map<string, "group" | "area">();
+  for (const node of nodes) {
+    const kind = normalizeEstimateTreeNodeKind(node.kind);
+    if (kind) kindById.set(node.id, kind);
+  }
+
+  for (const node of nodes) {
+    if (kindById.get(node.id) !== "group") continue;
+    const isRoot = !node.parent_id || !kindById.has(node.parent_id);
+    if (isRoot) return { targetParentNodeId: node.id };
+  }
+  return { targetParentNodeId: null };
 }
 
 /**

@@ -1,4 +1,4 @@
-import { TemplatesPageClient } from "@/components/workshop/TemplatesPageClient";
+import { TemplatesBrowsePageClient } from "@/components/workshop/library/templates-browse/TemplatesBrowsePageClient";
 import { getCurrentWorkspaceEstimateTemplates } from "@/lib/repositories/component-library-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 
@@ -11,9 +11,5 @@ export default async function LibraryTemplatesPage({ searchParams }: LibraryTemp
 
   const templates = await getCurrentWorkspaceEstimateTemplates();
 
-  return (
-    <div className="h-full min-h-0 overflow-hidden p-2">
-      <TemplatesPageClient templates={templates} />
-    </div>
-  );
+  return <TemplatesBrowsePageClient templates={templates} />;
 }
