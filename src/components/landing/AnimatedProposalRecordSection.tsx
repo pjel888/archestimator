@@ -25,6 +25,8 @@ type DiagramStepId =
 type ProposalRecordStep = {
   id: DiagramStepId;
   label: string;
+  /** Explicit whole-word lines for the sketch-circle labels (no mid-word breaks). */
+  labelLines?: readonly string[];
   body: string;
   positionClassName: string;
   delay: number;
@@ -53,6 +55,7 @@ const flowSteps: ProposalRecordStep[] = [
   {
     id: "projectWorkflow",
     label: "Project-Shaped Workflow",
+    labelLines: ["Project", "Workflow"],
     body: "Scope by area, phase, or package.",
     positionClassName: styles.projectWorkflowCard,
     delay: 160,
@@ -63,6 +66,7 @@ const flowSteps: ProposalRecordStep[] = [
   {
     id: "componentLibrary",
     label: "Reusable Component Library",
+    labelLines: ["Reusable", "Components"],
     body: "Use saved costs and assemblies.",
     positionClassName: styles.componentLibraryCard,
     delay: 220,
@@ -73,6 +77,7 @@ const flowSteps: ProposalRecordStep[] = [
   {
     id: "estimatingExperience",
     label: "Intuitive Estimating Experience",
+    labelLines: ["Estimating"],
     body: "Build and revise without spreadsheet friction.",
     positionClassName: styles.estimatingExperienceCard,
     delay: 280,
@@ -746,7 +751,15 @@ export function AnimatedProposalRecordSection() {
                 className={`${styles.stepCard} ${step.variant === "input" ? styles.inputCard : ""} ${step.variant === "feedback" ? styles.feedbackCardInner : ""} ${step.positionClassName}`}
                 style={customProperties({ "--card-delay": `${step.delay}ms`, "--step-color": step.color })}
               >
-                <span className={styles.stepLabel}>{step.label}</span>
+                <span className={styles.stepLabel}>
+                  {step.labelLines
+                    ? step.labelLines.map((line) => (
+                        <span key={line} className={styles.labelLine}>
+                          {line}
+                        </span>
+                      ))
+                    : step.label}
+                </span>
                 {step.quote ? <span className={styles.feedbackQuote}>&ldquo;{step.quote}&rdquo;</span> : null}
                 {step.variant === "input" ? null : <span className={styles.stepBody}>{step.body}</span>}
               </div>

@@ -110,11 +110,14 @@ path.revisionLoopSketch {
 }
 
 .inputCard .stepLabel {
-  max-width: 100%;
   color: var(--step-color, #171514);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.08;
-  overflow-wrap: anywhere;
+}
+
+.labelLine {
+  display: block;
+  white-space: nowrap;
 }
 
 .inputCard .stepBody {
