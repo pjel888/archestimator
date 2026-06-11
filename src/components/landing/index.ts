@@ -1,9 +1,8 @@
 export { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
-export { CompanyProofCarouselSection } from "./CompanyProofCarouselSection";
+export { CapabilityRowsSection } from "./CapabilityRowsSection";
 export { ProblemSection } from "./ProblemSection";
 export { CookieConsentBanner } from "./CookieConsentBanner";
 export { CtaLink } from "./CtaLink";
-export { SecondaryClaimSection } from "./SecondaryClaimSection";
 export { FinalCTASection } from "./FinalCTASection";
 export { HeroSection } from "./HeroSection";
 export { LandingFooter } from "./LandingFooter";
