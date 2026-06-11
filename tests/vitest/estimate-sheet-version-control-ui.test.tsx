@@ -1129,13 +1129,16 @@ describe("estimate sheet version control UI", () => {
     await user.click(screen.getByRole("button", { name: "Activity" }));
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     await user.click(within(sheetDialog).getByRole("button", { name: "Filter activity" }));
-    const eventTypeSelect = within(sheetDialog).getByLabelText("Filter activity by event type") as HTMLSelectElement;
+    const eventTypeSelect = within(sheetDialog).getByLabelText("Filter activity by event type");
+    await user.click(eventTypeSelect);
 
-    expect(within(eventTypeSelect).queryByRole("option", { name: "Inserted rows" })).not.toBeInTheDocument();
-    expect(within(eventTypeSelect).queryByRole("option", { name: "Added rows" })).toHaveValue("row_added");
-    expect(within(eventTypeSelect).queryByRole("option", { name: "Added blank rows" })).toHaveValue("row_blank_added");
+    // The listbox portals to document.body, so options are queried globally.
+    const listbox = await screen.findByRole("listbox");
+    expect(within(listbox).queryByRole("option", { name: "Inserted rows" })).not.toBeInTheDocument();
+    expect(within(listbox).getByRole("option", { name: "Added rows" })).toBeInTheDocument();
+    expect(within(listbox).getByRole("option", { name: "Added blank rows" })).toBeInTheDocument();
 
-    await user.selectOptions(eventTypeSelect, "row_blank_added");
+    await user.click(within(listbox).getByRole("option", { name: "Added blank rows" }));
 
     await waitFor(() => {
       expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -1155,7 +1158,8 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetDialog).queryByLabelText("Filter activity by event type")).not.toBeInTheDocument();
     await user.click(within(sheetDialog).getByRole("button", { name: "Filter activity" }));
     expect(within(sheetDialog).getByRole("group", { name: "Activity filter options" })).toBeInTheDocument();
-    await user.selectOptions(within(sheetDialog).getByLabelText("Filter activity by event type"), "row_updated");
+    await user.click(within(sheetDialog).getByLabelText("Filter activity by event type"));
+    await user.click(await screen.findByRole("option", { name: "Row updates" }));
     await user.type(within(sheetDialog).getByLabelText("Search activity"), "hardwood");
 
     await waitFor(() => {
