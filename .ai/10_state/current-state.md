@@ -33,7 +33,14 @@ deep link, estimate workspace intact). Known gaps: Phase 4 responsive drawer
 behaviors at 768-1024px were not newly built (panels keep their inherited collapse
 behavior); real Cmd+1-4 nav hotkeys remain the optional Q5 nicety; Overview search
 lands on the Components tab without per-item selection (no `?component=` deep link
-yet). Evidence: branch commits `f24f523..` series plus this entry.
+yet). Pre-existing check failures at base commit `8f6f116` (verified: zero overlap with
+this branch's 98-file diff): 21 vitest DOM failures (12 landing-page tests, homebase
+greeting/workshop-reset family, bulk-selection toolbar label, EstimateSheetTree
+`Stack` source assertion, ProjectWorkspace* source contracts, security-findings
+contract, cache/font audits), 1 unit failure (homebase greeting baseline), and 3
+ESLint errors (command-dialog setState-in-effect, tabs.stories `any` x2). Library
+unification suites are fully green (90+ new/updated tests). Evidence: the
+`f24f523..` commit series on this branch plus this entry.
 
 
 **Path-To-Estimate-Sheet Performance Implementation (2026-06-11 local, branch `perf/path-to-estimate-sheet`):**
