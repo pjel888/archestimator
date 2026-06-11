@@ -22,6 +22,10 @@ describe("closed beta pricing copy", () => {
 
     expect(combined).toMatch(/closed beta/i);
     expect(combined).toMatch(/request access/i);
-    expect(combined).not.toMatch(/₱0|free access|MVP preview offers free access|pricing tiers/i);
+    // The landing band may show the ₱0 set-piece, but only alongside the
+    // explicit no-payment framing — never as a free-tier promise.
+    expect(landingPricing).toContain("₱0");
+    expect(landingPricing).toContain("No payment during beta");
+    expect(combined).not.toMatch(/free access|MVP preview offers free access|pricing tiers/i);
   });
 });

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import {
   createLandingConsentState,
   getLandingConsentFromCookieHeader,
   LANDING_CONSENT_COOKIE_NAME,
   LANDING_CONSENT_MAX_AGE_SECONDS,
+  LANDING_CONSENT_OPEN_SETTINGS_EVENT,
   type LandingConsentState,
   serializeLandingConsentState,
 } from "@/lib/landing/consent";
@@ -42,11 +43,26 @@ function writeStoredConsent(consent: LandingConsentState) {
 
 export function CookieConsentBanner() {
   const [isEditing, setIsEditing] = useState(false);
+  // The footer "Cookie settings" link reopens this panel via a window event.
+  // When that link exists, the floating chip is redundant after a consent
+  // decision, so it hides; pre-decision the panel still floats. The footer is
+  // server-rendered, so its trigger is already in the DOM by first render.
+  const [hasFooterSettingsLink] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.querySelector('[data-cookie-settings-trigger="true"]') !== null,
+  );
   const consent = useSyncExternalStore(
     subscribeToConsentChanges,
     readStoredConsent,
     () => undefined,
   );
+
+  useEffect(() => {
+    const openSettings = () => setIsEditing(true);
+    window.addEventListener(LANDING_CONSENT_OPEN_SETTINGS_EVENT, openSettings);
+    return () => window.removeEventListener(LANDING_CONSENT_OPEN_SETTINGS_EVENT, openSettings);
+  }, []);
 
   function saveConsent(analytics: boolean) {
     const nextConsent = createLandingConsentState(analytics);
@@ -57,6 +73,8 @@ export function CookieConsentBanner() {
   if (consent === undefined) return null;
 
   if (consent && !isEditing) {
+    if (hasFooterSettingsLink) return null;
+
     return (
       <button
         type="button"
