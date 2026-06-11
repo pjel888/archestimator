@@ -22,8 +22,14 @@ describe("Amigo-inspired public landing redesign", () => {
     const page = readProjectFile("src/app/page.tsx");
 
     expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
-    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
+    expect(page.indexOf("<AnimatedProposalRecordSection />")).toBeGreaterThan(
       page.indexOf("<HeroSection"),
+    );
+    expect(page.indexOf("<ProblemSection />")).toBeGreaterThan(
+      page.indexOf("<AnimatedProposalRecordSection />"),
+    );
+    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
+      page.indexOf("<ProblemSection />"),
     );
     expect(page.indexOf("<SecondaryClaimSection />")).toBeGreaterThan(
       page.indexOf("<CompanyProofCarouselSection />"),
@@ -31,17 +37,11 @@ describe("Amigo-inspired public landing redesign", () => {
     expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
       page.indexOf("<SecondaryClaimSection />"),
     );
-    expect(page.indexOf("<SolutionSection />")).toBeGreaterThan(
+    expect(page.indexOf("<PricingSection />")).toBeGreaterThan(
       page.indexOf("<ProductShowcaseSection />"),
     );
-    expect(page.indexOf("<PricingSection />")).toBeGreaterThan(
-      page.indexOf("<SolutionSection />"),
-    );
-    expect(page.indexOf("<FAQSection />")).toBeGreaterThan(
+    expect(page.indexOf("<FinalCTASection")).toBeGreaterThan(
       page.indexOf("<PricingSection />"),
-    );
-    expect(page.indexOf("<FinalCTASection />")).toBeGreaterThan(
-      page.indexOf("<FAQSection />"),
     );
   });
 

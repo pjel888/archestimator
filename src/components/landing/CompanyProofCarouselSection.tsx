@@ -6,7 +6,6 @@ import {
   TreeStructure,
 } from "@phosphor-icons/react/dist/ssr";
 import { MotionReveal } from "./MotionReveal";
-import { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
 import { LaunchFeatureHeading } from "./LaunchFeatureHeading";
 
 const iconMap = {
@@ -91,56 +90,52 @@ function LaunchFeatureVideoPlaceholder() {
 
 export function CompanyProofCarouselSection() {
   return (
-    <>
-      <AnimatedProposalRecordSection />
+    <section
+      aria-label="Company proof and workflow highlights"
+      data-company-proof-section="true"
+      data-company-proof-state="empty"
+      data-landing-snap-section="true"
+      className="relative z-20 scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white shadow-[0_-34px_72px_rgba(71,31,20,0.3)] sm:py-14 lg:py-16"
+    >
+      <div className="grid w-full gap-10 px-6 sm:gap-12 sm:px-8 lg:gap-14 lg:px-12">
+        <MotionReveal replayOnExit>
+          <article className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-7 border-y border-white/18 py-7 text-center sm:py-8 lg:gap-9 lg:py-9">
+            <div className="mx-auto max-w-[760px]">
+              <p className="text-[12px] font-medium leading-5 text-white/62">Launch feature video</p>
+              <LaunchFeatureHeading />
+              <p className="landing-body mx-auto mt-5 max-w-[620px] text-white/64">
+                  A single launch-ready walkthrough for estimating, reusable components, proposal handoff, review, and client decision records.
+              </p>
+            </div>
 
-      <section
-        aria-label="Company proof and workflow highlights"
-        data-company-proof-section="true"
-        data-company-proof-state="empty"
-        data-landing-snap-section="true"
-        className="relative z-20 scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white shadow-[0_-34px_72px_rgba(71,31,20,0.3)] sm:py-14 lg:py-16"
-      >
-        <div className="grid w-full gap-10 px-6 sm:gap-12 sm:px-8 lg:gap-14 lg:px-12">
-          <MotionReveal replayOnExit>
-            <article className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-7 border-y border-white/18 py-7 text-center sm:py-8 lg:gap-9 lg:py-9">
-              <div className="mx-auto max-w-[760px]">
-                <p className="text-[12px] font-medium leading-5 text-white/62">Launch feature video</p>
-                <LaunchFeatureHeading />
-                <p className="landing-body mx-auto mt-5 max-w-[620px] text-white/64">
-                    A single launch-ready walkthrough for estimating, reusable components, proposal handoff, review, and client decision records.
-                </p>
-              </div>
+            <div className="w-full max-w-[1040px]">
+              <LaunchFeatureVideoPlaceholder />
+            </div>
+          </article>
+        </MotionReveal>
 
-              <div className="w-full max-w-[1040px]">
-                <LaunchFeatureVideoPlaceholder />
-              </div>
-            </article>
-          </MotionReveal>
+        <div className="grid border-y border-white/18 py-2 sm:py-3 lg:grid-cols-4 lg:py-0">
+          {betaStats.map((stat, index) => {
+            const IconComponent = iconMap[stat.icon];
 
-          <div className="grid border-y border-white/18 py-2 sm:py-3 lg:grid-cols-4 lg:py-0">
-            {betaStats.map((stat, index) => {
-              const IconComponent = iconMap[stat.icon];
-
-              return (
-                <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
-                  <article className={`grid min-h-[252px] grid-rows-[28px_64px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
-                    <IconComponent size={28} weight="thin" className="text-white" />
-                    <h2 className="landing-h3 pt-2 text-white text-balance">
-                      {stat.label}
-                    </h2>
-                    <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)] lg:grid-cols-1 xl:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)]">
-                      <FeatureVideoPlaceholder label={stat.label} />
-                      <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
-                    </div>
-                  </article>
-                </MotionReveal>
-              );
-            })}
-          </div>
+            return (
+              <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
+                <article className={`grid min-h-[252px] grid-rows-[28px_64px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
+                  <IconComponent size={28} weight="thin" className="text-white" />
+                  <h2 className="landing-h3 pt-2 text-white text-balance">
+                    {stat.label}
+                  </h2>
+                  <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)] lg:grid-cols-1 xl:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)]">
+                    <FeatureVideoPlaceholder label={stat.label} />
+                    <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
+                  </div>
+                </article>
+              </MotionReveal>
+            );
+          })}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
