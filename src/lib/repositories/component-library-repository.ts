@@ -21,6 +21,7 @@ import {
 } from "@/lib/component-library/taxonomy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables, TablesInsert } from "@/lib/supabase/types";
+import { isUuid } from "@/lib/ids";
 import { isMissingRelationError } from "./estimate-schema-compat";
 import { ensureDefaultWorkspace } from "./workspace-repository";
 
@@ -756,6 +757,54 @@ export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTe
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   return loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id });
+}
+
+/**
+ * Single-template fetch for the template editor route. Returns null when the
+ * template does not exist in the current workspace (RLS keeps cross-workspace
+ * ids invisible, so a stale link 404s instead of leaking).
+ */
+export async function getEstimateTemplateById(templateId: string): Promise<EstimateTemplate | null> {
+  if (!isUuid(templateId)) return null;
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  const templateResult = await supabase
+    .from("estimate_templates")
+    .select("*")
+    .eq("workspace_id", workspace.id)
+    .eq("id", templateId)
+    .maybeSingle();
+
+  if (templateResult.error) {
+    if (isMissingRelationError(templateResult.error, "estimate_templates")) return null;
+    throw templateResult.error;
+  }
+  if (!templateResult.data) return null;
+
+  const [templateNodesResult, templateRowItemsResult] = await Promise.all([
+    supabase
+      .from("estimate_template_nodes")
+      .select("*")
+      .eq("template_id", templateResult.data.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("estimate_template_row_items")
+      .select("*")
+      .eq("template_id", templateResult.data.id)
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  if (templateNodesResult.error) throw templateNodesResult.error;
+  if (templateRowItemsResult.error) throw templateRowItemsResult.error;
+
+  const [template] = buildEstimateTemplatesFromRows({
+    templates: [templateResult.data],
+    nodes: templateNodesResult.data ?? [],
+    rowItems: templateRowItemsResult.data ?? [],
+  });
+
+  return template ?? null;
 }
 
 export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
