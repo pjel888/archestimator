@@ -1,5 +1,41 @@
 # Current State
 
+**Library Unification Implemented (2026-06-11 local, branch `claude/unification-plan-components-templates`):**
+The 2026-06-11 unification plan pack (`.ai/03_plans/2026-06-11-Unification-Plan-For-Components-And-Templates/`)
+was implemented end to end. `/workshop/library` is now the single reusable-content home
+with an Overview | Components | Templates tab strip (route-backed tabs in a persistent
+library layout shell via a new `WorkshopPageShell` `subHeader`/`titleSlot` slots).
+Routes: `/workshop/library` = Overview home (cross-library search, recents, health line
+with facet deep links), `/workshop/library/components` = uplifted Components tab
+(folder tree LEFT, one TreePanelHeader row with search disclosure + Cmd+K, wired
+ComponentFacetFilterPopover facets, lifecycle badges, neutral Add component, NEW
+ComponentInspectorDock with price history + live used-in counts + EditComponentDrawer
+on the versioned update RPCs), `/workshop/library/templates` = Templates browse
+(gallery rows + preview dock + Insert-into-estimate picker over the existing
+`insertEstimateTemplateIntoEstimate` path + tree drag-between-groups), and
+`/workshop/library/templates/[templateId]` = estimate-style template editor
+(breadcrumb + TEMPLATE chip via `useLibraryEditorChrome`, structure tree, inline
+qty/unit/cost/name editing, node CRUD, allowance ghost rows, re-hosted
+`EstimateRightSidebar` dock with drag/drop + bulk add, template-into-template
+composition with self-insert block). `/workshop/templates` permanently redirects to
+`/workshop/library/templates`; `/workshop/components` still redirects to
+`/workshop/library`; the sidebar rail entry is now a single `Library` item.
+Phase 3.0 extracted the estimate sheet's presentational rows/cells/drop-zones into
+`src/components/workshop/estimate-sheet/rows/*` (verbatim move; estimate suites
+137/137 identical before/after; `SheetMutationHandlers` is the host seam). Template
+editor mutations live in `src/lib/component-library/template-editor-actions.ts`
+(node create/rename/delete/move, row add/update/remove/reorder/allowance,
+insertTemplateIntoTemplate with subtree support) — plain mutations validated by the
+DB trigger `validate_estimate_template_tree`; ZERO migrations were needed (verified).
+Browser-verified on Philip's Chrome session against live data (Overview, both tabs,
+editor inline-edit round trip with revert, both redirects, inspector, facets, health
+deep link, estimate workspace intact). Known gaps: Phase 4 responsive drawer
+behaviors at 768-1024px were not newly built (panels keep their inherited collapse
+behavior); real Cmd+1-4 nav hotkeys remain the optional Q5 nicety; Overview search
+lands on the Components tab without per-item selection (no `?component=` deep link
+yet). Evidence: branch commits `f24f523..` series plus this entry.
+
+
 **Path-To-Estimate-Sheet Performance Implementation (2026-06-11 local, branch `perf/path-to-estimate-sheet`):**
 The 2026-06-11 performance plan pack was implemented: U1 stable-callback + slice-aware
 memoized row tables (200-row keystroke 82.0→8.4ms avg jsdom, non-edited table renders

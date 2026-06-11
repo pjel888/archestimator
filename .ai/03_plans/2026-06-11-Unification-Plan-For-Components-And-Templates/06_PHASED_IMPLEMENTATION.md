@@ -77,7 +77,7 @@ P0 ─→ P1 ─→ P2 ─→ P2.5 ─→ P3.0 ─→ P3.1…3.5 ─→ P4
 | Risk | Mitigation |
 |---|---|
 | `EstimateSheetContent` extraction breaks estimates (3,032-line file) | Own phase gate (3.0), impact analysis per symbol, visual diff, separate PR |
-| Editor drops violate template hierarchy rules | `validate_estimate_template_tree` RPC is the server backstop; UI mirrors its rules (groups at root, areas under groups) |
+| Editor drops violate template hierarchy rules | `validate_estimate_template_tree` RPC is the server backstop (trigger-enforced); UI mirrors its rules (groups at root, groups nest groups/areas, rows on areas only) |
 | Users lose `/workshop/templates` muscle memory | Redirect + rail label "Library"; nav-shortcut labels updated |
 | Drag in background tabs untestable by agents | Known gate; foregrounded manual pass on Philip's Chrome session per phase |
 | Scope creep into estimate-workspace redesign | Anti-goals in `01_DESIGN_BRIEF.md` §8 are binding |
