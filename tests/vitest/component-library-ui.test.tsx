@@ -738,9 +738,10 @@ describe("templates tree", () => {
   it("keeps rows button-free and disables context-menu insertion until a group target exists", async () => {
     openTemplatesTab({ selectedNodeKind: "area", selectedNodeName: "Kitchen" });
 
-    // Adding goes through drag or right-click only — no row action buttons.
+    // Adding goes through drag or right-click only — rows keep no add
+    // buttons (the expand caret is structural, not an action).
     const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
-    expect(within(templateRow).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(templateRow).queryByRole("button", { name: /add/i })).not.toBeInTheDocument();
 
     fireEvent.contextMenu(templateRow, { clientX: 16, clientY: 16 });
     expect(await screen.findByRole("menuitem", { name: "Add to estimate" })).toHaveAttribute("data-disabled");

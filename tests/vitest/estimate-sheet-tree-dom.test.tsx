@@ -239,6 +239,22 @@ describe("estimate sheet tree DOM integration", () => {
     expect(routerMock.push).not.toHaveBeenCalled();
   });
 
+  it("renders row icons at the shared tree icon scale used by the right-sidebar trees", () => {
+    renderTree();
+
+    // 12px everywhere (TREE_ROW_ICON_SIZE): the sheets tree must not read
+    // "bigger" than the components/templates trees. Structural svgs (grip,
+    // caret) size via classes, so the explicitly 12px-wide svg is the node
+    // icon — and no row svg may exceed it.
+    expect(treeNodeButton("project-scope").querySelectorAll('svg[width="12"]').length).toBeGreaterThan(0);
+    expect(treeNodeButton("kitchen").querySelectorAll('svg[width="12"]').length).toBeGreaterThan(0);
+    const oversized = Array.from(treeNodeButton("kitchen").querySelectorAll("svg")).filter((svg) => {
+      const width = Number.parseFloat(svg.getAttribute("width") ?? "0");
+      return Number.isFinite(width) && width > 12;
+    });
+    expect(oversized).toHaveLength(0);
+  });
+
   it("shows a nesting affordance when dragging a node over the middle of a valid Group Node", () => {
     renderTree();
 

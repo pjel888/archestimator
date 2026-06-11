@@ -16,7 +16,7 @@ import {
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { Tree, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { TREE_ROW_ICON_SIZE, Tree, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import type { TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
@@ -54,9 +54,9 @@ function getTemplatesTreeDatum(node: UiTreeNode): TemplatesTreeDatum | undefined
 
 function NodeKindIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (kind === "group") {
-    return <FolderSimple size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+    return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
   }
-  return <Cube size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+  return <Cube size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function TemplateRootIcon({ template }: { template: EstimateTemplate }) {
@@ -64,7 +64,7 @@ function TemplateRootIcon({ template }: { template: EstimateTemplate }) {
   // template, cube for an area-rooted one, a stack when roots are mixed.
   const rootKinds = getTemplateRootKinds(template);
   if (rootKinds.length === 1) return <NodeKindIcon kind={rootKinds[0]} />;
-  return <StackSimple size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+  return <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNode): UiTreeNode {
@@ -74,7 +74,7 @@ function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNo
     label: getComponentName(item),
     ariaLabel: `${getComponentName(item)} template component`,
     isLeaf: true,
-    icon: <Package size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+    icon: <Package size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
     data: { templatesNode: { type: "template-row", template, item } satisfies TemplatesTreeDatum },
   } satisfies UiTreeNode));
 
@@ -103,7 +103,7 @@ export function buildTemplatesTreeNodes(templates: EstimateTemplate[]): UiTreeNo
     label: category,
     ariaLabel: `${category} templates`,
     isLeaf: false,
-    icon: <FolderSimple size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+    icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
     data: { templatesNode: { type: "category", category } satisfies TemplatesTreeDatum },
     children: templates
       .filter((template) => template.category === category)

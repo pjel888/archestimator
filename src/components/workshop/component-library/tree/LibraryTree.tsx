@@ -18,7 +18,7 @@ import {
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
-import { Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
 import { findNode, getAllNodeIds } from "./helpers";
@@ -210,9 +210,9 @@ function toUiNodes(nodes: LibraryTreeNode[], draggableFolders: boolean): UiTreeN
       isLeaf: isItem,
       draggable: isItem || draggableFolders,
       icon: isItem ? (
-        <Package size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <Package size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
       ) : (
-        <FolderSimple size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
       ),
       children: node.children?.length ? toUiNodes(node.children, draggableFolders) : undefined,
       data: { libraryNode: node },

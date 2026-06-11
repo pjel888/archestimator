@@ -45,6 +45,13 @@ export type TreeRootDropEdge = "top" | "bottom";
 /** Horizontal indent applied per depth level, in pixels. */
 export const TREE_INDENT_STEP = 16;
 
+/**
+ * Canonical size for icons inside tree rows, in pixels. Every tree consumer
+ * (sheets tree, components tree, templates tree) must pass this to its row
+ * icons so the panels read at one scale.
+ */
+export const TREE_ROW_ICON_SIZE = 12;
+
 /** Computed per-row state passed to `renderItem`. */
 export interface TreeItemState {
   node: TreeNode;

@@ -21,7 +21,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
@@ -68,11 +68,13 @@ type ReorderStatus =
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
 
+// Same icon scale as the right-sidebar trees: every tree panel renders row
+// icons at the shared TREE_ROW_ICON_SIZE so no panel reads "bigger".
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") {
-    return <FolderSimple weight="regular" className="h-3.5 w-3.5 text-tertiary" aria-hidden="true" />;
+    return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
   }
-  return <Cube weight="regular" className="h-3.5 w-3.5 text-tertiary" aria-hidden="true" />;
+  return <Cube size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
