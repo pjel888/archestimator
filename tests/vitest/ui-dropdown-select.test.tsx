@@ -195,6 +195,17 @@ describe("DropdownSelect", () => {
     expect(new FormData(form).get("status")).toBe("estimate-2");
   });
 
+  it("omits a hard-disabled picker from FormData, matching native disabled selects", () => {
+    render(
+      <form data-testid="parity-form">
+        <DropdownSelect options={MODE_OPTIONS} defaultValue="contingency" name="mode" disabled aria-label="Adjustment type" />
+      </form>,
+    );
+
+    const form = screen.getByTestId("parity-form") as HTMLFormElement;
+    expect(new FormData(form).has("mode")).toBe(false);
+  });
+
   it("keeps the hidden control out of the tab order and redirects invalid focus to the trigger", () => {
     render(
       <form>
