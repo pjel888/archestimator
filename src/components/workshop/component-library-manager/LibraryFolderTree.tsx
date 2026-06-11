@@ -22,9 +22,9 @@ import {
 import { CaretDown, CaretRight, Check, FolderSimple, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
-import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
-import { SearchInput } from "@/components/ui/search-input";
-import { WorkshopTreeRow, WorkshopTreeTabs } from "@/components/workshop/workshop-tree";
+import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { WorkshopTreeRow } from "@/components/workshop/workshop-tree";
 import { TreeBulkActionBar, TreeDragHandle, TreeSelectionCheckbox } from "@/components/workshop/tree-row-affordances";
 import {
   WORKSHOP_TREE_ICON_SLOT_CLASS,
@@ -68,8 +68,6 @@ export {
   type CreateLibraryFolderHandler,
   type ReorderStatus,
 } from "./library-folder-tree-shared";
-
-const LIBRARY_TABS = [{ id: "components", label: "Components" }] as const;
 
 type LibraryFolderTreeItemData = {
   kind: "folder" | "component";
@@ -920,7 +918,6 @@ type LibraryFolderTreeSurfaceProps = {
   brandSearchPlaceholder?: string;
   toolbarAriaLabel: string;
   toolbarLabelPrefix: string | ((mode: ComponentViewMode) => string);
-  tabsAriaLabel: string;
   viewModeAriaLabel: string;
   noSupplierMatchesLabel?: string;
   noBrandMatchesLabel?: string;
@@ -976,7 +973,6 @@ export function LibraryFolderTreeSurface({
   brandSearchPlaceholder = "Search Brands",
   toolbarAriaLabel,
   toolbarLabelPrefix,
-  tabsAriaLabel,
   viewModeAriaLabel,
   noSupplierMatchesLabel,
   noBrandMatchesLabel,
@@ -1174,44 +1170,36 @@ export function LibraryFolderTreeSurface({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col overflow-hidden bg-white", className)}>
-      <div ref={headerRef} className="sticky top-0 z-20 shrink-0 bg-white">
-        <SearchInput
-          placeholder={treeSearchPlaceholder}
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          onClear={() => setSearchQuery("")}
-          aria-label={resolveModeValue(searchAriaLabel, viewMode)}
-          wrapperClassName="w-full"
-        />
-        <HeaderIconToolbar
-          ariaLabel={toolbarAriaLabel}
-          labelPrefix={resolveModeValue(toolbarLabelPrefix, viewMode)}
-          onExpandAll={() => {
-            if (isFolderMode) setExpandedFolderItemIds(getAllFolderTreeItemIds(displayedFolderNodes));
-            else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds(getAllNodeIds(brandNodes));
-            else if (supplierNodes.length > 0) setExpandedSupplierNodeIds(getAllNodeIds(supplierNodes));
-          }}
-          onCollapseAll={() => {
-            if (isFolderMode) setExpandedFolderItemIds([]);
-            else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds([]);
-            else if (supplierNodes.length > 0) setExpandedSupplierNodeIds([]);
-          }}
-          leadingActions={[
-            {
-              label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Default"}`,
-              icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
-              onClick: () => setViewModeMenuOpen((current) => !current),
-              pressed: viewModeMenuOpen,
-            },
-          ]}
-          leadingActionsLabel="Component tree view mode"
-          addActions={addActions}
-        />
-        <WorkshopTreeTabs
-          tabs={LIBRARY_TABS}
-          activeTab="components"
-          ariaLabel={tabsAriaLabel}
-        />
+      <TreePanelHeader
+        ref={headerRef}
+        ariaLabel={toolbarAriaLabel}
+        labelPrefix={resolveModeValue(toolbarLabelPrefix, viewMode)}
+        searchValue={searchQuery}
+        onSearchValueChange={setSearchQuery}
+        searchPlaceholder={treeSearchPlaceholder}
+        searchLabel={resolveModeValue(searchAriaLabel, viewMode)}
+        showDefaultActions={false}
+        onExpandAll={() => {
+          if (isFolderMode) setExpandedFolderItemIds(getAllFolderTreeItemIds(displayedFolderNodes));
+          else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds(getAllNodeIds(brandNodes));
+          else if (supplierNodes.length > 0) setExpandedSupplierNodeIds(getAllNodeIds(supplierNodes));
+        }}
+        onCollapseAll={() => {
+          if (isFolderMode) setExpandedFolderItemIds([]);
+          else if (isBrandMode && brandNodes.length > 0) setExpandedBrandNodeIds([]);
+          else if (supplierNodes.length > 0) setExpandedSupplierNodeIds([]);
+        }}
+        leadingActions={[
+          {
+            label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === viewMode)?.label ?? "Default"}`,
+            icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
+            onClick: () => setViewModeMenuOpen((current) => !current),
+            pressed: viewModeMenuOpen,
+          },
+        ]}
+        leadingActionsLabel="Component tree view mode"
+        addActions={addActions}
+      >
         {viewModeMenuOpen ? <ComponentViewControls mode={viewMode} ariaLabel={viewModeAriaLabel} onModeChange={changeViewMode} /> : null}
         {reorderStatus.state !== "idle" ? (
           <div
@@ -1225,7 +1213,7 @@ export function LibraryFolderTreeSurface({
             {reorderStatus.message}
           </div>
         ) : null}
-      </div>
+      </TreePanelHeader>
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="p-2">
           {bodyTopSpacer}
@@ -1377,7 +1365,6 @@ export function LibraryFolderTreePicker({
       brandSearchPlaceholder="Search Brands"
       toolbarAriaLabel="Add component folder tools"
       toolbarLabelPrefix="add component folder"
-      tabsAriaLabel="Add component folder views"
       viewModeAriaLabel="Add component view mode"
     />
   );

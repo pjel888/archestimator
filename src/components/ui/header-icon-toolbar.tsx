@@ -6,6 +6,11 @@ import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 export type HeaderIconToolbarAddAction = {
   label: string;
   visibleLabel?: string;
+  /**
+   * "Add …" actions render icon-only by default; set this to keep the
+   * visible label (ink-primary emphasis for a sheet's main create action).
+   */
+  showVisibleLabel?: boolean;
   icon?: ReactNode;
   onClick?: () => void;
   pressed?: boolean;
@@ -31,6 +36,8 @@ type HeaderIconToolbarProps = {
   addDisabled?: boolean;
   addActions?: HeaderIconToolbarAddAction[];
   showDefaultActions?: boolean;
+  /** Wired filter control (e.g. a FilterPopover) rendered in the filter position. */
+  filterSlot?: ReactNode;
 };
 
 export function HeaderIconToolbar({
@@ -49,6 +56,7 @@ export function HeaderIconToolbar({
   addDisabled = false,
   addActions,
   showDefaultActions = true,
+  filterSlot,
 }: HeaderIconToolbarProps) {
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
   const toolbarAddActions: HeaderIconToolbarAddAction[] = addActions ?? [
@@ -86,11 +94,14 @@ export function HeaderIconToolbar({
           ))}
         </div>
       ) : null}
+      {filterSlot}
       {showDefaultActions ? (
         <>
-          <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
-            <FunnelSimple size={12} weight="regular" aria-hidden="true" />
-          </ToolbarIconButton>
+          {filterSlot ? null : (
+            <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
+              <FunnelSimple size={12} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+          )}
           <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
             <ListBullets size={12} weight="regular" aria-hidden="true" />
           </ToolbarIconButton>
@@ -132,7 +143,7 @@ export function HeaderIconToolbar({
       <div className="ml-auto flex items-center gap-1">
         {toolbarAddActions.map((action) => {
           const isAddAction = action.label.trim().toLowerCase().startsWith("add");
-          const visibleLabel = isAddAction ? undefined : action.visibleLabel;
+          const visibleLabel = isAddAction && !action.showVisibleLabel ? undefined : action.visibleLabel;
           return (
             <ToolbarIconButton
               key={action.label}
@@ -147,7 +158,7 @@ export function HeaderIconToolbar({
                 action.className ??
                 (visibleLabel
                   ? "bg-primary text-white hover:bg-accentDark focus-visible:bg-accentDark focus-visible:text-white"
-                  : "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800")
+                  : "text-secondary hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink")
               }
             >
               {action.icon ?? <Plus size={12} weight="regular" aria-hidden="true" />}
