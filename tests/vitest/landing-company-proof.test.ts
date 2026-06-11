@@ -34,8 +34,14 @@ describe("landing page company proof and Lenis integration", () => {
     const page = readProjectFile("src/app/page.tsx");
 
     expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
-    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
+    expect(page.indexOf("<AnimatedProposalRecordSection />")).toBeGreaterThan(
       page.indexOf("<HeroSection"),
+    );
+    expect(page.indexOf("<ProblemSection />")).toBeGreaterThan(
+      page.indexOf("<AnimatedProposalRecordSection />"),
+    );
+    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
+      page.indexOf("<ProblemSection />"),
     );
     expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
       page.indexOf("<CompanyProofCarouselSection />"),

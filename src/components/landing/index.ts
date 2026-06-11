@@ -1,5 +1,6 @@
 export { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
 export { CompanyProofCarouselSection } from "./CompanyProofCarouselSection";
+export { ProblemSection } from "./ProblemSection";
 export { CookieConsentBanner } from "./CookieConsentBanner";
 export { CtaLink } from "./CtaLink";
 export { SecondaryClaimSection } from "./SecondaryClaimSection";
