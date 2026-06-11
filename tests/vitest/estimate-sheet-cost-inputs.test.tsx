@@ -352,6 +352,27 @@ describe("estimate sheet cost inputs", () => {
     expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
   });
 
+  it("commits the fresh draft percentage when the mode changes right after typing", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    const adjustmentType = screen.getByLabelText("Hardwood Oak Flooring adjustment type");
+
+    // The plan's stale-closure guard sequence: type a draft percentage
+    // (unblurred), then open the mode picker (the click blurs and commits
+    // the draft), then pick Discount — the committed value must be the
+    // fresh draft, negated, not a stale snapshot from open time.
+    await user.clear(adjustmentInput);
+    await user.type(adjustmentInput, "10");
+    await user.click(adjustmentType);
+    await user.click(screen.getByRole("option", { name: "Discount" }));
+
+    expect(adjustmentType).toHaveTextContent("Discount");
+    expect(screen.getByText("-₱ 5,760.00")).toBeInTheDocument();
+    expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
+  });
+
   it("keeps area breadcrumb spacing symmetrical above and below the trail", () => {
     renderEstimateSheet("living-area");
 

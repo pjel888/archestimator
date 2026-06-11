@@ -188,12 +188,12 @@ describe("shared modal and toolbar tooltip primitives", () => {
     // suppressed by the popup core, so the overlay's close never fires.
     fireEvent.pointerDown(overlay);
     expect(screen.queryByRole("listbox")).toBeNull();
-    fireEvent.click(overlay);
+    fireEvent.click(overlay, { detail: 1 });
     expect(onOpenChange).not.toHaveBeenCalled();
 
     // A separate overlay click with no popup open closes the modal normally.
     fireEvent.pointerDown(overlay);
-    fireEvent.click(overlay);
+    fireEvent.click(overlay, { detail: 1 });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
