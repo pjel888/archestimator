@@ -240,6 +240,9 @@ type EstimateRightSidebarProps = {
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
+  // Fired after a server-confirmed library/template mutation so callers that
+  // cache the lazy library dataset can invalidate it (remount freshness).
+  onLibraryDataChanged?: () => void;
 };
 
 const EMPTY_LIBRARY_TREE_ORDER: Record<ComponentViewMode, LibraryTreeOrder> = { default: {}, suppliers: {}, brand: {} };
@@ -290,6 +293,7 @@ export function EstimateRightSidebar({
   suppliers = [],
   brands = [],
   libraryFolders = [],
+  onLibraryDataChanged,
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   // Initial state must not read localStorage: SSR renders the fallbacks, so a
@@ -734,14 +738,16 @@ export function EstimateRightSidebar({
     setLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
     setPreviewItemId(item.id);
     setLastActionMessage(`${getComponentName(item)} created in the component library.`);
-  }, []);
+    onLibraryDataChanged?.();
+  }, [onLibraryDataChanged]);
 
   const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
     setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
     setActiveTab("templates");
     setTemplatesExpandedIds((current) => Array.from(new Set([...current, templatesTreeCategoryId(template.category)])));
     setLastActionMessage(`${template.name} saved to templates.`);
-  }, []);
+    onLibraryDataChanged?.();
+  }, [onLibraryDataChanged]);
 
   const startRenameTemplate = useCallback((template: EstimateTemplate) => {
     setRenameTemplateTarget(template);
@@ -770,12 +776,13 @@ export function EstimateRightSidebar({
       );
       setLastActionMessage(`${renameTemplateTarget.name} renamed to ${confirmed.name}.`);
       setRenameTemplateTarget(null);
+      onLibraryDataChanged?.();
     } catch (error) {
       setRenameTemplateError(error instanceof Error ? error.message : "Could not rename template.");
     } finally {
       setRenameTemplatePending(false);
     }
-  }, [renameTemplateName, renameTemplatePending, renameTemplateTarget]);
+  }, [onLibraryDataChanged, renameTemplateName, renameTemplatePending, renameTemplateTarget]);
 
   const startDeleteTemplate = useCallback((template: EstimateTemplate) => {
     setDeleteTemplateTarget(template);
@@ -791,12 +798,13 @@ export function EstimateRightSidebar({
       setTemplateList((current) => current.filter((template) => template.id !== deleteTemplateTarget.id));
       setLastActionMessage(`${deleteTemplateTarget.name} deleted from templates.`);
       setDeleteTemplateTarget(null);
+      onLibraryDataChanged?.();
     } catch (error) {
       setDeleteTemplateError(error instanceof Error ? error.message : "Could not delete template.");
     } finally {
       setDeleteTemplatePending(false);
     }
-  }, [deleteTemplatePending, deleteTemplateTarget]);
+  }, [deleteTemplatePending, deleteTemplateTarget, onLibraryDataChanged]);
 
   const startEditComponent = useCallback((item: EstimateRowItem) => {
     setForm(componentToForm(item));
@@ -827,8 +835,9 @@ export function EstimateRightSidebar({
       setPreviewItemId(nextComponent.id);
       setLastActionMessage(`${getComponentName(nextComponent)} ${editItemId ? "updated" : "created"}.`);
       if (addNow) addComponent(nextComponent);
+      onLibraryDataChanged?.();
     },
-    [addComponent, editItemId, form, libraryItems, resetComponentForm],
+    [addComponent, editItemId, form, libraryItems, onLibraryDataChanged, resetComponentForm],
   );
 
   const deleteLibraryItem = useCallback((item: EstimateRowItem) => {
@@ -838,7 +847,8 @@ export function EstimateRightSidebar({
     setLastActionMessage(`${getComponentName(item)} deleted. Undo is available.`);
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
-  }, []);
+    onLibraryDataChanged?.();
+  }, [onLibraryDataChanged]);
 
   const undoDelete = useCallback(() => {
     if (!deletedItems.length) return;
@@ -846,7 +856,8 @@ export function EstimateRightSidebar({
     setLastActionMessage(deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} restored.` : `${deletedItems.length} components restored.`);
     setDeletedItems([]);
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
-  }, [deletedItems]);
+    onLibraryDataChanged?.();
+  }, [deletedItems, onLibraryDataChanged]);
 
   const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
     setActiveTab(tab);
@@ -932,7 +943,8 @@ export function EstimateRightSidebar({
     );
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
     deleteUndoTimerRef.current = window.setTimeout(() => setDeletedItems([]), 5000);
-  }, [bulkSelectedItems, clearBulkSelection]);
+    onLibraryDataChanged?.();
+  }, [bulkSelectedItems, clearBulkSelection, onLibraryDataChanged]);
 
   const handleExpandAll = useCallback(() => {
     if (activeTab === "templates") {

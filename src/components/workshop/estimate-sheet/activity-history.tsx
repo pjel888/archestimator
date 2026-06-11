@@ -93,9 +93,9 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
 
 export type CostAdjustmentMode = "contingency" | "discount";
 
-export const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
+export { BLANK_ESTIMATE_ROW_AUDIT_LABEL, BLANK_ESTIMATE_ROW_COMPONENT_LABEL } from "@/lib/activity/activity-composer";
+import { BLANK_ESTIMATE_ROW_AUDIT_LABEL, BLANK_ESTIMATE_ROW_COMPONENT_LABEL } from "@/lib/activity/activity-composer";
 export const BLANK_ESTIMATE_ROW_TAG = "manual-row-placeholder";
-export const BLANK_ESTIMATE_ROW_AUDIT_LABEL = "Empty row slot";
 
 export function clampContingencyPercentage(value: number) {
   if (!Number.isFinite(value)) return 0;
