@@ -120,6 +120,8 @@ export { ScrollArea } from "./scroll-area";
 export type { ScrollAreaProps } from "./scroll-area";
 export { DropdownMenu } from "./dropdown-menu";
 export type { DropdownMenuGroup, DropdownMenuItem as DropdownMenuItemType, DropdownMenuProps } from "./dropdown-menu";
+export { DropdownSelect } from "./dropdown-select";
+export type { DropdownSelectOption, DropdownSelectProps } from "./dropdown-select";
 export { Tree, moveTreeNode, TREE_INDENT_STEP } from "./tree";
 export type { TreeNode, TreeProps, TreeDropPosition, TreeItemState, TreeRowDomProps } from "./tree";
 export { TabStrip } from "./tab-strip";

@@ -41,6 +41,7 @@ const requiredStories = [
   { title: "Forms/Switch", exports: ["Default", "Checked", "Disabled", "KeyboardFocus"] },
   { title: "Menus/ActionMenu", exports: ["Default", "Grouped", "DisabledItem", "DestructiveItem", "WithShortcut", "KeyboardFocus"] },
   { title: "Menus/ContextMenu", exports: ["Default", "RightClickExample", "DisabledAndDestructive", "NestedOrSubmenu", "KeyboardFocus"] },
+  { title: "Menus/DropdownSelect", exports: ["Default", "Variants", "States", "LongContent", "KeyboardFocus"] },
   { title: "Overlays/DialogSystem", exports: ["HeaderLayout", "CloseButtonPosition", "WithDescription", "InternalScroll", "FooterActions", "Sizes", "Tones", "LongContent", "AccessibilityNotes"] },
   { title: "Overlays/AppModal", exports: ["Default", "SizeXs", "SizeSm", "SizeMd", "SizeLg", "SizeXl", "Fullscreen", "WithBlurBackdrop", "WithoutBlurBackdrop", "FormContent", "TableContent", "LoadingState", "ErrorState", "DestructiveState"] },
   { title: "Overlays/ResizableModal", exports: ["Default", "NoBackdrop", "TransparentOverlay", "ResizableSmall", "ResizableMedium", "ResizableLarge", "MinMaxSize", "InspectorPopup", "FloatingToolWindow", "WithFooterActions", "InternalScroll", "ResizeNotes", "KeyboardFocus"] },
