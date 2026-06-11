@@ -803,7 +803,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
       insertedRowItems = data ?? [];
     }
 
-    revalidatePath("/workshop/templates");
+    revalidatePath("/workshop/library/templates");
 
     const [template] = buildEstimateTemplatesFromRows({
       templates: [insertedTemplate],
@@ -838,7 +838,7 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
 
   if (error) throw new Error(`Could not rename template: ${error.message}`);
   if (!template) throw new Error("Template not found in the current workspace.");
-  revalidatePath("/workshop/templates");
+  revalidatePath("/workshop/library/templates");
   return { templateId: template.id, name: template.name };
 }
 
@@ -858,6 +858,6 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
 
   if (error) throw new Error(`Could not delete template: ${error.message}`);
   if (!template) throw new Error("Template not found in the current workspace.");
-  revalidatePath("/workshop/templates");
+  revalidatePath("/workshop/library/templates");
   return { templateId: template.id };
 }

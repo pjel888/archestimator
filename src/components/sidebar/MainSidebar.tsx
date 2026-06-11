@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Blueprint, Books, Folder, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { Books, Folder, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,7 @@ const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
 const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
   dashboardItem,
   { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
-  { id: "library", href: "/workshop/library", label: "Components", icon: Books, shortcut: "⌘3" },
-  { id: "templates", href: "/workshop/templates", label: "Templates", icon: Blueprint, shortcut: "⌘4" },
+  { id: "library", href: "/workshop/library", label: "Library", icon: Books, shortcut: "⌘3" },
 ];
 
 const sidebarPrefetchRoutes = sidebarNavItems.map((item) => ({ pathname: item.href }));

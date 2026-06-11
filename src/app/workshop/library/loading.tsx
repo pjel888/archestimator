@@ -1,32 +1,25 @@
-import { StaticWorkshopLoadingShell } from "@/components/workshop/StaticWorkshopLoadingShell";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <StaticWorkshopLoadingShell
-      title="Library"
-      eyebrow="Library"
-      showEyebrow={false}
-    >
-      <div className="flex h-full flex-col bg-white">
-        <div className="flex h-[38px] items-center">
-          <Skeleton className="h-7 w-full rounded-xs" />
-        </div>
-        <Skeleton className="h-[34px] w-full shrink-0 rounded-xs" />
-        <div className="min-h-0 flex-1 overflow-auto p-2">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="flex items-center gap-2 border-b border-hairline px-2 py-2.5">
-              <Skeleton className="size-4 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <Skeleton className="mb-1 h-3 w-2/5" />
-                <Skeleton className="h-[9px] w-3/5" />
-              </div>
-              <Skeleton className="h-3 w-16 shrink-0" />
-              <Skeleton className="h-3 w-20 shrink-0" />
-            </div>
+    <div className="flex h-full min-h-0 overflow-hidden bg-white" role="status" aria-label="Loading library">
+      <div className="flex min-w-0 flex-1 flex-col p-2" aria-hidden="true">
+        <Skeleton className="h-7 w-32" />
+        <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2">
+          {Array.from({ length: 8 }, (_, index) => (
+            <Skeleton key={index} className="h-[236px] w-full" />
           ))}
         </div>
       </div>
-    </StaticWorkshopLoadingShell>
+      <div className="hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block" aria-hidden="true">
+        <Skeleton className="h-7 w-full" />
+        <div className="mt-2 space-y-1">
+          {Array.from({ length: 9 }, (_, index) => (
+            <Skeleton key={index} className="h-6 w-full" />
+          ))}
+        </div>
+      </div>
+      <span className="sr-only">Loading library</span>
+    </div>
   );
 }

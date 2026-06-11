@@ -271,23 +271,31 @@ describe("workshop library consolidation UI", () => {
     rctHarness.lastEnvironmentProps = null;
   });
 
-  it("uses /workshop/library as the canonical route and redirects the retired components route", () => {
+  it("uses /workshop/library as the canonical route and redirects the retired components and templates routes", () => {
     const libraryRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/page.tsx"), "utf8");
+    const libraryLayout = readFileSync(join(process.cwd(), "src/app/workshop/library/layout.tsx"), "utf8");
+    const componentsSharedRoute = readFileSync(join(process.cwd(), "src/components/workshop/library/LibraryComponentsRoute.tsx"), "utf8");
+    const componentsSubRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/components/page.tsx"), "utf8");
+    const libraryTemplatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/templates/page.tsx"), "utf8");
     const componentsRoute = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
     const templatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/templates/page.tsx"), "utf8");
 
-    expect(libraryRoute).toContain("LibraryPageClient");
-    expect(libraryRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
-    expect(libraryRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
+    expect(libraryRoute).toContain("LibraryComponentsRoute");
+    expect(componentsSubRoute).toContain("LibraryComponentsRoute");
+    expect(componentsSharedRoute).toContain("LibraryPageClient");
+    expect(componentsSharedRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
+    expect(componentsSharedRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
     expect(libraryRoute).not.toContain("templates=");
-    expect(libraryRoute).toContain('breadcrumbs={["Library"]}');
-    expect(libraryRoute).toContain('contentClassName=""');
+    expect(libraryLayout).toContain('breadcrumbs={["Library"]}');
+    expect(libraryLayout).toContain('contentClassName=""');
+    expect(libraryLayout).toContain("LibraryTabsLayoutClient");
     expect(libraryRoute).not.toContain("Workspace library");
     expect(libraryRoute).not.toContain("Categories and templates");
     expect(componentsRoute).toContain('redirect("/workshop/library")');
     expect(componentsRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
-    expect(templatesRoute).toContain("TemplatesPageClient");
-    expect(templatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
+    expect(templatesRoute).toContain('redirect("/workshop/library/templates")');
+    expect(libraryTemplatesRoute).toContain("TemplatesPageClient");
+    expect(libraryTemplatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
   });
 
   it("keeps Supabase upload review safeguards in place", () => {
