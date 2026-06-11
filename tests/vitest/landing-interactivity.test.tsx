@@ -1,14 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { HeroSection, heroCopyVariants } from "@/components/landing/HeroSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { ProductShowcaseSection } from "@/components/landing/ProductShowcaseSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
-
-vi.mock("@/components/landing/NeatWireframeBackground", () => ({
-  NeatWireframeBackground: () => <div data-testid="neat-wireframe-background" />,
-}));
 
 describe("landing page below-hero interactivity", () => {
   it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
@@ -24,10 +20,36 @@ describe("landing page below-hero interactivity", () => {
     expect(heroCopyVariants.map((variant) => variant.evidenceGate).join(" ")).toMatch(
       /closed beta/i,
     );
+    expect(
+      heroCopyVariants.every(
+        (variant) => variant.eyebrow === "Estimating & proposal workspace for construction teams",
+      ),
+    ).toBe(true);
     expect(heroCopyVariants.map((variant) => variant.headline).join(" ")).not.toMatch(
       /smart ones|competitors are already/i,
     );
     expect(screen.queryByRole("heading", { name: /competitors are already/i })).not.toBeInTheDocument();
+  });
+
+  it("proves the product with the estimate artifact instead of the slide rotation", () => {
+    render(<HeroSection />);
+
+    const artifacts = screen.getAllByTestId("landing-hero-estimate-artifact");
+    expect(artifacts).toHaveLength(2); // compact (mobile) + full (desktop)
+    expect(screen.getAllByText("Estimate — Kitchen fit-out — Rev B")).toHaveLength(2);
+    expect(screen.getAllByText("Now on closed beta")).toHaveLength(2);
+    expect(screen.getAllByText("Kitchen subtotal").length).toBeGreaterThan(0);
+    expect(screen.getByText("₱402,920")).toBeInTheDocument();
+    expect(screen.getAllByText("Proposal preview")).toHaveLength(2);
+    // Library card renders on the full artifact only (hidden in compact)
+    expect(screen.getByText("From your library — drag into Kitchen")).toBeInTheDocument();
+
+    expect(screen.getByRole("link", { name: "Request beta access" })).toHaveAttribute("href", "/contact");
+    expect(screen.getByRole("link", { name: "See how it works" })).toHaveAttribute("href", "#method");
+
+    expect(screen.queryAllByTestId("landing-hero-slide")).toHaveLength(0);
+    expect(screen.queryByTestId("landing-hero-frosted-visual")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("neat-wireframe-background")).not.toBeInTheDocument();
   });
 
   it("switches product preview content through accessible product tabs", async () => {
