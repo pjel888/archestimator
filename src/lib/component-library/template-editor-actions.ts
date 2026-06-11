@@ -463,6 +463,8 @@ export async function insertTemplateIntoTemplate(input: {
   targetTemplateId: string;
   targetNodeId: string | null;
   sourceTemplateId: string;
+  /** Copy only this node's subtree instead of the whole source template. */
+  sourceNodeId?: string | null;
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
@@ -491,7 +493,29 @@ export async function insertTemplateIntoTemplate(input: {
   if (sourceNodesResult.error) throw new Error(`Could not load the source template: ${sourceNodesResult.error.message}`);
   if (sourceRowsResult.error) throw new Error(`Could not load the source rows: ${sourceRowsResult.error.message}`);
 
-  const sourceNodes = sourceNodesResult.data ?? [];
+  let sourceNodes = sourceNodesResult.data ?? [];
+  let sourceRows = sourceRowsResult.data ?? [];
+  if (input.sourceNodeId) {
+    const childrenByParent = new Map<string | null, typeof sourceNodes>();
+    for (const node of sourceNodes) {
+      const siblings = childrenByParent.get(node.parent_id) ?? [];
+      siblings.push(node);
+      childrenByParent.set(node.parent_id, siblings);
+    }
+    const subtree: typeof sourceNodes = [];
+    const root = sourceNodes.find((node) => node.id === input.sourceNodeId);
+    if (!root) throw new Error("The source template node no longer exists.");
+    const queue = [root];
+    while (queue.length > 0) {
+      const node = queue.shift()!;
+      subtree.push(node);
+      queue.push(...(childrenByParent.get(node.id) ?? []));
+    }
+    const subtreeIds = new Set(subtree.map((node) => node.id));
+    // The subtree root re-parents onto the target node.
+    sourceNodes = subtree.map((node) => (node.id === root.id ? { ...node, parent_id: null } : node));
+    sourceRows = sourceRows.filter((row) => subtreeIds.has(row.template_node_id));
+  }
   if (sourceNodes.length === 0) throw new Error("The source template has no structure to insert.");
 
   const baseSortOrder = await nextSiblingSortOrder(supabase, input.targetTemplateId, input.targetNodeId);
@@ -509,7 +533,7 @@ export async function insertTemplateIntoTemplate(input: {
   const { error: nodeInsertError } = await supabase.from("estimate_template_nodes").insert(nodeInserts);
   if (nodeInsertError) throw new Error(`Could not copy the structure: ${nodeInsertError.message}`);
 
-  const rowInserts = (sourceRowsResult.data ?? []).map((row) => ({
+  const rowInserts = sourceRows.map((row) => ({
     template_id: input.targetTemplateId,
     template_node_id: idMap.get(row.template_node_id)!,
     sort_order: row.sort_order,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { CaretDown, FolderSimple, MapPin, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,14 @@ import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { cn } from "@/lib/ui/cn";
 import type { TemplateEditorRowPatch } from "@/lib/component-library/template-editor-actions";
+import {
+  ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  readEstimateTemplateDragPayload,
+  type EstimateTemplateDragPayload,
+} from "../../component-library/templates";
+import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
+import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "../../estimate-sheet/rows/constants";
+import { EstimateDropZone } from "../../estimate-sheet/rows/drop-zones";
 import { NodeIcon, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "../../estimate-sheet/rows/node-visuals";
 import { pesoFormatter } from "../../component-library/helpers";
 import {
@@ -16,7 +24,7 @@ import {
   type EstimateTemplate,
 } from "../../component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
-import { findTemplateNode } from "./template-editor-model";
+import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 
 const TEMPLATE_SHEET_ROW_COLUMNS = "grid-cols-[24px_minmax(140px,44fr)_10fr_10fr_18fr_18fr_28px]";
 
@@ -27,7 +35,21 @@ export type TemplateSheetHandlers = {
   onUpdateRow: (rowId: string, patch: TemplateEditorRowPatch) => void;
   onRemoveRow: (rowId: string) => void;
   onAddAllowanceRow: (nodeId: string, material: string) => void;
+  /** A dock component dropped on an area (or routed from a group header). */
+  onDropLibraryItem: (nodeId: string, item: EstimateRowItem) => void;
+  /** A dock template (or template subtree) dropped on a group or the root. */
+  onDropTemplate: (targetGroupId: string | null, payload: EstimateTemplateDragPayload) => void;
 };
+
+function readLibraryItemDropPayload(event: DragEvent<HTMLElement>): EstimateRowItem | null {
+  const payload = event.dataTransfer.getData(LIBRARY_ITEM_DRAG_MIME_TYPE);
+  if (!payload) return null;
+  try {
+    return JSON.parse(payload) as EstimateRowItem;
+  } catch {
+    return null;
+  }
+}
 
 function templateRowMatchesQuery(item: EstimateRowItem, normalizedQuery: string) {
   return [item.material, item.name, item.supplier, item.description]
@@ -244,12 +266,79 @@ function TemplateSheetBranch({
   const leftIndent = Math.min(depth * 24, 144);
   const total = computeTemplateNodeTotal(node);
   const displayKind = isGroup ? "group" : "area";
+  const activeDrag = useEstimateWorkshopDrag();
+  const componentDragActive = activeDrag?.kind === "library-item";
+  const templateDragActive = activeDrag?.kind === "estimate-template";
+  const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
+  const [dragOverCount, setDragOverCount] = useState(0);
+  // A cancelled drag never delivers the balancing dragleave; reset once the
+  // drag store empties (same idiom as the estimate sheet's drop targets).
+  if (!componentDragActive && !templateDragActive && dragOverCount !== 0) setDragOverCount(0);
+  // Components route into this node's first area when dropped on a group.
+  const componentRouteArea = node.kind === "area" ? node : findFirstTemplateArea(node.children ?? []);
+  const acceptsComponentDrop = componentDragActive && !isTemporary && componentRouteArea !== null;
+  const acceptsTemplateDrop = templateDragActive && !isTemporary && isGroup;
+
+  function handleNodeDragOver(event: DragEvent<HTMLElement>) {
+    if (acceptsComponentDrop && event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "copy";
+      return;
+    }
+    if (acceptsTemplateDrop && event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function handleNodeDragEnter(event: DragEvent<HTMLElement>) {
+    if (!acceptsComponentDrop && !acceptsTemplateDrop) return;
+    event.stopPropagation();
+    setDragOverCount((count) => count + 1);
+  }
+
+  function handleNodeDragLeave(event: DragEvent<HTMLElement>) {
+    if (!acceptsComponentDrop && !acceptsTemplateDrop) return;
+    event.stopPropagation();
+    setDragOverCount((count) => Math.max(0, count - 1));
+  }
+
+  function handleNodeDrop(event: DragEvent<HTMLElement>) {
+    setDragOverCount(0);
+    if (acceptsComponentDrop) {
+      const item = readLibraryItemDropPayload(event);
+      if (item && componentRouteArea) {
+        event.preventDefault();
+        event.stopPropagation();
+        handlers.onDropLibraryItem(componentRouteArea.id, item);
+        return;
+      }
+    }
+    if (acceptsTemplateDrop) {
+      const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
+      if (payload) {
+        event.preventDefault();
+        event.stopPropagation();
+        handlers.onDropTemplate(node.id, payload);
+      }
+    }
+  }
 
   return (
     <section
-      className={cn(depth > 0 && "mt-1", !isGroup && "border border-hairline bg-surfaceMuted/20")}
+      className={cn(
+        depth > 0 && "mt-1",
+        !isGroup && "border border-hairline bg-surfaceMuted/20",
+        (acceptsComponentDrop || acceptsTemplateDrop) && dragOverCount > 0 && "bg-surfaceMuted/50",
+      )}
       aria-label={node.name}
       data-template-editor-node={node.id}
+      onDragOver={handleNodeDragOver}
+      onDragEnter={handleNodeDragEnter}
+      onDragLeave={handleNodeDragLeave}
+      onDrop={handleNodeDrop}
     >
       <div
         className={cn("group/node flex h-9 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
@@ -345,6 +434,22 @@ function TemplateSheetBranch({
               ) : null}
             </div>
           ) : null}
+          {acceptsComponentDrop && node.kind === "area" && componentRouteArea ? (
+            <div className="py-1" data-template-component-drop-zone={componentRouteArea.id}>
+              <EstimateDropZone
+                label={`Drop to add the component to ${componentRouteArea.name}`}
+                isDragOver={dragOverCount > 0}
+              />
+            </div>
+          ) : null}
+          {acceptsTemplateDrop ? (
+            <div className="py-1" data-template-template-drop-zone={node.id}>
+              <EstimateDropZone
+                label={`Drop ${activeTemplateName || "template"} into ${node.name}`}
+                isDragOver={dragOverCount > 0}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -388,6 +493,46 @@ export function TemplateEditorSheet({
   );
   const summary = useMemo(() => summarizeEstimateTemplate(template), [template]);
   const isEmpty = template.nodes.length === 0;
+  const activeDrag = useEstimateWorkshopDrag();
+  const rootTemplateDragActive = activeDrag?.kind === "estimate-template";
+  const rootActiveTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
+  const [rootDragOverCount, setRootDragOverCount] = useState(0);
+  if (!rootTemplateDragActive && rootDragOverCount !== 0) setRootDragOverCount(0);
+
+  function handleRootTemplateDrop(event: DragEvent<HTMLElement>) {
+    setRootDragOverCount(0);
+    const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
+    if (!payload) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handlers.onDropTemplate(null, payload);
+  }
+
+  const rootTemplateDropZone = rootTemplateDragActive ? (
+    <div
+      className="py-1"
+      data-template-root-drop-zone="true"
+      onDragEnter={(event) => {
+        if (!event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+        setRootDragOverCount((count) => count + 1);
+      }}
+      onDragLeave={(event) => {
+        if (!event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+        setRootDragOverCount((count) => Math.max(0, count - 1));
+      }}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={handleRootTemplateDrop}
+    >
+      <EstimateDropZone
+        label={`Drop ${rootActiveTemplateName || "template"} here to add it at the template root`}
+        isDragOver={rootDragOverCount > 0}
+      />
+    </div>
+  ) : null;
 
   // "Add area" targets the selected group, or the only root group.
   const selectedNode = selectedNodeId ? findTemplateNode(template.nodes, selectedNodeId) : null;
@@ -467,10 +612,11 @@ export function TemplateEditorSheet({
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
         {isEmpty ? (
-          <div className="flex h-full min-h-32 items-center justify-center rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 p-4 text-center">
+          <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 p-4 text-center">
             <p className="max-w-sm text-[10px] leading-4 text-tertiary">
               Drag components here from the right panel, or add a group to start the structure.
             </p>
+            {rootTemplateDropZone ? <div className="w-full max-w-sm">{rootTemplateDropZone}</div> : null}
           </div>
         ) : visibleNodes.length === 0 ? (
           <div className="flex h-full min-h-32 items-center justify-center p-4 text-center">
@@ -488,6 +634,7 @@ export function TemplateEditorSheet({
                 handlers={handlers}
               />
             ))}
+            {rootTemplateDropZone}
           </div>
         )}
       </div>
