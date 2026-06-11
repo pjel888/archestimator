@@ -61,7 +61,7 @@ describe("landing page below-hero interactivity", () => {
 
     const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate workspace" });
     const componentLibraryTab = screen.getByRole("tab", { name: "Component library" });
-    const revisionIntelligenceTab = screen.getByRole("tab", { name: "Revision intelligence" });
+    const revisionIntelligenceTab = screen.getByRole("tab", { name: /Revision history/ });
 
     expect(estimateWorkspaceTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel", { name: "Estimate workspace" })).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("landing page below-hero interactivity", () => {
     await user.click(revisionIntelligenceTab);
 
     expect(revisionIntelligenceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Revision intelligence" })).toHaveTextContent(/planned preview/i);
+    expect(screen.getByRole("tabpanel", { name: /Revision history/ })).toHaveTextContent(/planned preview/i);
     expect(screen.getByText(/in the planned workflow/i)).toBeInTheDocument();
   });
 
