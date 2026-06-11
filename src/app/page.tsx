@@ -39,7 +39,7 @@ export default async function LandingPage() {
             <SecondaryClaimSection />
             <ProductShowcaseSection />
             <PricingSection />
-            <FinalCTASection />
+            <FinalCTASection isLoggedIn={isLoggedIn} />
           </main>
         </LandingSmoothScrollProvider>
         <LandingFooter />

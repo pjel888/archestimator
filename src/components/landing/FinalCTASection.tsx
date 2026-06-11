@@ -6,7 +6,11 @@ import { MotionReveal } from "./MotionReveal";
 import { workshopHref } from "./constants";
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
-export function FinalCTASection() {
+export function FinalCTASection({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
+  const ctaHref = isLoggedIn ? workshopHref : "/contact";
+  const ctaTarget = isLoggedIn ? "open_workspace" : "book_walkthrough";
+  const ctaLabel = isLoggedIn ? "Open the workspace" : "Request beta access";
+
   return (
     <section
       id="contact"
@@ -25,11 +29,11 @@ export function FinalCTASection() {
               </h2>
             </div>
             <Link
-              href={workshopHref}
-              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "final_cta", target: "open_workspace" })}
+              href={ctaHref}
+              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "final_cta", target: ctaTarget, cta_label: ctaLabel })}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] bg-brand-orange px-5 text-[13px] font-semibold leading-none text-white transition hover:bg-brand-orange-dark active:scale-95 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
             >
-              Open workspace <ArrowRight className="size-4" weight="bold" />
+              {ctaLabel} <ArrowRight className="size-4" weight="bold" />
             </Link>
           </div>
         </MotionReveal>

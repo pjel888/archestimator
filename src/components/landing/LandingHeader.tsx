@@ -79,26 +79,26 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
           {isLoggedIn ? (
             <Link
               href={workshopHref}
-              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "workspace" })}
+              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "workspace", cta_label: "Open the workspace" })}
               className={`inline-flex min-h-10 items-center gap-2 rounded-[6px] px-4 text-[12px] font-semibold text-white transition ${
                 isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-brand-orange hover:bg-brand-orange-dark"
               }`}
             >
-              Workspace
+              Open the workspace
               <ArrowRight className="size-3.5 [animation:workspace-arrow-bounce_0.9s_ease-in-out_infinite]" weight="bold" />
             </Link>
           ) : (
             <>
               <Link
                 href="/contact"
-                aria-label="Book a walkthrough"
-                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "book_walkthrough" })}
+                aria-label="Request beta access"
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "book_walkthrough", cta_label: "Request beta access" })}
                 className={`inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition ${
                   isOverFooter ? "border border-white/70 bg-transparent hover:bg-white/10" : "bg-brand-orange hover:bg-brand-orange-dark"
                 }`}
               >
-                <span className="hidden sm:inline">Book a walkthrough</span>
-                <span className="sm:hidden" aria-hidden="true">Book</span>
+                <span className="hidden sm:inline">Request beta access</span>
+                <span className="sm:hidden" aria-hidden="true">Beta access</span>
               </Link>
               <Link
                 href={loginHref}
