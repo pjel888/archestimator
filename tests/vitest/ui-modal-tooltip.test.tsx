@@ -10,7 +10,6 @@ import { Modal } from "@/components/ui/modal";
 import { ResizableModal } from "@/components/ui/overlays/resizable-modal";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
-import { ToolbarIconSelect } from "@/components/ui/toolbar-icon-select";
 
 describe("shared modal and toolbar tooltip primitives", () => {
   it("renders modal content through a fixed viewport portal", () => {
@@ -122,23 +121,9 @@ describe("shared modal and toolbar tooltip primitives", () => {
     expect(container.querySelector("[role='tooltip']")).toBeNull();
   });
 
-  it("ports icon select tooltips outside clipped toolbar panels", async () => {
-    const { container } = render(
-      <div className="overflow-hidden">
-        <ToolbarIconSelect label="Group component library" icon={<span aria-hidden="true">G</span>}>
-          <option value="category">Category</option>
-          <option value="supplier">Supplier</option>
-        </ToolbarIconSelect>
-      </div>,
-    );
-
-    fireEvent.focus(screen.getByLabelText("Group component library"));
-
-    const tooltip = await screen.findByRole("tooltip");
-    expect(tooltip).toHaveTextContent("Group component library");
-    expect(tooltip).toHaveClass("fixed", "z-[1100]");
-    expect(container.querySelector("[role='tooltip']")).toBeNull();
-  });
+  // ToolbarIconSelect retired with the DropdownSelect migration; its
+  // portal-escapes-overflow regression coverage lives in
+  // ui-dropdown-popup-core.test.tsx against the shared popup core.
 
   it("closes only an open dropdown on Escape; the second Escape closes the modal", () => {
     const onOpenChange = vi.fn();

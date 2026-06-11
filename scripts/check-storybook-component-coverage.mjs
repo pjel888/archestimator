@@ -34,7 +34,6 @@ const requiredStories = [
   { title: "Actions/ButtonGroup", exports: ["Default", "WithMixedActions"] },
   { title: "Forms/Input", exports: ["Default", "WithHelper", "Invalid", "Disabled", "Readonly", "WithPrefixSuffix", "LongValue", "CompactDensity", "KeyboardFocus"] },
   { title: "Forms/SearchInput", exports: ["Default", "ControlledWithClear", "Disabled", "LongValue", "KeyboardFocus"] },
-  { title: "Forms/Select", exports: ["Default", "WithHelper", "Invalid", "Disabled", "CompactDensity", "KeyboardFocus"] },
   { title: "Forms/Textarea", exports: ["Default", "WithHelper", "Invalid", "Disabled", "Readonly", "LongValue", "KeyboardFocus"] },
   { title: "Forms/Checkbox", exports: ["Default", "Invalid", "Disabled", "KeyboardFocus"] },
   { title: "Forms/RadioGroup", exports: ["Default", "Invalid", "Disabled", "KeyboardFocus"] },

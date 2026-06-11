@@ -8,9 +8,9 @@ import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropd
  * pages), so the interactive picker is isolated here instead of marking the
  * whole fields module "use client".
  *
- * Matches the previous ControlSelect register in these forms: h-8 underline
- * control on a white surface. Form semantics (name/defaultValue/required and
- * reset resync) ride on DropdownSelect's hidden native select.
+ * Matches these forms' established register: h-8 underline control on a
+ * white surface. Form semantics (name/defaultValue/required and reset
+ * resync) ride on DropdownSelect's hidden native select.
  */
 
 type AccountSettingsSelectFieldProps = {

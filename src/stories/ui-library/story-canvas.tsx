@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/control-input";
-import { ControlSelect } from "@/components/ui/control-select";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -214,11 +214,16 @@ export function FormControlMatrix() {
       </StoryPanel>
       <StoryPanel className="space-y-2">
         <ControlField label="Status" as="div">
-          <ControlSelect defaultValue="review" wrapperClassName="h-8 border border-hairline px-2">
-            <option value="draft">Draft</option>
-            <option value="review">Review</option>
-            <option value="approved">Approved</option>
-          </ControlSelect>
+          <DropdownSelect
+            defaultValue="review"
+            aria-label="Status"
+            className="h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px]"
+            options={[
+              { value: "draft", label: "Draft" },
+              { value: "review", label: "Review" },
+              { value: "approved", label: "Approved" },
+            ]}
+          />
         </ControlField>
         <ControlField label="Reviewer notes" errorText="Required before sharing">
           <ControlTextarea invalid rows={3} defaultValue="Confirm fixture-only review copy." />
