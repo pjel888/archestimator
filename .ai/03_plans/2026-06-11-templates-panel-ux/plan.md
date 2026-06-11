@@ -1,5 +1,38 @@
 # Templates Panel UX/UI — Estimate Workspace
 
+## Phase 6 addendum (2026-06-11): one tree scale across all panels
+
+Owner question answered: all three estimate-page sidebar trees (sheets,
+components, templates) DO share the ui `Tree` primitive — the "left tree
+looks bigger" came from its row icons alone (hand-sized at 14px via
+`h-3.5 w-3.5` while the right trees used 12px). Fix: `TREE_ROW_ICON_SIZE`
+(12) is now exported from `src/components/ui/tree.tsx` and consumed by all
+three trees' row icons; a DOM test pins the parity.
+
+REMAINING CONSOLIDATION (long run, owner-endorsed): the workshop layer has
+a second tree system (`workshop-tree.tsx` + `tree-visual-style.ts`, from
+the perf workstream) used by the sheet center, share pages, and the
+components-page folder tree, with its own metrics (indent 20 vs 16, icon
+slot 16px). Those surfaces should converge on the ui `Tree` primitives /
+constants in a dedicated pass, coordinated with the active
+Path-To-Estimate-Sheet-Performance-Optimization plan to avoid mid-flight
+collisions.
+
+## Phase 5 addendum (2026-06-11): drag + right-click are the only add paths
+
+Hover "+" buttons removed from every templates-tree row (template roots,
+inner nodes, components); double-click-add removed too. One shared
+node-row renderer (name + cost) now serves categories, templates, and
+inner groups/areas, so each node kind behaves identically. Context menus
+and drag are the insertion paths; tests and the template-insert e2e smoke
+were migrated from the row button to the context menu.
+
+NOTE — concurrent-agent collision repaired this session: a second tool
+(Sisyphus) committed slices mid-flight (6caf132, ba3f617) and transiently
+deleted `estimate-workshop-drag.ts` + reverted the left tree/sheet; the
+lost pieces were restored and the merged state verified green (177 tests,
+13 suites). Avoid running two agents on this working tree simultaneously.
+
 ## Phase 4 addendum (2026-06-11): no category type — uniform node tree
 
 Owner direction: the templates tree must read as ONE kind of tree — groups
