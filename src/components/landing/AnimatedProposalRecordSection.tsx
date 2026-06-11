@@ -50,6 +50,11 @@ const LINEWORK_CLAY = "#c1836d";
 const LINEWORK_PETROL = "#5d7a82";
 const LINEWORK_SAND = "#cda35f";
 const LINEWORK_OLIVE = "#74795a";
+/* Mirrors --brand-clay — the single emphasized element in the diagram (the estimate node). */
+const BRAND_CLAY = "#b2492c";
+/* In the looping flow, arrowheads fade in as their connector finishes drawing
+   (connector draw phase = 11% of the 30s cycle ≈ 3.3s). */
+const FLOW_ARROWHEAD_DELAY = 2700;
 
 const flowSteps: ProposalRecordStep[] = [
   {
@@ -91,8 +96,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Scope, quantities, rates, and assumptions in one structured sheet.",
     positionClassName: styles.estimateCard,
     delay: 720,
-    color: LINEWORK_CLAY,
-    fill: "rgba(193, 131, 109, 0.035)",
+    color: BRAND_CLAY,
+    fill: "rgba(178, 73, 44, 0.04)",
     variant: "workflow",
   },
   {
@@ -175,11 +180,19 @@ function sketchOptions(stroke: string, fill: string, seed: number, strokeWidth =
   };
 }
 
+/**
+ * "once": one-shot entrance draw (node outlines, bubble).
+ * "loop": continuous dashoffset draw on the shared 30s flow cycle (connectors).
+ * "fade": opacity reveal on the shared 30s flow cycle (arrowheads, dashed loop).
+ */
+type SketchMotion = "once" | "loop" | "fade";
+
 function prepareSketchGroup(
   group: SVGGElement,
   delay: number,
   prefersReducedMotion: boolean,
   className?: string,
+  motion: SketchMotion = "once",
 ) {
   group.classList.add(styles.roughShape);
 
@@ -203,9 +216,22 @@ function prepareSketchGroup(
       return;
     }
 
+    if (motion === "fade") {
+      path.classList.add(styles.flowFadePath);
+      path.style.setProperty("--flow-delay", `${delay}ms`);
+      return;
+    }
+
     const length = Math.max(1, path.getTotalLength());
-    path.classList.add(styles.drawPath);
     path.style.setProperty("--path-length", `${length}`);
+
+    if (motion === "loop") {
+      path.classList.add(styles.flowDrawPath);
+      path.style.setProperty("--flow-delay", `${delay}ms`);
+      return;
+    }
+
+    path.classList.add(styles.drawPath);
     path.style.setProperty("--draw-delay", `${delay + index * 30}ms`);
   });
 }
@@ -238,7 +264,7 @@ function drawArrow(
 ) {
   const line = roughSvg.line(fromX, fromY, toX, toY, options);
   layer.appendChild(line);
-  prepareSketchGroup(line, delay, prefersReducedMotion, className);
+  prepareSketchGroup(line, delay, prefersReducedMotion, className, "loop");
 
   const angle = Math.atan2(toY - fromY, toX - fromX);
   const headLength = 12;
@@ -259,8 +285,8 @@ function drawArrow(
   );
 
   layer.append(left, right);
-  prepareSketchGroup(left, delay + 100, prefersReducedMotion, className);
-  prepareSketchGroup(right, delay + 100, prefersReducedMotion, className);
+  prepareSketchGroup(left, delay + FLOW_ARROWHEAD_DELAY, prefersReducedMotion, className, "fade");
+  prepareSketchGroup(right, delay + FLOW_ARROWHEAD_DELAY, prefersReducedMotion, className, "fade");
 }
 
 function drawCurvedArrow(
@@ -315,14 +341,16 @@ function drawCurvedArrow(
     if (prefersReducedMotion) {
       dashedPath.style.opacity = String(opacity ?? 0.8);
     } else {
-      dashedPath.style.setProperty("--draw-delay", `${delay}ms`);
+      dashedPath.classList.add(styles.flowFadePath);
+      dashedPath.style.setProperty("--flow-delay", `${delay}ms`);
+      dashedPath.style.setProperty("--flow-opacity", String(opacity ?? 0.8));
     }
 
     layer.appendChild(dashedPath);
   } else {
     const curve = roughSvg.path(path, options);
     layer.appendChild(curve);
-    prepareSketchGroup(curve, delay, prefersReducedMotion, className);
+    prepareSketchGroup(curve, delay, prefersReducedMotion, className, "loop");
   }
 
   const drawArrowHead = (tip: { x: number; y: number }, angle: number) => {
@@ -344,8 +372,8 @@ function drawCurvedArrow(
     );
 
     layer.append(left, right);
-    prepareSketchGroup(left, delay + 100, prefersReducedMotion, className);
-    prepareSketchGroup(right, delay + 100, prefersReducedMotion, className);
+    prepareSketchGroup(left, delay + FLOW_ARROWHEAD_DELAY, prefersReducedMotion, className, "fade");
+    prepareSketchGroup(right, delay + FLOW_ARROWHEAD_DELAY, prefersReducedMotion, className, "fade");
   };
 
   if (arrowStart) {
@@ -634,6 +662,7 @@ export function AnimatedProposalRecordSection() {
   const roughLayerRef = useRef<SVGGElement | null>(null);
   const stepRefs = useRef(new Map<DiagramStepId, HTMLElement>());
   const [isVisible, setIsVisible] = useState(false);
+  const [isFlowRunning, setIsFlowRunning] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
 
   const shouldShowSketch = isVisible || prefersReducedMotion;
@@ -649,14 +678,23 @@ export function AnimatedProposalRecordSection() {
       return;
     }
 
+    // One persistent observer: the 0.35 crossing triggers the entrance draw
+    // (once), while any-intersection toggles the looping flow's play state so
+    // the infinite animation never burns compositor time off-screen.
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
+        if (!entry) {
+          return;
         }
+
+        /* 0.3 guard (not 0.35) absorbs float jitter in the reported ratio. */
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
+          setIsVisible(true);
+        }
+
+        setIsFlowRunning(entry.isIntersecting);
       },
-      { threshold: 0.35 },
+      { threshold: [0, 0.35] },
     );
 
     observer.observe(section);
@@ -715,7 +753,7 @@ export function AnimatedProposalRecordSection() {
       flowSteps.find((step) => step.id === "feedback")!,
       {
         id: "back-to-estimate",
-        label: "⇄ Estimate Workspace when changes are needed",
+        label: "⇄ Estimate workspace when changes are needed",
         body: "Client review and estimate workspace logic keep talking inside the same workflow.",
       },
       flowSteps.find((step) => step.id === "approved")!,
@@ -727,18 +765,20 @@ export function AnimatedProposalRecordSection() {
     <section
       ref={sectionRef}
       aria-labelledby="proposal-record-heading"
-      className="landing-quote-grid-paper border-y border-[#e5e0d8] px-6 py-14 before:![background-size:16px_16px] sm:px-8 sm:py-[72px] lg:px-12 lg:py-[59px]"
+      className="landing-quote-grid-paper border-y border-line-1 px-6 py-14 before:![background-size:16px_16px] sm:px-8 sm:py-[72px] lg:px-12 lg:py-[59px]"
       data-animated-proposal-record="true"
     >
       <div className="relative z-10 grid w-full gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,635px)] lg:items-stretch lg:gap-x-0">
         <div
           data-testid="landing-workflow-diagram-visual"
+          aria-hidden="true"
           className="hidden min-w-0 md:block lg:pr-0"
         >
           <div
             ref={diagramStageRef}
-            className={`${styles.diagramStage} ${shouldShowSketch ? styles.isVisible : ""}`}
-            aria-label="Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity history records the full process."
+            className={`${styles.diagramStage} ${shouldShowSketch ? styles.isVisible : ""} ${
+              isFlowRunning && !prefersReducedMotion ? styles.flowRunning : ""
+            }`}
           >
             <svg ref={svgRef} className={styles.sketchSvg} viewBox={`0 0 ${SKETCH_WIDTH} ${SKETCH_HEIGHT}`} aria-hidden="true">
               <g ref={roughLayerRef} />
@@ -749,7 +789,7 @@ export function AnimatedProposalRecordSection() {
                 key={step.id}
                 ref={setStepRef(step.id)}
                 className={`${styles.stepCard} ${step.variant === "input" ? styles.inputCard : ""} ${step.variant === "feedback" ? styles.feedbackCardInner : ""} ${step.positionClassName}`}
-                style={customProperties({ "--card-delay": `${step.delay}ms`, "--step-color": step.color })}
+                style={customProperties({ "--card-delay": `${step.delay}ms` })}
               >
                 <span className={styles.stepLabel}>
                   {step.labelLines
@@ -770,7 +810,7 @@ export function AnimatedProposalRecordSection() {
         <div className="md:hidden">
           <div className={styles.mobileFlow}>
             <section className="rounded-[3px] border border-[#ded2c7] bg-[#fffdf9]/72 p-4">
-              <p className="text-[12px] font-semibold leading-5 text-[#a9532d]">Estimate engine</p>
+              <p className="text-[12px] font-semibold leading-5 text-brand-clay">Estimate engine</p>
               <ul className="mt-3 grid gap-3">
                 {estimateInputSteps.map((step) => (
                   <li key={step.id}>
@@ -785,7 +825,7 @@ export function AnimatedProposalRecordSection() {
               {mobileWorkflowSteps.map((step, index) => (
                 <li key={step.id} className="rounded-[3px] border border-[#ded2c7] bg-[#fffdf9]/72 p-4">
                   <div className="flex items-start gap-3">
-                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[3px] border border-[#eadfd6] bg-[#fbf7f2] text-[12px] font-semibold text-[#a9532d]">
+                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[3px] border border-[#eadfd6] bg-[#fbf7f2] text-[12px] font-semibold text-brand-clay">
                       {index + 1}
                     </span>
                     <div>
@@ -797,8 +837,8 @@ export function AnimatedProposalRecordSection() {
               ))}
             </ol>
 
-            <section className="rounded-[3px] border border-[#b65f2f]/40 bg-[#f1e8df] p-4">
-              <p className="text-[12px] font-semibold leading-5 text-[#a9532d]">Activity history</p>
+            <section className="rounded-[3px] border border-linework-clay/40 bg-paper-2 p-4">
+              <p className="text-[12px] font-semibold leading-5 text-brand-clay">Activity history</p>
               <p className="mt-1 text-[13px] leading-6 text-[#4f463f]">
                 Every comment, change, and decision stays on record.
               </p>
@@ -810,38 +850,48 @@ export function AnimatedProposalRecordSection() {
           data-testid="landing-workflow-copy-block"
           className="flex max-w-[635px] flex-col lg:h-full lg:border-l lg:border-[#d6cec5] lg:pl-7"
         >
-          <div className="border-b border-[#d9d1c8] pb-7">
-            <p
-              className="max-w-[440px] text-[13px] font-medium leading-6 text-brand-orange"
-            >
-              Estimate • Propose • Revise • Decide
+          <div className="border-b border-line-2 pb-7">
+            <p className="max-w-[440px] text-[12px] font-semibold leading-5 text-ink-3">
+              Estimate <span aria-hidden="true" className="text-linework-clay">•</span> Propose{" "}
+              <span aria-hidden="true" className="text-linework-clay">•</span> Revise{" "}
+              <span aria-hidden="true" className="text-linework-clay">•</span> Decide
             </p>
 
             <h2
               id="proposal-record-heading"
-              className="mt-3 text-[36px] font-normal leading-none tracking-normal text-[#171514] sm:mt-4 sm:text-[48px] lg:text-[58px]"
+              className="landing-headline-lg mt-3 text-ink-1 sm:mt-4"
             >
-              One Workflow
+              Quote in the shape of the offer.
             </h2>
-            <p className="mt-3 max-w-full whitespace-nowrap text-[16px] font-normal leading-6 tracking-normal text-[#6f6258] sm:text-[18px] lg:text-[18px] lg:leading-7">
+            <p className="landing-body mt-3 text-ink-2">
               From estimate creation to client decision
             </p>
           </div>
 
           <div className="mt-7 lg:mt-8">
-            <p className="max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[14px] font-normal leading-7 text-[#473f39] text-pretty lg:border-l-0 lg:pl-0">
+            <p className="landing-body-lg max-w-[440px] border-l border-line-2 pl-5 text-ink-1 text-pretty lg:border-l-0 lg:pl-0">
               Build the estimate and turn it into a clear cost proposal your client can review, comment on, and approve.
             </p>
-            <p className="mt-4 max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[14px] font-normal leading-7 text-[#473f39] text-pretty lg:border-l-0 lg:pl-0">
+            <p className="landing-body mt-4 max-w-[440px] border-l border-line-2 pl-5 text-ink-2 text-pretty lg:border-l-0 lg:pl-0">
               Keep the pricing, scope, feedback, revisions, and final decision in one place, without stitching together spreadsheets, PDFs, email threads, and scattered comments by hand.
             </p>
           </div>
         </div>
       </div>
 
-      <p className="sr-only">
-        Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity history records the full process.
-      </p>
+      <div className="sr-only">
+        <p>The workflow shown in the diagram, step by step:</p>
+        <ol>
+          <li>Project-shaped workflow: scope the work by area, phase, or package.</li>
+          <li>Reusable component library: pull saved costs and assemblies into the sheet.</li>
+          <li>Estimate: scope, quantities, rates, and assumptions in one structured sheet.</li>
+          <li>Proposal: share a review-ready cost proposal without losing the estimate context.</li>
+          <li>
+            Decision: client review can loop back to the estimate for revisions or move forward to
+            approval, with the outcome kept on record.
+          </li>
+        </ol>
+      </div>
     </section>
   );
 }
