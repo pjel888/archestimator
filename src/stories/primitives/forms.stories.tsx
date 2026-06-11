@@ -8,7 +8,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "P0 form field stories for ControlField, ControlInput, SearchInput, ControlSelect, textarea, invalid, disabled, readonly, helper, and error states.",
+          "P0 form field stories for ControlField, ControlInput, SearchInput, DropdownSelect, textarea, invalid, disabled, readonly, helper, and error states.",
       },
     },
   },
