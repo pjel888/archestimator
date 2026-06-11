@@ -119,6 +119,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
   const supportBrandRef = useRef<HTMLSpanElement | null>(null);
   const primaryCtaHref = isLoggedIn ? workshopHref : "/contact";
   const primaryCtaTarget = isLoggedIn ? "workspace" : "book_walkthrough";
+  const primaryCtaLabel = isLoggedIn ? "Open the workspace" : "Request beta access";
 
   useEffect(() => {
     const headlineTarget = heroBrandRef.current;
@@ -227,10 +228,10 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
             <div className='mt-7 flex flex-row flex-wrap gap-3'>
               <Link
                 href={primaryCtaHref}
-                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: primaryCtaTarget, variant })}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", target: primaryCtaTarget, variant, cta_label: primaryCtaLabel })}
                 className='inline-flex min-h-10 items-center justify-center rounded-[6px] bg-brand-orange px-4 text-[12px] font-semibold text-white transition hover:bg-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]'
               >
-                Start Winning
+                {primaryCtaLabel}
               </Link>
             </div>
           </div>
