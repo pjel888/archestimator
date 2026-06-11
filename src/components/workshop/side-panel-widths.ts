@@ -50,6 +50,14 @@ export const SIDE_PANEL_WIDTH_CONFIGS = [
     maxWidth: 560,
     widthOffset: 0,
   },
+  {
+    storageKey: "template_preview_dock_width",
+    cssVariable: "--template-preview-dock-width",
+    defaultWidth: 380,
+    minWidth: 360,
+    maxWidth: 560,
+    widthOffset: 0,
+  },
 ] as const satisfies readonly SidePanelWidthConfig[];
 
 export function getSidePanelWidthConfig(storageKey: string) {

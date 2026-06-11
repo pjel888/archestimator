@@ -296,7 +296,7 @@ describe("workshop library consolidation UI", () => {
     expect(componentsRoute).toContain('redirect("/workshop/library")');
     expect(componentsRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
     expect(templatesRoute).toContain('redirect("/workshop/library/templates")');
-    expect(libraryTemplatesRoute).toContain("TemplatesPageClient");
+    expect(libraryTemplatesRoute).toContain("TemplatesBrowsePageClient");
     expect(libraryTemplatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
   });
 
