@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FinalCTASection } from "@/components/landing/FinalCTASection";
@@ -13,10 +13,6 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { ProductShowcaseSection } from "@/components/landing/ProductShowcaseSection";
 import { SecondaryClaimSection } from "@/components/landing/SecondaryClaimSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
-
-vi.mock("@/components/landing/NeatWireframeBackground", () => ({
-  NeatWireframeBackground: () => <div data-testid="neat-wireframe-background" />,
-}));
 
 const readProjectFile = (path: string) =>
   readFileSync(join(process.cwd(), path), "utf8");
