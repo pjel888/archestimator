@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties, type F
 import { LinkSimple, PaperPlaneTilt, Trash, UserCircleGearIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import { useProjectPresence } from "@/hooks/use-project-presence";
 import {
@@ -32,6 +33,11 @@ const roleLabels: Record<CollaborationRole, string> = {
 };
 
 const assignableRoles = Object.keys(roleLabels) as CollaborationRole[];
+const ROLE_OPTIONS = assignableRoles.map((role) => ({ value: role, label: roleLabels[role] }));
+const SHEET_ACCESS_MODE_OPTIONS = [
+  { value: "inherited", label: "Inherited" },
+  { value: "restricted", label: "Restricted" },
+];
 const TEAMSPACE_AVATAR_SLOT_COUNT = 5;
 
 function getInitials(name: string) {
@@ -164,7 +170,12 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const activeSummary = summary;
   const canManageProjectAccess = activeSummary.canManageAccess;
   const canUseInviteDelivery = inviteDeliveryConfigured === true;
-  const inviteControlsDisabled = !canManageProjectAccess || !canUseInviteDelivery || isPending;
+  // Disable-semantics split: capability/configuration gaps hard-disable
+  // controls (not focusable, like native disabled); a transient isPending on
+  // its own only aria-disables pickers so focus-return and screen-reader
+  // value announcements survive the commit.
+  const inviteCapabilityDisabled = !canManageProjectAccess || !canUseInviteDelivery;
+  const inviteControlsDisabled = inviteCapabilityDisabled || isPending;
   const projectSharePath = `/workshop/projects/${activeSummary.projectId}`;
 
   function runAccessAction(action: () => Promise<{ ok: boolean; message: string }>) {
@@ -387,20 +398,16 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                 <label className="sr-only" htmlFor="teamspace-invite-role">
                   Invite role
                 </label>
-                <select
+                <DropdownSelect
                   id="teamspace-invite-role"
-                  className="min-h-7 rounded-xs border border-hairline bg-white px-1 text-[10px] leading-3 text-secondary outline-none focus:border-focus"
+                  className="h-7 rounded-xs border border-hairline bg-white px-1 !text-[10px] text-secondary"
+                  options={ROLE_OPTIONS}
                   value={inviteRole}
                   aria-label="Invite role"
-                  disabled={inviteControlsDisabled}
-                  onChange={(event) => setInviteRole(event.target.value as CollaborationRole)}
-                >
-                  {assignableRoles.map((role) => (
-                    <option key={role} value={role}>
-                      {roleLabels[role]}
-                    </option>
-                  ))}
-                </select>
+                  disabled={inviteCapabilityDisabled}
+                  ariaDisabled={!inviteCapabilityDisabled && isPending}
+                  onValueChange={(role) => setInviteRole(role as CollaborationRole)}
+                />
                 <Button
                   type="submit"
                   variant="secondary"
@@ -422,28 +429,25 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                     <span className="truncate text-[10px] font-medium leading-3 text-secondary">{collaborator.displayName}</span>
                     <div className="flex shrink-0 items-center gap-1">
                       {canManageProjectAccess ? (
-                        <select
-                          className="h-6 rounded-xs border border-hairline bg-white px-1 text-[9px] font-medium leading-3 text-secondary outline-none focus:border-focus"
-                          value={collaborator.role}
-                          aria-label={`Role for ${collaborator.displayName}`}
-                          disabled={isPending}
-                          onChange={(event) => {
-                            const role = event.target.value as CollaborationRole;
-                            runAccessAction(() =>
-                              updateProjectCollaboratorRole({
-                                projectId: activeSummary.projectId,
-                                userId: collaborator.id,
-                                role,
-                              }),
-                            );
-                          }}
-                        >
-                          {assignableRoles.map((role) => (
-                            <option key={role} value={role}>
-                              {roleLabels[role]}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="w-16 shrink-0">
+                          <DropdownSelect
+                            className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
+                            options={ROLE_OPTIONS}
+                            value={collaborator.role}
+                            aria-label={`Role for ${collaborator.displayName}`}
+                            ariaDisabled={isPending}
+                            onValueChange={(value) => {
+                              const role = value as CollaborationRole;
+                              runAccessAction(() =>
+                                updateProjectCollaboratorRole({
+                                  projectId: activeSummary.projectId,
+                                  userId: collaborator.id,
+                                  role,
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
                       ) : (
                         <RoleBadge role={collaborator.role} />
                       )}
@@ -520,24 +524,24 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                           <p className="text-[8px] leading-[10px] text-tertiary">{sheet.sheetCode}</p>
                         </div>
                         {sheet.canManageAccess ? (
-                          <select
-                            className="h-6 shrink-0 rounded-xs border border-hairline bg-white px-1 text-[9px] font-medium leading-3 text-secondary outline-none focus:border-focus"
-                            value={sheet.accessMode === "restricted" ? "restricted" : "inherited"}
-                            aria-label={`Access mode for ${sheet.name}`}
-                            disabled={isPending}
-                            onChange={(event) =>
-                              runAccessAction(() =>
-                                setEstimateSheetAccessMode({
-                                  projectId: activeSummary.projectId,
-                                  estimateId: sheet.estimateId,
-                                  inheritProjectAccess: event.target.value === "inherited",
-                                }),
-                              )
-                            }
-                          >
-                            <option value="inherited">Inherited</option>
-                            <option value="restricted">Restricted</option>
-                          </select>
+                          <div className="w-20 shrink-0">
+                            <DropdownSelect
+                              className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
+                              options={SHEET_ACCESS_MODE_OPTIONS}
+                              value={sheet.accessMode === "restricted" ? "restricted" : "inherited"}
+                              aria-label={`Access mode for ${sheet.name}`}
+                              ariaDisabled={isPending}
+                              onValueChange={(mode) =>
+                                runAccessAction(() =>
+                                  setEstimateSheetAccessMode({
+                                    projectId: activeSummary.projectId,
+                                    estimateId: sheet.estimateId,
+                                    inheritProjectAccess: mode === "inherited",
+                                  }),
+                                )
+                              }
+                            />
+                          </div>
                         ) : (
                           <span className="shrink-0 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
                             {sheet.accessMode === "inherits-project" ? "Inherited" : `${sheet.overrideCount} override`}
@@ -565,20 +569,16 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                           <label className="sr-only" htmlFor={`sheet-role-${sheet.estimateId}`}>
                             Sheet role for {sheet.name}
                           </label>
-                          <select
+                          <DropdownSelect
                             id={`sheet-role-${sheet.estimateId}`}
-                            className="min-h-6 rounded-xs border border-hairline bg-white px-1 text-[9px] leading-3 text-secondary outline-none focus:border-focus"
+                            className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
+                            options={ROLE_OPTIONS}
                             value={readSheetInviteRole(sheet.estimateId)}
                             aria-label={`Sheet role for ${sheet.name}`}
-                            disabled={!canUseInviteDelivery || isPending}
-                            onChange={(event) => updateSheetInviteRole(sheet.estimateId, event.target.value as CollaborationRole)}
-                          >
-                            {assignableRoles.map((role) => (
-                              <option key={role} value={role}>
-                                {roleLabels[role]}
-                              </option>
-                            ))}
-                          </select>
+                            disabled={!canUseInviteDelivery}
+                            ariaDisabled={canUseInviteDelivery && isPending}
+                            onValueChange={(role) => updateSheetInviteRole(sheet.estimateId, role as CollaborationRole)}
+                          />
                           <Button
                             type="submit"
                             variant="ghost"
