@@ -80,28 +80,31 @@ export function ComponentInspectorDock({
   onArchive: () => void;
   duplicatePending?: boolean;
 }) {
-  const [usage, setUsage] = useState<ComponentUsageCounts | null>(null);
-  const [usageError, setUsageError] = useState(false);
-  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [usageState, setUsageState] = useState<{
+    itemId: string;
+    counts: ComponentUsageCounts | null;
+    error: boolean;
+  }>({ itemId: item.id, counts: null, error: false });
+  const [historyState, setHistoryState] = useState({ itemId: item.id, showAll: false });
+  // Selection moves reset both panels during render, not in an effect.
+  if (usageState.itemId !== item.id) setUsageState({ itemId: item.id, counts: null, error: false });
+  if (historyState.itemId !== item.id) setHistoryState({ itemId: item.id, showAll: false });
+  const usage = usageState.itemId === item.id ? usageState.counts : null;
+  const usageError = usageState.itemId === item.id ? usageState.error : false;
+  const showAllHistory = historyState.itemId === item.id ? historyState.showAll : false;
 
   useEffect(() => {
     let stale = false;
-    setUsage(null);
-    setUsageError(false);
     getCostLibraryComponentUsage({ itemId: item.id })
       .then((counts) => {
-        if (!stale) setUsage(counts);
+        if (!stale) setUsageState({ itemId: item.id, counts, error: false });
       })
       .catch(() => {
-        if (!stale) setUsageError(true);
+        if (!stale) setUsageState({ itemId: item.id, counts: null, error: true });
       });
     return () => {
       stale = true;
     };
-  }, [item.id]);
-
-  useEffect(() => {
-    setShowAllHistory(false);
   }, [item.id]);
 
   useEffect(() => {
@@ -246,7 +249,7 @@ export function ComponentInspectorDock({
                     variant="plain"
                     size="xs"
                     className="min-w-0 px-0 !text-[9px]"
-                    onClick={() => setShowAllHistory((current) => !current)}
+                    onClick={() => setHistoryState((current) => ({ ...current, showAll: !current.showAll }))}
                   >
                     {showAllHistory ? "Show fewer entries" : `View all ${priceHistory.length} entries`}
                   </Button>

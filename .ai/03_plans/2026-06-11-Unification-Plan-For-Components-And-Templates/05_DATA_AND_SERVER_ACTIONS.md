@@ -28,7 +28,7 @@ Indexes (migration `20260522091621`): `(template_node_id, sort_order)`, `source_
 - `link_state` lets the editor show linked / unlinked / detached row badges, same vocabulary as estimate rows.
 - Allowance rows (typed, no library source) are simply rows with `source_library_item_id = null` — already supported.
 
-**Hierarchy rule (server-enforced):** RPC `validate_estimate_template_tree(target_template_id)` enforces groups at root, areas under groups, row items attached per these rules. The editor UI must mirror this: drop zones on invalid parents either route the drop into a valid child or do not appear.
+**Hierarchy rule (server-enforced):** RPC `validate_estimate_template_tree(target_template_id)` runs from a DB trigger on every node/row mutation and enforces: groups at root, group children may be groups OR areas (nested groups are legal), and row items attach to AREA nodes only. *(Corrected 2026-06-11 during implementation: the original plan text said "areas under groups" without the nested-group allowance; the migration source is authoritative.)* The editor UI mirrors this: drop zones on invalid parents either route the drop into a valid child or do not appear.
 
 **RLS:** `estimate_templates` gated directly by `is_workspace_member(workspace_id)`; `estimate_template_nodes` and `estimate_template_row_items` gated via EXISTS on the parent template's workspace (migration `20260522091621`).
 
@@ -73,7 +73,7 @@ Client managers must be dynamically imported on every tab. Today `LibraryPageCli
 - `renameTemplateCategory(workspaceId, from, to)` — bulk `category` text update.
 
 ### New for Phase 3 (template editor)
-Plain mutations with `updated_at` touch (templates do not need estimate-grade history):
+Plain mutations with `updated_at` touch (templates do not need estimate-grade history). *(Implementation note 2026-06-11: these live in `src/lib/component-library/template-editor-actions.ts`, a sibling module of `actions.ts`, to keep the editor mutation surface cohesive and avoid colliding with the Phase 2 actions added to `actions.ts` in parallel.)*
 - `createEstimateTemplateNode(templateId, parentId, kind, name, sortOrder)` / `renameEstimateTemplateNode` / `deleteEstimateTemplateNode` (cascade rows) / `moveEstimateTemplateNode` (reparent + reorder; must satisfy `validate_estimate_template_tree`)
 - `addEstimateTemplateRowItem(templateId, nodeId, sourceLibraryItemId, quantity, sortOrder)` — copies `material/description/supplier/unit/unit_cost/misc_cost/category_node_id/supplier_id/source_snapshot` from the library item (mirror what `createEstimateTemplateFromEstimateNode` writes); bulk variant for the dock's `Add to template`.
 - `updateEstimateTemplateRowItem(rowId, patch)` — patch ⊆ {material, quantity, unit, unit_cost, misc_cost, contingency_percentage, description}; columns verified present, **no migration**.
