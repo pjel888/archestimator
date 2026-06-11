@@ -37,7 +37,9 @@ describe("landing page below-hero interactivity", () => {
     const artifacts = screen.getAllByTestId("landing-hero-estimate-artifact");
     expect(artifacts).toHaveLength(2); // compact (mobile) + full (desktop)
     expect(screen.getAllByText("Estimate — Kitchen fit-out — Rev B")).toHaveLength(2);
-    expect(screen.getAllByText("Now on closed beta")).toHaveLength(2);
+    // Beta status lives under the hero CTA row now, not in the document title block
+    expect(screen.queryByText("Now on closed beta")).not.toBeInTheDocument();
+    expect(screen.getByText("Now on closed beta · no payment during beta")).toBeInTheDocument();
     expect(screen.getAllByText("Kitchen subtotal").length).toBeGreaterThan(0);
     expect(screen.getByText("₱402,920")).toBeInTheDocument();
     expect(screen.getAllByText("Proposal preview")).toHaveLength(2);

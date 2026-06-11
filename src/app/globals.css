@@ -174,9 +174,13 @@ body:has([data-landing-page-root="true"]) {
   letter-spacing: -0.01em;
 }
 
-/* Hero estimate artifact: one-shot assembly on mount. Base state is fully
-   visible — only the keyframes' `from` frame hides content (fill-mode: both
-   covers the delay window), so everything renders if animations never run. */
+/* Hero estimate artifact: one-shot assembly on mount. Sequence (delays set
+   inline by the component): rows stagger in (120ms + 80ms/row), the overlap
+   cards enter (~800/900ms), the subtotal lands (~1000ms), the rough circle
+   draws on a still canvas (~1100–1800ms), and the margin note settles last
+   (~1700ms, shortened fade) — total ≤1.9s. Base state is fully visible —
+   only the keyframes' `from` frame hides content (fill-mode: both covers
+   the delay window), so everything renders if animations never run. */
 @keyframes landing-artifact-row-in {
   from {
     opacity: 0;
