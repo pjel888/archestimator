@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 
@@ -47,10 +50,7 @@ describe("landing auth state (display-only cookie hint)", () => {
   it("performs no Supabase auth network round-trip", () => {
     // Display-only contract: the helper must not import the Supabase server
     // client. Protected routes keep fail-closed getUser() validation.
-    const source = require("node:fs").readFileSync(
-      require("node:path").join(process.cwd(), "src/lib/landing/get-landing-auth-state.ts"),
-      "utf8",
-    );
+    const source = readFileSync(path.join(process.cwd(), "src/lib/landing/get-landing-auth-state.ts"), "utf8");
     expect(source).not.toContain("createSupabaseServerClient");
     expect(source).not.toContain("@/lib/supabase/server");
     expect(source).not.toContain("supabase.auth.getUser(");
