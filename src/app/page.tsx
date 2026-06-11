@@ -4,12 +4,11 @@ import { parseLandingConsentValue } from "@/lib/landing/consent";
 import { getVariant } from "@/lib/ab-testing/variant-assigner";
 import {
   AnimatedProposalRecordSection,
-  CompanyProofCarouselSection,
+  CapabilityRowsSection,
   FinalCTASection,
   HeroSection,
   ProblemSection,
   ProductShowcaseSection,
-  SecondaryClaimSection,
   PricingSection,
   PublicPageShell,
   LandingHeader,
@@ -39,8 +38,7 @@ export default async function LandingPage() {
             <HeroSection variant={heroVariant} isLoggedIn={isLoggedIn} />
             <AnimatedProposalRecordSection />
             <ProblemSection />
-            <CompanyProofCarouselSection />
-            <SecondaryClaimSection />
+            <CapabilityRowsSection />
             <ProductShowcaseSection />
             <PricingSection />
             <FinalCTASection isLoggedIn={isLoggedIn} />
