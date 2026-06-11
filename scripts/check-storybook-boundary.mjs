@@ -82,8 +82,23 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-const inventorySource = readFileSync(join(root, ".ai/03_plans/2026-06-06-ui-component-optimization-componentization/15_COMPONENT_INVENTORY_MATRIX.md"), "utf8");
-const storyCoverageSource = readFileSync(join(root, ".ai/03_plans/2026-06-06-ui-component-optimization-componentization/17_STORYBOOK_STORY_COVERAGE_MATRIX.md"), "utf8");
+// The componentization plan pack was archived; resolve each matrix from the
+// original plan path first, then the archive location.
+function readPlanMatrix(fileName) {
+  const candidates = [
+    join(root, ".ai/03_plans/2026-06-06-ui-component-optimization-componentization", fileName),
+    join(root, ".ai/09_archive/2026-06-06-ui-component-optimization-componentization", fileName),
+  ];
+  const path = candidates.find((candidate) => existsSync(candidate));
+  if (!path) {
+    console.error(`Storybook matrix file not found in plan or archive: ${fileName}`);
+    process.exit(1);
+  }
+  return readFileSync(path, "utf8");
+}
+
+const inventorySource = readPlanMatrix("15_COMPONENT_INVENTORY_MATRIX.md");
+const storyCoverageSource = readPlanMatrix("17_STORYBOOK_STORY_COVERAGE_MATRIX.md");
 const inventoryRows = markdownTableRows(inventorySource, "").filter((cells) => /^[A-Z]{3}-\d{3}$/.test(cells[0] ?? ""));
 const storyRows = markdownTableRows(storyCoverageSource, "ST-");
 const p0Rows = storyRows.filter((cells) => cells[11] === "P0_FIRST_REVIEW");
