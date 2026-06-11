@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup 03 — Unified Library, Template editor</title>
+<style>
+  :root {
+    --ink: #292929; --secondary: #5D5D5D; --tertiary: #7F7F7F;
+    --hairline: #F2F2F2; --surface: #FFFFFF; --muted: #F5F5F5;
+    --success: #15803D; --success-soft: #DCFCE7;
+    --r: 3px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #E9E9E9; font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--secondary); font-size: 10px; line-height: 14px; letter-spacing: 0; -webkit-font-smoothing: antialiased; }
+  .frame { width: 1440px; height: 900px; display: flex; background: var(--surface); margin: 0 auto; overflow: hidden; }
+
+  .rail { width: 64px; background: #1C1C1C; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; }
+  .rail .logo { width: 32px; height: 32px; border-radius: var(--r); background: linear-gradient(135deg,#C2410C,#7C2D12); margin-bottom: 12px; }
+  .rail .slot { width: 28px; height: 28px; border-radius: var(--r); display:flex; align-items:center; justify-content:center; color:#8A8A8A; }
+  .rail .slot.active { background: #333; color: #fff; }
+  .rail .spacer { flex: 1; }
+  .rail .avatar { width: 26px; height: 26px; border-radius: var(--r); background: #4A4A4A; }
+
+  .page { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .title-bar { height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
+  .crumb { font-size: 10px; color: var(--tertiary); display: flex; align-items: center; gap: 6px; }
+  .crumb a { color: var(--tertiary); text-decoration: none; }
+  .crumb a:hover { color: var(--ink); text-decoration: underline; }
+  .crumb .here { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .mode-chip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border: 1px solid var(--hairline); background: var(--muted); border-radius: var(--r); font-size: 8px; font-weight: 500; color: var(--secondary); }
+  .title-bar .grow { flex: 1; }
+  .saved { font-size: 9px; color: var(--tertiary); }
+  .icon-btn { width: 24px; height: 24px; border: 0; background: transparent; border-radius: var(--r); display: inline-flex; align-items: center; justify-content: center; color: var(--tertiary); cursor: pointer; }
+  .icon-btn:hover { background: var(--muted); color: var(--ink); }
+  .btn-primary { height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; background: var(--ink); color: #fff; border: 0; border-radius: var(--r); font-size: 10px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; background: var(--surface); color: var(--secondary); border: 1px solid var(--hairline); border-radius: var(--r); font-size: 10px; font-weight: 500; }
+
+  .workspace { flex: 1; display: flex; min-height: 0; }
+
+  /* LEFT: structure tree of THIS template */
+  .tree-panel { width: 264px; border-right: 1px solid var(--hairline); display: flex; flex-direction: column; flex-shrink: 0; }
+  .panel-toolbar { height: 40px; display: flex; align-items: center; padding: 0 8px; gap: 2px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
+  .panel-toolbar .grow { flex: 1; }
+  .back-strip { height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid var(--hairline); color: var(--tertiary); font-size: 9px; flex-shrink: 0; cursor: pointer; }
+  .back-strip:hover { color: var(--ink); background: var(--muted); }
+  .tree { flex: 1; overflow: auto; padding: 4px 0; }
+  .tree-row { height: 26px; display: flex; align-items: center; gap: 5px; padding: 0 8px 0 10px; color: var(--secondary); }
+  .tree-row:hover { background: var(--muted); }
+  .tree-row.selected { background: var(--muted); color: var(--ink); font-weight: 500; }
+  .tree-row .chev { width: 12px; color: var(--tertiary); flex-shrink: 0; }
+  .tree-row .ico { width: 12px; color: var(--tertiary); flex-shrink: 0; }
+  .tree-row .lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tree-row .amt { font-size: 9px; color: var(--tertiary); font-variant-numeric: tabular-nums; }
+  .ind-1 { padding-left: 26px; } .ind-2 { padding-left: 42px; }
+
+  /* CENTER: estimate-like sheet */
+  .sheet { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .sheet-toolbar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
+  .search { display: flex; align-items: center; gap: 6px; width: 240px; height: 26px; border: 1px solid var(--hairline); border-radius: var(--r); padding: 0 8px; color: var(--tertiary); }
+  .grid { flex: 1; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th { position: sticky; top: 0; background: var(--surface); font-size: 8px; font-weight: 500; color: var(--tertiary); text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--hairline); }
+  th.num, td.num { text-align: right; }
+  td { font-size: 10px; color: var(--secondary); padding: 0 8px; height: 30px; border-bottom: 1px solid var(--hairline); }
+  td .nm { color: var(--ink); }
+  tr.group td { background: var(--muted); color: var(--ink); font-weight: 500; height: 28px; }
+  tr.area td { color: var(--ink); font-weight: 500; padding-left: 24px; height: 28px; }
+  tr.item td:first-child { padding-left: 40px; }
+  .handle { color: #D5D5D5; margin-right: 6px; }
+  tr.item:hover td { background: #FAFAFA; }
+  tr.droptarget td { background: var(--muted); box-shadow: inset 0 1.5px 0 var(--ink), inset 0 -1.5px 0 var(--ink); color: var(--ink); height: 30px; }
+  .add-row td { color: var(--tertiary); font-size: 9px; height: 26px; cursor: pointer; }
+  .add-row:hover td { color: var(--ink); background: #FAFAFA; }
+  .sheet-foot { height: 36px; display: flex; align-items: center; padding: 0 12px; gap: 16px; border-top: 1px solid var(--hairline); flex-shrink: 0; }
+  .sheet-foot .k { font-size: 9px; color: var(--tertiary); }
+  .sheet-foot .v { font-size: 12px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* RIGHT: components dock (same as estimate workspace) */
+  .dock { width: 380px; border-left: 1px solid var(--hairline); display: flex; flex-direction: column; flex-shrink: 0; }
+  .panel-tabs { height: 32px; display: flex; align-items: flex-end; background: var(--muted); border-bottom: 1px solid var(--hairline); padding: 0 8px; flex-shrink: 0; }
+  .ptab { height: 100%; display: inline-flex; align-items: center; padding: 0 12px; font-size: 10px; font-weight: 500; color: var(--tertiary); background: var(--muted); border: 1px solid transparent; border-bottom: 0; border-radius: var(--r) var(--r) 0 0; }
+  .ptab.active { background: var(--surface); color: var(--ink); border-color: var(--hairline); margin-bottom: -1px; z-index: 2; }
+  .dock-tree { flex: 1; overflow: auto; padding: 4px 0; }
+  .leaf { height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 26px; }
+  .leaf:hover { background: var(--muted); }
+  .leaf .drag { color: #D5D5D5; }
+  .leaf .lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--secondary); }
+  .leaf .amt { font-size: 9px; color: var(--tertiary); font-variant-numeric: tabular-nums; }
+  .leaf.dragging { border: 1px dashed var(--ink); background: var(--muted); border-radius: var(--r); color: var(--ink); margin: 0 6px; padding-left: 20px; }
+  .bulk-dock { margin: 8px 10px; border: 1px solid var(--hairline); border-radius: var(--r); background: var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.05); padding: 8px 10px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .bulk-dock .t { flex: 1; font-size: 9px; color: var(--secondary); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="i-search"><circle cx="5.5" cy="5.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="8.4" y1="8.4" x2="11" y2="11" stroke="currentColor" stroke-width="1.2"/></g>
+    <g id="i-plus"><line x1="6" y1="2" x2="6" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.2"/></g>
+    <g id="i-chev-d"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></g>
+    <g id="i-chev-l"><path d="M7.5 3 4.5 6 7.5 9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></g>
+    <g id="i-chev-r"><path d="M4.5 3 7.5 6 4.5 9" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></g>
+    <g id="i-folder"><path d="M1.5 3.2c0-.4.3-.7.7-.7h2.6l1 1.2h4c.4 0 .7.3.7.7v4.9c0 .4-.3.7-.7.7H2.2a.7.7 0 0 1-.7-.7V3.2z" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-cube"><path d="M6 1.6 10.4 4v4L6 10.4 1.6 8V4L6 1.6z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M1.6 4 6 6.4 10.4 4M6 6.4v4" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-tmpl"><rect x="1.8" y="1.8" width="8.4" height="8.4" rx="0.8" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="1.8" y1="4.6" x2="10.2" y2="4.6" stroke="currentColor" stroke-width="1.1"/><line x1="4.6" y1="4.6" x2="4.6" y2="10.2" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-rows"><rect x="1.5" y="2" width="9" height="2.4" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="1.5" y="7.6" width="9" height="2.4" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-dots"><circle cx="6" cy="2.4" r="1" fill="currentColor"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="6" cy="9.6" r="1" fill="currentColor"/></g>
+    <g id="i-six"><circle cx="4.2" cy="2.8" r=".9" fill="currentColor"/><circle cx="7.8" cy="2.8" r=".9" fill="currentColor"/><circle cx="4.2" cy="6" r=".9" fill="currentColor"/><circle cx="7.8" cy="6" r=".9" fill="currentColor"/><circle cx="4.2" cy="9.2" r=".9" fill="currentColor"/><circle cx="7.8" cy="9.2" r=".9" fill="currentColor"/></g>
+    <g id="i-area"><path d="M6 1.8c1.8 0 3.2 1.4 3.2 3.1C9.2 7.3 6 10.2 6 10.2S2.8 7.3 2.8 4.9C2.8 3.2 4.2 1.8 6 1.8z" fill="none" stroke="currentColor" stroke-width="1.1"/><circle cx="6" cy="4.9" r="1.1" fill="none" stroke="currentColor" stroke-width="1"/></g>
+    <g id="i-expand"><path d="M2 7.5v2.5h2.5M10 4.5V2H7.5" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 10 5 7M10 2 7 5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></g>
+  </defs>
+</svg>
+
+<div class="frame">
+  <nav class="rail">
+    <div class="logo"></div>
+    <div class="slot"><svg width="12" height="12"><use href="#i-rows"/></svg></div>
+    <div class="slot"><svg width="12" height="12"><use href="#i-folder"/></svg></div>
+    <div class="slot active"><svg width="12" height="12"><use href="#i-cube"/></svg></div>
+    <div class="spacer"></div>
+    <div class="avatar"></div>
+  </nav>
+
+  <div class="page">
+    <!-- Title bar doubles as template context bar: breadcrumb + mode chip -->
+    <header class="title-bar">
+      <div class="crumb">
+        <a href="#">Library</a><span>/</span><a href="#">Templates</a><span>/</span><a href="#">Residential Rooms</a><span>/</span>
+        <span class="here">Powder Room Basic</span>
+      </div>
+      <span class="mode-chip"><svg width="10" height="10"><use href="#i-tmpl"/></svg>TEMPLATE</span>
+      <div class="grow"></div>
+      <span class="saved">Saved · just now</span>
+      <button class="btn-ghost">Insert into estimate ▾</button>
+      <button class="icon-btn"><svg width="12" height="12"><use href="#i-dots"/></svg></button>
+    </header>
+
+    <div class="workspace">
+      <!-- LEFT: this template's structure -->
+      <aside class="tree-panel">
+        <div class="back-strip"><svg width="12" height="12"><use href="#i-chev-l"/></svg>All templates</div>
+        <div class="panel-toolbar">
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-search"/></svg></button>
+          <div class="grow"></div>
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-expand"/></svg></button>
+          <button class="icon-btn" title="Add group or area"><svg width="12" height="12"><use href="#i-plus"/></svg></button>
+        </div>
+        <div class="tree">
+          <div class="tree-row"><span class="chev"><svg width="12" height="12"><use href="#i-chev-d"/></svg></span><span class="ico"><svg width="12" height="12"><use href="#i-tmpl"/></svg></span><span class="lbl">Powder Room Basic</span><span class="amt">₱61,150.00</span></div>
+          <div class="tree-row ind-1"><span class="chev"><svg width="12" height="12"><use href="#i-chev-d"/></svg></span><span class="ico"><svg width="12" height="12"><use href="#i-folder"/></svg></span><span class="lbl">Powder Room</span><span class="amt">₱61,150.00</span></div>
+          <div class="tree-row ind-2 selected"><span class="chev"></span><span class="ico"><svg width="12" height="12"><use href="#i-area"/></svg></span><span class="lbl">Toilet + Bath</span><span class="amt">₱61,150.00</span></div>
+        </div>
+      </aside>
+
+      <!-- CENTER: editable template sheet (estimate-grid look) -->
+      <main class="sheet">
+        <div class="sheet-toolbar" style="gap:2px;">
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-search"/></svg></button>
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-expand"/></svg></button>
+          <div style="flex:1"></div>
+          <button class="btn-ghost"><svg width="12" height="12"><use href="#i-plus"/></svg>Add group</button>
+          <button class="btn-ghost"><svg width="12" height="12"><use href="#i-plus"/></svg>Add area</button>
+        </div>
+        <div class="grid">
+          <table>
+            <thead>
+              <tr><th style="width:44%">Item</th><th class="num" style="width:10%">Qty</th><th style="width:10%">Unit</th><th class="num" style="width:18%">Unit cost</th><th class="num" style="width:18%">Total</th></tr>
+            </thead>
+            <tbody>
+              <tr class="group"><td colspan="4"><svg width="11" height="11" style="vertical-align:-2px;margin-right:6px"><use href="#i-folder"/></svg>Powder Room</td><td class="num">₱61,150.00</td></tr>
+              <tr class="area"><td colspan="4"><svg width="11" height="11" style="vertical-align:-2px;margin-right:6px"><use href="#i-area"/></svg>Toilet + Bath</td><td class="num">₱61,150.00</td></tr>
+              <tr class="item"><td><span class="handle"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="nm">Pozzi Vanity Cabinet Allowance</span></td><td class="num">1</td><td>set</td><td class="num">₱28,000.00</td><td class="num">₱28,000.00</td></tr>
+              <tr class="item"><td><span class="handle"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="nm">GROHE Lavatory Faucet</span></td><td class="num">1</td><td>pc</td><td class="num">₱9,800.00</td><td class="num">₱9,800.00</td></tr>
+              <tr class="droptarget"><td colspan="5">Drop to add “600×600 Porcelain Tile” here</td></tr>
+              <tr class="item"><td><span class="handle"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="nm">Stainless Floor Drain</span></td><td class="num">1</td><td>pc</td><td class="num">₱1,350.00</td><td class="num">₱1,350.00</td></tr>
+              <tr class="item"><td><span class="handle"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="nm">Wall Tile Allowance</span></td><td class="num">12</td><td>sqm</td><td class="num">₱1,833.33</td><td class="num">₱22,000.00</td></tr>
+              <tr class="add-row"><td colspan="5">+ Add row from library, or type to create an allowance row</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="sheet-foot">
+          <span class="k">Template total</span><span class="v">₱61,150.00</span>
+          <span class="k" style="margin-left:auto">Totals are reference pricing: estimates re-price on insert</span>
+        </div>
+      </main>
+
+      <!-- RIGHT: components dock, same anatomy as the estimate workspace -->
+      <aside class="dock">
+        <div class="panel-tabs">
+          <div class="ptab active">Components</div>
+          <div class="ptab">Templates</div>
+        </div>
+        <div class="panel-toolbar">
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-search"/></svg></button>
+          <div class="grow"></div>
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-expand"/></svg></button>
+          <button class="icon-btn"><svg width="12" height="12"><use href="#i-plus"/></svg></button>
+        </div>
+        <div class="dock-tree">
+          <div class="tree-row" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px"><span class="chev"><svg width="12" height="12" style="color:var(--tertiary)"><use href="#i-chev-d"/></svg></span><span style="color:var(--tertiary)"><svg width="12" height="12"><use href="#i-folder"/></svg></span><span style="flex:1;color:var(--secondary)">Finishes</span></div>
+          <div class="leaf dragging"><span class="drag"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="lbl">600×600 Porcelain Tile</span><span class="amt">₱185.00 / sqm</span></div>
+          <div class="leaf"><span class="drag"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="lbl">Engineered Oak Plank</span><span class="amt">₱2,450.00 / sqm</span></div>
+          <div class="leaf"><span class="drag"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="lbl">Epoxy Floor Coating</span><span class="amt">₱680.00 / sqm</span></div>
+          <div class="leaf"><span class="drag"><svg width="10" height="10"><use href="#i-six"/></svg></span><span class="lbl">Flat Latex, Interior</span><span class="amt">₱520.00 / gal</span></div>
+          <div class="tree-row" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px"><span class="chev"><svg width="12" height="12" style="color:var(--tertiary)"><use href="#i-chev-r"/></svg></span><span style="color:var(--tertiary)"><svg width="12" height="12"><use href="#i-folder"/></svg></span><span style="flex:1;color:var(--secondary)">Objects</span></div>
+          <div class="tree-row" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px"><span class="chev"><svg width="12" height="12" style="color:var(--tertiary)"><use href="#i-chev-r"/></svg></span><span style="color:var(--tertiary)"><svg width="12" height="12"><use href="#i-folder"/></svg></span><span style="flex:1;color:var(--secondary)">Systems</span></div>
+        </div>
+        <div class="bulk-dock">
+          <span class="t">2 components selected</span>
+          <button class="btn-primary" style="height:22px;font-size:9px;padding:0 8px">Add to template</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</body>
+</html>
