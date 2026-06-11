@@ -861,3 +861,33 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
   revalidatePath("/workshop/library/templates");
   return { templateId: template.id };
 }
+
+/**
+ * Counts where a library component is referenced: template rows and estimate
+ * rows whose `source_library_item_id` points at the item (RLS-scoped, both
+ * columns indexed). Powers the inspector dock's "Used in" section.
+ */
+export async function getCostLibraryComponentUsage(input: { itemId: string }) {
+  await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!isUuid(input.itemId)) return { templateRowCount: 0, estimateRowCount: 0 };
+
+  const supabase = await createSupabaseServerClient();
+  const [templateRows, estimateRows] = await Promise.all([
+    supabase
+      .from("estimate_template_row_items")
+      .select("id", { count: "exact", head: true })
+      .eq("source_library_item_id", input.itemId),
+    supabase
+      .from("estimate_row_items")
+      .select("id", { count: "exact", head: true })
+      .eq("source_library_item_id", input.itemId),
+  ]);
+
+  if (templateRows.error) throw new Error(`Could not count template usage: ${templateRows.error.message}`);
+  if (estimateRows.error) throw new Error(`Could not count estimate usage: ${estimateRows.error.message}`);
+
+  return {
+    templateRowCount: templateRows.count ?? 0,
+    estimateRowCount: estimateRows.count ?? 0,
+  };
+}

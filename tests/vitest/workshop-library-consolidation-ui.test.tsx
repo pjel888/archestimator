@@ -14,7 +14,8 @@ function todayIsoDate() {
 }
 
 async function waitForLibraryWorkspace() {
-  await screen.findByRole("tablist", { name: "Library views" }, { timeout: 10_000 });
+  // The tablists are retired; the dynamic tree surface's view-mode toggle is the stable anchor.
+  await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
 }
 
 function openComponentViewMenu() {
@@ -77,6 +78,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: navigationMocks.refresh,
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("react-complex-tree", () => ({
@@ -321,7 +323,7 @@ describe("workshop library consolidation UI", () => {
     expect(componentLibraryManager).toContain("imageUrl.port === storageUrl.port");
   });
 
-  it("renders Components as the only route tab with direct folder scoped rows", async () => {
+  it("renders the components scope as a context strip without manager tablists and with direct folder scoped rows", async () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -333,12 +335,16 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const libraryTabs = screen.getByRole("tablist", { name: "Library views" });
-    expect(within(libraryTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
-    expect(within(libraryTabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tablist", { name: "Library views" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "Component sheet tabs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Components" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
+    const contextStrip = document.querySelector('[data-component-sheet-context-strip="true"]');
+    expect(contextStrip).not.toBeNull();
+    expect(contextStrip).toHaveTextContent("All Components · 3 components");
+    expect(contextStrip).toHaveTextContent("Sorted by folder order");
 
     const viewMode = openComponentViewMenu();
     expect(screen.getByText("View By")).toBeInTheDocument();
@@ -418,7 +424,7 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("No folder selected")).toBeInTheDocument();
@@ -451,9 +457,10 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const addComponentButton = screen.getByRole("button", { name: "Add Component" });
-    expect(addComponentButton).not.toHaveTextContent("Add Component");
-    expect(addComponentButton).toHaveClass("size-6");
+    // The sheet's create action now keeps a visible "Add component" label.
+    const addComponentButton = screen.getByRole("button", { name: "Add component" });
+    expect(addComponentButton).toHaveTextContent("Add component");
+    expect(addComponentButton).not.toHaveClass("size-6");
     fireEvent.click(addComponentButton);
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
@@ -487,7 +494,12 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Kind")).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("Component measurements")).toBeInTheDocument();
+    // Folder search in the picker sits behind the toolbar's magnifier disclosure.
+    expect(within(dialog).queryByLabelText("Search add component library folders")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Show add component folder search" }));
     expect(within(dialog).getByLabelText("Search add component library folders")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Hide add component folder search" }));
+    expect(within(dialog).queryByLabelText("Search add component library folders")).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("Add component folder tools")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Expand all add component folder" })).toBeInTheDocument();
     expect(within(dialog).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();

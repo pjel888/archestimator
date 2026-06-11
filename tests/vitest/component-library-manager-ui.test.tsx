@@ -31,6 +31,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: navigationMocks.refresh,
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
@@ -206,7 +207,27 @@ async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPag
     />,
   );
   await screen.findByLabelText("Component library tree", undefined, { timeout: 10_000 });
+  // The folder tree surface is a named dynamic import; its toolbar is the stable anchor.
+  await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
   return result;
+}
+
+function getSheetContextStrip(sheet: HTMLElement) {
+  const strip = sheet.querySelector('[data-component-sheet-context-strip="true"]');
+  if (!strip) throw new Error("Component sheet context strip not found");
+  return strip as HTMLElement;
+}
+
+function openLibraryTreeSearch() {
+  const tree = screen.getByLabelText("Component library tree");
+  fireEvent.click(within(tree).getByRole("button", { name: "Show library folder search" }));
+  return within(tree).getByRole("searchbox", { name: "Search component library tree" });
+}
+
+function openComponentSheetSearch() {
+  const sheet = screen.getByLabelText("Component sheet");
+  fireEvent.click(within(sheet).getByRole("button", { name: "Show component sheet search" }));
+  return within(sheet).getByRole("searchbox", { name: "Search components" });
 }
 
 function getLibraryFolderButton(name: string) {
@@ -265,10 +286,23 @@ describe("component library manager UI", () => {
     expect(screen.getByLabelText("Component library workspace")).toBeInTheDocument();
     expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
     expect(screen.getByLabelText("Component sheet")).toBeInTheDocument();
-    expect(screen.getByLabelText("Search component library tree")).toBeInTheDocument();
-    expect(screen.getByLabelText("Search component sheet")).toBeInTheDocument();
 
     const workspace = screen.getByLabelText("Component library workspace");
+    const tree = screen.getByLabelText("Component library tree");
+    const sheet = screen.getByLabelText("Component sheet");
+
+    // Persistent search inputs are retired; both panels expose magnifier disclosures instead.
+    expect(screen.queryByLabelText("Search component library tree")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search component sheet")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search components")).not.toBeInTheDocument();
+    expect(within(tree).getByRole("button", { name: "Show library folder search" })).toBeInTheDocument();
+    expect(within(sheet).getByLabelText("Component sheet tools")).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Show component sheet search" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
+    const addComponentButton = within(sheet).getByRole("button", { name: "Add component" });
+    expect(addComponentButton).toHaveTextContent("Add component");
+    expect(screen.queryByRole("button", { name: "Add Component" })).not.toBeInTheDocument();
+
     const workspaceFrame = document.querySelector('[data-component-library-workspace="true"]');
     const sheetPanel = workspace.querySelector('[data-component-library-sheet-panel="true"]');
     const treePanel = workspace.querySelector('[data-component-library-tree-panel="true"]');
@@ -281,17 +315,23 @@ describe("component library manager UI", () => {
     expect(treePanel).not.toBeNull();
     expect(treePanel).not.toHaveClass("border-l");
     expect(treePanel).not.toHaveClass("border-hairline");
-    expect(sheetPanel!.compareDocumentPosition(treePanel!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The tree panel now leads the sheet on the left side of the workspace.
+    expect(treePanel!.compareDocumentPosition(sheetPanel!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     expect(document.querySelector('[data-component-library-center-header="true"]')).toBeNull();
     expect(document.querySelector('[data-workshop-layout="component-library-workspace-header-row"]')).toBeNull();
 
-    const tabs = screen.getByRole("tablist", { name: "Library views" });
-    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
-    expect(within(tabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    // The single-tab tablists are retired in favor of a plain-text context strip.
+    expect(screen.queryByRole("tablist", { name: "Library views" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "Component sheet tabs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Components" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "All Components" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
+    const contextStrip = getSheetContextStrip(sheet);
+    expect(contextStrip).toHaveTextContent("All Components · 3 components");
+    expect(contextStrip).toHaveTextContent("Sorted by folder order");
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
 
     expect(screen.queryByLabelText("Search library")).not.toBeInTheDocument();
@@ -316,8 +356,8 @@ describe("component library manager UI", () => {
     expect(getLibraryFolderButton("Details")).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Custom Cabinet Pull" })).toBeInTheDocument();
-    expect(within(sheet).getByRole("tab", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
-    expect(within(sheet).getByRole("tablist", { name: "Component sheet tabs" })).not.toHaveTextContent("3 / 3");
+    expect(getSheetContextStrip(sheet)).toHaveTextContent("All Components · 3 components");
+    expect(within(sheet).queryByRole("tablist")).not.toBeInTheDocument();
     expect(within(sheet).queryByLabelText("All Components component rows")).not.toBeInTheDocument();
     const fabricationArrow = getLibraryFolderArrowWithin(tree, "folder-fabrication");
     expect(getLibraryFolderButton("Fabrication")).toHaveAttribute("aria-expanded", "true");
@@ -400,7 +440,7 @@ describe("component library manager UI", () => {
 
     fireEvent.click(getLibraryFolderButton("Details"));
 
-    expect(within(sheet).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+    expect(getSheetContextStrip(sheet)).toHaveTextContent("Details · 1 component");
     const selectedDetailsBranch = within(sheet).getByLabelText("Fabrication / Details component catalogue branch");
     expect(selectedDetailsBranch.firstElementChild).toHaveClass("bg-white");
     expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("border-l-2");
@@ -421,35 +461,60 @@ describe("component library manager UI", () => {
     });
 
     const sheet = screen.getByLabelText("Component sheet");
-    expect(within(sheet).getByText("3 of 3 components")).toBeInTheDocument();
+    const contextStrip = getSheetContextStrip(sheet);
+    expect(contextStrip).toHaveTextContent("All Components · 3 components");
+    expect(contextStrip).toHaveTextContent("Sorted by folder order");
     expect(within(sheet).getByText("Source: May quote ledger")).toBeInTheDocument();
     expect(within(sheet).getAllByText("Checked 2026-05-22").length).toBeGreaterThan(0);
     expect(within(sheet).getByText("Confidence: supplier quote")).toBeInTheDocument();
 
-    const tree = screen.getByLabelText("Component library tree");
-    fireEvent.change(within(tree).getByRole("searchbox", { name: "Search component library tree" }), { target: { value: "quote ledger" } });
+    const treeSearch = openLibraryTreeSearch();
+    fireEvent.change(treeSearch, { target: { value: "quote ledger" } });
 
+    const tree = screen.getByLabelText("Component library tree");
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(within(tree).queryByRole("treeitem", { name: "Custom Cabinet Pull" })).not.toBeInTheDocument();
     expect(within(tree).queryByRole("treeitem", { name: "Owner Supplied Sink" })).not.toBeInTheDocument();
 
-    fireEvent.change(within(tree).getByRole("searchbox", { name: "Search component library tree" }), { target: { value: "database brand" } });
+    fireEvent.change(treeSearch, { target: { value: "database brand" } });
 
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(within(tree).queryByRole("treeitem", { name: "Custom Cabinet Pull" })).not.toBeInTheDocument();
 
-    fireEvent.change(within(sheet).getByRole("searchbox", { name: "Search component sheet" }), { target: { value: "quote ledger" } });
+    const sheetSearch = openComponentSheetSearch();
+    fireEvent.change(sheetSearch, { target: { value: "quote ledger" } });
 
-    expect(within(sheet).getByText("1 of 3 components")).toBeInTheDocument();
+    expect(contextStrip).toHaveTextContent('1 of 3 match "quote ledger"');
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
 
-    fireEvent.change(within(sheet).getByRole("searchbox", { name: "Search component sheet" }), { target: { value: "database brand" } });
+    fireEvent.change(sheetSearch, { target: { value: "database brand" } });
 
-    expect(within(sheet).getByText("1 of 3 components")).toBeInTheDocument();
+    expect(contextStrip).toHaveTextContent('1 of 3 match "database brand"');
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
+
+    // Facet filters report through the same live summary once search is cleared.
+    fireEvent.change(sheetSearch, { target: { value: "" } });
+    expect(contextStrip).toHaveTextContent("Sorted by folder order");
+
+    fireEvent.click(within(sheet).getByRole("button", { name: "Filter components" }));
+    const filterDialog = within(sheet).getByRole("dialog");
+    expect(within(filterDialog).getByText("Filter components")).toBeInTheDocument();
+    expect(within(filterDialog).getByRole("button", { name: "Reset filters" })).toBeDisabled();
+
+    fireEvent.click(within(filterDialog).getByRole("checkbox", { name: "supplier quote" }));
+
+    expect(contextStrip).toHaveTextContent("1 of 3 after filters");
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Filter components (1 active)" })).toBeInTheDocument();
+
+    fireEvent.click(within(filterDialog).getByRole("button", { name: "Reset filters" }));
+
+    expect(contextStrip).toHaveTextContent("Sorted by folder order");
+    expect(within(sheet).getByText("Custom Cabinet Pull")).toBeInTheDocument();
   });
 
   it("moves supplier organization under Components instead of a top-level Suppliers tab", async () => {
@@ -471,7 +536,7 @@ describe("component library manager UI", () => {
 
     fireEvent.click(within(tree).getByRole("treeitem", { name: "Database Supplier" }));
 
-    expect(within(sheet).getByRole("tab", { name: "Database Supplier" })).toHaveAttribute("aria-selected", "true");
+    expect(getSheetContextStrip(sheet)).toHaveTextContent("Database Supplier · 1 component");
     const supplierBranch = within(sheet).getByLabelText("Fabrication component catalogue branch");
     expect(within(supplierBranch).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(supplierBranch).getByText("Database Supplier")).toBeInTheDocument();
@@ -495,7 +560,7 @@ describe("component library manager UI", () => {
 
     fireEvent.click(within(tree).getByRole("treeitem", { name: "Database Brand" }));
 
-    expect(within(sheet).getByRole("tab", { name: "Database Brand" })).toHaveAttribute("aria-selected", "true");
+    expect(getSheetContextStrip(sheet)).toHaveTextContent("Database Brand · 1 component");
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
@@ -504,7 +569,7 @@ describe("component library manager UI", () => {
   it("uses the same working folder expanders inside the Add Component modal", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     const modalFabricationArrow = getLibraryFolderArrowWithin(dialog, "folder-fabrication");
@@ -525,7 +590,7 @@ describe("component library manager UI", () => {
   it("runs rename and delete folder actions inside the Add Component modal tree", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Renamed Details");
@@ -560,7 +625,7 @@ describe("component library manager UI", () => {
   it("keeps supplier typing in the current Add Component tree view and stages the supplier folder", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     const viewMode = openAddComponentViewMenu(dialog);
@@ -585,7 +650,7 @@ describe("component library manager UI", () => {
   it("keeps brand typing in the current Add Component tree view and stages the brand folder", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     const viewMode = openAddComponentViewMenu(dialog);
@@ -610,7 +675,7 @@ describe("component library manager UI", () => {
   it("opens a cost manager with timestamped component cost data", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     expect(within(dialog).getByText("Cost baseline")).toBeInTheDocument();
@@ -639,7 +704,7 @@ describe("component library manager UI", () => {
   it("commits a cost confidence through the shared dropdown select", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Open cost manager" }));
@@ -662,7 +727,7 @@ describe("component library manager UI", () => {
   it("updates the lifecycle draft from the Activity tab and keeps the modal open on Escape", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     fireEvent.click(within(dialog).getByRole("tab", { name: "Activity" }));
@@ -697,7 +762,7 @@ describe("component library manager UI", () => {
   it("renders unit dropdowns with clear code and meaning columns", async () => {
     await renderLibrary();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     const unitInput = within(dialog).getByRole("combobox", { name: "Unit" });
@@ -779,7 +844,8 @@ describe("component library manager UI", () => {
   it("searches folder labels without reintroducing procurement scopes as category folders", async () => {
     await renderLibrary();
 
-    fireEvent.change(screen.getByLabelText("Search component library tree"), { target: { value: "luminaire" } });
+    const treeSearch = openLibraryTreeSearch();
+    fireEvent.change(treeSearch, { target: { value: "luminaire" } });
 
     expect(screen.getByLabelText("Search component library tree")).toHaveValue("luminaire");
     expect(screen.queryByText("FF&E")).not.toBeInTheDocument();
