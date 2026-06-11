@@ -39,8 +39,13 @@ export function MotionReveal({
 
     element.dataset.motionReveal = "active";
 
+    // Fallback: if the observer never fires (e.g. rAF throttling in
+    // background tabs), force-reveal so content is never left held back.
+    const fallbackTimeout = window.setTimeout(reveal, 1200);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
+        window.clearTimeout(fallbackTimeout);
         if (entry?.isIntersecting) {
           reveal();
           if (!replayOnExit) {
@@ -55,7 +60,10 @@ export function MotionReveal({
 
     observer.observe(element);
 
-    return () => observer.disconnect();
+    return () => {
+      window.clearTimeout(fallbackTimeout);
+      observer.disconnect();
+    };
   }, [replayOnExit]);
 
   const delayStyle =
