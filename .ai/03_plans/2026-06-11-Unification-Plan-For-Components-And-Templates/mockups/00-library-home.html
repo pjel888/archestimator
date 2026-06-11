@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup 00 — Unified Library, Overview home</title>
+<style>
+  :root {
+    --ink: #292929; --secondary: #5D5D5D; --tertiary: #7F7F7F;
+    --hairline: #F2F2F2; --surface: #FFFFFF; --muted: #F5F5F5;
+    --warning: #B45309; --warning-soft: #FEF3C7;
+    --r: 3px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #E9E9E9; font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--secondary); font-size: 10px; line-height: 14px; letter-spacing: 0; -webkit-font-smoothing: antialiased; }
+  .frame { width: 1440px; height: 900px; display: flex; background: var(--surface); margin: 0 auto; overflow: hidden; }
+
+  .rail { width: 64px; background: #1C1C1C; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; }
+  .rail .logo { width: 32px; height: 32px; border-radius: var(--r); background: linear-gradient(135deg,#C2410C,#7C2D12); margin-bottom: 12px; }
+  .rail .slot { width: 28px; height: 28px; border-radius: var(--r); display:flex; align-items:center; justify-content:center; color:#8A8A8A; }
+  .rail .slot.active { background: #333; color: #fff; }
+  .rail .spacer { flex: 1; }
+  .rail .avatar { width: 26px; height: 26px; border-radius: var(--r); background: #4A4A4A; }
+
+  .page { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .title-bar { height: 48px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
+  .title-bar h1 { font-size: 12px; font-weight: 500; color: var(--ink); margin: 0; }
+  .title-bar .grow { flex: 1; }
+  .icon-btn { width: 24px; height: 24px; border: 0; background: transparent; border-radius: var(--r); display: inline-flex; align-items: center; justify-content: center; color: var(--tertiary); cursor: pointer; }
+  .icon-btn:hover { background: var(--muted); color: var(--ink); }
+
+  .tabstrip { height: 32px; display: flex; align-items: flex-end; background: var(--muted); border-bottom: 1px solid var(--hairline); padding: 0 16px; flex-shrink: 0; }
+  .tab { height: 100%; display: inline-flex; align-items: center; gap: 5px; padding: 0 12px; font-size: 10px; font-weight: 500; color: var(--tertiary); background: var(--muted); border: 1px solid transparent; border-bottom: 0; border-radius: var(--r) var(--r) 0 0; }
+  .tab.active { background: var(--surface); color: var(--ink); border-color: var(--hairline); margin-bottom: -1px; z-index: 2; }
+  .tab .count { font-size: 8px; line-height: 10px; color: var(--tertiary); background: var(--muted); border-radius: var(--r); padding: 1px 4px; font-variant-numeric: tabular-nums; }
+
+  .home { flex: 1; overflow: auto; padding: 20px 24px; }
+  .home-top { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .search { display: flex; align-items: center; gap: 6px; width: 360px; height: 28px; border: 1px solid var(--hairline); border-radius: var(--r); padding: 0 8px; color: var(--tertiary); }
+  .search kbd { margin-left: auto; font-family: inherit; font-size: 8px; color: var(--tertiary); border: 1px solid var(--hairline); border-radius: var(--r); padding: 1px 4px; line-height: 10px; }
+  .home-top .grow { flex: 1; }
+  .btn-primary { height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; background: var(--ink); color: #fff; border: 0; border-radius: var(--r); font-size: 10px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { height: 26px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; background: var(--surface); color: var(--secondary); border: 1px solid var(--hairline); border-radius: var(--r); font-size: 10px; font-weight: 500; }
+
+  .sect { margin-bottom: 26px; }
+  .sect-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .sect-head .t { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .sect-head .meta { font-size: 9px; color: var(--tertiary); font-variant-numeric: tabular-nums; }
+  .sect-head .grow { flex: 1; }
+  .sect-head a { font-size: 9px; color: var(--secondary); text-decoration: none; }
+  .sect-head a:hover { color: var(--ink); text-decoration: underline; }
+
+  .card-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .card { border: 1px solid var(--hairline); border-radius: var(--r); background: var(--surface); overflow: hidden; cursor: pointer; }
+  .card:hover { border-color: #DDD; }
+  .thumb { height: 72px; background: repeating-linear-gradient(135deg, #F0F0F0 0 8px, #EBEBEB 8px 16px); border-bottom: 1px solid var(--hairline); position: relative; }
+  .badge { position: absolute; top: 5px; left: 5px; font-size: 8px; line-height: 10px; font-weight: 500; border-radius: var(--r); padding: 2px 5px; color: var(--warning); background: var(--warning-soft); }
+  .card .body { padding: 6px 8px 7px; }
+  .card .name { font-size: 10px; font-weight: 500; color: var(--ink); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .meta { font-size: 9px; color: var(--tertiary); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .price-row { display: flex; align-items: baseline; justify-content: space-between; }
+  .card .price { font-size: 10px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .card .unit { font-size: 8px; color: var(--tertiary); }
+
+  .trow-list { display: flex; flex-direction: column; gap: 8px; }
+  .trow { border: 1px solid var(--hairline); border-radius: var(--r); padding: 9px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .trow:hover { border-color: #DDD; }
+  .trow .ico { color: var(--tertiary); flex-shrink: 0; }
+  .trow .name { font-size: 11px; font-weight: 500; color: var(--ink); }
+  .trow .counts { font-size: 9px; color: var(--tertiary); }
+  .trow .grow { flex: 1; }
+  .trow .chip { font-size: 8px; line-height: 10px; color: var(--secondary); background: var(--muted); border-radius: var(--r); padding: 2px 6px; }
+  .trow .total { font-size: 11px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mini-btn { height: 22px; display: inline-flex; align-items: center; padding: 0 8px; background: var(--surface); color: var(--secondary); border: 1px solid var(--hairline); border-radius: var(--r); font-size: 9px; font-weight: 500; }
+
+  .statline { display: flex; gap: 24px; padding: 12px 0 0; border-top: 1px solid var(--hairline); }
+  .stat .v { font-size: 12px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .stat .k { font-size: 9px; color: var(--tertiary); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="i-search"><circle cx="5.5" cy="5.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="8.4" y1="8.4" x2="11" y2="11" stroke="currentColor" stroke-width="1.2"/></g>
+    <g id="i-plus"><line x1="6" y1="2" x2="6" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.2"/></g>
+    <g id="i-folder"><path d="M1.5 3.2c0-.4.3-.7.7-.7h2.6l1 1.2h4c.4 0 .7.3.7.7v4.9c0 .4-.3.7-.7.7H2.2a.7.7 0 0 1-.7-.7V3.2z" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-cube"><path d="M6 1.6 10.4 4v4L6 10.4 1.6 8V4L6 1.6z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M1.6 4 6 6.4 10.4 4M6 6.4v4" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-tmpl"><rect x="1.8" y="1.8" width="8.4" height="8.4" rx="0.8" fill="none" stroke="currentColor" stroke-width="1.1"/><line x1="1.8" y1="4.6" x2="10.2" y2="4.6" stroke="currentColor" stroke-width="1.1"/><line x1="4.6" y1="4.6" x2="4.6" y2="10.2" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-rows"><rect x="1.5" y="2" width="9" height="2.4" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="1.5" y="7.6" width="9" height="2.4" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-grid"><rect x="1.8" y="1.8" width="3.5" height="3.5" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="6.7" y="1.8" width="3.5" height="3.5" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="1.8" y="6.7" width="3.5" height="3.5" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="6.7" y="6.7" width="3.5" height="3.5" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-bell"><path d="M3 8.5h6c-.6-.7-.9-1.3-.9-2.6 0-1.8-.8-3-2.1-3s-2.1 1.2-2.1 3c0 1.3-.3 1.9-.9 2.6z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M5.2 9.8a.9.9 0 0 0 1.6 0" fill="none" stroke="currentColor" stroke-width="1.1"/></g>
+    <g id="i-gear"><circle cx="6" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.1"/><path d="M6 1.4v1.4M6 9.2v1.4M1.4 6h1.4M9.2 6h1.4M2.7 2.7l1 1M8.3 8.3l1 1M9.3 2.7l-1 1M3.7 8.3l-1 1" stroke="currentColor" stroke-width="1.1"/></g>
+  </defs>
+</svg>
+
+<div class="frame">
+  <nav class="rail">
+    <div class="logo"></div>
+    <div class="slot"><svg width="12" height="12"><use href="#i-rows"/></svg></div>
+    <div class="slot"><svg width="12" height="12"><use href="#i-folder"/></svg></div>
+    <div class="slot active"><svg width="12" height="12"><use href="#i-cube"/></svg></div>
+    <div class="spacer"></div>
+    <div class="avatar"></div>
+  </nav>
+
+  <div class="page">
+    <header class="title-bar">
+      <h1>Library</h1>
+      <div class="grow"></div>
+      <button class="icon-btn"><svg width="12" height="12"><use href="#i-bell"/></svg></button>
+      <button class="icon-btn"><svg width="12" height="12"><use href="#i-gear"/></svg></button>
+    </header>
+
+    <div class="tabstrip">
+      <div class="tab active"><svg width="12" height="12"><use href="#i-grid"/></svg>Overview</div>
+      <div class="tab"><svg width="12" height="12"><use href="#i-cube"/></svg>Components <span class="count">154</span></div>
+      <div class="tab"><svg width="12" height="12"><use href="#i-tmpl"/></svg>Templates <span class="count">3</span></div>
+    </div>
+
+    <main class="home">
+      <!-- Cross-library search + primary creates -->
+      <div class="home-top">
+        <div class="search"><svg width="12" height="12"><use href="#i-search"/></svg><span>Search components and templates</span><kbd>⌘K</kbd></div>
+        <div class="grow"></div>
+        <button class="btn-ghost"><svg width="12" height="12"><use href="#i-plus"/></svg>New template</button>
+        <button class="btn-primary"><svg width="12" height="12" style="color:#fff"><use href="#i-plus"/></svg>Add component</button>
+      </div>
+
+      <!-- Recent components -->
+      <section class="sect">
+        <div class="sect-head">
+          <span class="t">Components</span>
+          <span class="meta">154 in 9 categories · 22 suppliers · 29 brands</span>
+          <span class="grow"></span>
+          <a href="#">Open components</a>
+        </div>
+        <div class="card-row">
+          <div class="card"><div class="thumb"></div><div class="body"><div class="name">Engineered Oak Plank</div><div class="meta">Floor Finishes</div><div class="price-row"><span class="price">₱2,450.00</span><span class="unit">/ sqm</span></div></div></div>
+          <div class="card"><div class="thumb"></div><div class="body"><div class="name">GROHE Lavatory Faucet</div><div class="meta">Plumbing Fixtures</div><div class="price-row"><span class="price">₱9,800.00</span><span class="unit">/ pc</span></div></div></div>
+          <div class="card"><div class="thumb"></div><div class="body"><div class="name">600×600 Porcelain Tile</div><div class="meta">Floor Finishes</div><div class="price-row"><span class="price">₱185.00</span><span class="unit">/ sqm</span></div></div></div>
+          <div class="card"><div class="thumb"><span class="badge">Discontinued</span></div><div class="body"><div class="name">Vinyl Plank 4 mm</div><div class="meta">Floor Finishes</div><div class="price-row"><span class="price">₱890.00</span><span class="unit">/ sqm</span></div></div></div>
+          <div class="card"><div class="thumb"></div><div class="body"><div class="name">Gypsum Board 12 mm</div><div class="meta">Ceiling Finishes</div><div class="price-row"><span class="price">₱420.00</span><span class="unit">/ pc</span></div></div></div>
+          <div class="card"><div class="thumb"></div><div class="body"><div class="name">Flat Latex, Interior</div><div class="meta">Wall Finishes</div><div class="price-row"><span class="price">₱520.00</span><span class="unit">/ gal</span></div></div></div>
+        </div>
+      </section>
+
+      <!-- Recent templates -->
+      <section class="sect">
+        <div class="sect-head">
+          <span class="t">Templates</span>
+          <span class="meta">3 in 2 groups</span>
+          <span class="grow"></span>
+          <a href="#">Open templates</a>
+        </div>
+        <div class="trow-list">
+          <div class="trow">
+            <span class="ico"><svg width="12" height="12"><use href="#i-tmpl"/></svg></span>
+            <span class="name">Powder Room Basic</span><span class="counts">1 group · 1 area · 4 rows</span>
+            <span class="grow"></span><span class="chip">Residential Rooms</span>
+            <span class="total">₱61,150.00</span>
+            <button class="mini-btn">Open</button>
+          </div>
+          <div class="trow">
+            <span class="ico"><svg width="12" height="12"><use href="#i-tmpl"/></svg></span>
+            <span class="name">Condo Fit-Out Starter</span><span class="counts">2 groups · 3 areas · 8 rows</span>
+            <span class="grow"></span><span class="chip">Residential Rooms</span>
+            <span class="total">₱71,883.00</span>
+            <button class="mini-btn">Open</button>
+          </div>
+          <div class="trow">
+            <span class="ico"><svg width="12" height="12"><use href="#i-tmpl"/></svg></span>
+            <span class="name">Roof Deck Lounge</span><span class="counts">1 group · 2 areas · 3 rows</span>
+            <span class="grow"></span><span class="chip">Exterior + Site</span>
+            <span class="total">₱97,400.00</span>
+            <button class="mini-btn">Open</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Library health line: freshness signals estimators actually act on -->
+      <div class="statline">
+        <div class="stat"><div class="v">12</div><div class="k">prices older than 90 days</div></div>
+        <div class="stat"><div class="v">1</div><div class="k">discontinued item still in use</div></div>
+        <div class="stat"><div class="v">36</div><div class="k">components missing a brand</div></div>
+        <div class="stat"><div class="v">2026-06-08</div><div class="k">last library update</div></div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
