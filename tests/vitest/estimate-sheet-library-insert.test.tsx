@@ -722,7 +722,8 @@ describe("estimate sheet library insertion persistence", () => {
     const adjustmentType = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment type");
     const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
 
-    await user.selectOptions(adjustmentType, "discount");
+    await user.click(adjustmentType);
+    await user.click(screen.getByRole("option", { name: "Discount" }));
     await user.click(adjustmentInput);
     await user.clear(adjustmentInput);
     await user.type(adjustmentInput, "10");
@@ -734,7 +735,7 @@ describe("estimate sheet library insertion persistence", () => {
       contingencyPercentage: -10,
       expectedRowRevision: 7,
     }));
-    expect(adjustmentType).toHaveValue("discount");
+    expect(adjustmentType).toHaveTextContent("Discount");
     expect(adjustmentInput.value).toBe("10");
   });
 });

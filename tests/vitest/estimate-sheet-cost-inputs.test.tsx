@@ -313,9 +313,9 @@ describe("estimate sheet cost inputs", () => {
 
     expect(subtotalCell).toHaveClass("justify-center");
     expect(adjustmentCell).toHaveClass("relative", "justify-center");
-    expect(adjustmentType).toHaveValue("contingency");
+    expect(adjustmentType).toHaveTextContent("Contingency");
     expect(adjustmentType).toHaveClass("!text-[8px]", "text-left");
-    expect(adjustmentType.closest("span")).toHaveClass("absolute", "left-1.5", "top-1.5");
+    expect(adjustmentType.closest("[data-slot='dropdown-select-root']")?.parentElement).toHaveClass("absolute", "left-1.5", "top-1.5");
     expect(adjustmentInput).toHaveClass("text-right");
     expect(adjustmentInput).toHaveClass("h-5");
     expect(within(adjustmentCell as HTMLElement).getAllByText("%")).toHaveLength(1);
@@ -342,11 +342,12 @@ describe("estimate sheet cost inputs", () => {
 
     const adjustmentType = screen.getByLabelText("Hardwood Oak Flooring adjustment type");
     const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
-    await user.selectOptions(adjustmentType, "discount");
+    await user.click(adjustmentType);
+    await user.click(screen.getByRole("option", { name: "Discount" }));
     await user.clear(adjustmentInput);
     await user.type(adjustmentInput, "10");
 
-    expect(adjustmentType).toHaveValue("discount");
+    expect(adjustmentType).toHaveTextContent("Discount");
     expect(screen.getByText("-₱ 5,760.00")).toBeInTheDocument();
     expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
   });

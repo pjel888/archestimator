@@ -6,7 +6,7 @@ import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertica
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
-import { ControlSelect } from "@/components/ui/control-select";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
@@ -1016,27 +1016,23 @@ const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                   )}
                   data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
                 >
-                  <ControlSelect
-                    value={item.editableContingencyMode}
-                    aria-label={`${item.material} adjustment type`}
-                    wrapperClassName="absolute left-1.5 top-1.5 w-[74px] justify-start"
-                    className="h-3.5 w-full border-0 bg-transparent pl-0 pr-3 text-left !text-[8px] leading-[10px] text-secondary"
-                    onChange={(event) => {
-                      const nextMode = event.target.value as CostAdjustmentMode;
-                      setEditableRows((current) => updateEditableRowValue(current, item, { contingencyMode: nextMode }));
-                      onMarkRowDirty(item.id);
-                      const nextContingencyPercentage = parseCostAdjustmentPercentage(item.editableContingencyPercentage, nextMode);
-                      if (nextContingencyPercentage !== item.storedContingencyPercentage) {
-                        onUpdateRowItem(item.id, { contingencyMode: nextMode, contingencyPercentage: item.editableContingencyPercentage });
-                      }
-                    }}
-                  >
-                    {COST_ADJUSTMENT_MODE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </ControlSelect>
+                  <div className="absolute left-1.5 top-1.5 w-[74px]">
+                    <DropdownSelect
+                      value={item.editableContingencyMode}
+                      aria-label={`${item.material} adjustment type`}
+                      options={COST_ADJUSTMENT_MODE_OPTIONS}
+                      className="h-3.5 border-0 bg-transparent pl-0 pr-0 text-left !text-[8px] leading-[10px] text-secondary"
+                      onValueChange={(nextValue) => {
+                        const nextMode = nextValue as CostAdjustmentMode;
+                        setEditableRows((current) => updateEditableRowValue(current, item, { contingencyMode: nextMode }));
+                        onMarkRowDirty(item.id);
+                        const nextContingencyPercentage = parseCostAdjustmentPercentage(item.editableContingencyPercentage, nextMode);
+                        if (nextContingencyPercentage !== item.storedContingencyPercentage) {
+                          onUpdateRowItem(item.id, { contingencyMode: nextMode, contingencyPercentage: item.editableContingencyPercentage });
+                        }
+                      }}
+                    />
+                  </div>
                   <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 pt-2">
                     <div className="flex h-5 items-baseline justify-center leading-none">
                       <ControlInput
