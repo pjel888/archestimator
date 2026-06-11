@@ -4,8 +4,8 @@ import { useCallback, useMemo, useState, type DragEvent } from "react";
 import {
   CaretDown,
   CaretRight,
-  Cube,
   FolderSimple,
+  MapPin,
   Package,
   PencilSimple,
   Plus,
@@ -56,7 +56,7 @@ function NodeKindIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (kind === "group") {
     return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
   }
-  return <Cube size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+  return <MapPin size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function TemplateRootIcon({ template }: { template: EstimateTemplate }) {
