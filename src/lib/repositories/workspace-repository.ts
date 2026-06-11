@@ -7,7 +7,7 @@ import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import type {
   CollaborationInvitationSummary,
@@ -829,21 +829,6 @@ export async function listCurrentWorkspaceProjects() {
   };
 }
 
-function createFirstNodeMap(nodes: Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "kind">[]) {
-  const firstNodeByEstimateId = new Map<string, string>();
-  for (const node of nodes) {
-    if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) {
-      firstNodeByEstimateId.set(node.estimate_id, node.id);
-    }
-  }
-  for (const node of nodes) {
-    if (!firstNodeByEstimateId.has(node.estimate_id)) {
-      firstNodeByEstimateId.set(node.estimate_id, node.id);
-    }
-  }
-  return firstNodeByEstimateId;
-}
-
 function mergeHomebaseRecords<T extends { id: string }>(primary: T[], secondary: T[]) {
   const byId = new Map<string, T>();
   for (const record of [...primary, ...secondary]) {
@@ -1026,12 +1011,12 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   if (estimateIds.length > 0) {
     const { data, error } = await supabase
       .from("estimate_nodes")
-      .select("id, estimate_id, kind, sort_order")
+      .select("id, estimate_id, kind, parent_id, sort_order")
       .in("estimate_id", estimateIds)
       .order("sort_order", { ascending: true });
 
     if (error) throw error;
-    firstNodeByEstimateId = createFirstNodeMap(data ?? []);
+    firstNodeByEstimateId = selectFirstEstimateNodeIds(data ?? []);
   }
 
   return {
@@ -1360,7 +1345,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   const [nodesResult, rowsResult] = await Promise.all([
     supabase
       .from("estimate_nodes")
-      .select("id, estimate_id, kind, sort_order")
+      .select("id, estimate_id, kind, parent_id, sort_order")
       .in("estimate_id", estimateIds)
       .order("sort_order", { ascending: true }),
     supabase
@@ -1372,14 +1357,10 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   if (nodesResult.error) throw nodesResult.error;
   if (rowsResult.error) throw rowsResult.error;
 
-  const firstNodeByEstimateId = new Map<string, string>();
+  const firstNodeByEstimateId = selectFirstEstimateNodeIds(nodesResult.data ?? []);
   const nodeCountByEstimateId = new Map<string, number>();
   for (const node of nodesResult.data ?? []) {
     nodeCountByEstimateId.set(node.estimate_id, (nodeCountByEstimateId.get(node.estimate_id) ?? 0) + 1);
-    if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
-  }
-  for (const node of nodesResult.data ?? []) {
-    if (!firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
   }
 
   const totalCostByEstimateId = new Map<string, number>();
