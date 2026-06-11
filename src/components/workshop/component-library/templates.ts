@@ -22,6 +22,16 @@ export type InsertEstimateTemplateEventDetail =
       targetParentNodeId: string;
       templateId: string;
       templateNodeId: string;
+    }
+  | {
+      /** Area target: the sheet wraps this area and the payload in a new group. */
+      wrapAreaNodeId: string;
+      templateIds: string[];
+    }
+  | {
+      wrapAreaNodeId: string;
+      templateId: string;
+      templateNodeId: string;
     };
 
 /**

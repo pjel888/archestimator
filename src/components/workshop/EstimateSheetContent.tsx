@@ -1,7 +1,7 @@
 "use client";
 
 import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type SetStateAction, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, MapPin, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,10 @@ import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
-import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
-import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
+import { getEstimateNodeDisplayKind, getEstimateWrapGroupName } from "@/lib/estimates/tree-hierarchy";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -34,6 +34,7 @@ import {
   INSERT_ESTIMATE_TEMPLATE_EVENT,
   readEstimateTemplateDragPayload,
   type EstimateTemplate,
+  type EstimateTemplateDragPayload,
   type InsertEstimateTemplateEventDetail,
 } from "./component-library/templates";
 import { useEstimateWorkshopDrag } from "./estimate-workshop-drag";
@@ -155,6 +156,8 @@ type EstimateSheetBranchProps = {
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onInsertTemplate: (targetParentNodeId: string, templateId: string) => void;
   onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
+  /** Root-level area sheets only: a template drop wraps the area and the payload in a new group. */
+  onWrapAreaWithTemplate?: (areaNodeId: string, payload: EstimateTemplateDragPayload) => void;
   onAddBlankRow: (targetNodeId: string) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
@@ -230,7 +233,7 @@ function nodeTotalClasses(kind: EstimateTreeNode["kind"]) {
 
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={13} weight="regular" aria-hidden="true" />;
-  return <Cube size={13} weight="regular" aria-hidden="true" />;
+  return <MapPin size={13} weight="regular" aria-hidden="true" />;
 }
 
 function focusEstimateCell(rowIndex: number, cellIndex: number) {
@@ -1226,24 +1229,20 @@ function ComponentDropTarget({
 }
 
 /**
- * Template drop target inside a group section, rendered only while a
- * template drag is in flight. It sits after the group's children — exactly
- * where the server appends inserted template roots. The surrounding section
- * also accepts template drops; this zone stops propagation so a drop here is
- * handled once.
+ * Template drop target inside a section, rendered only while a template
+ * drag is in flight. Group sections place it after their children — exactly
+ * where the server appends inserted template roots; area-root sheets use it
+ * as the wrap-in-group target. The surrounding section also accepts template
+ * drops; this zone stops propagation so a drop here is handled once.
  */
 function TemplateDropZone({
   nodeId,
-  nodeName,
-  templateName,
-  onInsertTemplate,
-  onInsertTemplateNode,
+  label,
+  onDropPayload,
 }: {
   nodeId: string;
-  nodeName: string;
-  templateName: string;
-  onInsertTemplate: (targetParentNodeId: string, templateId: string) => void;
-  onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
+  label: string;
+  onDropPayload: (payload: EstimateTemplateDragPayload) => void;
 }) {
   const [dragCount, setDragCount] = useState(0);
   const isDragOver = dragCount > 0;
@@ -1271,17 +1270,10 @@ function TemplateDropZone({
         if (!payload) return;
         event.preventDefault();
         event.stopPropagation();
-        if (payload.kind === "template-node") {
-          onInsertTemplateNode(nodeId, payload.templateId, payload.templateNodeId);
-          return;
-        }
-        payload.templateIds.forEach((templateId) => onInsertTemplate(nodeId, templateId));
+        onDropPayload(payload);
       }}
     >
-      <EstimateDropZone
-        label={`Drop ${templateName || "template"} into ${nodeName}`}
-        isDragOver={isDragOver}
-      />
+      <EstimateDropZone label={label} isDragOver={isDragOver} />
     </div>
   );
 }
@@ -1303,7 +1295,7 @@ function EmptyGroupMessage({ templateDragActive }: { templateDragActive: boolean
   );
 }
 
-function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -1316,7 +1308,10 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
   const total = computeNodeTotal(node, editableRows);
   const displayKind = isGroup ? "group" : "area";
   const showBreadcrumbs = !collapsed && !isGroup && ancestorPath.length > 0;
-  const canReceiveTemplates = isGroup;
+  // Areas cannot take child nodes, so a template dropped on an area-scoped
+  // sheet root wraps the area and the template in a new group instead.
+  const isWrapTarget = !isGroup && depth === 0 && Boolean(onWrapAreaWithTemplate);
+  const canReceiveTemplates = isGroup || isWrapTarget;
   const activeDrag = useEstimateWorkshopDrag();
   const templateDragActive = activeDrag?.kind === "estimate-template";
   const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
@@ -1349,6 +1344,18 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
     setTemplateDragOverCount((count) => Math.max(0, count - 1));
   }
 
+  function applyTemplateDropPayload(payload: EstimateTemplateDragPayload) {
+    if (isWrapTarget) {
+      onWrapAreaWithTemplate?.(node.id, payload);
+      return;
+    }
+    if (payload.kind === "template-node") {
+      onInsertTemplateNode(node.id, payload.templateId, payload.templateNodeId);
+      return;
+    }
+    payload.templateIds.forEach((templateId) => onInsertTemplate(node.id, templateId));
+  }
+
   function handleTemplateDrop(event: DragEvent<HTMLElement>) {
     if (!canReceiveTemplates) return;
     setTemplateDragOverCount(0);
@@ -1356,11 +1363,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
     if (!payload) return;
     event.preventDefault();
     event.stopPropagation();
-    if (payload.kind === "template-node") {
-      onInsertTemplateNode(node.id, payload.templateId, payload.templateNodeId);
-      return;
-    }
-    payload.templateIds.forEach((templateId) => onInsertTemplate(node.id, templateId));
+    applyTemplateDropPayload(payload);
   }
 
   return (
@@ -1489,13 +1492,15 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
             />
           ) : null}
           {isGroup && !hasContents ? <EmptyGroupMessage templateDragActive={templateDragActive} /> : null}
-          {isGroup && templateDragActive ? (
+          {canReceiveTemplates && templateDragActive ? (
             <TemplateDropZone
               nodeId={node.id}
-              nodeName={node.name}
-              templateName={activeTemplateName}
-              onInsertTemplate={onInsertTemplate}
-              onInsertTemplateNode={onInsertTemplateNode}
+              label={
+                isWrapTarget
+                  ? `Drop ${activeTemplateName || "template"} here to group it with ${node.name}`
+                  : `Drop ${activeTemplateName || "template"} into ${node.name}`
+              }
+              onDropPayload={applyTemplateDropPayload}
             />
           ) : null}
         </div>
@@ -1552,6 +1557,42 @@ function cloneTemplateNodesForEstimate(nodes: EstimateTreeNode[]): EstimateTreeN
   }
 
   return nodes.map(cloneNode);
+}
+
+/**
+ * Replaces an area node in place with a wrapper group holding the area and
+ * the dropped template roots — the optimistic mirror of
+ * wrapEstimateAreaAndInsertTemplate.
+ */
+function wrapAreaNodeWithGroup(nodes: EstimateTreeNode[], areaNodeId: string, groupId: string, groupName: string, templateNodes: EstimateTreeNode[]): EstimateTreeNode[] {
+  return nodes.map((node) => {
+    if (node.id === areaNodeId) {
+      return {
+        id: groupId,
+        name: groupName,
+        kind: "group",
+        total: "₱0.00",
+        children: [node, ...templateNodes],
+      } satisfies EstimateTreeNode;
+    }
+    return {
+      ...node,
+      children: node.children ? wrapAreaNodeWithGroup(node.children, areaNodeId, groupId, groupName, templateNodes) : node.children,
+    };
+  });
+}
+
+/**
+ * Reveals a freshly created group in the left tree. When no explicit
+ * expansion is stored, the tree already expands every folder row by default,
+ * so only an existing explicit list needs the new id appended.
+ */
+function expandTreeNodeForEstimate(estimateId: string | undefined, nodeId: string) {
+  if (!estimateId) return;
+  const state = useEstimateWorkspaceState.getState();
+  const expanded = state.expandedNodeIdsByEstimateId[estimateId];
+  if (!expanded || expanded.includes(nodeId)) return;
+  state.setExpandedNodeIds(estimateId, [...expanded, nodeId]);
 }
 
 function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNodeId: string, templateNodes: EstimateTreeNode[]): EstimateTreeNode[] {
@@ -2049,9 +2090,13 @@ export function EstimateSheetContent({
     return [...selectedNodePath].reverse().find((node) => node.kind === "group") ?? null;
   }, [selectedNode, selectedNodePath]);
   const canInsertIntoSelectedNode = Boolean(insertTargetNodeId);
-  const canInsertTemplateIntoSelectedNode = Boolean(templateTargetParentNode);
+  // With an area selected, template adds wrap the area in a new group
+  // instead of targeting an ancestor group.
+  const canInsertTemplateIntoSelectedNode = selectedNode?.kind === "area" || Boolean(templateTargetParentNode);
   const insertionTargetLabel = selectedNode?.kind === "area" ? selectedNode.name : "selected area";
-  const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected group";
+  const templateInsertionTargetLabel = selectedNode?.kind === "area"
+    ? `a new ${getEstimateWrapGroupName(selectedNode.name)}`
+    : templateTargetParentNode?.name ?? "selected group";
   const projectTotal = useMemo(
     () => estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0),
     [editableRows, estimateTree],
@@ -2459,12 +2504,79 @@ export function EstimateSheetContent({
     [insertTemplateIntoParent, templateById],
   );
 
+  // A template dropped on an area cannot nest inside it (areas take no child
+  // nodes), so the drop wraps the area and the template content in a new
+  // group occupying the area's slot. Selection follows the new group: the
+  // sheet re-scopes and the left tree highlights it through the shared
+  // workspace selection.
+  const wrapAreaAndInsertTemplates = useStableCallback(
+    (areaNodeId: string, payload: EstimateTemplateDragPayload): boolean => {
+      const areaNode = findEstimateNode(estimateTree, areaNodeId);
+      if (areaNode?.kind !== "area") return false;
+
+      let optimisticTemplateNodes: EstimateTreeNode[];
+      if (payload.kind === "template-node") {
+        const template = templateById.get(payload.templateId);
+        const templateNode = template ? findEstimateNode(template.nodes, payload.templateNodeId) : null;
+        if (!templateNode) return false;
+        optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
+      } else {
+        const payloadTemplates = payload.templateIds
+          .map((templateId) => templateById.get(templateId))
+          .filter((template): template is EstimateTemplate => Boolean(template));
+        if (payloadTemplates.length === 0) return false;
+        optimisticTemplateNodes = cloneTemplateNodesForEstimate(payloadTemplates.flatMap((template) => template.nodes));
+      }
+
+      const previousTree = estimateTree;
+      const previousRows = editableRows;
+      const rollbackRevision = getEstimateTreeRevision();
+      const optimisticGroupId = `optimistic-group-${createEstimateRowItemId()}`;
+      const groupName = getEstimateWrapGroupName(areaNode.name);
+      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
+      const nextRevision = setEstimateTree((current) => wrapAreaNodeWithGroup(current, areaNodeId, optimisticGroupId, groupName, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
+      setSelectedNodeId(optimisticGroupId);
+      expandTreeNodeForEstimate(estimateId, optimisticGroupId);
+
+      if (projectId && estimateId) {
+        const reselectWrapGroup = (nodeId: string) => {
+          // Only steer selection if the user is still on the wrap group.
+          const currentSelection = useEstimateWorkspaceState.getState().selectedNodeIdByEstimateId[estimateId];
+          if (currentSelection === optimisticGroupId) setSelectedNodeId(nodeId);
+        };
+        wrapEstimateAreaAndInsertTemplate({
+          projectId,
+          estimateId,
+          areaNodeId,
+          insert: payload.kind === "template-node"
+            ? { templateId: payload.templateId, templateNodeId: payload.templateNodeId }
+            : { templateIds: payload.templateIds },
+        })
+          .then((result) => {
+            setEstimateTreeData(() => result.tree);
+            expandTreeNodeForEstimate(estimateId, result.newGroupNodeId);
+            reselectWrapGroup(result.newGroupNodeId);
+          })
+          .catch(() => {
+            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
+            reselectWrapGroup(areaNodeId);
+          });
+      }
+
+      return true;
+    },
+  );
+
   const insertTemplateIntoSelectedGroup = useCallback(
     (template: EstimateTemplate) => {
+      if (selectedNode?.kind === "area") {
+        return wrapAreaAndInsertTemplates(selectedNode.id, { kind: "templates", templateIds: [template.id] });
+      }
       if (!templateTargetParentNode) return false;
       return insertTemplateIntoParent(templateTargetParentNode.id, template);
     },
-    [insertTemplateIntoParent, templateTargetParentNode],
+    [insertTemplateIntoParent, selectedNode, templateTargetParentNode, wrapAreaAndInsertTemplates],
   );
 
   // Inserts ONE node of a template (a group or area inside it) with its
@@ -2515,10 +2627,13 @@ export function EstimateSheetContent({
 
   const insertTemplateNodeIntoSelectedGroup = useCallback(
     (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
+      if (selectedNode?.kind === "area") {
+        return wrapAreaAndInsertTemplates(selectedNode.id, { kind: "template-node", templateId: template.id, templateNodeId: templateNode.id });
+      }
       if (!templateTargetParentNode) return false;
       return insertTemplateNodeIntoParent(templateTargetParentNode.id, template, templateNode);
     },
-    [insertTemplateNodeIntoParent, templateTargetParentNode],
+    [insertTemplateNodeIntoParent, selectedNode, templateTargetParentNode, wrapAreaAndInsertTemplates],
   );
 
   const insertBlankRow = useCallback(
@@ -2564,12 +2679,23 @@ export function EstimateSheetContent({
   }, [insertLibraryItem, insertTargetNodeId]);
 
   // Template drops on the left estimate tree arrive here: that panel can
-  // target a group row but the optimistic insert + rollback flow lives in
-  // this component. Category drags carry several template ids; dragging a
-  // node from inside a template carries that node's id.
+  // target a group or area row but the optimistic insert + rollback flow
+  // lives in this component. Category drags carry several template ids;
+  // dragging a node from inside a template carries that node's id. Area
+  // targets wrap the area and the payload in a new group.
   useEffect(() => {
     function handleInsertTemplateEvent(event: Event) {
-      const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
+      const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { targetParentNodeId?: string; wrapAreaNodeId?: string; templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
+      if (typeof detail?.wrapAreaNodeId === "string") {
+        if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
+          wrapAreaAndInsertTemplates(detail.wrapAreaNodeId, { kind: "template-node", templateId: detail.templateId, templateNodeId: detail.templateNodeId });
+          return;
+        }
+        if (!Array.isArray(detail.templateIds)) return;
+        const wrapTemplateIds = detail.templateIds.filter((templateId): templateId is string => typeof templateId === "string" && templateId.length > 0);
+        if (wrapTemplateIds.length > 0) wrapAreaAndInsertTemplates(detail.wrapAreaNodeId, { kind: "templates", templateIds: wrapTemplateIds });
+        return;
+      }
       if (typeof detail?.targetParentNodeId !== "string") return;
       if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
         insertTemplateNodeIntoParentById(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
@@ -2582,7 +2708,7 @@ export function EstimateSheetContent({
     }
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-  }, [insertTemplateIntoParentById, insertTemplateNodeIntoParentById]);
+  }, [insertTemplateIntoParentById, insertTemplateNodeIntoParentById, wrapAreaAndInsertTemplates]);
 
   const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
     const previousTree = estimateTree;
@@ -2790,6 +2916,7 @@ export function EstimateSheetContent({
                     onInsertLibraryItem={insertLibraryItem}
                     onInsertTemplate={insertTemplateIntoParentById}
                     onInsertTemplateNode={insertTemplateNodeIntoParentById}
+                    onWrapAreaWithTemplate={wrapAreaAndInsertTemplates}
                     onAddBlankRow={insertBlankRow}
                     onReplaceRowItem={replaceRowItem}
                     onDeleteRowItem={deleteRowItem}

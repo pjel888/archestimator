@@ -7,7 +7,7 @@ import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { getEstimateNodeKindSortRank, normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import type {
   CollaborationInvitationSummary,
@@ -1591,16 +1591,6 @@ export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: Estim
     else roots.push(uiNode);
   }
 
-  function sortSiblings(currentNodes: EstimateTreeNode[]): EstimateTreeNode[] {
-    return currentNodes
-      .map((node, index) => ({ node, index }))
-      .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
-      .map(({ node }) => {
-        node.children = sortSiblings(node.children ?? []);
-        return node;
-      });
-  }
-
   function computeTotals(node: EstimateTreeNode): number {
     const rowTotal = (node.estimateRowItems ?? []).reduce((total, row) => total + row.totalItemCosts, 0);
     const childTotal = (node.children ?? []).reduce((total, child) => total + computeTotals(child), 0);
@@ -1609,9 +1599,11 @@ export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: Estim
     return total;
   }
 
-  const sortedRoots = sortSiblings(roots);
-  sortedRoots.forEach(computeTotals);
-  return sortedRoots;
+  // Sibling order is the stored sort_order (the node query orders by it):
+  // the tree, the sheet, and node codes all read this one order, so no
+  // display-side re-sorting (e.g. groups-before-areas) may reorder siblings.
+  roots.forEach(computeTotals);
+  return roots;
 }
 
 export async function getProjectEstimateTreeByEstimate(
