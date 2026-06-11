@@ -158,4 +158,18 @@ describe("component library lazy load (U4)", () => {
     renderSheet(queryClient, { renderSidebar: false });
     expect(loadLibraryMock).not.toHaveBeenCalled();
   });
+
+  it("invalidates the lazy library cache after sidebar library mutations", () => {
+    // Wiring contract: server-confirmed sidebar mutations must mark the
+    // lazy dataset stale, or remounts re-seed from pre-mutation cache.
+    const sheetSource = readFileSync(path.join(process.cwd(), "src/components/workshop/EstimateSheetContent.tsx"), "utf8");
+    expect(sheetSource).toContain('queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] })');
+    expect(sheetSource).toContain("onLibraryDataChanged={handleLibraryDataChanged}");
+
+    const sidebarSource = readFileSync(path.join(process.cwd(), "src/components/workshop/component-library/index.tsx"), "utf8");
+    const notifyCallCount = sidebarSource.match(/onLibraryDataChanged\?\.\(\);/g)?.length ?? 0;
+    // create component, create template, rename template, delete template,
+    // save component edit, delete component, undo delete, bulk delete
+    expect(notifyCallCount).toBeGreaterThanOrEqual(8);
+  });
 });

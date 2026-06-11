@@ -10,7 +10,7 @@ import { ControlSelect } from "@/components/ui/control-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
@@ -53,7 +53,9 @@ import {
   formatPeso,
   getActivityFilterInput,
   getActivityScopeKey,
-  getComponentImageUrl,
+  // Aliased: the helpers barrel re-exported below also has a
+  // getComponentImageUrl with a different parameter type.
+  getComponentImageUrl as getMaterialCardImageUrl,
   isBlankEstimateRowItem,
   pesoFormatter,
   toEditableContingencyMode,
@@ -529,7 +531,7 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
       <div className="flex gap-2">
         <div
           className="size-14 shrink-0 rounded-xs bg-neutral-100 bg-cover bg-center"
-          style={{ backgroundImage: `url(${getComponentImageUrl(item)})` }}
+          style={{ backgroundImage: `url(${getMaterialCardImageUrl(item)})` }}
           aria-label={`${item.material} reference image`}
         />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -1932,6 +1934,12 @@ export function EstimateSheetContent({
   });
   const lazyLibrary = shouldLoadLibraryLazily ? libraryQuery.data : undefined;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
+  const queryClient = useQueryClient();
+  // Library mutations in the sidebar update its local state; the lazy query
+  // cache must also be marked stale or remounts re-seed from pre-mutation data.
+  const handleLibraryDataChanged = useStableCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] });
+  });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
     if (proposalExportMetadata) return proposalExportMetadata;
@@ -2865,6 +2873,7 @@ export function EstimateSheetContent({
             libraryFolders={libraryFolders ?? lazyLibrary?.libraryFolders}
             onInsertTemplate={insertTemplateIntoSelectedGroup}
             onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
+            onLibraryDataChanged={handleLibraryDataChanged}
           />
         )
       ) : null}
