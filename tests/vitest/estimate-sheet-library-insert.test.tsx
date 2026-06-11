@@ -291,7 +291,9 @@ describe("estimate sheet library insertion persistence", () => {
     );
 
     await user.click(screen.getByRole("tab", { name: "Templates" }));
-    await user.click(screen.getByRole("button", { name: "Add template Condo Fit-Out Starter to Ground Floor" }));
+    // Rows carry no add buttons: inserting goes through the context menu.
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Condo Fit-Out Starter estimate template" }), { clientX: 16, clientY: 16 });
+    await user.click(await screen.findByRole("menuitem", { name: "Add to Ground Floor" }));
 
     await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
     expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
@@ -720,7 +722,8 @@ describe("estimate sheet library insertion persistence", () => {
     const adjustmentType = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment type");
     const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
 
-    await user.selectOptions(adjustmentType, "discount");
+    await user.click(adjustmentType);
+    await user.click(screen.getByRole("option", { name: "Discount" }));
     await user.click(adjustmentInput);
     await user.clear(adjustmentInput);
     await user.type(adjustmentInput, "10");
@@ -732,7 +735,7 @@ describe("estimate sheet library insertion persistence", () => {
       contingencyPercentage: -10,
       expectedRowRevision: 7,
     }));
-    expect(adjustmentType).toHaveValue("discount");
+    expect(adjustmentType).toHaveTextContent("Discount");
     expect(adjustmentInput.value).toBe("10");
   });
 });

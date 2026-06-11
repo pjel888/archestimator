@@ -1,44 +1,58 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 
-const createSupabaseServerClient = vi.hoisted(() => vi.fn());
+const cookiesMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient,
+vi.mock("next/headers", () => ({
+  cookies: cookiesMock,
 }));
 
-describe("landing auth state", () => {
+function withCookies(all: Array<{ name: string; value: string }>) {
+  cookiesMock.mockResolvedValue({ getAll: () => all });
+}
+
+describe("landing auth state (display-only cookie hint)", () => {
   beforeEach(() => {
-    createSupabaseServerClient.mockReset();
+    cookiesMock.mockReset();
   });
 
-  it("returns true when Supabase resolves an authenticated user", async () => {
-    createSupabaseServerClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "user-1" } },
-        }),
-      },
-    });
-
+  it("returns true when a Supabase auth cookie is present", async () => {
+    withCookies([{ name: "sb-abcdefghijklmnop-auth-token", value: "base64-session" }]);
     await expect(getLandingAuthState()).resolves.toBe(true);
   });
 
-  it("returns false when Supabase resolves no authenticated user", async () => {
-    createSupabaseServerClient.mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-        }),
-      },
-    });
+  it("returns true for chunked Supabase auth cookies", async () => {
+    withCookies([
+      { name: "sb-abcdefghijklmnop-auth-token.0", value: "chunk-a" },
+      { name: "sb-abcdefghijklmnop-auth-token.1", value: "chunk-b" },
+    ]);
+    await expect(getLandingAuthState()).resolves.toBe(true);
+  });
 
+  it("returns false for anonymous visitors with no auth cookie", async () => {
+    withCookies([{ name: "archestimator_cookie_consent", value: "{}" }]);
     await expect(getLandingAuthState()).resolves.toBe(false);
   });
 
-  it("fails closed to logged-out state when auth lookup throws", async () => {
-    createSupabaseServerClient.mockRejectedValue(new Error("missing env"));
-
+  it("ignores empty auth cookie values", async () => {
+    withCookies([{ name: "sb-abcdefghijklmnop-auth-token", value: "" }]);
     await expect(getLandingAuthState()).resolves.toBe(false);
+  });
+
+  it("fails closed to logged-out state when cookie access throws", async () => {
+    cookiesMock.mockRejectedValue(new Error("outside request scope"));
+    await expect(getLandingAuthState()).resolves.toBe(false);
+  });
+
+  it("performs no Supabase auth network round-trip", () => {
+    // Display-only contract: the helper must not import the Supabase server
+    // client. Protected routes keep fail-closed getUser() validation.
+    const source = readFileSync(path.join(process.cwd(), "src/lib/landing/get-landing-auth-state.ts"), "utf8");
+    expect(source).not.toContain("createSupabaseServerClient");
+    expect(source).not.toContain("@/lib/supabase/server");
+    expect(source).not.toContain("supabase.auth.getUser(");
   });
 });

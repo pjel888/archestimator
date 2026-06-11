@@ -12,6 +12,7 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
+import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -341,6 +342,14 @@ function getRpcPriceOptions(result: unknown): Array<{ id: string; label: string;
   });
 }
 
+// Lazy estimate-sheet path: the sheet renders without the library dataset and
+// the client fetches it on demand. requireCurrentUserContext keeps this server
+// action fail-closed for anonymous callers, matching the page-load auth gate.
+export async function loadCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceComponentLibrary();
+}
+
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   validatePriceOptions(input.priceOptions);
@@ -628,4 +637,227 @@ export async function moveCostLibraryComponentToFolder(input: MoveCostLibraryCom
   if (error) throw new Error(`Could not move component: ${error.message}`);
   if (!component) throw new Error("Component not found in the current workspace.");
   revalidateLibraryRoutes();
+}
+
+export type CreateEstimateTemplateFromNodeInput = {
+  projectId: string;
+  estimateId: string;
+  sourceNodeId: string;
+  name: string;
+  description?: string;
+  category?: string;
+};
+
+type EstimateNodeSubtreeRow = {
+  id: string;
+  parent_id: string | null;
+  kind: string;
+  name: string;
+  sort_order: number;
+};
+
+/**
+ * Saves an estimate node (group or area) and its whole subtree — child
+ * nodes plus estimate rows — as a reusable workspace template. The server
+ * reads the subtree authoritatively; clients only send identifiers, never
+ * tree payloads. RLS on the template tables limits writes to workspace
+ * members.
+ */
+export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const supabase = await createSupabaseServerClient();
+
+  const templateName = input.name.trim();
+  if (!templateName) throw new Error("Template name is required.");
+  const templateCategory = (input.category ?? "").trim() || "General";
+  const templateDescription = (input.description ?? "").trim();
+  if (!isUuid(input.estimateId) || !isUuid(input.sourceNodeId)) {
+    throw new Error("Estimate node not found in the current workspace.");
+  }
+
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id, projects!inner(id, workspace_id)")
+    .eq("id", input.estimateId)
+    .eq("project_id", input.projectId)
+    .eq("projects.workspace_id", workspace.id)
+    .maybeSingle();
+  if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
+  if (!estimate) throw new Error("Estimate not found in the current workspace.");
+
+  const { data: nodeRows, error: nodesError } = await supabase
+    .from("estimate_nodes")
+    .select("id, parent_id, kind, name, sort_order")
+    .eq("estimate_id", input.estimateId)
+    .order("sort_order", { ascending: true });
+  if (nodesError) throw new Error(`Could not load the estimate tree: ${nodesError.message}`);
+
+  const allNodes = (nodeRows ?? []) as EstimateNodeSubtreeRow[];
+  const sourceNode = allNodes.find((node) => node.id === input.sourceNodeId);
+  if (!sourceNode) throw new Error("The selected node no longer exists in this estimate.");
+
+  // Collect the subtree in breadth-first order so parents precede children.
+  const childrenByParentId = new Map<string | null, EstimateNodeSubtreeRow[]>();
+  for (const node of allNodes) {
+    const siblings = childrenByParentId.get(node.parent_id) ?? [];
+    siblings.push(node);
+    childrenByParentId.set(node.parent_id, siblings);
+  }
+  const subtreeNodes: EstimateNodeSubtreeRow[] = [];
+  const queue: EstimateNodeSubtreeRow[] = [sourceNode];
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    subtreeNodes.push(node);
+    queue.push(...(childrenByParentId.get(node.id) ?? []));
+  }
+
+  const subtreeNodeIds = subtreeNodes.map((node) => node.id);
+  const { data: rowItemRows, error: rowItemsError } = await supabase
+    .from("estimate_row_items")
+    .select(
+      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, discipline, designation, link_state, metadata",
+    )
+    .eq("estimate_id", input.estimateId)
+    .in("node_id", subtreeNodeIds)
+    .order("sort_order", { ascending: true });
+  if (rowItemsError) throw new Error(`Could not load the estimate rows: ${rowItemsError.message}`);
+
+  const { data: siblingTemplates, error: sortError } = await supabase
+    .from("estimate_templates")
+    .select("sort_order")
+    .eq("workspace_id", workspace.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (sortError) throw new Error(`Could not create the template: ${sortError.message}`);
+  const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
+
+  const { data: insertedTemplate, error: templateError } = await supabase
+    .from("estimate_templates")
+    .insert({
+      workspace_id: workspace.id,
+      name: templateName,
+      description: templateDescription,
+      category: templateCategory,
+      sort_order: nextSortOrder,
+      created_by: currentUser.userId,
+      metadata: {
+        savedFrom: "estimate-workspace",
+        sourceEstimateId: input.estimateId,
+        sourceNodeId: input.sourceNodeId,
+      },
+    })
+    .select("*")
+    .single();
+  if (templateError || !insertedTemplate) {
+    throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
+  }
+
+  try {
+    const templateNodeIdBySourceId = new Map<string, string>(subtreeNodes.map((node) => [node.id, randomUUID()]));
+    const templateNodeInserts = subtreeNodes.map((node) => ({
+      id: templateNodeIdBySourceId.get(node.id)!,
+      template_id: insertedTemplate.id,
+      // The saved node becomes the template root; descendants keep shape.
+      parent_id: node.id === sourceNode.id ? null : templateNodeIdBySourceId.get(node.parent_id ?? "") ?? null,
+      kind: node.kind as "group" | "area",
+      name: node.name,
+      sort_order: node.id === sourceNode.id ? 0 : node.sort_order,
+      metadata: {},
+    }));
+
+    const { data: insertedNodes, error: nodeInsertError } = await supabase
+      .from("estimate_template_nodes")
+      .insert(templateNodeInserts)
+      .select("*");
+    if (nodeInsertError) throw new Error(`Could not copy the node structure: ${nodeInsertError.message}`);
+
+    const rowInserts = (rowItemRows ?? []).map((row) => ({
+      template_id: insertedTemplate.id,
+      template_node_id: templateNodeIdBySourceId.get(row.node_id)!,
+      sort_order: row.sort_order,
+      source_library_item_id: row.source_library_item_id,
+      source_snapshot: row.source_snapshot,
+      category_node_id: row.category_node_id,
+      supplier_id: row.supplier_id,
+      material: row.material,
+      description: row.description,
+      supplier: row.supplier,
+      unit: row.unit,
+      quantity: row.quantity,
+      unit_cost: row.unit_cost,
+      contingency_percentage: row.contingency_percentage,
+      misc_cost: row.misc_cost,
+      discipline: row.discipline,
+      designation: row.designation,
+      link_state: row.link_state,
+      metadata: row.metadata,
+    }));
+
+    let insertedRowItems: Tables<"estimate_template_row_items">[] = [];
+    if (rowInserts.length > 0) {
+      const { data, error: rowInsertError } = await supabase
+        .from("estimate_template_row_items")
+        .insert(rowInserts)
+        .select("*");
+      if (rowInsertError) throw new Error(`Could not copy the estimate rows: ${rowInsertError.message}`);
+      insertedRowItems = data ?? [];
+    }
+
+    revalidatePath("/workshop/templates");
+
+    const [template] = buildEstimateTemplatesFromRows({
+      templates: [insertedTemplate],
+      nodes: insertedNodes ?? [],
+      rowItems: insertedRowItems,
+    });
+    if (!template) throw new Error("Could not read back the created template.");
+    return { template };
+  } catch (error) {
+    // Without a cross-statement transaction, a partial failure leaves an
+    // orphan template; deleting it cascades to any copied nodes/rows.
+    await supabase.from("estimate_templates").delete().eq("id", insertedTemplate.id);
+    throw error;
+  }
+}
+
+/** Renames a workspace estimate template. */
+export async function renameEstimateTemplate(input: { templateId: string; name: string }) {
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const templateName = input.name.trim();
+  if (!templateName) throw new Error("Template name is required.");
+  if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: template, error } = await supabase
+    .from("estimate_templates")
+    .update({ name: templateName })
+    .eq("id", input.templateId)
+    .eq("workspace_id", workspace.id)
+    .select("id, name")
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not rename template: ${error.message}`);
+  if (!template) throw new Error("Template not found in the current workspace.");
+  revalidatePath("/workshop/templates");
+  return { templateId: template.id, name: template.name };
+}
+
+/** Deletes a workspace estimate template; nodes and rows cascade. */
+export async function deleteEstimateTemplate(input: { templateId: string }) {
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: template, error } = await supabase
+    .from("estimate_templates")
+    .delete()
+    .eq("id", input.templateId)
+    .eq("workspace_id", workspace.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(`Could not delete template: ${error.message}`);
+  if (!template) throw new Error("Template not found in the current workspace.");
+  revalidatePath("/workshop/templates");
+  return { templateId: template.id };
 }

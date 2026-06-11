@@ -97,7 +97,9 @@ export function WorkshopTreeRow({
     indentPx > 0 ? { paddingLeft: `${indentPx}px` } : undefined;
 
   const baseClassName = cn(
-    "group flex w-full min-w-0 items-center rounded-xs border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
+    // `group/tree-row` scopes row-level hover reveals (drag grip, checkbox) so
+    // ancestor `group` containers like ResizableSidePanel cannot trigger them.
+    "group/tree-row group flex w-full min-w-0 items-center rounded-xs border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
     WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
     WORKSHOP_TREE_TEXT_CLASS,
     selected
@@ -261,41 +263,7 @@ function WorkshopTreeNode<TNode>({
   });
 }
 
-export type WorkshopTreeTabItem<TTab extends string = string> = {
-  id: TTab;
-  label: string;
-};
-
-export function WorkshopTreeTabs<TTab extends string>({
-  tabs,
-  activeTab,
-  ariaLabel,
-  onTabChange,
-}: {
-  tabs: readonly WorkshopTreeTabItem<TTab>[];
-  activeTab: TTab;
-  ariaLabel: string;
-  onTabChange?: (tab: TTab) => void;
-}) {
-  return (
-    <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label={ariaLabel}>
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          className={cn(
-            "relative h-full rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-            activeTab === tab.id
-              ? "z-10 bg-white text-ink border-hairline -mb-px"
-              : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline",
-          )}
-          onClick={() => onTabChange?.(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+// Tab strip now lives in the shared UI layer; these aliases keep existing
+// workshop consumers working.
+export type { TabStripItem as WorkshopTreeTabItem } from "@/components/ui/tab-strip";
+export { TabStrip as WorkshopTreeTabs } from "@/components/ui/tab-strip";

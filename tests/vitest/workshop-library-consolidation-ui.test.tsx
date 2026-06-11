@@ -703,7 +703,9 @@ describe("workshop library consolidation UI", () => {
     expect(within(activityPanel).getByText("Component created")).toBeInTheDocument();
     expect(within(activityPanel).getByText("Cost baseline")).toBeInTheDocument();
     expect(within(activityPanel).getByText("1,300.00")).toBeInTheDocument();
-    fireEvent.change(within(activityPanel).getByLabelText("Component state"), { target: { value: "in_production" } });
+    fireEvent.click(within(activityPanel).getByRole("combobox", { name: "Component state" }));
+    fireEvent.click(within(screen.getByRole("listbox", { name: "Component state" })).getByRole("option", { name: "In production" }));
+    expect(within(activityPanel).getByRole("combobox", { name: "Component state" })).toHaveTextContent("In production");
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Add Component" }));
 

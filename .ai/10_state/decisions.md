@@ -411,3 +411,27 @@ Confidence: high
 Scope-risk: moderate
 Directive: Implement Phase 1 canonical `.ai` docs first; do not enforce branch protections or Notion workflows until Philip/GitHub/Notion/provider admin decisions are recorded.
 - 2026-06-03 — Agentic-Driven Development framework refinement decision: `.ai/12_agents` remains the canonical agent contract folder; existing `.agents/` is a skills/playbook compatibility surface and should get only a thin `.ai` pointer if used. Gemini remains deprecated unless OWNER_NAME_PLACEHOLDER explicitly reapproves it, Ollama remains non-agent/embedding-only, and Hermes/Cursor require explicit payload/status decisions before global enforcement. GitHub rulesets/protections, provider actions, and Notion sync remain approval-gated; dry-runs must pass before enforcement.
+
+## 2026-06-11 — Path-to-estimate-sheet performance implementation decisions
+
+Decision: Keystroke performance is solved with identity-stable callbacks (useStableCallback ref pattern) plus a slice-aware React.memo comparator on EstimateRowItemsTable, not with useDeferredValue, useOptimistic, or row virtualization. Component-library data lazy-loads through a fail-closed server action with TanStack client caching instead of being fetched in the estimate page's blocking Promise.all. Landing CTA auth state is a display-only Supabase cookie-presence hint with no auth network round-trip; protected routes keep fail-closed server-side user validation. react-complex-tree CSS is workshop-scoped and lenis CSS is landing-scoped. Estimate-list SQL aggregation and index migrations are deferred until a database channel with parity/EXPLAIN proof exists.
+
+Constraint: No database channel this run (Docker absent, hosted Supabase SQL denied by permission classifier, no provider authority); no authenticated browser session for trace capture; unrelated dirty templates-panel files had to be preserved untouched.
+Rejected: useDeferredValue/useOptimistic scheduling | 200-row keystroke budget (<16ms) already met after render relief (8.4ms avg jsdom).
+Rejected: @tanstack/react-virtual | non-edited table renders dropped to 0 per keystroke; DOM count not the limiting bottleneck.
+Rejected: Redis/Upstash/KV or `use cache: remote` | protected user-specific data; decision-matrix default upheld with no measured shared-cache trigger.
+Rejected: dropping source_snapshot from sheet tree queries | toUiRow consumes it for linked-row display; plan assumption corrected in doc 12.
+Confidence: high
+Scope-risk: moderate
+Directive: Every handler passed into EstimateSheetBranch/EstimateRowItemsTable must stay identity-stable; node row arrays must reuse EMPTY_ESTIMATE_ROW_ITEMS; getLandingAuthState must never gate access; reopen U3/U5 only with DB parity/EXPLAIN proof, and U7/U10 only on real-browser budget misses.
+
+## 2026-06-11 — Estimate tree sibling order: stored sort_order is the single source of truth
+
+Decision: Removed the groups-before-areas display convention everywhere. Sibling order in the sheets tree, the estimate sheet, and node codes is now purely the persisted sort_order: buildEstimateTree projects query order verbatim, the reorder planner persists the exact splice index of a drop (no kind re-rank), and optimistic tree inserts append at the end to match the server's max-sibling+1 slot. Template drops on area nodes wrap the area and the payload in a new "{Area} Group" occupying the area's slot, with selection re-scoping to the new group (drag to sheet, drag to tree area rows, and the right-panel Add path all share this behavior). A ready-design migration (supabase/migrations/20260611031500_estimate_node_sibling_order_stored.sql) backfills legacy rows to freeze the previously displayed order and redefines create_estimate_node_with_history to renormalize by (sort_order, created_at, id) only — it must be applied for the contract to fully hold, since the RPC currently still re-ranks kinds server-side.
+
+Constraint: No database channel for agents this run; the migration is prepared but unapplied, so until it lands, node creates under mixed-kind parents are hoisted above areas server-side and diverge from the optimistic client order until the next load.
+Rejected: keeping groups-before-areas and applying it to the sheet too | order carries meaning (node codes derive from sibling index) and drop previews must match persisted results; a cosmetic second ordering rule can only disagree with sort_order.
+Rejected: wrap-case-only fix (insert template before area) | the snap-back and tree/sheet mismatch were systemic, not wrap-specific.
+Confidence: high
+Scope-risk: moderate
+Directive: Never reintroduce kind-based sibling sorting in any layer (display, reorder math, repository projection, or SQL RPCs); new ordering features must read and write sort_order only. Apply the 20260611031500 migration before relying on slot-preserving inserts.

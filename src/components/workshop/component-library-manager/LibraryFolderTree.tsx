@@ -310,16 +310,18 @@ export function ComponentViewControls({
   mode,
   ariaLabel,
   onModeChange,
+  className,
 }: {
   mode: ComponentViewMode;
   ariaLabel: string;
   onModeChange: (mode: ComponentViewMode) => void;
+  className?: string;
 }) {
   return (
     <div
       role="menu"
       aria-label={ariaLabel}
-      className="absolute left-2 top-[72px] z-40 w-36 rounded-xs border border-hairline bg-white p-1 shadow-lg"
+      className={cn("absolute left-2 top-[72px] z-40 w-36 rounded-xs border border-hairline bg-white p-1 shadow-lg", className)}
     >
       <div className="px-2 pb-1 pt-0.5 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">View By</div>
       <div className="space-y-0.5">
@@ -1225,7 +1227,6 @@ export function LibraryFolderTreeSurface({
         ) : null}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="h-8 w-full bg-white" aria-hidden="true" />
         <div className="p-2">
           {bodyTopSpacer}
           {isFolderMode ? (

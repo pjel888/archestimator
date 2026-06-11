@@ -380,7 +380,9 @@ describe("estimate sheet version control server actions", () => {
       linkState: "detached",
       rowRevision: 8,
     });
-    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/node-1");
+    // Row mutations reconcile through the client query cache; revalidatePath
+    // here would refetch the whole RSC tree on every edit.
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("blocks project-specific row detach when the caller cannot edit the estimate", async () => {

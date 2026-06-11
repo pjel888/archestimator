@@ -15,7 +15,7 @@ import {
   ControlField,
   ControlInput,
 } from "@/components/ui/control-input";
-import { ControlSelect } from "@/components/ui/control-select";
+import { AccountSettingsSelectField } from "@/components/workshop/AccountSettingsSelectField";
 
 type ProfileSettingsFieldsProps = {
   initial?: Partial<ProfileSettingsPayload>;
@@ -27,6 +27,10 @@ type WorkspaceSettingsFieldsProps = {
   disabled?: boolean;
   namePrefix?: string;
 };
+
+const NOT_SET_OPTION = { value: "", label: "Not set" } as const;
+const PRIMARY_USE_SELECT_OPTIONS = [NOT_SET_OPTION, ...PRIMARY_USE_OPTIONS];
+const COMPANY_SIZE_SELECT_OPTIONS = [NOT_SET_OPTION, ...COMPANY_SIZE_OPTIONS];
 
 function fieldName(name: string, prefix: string | undefined) {
   return `${prefix ?? ""}${name}`;
@@ -46,21 +50,14 @@ export function ProfileSettingsFields({ initial, namePrefix }: ProfileSettingsFi
         />
       </ControlField>
       <ControlField label="User category" required>
-        <ControlSelect
+        <AccountSettingsSelectField
           name={fieldName("user_category", namePrefix)}
           defaultValue={initial?.user_category ?? ""}
-          className="h-8 w-full bg-white px-2"
+          options={USER_CATEGORY_OPTIONS}
+          placeholder="Select category"
+          aria-label="User category"
           required
-        >
-          <option value="" disabled>
-            Select category
-          </option>
-          {USER_CATEGORY_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ControlSelect>
+        />
       </ControlField>
       <ControlField label="Country / region" required>
         <ControlInput
@@ -73,18 +70,12 @@ export function ProfileSettingsFields({ initial, namePrefix }: ProfileSettingsFi
         />
       </ControlField>
       <ControlField label="Primary use">
-        <ControlSelect
+        <AccountSettingsSelectField
           name={fieldName("primary_use", namePrefix)}
           defaultValue={initial?.primary_use ?? ""}
-          className="h-8 w-full bg-white px-2"
-        >
-          <option value="">Not set</option>
-          {PRIMARY_USE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ControlSelect>
+          options={PRIMARY_USE_SELECT_OPTIONS}
+          aria-label="Primary use"
+        />
       </ControlField>
       <ControlField label="Student / educator detail" className="md:col-span-2">
         <ControlInput
@@ -116,22 +107,15 @@ export function WorkspaceSettingsFields({
         />
       </ControlField>
       <ControlField label="Organization type" required>
-        <ControlSelect
+        <AccountSettingsSelectField
           name={fieldName("organization_type", namePrefix)}
           defaultValue={initial?.organization_type ?? ""}
           disabled={disabled}
-          className="h-8 w-full bg-white px-2"
+          options={ORGANIZATION_TYPE_OPTIONS}
+          placeholder="Select type"
+          aria-label="Organization type"
           required
-        >
-          <option value="" disabled>
-            Select type
-          </option>
-          {ORGANIZATION_TYPE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ControlSelect>
+        />
       </ControlField>
       <ControlField label="Country / region" required>
         <ControlInput
@@ -145,19 +129,13 @@ export function WorkspaceSettingsFields({
         />
       </ControlField>
       <ControlField label="Company size">
-        <ControlSelect
+        <AccountSettingsSelectField
           name={fieldName("company_size", namePrefix)}
           defaultValue={initial?.company_size ?? ""}
           disabled={disabled}
-          className="h-8 w-full bg-white px-2"
-        >
-          <option value="">Not set</option>
-          {COMPANY_SIZE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ControlSelect>
+          options={COMPANY_SIZE_SELECT_OPTIONS}
+          aria-label="Company size"
+        />
       </ControlField>
       <ControlField label="Default currency">
         <ControlInput
@@ -169,19 +147,13 @@ export function WorkspaceSettingsFields({
         />
       </ControlField>
       <ControlField label="Primary use">
-        <ControlSelect
+        <AccountSettingsSelectField
           name={fieldName("primary_use", namePrefix)}
           defaultValue={initial?.primary_use ?? ""}
           disabled={disabled}
-          className="h-8 w-full bg-white px-2"
-        >
-          <option value="">Not set</option>
-          {PRIMARY_USE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </ControlSelect>
+          options={PRIMARY_USE_SELECT_OPTIONS}
+          aria-label="Primary use"
+        />
       </ControlField>
     </div>
   );

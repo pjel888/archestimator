@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { AppProviders } from "./providers";
-import "react-complex-tree/lib/style-modern.css";
-import "lenis/dist/lenis.css";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });

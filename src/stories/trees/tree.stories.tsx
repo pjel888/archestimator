@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState, useCallback } from "react";
-import { Tree, type TreeNode, type TreeProps } from "@/components/ui";
+import { Tree, moveTreeNode, type TreeDropPosition, type TreeNode, type TreeProps } from "@/components/ui";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -57,10 +57,22 @@ const meta: Meta<typeof Tree> = {
 export default meta;
 type Story = StoryObj<typeof Tree>;
 
-function StatefulTree(props: Omit<TreeProps, "selectedIds" | "onSelectionChange">) {
+function StatefulTree(props: Omit<TreeProps, "selectedIds" | "onSelectionChange" | "nodes"> & { nodes: TreeNode[] }) {
+  const [nodes, setNodes] = useState<TreeNode[]>(props.nodes);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const handleSelectionChange = useCallback((ids: string[]) => setSelectedIds(ids), []);
-  return <Tree {...props} selectedIds={selectedIds} onSelectionChange={handleSelectionChange} />;
+  const handleDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
+    setNodes((current) => moveTreeNode(current, draggedId, targetId, position));
+  }, []);
+  return (
+    <Tree
+      {...props}
+      nodes={nodes}
+      selectedIds={selectedIds}
+      onSelectionChange={handleSelectionChange}
+      onDrop={props.draggable ? handleDrop : undefined}
+    />
+  );
 }
 
 export const Default: Story = {
@@ -82,10 +94,12 @@ export const Selectable: Story = {
 };
 
 export const Draggable: Story = {
+  render: (args) => <StatefulTree {...args} />,
   args: {
     nodes: sampleNodes,
     expandable: true,
     draggable: true,
+    defaultExpandedIds: ["1", "2", "2a", "3"],
     className: "max-h-96",
   },
 };
@@ -97,6 +111,7 @@ export const DraggableAndSelectable: Story = {
     expandable: true,
     draggable: true,
     selectable: true,
+    defaultExpandedIds: ["1", "2", "2a", "3"],
     className: "max-h-96",
   },
 };

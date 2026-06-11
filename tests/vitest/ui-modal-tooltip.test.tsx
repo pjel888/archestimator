@@ -4,12 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AppModal } from "@/components/ui/overlays/modal";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { InspectorDrawer } from "@/components/ui/overlays/sheet-drawer";
 import { Modal } from "@/components/ui/modal";
 import { ResizableModal } from "@/components/ui/overlays/resizable-modal";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
-import { ToolbarIconSelect } from "@/components/ui/toolbar-icon-select";
 
 describe("shared modal and toolbar tooltip primitives", () => {
   it("renders modal content through a fixed viewport portal", () => {
@@ -121,21 +121,79 @@ describe("shared modal and toolbar tooltip primitives", () => {
     expect(container.querySelector("[role='tooltip']")).toBeNull();
   });
 
-  it("ports icon select tooltips outside clipped toolbar panels", async () => {
-    const { container } = render(
-      <div className="overflow-hidden">
-        <ToolbarIconSelect label="Group component library" icon={<span aria-hidden="true">G</span>}>
-          <option value="category">Category</option>
-          <option value="supplier">Supplier</option>
-        </ToolbarIconSelect>
-      </div>,
+  // ToolbarIconSelect retired with the DropdownSelect migration; its
+  // portal-escapes-overflow regression coverage lives in
+  // ui-dropdown-popup-core.test.tsx against the shared popup core.
+
+  it("closes only an open dropdown on Escape; the second Escape closes the modal", () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Modal open title="Edit component" onOpenChange={onOpenChange}>
+        <DropdownSelect
+          options={[
+            { value: "draft", label: "Draft" },
+            { value: "active", label: "Active" },
+          ]}
+          defaultValue="draft"
+          aria-label="Lifecycle state"
+        />
+      </Modal>,
     );
 
-    fireEvent.focus(screen.getByLabelText("Group component library"));
+    fireEvent.click(screen.getByRole("combobox", { name: "Lifecycle state" }));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
 
-    const tooltip = await screen.findByRole("tooltip");
-    expect(tooltip).toHaveTextContent("Group component library");
-    expect(tooltip).toHaveClass("fixed", "z-[1100]");
-    expect(container.querySelector("[role='tooltip']")).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("still closes a plain modal on Escape when no popup is open", () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Modal open title="Plain modal" onOpenChange={onOpenChange}>
+        <p>Body</p>
+      </Modal>,
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("closes only the dropdown when the overlay is clicked while a listbox is open", () => {
+    const onOpenChange = vi.fn();
+    render(
+      <Modal open title="Edit component" onOpenChange={onOpenChange}>
+        <DropdownSelect
+          options={[
+            { value: "draft", label: "Draft" },
+            { value: "active", label: "Active" },
+          ]}
+          defaultValue="draft"
+          aria-label="Lifecycle state"
+        />
+      </Modal>,
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Lifecycle state" }));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    const overlay = document.querySelector("[data-archestimator-dialog-overlay]") as HTMLElement;
+    expect(overlay).not.toBeNull();
+
+    // The pointerdown dismisses the listbox; the same gesture's click is
+    // suppressed by the popup core, so the overlay's close never fires.
+    fireEvent.pointerDown(overlay);
+    expect(screen.queryByRole("listbox")).toBeNull();
+    fireEvent.click(overlay, { detail: 1 });
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // A separate overlay click with no popup open closes the modal normally.
+    fireEvent.pointerDown(overlay);
+    fireEvent.click(overlay, { detail: 1 });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

@@ -105,15 +105,7 @@ function cloneTree(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
 }
 
 function buildCategoryTreeShell(categoryTree: ComponentLibraryTaxonomyNode[] = componentCategoryTree): LibraryTreeNode[] {
-  return [
-    {
-      id: "all-components",
-      label: "All Components",
-      meta: "All categories",
-      kind: "organizer",
-      children: cloneTree(categoryTree),
-    },
-  ];
+  return cloneTree(categoryTree);
 }
 
 function attachComponentsToTree(

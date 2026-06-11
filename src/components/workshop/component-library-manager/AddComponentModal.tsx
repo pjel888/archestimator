@@ -11,8 +11,8 @@ import {
   ControlInput,
   ControlTextarea,
 } from "@/components/ui/control-input";
-import { ControlSelect } from "@/components/ui/control-select";
 import { CreatableCombobox, type CreatableComboboxOption } from "@/components/ui/creatable-combobox";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import {
   createCostLibraryComponent,
@@ -193,6 +193,11 @@ const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; 
   { value: "available", label: "Available", tone: "success" },
   { value: "discontinued", label: "Discontinued", tone: "warning" },
   { value: "archived", label: "Archived", tone: "danger" },
+];
+const COST_CONFIDENCE_OPTIONS = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
 ];
 const ADD_COMPONENT_MODAL_TABS: readonly WorkshopTreeTabItem<AddComponentModalTab>[] = [
   { id: "component", label: "Component" },
@@ -674,8 +679,7 @@ function sectionTitleClassName() {
   return "text-[9px] font-medium uppercase tracking-normal text-tertiary";
 }
 
-const selectWrapperClassName = "h-8 w-full rounded-xs border border-hairline bg-white px-2 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
-const selectClassName = "h-full w-full border-b-0 pr-7 !text-[10px] font-medium";
+const selectTriggerClassName = "h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
 
 export function AddComponentModal({
   open,
@@ -2136,16 +2140,13 @@ export function AddComponentModal({
                 <div className={sectionTitleClassName()}>Lifecycle</div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <ControlField label="Component state">
-                    <ControlSelect
+                    <DropdownSelect
+                      aria-label="Component state"
+                      options={LIFECYCLE_OPTIONS}
                       value={draft.lifecycleState}
-                      onChange={(event) => updateDraft({ lifecycleState: event.target.value as ComponentLifecycleState })}
-                      wrapperClassName={selectWrapperClassName}
-                      className={selectClassName}
-                    >
-                      {LIFECYCLE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </ControlSelect>
+                      onValueChange={(lifecycleState) => updateDraft({ lifecycleState: lifecycleState as ComponentLifecycleState })}
+                      className={selectTriggerClassName}
+                    />
                   </ControlField>
                   <ControlField label="Effective date">
                     <ControlInput
@@ -2314,17 +2315,13 @@ export function AddComponentModal({
               />
             </ControlField>
             <ControlField as="label" label="Confidence">
-              <ControlSelect
+              <DropdownSelect
                 aria-label="Cost manager confidence"
+                options={COST_CONFIDENCE_OPTIONS}
                 value={activeCostEntry?.confidence || "medium"}
-                onChange={(event) => updateActiveCostEntry({ confidence: event.target.value })}
-                wrapperClassName="h-8 rounded-xs border border-hairline bg-white px-2"
-                className="h-full w-full border-0 pr-6 text-[10px]"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </ControlSelect>
+                onValueChange={(confidence) => updateActiveCostEntry({ confidence })}
+                className="h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px]"
+              />
             </ControlField>
             <ControlField label="Pricing source" className="md:col-span-2">
               <ControlInput

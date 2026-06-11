@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/ui/cn";
+import { useProjectEstimateMetadata } from "./ProjectEstimateMetadataStrip";
 
 export type WorkshopBreadcrumb = string | { label: string; href?: string };
 
@@ -31,11 +32,22 @@ function getProjectSectionBreadcrumb(pathname: string | null, projectId?: string
 
 export function WorkshopBreadcrumbs({ breadcrumbs, projectId, className }: WorkshopBreadcrumbsProps) {
   const pathname = usePathname();
+  const estimateMetadata = useProjectEstimateMetadata();
   const sectionBreadcrumb = getProjectSectionBreadcrumb(pathname, projectId);
   const resolvedBreadcrumbs = [...breadcrumbs.map(normalizeBreadcrumb)];
+  const projectRoute = projectId ? `/workshop/projects/${projectId}` : null;
+  const isEstimateDetailRoute = Boolean(projectRoute && pathname?.startsWith(`${projectRoute}/estimates/`));
+  const estimateName = estimateMetadata && estimateMetadata.projectId === projectId ? estimateMetadata.estimateName.trim() : "";
+  const estimateBreadcrumb =
+    isEstimateDetailRoute && estimateName
+      ? { label: estimateName }
+      : null;
 
   if (sectionBreadcrumb && resolvedBreadcrumbs[resolvedBreadcrumbs.length - 1]?.label !== sectionBreadcrumb.label) {
     resolvedBreadcrumbs.push(sectionBreadcrumb);
+  }
+  if (estimateBreadcrumb && resolvedBreadcrumbs[resolvedBreadcrumbs.length - 1]?.label !== estimateBreadcrumb.label) {
+    resolvedBreadcrumbs.push(estimateBreadcrumb);
   }
 
   return (
