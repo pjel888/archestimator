@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from 'next/link'
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { annotate } from "rough-notation";
 import { workshopHref } from './constants'
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 import { ArrowsClockwise, ArrowsLeftRight, CheckCircle } from "@phosphor-icons/react/dist/ssr";
@@ -94,8 +92,6 @@ const heroSignalItems = [
   "Activity History",
 ] as const;
 
-const HERO_BRAND_ANNOTATION_COLOR = "rgb(170,65,42)";
-
 export const heroCopyVariants = [
   {
     id: 'connected-workflow',
@@ -115,62 +111,8 @@ export const heroCopyVariants = [
 
 export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "A" | "B"; isLoggedIn?: boolean }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
-  const heroBrandRef = useRef<HTMLSpanElement | null>(null);
-  const supportBrandRef = useRef<HTMLSpanElement | null>(null);
   const primaryCtaHref = isLoggedIn ? workshopHref : "/contact";
   const primaryCtaTarget = isLoggedIn ? "workspace" : "book_walkthrough";
-
-  useEffect(() => {
-    const headlineTarget = heroBrandRef.current;
-    const supportTarget = supportBrandRef.current;
-
-    if (!headlineTarget && !supportTarget) {
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timers: number[] = [];
-    const annotations: Array<ReturnType<typeof annotate>> = [];
-
-    if (headlineTarget) {
-      const annotation = annotate(headlineTarget, {
-        type: "underline",
-        color: HERO_BRAND_ANNOTATION_COLOR,
-        strokeWidth: 2.2,
-        padding: 3,
-        iterations: 2,
-        animationDuration: prefersReducedMotion ? 0 : 720,
-        animate: !prefersReducedMotion,
-      });
-      annotations.push(annotation);
-      timers.push(window.setTimeout(
-        () => annotation.show(),
-        prefersReducedMotion ? 0 : 520,
-      ));
-    }
-
-    if (supportTarget) {
-      const annotation = annotate(supportTarget, {
-        type: "underline",
-        color: HERO_BRAND_ANNOTATION_COLOR,
-        strokeWidth: 1.7,
-        padding: 2,
-        iterations: 2,
-        animationDuration: prefersReducedMotion ? 0 : 620,
-        animate: !prefersReducedMotion,
-      });
-      annotations.push(annotation);
-      timers.push(window.setTimeout(
-        () => annotation.show(),
-        prefersReducedMotion ? 0 : 980,
-      ));
-    }
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-      annotations.forEach((annotation) => annotation.remove());
-    };
-  }, [activeHeroCopy.headline, activeHeroCopy.support]);
 
   return (
     <section className='relative isolate z-10 w-full overflow-hidden bg-[#fffdf9] px-6 pb-[184px] pt-20 text-[#171514] sm:px-8 lg:px-12 lg:pb-[187px] lg:pt-[59px]'>
@@ -198,13 +140,15 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
             </p>
 
             <h1 className='mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
-              {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
-                seg.toLowerCase() === "archestimator" ? (
-                  <span key={i} ref={heroBrandRef} className="relative inline-block text-brand-orange">{seg}</span>
-                ) : (
-                  <span key={i}>{seg}</span>
-                )
-              )}
+              <span className="relative inline-block">
+                {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
+                  seg.toLowerCase() === "archestimator" ? (
+                    <span key={i} className="relative inline-block text-brand-orange">{seg}</span>
+                  ) : (
+                    <span key={i}>{seg}</span>
+                  )
+                )}
+              </span>
             </h1>
           </div>
 
@@ -215,7 +159,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
                   {i > 0 && <br aria-hidden="true" />}
                   {part.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, j) =>
                     seg.toLowerCase() === "archestimator" ? (
-                      <span key={j} ref={supportBrandRef} className="relative inline-block text-brand-orange">{seg}</span>
+                      <span key={j} className="relative inline-block text-brand-orange">{seg}</span>
                     ) : (
                       <span key={j}>{seg}</span>
                     )
@@ -245,7 +189,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
             src={heroVisualSlides[0].src}
             alt={heroVisualSlides[0].alt}
             fill
-            preload
+            priority
             sizes='(min-width: 1024px) 58vw, 100vw'
             className='landing-hero-slide landing-hero-slide-01 landing-hero-slide-motion-a absolute inset-0 size-full object-cover'
             data-testid='landing-hero-slide'

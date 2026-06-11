@@ -3,9 +3,6 @@
 import type { LenisOptions } from "lenis";
 import { ReactLenis } from "lenis/react";
 import { useEffect, useState, type ReactNode } from "react";
-// Landing-scoped vendor CSS: only smooth-scroll pages need Lenis styles, so
-// the workshop app shell must not pay for them.
-import "lenis/dist/lenis.css";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
