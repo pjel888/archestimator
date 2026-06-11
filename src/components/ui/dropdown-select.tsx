@@ -344,6 +344,7 @@ export function DropdownSelect({
           form={form}
           value={currentValue}
           required={required}
+          disabled={disabled}
           aria-hidden="true"
           tabIndex={-1}
           data-slot="dropdown-select-hidden"
