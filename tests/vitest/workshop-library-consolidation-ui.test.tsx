@@ -282,7 +282,9 @@ describe("workshop library consolidation UI", () => {
     const componentsRoute = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
     const templatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/templates/page.tsx"), "utf8");
 
-    expect(libraryRoute).toContain("LibraryComponentsRoute");
+    expect(libraryRoute).toContain("LibraryOverview");
+    expect(libraryRoute).toContain("getLibraryOverview");
+    expect(libraryRoute).not.toContain("LibraryComponentsRoute");
     expect(componentsSubRoute).toContain("LibraryComponentsRoute");
     expect(componentsSharedRoute).toContain("LibraryPageClient");
     expect(componentsSharedRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");

@@ -1,13 +1,19 @@
 "use client";
 
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
-import { Blueprint, Package } from "@phosphor-icons/react/dist/ssr";
+import { Blueprint, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { TabStrip } from "@/components/ui/tab-strip";
 
-type LibraryTabId = "components" | "templates";
+type LibraryTabId = "overview" | "components" | "templates";
 
 const LIBRARY_TABS = [
+  {
+    id: "overview" as const,
+    label: "Overview",
+    href: "/workshop/library",
+    icon: <SquaresFour />,
+  },
   {
     id: "components" as const,
     label: "Components",
@@ -34,9 +40,12 @@ export function LibraryTabsLayoutClient() {
   const isTemplateEditorRoute = segments[0] === "templates" && segments.length > 1;
   if (isTemplateEditorRoute) return null;
 
-  const activeTab: LibraryTabId = pathname?.startsWith("/workshop/library/templates")
-    ? "templates"
-    : "components";
+  const activeTab: LibraryTabId =
+    pathname === "/workshop/library"
+      ? "overview"
+      : pathname?.startsWith("/workshop/library/templates")
+        ? "templates"
+        : "components";
 
   return <TabStrip tabs={LIBRARY_TABS} activeTab={activeTab} ariaLabel="Library sections" />;
 }

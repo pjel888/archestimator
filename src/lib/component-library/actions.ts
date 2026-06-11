@@ -22,6 +22,7 @@ import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
+import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
 import {
   getLibraryFolderCreateSortOrder,
   type LibraryFolderCreatePlacement,
@@ -1208,5 +1209,78 @@ export async function getCostLibraryComponentUsage(input: { itemId: string }) {
   return {
     templateRowCount: templateRows.count ?? 0,
     estimateRowCount: estimateRows.count ?? 0,
+  };
+}
+
+export type LibraryOverviewSearchComponent = {
+  id: string;
+  name: string;
+  category: string;
+  supplier: string;
+};
+
+export type LibraryOverviewSearchTemplate = {
+  id: string;
+  name: string;
+  category: string;
+};
+
+export type LibraryOverviewSearchResult = {
+  components: LibraryOverviewSearchComponent[];
+  templates: LibraryOverviewSearchTemplate[];
+};
+
+/**
+ * Cross-library search for the Overview home popover: name/supplier/brand
+ * ilike over visible components (max 6) and name ilike over templates
+ * (max 3). Fetched lazily from the first keystroke — the Overview payload
+ * itself never carries the full datasets.
+ */
+export async function searchLibraryOverview(input: { query: string }): Promise<LibraryOverviewSearchResult> {
+  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  // Commas, parens, and quotes are PostgREST `or=` syntax; wildcards would
+  // widen the match. Collapse them to spaces / escape before interpolating.
+  const query = input.query.trim().replace(/[,()"]/g, " ").replace(/\s+/g, " ").trim();
+  if (!query) return { components: [], templates: [] };
+  const pattern = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+
+  const supabase = await createSupabaseServerClient();
+  const [componentsResult, templatesResult] = await Promise.all([
+    supabase
+      .from("cost_library_items")
+      .select("id, name, category, supplier")
+      .eq("workspace_id", workspace.id)
+      .neq("lifecycle_state", "archived")
+      .or(`name.ilike.${pattern},supplier.ilike.${pattern},brand.ilike.${pattern}`)
+      .order("updated_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("estimate_templates")
+      .select("id, name, category")
+      .eq("workspace_id", workspace.id)
+      .ilike("name", pattern)
+      .order("updated_at", { ascending: false })
+      .limit(3),
+  ]);
+
+  if (componentsResult.error) throw new Error(`Could not search components: ${componentsResult.error.message}`);
+  if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) {
+    throw new Error(`Could not search templates: ${templatesResult.error.message}`);
+  }
+
+  return {
+    components: (componentsResult.data ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      supplier: row.supplier ?? "",
+    })),
+    templates: templatesResult.error
+      ? []
+      : (templatesResult.data ?? []).map((row) => ({
+          id: row.id,
+          name: row.name,
+          category: row.category,
+        })),
   };
 }

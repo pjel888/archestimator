@@ -68,7 +68,9 @@ export function ToolbarIconButton({
         aria-describedby={describedBy || undefined}
         title={label}
         className={cn(
-          hasVisibleLabel ? "h-6 min-h-6 w-auto gap-1 rounded-xs px-2 py-0 !text-[9px]" : "size-6 rounded-xs p-0",
+          hasVisibleLabel
+            ? "inline-flex h-6 min-h-6 w-auto items-center gap-1 rounded-xs px-2 py-0 !text-[9px]"
+            : "size-6 rounded-xs p-0",
           "text-tertiary",
           className,
         )}
