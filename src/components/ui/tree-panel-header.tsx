@@ -36,6 +36,8 @@ export type TreePanelHeaderProps = {
   addVisibleLabel?: string;
   addDisabled?: boolean;
   showDefaultActions?: boolean;
+  /** Wired filter control (e.g. a FilterPopover) rendered in the filter position. */
+  filterSlot?: ReactNode;
   /**
    * Search disclosure. Providing `onSearchValueChange` enables the toggle:
    * a magnifier icon in the toolbar start slot opens a dropdown SearchInput
@@ -82,6 +84,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     addVisibleLabel,
     addDisabled,
     showDefaultActions,
+    filterSlot,
     searchValue = "",
     onSearchValueChange,
     searchPlaceholder,
@@ -183,6 +186,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
           addVisibleLabel={addVisibleLabel}
           addDisabled={addDisabled}
           showDefaultActions={showDefaultActions}
+          filterSlot={filterSlot}
         />
         {open ? (
           <div

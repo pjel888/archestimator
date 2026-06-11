@@ -115,11 +115,11 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).toContain("flex flex-col gap-2 pb-2 pt-2");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
     expect(sidebar).toContain("href: \"/workshop/library\"");
-    expect(sidebar).toContain("label: \"Components\"");
-    expect(sidebar).toContain("href: \"/workshop/templates\"");
-    expect(sidebar).toContain("label: \"Templates\"");
-    expect(sidebar).toContain("Blueprint");
-    expect(sidebar).toContain("icon: Blueprint");
+    // 2026-06-11 Library unification: the rail shows a single Library entry
+    // (Components + Templates live inside /workshop/library).
+    expect(sidebar).toContain("label: \"Library\"");
+    expect(sidebar).not.toContain("href: \"/workshop/templates\"");
+    expect(sidebar).not.toContain("label: \"Templates\"");
     expect(sidebar).not.toContain("icon: Copy");
     expect(sidebar).not.toContain("Reports");
     expect(sidebar).not.toContain("Cost Library");
@@ -127,7 +127,6 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).not.toContain("NavGroup");
     expect(sidebar).not.toContain("group.label");
     expect(sidebar).not.toContain('label: "Work"');
-    expect(sidebar).not.toContain('label: "Library"');
     expect(sidebar).not.toContain("border-t border-hairline");
     expect(sidebar).not.toContain("border-b border-hairline");
     expect(sidebar).not.toContain("mt-auto");

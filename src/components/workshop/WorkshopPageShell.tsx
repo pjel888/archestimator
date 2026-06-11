@@ -28,6 +28,9 @@ type WorkshopPageShellProps = {
   description?: string;
   actions?: ReactNode;
   centerHeader?: ReactNode;
+  subHeader?: ReactNode;
+  /** Replaces the title bar's default title/breadcrumb block. */
+  titleSlot?: ReactNode;
   breadcrumbs?: WorkshopBreadcrumb[];
   alignChromeToProjectSidebar?: boolean;
   contentClassName?: string;
@@ -68,6 +71,8 @@ export async function WorkshopPageShell({
   description,
   actions,
   centerHeader,
+  subHeader,
+  titleSlot,
   breadcrumbs,
   alignChromeToProjectSidebar = false,
   contentClassName,
@@ -111,10 +116,13 @@ export async function WorkshopPageShell({
           showEyebrow={showEyebrow}
           actions={headerActions}
           centerHeader={centerHeader}
+          titleSlot={titleSlot}
           breadcrumbs={resolvedBreadcrumbs}
           projectId={projectId}
           className={chromePaddingClass}
         />
+
+        {subHeader}
 
         <div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName ?? "p-2")}>
           {description ? <p className="mb-2 max-w-2xl text-[10px] leading-4 text-tertiary">{description}</p> : null}
