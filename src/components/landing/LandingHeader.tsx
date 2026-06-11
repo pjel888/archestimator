@@ -46,7 +46,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
     <header
       className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300 ${
         isOverFooter
-          ? "border-white/10 bg-[#aa412a]/96 text-white"
+          ? "border-white/10 bg-brand-clay/96 text-white"
           : "border-[#e5e0d8] bg-[#fffdf9]/92 text-[#171514]"
       }`}
       onKeyDown={(event) => {
@@ -126,7 +126,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
           id="landing-mobile-menu"
           hidden={!isMenuOpen}
           className={`absolute left-6 right-6 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] sm:left-8 sm:right-8 lg:hidden ${
-            isOverFooter ? "border-white/16 bg-[#aa412a] text-white" : "border-[#e4ddd3] bg-[#fffdf9]"
+            isOverFooter ? "border-white/16 bg-brand-clay text-white" : "border-[#e4ddd3] bg-[#fffdf9]"
           }`}
         >
           <nav aria-label="Mobile primary" className="grid gap-1">
