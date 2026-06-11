@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { EnvelopeSimple, LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
+
+import { requestLandingCookieSettings } from "@/lib/landing/consent";
 
 import { MotionReveal } from "./MotionReveal";
 import { workshopHref } from "./constants";
@@ -62,14 +66,17 @@ function FooterGraphBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 h-[44%] overflow-hidden opacity-70" aria-hidden="true">
       <div className="absolute left-[23%] top-0 h-[58%] w-px bg-white/34" />
-      <div className="absolute left-[23%] top-[21%] size-2 bg-[#d8c3d2]" />
+      {/* Graph accents derived from --linework-petrol #5d7a82: the bright
+          marks are a 40% white tint (#9eafb4) so they read on the
+          petrol-deep ground without borrowing hues. */}
+      <div className="absolute left-[23%] top-[21%] size-2 bg-[#9eafb4]" />
       <div className="absolute left-[54%] top-0 h-[70%] w-px bg-white/26" />
       <div className="absolute right-[28%] top-[16%] h-[62%] w-px bg-white/22" />
-      <div className="absolute left-[30%] top-[20%] h-28 w-[39%] bg-[linear-gradient(180deg,rgba(224,210,228,0.98),rgba(224,210,228,0.5)_36%,rgba(224,210,228,0)_100%)] blur-[0.5px]" />
-      <div className="absolute left-[30%] top-[20%] h-28 w-[12%] bg-[#d8c3d2]/70" />
-      <div className="absolute left-[42%] top-[25%] h-24 w-[12%] bg-[#d8c3d2]/60" />
-      <div className="absolute left-[54%] top-[20%] h-20 w-[13%] bg-[#d8c3d2]/70" />
-      <div className="absolute left-[67%] top-[16%] h-16 w-[13%] bg-[#d8c3d2]/65" />
+      <div className="absolute left-[30%] top-[20%] h-28 w-[39%] bg-[linear-gradient(180deg,rgba(158,175,180,0.98),rgba(158,175,180,0.5)_36%,rgba(158,175,180,0)_100%)] blur-[0.5px]" />
+      <div className="absolute left-[30%] top-[20%] h-28 w-[12%] bg-[#5d7a82]/70" />
+      <div className="absolute left-[42%] top-[25%] h-24 w-[12%] bg-[#5d7a82]/60" />
+      <div className="absolute left-[54%] top-[20%] h-20 w-[13%] bg-[#5d7a82]/70" />
+      <div className="absolute left-[67%] top-[16%] h-16 w-[13%] bg-[#5d7a82]/65" />
       <div className="absolute left-[14%] top-[9%] font-mono text-[12px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/22">
         Scope
         <br />
@@ -151,7 +158,16 @@ export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
         </div>
       </MotionReveal>
 
-      <div className="relative z-10 mx-auto mt-24 flex w-full max-w-[1480px] justify-end lg:mt-28">
+      <div className="relative z-10 mx-auto mt-24 flex w-full max-w-[1480px] flex-col gap-5 sm:flex-row sm:items-center sm:justify-between lg:mt-28">
+        <button
+          type="button"
+          data-cookie-settings-trigger="true"
+          onClick={requestLandingCookieSettings}
+          className="self-start font-mono text-[12px] font-medium uppercase leading-none tracking-[0.18em] text-white/58 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 motion-reduce:transition-none"
+          style={{ "--tw-ring-offset-color": footerColor } as CSSProperties}
+        >
+          Cookie settings
+        </button>
         <p className="font-mono text-[12px] font-medium uppercase tracking-[0.18em] text-white/28">
           © {currentYear} Archestimator. All rights reserved.
         </p>

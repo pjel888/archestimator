@@ -147,10 +147,55 @@ describe("landing page capability rows and Lenis integration", () => {
       (match) => match[1],
     );
 
-    expect(hashHrefs).toEqual(["product", "method", "contact"]);
+    expect(hashHrefs).toEqual(["method", "product", "pricing"]);
     for (const hash of hashHrefs) {
       expect(landingSources).toMatch(new RegExp(`id=['\"]${hash}['\"]`));
     }
+
+    // Flat anchor nav replaced the Platform/Specialties/Company dropdowns.
+    expect(header).toContain('label: "How it works"');
+    expect(header).toContain('label: "Product"');
+    expect(header).toContain('label: "Beta & pricing"');
+    expect(header).toContain('label: "Contact", href: "/contact"');
+    expect(header).not.toContain('label: "Platform"');
+    expect(header).not.toContain('label: "Specialties"');
+    expect(header).not.toContain('label: "Company"');
+
+    // The dark color-swap watches the petrol product band, the clay final
+    // CTA, and the footer — not just the footer.
+    expect(header).toContain('document.getElementById("product")');
+    expect(header).toContain('data-landing-dark-section="true"');
+    expect(header).toContain('data-visual-reference="amigo-footer"');
+  });
+
+  it("wires the footer cookie-settings link to the consent banner", () => {
+    const footer = readProjectFile("src/components/landing/LandingFooter.tsx");
+    const banner = readProjectFile(
+      "src/components/landing/CookieConsentBanner.tsx",
+    );
+    const consentLib = readProjectFile("src/lib/landing/consent.ts");
+    const finalCta = readProjectFile(
+      "src/components/landing/FinalCTASection.tsx",
+    );
+
+    // Footer exposes a Cookie settings trigger and drops the borrowed
+    // lavender accents for linework-petrol-derived tints.
+    expect(footer).toContain('data-cookie-settings-trigger="true"');
+    expect(footer).toContain("requestLandingCookieSettings");
+    expect(footer).toContain("Cookie settings");
+    expect(footer).not.toContain("#d8c3d2");
+    expect(footer).toContain("#5d7a82");
+
+    // The banner listens for the footer's open request and hides the
+    // floating chip once a decision exists and the footer link is present.
+    expect(consentLib).toContain("LANDING_CONSENT_OPEN_SETTINGS_EVENT");
+    expect(banner).toContain("LANDING_CONSENT_OPEN_SETTINGS_EVENT");
+    expect(banner).toContain("data-cookie-settings-trigger");
+
+    // The final CTA is the page's only clay-drenched band and carries the
+    // dark-section marker the header observes.
+    expect(finalCta).toContain("bg-brand-clay");
+    expect(finalCta).toContain('data-landing-dark-section="true"');
   });
 
   it("scopes Lenis to the home landing wrapper and preserves native non-home scrolling", () => {
