@@ -7,6 +7,7 @@ import {
   CapabilityRowsSection,
   FinalCTASection,
   HeroSection,
+  HonestProofSection,
   ProblemSection,
   ProductShowcaseSection,
   PricingSection,
@@ -40,6 +41,7 @@ export default async function LandingPage() {
             <ProblemSection />
             <CapabilityRowsSection />
             <ProductShowcaseSection />
+            <HonestProofSection />
             <PricingSection />
             <FinalCTASection isLoggedIn={isLoggedIn} />
           </main>
