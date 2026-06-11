@@ -3,7 +3,7 @@
 **Created**: 2026-06-11
 **Prior Oracle Review**: Recorded (ses_14d7fd71bffeTjzSxp7XMF1sQk) - 5 blind spots found, priorities corrected
 **Prior Oracle Verification**: Recorded (ses_14d75f97cffe6OZJiSGoRHgEk6) - landing page + estimate list gaps filled
-**Current Status**: Source-audited and planning-ready; implementation is gated by baseline measurement, scoped dependency approval, and future source edits
+**Current Status**: Implemented and archived. Performance claims are supported by the evidence paths listed in the completion receipt (`.ai/09_archive/store/2026-06-11-path-to-estimate-sheet-performance-implementation/completion-receipt.md`). U3/U5 deferred with ready designs pending database/provider authority; U7/U10 skipped with measurement evidence.
 
 ---
 
