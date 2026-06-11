@@ -45,11 +45,11 @@ type SketchRect = {
 
 const SKETCH_WIDTH = 1000;
 const SKETCH_HEIGHT = 320;
-const ORANGE = "#a9532d";
-const ORANGE_ALT = "#b65f2f";
-const BLUE_GREEN = "#083241";
-const MUTED_YELLOW = "#d8a84f";
-const OLIVE = "#6f7a3d";
+/* Linework palette — mirrors --linework-* tokens in globals.css (rough.js needs literal strings) */
+const LINEWORK_CLAY = "#c1836d";
+const LINEWORK_PETROL = "#5d7a82";
+const LINEWORK_SAND = "#cda35f";
+const LINEWORK_OLIVE = "#74795a";
 
 const flowSteps: ProposalRecordStep[] = [
   {
@@ -59,8 +59,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Scope by area, phase, or package.",
     positionClassName: styles.projectWorkflowCard,
     delay: 160,
-    color: BLUE_GREEN,
-    fill: "rgba(8, 50, 65, 0.035)",
+    color: LINEWORK_PETROL,
+    fill: "rgba(93, 122, 130, 0.035)",
     variant: "input",
   },
   {
@@ -70,8 +70,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Use saved costs and assemblies.",
     positionClassName: styles.componentLibraryCard,
     delay: 220,
-    color: ORANGE,
-    fill: "rgba(169, 83, 45, 0.035)",
+    color: LINEWORK_CLAY,
+    fill: "rgba(193, 131, 109, 0.035)",
     variant: "input",
   },
   {
@@ -81,8 +81,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Build and revise without spreadsheet friction.",
     positionClassName: styles.estimatingExperienceCard,
     delay: 280,
-    color: MUTED_YELLOW,
-    fill: "rgba(216, 168, 79, 0.05)",
+    color: LINEWORK_SAND,
+    fill: "rgba(205, 163, 95, 0.05)",
     variant: "input",
   },
   {
@@ -91,8 +91,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Scope, quantities, rates, and assumptions in one structured sheet.",
     positionClassName: styles.estimateCard,
     delay: 720,
-    color: ORANGE,
-    fill: "rgba(169, 83, 45, 0.035)",
+    color: LINEWORK_CLAY,
+    fill: "rgba(193, 131, 109, 0.035)",
     variant: "workflow",
   },
   {
@@ -101,8 +101,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Share a review-ready cost proposal without losing the estimate context.",
     positionClassName: styles.proposalCard,
     delay: 1140,
-    color: BLUE_GREEN,
-    fill: "rgba(8, 50, 65, 0.035)",
+    color: LINEWORK_PETROL,
+    fill: "rgba(93, 122, 130, 0.035)",
     variant: "workflow",
   },
   {
@@ -112,8 +112,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Capture comments, questions, approvals, and revision requests.",
     positionClassName: styles.feedbackCard,
     delay: 1540,
-    color: MUTED_YELLOW,
-    fill: "rgba(216, 168, 79, 0.05)",
+    color: LINEWORK_SAND,
+    fill: "rgba(205, 163, 95, 0.05)",
     variant: "feedback",
   },
   {
@@ -122,8 +122,8 @@ const flowSteps: ProposalRecordStep[] = [
     body: "Keep the decision and next action attached to the proposal.",
     positionClassName: styles.approvedCard,
     delay: 2680,
-    color: OLIVE,
-    fill: "rgba(111, 122, 61, 0.05)",
+    color: LINEWORK_OLIVE,
+    fill: "rgba(116, 121, 90, 0.05)",
     variant: "workflow",
   },
 ];
@@ -300,7 +300,7 @@ function drawCurvedArrow(
     const dashedPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     dashedPath.setAttribute("d", path);
     dashedPath.setAttribute("fill", "none");
-    dashedPath.setAttribute("stroke", String(options.stroke ?? ORANGE_ALT));
+    dashedPath.setAttribute("stroke", String(options.stroke ?? LINEWORK_CLAY));
     dashedPath.setAttribute("stroke-width", String(options.strokeWidth ?? 1.35));
     dashedPath.setAttribute("stroke-linecap", "round");
     dashedPath.setAttribute("stroke-linejoin", "round");
@@ -547,7 +547,7 @@ function drawMeasuredSketch(
     proposal.y + proposal.height * 0.5,
     980,
     prefersReducedMotion,
-    sketchOptions(ORANGE, "transparent", 46, 1),
+    sketchOptions(LINEWORK_CLAY, "transparent", 46, 1),
     styles.mainFlowSketch,
   );
 
@@ -563,7 +563,7 @@ function drawMeasuredSketch(
       to: { x: feedback.x + feedback.width * 0.48, y: feedback.y + feedback.height + 24 },
       delay: 1360,
       prefersReducedMotion,
-      options: sketchOptions(BLUE_GREEN, "transparent", 48, 1),
+      options: sketchOptions(LINEWORK_PETROL, "transparent", 48, 1),
       className: styles.proposalToFeedbackSketch,
     },
   );
@@ -580,7 +580,7 @@ function drawMeasuredSketch(
       to: { x: estimate.x + estimate.width * 0.78, y: estimate.y - 9 },
       delay: 2020,
       prefersReducedMotion,
-      options: sketchOptions(ORANGE_ALT, "transparent", 50, 1.35),
+      options: sketchOptions(LINEWORK_CLAY, "transparent", 50, 1.35),
       className: styles.revisionLoopSketch,
       dashed: true,
       arrowStart: true,
@@ -599,7 +599,7 @@ function drawMeasuredSketch(
       to: { x: approved.x - 8, y: approved.y + approved.height * 0.5 },
       delay: 2300,
       prefersReducedMotion,
-      options: sketchOptions(OLIVE, "transparent", 54, 1),
+      options: sketchOptions(LINEWORK_OLIVE, "transparent", 54, 1),
       className: styles.feedbackToApprovedSketch,
     },
   );

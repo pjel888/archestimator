@@ -7,7 +7,7 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { MotionReveal } from "./MotionReveal";
 import { workshopHref } from "./constants";
 
-const footerColor = "rgb(8, 50, 65)";
+const footerColor = "var(--brand-petrol-deep)";
 
 const footerNavGroups = [
   {

@@ -19,8 +19,28 @@
   --divider: #f2f2f2;
   --muted: #7f7f7f;
   --accent: #3D3D3D;
-  --brand-orange: rgb(170,65,42);
-  --brand-orange-dark: rgb(140,54,35);
+  /* Landing brand — owned values (shifted off the borrowed amigo hex) */
+  --brand-clay:        #b2492c;
+  --brand-clay-deep:   #8f3a23;
+  --brand-petrol:      #0b3a47;
+  --brand-petrol-deep: #072b35;
+  /* Warm paper scale */
+  --paper-0: #fffdf9;
+  --paper-1: #f7f1ea;
+  --paper-2: #efe7dd;
+  --line-1:  #e5e0d8;
+  --line-2:  #cfc7bb;
+  --ink-1:   #171514;
+  --ink-2:   #4f4a45;
+  --ink-3:   #6e6862;
+  /* Linework palette — desaturated accents reserved for sketches/diagrams */
+  --linework-clay:   #c1836d;
+  --linework-petrol: #5d7a82;
+  --linework-sand:   #cda35f;
+  --linework-olive:  #74795a;
+  /* Legacy aliases — keep names, re-point to the owned brand values */
+  --brand-orange: var(--brand-clay);
+  --brand-orange-dark: var(--brand-clay-deep);
   --accent-dark: #2A2A2A;
   --accent-soft: #f5f5f5;
   --focus: #3D3D3D;
@@ -56,6 +76,22 @@
   --color-accent: var(--accent);
   --color-brand-orange: var(--brand-orange);
   --color-brand-orange-dark: var(--brand-orange-dark);
+  --color-brand-clay: var(--brand-clay);
+  --color-brand-clay-deep: var(--brand-clay-deep);
+  --color-brand-petrol: var(--brand-petrol);
+  --color-brand-petrol-deep: var(--brand-petrol-deep);
+  --color-paper-0: var(--paper-0);
+  --color-paper-1: var(--paper-1);
+  --color-paper-2: var(--paper-2);
+  --color-line-1: var(--line-1);
+  --color-line-2: var(--line-2);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-linework-clay: var(--linework-clay);
+  --color-linework-petrol: var(--linework-petrol);
+  --color-linework-sand: var(--linework-sand);
+  --color-linework-olive: var(--linework-olive);
   --color-accent-dark: var(--accent-dark);
   --color-accentDark: var(--accent-dark);
   --color-accent-soft: var(--accent-soft);
