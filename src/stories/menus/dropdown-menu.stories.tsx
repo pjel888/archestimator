@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DropdownMenu } from "@/components/ui";
-import { Gear, SignOut, UserCircle, Check } from "@phosphor-icons/react";
+import { Gear, SignOut, UserCircle } from "@phosphor-icons/react";
 
 const meta: Meta<typeof DropdownMenu> = {
   title: "Menus/DropdownMenu",

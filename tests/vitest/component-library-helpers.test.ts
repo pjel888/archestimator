@@ -250,3 +250,30 @@ describe("component library helpers", () => {
     expect(new Set(hashes).size).toBe(hashes.length);
   });
 });
+
+describe("library tree sibling ordering", () => {
+  const orderFixtureNodes = [
+    {
+      id: "root",
+      label: "Root",
+      children: [
+        { id: "a", label: "A" },
+        { id: "b", label: "B" },
+        { id: "c", label: "C" },
+      ],
+    },
+  ];
+
+  it("applies saved sibling order and keeps unknown ids in natural position", async () => {
+    const { applyLibraryTreeOrder } = await import("@/components/workshop/component-library/tree");
+    const ordered = applyLibraryTreeOrder(orderFixtureNodes, { root: ["c", "a"] });
+    expect(ordered[0].children?.map((node) => node.id)).toEqual(["c", "a", "b"]);
+    expect(applyLibraryTreeOrder(orderFixtureNodes, undefined)).toBe(orderFixtureNodes);
+  });
+
+  it("locates the shared parent sibling order and rejects cross-parent pairs", async () => {
+    const { findLibrarySiblingOrder } = await import("@/components/workshop/component-library/tree");
+    expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "c")).toEqual({ parentKey: "root", siblingIds: ["a", "b", "c"] });
+    expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "root")).toBeNull();
+  });
+});

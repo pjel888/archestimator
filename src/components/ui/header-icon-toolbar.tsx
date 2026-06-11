@@ -11,6 +11,8 @@ export type HeaderIconToolbarAddAction = {
   pressed?: boolean;
   disabled?: boolean;
   className?: string;
+  ariaControls?: string;
+  ariaExpanded?: boolean;
 };
 
 type HeaderIconToolbarProps = {
@@ -20,6 +22,8 @@ type HeaderIconToolbarProps = {
   onGroup?: () => void;
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
+  startActions?: HeaderIconToolbarAddAction[];
+  startActionsLabel?: string;
   leadingActions?: HeaderIconToolbarAddAction[];
   leadingActionsLabel?: string;
   onAdd?: () => void;
@@ -36,6 +40,8 @@ export function HeaderIconToolbar({
   onGroup,
   onExpandAll,
   onCollapseAll,
+  startActions = [],
+  startActionsLabel,
   leadingActions = [],
   leadingActionsLabel,
   onAdd,
@@ -57,6 +63,29 @@ export function HeaderIconToolbar({
 
   return (
     <div className="flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0" aria-label={ariaLabel}>
+      {startActions.length > 0 ? (
+        <div
+          className="mr-1 flex items-center gap-1 border-r border-hairline pr-1"
+          role="group"
+          aria-label={startActionsLabel ?? `${labelPrefix} primary actions`}
+        >
+          {startActions.map((action) => (
+            <ToolbarIconButton
+              key={action.label}
+              label={action.label}
+              visibleLabel={action.visibleLabel}
+              onClick={action.onClick}
+              aria-controls={action.ariaControls}
+              aria-expanded={action.ariaExpanded}
+              aria-pressed={action.pressed}
+              disabled={action.disabled}
+              className={action.className}
+            >
+              {action.icon ?? <Plus size={12} weight="regular" aria-hidden="true" />}
+            </ToolbarIconButton>
+          ))}
+        </div>
+      ) : null}
       {showDefaultActions ? (
         <>
           <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
@@ -89,6 +118,8 @@ export function HeaderIconToolbar({
               label={action.label}
               visibleLabel={action.visibleLabel}
               onClick={action.onClick}
+              aria-controls={action.ariaControls}
+              aria-expanded={action.ariaExpanded}
               aria-pressed={action.pressed}
               disabled={action.disabled}
               className={action.className}
@@ -108,6 +139,8 @@ export function HeaderIconToolbar({
               label={action.label}
               visibleLabel={visibleLabel}
               onClick={action.onClick}
+              aria-controls={action.ariaControls}
+              aria-expanded={action.ariaExpanded}
               aria-pressed={action.pressed}
               disabled={action.disabled}
               className={

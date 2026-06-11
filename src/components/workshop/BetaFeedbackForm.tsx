@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { BETA_FEEDBACK_SEVERITIES, BETA_FEEDBACK_TYPES } from "@/lib/workshop/beta-feedback";
 import {
   submitBetaFeedback,
@@ -30,6 +31,19 @@ const severityLabels: Record<(typeof BETA_FEEDBACK_SEVERITIES)[number], string> 
   medium: "Medium",
   low: "Low",
 };
+
+const feedbackTypeOptions: DropdownSelectOption[] = BETA_FEEDBACK_TYPES.map((type) => ({
+  value: type,
+  label: feedbackTypeLabels[type],
+}));
+
+const severityOptions: DropdownSelectOption[] = BETA_FEEDBACK_SEVERITIES.map((severity) => ({
+  value: severity,
+  label: severityLabels[severity],
+}));
+
+const FEEDBACK_SELECT_TRIGGER_CLASS =
+  "min-h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px] leading-3 focus:border-focus";
 
 const initialInlineState: BetaFeedbackInlineState = { status: "idle" };
 
@@ -62,31 +76,23 @@ export function BetaFeedbackForm({ mode = "redirect" }: BetaFeedbackFormProps) {
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="block text-[9px] font-medium uppercase leading-3 text-tertiary">Type</span>
-            <select
+            <DropdownSelect
               name="feedbackType"
               defaultValue="bug"
-              className="min-h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none focus:border-focus"
-            >
-              {BETA_FEEDBACK_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {feedbackTypeLabels[type]}
-                </option>
-              ))}
-            </select>
+              options={feedbackTypeOptions}
+              aria-label="Type"
+              className={FEEDBACK_SELECT_TRIGGER_CLASS}
+            />
           </label>
           <label className="space-y-1">
             <span className="block text-[9px] font-medium uppercase leading-3 text-tertiary">Severity</span>
-            <select
+            <DropdownSelect
               name="severity"
               defaultValue="medium"
-              className="min-h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none focus:border-focus"
-            >
-              {BETA_FEEDBACK_SEVERITIES.map((severity) => (
-                <option key={severity} value={severity}>
-                  {severityLabels[severity]}
-                </option>
-              ))}
-            </select>
+              options={severityOptions}
+              aria-label="Severity"
+              className={FEEDBACK_SELECT_TRIGGER_CLASS}
+            />
           </label>
         </div>
 

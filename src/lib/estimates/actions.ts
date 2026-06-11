@@ -10,6 +10,7 @@ import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   canNestEstimateNodeKind,
   getEstimateNodeNestingError,
+  getEstimateWrapGroupName,
   normalizeEstimateTreeNodeKind,
   type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
@@ -223,6 +224,13 @@ type ValidatedEstimateNodeRow = {
 type RenameEstimateNodeResult = {
   nodeId: string;
   name: string;
+};
+
+type CreateEstimateNodeResult = {
+  nodeId: string;
+  name: string;
+  kind: CreateEstimateNodeKind;
+  parentId: string | null;
 };
 
 type DeleteEstimateNodeResult = {
@@ -1749,9 +1757,10 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
       : "";
   if (!nodeId) throw new Error("Estimate node history RPC did not return the created node id.");
 
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
-  redirect(`/workshop/projects/${project.id}/estimates/${nodeId}`);
+  // No revalidatePath/redirect here: the client reconciles its optimistic node
+  // with this id in place, so a server-driven navigation would remount the
+  // whole workspace mid-edit.
+  return { nodeId, name, kind, parentId: parentId ?? null } satisfies CreateEstimateNodeResult;
 }
 
 export async function renameEstimateNode(
@@ -1760,6 +1769,7 @@ export async function renameEstimateNode(
   nodeId: string,
   formDataOrName: FormData | string,
 ): Promise<RenameEstimateNodeResult> {
+  assertNotOptimisticEstimateNodeId(nodeId, "Estimate node");
   const name = readEstimateNodeName(formDataOrName);
   const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
   const currentUser = await requireCurrentUserContext();
@@ -1801,10 +1811,6 @@ export async function deleteEstimateNode(
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${node.id}`);
 
   return {
     tree,
@@ -1879,9 +1885,6 @@ export async function deleteEstimateNodesBulk(
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
 
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
-
   return {
     tree,
     deletedNodeIds: Array.from(deletedNodeIds),
@@ -1915,10 +1918,292 @@ export async function insertEstimateTemplateIntoEstimate({
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
 
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${targetParentNodeId}`);
-
   return { tree, insertedRootNodeIds };
+}
+
+type InsertEstimateTemplateNodeIntoEstimateInput = {
+  projectId: string;
+  estimateId: string;
+  targetParentNodeId: string;
+  templateId: string;
+  templateNodeId: string;
+};
+
+type InsertEstimateTemplateNodeIntoEstimateResult = {
+  tree: EstimateTreeNode[];
+  insertedRootNodeId: string;
+};
+
+type TemplateSubtreeNodeRow = {
+  id: string;
+  parent_id: string | null;
+  kind: "group" | "area";
+  name: string;
+  sort_order: number;
+};
+
+/**
+ * Inserts one node of a template — a group or area inside it — and its whole
+ * subtree under a target group. Unlike whole-template insertion (a single
+ * RPC), this loops the history-aware node/row RPCs so every created node and
+ * row lands in the estimate's event history; a mid-way failure leaves the
+ * already-created nodes visible and deletable rather than rolling back.
+ */
+export async function insertEstimateTemplateNodeIntoEstimate({
+  projectId,
+  estimateId,
+  targetParentNodeId,
+  templateId,
+  templateNodeId,
+}: InsertEstimateTemplateNodeIntoEstimateInput): Promise<InsertEstimateTemplateNodeIntoEstimateResult> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const currentUser = await requireCurrentUserContext();
+
+  const { data: targetParent, error: parentError } = await supabase
+    .from("estimate_nodes")
+    .select("id, kind, estimates!inner(project_id)")
+    .eq("id", targetParentNodeId)
+    .eq("estimate_id", estimateId)
+    .eq("kind", "group")
+    .eq("estimates.project_id", project.id)
+    .maybeSingle();
+  if (parentError) throw parentError;
+  if (!targetParent) throw new Error("Target Group Node not found in the current project.");
+
+  const { data: template, error: templateError } = await supabase
+    .from("estimate_templates")
+    .select("id")
+    .eq("id", templateId)
+    .eq("workspace_id", project.workspace_id)
+    .maybeSingle();
+  if (templateError) throw templateError;
+  if (!template) throw new Error("Estimate template not found in the current workspace.");
+
+  const [nodesResult, rowsResult] = await Promise.all([
+    supabase
+      .from("estimate_template_nodes")
+      .select("id, parent_id, kind, name, sort_order")
+      .eq("template_id", templateId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("estimate_template_row_items")
+      .select(
+        "id, template_node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, discipline, designation, link_state, metadata",
+      )
+      .eq("template_id", templateId)
+      .order("sort_order", { ascending: true }),
+  ]);
+  if (nodesResult.error) throw nodesResult.error;
+  if (rowsResult.error) throw rowsResult.error;
+
+  const allTemplateNodes = (nodesResult.data ?? []) as TemplateSubtreeNodeRow[];
+  const sourceNode = allTemplateNodes.find((node) => node.id === templateNodeId);
+  if (!sourceNode) throw new Error("Template node not found in the current workspace.");
+
+  // Collect the subtree breadth-first so parents are created before children.
+  const childrenByParentId = new Map<string | null, TemplateSubtreeNodeRow[]>();
+  for (const node of allTemplateNodes) {
+    const siblings = childrenByParentId.get(node.parent_id) ?? [];
+    siblings.push(node);
+    childrenByParentId.set(node.parent_id, siblings);
+  }
+  const subtreeNodes: TemplateSubtreeNodeRow[] = [];
+  const queue: TemplateSubtreeNodeRow[] = [sourceNode];
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    subtreeNodes.push(node);
+    queue.push(...(childrenByParentId.get(node.id) ?? []));
+  }
+
+  const { data: siblingRows, error: siblingError } = await supabase
+    .from("estimate_nodes")
+    .select("sort_order")
+    .eq("estimate_id", estimateId)
+    .eq("parent_id", targetParentNodeId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (siblingError) throw siblingError;
+  const rootSortOrder = (siblingRows?.[0]?.sort_order ?? -1) + 1;
+
+  const createdNodeIdByTemplateNodeId = new Map<string, string>();
+  for (const node of subtreeNodes) {
+    const parentEstimateNodeId =
+      node.id === sourceNode.id ? targetParentNodeId : createdNodeIdByTemplateNodeId.get(node.parent_id ?? "");
+    if (!parentEstimateNodeId) throw new Error("Template node structure is inconsistent.");
+
+    const { data: createResult, error: createError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", {
+      target_project_id: project.id,
+      target_estimate_id: estimateId,
+      parent_node_id: parentEstimateNodeId,
+      node_kind: node.kind,
+      node_name: node.name,
+      initial_sort_order: node.id === sourceNode.id ? rootSortOrder : node.sort_order,
+      acting_user_id: currentUser.userId,
+      correlation_id: randomUUID(),
+    });
+    if (createError) throw new Error(`Could not copy the template node: ${createError.message}`);
+    const createRecord = readJsonRecord(createResult);
+    const createPayload = readJsonRecord(createRecord.payload);
+    const createdNodeId = typeof createRecord.nodeId === "string"
+      ? createRecord.nodeId
+      : typeof createPayload.nodeId === "string"
+        ? createPayload.nodeId
+        : "";
+    if (!createdNodeId) throw new Error("Estimate node history RPC did not return the created node id.");
+    createdNodeIdByTemplateNodeId.set(node.id, createdNodeId);
+  }
+
+  const subtreeNodeIds = new Set(subtreeNodes.map((node) => node.id));
+  const subtreeRows = (rowsResult.data ?? []).filter((row) => subtreeNodeIds.has(row.template_node_id));
+  for (const row of subtreeRows) {
+    const targetNodeId = createdNodeIdByTemplateNodeId.get(row.template_node_id);
+    if (!targetNodeId) continue;
+
+    const { error: rowInsertError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_row_item_with_history", {
+      target_project_id: project.id,
+      target_estimate_id: estimateId,
+      target_node_id: targetNodeId,
+      row_payload: {
+        id: randomUUID(),
+        sortOrder: row.sort_order,
+        sourceLibraryItemId: row.source_library_item_id,
+        sourceSnapshot: row.source_snapshot,
+        categoryNodeId: row.category_node_id,
+        supplierId: row.supplier_id,
+        material: row.material,
+        description: row.description,
+        supplier: row.supplier,
+        unit: row.unit,
+        quantity: Number(row.quantity),
+        unitCost: Number(row.unit_cost),
+        contingencyPercentage: Number(row.contingency_percentage ?? 0),
+        miscCost: Number(row.misc_cost),
+        discipline: row.discipline,
+        designation: row.designation,
+        metadata: row.metadata,
+        linkState: row.link_state ?? (row.source_library_item_id ? "linked-clean" : "unlinked"),
+      },
+      acting_user_id: currentUser.userId,
+      correlation_id: randomUUID(),
+    });
+    if (rowInsertError) throw new Error(`Could not copy the template rows: ${rowInsertError.message}`);
+  }
+
+  const insertedRootNodeId = createdNodeIdByTemplateNodeId.get(sourceNode.id);
+  if (!insertedRootNodeId) throw new Error("Template node insertion did not produce a root node.");
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template node.");
+
+  return { tree, insertedRootNodeId };
+}
+
+type WrapEstimateAreaAndInsertTemplateInput = {
+  projectId: string;
+  estimateId: string;
+  areaNodeId: string;
+  insert:
+    | { templateIds: string[] }
+    | { templateId: string; templateNodeId: string };
+};
+
+type WrapEstimateAreaAndInsertTemplateResult = {
+  tree: EstimateTreeNode[];
+  newGroupNodeId: string;
+};
+
+/**
+ * Template drop on an area node: areas cannot take child nodes, so this
+ * creates a wrapper group in the area's slot, moves the area inside it, and
+ * inserts the template content as the area's new siblings. Composed from the
+ * history-aware RPCs; a mid-way failure leaves the already-created nodes
+ * visible and deletable rather than rolling back (same contract as
+ * insertEstimateTemplateNodeIntoEstimate).
+ */
+export async function wrapEstimateAreaAndInsertTemplate({
+  projectId,
+  estimateId,
+  areaNodeId,
+  insert,
+}: WrapEstimateAreaAndInsertTemplateInput): Promise<WrapEstimateAreaAndInsertTemplateResult> {
+  assertNotOptimisticEstimateNodeId(areaNodeId, "Estimate area node");
+  if ("templateIds" in insert && insert.templateIds.length === 0) throw new Error("At least one estimate template is required.");
+
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const currentUser = await requireCurrentUserContext();
+
+  const { data: areaNode, error: areaError } = await supabase
+    .from("estimate_nodes")
+    .select("id, kind, name, parent_id, sort_order, estimates!inner(project_id)")
+    .eq("id", areaNodeId)
+    .eq("estimate_id", estimateId)
+    .eq("kind", "area")
+    .eq("estimates.project_id", project.id)
+    .maybeSingle();
+  if (areaError) throw areaError;
+  if (!areaNode) throw new Error("Area node not found in the current estimate.");
+  if (!areaNode.parent_id) throw new Error("Area node has no parent group to wrap under.");
+
+  const { data: groupResult, error: groupError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    parent_node_id: areaNode.parent_id,
+    node_kind: "group",
+    node_name: getEstimateWrapGroupName(areaNode.name),
+    initial_sort_order: areaNode.sort_order,
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+  });
+  if (groupError) throw new Error(`Could not create the wrapper group: ${groupError.message}`);
+  const groupResultRecord = readJsonRecord(groupResult);
+  const groupResultPayload = readJsonRecord(groupResultRecord.payload);
+  const newGroupNodeId = typeof groupResultRecord.nodeId === "string"
+    ? groupResultRecord.nodeId
+    : typeof groupResultPayload.nodeId === "string"
+      ? groupResultPayload.nodeId
+      : "";
+  if (!newGroupNodeId) throw new Error("Estimate node history RPC did not return the created wrapper group id.");
+
+  const { error: moveError } = await asEstimateHistoryRpcClient(supabase).rpc("reorder_estimate_nodes_with_history", {
+    target_estimate_id: estimateId,
+    move_updates: [{ id: areaNodeId, parent_id: newGroupNodeId, sort_order: 0 }],
+    acting_user_id: currentUser.userId,
+    correlation_id: randomUUID(),
+  });
+  if (moveError) throw new Error(`Could not move the area into the wrapper group: ${moveError.message}`);
+
+  if ("templateNodeId" in insert) {
+    await insertEstimateTemplateNodeIntoEstimate({
+      projectId,
+      estimateId,
+      targetParentNodeId: newGroupNodeId,
+      templateId: insert.templateId,
+      templateNodeId: insert.templateNodeId,
+    });
+  } else {
+    for (const templateId of insert.templateIds) {
+      const { error: copyError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_template_into_estimate_with_history", {
+        target_project_id: project.id,
+        target_estimate_id: estimateId,
+        target_parent_node_id: newGroupNodeId,
+        source_template_id: templateId,
+        acting_user_id: currentUser.userId,
+        correlation_id: randomUUID(),
+      });
+      if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
+    }
+  }
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after grouping the area.");
+
+  return { tree, newGroupNodeId };
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
@@ -1984,9 +2269,6 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   });
 
   if (insertError) throw insertError;
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${targetNodeId}`);
-  revalidatePath(`/workshop/projects/${project.id}/estimates`);
 }
 
 export async function updateEstimateRowItem({ projectId, estimateId, rowId, quantity, contingencyPercentage, miscCost, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
@@ -2011,7 +2293,6 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, quan
   if (error) throw error;
 
   const updatedRow = readHistoryRowResult(data);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
   return updatedRow;
 }
 
@@ -2048,8 +2329,6 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   });
 
   if (error) throw error;
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
 }
 
 export async function detachEstimateRowItemFromLibrary({
@@ -2077,7 +2356,6 @@ export async function detachEstimateRowItemFromLibrary({
   if (error) throw error;
 
   const detachedRow = readHistoryRowResult(data);
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
   return detachedRow;
 }
 
@@ -2093,6 +2371,4 @@ export async function deleteEstimateRowItem({ projectId, estimateId, rowId, muta
     correlation_id: getMutationCorrelationId(mutationId),
   });
   if (error) throw error;
-
-  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
 }

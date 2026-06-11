@@ -658,6 +658,7 @@ export const defaultForm: NewComponentForm = {
 export const LIBRARY_PREFS_KEY = "archestimator_component_library_preferences_v1";
 export const LIBRARY_FAVORITES_KEY = "archestimator_component_library_favorites_v1";
 export const LIBRARY_RECENTS_KEY = "archestimator_component_library_recents_v1";
+export const LIBRARY_TREE_ORDER_KEY = "archestimator_component_library_tree_order_v1";
 
 export function readLibraryPreferences() {
   return readJsonStorage<{ viewMode?: "compact" | "detailed" | "grid"; groupBy?: LibraryGroupBy; sortMode?: LibrarySortMode }>(LIBRARY_PREFS_KEY, {});

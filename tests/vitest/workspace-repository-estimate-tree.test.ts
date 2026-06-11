@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildEstimateTree } from "@/lib/repositories/workspace-repository";
+import { selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
+import { buildEstimateTree, type EstimateTreeNodeQueryRow, type EstimateTreeRowItemQueryRow } from "@/lib/repositories/workspace-repository";
 import type { Tables } from "@/lib/supabase/types";
 
 const createdAt = "2026-05-20T00:00:00.000Z";
@@ -228,7 +229,9 @@ describe("workspace repository estimate tree projection", () => {
     ]);
   });
 
-  it("projects Group Node siblings before Area Node siblings even when persisted sort orders are mixed", () => {
+  it("preserves persisted sort order when group and area siblings interleave", () => {
+    // One order everywhere: the tree, the sheet, and node codes all read the
+    // stored sort_order, so the projection must not re-rank kinds.
     const tree = buildEstimateTree(
       [
         node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
@@ -239,6 +242,124 @@ describe("workspace repository estimate tree projection", () => {
       [],
     );
 
-    expect(tree[0]?.children?.map((child) => child.id)).toEqual(["site-work", "kitchen", "living"]);
+    expect(tree[0]?.children?.map((child) => child.id)).toEqual(["kitchen", "site-work", "living"]);
+  });
+
+  it("builds complete display rows from the narrowed estimate-sheet query columns only", () => {
+    // Exactly the columns ESTIMATE_TREE_ROW_ITEM_COLUMNS / _NODE_COLUMNS
+    // fetch — no estimate_id, sort_order, or updated_at. Guards that the
+    // explicit column selection stays sufficient for linked-row display.
+    const narrowedNode: EstimateTreeNodeQueryRow = { id: "kitchen", parent_id: null, kind: "area", name: "Kitchen" };
+    const narrowedRow: EstimateTreeRowItemQueryRow = {
+      id: "row-1",
+      node_id: "kitchen",
+      material: "Tile",
+      description: "Glazed ceramic",
+      supplier: "Tile Depot",
+      supplier_id: null,
+      unit: "sqm",
+      unit_cost: 100,
+      quantity: 2,
+      contingency_percentage: 10,
+      misc_cost: 50,
+      row_revision: 3,
+      category_node_id: null,
+      discipline: null,
+      designation: null,
+      source_library_item_id: "lib-1",
+      link_state: "linked",
+      source_snapshot: {
+        category: "Finishes",
+        priceOptionId: "price-1",
+        priceOptionLabel: "Standard",
+        lifecycleState: "active",
+        pricingSource: "Library snapshot",
+        pricingDate: "2026-05-01",
+        componentVersionId: "ver-1",
+        componentVersionNumber: 4,
+      },
+      metadata: { tags: ["wet-area"] },
+      created_at: createdAt,
+    };
+
+    const tree = buildEstimateTree([narrowedNode], [narrowedRow]);
+    expect(tree[0]?.estimateRowItems?.[0]).toMatchObject({
+      id: "row-1",
+      material: "Tile",
+      supplier: "Tile Depot",
+      source: "library",
+      linkState: "linked",
+      category: "Finishes",
+      priceOptionId: "price-1",
+      priceOptionLabel: "Standard",
+      lifecycleState: "active",
+      pricingSource: "Library snapshot",
+      pricingDate: "2026-05-01",
+      componentVersionId: "ver-1",
+      componentVersionNumber: 4,
+      rowRevision: 3,
+      tags: ["wet-area"],
+      subTotal: 200,
+      contingencyValue: 20,
+      miscCost: 50,
+      totalItemCosts: 270,
+    });
+    expect(tree[0]?.total).toBe("₱270.00");
+  });
+});
+
+describe("estimate landing-node selection", () => {
+  // Inputs simulate query order (global sort_order ASC). sort_order is a
+  // per-sibling-level value, so that ordering interleaves nodes across
+  // parents — selection must walk the tree, never compare sort_order
+  // across the whole estimate.
+  it("selects the first area in depth-first tree order, not the lowest global sort_order", () => {
+    // The nested area in the LAST group (sibling slot 0) arrives before the
+    // first group's area (sibling slot 1); tree order must still win.
+    const firstNodes = selectFirstEstimateNodeIds([
+      { id: "group-1", estimate_id: "estimate-1", kind: "group", parent_id: null }, // sort_order 0
+      { id: "area-in-last-group", estimate_id: "estimate-1", kind: "area", parent_id: "group-2" }, // sort_order 0
+      { id: "group-2", estimate_id: "estimate-1", kind: "group", parent_id: null }, // sort_order 1
+      { id: "area-in-first-group", estimate_id: "estimate-1", kind: "area", parent_id: "group-1" }, // sort_order 1
+    ]);
+
+    expect(firstNodes.get("estimate-1")).toBe("area-in-first-group");
+  });
+
+  it("falls back to the first root in tree order when the estimate has no areas", () => {
+    // A nested group can precede its own root in query order on a
+    // sort_order tie; the fallback is still the first root, and parent
+    // links resolve even when a child arrives before its parent.
+    const firstNodes = selectFirstEstimateNodeIds([
+      { id: "nested-group", estimate_id: "estimate-1", kind: "group", parent_id: "root-2" },
+      { id: "root-1", estimate_id: "estimate-1", kind: "group", parent_id: null },
+      { id: "root-2", estimate_id: "estimate-1", kind: "group", parent_id: null },
+    ]);
+
+    expect(firstNodes.get("estimate-1")).toBe("root-1");
+  });
+
+  it("selects first nodes independently per estimate", () => {
+    const firstNodes = selectFirstEstimateNodeIds([
+      { id: "e1-group", estimate_id: "estimate-1", kind: "group", parent_id: null },
+      { id: "e2-area", estimate_id: "estimate-2", kind: "area", parent_id: null },
+      { id: "e1-area", estimate_id: "estimate-1", kind: "area", parent_id: "e1-group" },
+    ]);
+
+    expect(firstNodes.get("estimate-1")).toBe("e1-area");
+    expect(firstNodes.get("estimate-2")).toBe("e2-area");
+  });
+
+  it("matches buildEstimateTree kind handling: legacy kinds are groups, unknown kinds drop and promote children", () => {
+    // "level" normalizes to group (never an area target); "phase" is dropped
+    // from the tree, so its child area renders as a root and is the landing
+    // target — selection must agree with what the sheet tree displays.
+    const firstNodes = selectFirstEstimateNodeIds([
+      { id: "legacy-level", estimate_id: "estimate-1", kind: "level", parent_id: null },
+      { id: "unknown-root", estimate_id: "estimate-1", kind: "phase", parent_id: null },
+      { id: "area-under-unknown", estimate_id: "estimate-1", kind: "area", parent_id: "unknown-root" },
+    ]);
+
+    expect(firstNodes.get("estimate-1")).toBe("area-under-unknown");
   });
 });

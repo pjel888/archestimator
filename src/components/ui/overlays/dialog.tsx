@@ -93,7 +93,10 @@ export function Dialog({
     if (!open || !closeOnEscape) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onOpenChange(false);
+      // Popups hosted in the dialog (dropdown listboxes/menus) own Escape
+      // while open: they prevent-default on the native event, so a handled
+      // press must close only the popup, never the dialog underneath it.
+      if (event.key === "Escape" && !event.defaultPrevented) onOpenChange(false);
     }
 
     document.addEventListener("keydown", handleKeyDown);

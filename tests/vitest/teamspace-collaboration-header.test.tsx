@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -74,6 +74,15 @@ const summary: ProjectCollaborationSummary = {
   },
 };
 
+async function openTeamspaceSettings(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
+  const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
+  // The dialog moves initial focus on a requestAnimationFrame; flush it so
+  // focus-sensitive picker interactions below race nothing.
+  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+  return dialog;
+}
+
 describe("ProjectTeamspaceHeader", () => {
   const clipboardWriteText = vi.fn<Clipboard["writeText"]>();
 
@@ -110,18 +119,23 @@ describe("ProjectTeamspaceHeader", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the compact Teamspaces rail and opens the settings modal", async () => {
+  it("renders one Teamspaces icon button and opens the settings modal", async () => {
     const user = userEvent.setup();
 
     render(<ProjectTeamspaceHeader summary={summary} />);
 
-    const rail = screen.getByLabelText("Project teamspaces");
-    expect(within(rail).getByText("PL")).toBeInTheDocument();
-    expect(within(rail).getByRole("img", { name: "Ana Builder" })).toBeInTheDocument();
+    const teamspaceButton = screen.getByRole("button", { name: "Project teamspaces" });
+    expect(teamspaceButton).toHaveClass("size-10", "border", "bg-white");
+    expect(teamspaceButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(teamspaceButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("PL")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(teamspaceButton);
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
+    expect(teamspaceButton).toHaveAttribute("aria-expanded", "true");
+    expect(within(dialog).getByText("PL")).toBeInTheDocument();
+    expect(within(dialog).getByRole("img", { name: "Ana Builder" })).toBeInTheDocument();
     expect(within(dialog).getByText("Project access")).toBeInTheDocument();
     expect(within(dialog).getByRole("textbox", { name: "Invite by email" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Send invite" })).toBeInTheDocument();
@@ -145,7 +159,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summary} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     const shareLink = within(dialog).getByRole("textbox", { name: "Private project link" });
@@ -177,7 +191,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summaryWithInvite} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     expect(within(dialog).getByRole("button", { name: "Copy private link" })).toBeInTheDocument();
@@ -215,7 +229,7 @@ describe("ProjectTeamspaceHeader", () => {
 
     render(<ProjectTeamspaceHeader summary={summaryWithInvite} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
 
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     expect(await within(dialog).findByText(/Teamspace invite delivery is disabled until project invite entry/)).toBeInTheDocument();
@@ -228,12 +242,124 @@ describe("ProjectTeamspaceHeader", () => {
     expect(within(dialog).getByRole("button", { name: "Copy invite link for new.collaborator@example.com" })).toBeDisabled();
   });
 
+  it("commits a collaborator role change through the shared dropdown and fires the server action", async () => {
+    const user = userEvent.setup();
+
+    render(<ProjectTeamspaceHeader summary={summary} />);
+
+    const dialog = await openTeamspaceSettings(user);
+    const roleTrigger = within(dialog).getByRole("combobox", { name: "Role for Ana Builder" });
+    expect(roleTrigger).toHaveTextContent("Editor");
+
+    await user.click(roleTrigger);
+    // The listbox portals to document.body, so query options globally.
+    const listbox = screen.getByRole("listbox", { name: "Role for Ana Builder" });
+    expect(listbox.parentElement).toBe(document.body);
+
+    await user.click(screen.getByRole("option", { name: "Admin" }));
+
+    expect(collaborationActions.updateProjectCollaboratorRole).toHaveBeenCalledWith({
+      projectId: "project-1",
+      userId: "user-2",
+      role: "admin",
+    });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Role updated.");
+    // Commit returns focus to the trigger and it survives the settled transition.
+    await waitFor(() => expect(roleTrigger).not.toHaveAttribute("aria-disabled"));
+    expect(roleTrigger).toHaveFocus();
+  });
+
+  it("commits a sheet access mode change through the shared dropdown", async () => {
+    const user = userEvent.setup();
+
+    render(<ProjectTeamspaceHeader summary={summary} />);
+
+    const dialog = await openTeamspaceSettings(user);
+    const accessTrigger = within(dialog).getByRole("combobox", { name: "Access mode for Main Estimate" });
+    expect(accessTrigger).toHaveTextContent("Inherited");
+
+    await user.click(accessTrigger);
+    await user.click(screen.getByRole("option", { name: "Restricted" }));
+
+    expect(collaborationActions.setEstimateSheetAccessMode).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      inheritProjectAccess: false,
+    });
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Sheet now inherits project access.");
+  });
+
+  it("keeps pending pickers focusable via aria-disabled and ignores activation until the action settles", async () => {
+    let resolveRoleUpdate: (result: { ok: boolean; message: string }) => void = () => {};
+    collaborationActions.updateProjectCollaboratorRole.mockImplementation(
+      () =>
+        new Promise<{ ok: boolean; message: string }>((resolve) => {
+          resolveRoleUpdate = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    render(<ProjectTeamspaceHeader summary={summary} />);
+
+    const dialog = await openTeamspaceSettings(user);
+    const roleTrigger = within(dialog).getByRole("combobox", { name: "Role for Ana Builder" });
+
+    await user.click(roleTrigger);
+    await user.click(screen.getByRole("option", { name: "Viewer" }));
+
+    // Pending is transient: the trigger is aria-disabled but keeps real focus,
+    // so focus-return and the value announcement survive the commit.
+    await waitFor(() => expect(roleTrigger).toHaveAttribute("aria-disabled", "true"));
+    expect(roleTrigger).not.toBeDisabled();
+    expect(roleTrigger).toHaveFocus();
+
+    await user.click(roleTrigger);
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    await act(async () => {
+      resolveRoleUpdate({ ok: true, message: "Role updated." });
+    });
+
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Role updated.");
+    await waitFor(() => expect(roleTrigger).not.toHaveAttribute("aria-disabled"));
+    expect(roleTrigger).toHaveFocus();
+
+    await user.click(roleTrigger);
+    expect(screen.getByRole("listbox", { name: "Role for Ana Builder" })).toBeInTheDocument();
+  });
+
+  it("commits the active option on Tab without cycling focus to the modal's first element", async () => {
+    const user = userEvent.setup();
+
+    render(<ProjectTeamspaceHeader summary={summary} />);
+
+    const dialog = await openTeamspaceSettings(user);
+    const roleTrigger = within(dialog).getByRole("combobox", { name: "Role for Ana Builder" });
+
+    await user.click(roleTrigger);
+    await user.keyboard("{ArrowDown}");
+    await user.tab();
+
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(collaborationActions.updateProjectCollaboratorRole).toHaveBeenCalledWith({
+      projectId: "project-1",
+      userId: "user-2",
+      role: "viewer",
+    });
+    // Focus moves on naturally instead of being trapped or cycled to the
+    // modal's first focusable element.
+    expect(within(dialog).getByRole("button", { name: "Close modal" })).not.toHaveFocus();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it("requires explicit confirmation before removing a project collaborator", async () => {
     const user = userEvent.setup();
 
     render(<ProjectTeamspaceHeader summary={summary} />);
 
-    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Project teamspaces" }));
     await user.click(screen.getByRole("button", { name: "Remove Ana Builder" }));
 
     const dialog = screen.getByRole("dialog", { name: "Remove Ana Builder?" });

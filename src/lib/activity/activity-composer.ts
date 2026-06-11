@@ -23,8 +23,10 @@ function snapshot(value: unknown): Record<string, unknown> {
   return {};
 }
 
-const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
-const BLANK_ESTIMATE_ROW_AUDIT_LABEL = "Empty row slot";
+// Single source of truth for blank-row labels: the estimate-sheet UI and the
+// audit composer must agree or activity entries drift from what rows display.
+export const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
+export const BLANK_ESTIMATE_ROW_AUDIT_LABEL = "Empty row slot";
 
 function rowMaterial(event: EstimateActivityInput) {
   const oldData = snapshot(event.oldSnapshot);

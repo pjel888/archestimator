@@ -2,8 +2,9 @@ import { Suspense, type ReactNode } from "react";
 
 import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
+import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
 import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
-import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
+import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import {
@@ -32,7 +33,10 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
   const project = liveProject ?? sampleProject;
   const title = project?.name ?? "Project";
   const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
-  const projectCode = liveProject?.project_code ?? projectId;
+  const currentCollaborator = collaborationSummary?.collaborators.find(
+    (collaborator) => collaborator.id === collaborationSummary.currentUserId,
+  );
+  const currentUserEmail = currentCollaborator?.email ?? null;
 
   return (
     <WorkshopPageShell
@@ -47,17 +51,20 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       contentClassName="pt-0 pb-0 pr-2 pl-0"
       centerHeader={<ProjectEstimateMetadataStrip />}
       projectId={projectId}
+      actions={
+        <>
+          <ProjectPublicationHeader
+            summary={publicationSummary}
+            currentUserEmail={currentUserEmail}
+            projectEstimateSheets={projectEstimateSheets}
+          />
+          <ProjectTeamspaceHeader summary={collaborationSummary} />
+        </>
+      }
     >
       <div className="flex h-full min-h-0 overflow-hidden bg-white">
         <ProjectMiniSidebar projectId={projectId} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-          <ProjectWorkspaceHeaderRow
-            projectId={projectId}
-            projectCode={projectCode}
-            collaborationSummary={collaborationSummary}
-            publicationSummary={publicationSummary}
-            projectEstimateSheets={projectEstimateSheets}
-          />
           <div className="min-h-0 flex-1 overflow-hidden">
             <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
           </div>

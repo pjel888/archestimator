@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition, type CSSProperties, type F
 import { LinkSimple, PaperPlaneTilt, Trash, UserCircleGearIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import { useProjectPresence } from "@/hooks/use-project-presence";
 import {
@@ -32,6 +33,11 @@ const roleLabels: Record<CollaborationRole, string> = {
 };
 
 const assignableRoles = Object.keys(roleLabels) as CollaborationRole[];
+const ROLE_OPTIONS = assignableRoles.map((role) => ({ value: role, label: roleLabels[role] }));
+const SHEET_ACCESS_MODE_OPTIONS = [
+  { value: "inherited", label: "Inherited" },
+  { value: "restricted", label: "Restricted" },
+];
 const TEAMSPACE_AVATAR_SLOT_COUNT = 5;
 
 function getInitials(name: string) {
@@ -87,24 +93,6 @@ function AvatarBubble({
   );
 }
 
-function AvatarPlaceholder({ offset }: { offset: number }) {
-  const placeholderStyle: CSSProperties = {
-    marginLeft: offset ? -6 : 0,
-    zIndex: TEAMSPACE_AVATAR_SLOT_COUNT - offset,
-  };
-
-  return (
-    <span
-      className="relative grid size-6 shrink-0 place-items-center rounded-xs border border-hairline bg-white opacity-75 shadow-[0_0_0_1px_#F2F2F2]"
-      style={placeholderStyle}
-      aria-hidden="true"
-      data-teamspace-collaborator-placeholder="true"
-    >
-      <span className="size-3 rounded-xs border border-hairline bg-surfaceMuted/35" />
-    </span>
-  );
-}
-
 function RoleBadge({ role }: { role: CollaborationRole }) {
   return (
     <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
@@ -115,12 +103,14 @@ function RoleBadge({ role }: { role: CollaborationRole }) {
 
 function EmptyTeamspaceRail() {
   return (
-    <div
-      className="flex h-full items-center gap-2 px-2 text-[9px] font-medium leading-3 text-tertiary"
+    <button
+      type="button"
       aria-label="Project teamspaces unavailable"
+      disabled
+      className="relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary opacity-50 transition"
     >
-      <span>Teamspaces unavailable</span>
-    </div>
+      <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
+    </button>
   );
 }
 
@@ -180,7 +170,12 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const activeSummary = summary;
   const canManageProjectAccess = activeSummary.canManageAccess;
   const canUseInviteDelivery = inviteDeliveryConfigured === true;
-  const inviteControlsDisabled = !canManageProjectAccess || !canUseInviteDelivery || isPending;
+  // Disable-semantics split: capability/configuration gaps hard-disable
+  // controls (not focusable, like native disabled); a transient isPending on
+  // its own only aria-disables pickers so focus-return and screen-reader
+  // value announcements survive the commit.
+  const inviteCapabilityDisabled = !canManageProjectAccess || !canUseInviteDelivery;
+  const inviteControlsDisabled = inviteCapabilityDisabled || isPending;
   const projectSharePath = `/workshop/projects/${activeSummary.projectId}`;
 
   function runAccessAction(action: () => Promise<{ ok: boolean; message: string }>) {
@@ -324,50 +319,33 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     });
   }
 
-  const visibleCollaborators = activeSummary.collaborators.slice(0, TEAMSPACE_AVATAR_SLOT_COUNT);
-  const placeholderCount = Math.max(0, TEAMSPACE_AVATAR_SLOT_COUNT - visibleCollaborators.length);
-  const hiddenCollaboratorCount = Math.max(0, activeSummary.collaborators.length - visibleCollaborators.length);
   const onlineCollaboratorCount = activeSummary.collaborators.filter((collaborator) => collaborator.online || onlineUserIds.has(collaborator.id)).length;
 
   return (
     <>
-      <div
-        className="flex h-full items-center justify-end gap-2 px-2"
+      <button
+        type="button"
+        className={cn(
+          "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          open ? "bg-surfaceMuted text-ink" : null,
+        )}
         aria-label="Project teamspaces"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        title="Teamspace settings"
         data-workshop-layout="project-teamspace-header"
+        onClick={() => setOpen(true)}
       >
-        <div
-          className="flex items-center"
-          aria-label={`${activeSummary.collaborators.length} project collaborators, ${placeholderCount} open teamspace seats`}
-        >
-          {visibleCollaborators.map((collaborator, index) => (
-            <AvatarBubble
-              key={collaborator.id}
-              collaborator={collaborator}
-              online={collaborator.online || onlineUserIds.has(collaborator.id)}
-              offset={index}
-            />
-          ))}
-          {Array.from({ length: placeholderCount }, (_, index) => (
-            <AvatarPlaceholder key={`teamspace-placeholder-${index}`} offset={visibleCollaborators.length + index} />
-          ))}
-          {hiddenCollaboratorCount ? (
-            <span className="grid size-6 shrink-0 place-items-center rounded-xs border border-white bg-surfaceMuted text-[8px] font-medium leading-none text-tertiary shadow-[0_0_0_1px_#F2F2F2]">
-              +{hiddenCollaboratorCount}
-            </span>
-          ) : null}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label="Open teamspace settings"
-          onClick={() => setOpen(true)}
-        >
-          <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
-        </Button>
-      </div>
+        <UserCircleGearIcon size={14} weight="regular" aria-hidden="true" />
+        {onlineCollaboratorCount > 0 ? (
+          <span
+            aria-hidden="true"
+            className="absolute -right-1 -top-1 grid h-3.5 min-w-3.5 place-items-center rounded-xs border border-white bg-success px-0.5 text-[8px] font-medium leading-none text-white"
+          >
+            {onlineCollaboratorCount > 9 ? "9+" : onlineCollaboratorCount}
+          </span>
+        ) : null}
+      </button>
 
       <Modal
         open={open}
@@ -420,20 +398,16 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                 <label className="sr-only" htmlFor="teamspace-invite-role">
                   Invite role
                 </label>
-                <select
+                <DropdownSelect
                   id="teamspace-invite-role"
-                  className="min-h-7 rounded-xs border border-hairline bg-white px-1 text-[10px] leading-3 text-secondary outline-none focus:border-focus"
+                  className="h-7 rounded-xs border border-hairline bg-white px-1 !text-[10px] text-secondary"
+                  options={ROLE_OPTIONS}
                   value={inviteRole}
                   aria-label="Invite role"
-                  disabled={inviteControlsDisabled}
-                  onChange={(event) => setInviteRole(event.target.value as CollaborationRole)}
-                >
-                  {assignableRoles.map((role) => (
-                    <option key={role} value={role}>
-                      {roleLabels[role]}
-                    </option>
-                  ))}
-                </select>
+                  disabled={inviteCapabilityDisabled}
+                  ariaDisabled={!inviteCapabilityDisabled && isPending}
+                  onValueChange={(role) => setInviteRole(role as CollaborationRole)}
+                />
                 <Button
                   type="submit"
                   variant="secondary"
@@ -455,28 +429,25 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                     <span className="truncate text-[10px] font-medium leading-3 text-secondary">{collaborator.displayName}</span>
                     <div className="flex shrink-0 items-center gap-1">
                       {canManageProjectAccess ? (
-                        <select
-                          className="h-6 rounded-xs border border-hairline bg-white px-1 text-[9px] font-medium leading-3 text-secondary outline-none focus:border-focus"
-                          value={collaborator.role}
-                          aria-label={`Role for ${collaborator.displayName}`}
-                          disabled={isPending}
-                          onChange={(event) => {
-                            const role = event.target.value as CollaborationRole;
-                            runAccessAction(() =>
-                              updateProjectCollaboratorRole({
-                                projectId: activeSummary.projectId,
-                                userId: collaborator.id,
-                                role,
-                              }),
-                            );
-                          }}
-                        >
-                          {assignableRoles.map((role) => (
-                            <option key={role} value={role}>
-                              {roleLabels[role]}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="w-16 shrink-0">
+                          <DropdownSelect
+                            className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
+                            options={ROLE_OPTIONS}
+                            value={collaborator.role}
+                            aria-label={`Role for ${collaborator.displayName}`}
+                            ariaDisabled={isPending}
+                            onValueChange={(value) => {
+                              const role = value as CollaborationRole;
+                              runAccessAction(() =>
+                                updateProjectCollaboratorRole({
+                                  projectId: activeSummary.projectId,
+                                  userId: collaborator.id,
+                                  role,
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
                       ) : (
                         <RoleBadge role={collaborator.role} />
                       )}
@@ -553,24 +524,24 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                           <p className="text-[8px] leading-[10px] text-tertiary">{sheet.sheetCode}</p>
                         </div>
                         {sheet.canManageAccess ? (
-                          <select
-                            className="h-6 shrink-0 rounded-xs border border-hairline bg-white px-1 text-[9px] font-medium leading-3 text-secondary outline-none focus:border-focus"
-                            value={sheet.accessMode === "restricted" ? "restricted" : "inherited"}
-                            aria-label={`Access mode for ${sheet.name}`}
-                            disabled={isPending}
-                            onChange={(event) =>
-                              runAccessAction(() =>
-                                setEstimateSheetAccessMode({
-                                  projectId: activeSummary.projectId,
-                                  estimateId: sheet.estimateId,
-                                  inheritProjectAccess: event.target.value === "inherited",
-                                }),
-                              )
-                            }
-                          >
-                            <option value="inherited">Inherited</option>
-                            <option value="restricted">Restricted</option>
-                          </select>
+                          <div className="w-20 shrink-0">
+                            <DropdownSelect
+                              className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
+                              options={SHEET_ACCESS_MODE_OPTIONS}
+                              value={sheet.accessMode === "restricted" ? "restricted" : "inherited"}
+                              aria-label={`Access mode for ${sheet.name}`}
+                              ariaDisabled={isPending}
+                              onValueChange={(mode) =>
+                                runAccessAction(() =>
+                                  setEstimateSheetAccessMode({
+                                    projectId: activeSummary.projectId,
+                                    estimateId: sheet.estimateId,
+                                    inheritProjectAccess: mode === "inherited",
+                                  }),
+                                )
+                              }
+                            />
+                          </div>
                         ) : (
                           <span className="shrink-0 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
                             {sheet.accessMode === "inherits-project" ? "Inherited" : `${sheet.overrideCount} override`}
@@ -598,20 +569,16 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                           <label className="sr-only" htmlFor={`sheet-role-${sheet.estimateId}`}>
                             Sheet role for {sheet.name}
                           </label>
-                          <select
+                          <DropdownSelect
                             id={`sheet-role-${sheet.estimateId}`}
-                            className="min-h-6 rounded-xs border border-hairline bg-white px-1 text-[9px] leading-3 text-secondary outline-none focus:border-focus"
+                            className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
+                            options={ROLE_OPTIONS}
                             value={readSheetInviteRole(sheet.estimateId)}
                             aria-label={`Sheet role for ${sheet.name}`}
-                            disabled={!canUseInviteDelivery || isPending}
-                            onChange={(event) => updateSheetInviteRole(sheet.estimateId, event.target.value as CollaborationRole)}
-                          >
-                            {assignableRoles.map((role) => (
-                              <option key={role} value={role}>
-                                {roleLabels[role]}
-                              </option>
-                            ))}
-                          </select>
+                            disabled={!canUseInviteDelivery}
+                            ariaDisabled={canUseInviteDelivery && isPending}
+                            onValueChange={(role) => updateSheetInviteRole(sheet.estimateId, role as CollaborationRole)}
+                          />
                           <Button
                             type="submit"
                             variant="ghost"

@@ -10,6 +10,9 @@ import {
   shouldBypassTermsAcceptanceGate,
   TERMS_GATE_FALLBACK_NEXT,
 } from "@/lib/legal/terms-gate";
+// Workshop-scoped vendor CSS: react-complex-tree styling is only consumed by
+// workshop trees, so public/marketing routes must not pay for it.
+import "react-complex-tree/lib/style-modern.css";
 
 export default async function WorkshopLayout({ children }: { children: ReactNode }) {
   const headerList = await headers();

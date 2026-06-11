@@ -245,7 +245,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
             src={heroVisualSlides[0].src}
             alt={heroVisualSlides[0].alt}
             fill
-            priority
+            preload
             sizes='(min-width: 1024px) 58vw, 100vw'
             className='landing-hero-slide landing-hero-slide-01 landing-hero-slide-motion-a absolute inset-0 size-full object-cover'
             data-testid='landing-hero-slide'

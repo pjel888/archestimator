@@ -30,14 +30,14 @@ export function TreeDragHandle({ forceVisible, className }: TreeDragHandleProps)
       className={cn(
         "grid size-4 shrink-0 place-items-center rounded-xs",
         "cursor-grab active:cursor-grabbing",
-        !forceVisible && "opacity-0 group-hover:opacity-100",
+        !forceVisible && "opacity-0 transition-opacity group-hover/tree-row:opacity-100 group-focus-within/tree-row:opacity-100",
         className,
       )}
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <DotsSixVertical size={16} weight="regular" className="text-tertiary group-hover:text-ink transition-colors" />
+      <DotsSixVertical size={16} weight="regular" className="text-tertiary group-hover/tree-row:text-ink transition-colors" />
     </span>
   );
 }
@@ -50,6 +50,10 @@ type TreeSelectionCheckboxProps = {
   checked: boolean;
   indeterminate?: boolean;
   disabled?: boolean;
+  /** Hide until the parent `group` row is hovered or focused. Checked and indeterminate rows stay visible. */
+  revealOnHover?: boolean;
+  /** Always show even when revealOnHover is set (e.g. while a bulk selection is active). */
+  forceVisible?: boolean;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   "aria-label": string;
 };
@@ -63,6 +67,8 @@ export function TreeSelectionCheckbox({
   checked,
   indeterminate,
   disabled,
+  revealOnHover,
+  forceVisible,
   onChange,
   "aria-label": ariaLabel,
 }: TreeSelectionCheckboxProps) {
@@ -84,7 +90,14 @@ export function TreeSelectionCheckbox({
 
   return (
     <span
-      className="flex items-center shrink-0"
+      className={cn(
+        "flex items-center shrink-0",
+        revealOnHover &&
+          !forceVisible &&
+          !checked &&
+          !indeterminate &&
+          "opacity-0 transition-opacity focus-within:opacity-100 group-hover/tree-row:opacity-100 group-focus-within/tree-row:opacity-100",
+      )}
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}

@@ -1,10 +1,23 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, within } from "@testing-library/react";
+import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
-import { LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
-import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
+import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { useEstimateWorkshopDragState } from "@/components/workshop/estimate-workshop-drag";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+
+const templateActionMocks = vi.hoisted(() => ({
+  renameEstimateTemplate: vi.fn(),
+  deleteEstimateTemplate: vi.fn(),
+}));
+
+vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
+  renameEstimateTemplate: templateActionMocks.renameEstimateTemplate,
+  deleteEstimateTemplate: templateActionMocks.deleteEstimateTemplate,
+}));
 
 const sidebarSeedItems = estimateLibraryItems.slice(0, 8);
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
@@ -65,6 +78,11 @@ function openComponentViewMenu() {
   return screen.getByRole("menu", { name: "Component view mode" });
 }
 
+function openLibrarySearch() {
+  fireEvent.click(screen.getByRole("button", { name: "Show library tree search" }));
+  return screen.getByLabelText("Search Library Tree");
+}
+
 describe("component library UI", () => {
   beforeAll(() => {
     if (!window.PointerEvent) {
@@ -81,41 +99,109 @@ describe("component library UI", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the sidebar without a title bar and with full-width search", () => {
+  it("renders the sidebar without a title bar and with a search disclosure", () => {
     renderSidebar();
     expect(screen.queryByRole("heading", { name: "Library" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Search Library Tree")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show library tree search" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /new/i })).not.toBeInTheDocument();
   });
 
-  it("shows search input with placeholder", () => {
+  it("opens and closes the search dropdown from the toolbar toggle", () => {
     renderSidebar();
+    openLibrarySearch();
     expect(screen.getByPlaceholderText("Search Library Tree")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hide library tree search" }));
+    expect(screen.queryByPlaceholderText("Search Library Tree")).not.toBeInTheDocument();
+  });
+
+  it("opens the search dropdown with the slash shortcut", () => {
+    renderSidebar();
+    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "/" });
+    expect(screen.getByLabelText("Search Library Tree")).toBeInTheDocument();
+  });
+
+  it("keeps the search dropdown open on outside clicks while a query is active", () => {
+    renderSidebar();
+    const search = openLibrarySearch();
+
+    fireEvent.change(search, { target: { value: "love" } });
+    fireEvent.pointerDown(document.body);
+    expect(screen.getByLabelText("Search Library Tree")).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "" } });
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
+  });
+
+  it("cascade-selects folders and bulk-adds the selected components from the dock", () => {
+    const onInsert = vi.fn(() => true);
+    renderSidebar({ onInsertComponent: onInsert, selectedNodeKind: "area", selectedNodeName: "Kitchen" });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Furniture" }));
+    expect(screen.getByRole("checkbox", { name: "Select HEMLINGBY Loveseat" })).toBeChecked();
+
+    const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
+    fireEvent.click(within(dock).getByRole("button", { name: "Add selected components" }));
+
+    expect(onInsert).toHaveBeenCalledWith(expect.objectContaining<Partial<EstimateRowItem>>({ id: "lib-sofa" }));
+    expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
+  });
+
+  it("bulk-deletes selected components from the dock with undo", () => {
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select HEMLINGBY Loveseat" }));
+    const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
+    fireEvent.click(within(dock).getByRole("button", { name: "Delete selected components" }));
+
+    const dialog = screen.getByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete selected" }));
+
+    expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
   });
 
   it("shows left-aligned icon-only tools with tooltips and tree controls", () => {
-    renderSidebar();
+    const { container } = renderSidebar();
     expect(screen.getByLabelText("Library tree tools")).toBeInTheDocument();
     expect(screen.queryByText(/\d+ components?/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand all library tree" })).toHaveAttribute("title", "Expand all library tree");
     expect(screen.getByRole("button", { name: "Collapse all library tree" })).toHaveAttribute("title", "Collapse all library tree");
-    expect(screen.getByRole("button", { name: "Add library tree" })).toHaveAttribute("title", "Add library tree");
+    expect(screen.getByRole("button", { name: "Add Component" })).toHaveAttribute("title", "Add Component");
+    expect(
+      Array.from(screen.getByLabelText("Library tree tools").querySelectorAll("button")).map((button) =>
+        button.getAttribute("aria-label"),
+      ),
+    ).toEqual([
+      "Show library tree search",
+      "Filter library tree",
+      "Group library tree",
+      "Expand all library tree",
+      "Collapse all library tree",
+      "View by: Default",
+      "Add Component",
+      "Add Template",
+    ]);
     expect(screen.queryByText("Price range")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Group library by")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Sort library")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Export components" })).not.toBeInTheDocument();
 
     const stickyHeader = screen.getByLabelText("Library tree tools").closest(".sticky");
-    expect(stickyHeader?.children).toHaveLength(3); // search, toolbar, tabs
+    expect(stickyHeader?.children).toHaveLength(2); // toolbar + search disclosure, tabs
+    expect(container.querySelector(".min-h-0.flex-1.overflow-auto > .h-8.w-full.bg-white")).toBeNull();
     expect(screen.queryByRole("menu", { name: "Component view mode" })).not.toBeInTheDocument();
     openComponentViewMenu();
-    expect(stickyHeader?.children).toHaveLength(4); // search, toolbar, tabs, view menu
+    expect(stickyHeader?.children).toHaveLength(3); // toolbar + search disclosure, tabs, view menu
   });
 
   it("matches the component library route navigation contract", () => {
     renderSidebar();
     const tabs = screen.getByRole("tablist", { name: "Library tree views" });
-    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
+    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components", "Templates"]);
     expect(within(tabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("tab", { name: "Categories" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
@@ -128,21 +214,24 @@ describe("component library UI", () => {
     expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
   });
 
-  it("opens the new component form in a viewport modal from the plus tool", () => {
+  it("opens the shared Add Component modal from the add component tool", async () => {
     const { container } = renderSidebar();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add library tree" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
-    const dialog = screen.getByRole("dialog", { name: "New component" });
+    // The estimate sidebar reuses the Components-page AddComponentModal; it
+    // loads through next/dynamic, so the dialog appears asynchronously — and
+    // the chunk transform can take a while on a loaded machine.
+    const dialog = await screen.findByRole("dialog", { name: "Add Component" }, { timeout: 15000 });
     expect(dialog).toBeInTheDocument();
     expect(dialog.closest("[data-archestimator-modal-root]")).toHaveClass("fixed", "inset-0", "z-[1000]");
     expect(container.querySelector("[role='dialog']")).toBeNull();
-    expect(screen.getByLabelText("Component name")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Name")).toBeInTheDocument();
   });
 
   it("shows empty state when search returns no results", () => {
     renderSidebar();
-    const search = screen.getByPlaceholderText("Search Library Tree");
+    const search = openLibrarySearch();
     fireEvent.change(search, { target: { value: "xyz-nonexistent-12345" } });
     expect(screen.getByText(/No matches for/i)).toBeInTheDocument();
   });
@@ -214,10 +303,10 @@ describe("component library UI", () => {
     expect(onInsert).not.toHaveBeenCalled();
   });
 
-  it("does not render bulk selection, assemblies, templates, import, or export controls", () => {
+  it("renders bulk selection without assemblies, templates, import, or export controls", () => {
     renderSidebar();
 
-    expect(screen.queryByLabelText(`Select ${sidebarSeedItems[0].material}`)).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: `Select ${sidebarSeedItems[0].material}` })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save assembly" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save template" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Import library file")).not.toBeInTheDocument();
@@ -225,15 +314,29 @@ describe("component library UI", () => {
     expect(screen.queryByRole("button", { name: "Export components as CSV" })).not.toBeInTheDocument();
   });
 
-  it("does not expose static estimate templates when no templates are provided", () => {
+  it("always shows the Templates tab with an empty state instead of static templates", () => {
     renderSidebar();
 
-    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+
+    expect(screen.getByText(/No templates yet/i)).toBeInTheDocument();
     expect(screen.queryByText("Condo Fit-Out Starter")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Add template Condo Fit-Out Starter/i })).not.toBeInTheDocument();
   });
 
-  it("does not crash when localStorage writes fail", () => {
+  it("applies stored view-mode prefs after mount without clobbering them", async () => {
+    window.localStorage.setItem(LIBRARY_PREFS_KEY, JSON.stringify({ activeTab: "components", componentViewMode: "suppliers" }));
+
+    renderSidebar();
+    // First render matches SSR output: stored prefs only apply after mount.
+    expect(screen.getByRole("button", { name: "View by: Default" })).toBeInTheDocument();
+
+    expect(await screen.findByRole("button", { name: "View by: Suppliers" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "All Suppliers" })).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(LIBRARY_PREFS_KEY) ?? "{}").componentViewMode).toBe("suppliers");
+  });
+
+  it("does not crash when localStorage writes fail", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const originalLocalStorage = window.localStorage;
     Object.defineProperty(window, "localStorage", {
@@ -246,11 +349,17 @@ describe("component library UI", () => {
       },
     });
 
-    renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: "Expand all library tree" }));
+    try {
+      renderSidebar();
+      // Stored prefs hydrate in a mount microtask; persistence is gated on it.
+      await Promise.resolve();
+      const viewMode = openComponentViewMenu();
+      fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Failed to persist"), expect.any(Error));
-    Object.defineProperty(window, "localStorage", { configurable: true, value: originalLocalStorage });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("Failed to persist"), expect.any(Error));
+    } finally {
+      Object.defineProperty(window, "localStorage", { configurable: true, value: originalLocalStorage });
+    }
   });
 
   it("dismisses delete confirmation with Escape", () => {
@@ -313,19 +422,18 @@ describe("component library UI", () => {
     expect(screen.getByText("Legacy supplier note")).toBeInTheDocument();
   });
 
-  it("keeps slash shortcut from focusing search behind the component modal", () => {
+  it("keeps slash shortcut from opening search behind the component modal", () => {
     renderSidebar();
-    const search = screen.getByLabelText("Search Library Tree");
-    fireEvent.click(screen.getByRole("button", { name: "Add library tree" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
     fireEvent.keyDown(window, { key: "/" });
-    expect(search).not.toHaveFocus();
+    expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
   });
 
   it("shows taxonomy folders in the tree", () => {
     renderSidebar();
-    expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("treeitem", { name: "Administration" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "All Components" })).not.toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Administration" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("treeitem", { name: "Project Requirements" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Objects" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
@@ -381,20 +489,20 @@ describe("component library UI", () => {
     expect(folder).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("uses the compact shared tree rhythm for folders and component rows", () => {
+  it("uses the shared ui Tree rows for folders and component rows", () => {
     renderSidebar();
 
-    const folder = screen.getByRole("treeitem", { name: "All Components" });
-    expect(folder).toHaveClass("min-h-7", "!text-[10px]", "leading-4");
-    expect(folder).toHaveClass("w-full");
-    expect(folder.closest("[data-workshop-tree-row]")).toBe(folder);
-    expect(folder.closest('ul[role="tree"]')).toHaveClass("space-y-0");
-    expect(folder).not.toHaveAttribute("draggable");
+    expect(screen.getByRole("tree", { name: "Library components" })).toBeInTheDocument();
+
+    const folder = screen.getByRole("treeitem", { name: "Administration" });
+    expect(folder).toHaveClass("min-h-7", "text-[10px]");
+    expect(folder.closest("[data-tree-row]")).toBe(folder);
+    // Folders drag too now: sibling reordering is enabled in the sidebar.
+    expect(folder).toHaveAttribute("draggable", "true");
 
     const item = screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" });
-    expect(item).toHaveClass("min-h-7", "w-full");
-    expect(item.closest("[data-workshop-tree-row]")).toBe(item);
-    expect(item.closest('ul[role="group"]')).toHaveClass("space-y-0");
+    expect(item).toHaveClass("min-h-7", "text-[10px]");
+    expect(item.closest("[data-tree-row]")).toBe(item);
     expect(item.querySelector("[data-component-library-tree-label]")).toHaveClass("text-[10px]", "leading-4");
     expect(item).toHaveAttribute("draggable", "true");
   });
@@ -403,7 +511,7 @@ describe("component library UI", () => {
     const onInsert = vi.fn();
     renderSidebar({ onInsertComponent: onInsert, selectedNodeKind: "area", selectedNodeName: "Kitchen" });
 
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "All Components" }), { clientX: 16, clientY: 16 });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Administration" }), { clientX: 16, clientY: 16 });
     expect(await screen.findByRole("menuitem", { name: "Select" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Collapse" })).toBeInTheDocument();
 
@@ -413,5 +521,280 @@ describe("component library UI", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Add to Kitchen" }));
 
     expect(onInsert).toHaveBeenCalledWith(expect.objectContaining<Partial<EstimateRowItem>>({ id: "lib-sofa" }));
+  });
+
+  it("exposes component CRUD through the row context menu", async () => {
+    renderSidebar({ selectedNodeKind: "area", selectedNodeName: "Kitchen" });
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Administration" }), { clientX: 16, clientY: 16 });
+    expect(await screen.findByRole("menuitem", { name: "New Component" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" }), { clientX: 16, clientY: 16 });
+    expect(await screen.findByRole("menuitem", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Duplicate" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Add to favorites" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate" }));
+    expect(await screen.findByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).toBeInTheDocument();
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat copy" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat copy" })).not.toBeInTheDocument();
+  });
+
+  it("opens the create-template modal when the sheets tree hands a node over", async () => {
+    const sidebarEstimateNodes: EstimateTreeNode[] = [
+      {
+        id: "main-house",
+        name: "Main House",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          { id: "powder-room", name: "Powder Room", kind: "area", total: "₱0.00", children: [], estimateRowItems: [] },
+        ],
+      },
+    ];
+    renderSidebar({ estimateId: "estimate-1", projectId: "project-1", nodes: sidebarEstimateNodes });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("archestimator:create-template-from-node", { detail: { sourceNodeId: "powder-room" } }),
+      );
+    });
+
+    expect(await screen.findByText("Powder Room")).toBeInTheDocument();
+    expect(screen.getByText(/Area node · 0 groups · 1 areas · 0 rows/)).toBeInTheDocument();
+  });
+});
+
+describe("templates tree", () => {
+  const templateRowItem: EstimateRowItem = {
+    ...sharedLibraryItems[0],
+    id: "tpl-row-1",
+    material: "Template Steel Frame",
+    name: "Template Steel Frame",
+    quantity: 2,
+    subTotal: 2400,
+    totalItemCosts: 2400,
+  };
+
+  const sidebarTemplates: EstimateTemplate[] = [
+    {
+      id: "tpl-1",
+      name: "Kitchen Starter",
+      description: "Base kitchen fit-out",
+      category: "Rooms",
+      nodes: [
+        {
+          id: "tpl-1-root",
+          name: "Kitchen Fit-Out",
+          kind: "area",
+          total: "PHP 2,400.00",
+          children: [],
+          estimateRowItems: [templateRowItem],
+        },
+      ],
+    },
+  ];
+
+  function createDataTransferStub() {
+    const store = new Map<string, string>();
+    const types: string[] = [];
+    return {
+      types,
+      dropEffect: "none",
+      effectAllowed: "all",
+      setData: vi.fn((type: string, value: string) => {
+        store.set(type, value);
+        if (!types.includes(type)) types.push(type);
+      }),
+      getData: vi.fn((type: string) => store.get(type) ?? ""),
+      setDragImage: vi.fn(),
+    };
+  }
+
+  function openTemplatesTab(props: ComponentProps<typeof EstimateRightSidebar> = {}) {
+    renderSidebar({ templates: sidebarTemplates, ...props });
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+  }
+
+  beforeEach(() => {
+    useEstimateWorkshopDragState.setState({ activeDrag: null });
+    templateActionMocks.renameEstimateTemplate.mockReset();
+    templateActionMocks.deleteEstimateTemplate.mockReset();
+  });
+
+  it("renders templates as a uniform node tree with costs and no structure counts", () => {
+    openTemplatesTab();
+
+    // The category reads as a plain group node row: name + summed cost only.
+    const categoryRow = screen.getByRole("treeitem", { name: "Rooms templates" });
+    expect(within(categoryRow).getByText("₱2,400.00")).toBeInTheDocument();
+    expect(within(categoryRow).queryByText(/template/i)).not.toBeInTheDocument();
+
+    const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    expect(within(templateRow).getByText("₱2,400.00")).toBeInTheDocument();
+    expect(within(templateRow).queryByText(/groups · .* areas · .* rows/)).not.toBeInTheDocument();
+    expect(templateRow).toHaveAttribute("draggable", "true");
+  });
+
+  it("reveals the template's internal structure, with every row draggable, when expanded", () => {
+    openTemplatesTab();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" }));
+
+    const innerArea = screen.getByRole("treeitem", { name: "Kitchen Fit-Out template area" });
+    expect(innerArea).toHaveAttribute("draggable", "true");
+
+    fireEvent.click(innerArea);
+    const componentLeaf = screen.getByRole("treeitem", { name: "Template Steel Frame template component" });
+    expect(componentLeaf).toHaveAttribute("draggable", "true");
+  });
+
+  it("drags a group/area from inside a template carrying that subtree", () => {
+    openTemplatesTab();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" }));
+    const innerArea = screen.getByRole("treeitem", { name: "Kitchen Fit-Out template area" });
+
+    const dataTransfer = createDataTransferStub();
+    fireEvent.dragStart(innerArea, { dataTransfer });
+
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      "application/x-archestimator-estimate-template",
+      JSON.stringify({ templateId: "tpl-1", templateNodeId: "tpl-1-root" }),
+    );
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toEqual({
+      kind: "estimate-template",
+      templateName: "Kitchen Fit-Out",
+    });
+
+    fireEvent.dragEnd(innerArea, { dataTransfer });
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
+  });
+
+  it("bulk-adds a checked inner node as a subtree unit", () => {
+    const onInsertTemplateNode = vi.fn(() => true);
+    openTemplatesTab({ onInsertTemplateNode, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen Fit-Out" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertTemplateNode).toHaveBeenCalledTimes(1);
+    expect(onInsertTemplateNode).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "tpl-1" }),
+      expect.objectContaining({ id: "tpl-1-root", name: "Kitchen Fit-Out" }),
+    );
+  });
+
+  it("stamps the template drag payload and publishes the workshop drag for its lifetime", () => {
+    openTemplatesTab();
+
+    const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    const dataTransfer = createDataTransferStub();
+    fireEvent.dragStart(templateRow, { dataTransfer });
+
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      "application/x-archestimator-estimate-template",
+      JSON.stringify({ templateId: "tpl-1" }),
+    );
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toEqual({
+      kind: "estimate-template",
+      templateId: "tpl-1",
+      templateName: "Kitchen Starter",
+    });
+
+    fireEvent.dragEnd(templateRow, { dataTransfer });
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
+  });
+
+  it("drags a whole category carrying every template inside it", () => {
+    openTemplatesTab();
+
+    const categoryRow = screen.getByRole("treeitem", { name: "Rooms templates" });
+    expect(categoryRow).toHaveAttribute("draggable", "true");
+
+    const dataTransfer = createDataTransferStub();
+    fireEvent.dragStart(categoryRow, { dataTransfer });
+
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      "application/x-archestimator-estimate-template",
+      JSON.stringify({ templateIds: ["tpl-1"] }),
+    );
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toEqual({
+      kind: "estimate-template",
+      templateName: "Rooms templates",
+    });
+
+    fireEvent.dragEnd(categoryRow, { dataTransfer });
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
+  });
+
+  it("keeps rows button-free and disables context-menu insertion until a group target exists", async () => {
+    openTemplatesTab({ selectedNodeKind: "area", selectedNodeName: "Kitchen" });
+
+    // Adding goes through drag or right-click only — rows keep no add
+    // buttons (the expand caret is structural, not an action).
+    const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    expect(within(templateRow).queryByRole("button", { name: /add/i })).not.toBeInTheDocument();
+
+    fireEvent.contextMenu(templateRow, { clientX: 16, clientY: 16 });
+    expect(await screen.findByRole("menuitem", { name: "Add to estimate" })).toHaveAttribute("data-disabled");
+  });
+
+  it("bulk-adds checked templates to the selected group", () => {
+    const onInsertTemplate = vi.fn(() => true);
+    openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen Starter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertTemplate).toHaveBeenCalledTimes(1);
+    expect(onInsertTemplate).toHaveBeenCalledWith(expect.objectContaining({ id: "tpl-1" }));
+  });
+
+  it("renames a template from its context menu", async () => {
+    templateActionMocks.renameEstimateTemplate.mockResolvedValue({ templateId: "tpl-1", name: "Kitchen Deluxe" });
+    openTemplatesTab();
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    const nameInput = await screen.findByLabelText("Template name");
+    expect(nameInput).toHaveValue("Kitchen Starter");
+    fireEvent.change(nameInput, { target: { value: "Kitchen Deluxe" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save name" }));
+
+    await waitFor(() => expect(screen.getByRole("treeitem", { name: "Kitchen Deluxe estimate template" })).toBeInTheDocument());
+    expect(templateActionMocks.renameEstimateTemplate).toHaveBeenCalledWith({ templateId: "tpl-1", name: "Kitchen Deluxe" });
+  });
+
+  it("deletes a template from its context menu after confirmation", async () => {
+    templateActionMocks.deleteEstimateTemplate.mockResolvedValue({ templateId: "tpl-1" });
+    openTemplatesTab();
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete template" }));
+
+    await waitFor(() => expect(screen.queryByRole("treeitem", { name: "Kitchen Starter estimate template" })).not.toBeInTheDocument());
+    expect(templateActionMocks.deleteEstimateTemplate).toHaveBeenCalledWith({ templateId: "tpl-1" });
+    expect(screen.getByText(/No templates yet/i)).toBeInTheDocument();
+  });
+
+  it("starts a new template from a category with the category prefilled", async () => {
+    openTemplatesTab();
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Rooms templates" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "New Template" }));
+
+    expect(await screen.findByLabelText("Template group")).toHaveValue("Rooms");
   });
 });

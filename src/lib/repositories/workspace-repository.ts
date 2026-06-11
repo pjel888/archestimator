@@ -7,7 +7,7 @@ import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { getEstimateNodeKindSortRank, normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import type {
   CollaborationInvitationSummary,
@@ -829,21 +829,6 @@ export async function listCurrentWorkspaceProjects() {
   };
 }
 
-function createFirstNodeMap(nodes: Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "kind">[]) {
-  const firstNodeByEstimateId = new Map<string, string>();
-  for (const node of nodes) {
-    if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) {
-      firstNodeByEstimateId.set(node.estimate_id, node.id);
-    }
-  }
-  for (const node of nodes) {
-    if (!firstNodeByEstimateId.has(node.estimate_id)) {
-      firstNodeByEstimateId.set(node.estimate_id, node.id);
-    }
-  }
-  return firstNodeByEstimateId;
-}
-
 function mergeHomebaseRecords<T extends { id: string }>(primary: T[], secondary: T[]) {
   const byId = new Map<string, T>();
   for (const record of [...primary, ...secondary]) {
@@ -1026,12 +1011,12 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   if (estimateIds.length > 0) {
     const { data, error } = await supabase
       .from("estimate_nodes")
-      .select("id, estimate_id, kind, sort_order")
+      .select("id, estimate_id, kind, parent_id, sort_order")
       .in("estimate_id", estimateIds)
       .order("sort_order", { ascending: true });
 
     if (error) throw error;
-    firstNodeByEstimateId = createFirstNodeMap(data ?? []);
+    firstNodeByEstimateId = selectFirstEstimateNodeIds(data ?? []);
   }
 
   return {
@@ -1360,7 +1345,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   const [nodesResult, rowsResult] = await Promise.all([
     supabase
       .from("estimate_nodes")
-      .select("id, estimate_id, kind, sort_order")
+      .select("id, estimate_id, kind, parent_id, sort_order")
       .in("estimate_id", estimateIds)
       .order("sort_order", { ascending: true }),
     supabase
@@ -1372,14 +1357,10 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   if (nodesResult.error) throw nodesResult.error;
   if (rowsResult.error) throw rowsResult.error;
 
-  const firstNodeByEstimateId = new Map<string, string>();
+  const firstNodeByEstimateId = selectFirstEstimateNodeIds(nodesResult.data ?? []);
   const nodeCountByEstimateId = new Map<string, number>();
   for (const node of nodesResult.data ?? []) {
     nodeCountByEstimateId.set(node.estimate_id, (nodeCountByEstimateId.get(node.estimate_id) ?? 0) + 1);
-    if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
-  }
-  for (const node of nodesResult.data ?? []) {
-    if (!firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
   }
 
   const totalCostByEstimateId = new Map<string, number>();
@@ -1427,6 +1408,40 @@ type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
 type EstimateNodeRow = Tables<"estimate_nodes">;
 type EstimateRowItemRow = Tables<"estimate_row_items">;
 
+// Estimate-sheet tree loads fetch every node and row of the estimate, so the
+// column list is explicit: only fields consumed by buildEstimateTree/toUiRow.
+// source_snapshot stays — linked-row display (image, category, price option,
+// lifecycle, pricing provenance) reads it. If toUiRow gains a field, add the
+// column here or the Pick types below fail the build.
+const ESTIMATE_TREE_NODE_COLUMNS = "id, kind, name, parent_id";
+const ESTIMATE_TREE_ROW_ITEM_COLUMNS =
+  "id, node_id, material, description, supplier, supplier_id, unit, unit_cost, quantity, contingency_percentage, misc_cost, row_revision, category_node_id, discipline, designation, source_library_item_id, link_state, source_snapshot, metadata, created_at";
+
+export type EstimateTreeNodeQueryRow = Pick<EstimateNodeRow, "id" | "kind" | "name" | "parent_id">;
+export type EstimateTreeRowItemQueryRow = Pick<
+  EstimateRowItemRow,
+  | "id"
+  | "node_id"
+  | "material"
+  | "description"
+  | "supplier"
+  | "supplier_id"
+  | "unit"
+  | "unit_cost"
+  | "quantity"
+  | "contingency_percentage"
+  | "misc_cost"
+  | "row_revision"
+  | "category_node_id"
+  | "discipline"
+  | "designation"
+  | "source_library_item_id"
+  | "link_state"
+  | "source_snapshot"
+  | "metadata"
+  | "created_at"
+>;
+
 type LiveEstimateTreeResult = {
   workspace: Tables<"workspaces">;
   project: Tables<"projects"> | null;
@@ -1463,7 +1478,7 @@ function readJsonRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
+function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const quantity = Number(row.quantity);
   const itemCost = Number(row.unit_cost);
   const contingencyPercentage = Number(row.contingency_percentage ?? 0);
@@ -1526,7 +1541,7 @@ function limitTreeRows<T>(rows: T[], limit: number | null): { rows: T[]; didExce
   };
 }
 
-export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]): EstimateTreeNode[] {
+export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: EstimateTreeRowItemQueryRow[]): EstimateTreeNode[] {
   const rowItemsByNode = new Map<string, EstimateRowItem[]>();
   for (const row of rows) {
     const current = rowItemsByNode.get(row.node_id) ?? [];
@@ -1557,16 +1572,6 @@ export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowIte
     else roots.push(uiNode);
   }
 
-  function sortSiblings(currentNodes: EstimateTreeNode[]): EstimateTreeNode[] {
-    return currentNodes
-      .map((node, index) => ({ node, index }))
-      .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
-      .map(({ node }) => {
-        node.children = sortSiblings(node.children ?? []);
-        return node;
-      });
-  }
-
   function computeTotals(node: EstimateTreeNode): number {
     const rowTotal = (node.estimateRowItems ?? []).reduce((total, row) => total + row.totalItemCosts, 0);
     const childTotal = (node.children ?? []).reduce((total, child) => total + computeTotals(child), 0);
@@ -1575,9 +1580,11 @@ export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowIte
     return total;
   }
 
-  const sortedRoots = sortSiblings(roots);
-  sortedRoots.forEach(computeTotals);
-  return sortedRoots;
+  // Sibling order is the stored sort_order (the node query orders by it):
+  // the tree, the sheet, and node codes all read this one order, so no
+  // display-side re-sorting (e.g. groups-before-areas) may reorder siblings.
+  roots.forEach(computeTotals);
+  return roots;
 }
 
 export async function getProjectEstimateTreeByEstimate(
@@ -1601,8 +1608,8 @@ export async function getProjectEstimateTreeByEstimate(
 
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const nodesQuery = supabase.from("estimate_nodes").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
-  const rowsQuery = supabase.from("estimate_row_items").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
+  const nodesQuery = supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
+  const rowsQuery = supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
 
   const [nodesResult, rowsResult] = await Promise.all([
     maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
@@ -1649,8 +1656,8 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
 
   const estimate = normalizeEstimateRecord(selectedNode.estimates as EstimateRecordWithLegacy);
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase.from("estimate_nodes").select("*").eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
-    supabase.from("estimate_row_items").select("*").eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
+    supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
+    supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
   ]);
 
   if (nodesResult.error) throw nodesResult.error;

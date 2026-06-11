@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -61,7 +61,7 @@ describe("ProjectChartsClient", () => {
     expect(screen.getAllByTestId("project-chart-column")).toHaveLength(1);
     expect(await screen.findAllByTestId("d3-donut-chart")).toHaveLength(1);
     expect(screen.queryByTestId("d3-bubble-chart")).not.toBeInTheDocument();
-    expect(screen.getByDisplayValue("Baseline")).toBeInTheDocument();
+    expect(screen.getByLabelText("Chart 1 estimate")).toHaveTextContent("Baseline");
     expect(screen.queryByText("EST-001 · Baseline")).not.toBeInTheDocument();
     expect(screen.getByTestId("chart-1-total")).toHaveTextContent("₱225");
     expect(screen.getByRole("columnheader", { name: "Space" })).toBeInTheDocument();
@@ -132,6 +132,30 @@ describe("ProjectChartsClient", () => {
     expect(screen.queryByTestId("d3-donut-chart")).not.toBeInTheDocument();
     expect(await screen.findByTestId("d3-bubble-chart")).toBeInTheDocument();
     expect((await screen.findAllByTestId("bubble-node")).length).toBeGreaterThan(0);
+  });
+
+  it("changes a column's estimate through the dropdown and restores focus to the remounted trigger", async () => {
+    render(<ProjectChartsClient data={chartData()} initialGroupingMode="space" initialLeftEstimateId="estimate-a" initialRightEstimateId="estimate-b" />);
+
+    const picker = screen.getByLabelText("Chart 1 estimate");
+    expect(picker).toHaveTextContent("Baseline");
+
+    fireEvent.click(picker);
+    const listbox = screen.getByRole("listbox");
+    expect(listbox.parentElement).toBe(document.body);
+
+    fireEvent.click(screen.getByRole("option", { name: "Revision" }));
+
+    // Committing remounts the column (key carries the estimate id); the
+    // replacement trigger shows the new value and regains focus.
+    const replacement = screen.getByLabelText("Chart 1 estimate");
+    expect(replacement).toHaveTextContent("Revision");
+    expect(screen.queryByRole("listbox")).toBeNull();
+
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    });
+    expect(document.activeElement).toBe(screen.getByLabelText("Chart 1 estimate"));
   });
 });
 

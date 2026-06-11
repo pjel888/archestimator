@@ -62,7 +62,7 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
 }
 
 function treeNode(id: string) {
-  const element = document.querySelector(`[data-estimate-tree-node-id="${id}"]`);
+  const element = document.querySelector(`[data-tree-row="${id}"]`);
   if (!(element instanceof HTMLElement)) throw new Error(`Missing tree node ${id}`);
   return element;
 }
@@ -92,13 +92,16 @@ describe("estimate tree bulk selection", () => {
     expect(treeNode("kitchen")).toHaveAttribute("aria-current", "page");
     expect(treeNode("living")).not.toHaveAttribute("aria-current");
     expect(routerMock.push).not.toHaveBeenCalled();
-    expect(screen.getByRole("toolbar", { name: "Bulk actions" })).toHaveTextContent("1 node selected");
+    const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
+    expect(dock).toHaveTextContent(/1\s*node selected/);
+    expect(within(dock).getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
+    expect(within(dock).getByRole("button", { name: "Clear selection" })).toBeInTheDocument();
   });
 
   it("checking a parent selects descendants and renders the parent indeterminate after one child is cleared", async () => {
     renderTree();
 
-    const groundFloorCheckbox = screen.getByRole("checkbox", { name: "Select Ground Floor" }) as HTMLInputElement;
+    const groundFloorCheckbox = screen.getByRole("checkbox", { name: "Select Ground Floor" });
     fireEvent.click(groundFloorCheckbox);
 
     expect(screen.getByRole("checkbox", { name: "Select Kitchen" })).toBeChecked();
@@ -106,8 +109,7 @@ describe("estimate tree bulk selection", () => {
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen" }));
 
-    await waitFor(() => expect(groundFloorCheckbox.indeterminate).toBe(true));
-    expect(groundFloorCheckbox).not.toBeChecked();
+    await waitFor(() => expect(groundFloorCheckbox).toHaveAttribute("aria-checked", "mixed"));
   });
 
   it("bulk deletes selected nodes with optimistic removal and server confirmation", async () => {
@@ -144,8 +146,8 @@ describe("estimate tree bulk selection", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["living"]));
-    await waitFor(() => expect(document.querySelector('[data-estimate-tree-node-id="living"]')).not.toBeInTheDocument());
-    expect(screen.queryByRole("toolbar", { name: "Bulk actions" })).not.toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-tree-row="living"]')).not.toBeInTheDocument());
+    expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
   });
 
   it("bulk delete deduplicates parent and child selections before calling the server", async () => {

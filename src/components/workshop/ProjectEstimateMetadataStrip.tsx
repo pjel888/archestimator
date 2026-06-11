@@ -50,7 +50,7 @@ function subscribeToProjectEstimateMetadata(onStoreChange: () => void) {
   return () => window.removeEventListener(PROJECT_ESTIMATE_METADATA_CHANGE_EVENT, onStoreChange);
 }
 
-function useProjectEstimateMetadata() {
+export function useProjectEstimateMetadata() {
   return useSyncExternalStore(subscribeToProjectEstimateMetadata, getProjectEstimateMetadataSnapshot, () => null);
 }
 
@@ -89,6 +89,8 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
 
 export function ProjectEstimateMetadataStrip() {
   const metadata = useProjectEstimateMetadata();
+
+  if (!metadata) return null;
 
   return <ProjectEstimateMetadataStripGrid metadata={metadata} />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
+import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import * as React from "react";
 
 import { cn } from "@/lib/ui";
@@ -60,9 +61,7 @@ function ContextMenuSubTrigger({
       {...props}
     >
       {children}
-      <span className="ml-auto text-[9px] font-medium text-tertiary" aria-hidden="true">
-        &gt;
-      </span>
+      <CaretRight weight="regular" className="ml-auto !size-2.5 text-tertiary" aria-hidden="true" />
     </ContextMenuPrimitive.SubTrigger>
   );
 }
@@ -75,7 +74,7 @@ function ContextMenuSubContent({
     <ContextMenuPrimitive.SubContent
       data-slot="context-menu-sub-content"
       className={cn(
-        "z-[1050] min-w-32 origin-(--radix-context-menu-content-transform-origin) overflow-hidden rounded-xs border border-hairline bg-white p-1 text-ink shadow-[0_12px_32px_rgba(17,24,39,0.12)] data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+        "z-[1050] min-w-36 origin-(--radix-context-menu-content-transform-origin) overflow-hidden rounded-xs border border-hairline bg-white p-1 text-ink shadow-[0_12px_32px_rgba(17,24,39,0.12)] data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}
@@ -92,7 +91,7 @@ function ContextMenuContent({
       <ContextMenuPrimitive.Content
         data-slot="context-menu-content"
         className={cn(
-          "z-[1050] max-h-(--radix-context-menu-content-available-height) min-w-32 origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xs border border-hairline bg-white p-1 text-ink shadow-[0_12px_32px_rgba(17,24,39,0.12)] data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "z-[1050] max-h-(--radix-context-menu-content-available-height) min-w-36 origin-(--radix-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-xs border border-hairline bg-white p-1 text-ink shadow-[0_12px_32px_rgba(17,24,39,0.12)] data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className,
         )}
         {...props}

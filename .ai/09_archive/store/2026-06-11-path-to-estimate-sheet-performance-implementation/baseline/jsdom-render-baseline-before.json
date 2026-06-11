@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-06-10T20:21:20.259Z",
+  "note": "Local jsdom render/keystroke profile. Not a production Chrome trace; use for relative before/after comparison only.",
+  "profiles": [
+    {
+      "scenario": "sheet-50",
+      "rowCount": 50,
+      "areaCount": 5,
+      "initialRenderMs": 176.69,
+      "keystrokes": 10,
+      "keystrokeMsAvg": 19.55,
+      "keystrokeMsWorst": 36.72,
+      "editedTableRenders": 9,
+      "otherTableRendersTotal": 45,
+      "otherTableCount": 4
+    },
+    {
+      "scenario": "sheet-200",
+      "rowCount": 200,
+      "areaCount": 10,
+      "initialRenderMs": 287.27,
+      "keystrokes": 10,
+      "keystrokeMsAvg": 82.03,
+      "keystrokeMsWorst": 196.97,
+      "editedTableRenders": 9,
+      "otherTableRendersTotal": 90,
+      "otherTableCount": 9
+    },
+    {
+      "scenario": "sheet-500",
+      "rowCount": 500,
+      "areaCount": 10,
+      "initialRenderMs": 1119.26,
+      "keystrokes": 10,
+      "keystrokeMsAvg": 212.8,
+      "keystrokeMsWorst": 314.03,
+      "editedTableRenders": 9,
+      "otherTableRendersTotal": 90,
+      "otherTableCount": 9
+    }
+  ]
+}
