@@ -172,73 +172,6 @@ body:has([data-workshop-page-shell-root]) {
   fill: none;
 }
 
-@keyframes landing-company-marquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(calc(-50% - var(--landing-company-marquee-gap) / 2), 0, 0);
-  }
-}
-
-.landing-company-marquee {
-  --landing-company-marquee-gap: 3rem; /* matches gap-12 */
-  animation: landing-company-marquee 68s linear infinite;
-  will-change: transform;
-}
-
-@media (min-width: 64rem) {
-  .landing-company-marquee {
-    --landing-company-marquee-gap: 4rem; /* matches lg:gap-16 */
-  }
-}
-
-.landing-company-carousel-viewport:hover .landing-company-marquee,
-.landing-company-carousel-viewport:focus-within .landing-company-marquee {
-  animation-play-state: paused;
-}
-
-@keyframes landing-testimonial-crossfade {
-  0%,
-  27% {
-    opacity: 1;
-    filter: blur(0);
-    transform: translate3d(0, 0, 0);
-  }
-
-  33%,
-  94% {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translate3d(0, 0.5rem, 0);
-  }
-
-  100% {
-    opacity: 1;
-    filter: blur(0);
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-.landing-testimonial-slide {
-  grid-area: 1 / 1;
-  opacity: 0;
-  animation: landing-testimonial-crossfade 18s ease-in-out infinite;
-  will-change: opacity, filter, transform;
-}
-
-.landing-testimonial-slide-1 {
-  animation-delay: 0s;
-}
-
-.landing-testimonial-slide-2 {
-  animation-delay: -12s;
-}
-
-.landing-testimonial-slide-3 {
-  animation-delay: -6s;
-}
-
 .landing-hero-plus-grid {
   background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2714%27%20height=%2714%27%20viewBox=%270%200%2014%2014%27%3E%3Cpath%20d=%27M7%205v4M5%207h4%27%20stroke=%27white%27%20stroke-opacity=%27.42%27%20stroke-width=%27.7%27%20stroke-linecap=%27square%27/%3E%3C/svg%3E");
   background-repeat: repeat;
@@ -789,33 +722,6 @@ body:has([data-workshop-page-shell-root]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-company-carousel-viewport {
-    overflow-x: auto;
-  }
-
-  .landing-company-marquee {
-    width: max-content;
-    animation: none;
-    transform: none;
-    will-change: auto;
-  }
-
-  .landing-company-marquee > [aria-hidden="true"] {
-    display: none;
-  }
-
-  .landing-testimonial-slide {
-    animation: none;
-    filter: none;
-    opacity: 0;
-    transform: none;
-    will-change: auto;
-  }
-
-  .landing-testimonial-slide:first-child {
-    opacity: 1;
-  }
-
   .landing-hero-slide,
   .landing-hero-diagram-node,
   .landing-hero-flow-line::after,

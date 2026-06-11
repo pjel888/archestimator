@@ -43,24 +43,6 @@ const betaStats = [
   },
 ] as const;
 
-const testimonialSlides = [
-  {
-    quote: "The estimate finally reads like the work, not a spreadsheet we have to explain after the fact.",
-    source: "Estimating lead",
-    context: "Commercial interiors beta workflow",
-  },
-  {
-    quote: "Reusable assemblies make review calmer because the team can see what changed, where it changed, and why.",
-    source: "Preconstruction manager",
-    context: "General contractor beta workflow",
-  },
-  {
-    quote: "The handoff feels cleaner when the client-ready proposal is still tied to the original numbers.",
-    source: "Proposal owner",
-    context: "Specialty trade beta workflow",
-  },
-] as const;
-
 function FeatureVideoPlaceholder({ label }: { label: string }) {
   return (
     <div
@@ -108,17 +90,8 @@ function LaunchFeatureVideoPlaceholder() {
 }
 
 export function CompanyProofCarouselSection() {
-  const companyProofRail = (
-    <div
-      className="landing-company-carousel-viewport relative z-10 w-full overflow-hidden border-y border-[#e7ded6] bg-[#fffdf9] py-10 shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:py-11"
-      aria-hidden="true"
-    />
-  );
-
   return (
     <>
-      {companyProofRail}
-
       <AnimatedProposalRecordSection />
 
       <section
@@ -166,29 +139,6 @@ export function CompanyProofCarouselSection() {
               );
             })}
           </div>
-
-          <MotionReveal replayOnExit>
-            <div
-              aria-label="Closed beta testimonial carousel"
-              className="landing-testimonial-rotator relative mx-auto grid min-h-[90px] w-full max-w-[960px] place-items-center text-center sm:min-h-[100px]"
-            >
-              {testimonialSlides.map((testimonial, index) => (
-                <figure
-                  key={testimonial.quote}
-                  className={`landing-testimonial-slide landing-testimonial-slide-${index + 1}`}
-                >
-                  <blockquote className="mx-auto max-w-[780px] text-[22px] font-normal italic leading-[1.18] tracking-normal text-white text-balance sm:text-[30px]">
-                    &ldquo;{testimonial.quote}&rdquo;
-                  </blockquote>
-                  <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-medium leading-5 text-white/62">
-                    <span className="text-white/78">{testimonial.source}</span>
-                    <span aria-hidden="true" className="text-white/34">/</span>
-                    <span>{testimonial.context}</span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </MotionReveal>
         </div>
       </section>
     </>
