@@ -94,7 +94,8 @@ const heroSignalItems = [
   "Activity history",
 ] as const;
 
-const HERO_BRAND_ANNOTATION_COLOR = "rgb(170,65,42)";
+/* Mirrors --brand-clay in globals.css (rough-notation needs a literal string) */
+const HERO_BRAND_ANNOTATION_COLOR = "#b2492c";
 
 export const heroCopyVariants = [
   {
