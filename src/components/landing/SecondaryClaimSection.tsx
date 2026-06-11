@@ -13,10 +13,10 @@ export function SecondaryClaimSection() {
             <p className="text-[12px] font-semibold text-brand-orange">
               Built around construction estimate patterns
             </p>
-            <h2 className="mt-4 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[48px]">
+            <h2 className="landing-headline-lg mt-4 text-[#171514]">
               Workflows designed for every estimating specialty.
             </h2>
-            <p className="mx-auto mt-5 max-w-[600px] text-[15px] leading-7 text-[#5f554d]">
+            <p className="landing-body-lg mx-auto mt-5 max-w-[600px] text-[#5f554d]">
               Every team names scope differently. Archestimator gives the quote enough structure to carry rooms, assemblies, supplier context, allowances, and revisions without flattening the work into one brittle spreadsheet.
             </p>
           </div>

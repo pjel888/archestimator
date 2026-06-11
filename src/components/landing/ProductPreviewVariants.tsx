@@ -9,7 +9,7 @@ export function EstimateWorkspacePreview() {
             <span className="size-2 rounded-full bg-brand-orange" />
             <span className="text-[12px] font-semibold text-[#111111]">Interior Fit-out Estimate</span>
           </div>
-          <span className="rounded-[4px] bg-[#111111] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">₱4.82M</span>
+          <span className="landing-num rounded-[4px] bg-[#111111] px-3 py-1.5 text-[12px] font-semibold text-white">₱4.82M</span>
         </div>
         <div className="grid min-h-[420px] grid-cols-[190px_1fr_270px] bg-[#faf9f6] max-lg:grid-cols-[160px_1fr] max-md:grid-cols-1">
           <aside className="border-r border-[#dedbd6] bg-white p-3 max-md:hidden">
@@ -39,9 +39,9 @@ export function EstimateWorkspacePreview() {
                   className="grid grid-cols-[minmax(0,1.6fr)_72px_96px_108px] items-center border-b border-[#dedbd6] px-3 py-3 text-[13px] text-[#626260] max-sm:grid-cols-[1fr_72px]"
                 >
                   <span className="truncate pr-3 font-semibold text-[#111111]">{item}</span>
-                  <span className="font-mono">{index + 2}</span>
-                  <span className="text-right font-mono max-sm:hidden">₱{((index + 2) * 7800).toLocaleString()}</span>
-                  <span className="text-right font-mono font-semibold text-[#111111] max-sm:hidden">
+                  <span className="landing-num">{index + 2}</span>
+                  <span className="landing-num text-right max-sm:hidden">₱{((index + 2) * 7800).toLocaleString()}</span>
+                  <span className="landing-num text-right font-semibold text-[#111111] max-sm:hidden">
                     ₱{((index + 4) * 18600).toLocaleString()}
                   </span>
                 </div>
@@ -83,7 +83,7 @@ export function ComponentLibraryPreview() {
             <span className="size-2 rounded-full bg-brand-orange" />
             <span className="text-[12px] font-semibold text-[#111111]">Component Library</span>
           </div>
-          <span className="rounded-[4px] bg-[#111111] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">42 items</span>
+          <span className="landing-num rounded-[4px] bg-[#111111] px-3 py-1.5 text-[12px] font-semibold text-white">42 items</span>
         </div>
         <div className="min-h-[420px] bg-[#faf9f6] p-4">
           <div className="mb-3 flex items-center gap-2">
@@ -105,7 +105,7 @@ export function ComponentLibraryPreview() {
                   <span className="rounded-[3px] bg-[#faf9f6] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-[#7b7b78]">
                     {c.category}
                   </span>
-                  <span className="text-[11px] font-semibold text-brand-orange">{c.rate}</span>
+                  <span className="landing-num text-[11px] font-semibold text-brand-orange">{c.rate}</span>
                 </div>
                 <p className="text-[13px] font-semibold text-[#111111]">{c.name}</p>
                 <div className="mt-2 flex items-center gap-2">
@@ -147,7 +147,7 @@ export function RevisionIntelligencePreview() {
               Planned preview
             </span>
           </div>
-          <span className="rounded-[4px] bg-brand-orange px-3 py-1.5 font-mono text-[12px] font-semibold text-white">+₱187,400</span>
+          <span className="landing-num rounded-[4px] bg-brand-orange px-3 py-1.5 text-[12px] font-semibold text-white">+₱187,400</span>
         </div>
         <div className="min-h-[420px] bg-[#faf9f6] p-4">
           <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b7b78]">
@@ -165,7 +165,7 @@ export function RevisionIntelligencePreview() {
                 <span className="flex-1 text-[12px] text-[#626260] line-through">{c.before}</span>
                 <span className="flex-1 text-[12px] font-semibold text-[#111111]">{c.after}</span>
                 <span
-                  className={`rounded-[4px] px-2 py-1 font-mono text-[10px] font-semibold ${
+                  className={`landing-num rounded-[4px] px-2 py-1 text-[10px] font-semibold ${
                     c.type === "up"
                       ? "bg-brand-orange/10 text-brand-orange"
                       : "bg-[#8d7664]/10 text-[#8d7664]"
@@ -202,7 +202,7 @@ export function ProposalComparisonsPreview() {
               Planned preview
             </span>
           </div>
-          <span className="rounded-[4px] bg-[#111111] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">2 options</span>
+          <span className="landing-num rounded-[4px] bg-[#111111] px-3 py-1.5 text-[12px] font-semibold text-white">2 options</span>
         </div>
         <div className="min-h-[420px] bg-[#faf9f6] p-4">
           <div className="grid gap-3 md:grid-cols-2">
@@ -211,7 +211,7 @@ export function ProposalComparisonsPreview() {
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b7b78]">Option A</span>
                 <span className="rounded-[4px] bg-[#faf9f6] px-2 py-1 font-mono text-[10px] font-semibold text-[#313130]">Baseline</span>
               </div>
-              <p className="mt-2 text-[18px] font-normal tracking-[-0.03em] text-[#111111]">₱4.82M</p>
+              <p className="landing-num mt-2 text-[18px] font-normal text-[#111111]">₱4.82M</p>
               <div className="mt-3 space-y-1.5">
                 {["Porcelain floor tile package", "Waterproofing membrane", "Cabinetry allowance", "Ceiling framing labor", "Lighting rough-in"].map((item) => (
                   <div key={item} className="flex items-center justify-between text-[11px]">
@@ -225,7 +225,7 @@ export function ProposalComparisonsPreview() {
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b7b78]">Option B</span>
                 <span className="rounded-[4px] bg-brand-orange/10 px-2 py-1 font-mono text-[10px] font-semibold text-brand-orange">Value engineering</span>
               </div>
-              <p className="mt-2 text-[18px] font-normal tracking-[-0.03em] text-[#111111]">₱4.31M</p>
+              <p className="landing-num mt-2 text-[18px] font-normal text-[#111111]">₱4.31M</p>
               <div className="mt-3 space-y-1.5">
                 {["Ceramic tile package", "Waterproofing membrane", "Standard cabinetry", "Metal furring ceiling", "LED rough-in"].map((item) => (
                   <div key={item} className="flex items-center justify-between text-[11px]">
@@ -237,7 +237,7 @@ export function ProposalComparisonsPreview() {
           </div>
           <div className="mt-4 flex items-center justify-between rounded-[8px] border border-[#dedbd6] bg-white p-3">
             <span className="text-[12px] font-semibold text-[#111111]">Delta</span>
-            <span className="font-mono text-[14px] font-semibold text-brand-orange">−₱510,000 (−10.6%)</span>
+            <span className="landing-num text-[14px] font-semibold text-brand-orange">−₱510,000 (−10.6%)</span>
           </div>
           <p className="mt-3 text-[12px] text-[#7b7b78]">
             Planned comparison views should help teams compare estimate sheets, alternates, and value-engineering options before client handoff.

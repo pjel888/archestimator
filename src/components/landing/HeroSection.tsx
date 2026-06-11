@@ -68,30 +68,30 @@ const heroVisualSlides = [
 const heroDiagramSteps = [
   {
     number: "01",
-    label: "Estimate Faster",
+    label: "Estimate faster",
     icon: ArrowsClockwise,
     detail: "Work in an intuitive interface that actually understands how you build. By componentizing your pricing, archestimator ensures you never start from scratch. Build your scopes and assemblies once, then instantly reuse them across future projects.",
   },
   {
     number: "02",
-    label: "Centralized Workflow",
+    label: "Centralized workflow",
     icon: ArrowsLeftRight,
     detail: "Eliminate the chaos of disconnected tools by keeping your estimates, revisions, and client feedback united in a single workflow.",
   },
   {
     number: "03",
-    label: "Accelerate Approvals",
+    label: "Accelerate approvals",
     icon: CheckCircle,
     detail: "Move from draft to decision with absolute clarity by tracking every revision and review along the way.",
   },
 ] as const;
 
 const heroSignalItems = [
-  "Project-Shaped Workflow",
-  "Reusable Component Library",
-  "Intuitive Estimating Experience",
-  "Proposal Handoff",
-  "Activity History",
+  "Project-shaped workflow",
+  "Reusable component library",
+  "Intuitive estimating experience",
+  "Proposal handoff",
+  "Activity history",
 ] as const;
 
 const HERO_BRAND_ANNOTATION_COLOR = "rgb(170,65,42)";
@@ -198,7 +198,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
               {variant === "B" ? "Win More Bids." : "Close Projects Faster."}
             </p>
 
-            <h1 className='mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]'>
+            <h1 className='landing-display mt-3 text-[#171514] sm:mt-4'>
               {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
                 seg.toLowerCase() === "archestimator" ? (
                   <span key={i} ref={heroBrandRef} className="relative inline-block text-brand-orange">{seg}</span>
@@ -210,7 +210,7 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
           </div>
 
           <div className='relative z-10 mt-4 lg:mt-5'>
-            <p className='max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0'>
+            <p className='landing-body-lg max-w-[420px] border-l border-[#d9d1c8] pl-5 text-[#473f39] text-pretty lg:border-l-0 lg:pl-0'>
               {activeHeroCopy.support.split("\n").map((part, i) => (
                 <span key={i}>
                   {i > 0 && <br aria-hidden="true" />}

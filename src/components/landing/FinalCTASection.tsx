@@ -24,7 +24,7 @@ export function FinalCTASection({ isLoggedIn = false }: { isLoggedIn?: boolean }
               <p className="text-[12px] font-semibold text-brand-orange">
                 Start quoting
               </p>
-              <h2 className="mt-4 max-w-[880px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
+              <h2 className="landing-headline-lg mt-4 max-w-[880px] text-[#171514]">
                 Reliable estimating infrastructure for construction proposals.
               </h2>
             </div>

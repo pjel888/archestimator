@@ -9,10 +9,10 @@ import {
 } from "./ProductPreviewVariants";
 
 const productTabs = [
-  { id: "estimate-workspace", label: "Estimate Workspace", status: "MVP preview" },
-  { id: "component-library", label: "Component Library", status: "MVP preview" },
-  { id: "revision-intelligence", label: "Revision Intelligence", status: "Planned preview" },
-  { id: "proposal-comparisons", label: "Proposal Comparisons", status: "Planned preview" },
+  { id: "estimate-workspace", label: "Estimate workspace", status: "MVP preview" },
+  { id: "component-library", label: "Component library", status: "MVP preview" },
+  { id: "revision-intelligence", label: "Revision intelligence", status: "Planned preview" },
+  { id: "proposal-comparisons", label: "Proposal comparisons", status: "Planned preview" },
 ] as const;
 
 type ProductTabId = (typeof productTabs)[number]["id"];
@@ -79,11 +79,11 @@ export function ProductShowcaseSection() {
             <p className="text-[12px] font-semibold text-brand-orange">
               Platform method
             </p>
-            <h2 className="mt-4 max-w-[760px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
+            <h2 className="landing-headline-lg mt-4 max-w-[760px] text-[#171514]">
               The Archestimator estimate residency
             </h2>
           </div>
-          <p className="max-w-[500px] text-[15px] leading-7 text-[#5f554d]">
+          <p className="landing-body-lg max-w-[500px] text-[#5f554d]">
             A structured workspace for training your own estimate logic: the project tree, reusable library, revision memory, and proposal path all stay visible as the quote matures.
           </p>
         </div>

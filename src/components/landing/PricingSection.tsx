@@ -18,10 +18,10 @@ export function PricingSection() {
               <p className="text-[12px] font-semibold text-brand-orange">
                 Closed beta partnership
               </p>
-              <h2 className="mt-4 max-w-[720px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[56px]">
+              <h2 className="landing-headline-lg mt-4 max-w-[720px] text-[#171514]">
                 A partnership focused on quote-to-proposal value.
               </h2>
-              <p className="mt-6 max-w-[760px] text-[15px] leading-7 text-[#5f554d]">
+              <p className="landing-body-lg mt-6 max-w-[760px] text-[#5f554d]">
                 Request access to the closed beta for structured quote sheets, reusable catalog logic, and connected estimate organization. Payment, checkout, and public plans are deferred until after beta.
               </p>
               <div className="mt-8">
@@ -35,7 +35,7 @@ export function PricingSection() {
             </div>
 
             <div className="rounded-[8px] border border-[#e4d9ce] bg-[#fbf7f2] p-5">
-              <span className="block text-[40px] font-normal leading-none text-[#171514]">0</span>
+              <span className="landing-num block text-[40px] font-normal leading-none text-[#171514]">0</span>
               <span className="mt-3 block text-[18px] font-medium text-[#171514]">
                 No payment during beta
               </span>
