@@ -39,25 +39,14 @@ export function MotionReveal({
 
     element.dataset.motionReveal = "active";
 
-    // Fallback: if the observer never fires (e.g. rAF throttling in
-    // background tabs), force-reveal so content is never left held back.
-    // Once force-revealed, the element must never conceal again — a later
-    // non-intersecting observer callback would otherwise snap it back.
-    let forceRevealed = false;
-    const fallbackTimeout = window.setTimeout(() => {
-      forceRevealed = true;
-      reveal();
-    }, 1200);
-
     const observer = new IntersectionObserver(
       ([entry]) => {
-        window.clearTimeout(fallbackTimeout);
         if (entry?.isIntersecting) {
           reveal();
           if (!replayOnExit) {
             observer.disconnect();
           }
-        } else if (replayOnExit && !forceRevealed) {
+        } else if (replayOnExit) {
           conceal();
         }
       },
@@ -66,10 +55,7 @@ export function MotionReveal({
 
     observer.observe(element);
 
-    return () => {
-      window.clearTimeout(fallbackTimeout);
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [replayOnExit]);
 
   const delayStyle =

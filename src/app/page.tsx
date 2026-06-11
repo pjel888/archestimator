@@ -3,13 +3,11 @@ import { cookies } from "next/headers";
 import { parseLandingConsentValue } from "@/lib/landing/consent";
 import { getVariant } from "@/lib/ab-testing/variant-assigner";
 import {
-  AnimatedProposalRecordSection,
-  CapabilityRowsSection,
+  CompanyProofCarouselSection,
   FinalCTASection,
   HeroSection,
-  HonestProofSection,
-  ProblemSection,
   ProductShowcaseSection,
+  SecondaryClaimSection,
   PricingSection,
   PublicPageShell,
   LandingHeader,
@@ -37,13 +35,11 @@ export default async function LandingPage() {
         <LandingSmoothScrollProvider>
           <main data-landing-page-root="true">
             <HeroSection variant={heroVariant} isLoggedIn={isLoggedIn} />
-            <AnimatedProposalRecordSection />
-            <ProblemSection />
-            <CapabilityRowsSection />
+            <CompanyProofCarouselSection />
+            <SecondaryClaimSection />
             <ProductShowcaseSection />
-            <HonestProofSection />
             <PricingSection />
-            <FinalCTASection isLoggedIn={isLoggedIn} />
+            <FinalCTASection />
           </main>
         </LandingSmoothScrollProvider>
         <LandingFooter />

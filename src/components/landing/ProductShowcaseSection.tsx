@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { Check, Clock } from "@phosphor-icons/react/dist/ssr";
-import { MotionReveal } from "./MotionReveal";
 import {
   ComponentLibraryPreview,
   EstimateWorkspacePreview,
@@ -11,10 +9,10 @@ import {
 } from "./ProductPreviewVariants";
 
 const productTabs = [
-  { id: "estimate-workspace", label: "Estimate workspace", status: "live" },
-  { id: "component-library", label: "Component library", status: "live" },
-  { id: "revision-intelligence", label: "Revision history", status: "planned" },
-  { id: "proposal-comparisons", label: "Proposal comparison", status: "planned" },
+  { id: "estimate-workspace", label: "Estimate Workspace", status: "MVP preview" },
+  { id: "component-library", label: "Component Library", status: "MVP preview" },
+  { id: "revision-intelligence", label: "Revision Intelligence", status: "Planned preview" },
+  { id: "proposal-comparisons", label: "Proposal Comparisons", status: "Planned preview" },
 ] as const;
 
 type ProductTabId = (typeof productTabs)[number]["id"];
@@ -25,24 +23,6 @@ const tabPanels: Record<ProductTabId, ReactNode> = {
   "revision-intelligence": <RevisionIntelligencePreview />,
   "proposal-comparisons": <ProposalComparisonsPreview />,
 };
-
-/* Status chips pair a glyph with text — never color-only. Both read as
-   light hairline chips on the petrol surface. */
-function TabStatusChip({ status }: { status: "live" | "planned" }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[#f4efe9]/25 px-2 py-0.5 text-[10px] font-semibold text-[#d9d2c7]"
-    >
-      {status === "live" ? (
-        <Check size={11} aria-hidden="true" />
-      ) : (
-        <Clock size={11} aria-hidden="true" />
-      )}
-      {status === "live" ? "Live in beta" : "Planned"}
-    </span>
-  );
-}
 
 export function ProductShowcaseSection() {
   const [activeTab, setActiveTab] = useState<ProductTabId>(productTabs[0].id);
@@ -91,89 +71,86 @@ export function ProductShowcaseSection() {
     <section
       id="product"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-brand-petrol px-6 py-24 sm:px-8 sm:py-32 lg:px-12"
+      className="scroll-mt-[68px] border-b border-[#ebe4dc] bg-[#f7f1ea] px-6 py-20 sm:px-8 sm:py-28 lg:px-12"
     >
       <div className="mx-auto w-full max-w-[1952px]">
-        <MotionReveal>
-          <div className="mb-12 grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(320px,0.58fr)] lg:items-end">
-            <div>
-              <p className="text-[12px] font-semibold text-[#b9c6c9]">
-                Inside the workspace
-              </p>
-              {/* Light text on petrol: +0.05 line-height over the utility default
-                  (1.08 -> 1.13). Inline style because the landing typography
-                  utilities are unlayered and outrank layered Tailwind classes. */}
-              <h2
-                className="landing-headline-lg mt-4 max-w-[760px] text-[#f4efe9]"
-                style={{ lineHeight: 1.13 }}
-              >
-                A structured workspace for the whole quote.
-              </h2>
-            </div>
-            {/* +0.05 line-height over .landing-body-lg (1.45 -> 1.5). */}
-            <p
-              className="landing-body-lg max-w-[500px] text-[#d9d2c7]"
-              style={{ lineHeight: 1.5 }}
-            >
-              A structured workspace for your estimate logic: the project tree, reusable library, revision memory, and proposal path all stay visible as the quote matures.
+        <div className="mb-12 grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(320px,0.58fr)] lg:items-end">
+          <div>
+            <p className="text-[12px] font-semibold text-brand-orange">
+              Platform method
             </p>
+            <h2 className="mt-4 max-w-[760px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]">
+              The Archestimator estimate residency
+            </h2>
           </div>
+          <p className="max-w-[500px] text-[15px] leading-7 text-[#5f554d]">
+            A structured workspace for training your own estimate logic: the project tree, reusable library, revision memory, and proposal path all stay visible as the quote matures.
+          </p>
+        </div>
 
-          <div
-            role="tablist"
-            aria-label="Product features"
-            className="grid gap-3 text-[12px] font-semibold md:grid-cols-4"
-          >
-            {productTabs.map((tab, index) => {
-              const isSelected = activeTab === tab.id;
+        <div
+          role="tablist"
+          aria-label="Product features"
+          className="grid gap-3 text-[12px] font-semibold text-[#87796f] md:grid-cols-4"
+        >
+          {productTabs.map((tab, index) => {
+            const isSelected = activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  ref={(element) => {
-                    tabRefs.current[index] = element;
-                  }}
-                  type="button"
-                  role="tab"
-                  aria-label={tab.label}
-                  aria-selected={isSelected}
-                  aria-controls={`panel-${tab.id}`}
-                  id={`tab-${tab.id}`}
-                  tabIndex={isSelected ? 0 : -1}
-                  onClick={() => setActiveTab(tab.id)}
-                  onKeyDown={handleKeyDown}
-                  className={`flex min-h-14 flex-col gap-1.5 border-b-2 pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-[#f4efe9] focus-visible:ring-offset-2 focus-visible:ring-offset-brand-petrol motion-reduce:transition-none ${
-                    isSelected
-                      ? "border-brand-clay text-[#f4efe9]"
-                      : "border-transparent text-[#b9c6c9] hover:text-[#f4efe9]"
+            return (
+              <button
+                key={tab.id}
+                ref={(element) => {
+                  tabRefs.current[index] = element;
+                }}
+                type="button"
+                role="tab"
+                aria-label={tab.label}
+                aria-selected={isSelected}
+                aria-controls={`panel-${tab.id}`}
+                id={`tab-${tab.id}`}
+                tabIndex={isSelected ? 0 : -1}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={handleKeyDown}
+                className={`flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 motion-reduce:transition-none ${
+                  isSelected
+                    ? "border-[#171514] text-[#171514]"
+                    : "border-[#ded2c7] hover:text-[#171514]"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  aria-hidden="true"
+                  className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    tab.status === "Planned preview"
+                      ? "bg-brand-orange/10 text-brand-orange-dark"
+                      : "bg-[#171514]/5 text-[#625950]"
                   }`}
                 >
-                  <span>{tab.label}</span>
-                  <TabStatusChip status={tab.status} />
-                </button>
-              );
-            })}
-          </div>
+                  {tab.status}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-          <div className="mt-8">
-            {productTabs.map((tab) => {
-              const isSelected = activeTab === tab.id;
+        <div className="mt-8">
+          {productTabs.map((tab) => {
+            const isSelected = activeTab === tab.id;
 
-              return (
-                <div
-                  key={tab.id}
-                  id={`panel-${tab.id}`}
-                  role="tabpanel"
-                  aria-labelledby={`tab-${tab.id}`}
-                  hidden={!isSelected}
-                  className="min-h-[480px] rounded-[3px] border border-line-1 bg-paper-0 p-2 transition-opacity duration-300 motion-reduce:transition-none sm:min-h-[560px] lg:min-h-[620px]"
-                >
-                  {tabPanels[tab.id]}
-                </div>
-              );
-            })}
-          </div>
-        </MotionReveal>
+            return (
+              <div
+                key={tab.id}
+                id={`panel-${tab.id}`}
+                role="tabpanel"
+                aria-labelledby={`tab-${tab.id}`}
+                hidden={!isSelected}
+                className="rounded-[8px] border border-[#ded2c7] bg-white p-2 shadow-[0_18px_46px_rgba(71,49,31,0.07)] transition-opacity duration-300 motion-reduce:transition-none"
+              >
+                {tabPanels[tab.id]}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
