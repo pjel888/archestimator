@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
 import {
   createClosedBetaAllowlistEntry,
   updateClosedBetaAllowlistEntry,
 } from "@/lib/auth/beta-allowlist-admin-actions";
 import {
   CLOSED_BETA_ALLOWLIST_STATUSES,
+  isClosedBetaAllowlistStatus,
   readClosedBetaAllowlistQueue,
   type ClosedBetaAllowlistStatus,
 } from "@/lib/auth/beta-allowlist-admin";
@@ -15,6 +17,13 @@ const statusLabels: Record<ClosedBetaAllowlistStatus, string> = {
   invited: "Invited",
   revoked: "Revoked",
 };
+
+const statusOptions = CLOSED_BETA_ALLOWLIST_STATUSES.map((status) => ({
+  value: status,
+  label: statusLabels[status],
+}));
+
+const statusFilterOptions = [{ value: "", label: "All statuses" }, ...statusOptions];
 
 function betaUserNotice(params: { created?: string; error?: string; saved?: string }) {
   if (params.created) return { tone: "success" as const, text: "Beta user added to the allowlist." };
@@ -91,17 +100,12 @@ export default async function BetaUsersPage({
                 </label>
                 <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                   Status
-                  <select
+                  <AdminStatusSelect
                     name="status"
                     defaultValue="invited"
-                    className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
-                  >
-                    {CLOSED_BETA_ALLOWLIST_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {statusLabels[status]}
-                      </option>
-                    ))}
-                  </select>
+                    options={statusOptions}
+                    aria-label="Status"
+                  />
                 </label>
                 <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                   Notes
@@ -120,18 +124,13 @@ export default async function BetaUsersPage({
             <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/workshop/settings/beta-users">
               <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                 Status
-                <select
+                <AdminStatusSelect
                   name="status"
-                  defaultValue={params.status ?? ""}
-                  className="h-7 min-w-36 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
-                >
-                  <option value="">All statuses</option>
-                  {CLOSED_BETA_ALLOWLIST_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {statusLabels[status]}
-                    </option>
-                  ))}
-                </select>
+                  defaultValue={params.status && isClosedBetaAllowlistStatus(params.status) ? params.status : ""}
+                  options={statusFilterOptions}
+                  aria-label="Status filter"
+                  className="min-w-36"
+                />
               </label>
               <Button type="submit" variant="secondary" size="sm">
                 Filter
@@ -174,17 +173,13 @@ export default async function BetaUsersPage({
                             <form action={updateClosedBetaAllowlistEntry} className="flex items-center gap-1">
                               <input type="hidden" name="id" value={row.id} />
                               <input type="hidden" name="notes" value={row.notes ?? ""} />
-                              <select
+                              <AdminStatusSelect
                                 name="status"
                                 defaultValue={row.status}
-                                className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus:ring-2 focus:ring-focus"
-                              >
-                                {CLOSED_BETA_ALLOWLIST_STATUSES.map((status) => (
-                                  <option key={status} value={status}>
-                                    {statusLabels[status]}
-                                  </option>
-                                ))}
-                              </select>
+                                options={statusOptions}
+                                aria-label={`Status for ${row.normalized_email}`}
+                                className="min-w-28"
+                              />
                               <Button type="submit" variant="secondary" size="sm">
                                 Save
                               </Button>

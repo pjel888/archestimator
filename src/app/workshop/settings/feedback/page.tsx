@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
-import { BETA_FEEDBACK_STATUSES, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
+import { AdminStatusSelect } from "@/app/workshop/settings/_components/AdminStatusSelect";
+import { BETA_FEEDBACK_STATUSES, isBetaFeedbackStatus, type BetaFeedbackStatus } from "@/lib/workshop/beta-feedback";
 import { updateBetaFeedbackReviewStatus } from "@/lib/workshop/beta-feedback-review-actions";
 import { readBetaFeedbackReviewQueue } from "@/lib/workshop/beta-feedback-review";
 
@@ -10,6 +11,13 @@ const statusLabels: Record<BetaFeedbackStatus, string> = {
   resolved: "Resolved",
   reviewing: "Reviewing",
 };
+
+const statusOptions = BETA_FEEDBACK_STATUSES.map((status) => ({
+  value: status,
+  label: statusLabels[status],
+}));
+
+const statusFilterOptions = [{ value: "", label: "All statuses" }, ...statusOptions];
 
 function feedbackNotice(error?: string, saved?: string) {
   if (saved) return { tone: "success" as const, text: "Feedback status updated." };
@@ -72,18 +80,13 @@ export default async function BetaFeedbackReviewPage({
             <form className="flex flex-wrap items-end gap-2 border border-hairline bg-white p-2" action="/workshop/settings/feedback">
               <label className="grid gap-1 text-[10px] font-medium leading-none text-secondary">
                 Status
-                <select
+                <AdminStatusSelect
                   name="status"
-                  defaultValue={params.status ?? ""}
-                  className="h-7 min-w-36 rounded-xs border border-hairline bg-white px-2 text-[10px] font-normal text-ink outline-none focus:ring-2 focus:ring-focus"
-                >
-                  <option value="">All statuses</option>
-                  {BETA_FEEDBACK_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {statusLabels[status]}
-                    </option>
-                  ))}
-                </select>
+                  defaultValue={params.status && isBetaFeedbackStatus(params.status) ? params.status : ""}
+                  options={statusFilterOptions}
+                  aria-label="Status filter"
+                  className="min-w-36"
+                />
               </label>
               <Button type="submit" variant="secondary" size="sm">
                 Filter
@@ -131,17 +134,13 @@ export default async function BetaFeedbackReviewPage({
                           <td className="border-b border-hairline px-2 py-2">
                             <form action={updateBetaFeedbackReviewStatus} className="flex items-center gap-1">
                               <input type="hidden" name="id" value={item.id} />
-                              <select
+                              <AdminStatusSelect
                                 name="status"
                                 defaultValue={item.status}
-                                className="h-7 rounded-xs border border-hairline bg-white px-2 text-[10px] text-ink outline-none focus:ring-2 focus:ring-focus"
-                              >
-                                {BETA_FEEDBACK_STATUSES.map((status) => (
-                                  <option key={status} value={status}>
-                                    {statusLabels[status]}
-                                  </option>
-                                ))}
-                              </select>
+                                options={statusOptions}
+                                aria-label={`Review status for feedback from ${item.user_email}`}
+                                className="min-w-28"
+                              />
                               <Button type="submit" variant="secondary" size="sm">
                                 Save
                               </Button>
