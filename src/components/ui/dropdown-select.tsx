@@ -191,15 +191,17 @@ export function DropdownSelect({
   // Options can change while the listbox is open (realtime refetch); the
   // index-based highlight must re-anchor on the selected value or the
   // visible highlight silently shifts to whatever occupies the old index.
-  const previousOptionsRef = React.useRef(options);
-  React.useEffect(() => {
-    if (previousOptionsRef.current === options) return;
-    previousOptionsRef.current = options;
-    if (!open) return;
-    const selected = options.findIndex((option) => option.value === currentValue && !option.disabled);
-    const fallback = options.findIndex((option) => !option.disabled);
-    setActiveIndex(selected >= 0 ? selected : fallback);
-  }, [currentValue, open, options]);
+  // Render-time state adjustment (React's derive-from-props pattern), not
+  // an effect, so no extra committed frame shows the stale highlight.
+  const [anchoredOptions, setAnchoredOptions] = React.useState(options);
+  if (anchoredOptions !== options) {
+    setAnchoredOptions(options);
+    if (open) {
+      const selected = options.findIndex((option) => option.value === currentValue && !option.disabled);
+      const fallback = options.findIndex((option) => !option.disabled);
+      setActiveIndex(selected >= 0 ? selected : fallback);
+    }
+  }
 
   // Form resets (including React 19's post-action reset) must resync the
   // visible trigger with the hidden control or the next submit posts a
