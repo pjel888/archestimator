@@ -37,9 +37,9 @@ const betaStats = [
   },
   {
     icon: "ClockCounterClockwise" as const,
-    label: "Activity History",
-    detail: "Every revision. Every decision. Always on record.",
-    body: "Track every change across your entire proposal, who updated what, and when. Revisit any version, recover anything, and walk into every client meeting with the full story behind your numbers.",
+    label: "Revision history",
+    detail: "In progress: every change traceable as the quote matures.",
+    body: "Revision tracking is in active development with beta teams: every change across your proposal, who updated what, and when — so you can walk into client meetings with the story behind your numbers.",
   },
 ] as const;
 
