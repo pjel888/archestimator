@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { Plus, X } from "@phosphor-icons/react/dist/ssr";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { ControlSelect } from "@/components/ui/control-select";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
@@ -193,18 +193,24 @@ export function ProjectChartsClient({
                 >
                   <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2">
                     <div className="min-w-0 flex-1">
-                      <ControlSelect
+                      <DropdownSelect
                         aria-label={`Chart ${index + 1} estimate`}
-                        className="border-b-0 hover:border-transparent focus:border-transparent"
+                        data-testid={`chart-estimate-trigger-${index}`}
+                        className="border-b-0 hover:border-transparent"
+                        options={estimateOptions}
                         value={column.estimate.id}
-                        onChange={(event) => updateChartEstimate(index, event.target.value)}
-                      >
-                        {estimateOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </ControlSelect>
+                        onValueChange={(estimateId) => {
+                          updateChartEstimate(index, estimateId);
+                          // Committing remounts the column (its key carries the
+                          // estimate id), which unmounts this trigger; re-find
+                          // the replacement so keyboard users keep their place.
+                          requestAnimationFrame(() => {
+                            document
+                              .querySelector<HTMLElement>(`[data-testid="chart-estimate-trigger-${index}"]`)
+                              ?.focus();
+                          });
+                        }}
+                      />
                     </div>
                     <p className="justify-self-center text-[10px] font-medium tabular-nums text-foreground" data-testid={`chart-${index + 1}-total`}>
                       {formatMoney(column.series.total, currencyCode)}

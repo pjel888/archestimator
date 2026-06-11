@@ -49,24 +49,33 @@ type DropdownPopupPosition = {
 };
 
 /**
- * The pointerdown that dismissed a popup must also swallow the click the
- * same gesture produces. `stopPropagation` keeps React handlers (overlay
- * close, buttons) from receiving it; `preventDefault` marks the native event
- * so non-React `defaultPrevented` checks skip it as well. If the gesture
- * never produces a click (drag, cancel), the next pointerdown clears the
- * stale suppressor so a later unrelated click is not eaten.
+ * The pointerdown that dismissed a popup must also swallow the rest of the
+ * same gesture — its mousedown (hand-rolled modal backdrops close on
+ * mousedown) and its click (dialog overlays, buttons). `stopPropagation`
+ * keeps React handlers from receiving them; `preventDefault` marks the
+ * native events so non-React `defaultPrevented` checks skip them as well.
+ * Native selects swallow this gesture too. If the gesture never produces a
+ * click (drag, cancel), the next pointerdown clears the stale suppressor so
+ * a later unrelated gesture is not eaten.
  */
-function suppressNextClickAfterDismiss() {
-  const suppress = (event: MouseEvent) => {
+function suppressGestureAfterDismiss() {
+  const suppressMouseDown = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    document.removeEventListener("mousedown", suppressMouseDown, true);
+  };
+  const suppressClick = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     cleanup();
   };
   const cleanup = () => {
-    document.removeEventListener("click", suppress, true);
+    document.removeEventListener("mousedown", suppressMouseDown, true);
+    document.removeEventListener("click", suppressClick, true);
     document.removeEventListener("pointerdown", cleanup, true);
   };
-  document.addEventListener("click", suppress, true);
+  document.addEventListener("mousedown", suppressMouseDown, true);
+  document.addEventListener("click", suppressClick, true);
   document.addEventListener("pointerdown", cleanup, true);
 }
 
@@ -151,7 +160,7 @@ export function useDropdownPopup({ align = "start", side = "bottom", onClose }: 
       if (!target) return;
       if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
       close("outside-pointer");
-      suppressNextClickAfterDismiss();
+      suppressGestureAfterDismiss();
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);

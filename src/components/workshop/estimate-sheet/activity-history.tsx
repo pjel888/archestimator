@@ -1,10 +1,11 @@
 "use client";
 
 import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CaretDown, Cube, FolderSimple, FunnelSimple, Plus, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Cube, FolderSimple, FunnelSimple, MapPin, Plus, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput } from "@/components/ui/control-input";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { composeEstimateActivity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } from "@/lib/activity";
@@ -128,7 +129,7 @@ export function isBlankEstimateRowItem(item: EstimateRowItem) {
 }
 
 function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : Cube;
+  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : MapPin;
   return (
     <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
       <Icon size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
@@ -607,16 +608,13 @@ function ActivityFilterDropdown({
     >
       <div className="grid gap-2">
         <ControlField label="Event" reserveHelperSpace>
-          <select
+          <DropdownSelect
             aria-label="Filter activity by event type"
-            className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink outline-none focus:border-accent focus:ring-2 focus:ring-focus"
+            className="h-8 rounded-xs border border-hairline bg-white px-2 !text-[10px]"
+            options={ACTIVITY_FILTER_EVENT_TYPES}
             value={filters.eventType}
-            onChange={updateFilter("eventType")}
-          >
-            {ACTIVITY_FILTER_EVENT_TYPES.map((option) => (
-              <option key={option.value || "all"} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            onValueChange={(eventType) => onChange({ ...filters, eventType })}
+          />
         </ControlField>
       </div>
       <div className="grid grid-cols-2 items-start gap-2 max-sm:grid-cols-1">
@@ -1141,6 +1139,9 @@ export function RowDetailsModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
       onMouseDown={(event) => {
+        // A popup (dropdown listbox) dismissed by this gesture suppresses
+        // the rest of it; this backdrop must not also close the modal.
+        if (event.defaultPrevented) return;
         if (event.target === event.currentTarget) onClose();
       }}
     >
@@ -1491,7 +1492,7 @@ function ActivityScopeTree({
                   <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
                     {item.kind === "sheet" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
                     {item.kind === "group" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
-                    {item.kind === "area" ? <Cube size={12} weight="regular" aria-hidden="true" /> : null}
+                    {item.kind === "area" ? <MapPin size={12} weight="regular" aria-hidden="true" /> : null}
                     {item.kind === "row" ? <span className="font-sans text-[12px] font-medium" aria-hidden="true">#</span> : null}
                   </span>
                   <span className="min-w-0 truncate text-left">{item.label}</span>
@@ -1564,6 +1565,9 @@ export function ActivityHistoryModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
       onMouseDown={(event) => {
+        // A popup (dropdown listbox) dismissed by this gesture suppresses
+        // the rest of it; this backdrop must not also close the modal.
+        if (event.defaultPrevented) return;
         if (event.target === event.currentTarget) onClose();
       }}
     >
