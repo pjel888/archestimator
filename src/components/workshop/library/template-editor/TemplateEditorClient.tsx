@@ -2,13 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
-import type { EstimateTreeNode } from "@/lib/estimates/types";
+import { useStableCallback } from "@/hooks/use-stable-callback";
+import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
+import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import { EstimateRightSidebar } from "../../component-library";
 import { filterTemplatesByQuery, type EstimateTemplate } from "../../component-library/templates";
+import { findFirstTemplateArea, findTemplateNode } from "./template-editor-model";
 import {
   getTemplateStructureAllNodeIds,
   TemplateStructureTree,
@@ -16,6 +22,24 @@ import {
 } from "./TemplateStructureTree";
 import { TemplateEditorSheet, type TemplateSheetHandlers } from "./TemplateEditorSheet";
 import { useTemplateEditor } from "./use-template-editor";
+
+function TemplateEditorDockFallback() {
+  return (
+    <div
+      className="hidden w-[380px] shrink-0 border-l border-hairline bg-white p-2 lg:block"
+      role="status"
+      aria-label="Loading components dock"
+    >
+      <Skeleton className="h-8 w-full" />
+      <div className="mt-2 space-y-1" aria-hidden="true">
+        {Array.from({ length: 10 }, (_, index) => (
+          <Skeleton key={index} className="h-6 w-full" />
+        ))}
+      </div>
+      <span className="sr-only">Loading components dock</span>
+    </div>
+  );
+}
 
 /**
  * Template editor composition: back strip + structure tree on the left,
@@ -92,6 +116,47 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
     [editor],
   );
 
+  // Dock dataset: same lazy query + cache key as the estimate workspace, so
+  // switching between the two surfaces reuses one fetch.
+  const libraryQuery = useQuery({
+    queryKey: ["workspace-component-library"],
+    queryFn: () => loadCurrentWorkspaceComponentLibrary(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const queryClient = useQueryClient();
+  const handleLibraryDataChanged = useStableCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] });
+  });
+
+  // Component inserts land on the selected area, a selected group's first
+  // area, or the template's first area; template inserts land on the
+  // selected group or the root.
+  const selectedNode = selectedNodeId ? findTemplateNode(template.nodes, selectedNodeId) : null;
+  const componentTargetArea = useMemo(() => {
+    if (selectedNode?.kind === "area") return selectedNode;
+    if (selectedNode?.kind === "group") return findFirstTemplateArea(selectedNode.children ?? []);
+    return findFirstTemplateArea(template.nodes);
+  }, [selectedNode, template.nodes]);
+  const templateTargetGroup = selectedNode?.kind === "group" ? selectedNode : null;
+
+  const handleInsertComponent = useStableCallback((item: EstimateRowItem) => {
+    if (!componentTargetArea) return false;
+    void editor.addLibraryItems(componentTargetArea.id, [item]);
+    return true;
+  });
+  const handleInsertTemplate = useStableCallback((sourceTemplate: EstimateTemplate) => {
+    if (sourceTemplate.id === template.id) return false;
+    void editor.insertTemplate(sourceTemplate.id, templateTargetGroup?.id ?? null);
+    return true;
+  });
+  const handleInsertTemplateNode = useStableCallback(
+    (sourceTemplate: EstimateTemplate, sourceNode: EstimateTreeNode) => {
+      if (sourceTemplate.id === template.id) return false;
+      void editor.insertTemplate(sourceTemplate.id, templateTargetGroup?.id ?? null, sourceNode.id);
+      return true;
+    },
+  );
+
   const sheetHandlers: TemplateSheetHandlers = useMemo(
     () => ({
       onAddNode: addNode,
@@ -100,8 +165,20 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
       onUpdateRow: (rowId, patch) => void editor.updateRow(rowId, patch),
       onRemoveRow: (rowId) => void editor.removeRow(rowId),
       onAddAllowanceRow: (nodeId, material) => void editor.addAllowanceRow(nodeId, material),
+      onDropLibraryItem: (nodeId, item) => void editor.addLibraryItems(nodeId, [item]),
+      onDropTemplate: (targetGroupId, payload) => {
+        if (payload.kind === "template-node") {
+          if (payload.templateId === template.id) return;
+          void editor.insertTemplate(payload.templateId, targetGroupId, payload.templateNodeId);
+          return;
+        }
+        for (const sourceTemplateId of payload.templateIds) {
+          if (sourceTemplateId === template.id) continue;
+          void editor.insertTemplate(sourceTemplateId, targetGroupId);
+        }
+      },
     }),
-    [addNode, deleteNode, editor, renameNode],
+    [addNode, deleteNode, editor, renameNode, template.id],
   );
 
   return (
@@ -161,6 +238,28 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
         </div>
       </ResizableSidePanel>
       <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} />
+      {libraryQuery.data ? (
+        <EstimateRightSidebar
+          selectedNodeId={componentTargetArea?.id ?? null}
+          selectedNodeKind={componentTargetArea?.kind ?? null}
+          selectedNodeName={componentTargetArea?.name ?? null}
+          templateTargetName={templateTargetGroup?.name ?? template.name}
+          canInsertTemplate
+          templateCreateMode="scratch"
+          onInsertComponent={handleInsertComponent}
+          onInsertTemplate={handleInsertTemplate}
+          onInsertTemplateNode={handleInsertTemplateNode}
+          initialLibraryItems={libraryQuery.data.libraryItems}
+          templates={libraryQuery.data.templates}
+          categoryTree={libraryQuery.data.categoryTree}
+          suppliers={libraryQuery.data.suppliers}
+          brands={libraryQuery.data.brands}
+          libraryFolders={libraryQuery.data.libraryFolders}
+          onLibraryDataChanged={handleLibraryDataChanged}
+        />
+      ) : (
+        <TemplateEditorDockFallback />
+      )}
     </div>
   );
 }

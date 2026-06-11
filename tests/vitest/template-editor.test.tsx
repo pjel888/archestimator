@@ -1,9 +1,43 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TemplateEditorClient } from "@/components/workshop/library/template-editor/TemplateEditorClient";
+import {
+  beginEstimateWorkshopDrag,
+  endEstimateWorkshopDrag,
+} from "@/components/workshop/estimate-workshop-drag";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
+
+vi.mock("@/lib/component-library/actions", () => ({
+  loadCurrentWorkspaceComponentLibrary: vi.fn(async () => ({
+    libraryItems: [],
+    templates: [],
+    categoryTree: [],
+    suppliers: [],
+    brands: [],
+    libraryFolders: [],
+  })),
+}));
+
+vi.mock("@/components/workshop/component-library", () => ({
+  EstimateRightSidebar: () => <aside aria-label="Components dock stub" />,
+}));
+
+function createDataTransferStub(types: string[]) {
+  const store = new Map<string, string>();
+  return {
+    types,
+    dropEffect: "none",
+    effectAllowed: "all",
+    setData: vi.fn((type: string, value: string) => {
+      store.set(type, value);
+    }),
+    getData: vi.fn((type: string) => store.get(type) ?? ""),
+    setDragImage: vi.fn(),
+  };
+}
 
 const actionMocks = vi.hoisted(() => ({
   addEstimateTemplateRowItems: vi.fn(),
@@ -95,6 +129,15 @@ function buildTemplate(): EstimateTemplate {
   };
 }
 
+function renderEditor(template: EstimateTemplate) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <TemplateEditorClient template={template} />
+    </QueryClientProvider>,
+  );
+}
+
 describe("TemplateEditorClient", () => {
   beforeEach(() => {
     navigationMocks.refresh.mockReset();
@@ -111,7 +154,7 @@ describe("TemplateEditorClient", () => {
   });
 
   it("publishes the breadcrumb chrome and renders the sheet", () => {
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     expect(useLibraryEditorChrome.getState().breadcrumb).toEqual({
       templateId: "template-1",
@@ -124,7 +167,7 @@ describe("TemplateEditorClient", () => {
   });
 
   it("commits an inline quantity edit through the row update action", async () => {
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     const quantityInput = screen.getByLabelText("GROHE Lavatory Faucet quantity");
     fireEvent.change(quantityInput, { target: { value: "3" } });
@@ -141,7 +184,7 @@ describe("TemplateEditorClient", () => {
   });
 
   it("removes a row optimistically", async () => {
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     fireEvent.click(screen.getByRole("button", { name: "Remove row GROHE Lavatory Faucet" }));
 
@@ -158,7 +201,7 @@ describe("TemplateEditorClient", () => {
 
   it("rolls the row back when the server rejects the removal", async () => {
     actionMocks.removeEstimateTemplateRowItem.mockRejectedValue(new Error("RLS said no"));
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     fireEvent.click(screen.getByRole("button", { name: "Remove row GROHE Lavatory Faucet" }));
 
@@ -170,7 +213,7 @@ describe("TemplateEditorClient", () => {
   });
 
   it("creates an allowance row from the ghost row", async () => {
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     const ghostInput = screen.getByLabelText("Add row to Toilet + Bath");
     fireEvent.change(ghostInput, { target: { value: "Floor drain allowance" } });
@@ -188,7 +231,7 @@ describe("TemplateEditorClient", () => {
 
   it("adds a group from the sheet toolbar via prompt", async () => {
     vi.spyOn(window, "prompt").mockReturnValue("Second Bathroom");
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     const sheet = screen.getByRole("region", { name: "Template sheet" });
     fireEvent.click(within(sheet).getByRole("button", { name: "Add group" }));
@@ -205,9 +248,83 @@ describe("TemplateEditorClient", () => {
     expect(screen.getAllByText("Second Bathroom").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("shows a component drop zone on areas during a library drag and inserts on drop", async () => {
+    actionMocks.addEstimateTemplateRowItems.mockResolvedValue({ rows: [] });
+    renderEditor(buildTemplate());
+
+    act(() => beginEstimateWorkshopDrag({ kind: "library-item" }));
+    const zone = await screen.findByText("Drop to add the component to Toilet + Bath");
+
+    const dataTransfer = createDataTransferStub(["application/x-archestimator-library-item"]);
+    dataTransfer.setData(
+      "application/x-archestimator-library-item",
+      JSON.stringify({
+        id: "lib-tile",
+        material: "600x600 Porcelain Tile",
+        description: "",
+        supplier: "Mariwasa",
+        source: "library",
+        unit: "sqm",
+        itemCost: 185,
+        quantity: 1,
+        subTotal: 185,
+        miscCost: 0,
+        totalItemCosts: 185,
+        category: "Finishes",
+        pricingSource: "Test",
+        pricingDate: "2026-05-01",
+      }),
+    );
+    fireEvent.drop(zone.closest("[data-template-editor-node]") as HTMLElement, { dataTransfer });
+    act(() => endEstimateWorkshopDrag());
+
+    await waitFor(() => {
+      expect(actionMocks.addEstimateTemplateRowItems).toHaveBeenCalledWith(
+        expect.objectContaining({ templateId: "template-1", nodeId: "area-1" }),
+      );
+    });
+    expect(screen.getByDisplayValue("600x600 Porcelain Tile")).toBeInTheDocument();
+  });
+
+  it("inserts a dragged template at the root through the composition action", async () => {
+    actionMocks.insertTemplateIntoTemplate.mockResolvedValue({ insertedNodeIds: [] });
+    renderEditor(buildTemplate());
+
+    act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "tpl-2", templateName: "Kitchen Starter" }));
+    const rootZone = await screen.findByText("Drop Kitchen Starter here to add it at the template root");
+
+    const dataTransfer = createDataTransferStub(["application/x-archestimator-estimate-template"]);
+    dataTransfer.setData("application/x-archestimator-estimate-template", JSON.stringify({ templateId: "tpl-2" }));
+    fireEvent.drop(rootZone.closest("[data-template-root-drop-zone]") as HTMLElement, { dataTransfer });
+    act(() => endEstimateWorkshopDrag());
+
+    await waitFor(() => {
+      expect(actionMocks.insertTemplateIntoTemplate).toHaveBeenCalledWith({
+        targetTemplateId: "template-1",
+        targetNodeId: null,
+        sourceTemplateId: "tpl-2",
+        sourceNodeId: undefined,
+      });
+    });
+  });
+
+  it("blocks self-insert from a template drag", async () => {
+    renderEditor(buildTemplate());
+
+    act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "template-1", templateName: "Powder Room Basic" }));
+    const rootZone = await screen.findByText("Drop Powder Room Basic here to add it at the template root");
+
+    const dataTransfer = createDataTransferStub(["application/x-archestimator-estimate-template"]);
+    dataTransfer.setData("application/x-archestimator-estimate-template", JSON.stringify({ templateId: "template-1" }));
+    fireEvent.drop(rootZone.closest("[data-template-root-drop-zone]") as HTMLElement, { dataTransfer });
+    act(() => endEstimateWorkshopDrag());
+
+    expect(actionMocks.insertTemplateIntoTemplate).not.toHaveBeenCalled();
+  });
+
   it("deletes a node after confirmation", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<TemplateEditorClient template={buildTemplate()} />);
+    renderEditor(buildTemplate());
 
     fireEvent.click(screen.getByRole("button", { name: "Delete area Toilet + Bath" }));
 

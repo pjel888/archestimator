@@ -215,9 +215,9 @@ export function useTemplateEditor(template: EstimateTemplate) {
   );
 
   const insertTemplate = useCallback(
-    (sourceTemplateId: string, targetNodeId: string | null) =>
+    (sourceTemplateId: string, targetNodeId: string | null, sourceNodeId?: string | null) =>
       run(null, () =>
-        insertTemplateIntoTemplate({ targetTemplateId: template.id, targetNodeId, sourceTemplateId }),
+        insertTemplateIntoTemplate({ targetTemplateId: template.id, targetNodeId, sourceTemplateId, sourceNodeId }),
       ),
     [run, template.id],
   );

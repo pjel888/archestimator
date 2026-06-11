@@ -1,20 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { Blueprint } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
+import { InsertIntoEstimatePicker } from "@/components/workshop/library/templates-browse/InsertIntoEstimatePicker";
 
 /**
  * Title block for all library routes. On the template editor route it swaps
  * to the breadcrumb + TEMPLATE mode chip (Decision D6: structural cues, no
- * tint); everywhere else it renders the standard "Library" title.
+ * tint) plus the save indicator and the persistent "Insert into estimate"
+ * verb; everywhere else it renders the standard "Library" title.
  */
 export function LibraryTitleBarClient() {
   const segments = useSelectedLayoutSegments();
   const breadcrumb = useLibraryEditorChrome((state) => state.breadcrumb);
   const saveState = useLibraryEditorChrome((state) => state.saveState);
+  const [insertPickerOpen, setInsertPickerOpen] = useState(false);
+  const [insertMessage, setInsertMessage] = useState<string | null>(null);
   const isTemplateEditorRoute = segments[0] === "templates" && segments.length > 1;
 
   if (isTemplateEditorRoute && breadcrumb) {
@@ -44,16 +50,40 @@ export function LibraryTitleBarClient() {
           aria-live="polite"
           className={
             saveState.state === "error"
-              ? "ml-auto shrink-0 pr-2 text-[9px] leading-3 text-danger"
-              : "ml-auto shrink-0 pr-2 text-[9px] leading-3 text-tertiary"
+              ? "ml-auto shrink-0 text-[9px] leading-3 text-danger"
+              : "ml-auto shrink-0 text-[9px] leading-3 text-tertiary"
           }
         >
           {saveState.state === "saving"
             ? "Saving…"
             : saveState.state === "error"
               ? saveState.message
-              : "Saved · just now"}
+              : insertMessage ?? "Saved · just now"}
         </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="min-w-0 shrink-0 px-2 !text-[9px] text-secondary hover:bg-surfaceMuted hover:text-ink"
+          onClick={() => {
+            setInsertMessage(null);
+            setInsertPickerOpen(true);
+          }}
+        >
+          Insert into estimate
+        </Button>
+        <InsertIntoEstimatePicker
+          open={insertPickerOpen}
+          onOpenChange={setInsertPickerOpen}
+          template={{
+            id: breadcrumb.templateId,
+            name: breadcrumb.templateName,
+            description: "",
+            category: breadcrumb.category,
+            nodes: [],
+          }}
+          onInserted={(estimateName) => setInsertMessage(`Inserted into ${estimateName}.`)}
+        />
       </div>
     );
   }
