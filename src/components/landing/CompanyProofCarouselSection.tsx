@@ -19,19 +19,19 @@ const iconMap = {
 const betaStats = [
   {
     icon: "TreeStructure" as const,
-    label: "Project-Shaped Workflow",
+    label: "Project-shaped workflow",
     detail: "Structure your proposal the way you think about the work",
     body: "Organize costs around the real shape of the engagement, by phase, location, scope, or package, however your team naturally thinks. Archestimator handles the format, so your clients always receive a clean, professional proposal.",
   },
   {
     icon: "Package" as const,
-    label: "Reusable Component Library",
+    label: "Reusable component library",
     detail: "Build it once. Use it everywhere.",
     body: "Save any component, materials, services, labor, packages, and reuse it across future proposals. Variants included, so every size, spec, and configuration is ready when you need it.",
   },
   {
     icon: "PaperPlaneTilt" as const,
-    label: "Proposal Handoff",
+    label: "Proposal handoff",
     detail: "From costing to client-ready in one flow",
     body: "Carry your line items, totals, exclusions, and assumptions straight into a polished proposal output, no reformatting, no copy-pasting, no last-minute scrambling.",
   },
@@ -107,7 +107,7 @@ export function CompanyProofCarouselSection() {
               <div className="mx-auto max-w-[760px]">
                 <p className="text-[12px] font-medium leading-5 text-white/62">Launch feature video</p>
                 <LaunchFeatureHeading />
-                <p className="mx-auto mt-5 max-w-[620px] text-[13px] leading-6 text-white/64 sm:text-[14px] sm:leading-7">
+                <p className="landing-body mx-auto mt-5 max-w-[620px] text-white/64">
                     A single launch-ready walkthrough for estimating, reusable components, proposal handoff, review, and client decision records.
                 </p>
               </div>
@@ -124,9 +124,9 @@ export function CompanyProofCarouselSection() {
 
               return (
                 <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
-                  <article className={`grid min-h-[252px] grid-rows-[28px_48px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
+                  <article className={`grid min-h-[252px] grid-rows-[28px_64px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
                     <IconComponent size={28} weight="thin" className="text-white" />
-                    <h2 className="pt-2 text-[21px] font-normal leading-[1.08] tracking-normal text-white text-balance xl:text-[22px] 2xl:text-[24px]">
+                    <h2 className="landing-h3 pt-2 text-white text-balance">
                       {stat.label}
                     </h2>
                     <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>

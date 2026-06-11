@@ -34,7 +34,7 @@ export function LaunchFeatureHeading() {
   }, []);
 
   return (
-    <h2 className="mt-3 text-[30px] font-normal leading-[1.04] tracking-normal text-white text-balance sm:text-[38px] lg:text-[44px]">
+    <h2 className="landing-headline-lg mt-3 text-white">
       See the complete <span ref={brandRef} className="relative inline-block">archestimator</span> workflow
     </h2>
   );

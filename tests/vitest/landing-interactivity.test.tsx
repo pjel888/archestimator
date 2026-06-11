@@ -14,15 +14,15 @@ describe("landing page below-hero interactivity", () => {
   it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
     render(<HeroSection />);
 
-    expect(screen.getByRole("heading", { name: /proposal workspace for construction estimates/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /fastest path from proposal to approval/i })).toBeInTheDocument();
     expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
       expect.arrayContaining([
-        "The proposal workspace for construction estimates.",
-        "A calmer platform for estimate handoff.",
+        "The fastest path from proposal to approval.",
+        "Estimate with Precision. Win with Clarity.",
       ]),
     );
-    expect(heroCopyVariants.map((variant) => variant.support).join(" ")).toMatch(
-      /closed-beta/i,
+    expect(heroCopyVariants.map((variant) => variant.evidenceGate).join(" ")).toMatch(
+      /closed beta/i,
     );
     expect(heroCopyVariants.map((variant) => variant.headline).join(" ")).not.toMatch(
       /smart ones|competitors are already/i,
@@ -35,24 +35,24 @@ describe("landing page below-hero interactivity", () => {
 
     render(<ProductShowcaseSection />);
 
-    const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate Workspace" });
-    const componentLibraryTab = screen.getByRole("tab", { name: "Component Library" });
-    const revisionIntelligenceTab = screen.getByRole("tab", { name: "Revision Intelligence" });
+    const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate workspace" });
+    const componentLibraryTab = screen.getByRole("tab", { name: "Component library" });
+    const revisionIntelligenceTab = screen.getByRole("tab", { name: "Revision intelligence" });
 
     expect(estimateWorkspaceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Estimate Workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("tabpanel", { name: "Estimate workspace" })).toBeInTheDocument();
 
     await user.click(componentLibraryTab);
 
     expect(componentLibraryTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Component Library" })).toBeInTheDocument();
+    expect(screen.getByRole("tabpanel", { name: "Component library" })).toBeInTheDocument();
     expect(screen.getByText(/reuse repeated assemblies/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /insert/i })).not.toBeInTheDocument();
 
     await user.click(revisionIntelligenceTab);
 
     expect(revisionIntelligenceTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Revision Intelligence" })).toHaveTextContent(/planned preview/i);
+    expect(screen.getByRole("tabpanel", { name: "Revision intelligence" })).toHaveTextContent(/planned preview/i);
     expect(screen.getByText(/in the planned workflow/i)).toBeInTheDocument();
   });
 
@@ -61,12 +61,12 @@ describe("landing page below-hero interactivity", () => {
 
     render(<ProductShowcaseSection />);
 
-    const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate Workspace" });
+    const estimateWorkspaceTab = screen.getByRole("tab", { name: "Estimate workspace" });
     estimateWorkspaceTab.focus();
 
     await user.keyboard("{ArrowRight}");
 
-    const componentLibraryTab = screen.getByRole("tab", { name: "Component Library" });
+    const componentLibraryTab = screen.getByRole("tab", { name: "Component library" });
     expect(componentLibraryTab).toHaveFocus();
     expect(componentLibraryTab).toHaveAttribute("aria-selected", "true");
   });
@@ -85,7 +85,7 @@ describe("landing page below-hero interactivity", () => {
     const footer = screen.getByRole("contentinfo", { name: /estimate infrastructure/i });
     expect(footer).toBeInTheDocument();
     expect(footer).toHaveAttribute("data-visual-reference", "amigo-footer");
-    expect(footer).toHaveStyle({ backgroundColor: "#aa412a" });
+    expect(footer.style.backgroundColor).toBe("var(--brand-petrol-deep)");
     expect(screen.getByText(/Estimate infrastructure for building and handing off construction proposals/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("href", "/workshop");
     expect(screen.getByRole("link", { name: "Platform" })).toHaveAttribute("href", "#product");

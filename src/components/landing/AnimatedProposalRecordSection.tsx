@@ -54,7 +54,7 @@ const LINEWORK_OLIVE = "#74795a";
 const flowSteps: ProposalRecordStep[] = [
   {
     id: "projectWorkflow",
-    label: "Project-Shaped Workflow",
+    label: "Project-shaped workflow",
     labelLines: ["Project", "Workflow"],
     body: "Scope by area, phase, or package.",
     positionClassName: styles.projectWorkflowCard,
@@ -65,7 +65,7 @@ const flowSteps: ProposalRecordStep[] = [
   },
   {
     id: "componentLibrary",
-    label: "Reusable Component Library",
+    label: "Reusable component library",
     labelLines: ["Reusable", "Components"],
     body: "Use saved costs and assemblies.",
     positionClassName: styles.componentLibraryCard,
@@ -76,7 +76,7 @@ const flowSteps: ProposalRecordStep[] = [
   },
   {
     id: "estimatingExperience",
-    label: "Intuitive Estimating Experience",
+    label: "Intuitive estimating experience",
     labelLines: ["Estimating"],
     body: "Build and revise without spreadsheet friction.",
     positionClassName: styles.estimatingExperienceCard,
@@ -738,7 +738,7 @@ export function AnimatedProposalRecordSection() {
           <div
             ref={diagramStageRef}
             className={`${styles.diagramStage} ${shouldShowSketch ? styles.isVisible : ""}`}
-            aria-label="Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity History records the full process."
+            aria-label="Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity history records the full process."
           >
             <svg ref={svgRef} className={styles.sketchSvg} viewBox={`0 0 ${SKETCH_WIDTH} ${SKETCH_HEIGHT}`} aria-hidden="true">
               <g ref={roughLayerRef} />
@@ -798,7 +798,7 @@ export function AnimatedProposalRecordSection() {
             </ol>
 
             <section className="rounded-[3px] border border-[#b65f2f]/40 bg-[#f1e8df] p-4">
-              <p className="text-[12px] font-semibold leading-5 text-[#a9532d]">Activity History</p>
+              <p className="text-[12px] font-semibold leading-5 text-[#a9532d]">Activity history</p>
               <p className="mt-1 text-[13px] leading-6 text-[#4f463f]">
                 Every comment, change, and decision stays on record.
               </p>
@@ -840,7 +840,7 @@ export function AnimatedProposalRecordSection() {
       </div>
 
       <p className="sr-only">
-        Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity History records the full process.
+        Diagram showing project workflow, component library, and estimating experience feeding an estimate workspace. The estimate workspace becomes a client proposal. The proposal goes to client review. Client review can loop back to the estimate workspace or move forward to the approval record. Activity history records the full process.
       </p>
     </section>
   );
