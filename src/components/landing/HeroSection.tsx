@@ -1,14 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { annotate } from "rough-notation";
 import { workshopHref } from "./constants";
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 import { HeroEstimateArtifact } from "./HeroEstimateArtifact";
-
-/* Mirrors --brand-clay in globals.css (rough-notation needs a literal string) */
-const HERO_BRAND_ANNOTATION_COLOR = "#b2492c";
 
 /* Category line shared by both variants — the A/B difference lives in the
    headline and support copy only. */
@@ -35,67 +30,15 @@ export const heroCopyVariants = [
 
 export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "A" | "B"; isLoggedIn?: boolean }) {
   const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
-  const heroBrandRef = useRef<HTMLSpanElement | null>(null);
-  const supportBrandRef = useRef<HTMLSpanElement | null>(null);
   const primaryCtaHref = isLoggedIn ? workshopHref : "/contact";
   const primaryCtaTarget = isLoggedIn ? "workspace" : "book_walkthrough";
   const primaryCtaLabel = isLoggedIn ? "Open the workspace" : "Request beta access";
 
-  useEffect(() => {
-    const headlineTarget = heroBrandRef.current;
-    const supportTarget = supportBrandRef.current;
-
-    if (!headlineTarget && !supportTarget) {
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timers: number[] = [];
-    const annotations: Array<ReturnType<typeof annotate>> = [];
-
-    if (headlineTarget) {
-      const annotation = annotate(headlineTarget, {
-        type: "underline",
-        color: HERO_BRAND_ANNOTATION_COLOR,
-        strokeWidth: 2.2,
-        padding: 3,
-        iterations: 2,
-        animationDuration: prefersReducedMotion ? 0 : 720,
-        animate: !prefersReducedMotion,
-      });
-      annotations.push(annotation);
-      timers.push(window.setTimeout(
-        () => annotation.show(),
-        prefersReducedMotion ? 0 : 520,
-      ));
-    }
-
-    if (supportTarget) {
-      const annotation = annotate(supportTarget, {
-        type: "underline",
-        color: HERO_BRAND_ANNOTATION_COLOR,
-        strokeWidth: 1.7,
-        padding: 2,
-        iterations: 2,
-        animationDuration: prefersReducedMotion ? 0 : 620,
-        animate: !prefersReducedMotion,
-      });
-      annotations.push(annotation);
-      timers.push(window.setTimeout(
-        () => annotation.show(),
-        prefersReducedMotion ? 0 : 980,
-      ));
-    }
-
-    return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
-      annotations.forEach((annotation) => annotation.remove());
-    };
-  }, [activeHeroCopy.headline, activeHeroCopy.support]);
-
   return (
     <section className='relative isolate z-10 w-full bg-paper-0 px-6 pb-20 pt-14 text-ink-1 sm:px-8 lg:px-12'>
-      <div className='grid w-full gap-y-10 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:items-center lg:gap-x-14'>
+      {/* Capped container so the copy column and artifact compose as one
+          poster at 1440–1920px instead of drifting to the viewport edges. */}
+      <div className='mx-auto grid w-full max-w-[1280px] gap-y-10 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)] lg:items-center lg:gap-x-14'>
         <div
           data-testid='landing-hero-copy-block'
           className='relative max-w-[635px] lg:border-l lg:border-line-2 lg:pl-7'
@@ -105,22 +48,18 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
           </p>
 
           <h1 className='landing-display mt-3 text-ink-1'>
-            {activeHeroCopy.headline.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, i) =>
-              seg.toLowerCase() === "archestimator" ? (
-                <span key={i} ref={heroBrandRef} className="relative inline-block text-brand-clay">{seg}</span>
-              ) : (
-                <span key={i}>{seg}</span>
-              )
-            )}
+            {activeHeroCopy.headline}
           </h1>
 
+          {/* Brand word stays color-only \u2014 the artifact's circled subtotal is
+              the hero's single hand-drawn mark. */}
           <p className='landing-body-lg mt-5 max-w-[440px] text-ink-2 text-pretty'>
             {activeHeroCopy.support.split("\n").map((part, i) => (
               <span key={i}>
                 {i > 0 && <br aria-hidden="true" />}
                 {part.replace(/(archestimator)/gi, "\u200B$1\u200B").split("\u200B").map((seg, j) =>
                   seg.toLowerCase() === "archestimator" ? (
-                    <span key={j} ref={supportBrandRef} className="relative inline-block text-brand-clay">{seg}</span>
+                    <span key={j} className="text-brand-clay">{seg}</span>
                   ) : (
                     <span key={j}>{seg}</span>
                   )
@@ -145,9 +84,15 @@ export function HeroSection({ variant = "A", isLoggedIn = false }: { variant?: "
               See how it works <span aria-hidden='true'>↓</span>
             </Link>
           </div>
+
+          <p className='mt-3 text-[12px] leading-5 text-ink-3'>
+            Now on closed beta · no payment during beta
+          </p>
         </div>
 
-        <div className='lg:hidden'>
+        {/* 740px = the sheet's 720px cap + the mat's padding, so the mat
+            hugs the capped sheet instead of showing bare paper at tablet widths */}
+        <div className='max-w-[740px] lg:hidden'>
           <HeroEstimateArtifact compact />
         </div>
         <div className='hidden w-full max-w-[860px] lg:block lg:justify-self-end'>
