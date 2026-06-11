@@ -636,6 +636,64 @@ describe("component library manager UI", () => {
     expect(within(costEntries).getAllByRole("option")).toHaveLength(2);
   });
 
+  it("commits a cost confidence through the shared dropdown select", async () => {
+    await renderLibrary();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open cost manager" }));
+
+    const manager = await screen.findByRole("dialog", { name: "Cost Manager" });
+    const confidenceTrigger = within(manager).getByRole("combobox", { name: "Cost manager confidence" });
+    expect(confidenceTrigger).toHaveTextContent("Medium");
+
+    fireEvent.click(confidenceTrigger);
+    const listbox = screen.getByRole("listbox", { name: "Cost manager confidence" });
+    expect(listbox.parentElement).toBe(document.body);
+
+    fireEvent.click(within(listbox).getByRole("option", { name: "High" }));
+
+    expect(confidenceTrigger).toHaveTextContent("High");
+    expect(screen.queryByRole("listbox", { name: "Cost manager confidence" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Cost Manager" })).toBeInTheDocument();
+  });
+
+  it("updates the lifecycle draft from the Activity tab and keeps the modal open on Escape", async () => {
+    await renderLibrary();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
+    fireEvent.click(within(dialog).getByRole("tab", { name: "Activity" }));
+
+    const activityPanel = within(dialog).getByRole("tabpanel", { name: "Activity" });
+    const lifecycleTrigger = within(activityPanel).getByRole("combobox", { name: "Component state" });
+    expect(lifecycleTrigger).toHaveTextContent("Available");
+
+    fireEvent.click(lifecycleTrigger);
+    // The listbox portals to document.body so the modal's overflow cannot clip it.
+    const listbox = screen.getByRole("listbox", { name: "Component state" });
+    expect(listbox.parentElement).toBe(document.body);
+
+    fireEvent.click(within(listbox).getByRole("option", { name: "In production" }));
+
+    expect(lifecycleTrigger).toHaveTextContent("In production");
+    expect(screen.queryByRole("listbox", { name: "Component state" })).toBeNull();
+    // The draft update propagates to the activity history summary row.
+    const lifecycleHistoryRow = within(activityPanel).getByText("Lifecycle state").closest('[role="listitem"]') as HTMLElement;
+    expect(within(lifecycleHistoryRow).getByText("In production")).toBeInTheDocument();
+
+    // Escape with the listbox open closes only the listbox; the hosting modal stays.
+    fireEvent.click(lifecycleTrigger);
+    expect(screen.getByRole("listbox", { name: "Component state" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByRole("listbox", { name: "Component state" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
+  });
+
   it("renders unit dropdowns with clear code and meaning columns", async () => {
     await renderLibrary();
 
