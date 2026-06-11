@@ -19,18 +19,29 @@ describe("LibraryTabsLayoutClient", () => {
     navigationMock.segments = [];
   });
 
-  it("renders link tabs and marks Components active on the library index", () => {
+  it("renders link tabs and marks Overview active on the library index", () => {
     render(<LibraryTabsLayoutClient />);
 
     const tablist = screen.getByRole("tablist", { name: "Library sections" });
+    const overviewTab = screen.getByRole("tab", { name: /Overview/ });
     const componentsTab = screen.getByRole("tab", { name: /Components/ });
     const templatesTab = screen.getByRole("tab", { name: /Templates/ });
 
     expect(tablist).toBeInTheDocument();
-    expect(componentsTab).toHaveAttribute("aria-selected", "true");
+    expect(overviewTab).toHaveAttribute("aria-selected", "true");
+    expect(overviewTab).toHaveAttribute("href", "/workshop/library");
+    expect(componentsTab).toHaveAttribute("aria-selected", "false");
     expect(componentsTab).toHaveAttribute("href", "/workshop/library/components");
     expect(templatesTab).toHaveAttribute("aria-selected", "false");
     expect(templatesTab).toHaveAttribute("href", "/workshop/library/templates");
+  });
+
+  it("lists Overview as the first tab", () => {
+    render(<LibraryTabsLayoutClient />);
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]).toHaveTextContent("Overview");
+    expect(tabs).toHaveLength(3);
   });
 
   it("marks Components active on the components sub-route", () => {
@@ -40,6 +51,7 @@ describe("LibraryTabsLayoutClient", () => {
     render(<LibraryTabsLayoutClient />);
 
     expect(screen.getByRole("tab", { name: /Components/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Overview/ })).toHaveAttribute("aria-selected", "false");
   });
 
   it("marks Templates active on the templates browse route", () => {

@@ -9,7 +9,11 @@ import type {
   EstimateRowItemSource,
   EstimateTreeNode,
 } from "@/lib/estimates/types";
-import { estimateTemplates, type EstimateTemplate } from "@/lib/component-library/estimate-templates";
+import {
+  estimateTemplates,
+  summarizeEstimateTemplate,
+  type EstimateTemplate,
+} from "@/lib/component-library/estimate-templates";
 import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import {
   buildComponentCategoryTreeFromRows,
@@ -498,6 +502,8 @@ export function buildEstimateTemplatesFromRows(input: BuildEstimateTemplatesInpu
         description: template.description,
         category: template.category,
         nodes: roots,
+        updatedAt: template.updated_at,
+        sortOrder: template.sort_order,
       };
     });
 }
@@ -757,6 +763,278 @@ export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTe
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   return loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id });
+}
+
+/** Pricing-date age beyond which a component price counts as stale on the Overview health line. */
+const LIBRARY_OVERVIEW_STALE_PRICING_DAYS = 90;
+
+export type LibraryOverviewComponent = {
+  id: string;
+  name: string;
+  category: string;
+  supplier: string;
+  unit: string;
+  unitCost: number;
+  imageUrl?: string;
+  lifecycleState: Tables<"cost_library_items">["lifecycle_state"];
+  updatedAt: string;
+};
+
+export type LibraryOverviewTemplate = {
+  id: string;
+  name: string;
+  category: string;
+  updatedAt?: string;
+  groupCount: number;
+  areaCount: number;
+  rowCount: number;
+  total: number;
+};
+
+export type LibraryOverviewHealth = {
+  staleComponentCount: number;
+  discontinuedInUseCount: number;
+  missingBrandCount: number;
+  lastLibraryUpdate: string | null;
+};
+
+export type LibraryOverview = {
+  componentCount: number;
+  categoryCount: number;
+  supplierCount: number;
+  brandCount: number;
+  templateCount: number;
+  templateGroupCount: number;
+  templateCategories: string[];
+  recentComponents: LibraryOverviewComponent[];
+  recentTemplates: LibraryOverviewTemplate[];
+  health: LibraryOverviewHealth;
+};
+
+function toLibraryOverviewTemplate(template: EstimateTemplate): LibraryOverviewTemplate {
+  const summary = summarizeEstimateTemplate(template);
+  return {
+    id: template.id,
+    name: template.name,
+    category: template.category,
+    updatedAt: template.updatedAt,
+    groupCount: summary.groupCount,
+    areaCount: summary.areaCount,
+    rowCount: summary.rowCount,
+    total: summary.total,
+  };
+}
+
+/**
+ * One lightweight payload for the Library Overview home: header counts,
+ * 6 most recently updated components, 5 most recently updated templates,
+ * and the health-line stats. Indexed lookups only — never the full
+ * component or template datasets.
+ */
+export async function getLibraryOverview(): Promise<LibraryOverview> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const workspaceId = workspace.id;
+  const stalePricingCutoff = new Date(Date.now() - LIBRARY_OVERVIEW_STALE_PRICING_DAYS * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const [
+    componentCountResult,
+    categoryCountResult,
+    supplierCountResult,
+    brandCountResult,
+    recentComponentsResult,
+    recentTemplatesResult,
+    templateCategoriesResult,
+    staleCountResult,
+    missingBrandCountResult,
+    lastUpdateResult,
+    discontinuedIdsResult,
+  ] = await Promise.all([
+    supabase
+      .from("cost_library_items")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived"),
+    supabase
+      .from("component_category_nodes")
+      .select("id", { count: "exact", head: true })
+      .is("parent_id", null),
+    supabase
+      .from("component_suppliers")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("component_brands")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("cost_library_items")
+      .select("id, name, category, supplier, unit, unit_cost, thumbnail_path, lifecycle_state, updated_at")
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .order("updated_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("estimate_templates")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("estimate_templates")
+      .select("category")
+      .eq("workspace_id", workspaceId),
+    supabase
+      .from("cost_library_items")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .not("pricing_date", "is", null)
+      .lt("pricing_date", stalePricingCutoff),
+    supabase
+      .from("cost_library_items")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .is("brand_id", null)
+      .or('brand.is.null,brand.eq.""'),
+    supabase
+      .from("cost_library_items")
+      .select("updated_at")
+      .eq("workspace_id", workspaceId)
+      .order("updated_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("cost_library_items")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("lifecycle_state", "discontinued"),
+  ]);
+
+  if (componentCountResult.error) throw componentCountResult.error;
+  if (categoryCountResult.error) throw categoryCountResult.error;
+  if (supplierCountResult.error) throw supplierCountResult.error;
+  if (brandCountResult.error && !isMissingRelationError(brandCountResult.error, "component_brands")) throw brandCountResult.error;
+  if (recentComponentsResult.error) throw recentComponentsResult.error;
+  if (recentTemplatesResult.error && !isMissingRelationError(recentTemplatesResult.error, "estimate_templates")) throw recentTemplatesResult.error;
+  if (templateCategoriesResult.error && !isMissingRelationError(templateCategoriesResult.error, "estimate_templates")) throw templateCategoriesResult.error;
+  if (staleCountResult.error) throw staleCountResult.error;
+  if (missingBrandCountResult.error) throw missingBrandCountResult.error;
+  if (lastUpdateResult.error) throw lastUpdateResult.error;
+  if (discontinuedIdsResult.error) throw discontinuedIdsResult.error;
+
+  const recentComponents: LibraryOverviewComponent[] = (recentComponentsResult.data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    supplier: row.supplier ?? "",
+    unit: row.unit,
+    unitCost: Number(row.unit_cost),
+    imageUrl: row.thumbnail_path ?? undefined,
+    lifecycleState: row.lifecycle_state,
+    updatedAt: row.updated_at,
+  }));
+
+  // Templates: counts need nodes + rows, fetched for just the 5 recent ids.
+  // A missing templates table falls back to the seed list (same behavior as
+  // the Templates browse tab).
+  const isTemplateTableMissing = Boolean(recentTemplatesResult.error);
+  const recentTemplateRows = recentTemplatesResult.error ? [] : (recentTemplatesResult.data ?? []);
+  let recentTemplates: LibraryOverviewTemplate[] = [];
+  if (recentTemplateRows.length > 0) {
+    const recentTemplateIds = recentTemplateRows.map((template) => template.id);
+    const [templateNodesResult, templateRowItemsResult] = await Promise.all([
+      supabase
+        .from("estimate_template_nodes")
+        .select("*")
+        .in("template_id", recentTemplateIds)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("estimate_template_row_items")
+        .select("*")
+        .in("template_id", recentTemplateIds)
+        .order("sort_order", { ascending: true }),
+    ]);
+    if (templateNodesResult.error) throw templateNodesResult.error;
+    if (templateRowItemsResult.error) throw templateRowItemsResult.error;
+
+    const builtById = new Map(
+      buildEstimateTemplatesFromRows({
+        templates: recentTemplateRows,
+        nodes: templateNodesResult.data ?? [],
+        rowItems: templateRowItemsResult.data ?? [],
+      }).map((template) => [template.id, template]),
+    );
+    // buildEstimateTemplatesFromRows sorts by sort_order; restore recency order.
+    recentTemplates = recentTemplateRows
+      .map((row) => builtById.get(row.id))
+      .filter((template): template is EstimateTemplate => Boolean(template))
+      .map(toLibraryOverviewTemplate);
+  } else {
+    recentTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing })
+      .slice(0, 5)
+      .map(toLibraryOverviewTemplate);
+  }
+
+  const templateCategoryRows = templateCategoriesResult.error ? [] : (templateCategoriesResult.data ?? []);
+  const templateCategorySet = new Set(
+    isTemplateTableMissing
+      ? getTemplateTableFallbackTemplates({ isTemplateTableMissing }).map((template) => template.category)
+      : templateCategoryRows.map((row) => row.category),
+  );
+  const templateCount = isTemplateTableMissing
+    ? getTemplateTableFallbackTemplates({ isTemplateTableMissing }).length
+    : templateCategoryRows.length;
+
+  // Discontinued items still referenced by template or estimate rows. The
+  // discontinued id list is small, so two indexed .in() lookups stay cheap.
+  let discontinuedInUseCount = 0;
+  const discontinuedIds = (discontinuedIdsResult.data ?? []).map((row) => row.id);
+  if (discontinuedIds.length > 0) {
+    const [templateRefsResult, estimateRefsResult] = await Promise.all([
+      supabase
+        .from("estimate_template_row_items")
+        .select("source_library_item_id")
+        .in("source_library_item_id", discontinuedIds),
+      supabase
+        .from("estimate_row_items")
+        .select("source_library_item_id")
+        .in("source_library_item_id", discontinuedIds),
+    ]);
+    if (templateRefsResult.error && !isMissingRelationError(templateRefsResult.error, "estimate_template_row_items")) {
+      throw templateRefsResult.error;
+    }
+    if (estimateRefsResult.error) throw estimateRefsResult.error;
+
+    const inUseIds = new Set<string>();
+    for (const row of templateRefsResult.error ? [] : (templateRefsResult.data ?? [])) {
+      if (row.source_library_item_id) inUseIds.add(row.source_library_item_id);
+    }
+    for (const row of estimateRefsResult.data ?? []) {
+      if (row.source_library_item_id) inUseIds.add(row.source_library_item_id);
+    }
+    discontinuedInUseCount = inUseIds.size;
+  }
+
+  return {
+    componentCount: componentCountResult.count ?? 0,
+    categoryCount: categoryCountResult.count ?? 0,
+    supplierCount: supplierCountResult.count ?? 0,
+    brandCount: brandCountResult.error ? 0 : (brandCountResult.count ?? 0),
+    templateCount,
+    templateGroupCount: templateCategorySet.size,
+    templateCategories: [...templateCategorySet].sort((left, right) => left.localeCompare(right)),
+    recentComponents,
+    recentTemplates,
+    health: {
+      staleComponentCount: staleCountResult.count ?? 0,
+      discontinuedInUseCount,
+      missingBrandCount: missingBrandCountResult.count ?? 0,
+      lastLibraryUpdate: lastUpdateResult.data?.[0]?.updated_at ?? null,
+    },
+  };
 }
 
 /**
