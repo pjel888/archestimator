@@ -1,16 +1,6 @@
 export const LANDING_CONSENT_COOKIE_NAME = "archestimator_cookie_consent";
 export const LANDING_CONSENT_VERSION = 1;
 export const LANDING_CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
-export const LANDING_CONSENT_OPEN_SETTINGS_EVENT = "archestimator:landing-consent-open-settings";
-
-/**
- * Asks the floating consent banner to open its settings panel. Used by the
- * footer "Cookie settings" link; a no-op on the server.
- */
-export function requestLandingCookieSettings() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event(LANDING_CONSENT_OPEN_SETTINGS_EVENT));
-}
 
 export interface LandingConsentState {
   version: typeof LANDING_CONSENT_VERSION;

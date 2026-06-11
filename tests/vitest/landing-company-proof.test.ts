@@ -1,6 +1,10 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  getRenderableCompanyProofItems,
+  type CompanyProofLogo,
+} from "../../src/components/landing/company-proof-data";
 
 const root = process.cwd();
 const readProjectFile = (path: string) =>
@@ -25,110 +29,94 @@ function readTextFilesRecursively(directory: string): string[] {
   });
 }
 
-describe("landing page capability rows and Lenis integration", () => {
-  it("keeps the locked hero first and inserts the capability rows before the product showcase", () => {
+describe("landing page company proof and Lenis integration", () => {
+  it("keeps the locked hero first and inserts the company proof carousel before the product showcase", () => {
     const page = readProjectFile("src/app/page.tsx");
 
     expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
-    expect(page.indexOf("<AnimatedProposalRecordSection />")).toBeGreaterThan(
+    expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
       page.indexOf("<HeroSection"),
     );
-    expect(page.indexOf("<ProblemSection />")).toBeGreaterThan(
-      page.indexOf("<AnimatedProposalRecordSection />"),
-    );
-    expect(page.indexOf("<CapabilityRowsSection />")).toBeGreaterThan(
-      page.indexOf("<ProblemSection />"),
-    );
     expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
-      page.indexOf("<CapabilityRowsSection />"),
-    );
-    expect(page.indexOf("<PricingSection />")).toBeGreaterThan(
-      page.indexOf("<ProductShowcaseSection />"),
-    );
-    expect(page.indexOf("<FinalCTASection")).toBeGreaterThan(
-      page.indexOf("<PricingSection />"),
+      page.indexOf("<CompanyProofCarouselSection />"),
     );
     expect(page.indexOf("<LandingFooter />")).toBeGreaterThan(
-      page.indexOf("<FinalCTASection"),
+      page.indexOf("<FinalCTASection />"),
     );
     expect(page).toContain("LandingSmoothScrollProvider");
-    expect(page).not.toContain("CompanyProofCarouselSection");
-    expect(page).not.toContain("SecondaryClaimSection");
   });
 
-  it("replaces the terracotta drench with paper-surface capability proof rows", () => {
-    const section = readProjectFile(
-      "src/components/landing/CapabilityRowsSection.tsx",
-    );
-
-    // The hero's "See how it works" anchor now lands here.
-    expect(section).toContain('id="method"');
-    expect(section).toContain("bg-paper-0");
-
-    // Intro block subsumes the retired SecondaryClaimSection copy verbatim.
-    expect(section).toContain("Built around construction estimate patterns");
-    expect(section).toContain(
-      "Workflows designed for every estimating specialty.",
-    );
-    expect(section).toContain(
-      "Every team names scope differently. Archestimator gives the quote enough structure to carry rooms, assemblies, supplier context, allowances, and revisions without flattening the work into one brittle spreadsheet.",
-    );
-
-    // Three capability rows carry the former feature-card copy.
-    expect(section).toContain("Project-shaped workflow");
-    expect(section).toContain(
-      "Structure your proposal the way you think about the work",
-    );
-    expect(section).toContain("Reusable component library");
-    expect(section).toContain("Build it once. Use it everywhere.");
-    expect(section).toContain("Proposal handoff");
-    expect(section).toContain("From costing to client-ready in one flow");
-
-    // Revision history folds into row C as a sub-block.
-    expect(section).toContain("Revision history");
-    expect(section).toContain(
-      "In progress: every change traceable as the quote matures.",
-    );
-
-    // The planned tag pairs an icon with text — never color-only.
-    expect(section).toContain("Planned");
-    expect(section).toMatch(/<Clock[^>]*aria-hidden/);
-
-    // Proof mockups stay decorative with sr-only descriptions.
-    expect(section).toContain('aria-hidden="true"');
-    expect(section).toContain("sr-only");
-
-    // No drench styling and no resurrected video placeholders.
-    expect(section).not.toContain("bg-brand-orange");
-    expect(section).not.toContain("video");
-    expect(section).not.toMatch(/role="img"/);
-  });
-
-  it("keeps the retired drench-section files and placeholders out of the codebase", () => {
-    for (const retired of [
-      "src/components/landing/CompanyProofCarouselSection.tsx",
-      "src/components/landing/SecondaryClaimSection.tsx",
-      "src/components/landing/LaunchFeatureHeading.tsx",
+  it("marks company carousel data as placeholder scaffolding instead of real social proof", () => {
+    const data = readProjectFile(
       "src/components/landing/company-proof-data.ts",
-    ]) {
-      expect(existsSync(join(root, retired)), `${retired} should be deleted`).toBe(
-        false,
-      );
-    }
-
-    const barrel = readProjectFile("src/components/landing/index.ts");
-    expect(barrel).toContain(
-      'export { CapabilityRowsSection } from "./CapabilityRowsSection";',
     );
-    expect(barrel).not.toContain("CompanyProofCarouselSection");
-    expect(barrel).not.toContain("SecondaryClaimSection");
+    const section = readProjectFile(
+      "src/components/landing/CompanyProofCarouselSection.tsx",
+    );
 
-    const landingSources = readTextFilesRecursively(
-      join(root, "src/components/landing"),
-    ).join("\n");
-    expect(landingSources).not.toContain("data-youtube-video-placeholder");
-    expect(landingSources).not.toContain("data-launch-feature-video-placeholder");
-    expect(landingSources).not.toContain("Launch feature video");
+    expect(data).toContain('relationship: "placeholder"');
+    expect(data).toContain("permissionConfirmed: false");
+    expect(data).toContain("isPlaceholder: true");
+    expect(data).toContain(
+      "Real customer proof will replace this rail before any public trust claim",
+    );
+    expect(section).toContain("getRenderableCompanyProofItems");
+    expect(section).toContain("data-company-proof-state={proofState}");
+    expect(section).toContain(
+      'data-placeholder={item.isPlaceholder ? "true" : undefined}',
+    );
+    expect(section).not.toContain("Pause rail");
+    expect(section).not.toContain("Resume rail");
+    expect(section).not.toMatch(/Trusted by|Used by|Customers include/);
+  });
+
+  it("fails closed to placeholder-only data when candidate proof is unconfirmed", () => {
+    const placeholder: CompanyProofLogo = {
+      name: "Sample Builder",
+      initials: "SB",
+      relationship: "placeholder",
+      permissionConfirmed: false,
+      isPlaceholder: true,
+      publicLabel: "Sample profile",
+      workflowFit: "Estimate workspace preview",
+    };
+    const unconfirmedCustomer: CompanyProofLogo = {
+      name: "Unconfirmed Customer",
+      initials: "UC",
+      relationship: "customer",
+      permissionConfirmed: false,
+      publicLabel: "Customer",
+      workflowFit: "Should not render",
+    };
+    const verifiedCustomer: CompanyProofLogo = {
+      name: "Verified Customer",
+      initials: "VC",
+      relationship: "customer",
+      permissionConfirmed: true,
+      publicLabel: "Customer",
+      workflowFit: "Confirmed proof",
+    };
+
+    expect(
+      getRenderableCompanyProofItems([unconfirmedCustomer, placeholder]),
+    ).toEqual({
+      items: [placeholder],
+      state: "placeholder",
+    });
+    expect(getRenderableCompanyProofItems([unconfirmedCustomer])).toEqual({
+      items: [],
+      state: "placeholder",
+    });
+    expect(
+      getRenderableCompanyProofItems([
+        placeholder,
+        verifiedCustomer,
+        unconfirmedCustomer,
+      ]),
+    ).toEqual({
+      items: [verifiedCustomer],
+      state: "verified",
+    });
   });
 
   it("keeps landing header hash links pointed at rendered below-hero sections", () => {
@@ -136,7 +124,7 @@ describe("landing page capability rows and Lenis integration", () => {
     const landingSources = [
       readProjectFile("src/components/landing/HeroSection.tsx"),
       readProjectFile("src/components/landing/ProductShowcaseSection.tsx"),
-      readProjectFile("src/components/landing/CapabilityRowsSection.tsx"),
+      readProjectFile("src/components/landing/SecondaryClaimSection.tsx"),
       readProjectFile("src/components/landing/SolutionSection.tsx"),
       readProjectFile("src/components/landing/PricingSection.tsx"),
       readProjectFile("src/components/landing/FAQSection.tsx"),
@@ -147,55 +135,42 @@ describe("landing page capability rows and Lenis integration", () => {
       (match) => match[1],
     );
 
-    expect(hashHrefs).toEqual(["method", "product", "pricing"]);
+    expect(hashHrefs).toEqual([
+      "product",
+      "method",
+      "solutions",
+      "insights",
+      "contact",
+    ]);
     for (const hash of hashHrefs) {
       expect(landingSources).toMatch(new RegExp(`id=['\"]${hash}['\"]`));
     }
-
-    // Flat anchor nav replaced the Platform/Specialties/Company dropdowns.
-    expect(header).toContain('label: "How it works"');
-    expect(header).toContain('label: "Product"');
-    expect(header).toContain('label: "Beta & pricing"');
-    expect(header).toContain('label: "Contact", href: "/contact"');
-    expect(header).not.toContain('label: "Platform"');
-    expect(header).not.toContain('label: "Specialties"');
-    expect(header).not.toContain('label: "Company"');
-
-    // The dark color-swap watches the petrol product band, the clay final
-    // CTA, and the footer — not just the footer.
-    expect(header).toContain('document.getElementById("product")');
-    expect(header).toContain('data-landing-dark-section="true"');
-    expect(header).toContain('data-visual-reference="amigo-footer"');
   });
 
-  it("wires the footer cookie-settings link to the consent banner", () => {
-    const footer = readProjectFile("src/components/landing/LandingFooter.tsx");
-    const banner = readProjectFile(
-      "src/components/landing/CookieConsentBanner.tsx",
+  it("uses CSS marquee motion with reduced-motion fallback inside a light full-width rail", () => {
+    const section = readProjectFile(
+      "src/components/landing/CompanyProofCarouselSection.tsx",
     );
-    const consentLib = readProjectFile("src/lib/landing/consent.ts");
-    const finalCta = readProjectFile(
-      "src/components/landing/FinalCTASection.tsx",
+    const globals = readProjectFile("src/app/globals.css");
+
+    expect(section).toContain("landing-company-carousel-viewport");
+    expect(section).toContain("w-full overflow-hidden border-y");
+    expect(section).toContain("bg-[#f8f6f1]");
+    expect(section).not.toContain("landing-company-marquee-paused");
+    expect(section).not.toContain("useState");
+    expect(section).not.toContain('aria-controls="company-proof-rail"');
+    expect(section).not.toContain("aria-pressed=");
+    expect(section).not.toContain("data-company-proof-paused");
+    expect(section).toContain('aria-hidden={duplicate ? "true" : undefined}');
+    expect(globals).toContain("@keyframes landing-company-marquee");
+    expect(globals).toContain("--landing-company-marquee-gap");
+    expect(globals).not.toContain("landing-company-marquee-paused");
+    expect(globals).not.toContain("data-company-proof-paused");
+    expect(globals).toContain(
+      '.landing-company-marquee > [aria-hidden="true"]',
     );
-
-    // Footer exposes a Cookie settings trigger and drops the borrowed
-    // lavender accents for linework-petrol-derived tints.
-    expect(footer).toContain('data-cookie-settings-trigger="true"');
-    expect(footer).toContain("requestLandingCookieSettings");
-    expect(footer).toContain("Cookie settings");
-    expect(footer).not.toContain("#d8c3d2");
-    expect(footer).toContain("#5d7a82");
-
-    // The banner listens for the footer's open request and hides the
-    // floating chip once a decision exists and the footer link is present.
-    expect(consentLib).toContain("LANDING_CONSENT_OPEN_SETTINGS_EVENT");
-    expect(banner).toContain("LANDING_CONSENT_OPEN_SETTINGS_EVENT");
-    expect(banner).toContain("data-cookie-settings-trigger");
-
-    // The final CTA is the page's only clay-drenched band and carries the
-    // dark-section marker the header observes.
-    expect(finalCta).toContain("bg-brand-clay");
-    expect(finalCta).toContain('data-landing-dark-section="true"');
+    expect(globals).toContain("prefers-reduced-motion: reduce");
+    expect(globals).toContain("animation: none");
   });
 
   it("scopes Lenis to the home landing wrapper and preserves native non-home scrolling", () => {
@@ -209,9 +184,7 @@ describe("landing page capability rows and Lenis integration", () => {
     const packageJson = readProjectFile("package.json");
 
     expect(packageJson).toContain('"lenis"');
-    // Vendor CSS is landing-scoped: it ships with the provider, not the root layout.
-    expect(provider).toContain('import "lenis/dist/lenis.css";');
-    expect(layout).not.toContain("lenis");
+    expect(layout).toContain('import "lenis/dist/lenis.css";');
     expect(homePage).toContain("<LandingSmoothScrollProvider>");
     expect(publicShell).not.toContain("LandingSmoothScrollProvider");
     expect(publicShell).toContain('<main data-landing-page-root="true">');
@@ -241,10 +214,21 @@ describe("landing page capability rows and Lenis integration", () => {
     expect(globals).toContain("scroll-margin-top: 68px");
   });
 
-  it("keeps the retired Neat hero canvas out of the codebase", () => {
-    expect(
-      existsSync(join(root, "src/components/landing/NeatWireframeBackground.tsx")),
-    ).toBe(false);
+  it("keeps the Neat hero canvas off the mobile/reduced-motion critical path", () => {
+    const neat = readProjectFile(
+      "src/components/landing/NeatWireframeBackground.tsx",
+    );
+
+    expect(neat).toContain("shouldUseStaticNeatFallback");
+    expect(neat).toContain("(prefers-reduced-motion: reduce)");
+    expect(neat).toContain("(pointer: coarse)");
+    expect(neat).toContain("(max-width: 767px)");
+    expect(neat).toContain("requestIdleCallback");
+    expect(neat).toContain("cancelIdleCallback");
+    expect(neat).toContain("setTimeout");
+    expect(neat).toContain("await import('@firecms/neat')");
+    expect(neat).toContain("data-neat-static-fallback");
+    expect(neat).toContain("gradient?.destroy()");
   });
 
   it("does not import the landing Lenis provider from workshop surfaces", () => {

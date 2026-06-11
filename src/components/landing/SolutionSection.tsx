@@ -26,7 +26,7 @@ function WorkflowVisual() {
     { label: "Catalog Item", sub: "Product · Service · Labor" },
     { label: "Quote Logic", sub: "Qty · Rate · Assumption" },
     { label: "Revision", sub: "Delta · Approval" },
-    { label: "Proposal handoff", sub: "Planned document path" },
+    { label: "Proposal Handoff", sub: "Planned document path" },
   ];
 
   return (
@@ -98,7 +98,7 @@ export function SolutionSection() {
             {solutionFeatures.map(([title, body], index) => (
               <MotionReveal key={title} staggerIndex={index + 2} className="h-full">
                 <article className="flex h-full flex-col justify-center rounded-[8px] border border-[#ded2c7] bg-[#faf7f2] p-5">
-                  <h3 className="landing-h3 text-[#171514]">
+                  <h3 className="text-[24px] font-normal leading-[1.08] tracking-normal text-[#171514]">
                     {title}
                   </h3>
                   <p className="mt-3 text-[14px] leading-6 text-[#625950]">{body}</p>
