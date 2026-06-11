@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { Cube, FolderSimple, Package } from "@phosphor-icons/react";
+import { Cube, FolderSimple, FunnelSimple, Package, Plus } from "@phosphor-icons/react";
 
-import { Tree, TreePanelHeader, type TreeNode } from "@/components/ui";
+import { Checkbox, Tree, TreePanelHeader, type TreeNode } from "@/components/ui";
+import { FilterPopover } from "@/components/ui/overlays/popover";
 
 const panelNodes: TreeNode[] = [
   {
@@ -137,4 +138,71 @@ export const LibraryAddAction: Story = {
 
 export const WithoutTabs: Story = {
   render: () => <PanelPreview />,
+};
+
+function SheetHeaderPreview() {
+  const [query, setQuery] = useState("");
+  const [staleOnly, setStaleOnly] = useState(false);
+
+  return (
+    <div className="flex h-40 w-96 flex-col overflow-hidden rounded-xs border border-hairline bg-white">
+      <TreePanelHeader
+        ariaLabel="Sheet tools"
+        labelPrefix="sheet"
+        searchValue={query}
+        onSearchValueChange={setQuery}
+        searchPlaceholder="Search components"
+        searchLabel="Search components"
+        showDefaultActions={false}
+        filterSlot={
+          <FilterPopover
+            triggerLabel={staleOnly ? "Filter components (1 active)" : "Filter components"}
+            trigger={
+              <>
+                <FunnelSimple size={12} weight="regular" aria-hidden="true" />
+                {staleOnly ? (
+                  <span className="rounded-xs bg-surfaceMuted px-1 text-[8px] font-medium leading-3 tabular-nums">1</span>
+                ) : null}
+              </>
+            }
+            triggerVariant="ghost"
+            triggerClassName="h-6 min-h-6 w-auto gap-1 rounded-xs px-1.5 py-0 !text-[9px] text-tertiary"
+            triggerPressed={staleOnly}
+            title="Filter components"
+          >
+            <Checkbox
+              label={<span className="text-[10px] leading-4 text-secondary">Prices older than 90 days</span>}
+              checked={staleOnly}
+              onChange={() => setStaleOnly((current) => !current)}
+            />
+          </FilterPopover>
+        }
+        addActions={[
+          {
+            label: "Add component",
+            visibleLabel: "Add component",
+            showVisibleLabel: true,
+            icon: <Plus size={12} weight="regular" aria-hidden="true" />,
+            onClick: () => {},
+          },
+        ]}
+      />
+      <div className="min-h-0 flex-1 bg-white p-2 text-[10px] leading-4 text-tertiary">
+        One 40px header row owns search (disclosure), a wired filter popover in the filter slot, and the labeled
+        ink-primary add action. Unwired defaults stay hidden via showDefaultActions.
+      </div>
+    </div>
+  );
+}
+
+export const SheetHeaderFilterSlotAndLabeledAdd: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Library sheet pattern: `filterSlot` hosts a wired FilterPopover in the filter position, and an \"Add …\" action keeps its visible label via `showVisibleLabel` (ink-primary emphasis). Icon-only add actions now default to neutral tokens (the orange variant is retired).",
+      },
+    },
+  },
+  render: () => <SheetHeaderPreview />,
 };

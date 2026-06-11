@@ -14,7 +14,8 @@ function todayIsoDate() {
 }
 
 async function waitForLibraryWorkspace() {
-  await screen.findByRole("tablist", { name: "Library views" }, { timeout: 10_000 });
+  // The tablists are retired; the dynamic tree surface's view-mode toggle is the stable anchor.
+  await screen.findByRole("button", { name: /View by:/ }, { timeout: 10_000 });
 }
 
 function openComponentViewMenu() {
@@ -77,6 +78,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: navigationMocks.refresh,
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("react-complex-tree", () => ({
@@ -271,23 +273,33 @@ describe("workshop library consolidation UI", () => {
     rctHarness.lastEnvironmentProps = null;
   });
 
-  it("uses /workshop/library as the canonical route and redirects the retired components route", () => {
+  it("uses /workshop/library as the canonical route and redirects the retired components and templates routes", () => {
     const libraryRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/page.tsx"), "utf8");
+    const libraryLayout = readFileSync(join(process.cwd(), "src/app/workshop/library/layout.tsx"), "utf8");
+    const componentsSharedRoute = readFileSync(join(process.cwd(), "src/components/workshop/library/LibraryComponentsRoute.tsx"), "utf8");
+    const componentsSubRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/components/page.tsx"), "utf8");
+    const libraryTemplatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/templates/page.tsx"), "utf8");
     const componentsRoute = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
     const templatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/templates/page.tsx"), "utf8");
 
-    expect(libraryRoute).toContain("LibraryPageClient");
-    expect(libraryRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
-    expect(libraryRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
+    expect(libraryRoute).toContain("LibraryOverview");
+    expect(libraryRoute).toContain("getLibraryOverview");
+    expect(libraryRoute).not.toContain("LibraryComponentsRoute");
+    expect(componentsSubRoute).toContain("LibraryComponentsRoute");
+    expect(componentsSharedRoute).toContain("LibraryPageClient");
+    expect(componentsSharedRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
+    expect(componentsSharedRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
     expect(libraryRoute).not.toContain("templates=");
-    expect(libraryRoute).toContain('breadcrumbs={["Library"]}');
-    expect(libraryRoute).toContain('contentClassName=""');
+    expect(libraryLayout).toContain('breadcrumbs={["Library"]}');
+    expect(libraryLayout).toContain('contentClassName=""');
+    expect(libraryLayout).toContain("LibraryTabsLayoutClient");
     expect(libraryRoute).not.toContain("Workspace library");
     expect(libraryRoute).not.toContain("Categories and templates");
     expect(componentsRoute).toContain('redirect("/workshop/library")');
     expect(componentsRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
-    expect(templatesRoute).toContain("TemplatesPageClient");
-    expect(templatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
+    expect(templatesRoute).toContain('redirect("/workshop/library/templates")');
+    expect(libraryTemplatesRoute).toContain("TemplatesBrowsePageClient");
+    expect(libraryTemplatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
   });
 
   it("keeps Supabase upload review safeguards in place", () => {
@@ -313,7 +325,7 @@ describe("workshop library consolidation UI", () => {
     expect(componentLibraryManager).toContain("imageUrl.port === storageUrl.port");
   });
 
-  it("renders Components as the only route tab with direct folder scoped rows", async () => {
+  it("renders the components scope as a context strip without manager tablists and with direct folder scoped rows", async () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -325,12 +337,16 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const libraryTabs = screen.getByRole("tablist", { name: "Library views" });
-    expect(within(libraryTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
-    expect(within(libraryTabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tablist", { name: "Library views" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "Component sheet tabs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Components" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
+    const contextStrip = document.querySelector('[data-component-sheet-context-strip="true"]');
+    expect(contextStrip).not.toBeNull();
+    expect(contextStrip).toHaveTextContent("All Components · 3 components");
+    expect(contextStrip).toHaveTextContent("Sorted by folder order");
 
     const viewMode = openComponentViewMenu();
     expect(screen.getByText("View By")).toBeInTheDocument();
@@ -410,7 +426,7 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add component" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("No folder selected")).toBeInTheDocument();
@@ -443,9 +459,10 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const addComponentButton = screen.getByRole("button", { name: "Add Component" });
-    expect(addComponentButton).not.toHaveTextContent("Add Component");
-    expect(addComponentButton).toHaveClass("size-6");
+    // The sheet's create action now keeps a visible "Add component" label.
+    const addComponentButton = screen.getByRole("button", { name: "Add component" });
+    expect(addComponentButton).toHaveTextContent("Add component");
+    expect(addComponentButton).not.toHaveClass("size-6");
     fireEvent.click(addComponentButton);
 
     const dialog = await screen.findByRole("dialog", { name: "Add Component" });
@@ -479,7 +496,12 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByRole("combobox", { name: "Supplier" })).toBeInTheDocument();
     expect(within(dialog).queryByLabelText("Kind")).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("Component measurements")).toBeInTheDocument();
+    // Folder search in the picker sits behind the toolbar's magnifier disclosure.
+    expect(within(dialog).queryByLabelText("Search add component library folders")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Show add component folder search" }));
     expect(within(dialog).getByLabelText("Search add component library folders")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Hide add component folder search" }));
+    expect(within(dialog).queryByLabelText("Search add component library folders")).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("Add component folder tools")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Expand all add component folder" })).toBeInTheDocument();
     expect(within(dialog).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();

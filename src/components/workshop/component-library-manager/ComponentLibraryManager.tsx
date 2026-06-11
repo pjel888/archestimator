@@ -1,18 +1,28 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { CaretDown, CaretRight, FolderSimple, ImageSquare, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
-import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SearchInput } from "@/components/ui/search-input";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import {
+  buildComponentFacetOptions,
+  componentMatchesFacets,
+  ComponentFacetFilterPopover,
+  COMPONENT_LIFECYCLE_FACET_LABELS,
+  countActiveComponentFacets,
+  parseComponentFacetSearchParams,
+  type ComponentFacetFilters,
+} from "@/components/workshop/library/component-facet-filter";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import {
+  createCostLibraryComponent,
   createLibraryFolder,
   deleteLibraryFolder,
   executeBulkArchiveLibraryComponents,
@@ -20,6 +30,8 @@ import {
   previewBulkArchiveLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
+import { ComponentInspectorDock } from "@/components/workshop/library/ComponentInspectorDock";
+import { EditComponentDrawer } from "@/components/workshop/library/EditComponentDrawer";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import {
   buildLibraryFolderTree,
@@ -277,9 +289,8 @@ function getItemPricingSourceLabel(item: EstimateRowItem) {
   return item.pricingSource?.trim() || "Source not set";
 }
 
-function getCatalogueResultSummary(visibleCount: number, totalCount: number) {
-  const label = totalCount === 1 ? "component" : "components";
-  return `${visibleCount} of ${totalCount} ${label}`;
+function getCatalogueScopeSummary(totalCount: number) {
+  return `${totalCount} ${totalCount === 1 ? "component" : "components"}`;
 }
 
 function isNextImageSafeComponentSource(src: string) {
@@ -301,29 +312,66 @@ function isNextImageSafeComponentSource(src: string) {
   }
 }
 
+const LIFECYCLE_BADGE_CLASSES: Record<string, string> = {
+  draft: "border-hairline bg-surfaceMuted text-secondary",
+  in_production: "border-hairline bg-surfaceMuted text-secondary",
+  discontinued: "border-warning/20 bg-warningSoft text-warning",
+  archived: "border-danger/20 bg-dangerSoft text-danger",
+};
+
 function ComponentCatalogueCard({
   card,
   selected,
+  inspectorSelected,
   onToggleSelected,
+  onInspect,
 }: {
   card: CatalogueCard;
   selected: boolean;
+  inspectorSelected: boolean;
   onToggleSelected: (itemId: string) => void;
+  onInspect: (itemId: string) => void;
 }) {
   const item = card.item;
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
   const pricingSource = getItemPricingSourceLabel(item);
+  const lifecycleBadge = item.lifecycleState && item.lifecycleState !== "available"
+    ? {
+        label: COMPONENT_LIFECYCLE_FACET_LABELS[item.lifecycleState],
+        className: LIFECYCLE_BADGE_CLASSES[item.lifecycleState] ?? LIFECYCLE_BADGE_CLASSES.draft,
+      }
+    : null;
 
   return (
     <li
       data-component-catalogue-card-id={item.id}
       className={cn(
-        "group transition hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
+        "group cursor-pointer transition hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
         CATALOGUE_CARD_SHELL_CLASS,
+        inspectorSelected && "border-ink bg-surfaceMuted/40",
       )}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("label, button, a, input")) return;
+        if (event.metaKey || event.ctrlKey) {
+          onToggleSelected(item.id);
+          return;
+        }
+        onInspect(item.id);
+      }}
     >
       <div className="relative aspect-square w-full overflow-hidden border-b border-hairline bg-white">
+        {lifecycleBadge ? (
+          <span
+            className={cn(
+              "absolute right-2 top-2 z-10 rounded-xs border px-1 py-0.5 text-[8px] font-medium leading-3",
+              lifecycleBadge.className,
+            )}
+            data-component-lifecycle-badge={item.lifecycleState}
+          >
+            {lifecycleBadge.label}
+          </span>
+        ) : null}
         <label className="absolute left-2 top-2 z-10 grid size-7 cursor-pointer place-items-center rounded-xs border border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white">
           <span className="sr-only">{`Select ${item.name ?? item.material} for archive`}</span>
           <input
@@ -360,7 +408,21 @@ function ComponentCatalogueCard({
           {card.pathLabel}
         </p>
         <h3 className="line-clamp-2 text-[10px] font-medium leading-[1.25] text-ink" title={name}>
-          {name}
+          <button
+            type="button"
+            className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            data-component-card-inspect={item.id}
+            aria-label={`View details for ${name}`}
+            onClick={(event) => {
+              if (event.metaKey || event.ctrlKey) {
+                onToggleSelected(item.id);
+                return;
+              }
+              onInspect(item.id);
+            }}
+          >
+            {name}
+          </button>
         </h3>
         <div className="flex flex-col gap-0.5">
           <p className="truncate text-[9px] font-normal leading-3 text-secondary" title={item.supplier || "No supplier"}>
@@ -400,12 +462,16 @@ function CatalogueCardGrid({
   cards,
   label,
   selectedItemIds,
+  inspectorItemId,
   onToggleSelected,
+  onInspect,
 }: {
   cards: CatalogueCard[];
   label: string;
   selectedItemIds: Set<string>;
+  inspectorItemId: string | null;
   onToggleSelected: (itemId: string) => void;
+  onInspect: (itemId: string) => void;
 }) {
   if (cards.length === 0) return null;
 
@@ -419,7 +485,9 @@ function CatalogueCardGrid({
           key={card.item.id}
           card={card}
           selected={selectedItemIds.has(card.item.id)}
+          inspectorSelected={inspectorItemId === card.item.id}
           onToggleSelected={onToggleSelected}
+          onInspect={onInspect}
         />
       ))}
     </ul>
@@ -449,13 +517,17 @@ function ComponentCatalogueBranch({
   collapsedBranchIds,
   onToggleBranch,
   selectedItemIds,
+  inspectorItemId,
   onToggleSelected,
+  onInspect,
 }: {
   branch: CatalogueBranch;
   collapsedBranchIds: Set<string>;
   onToggleBranch: (branchId: string) => void;
   selectedItemIds: Set<string>;
+  inspectorItemId: string | null;
   onToggleSelected: (itemId: string) => void;
+  onInspect: (itemId: string) => void;
 }) {
   const collapsed = collapsedBranchIds.has(branch.id);
   const empty = branch.totalItemCount === 0;
@@ -501,7 +573,9 @@ function ComponentCatalogueBranch({
             cards={branch.directItems}
             label={branch.pathLabel}
             selectedItemIds={selectedItemIds}
+            inspectorItemId={inspectorItemId}
             onToggleSelected={onToggleSelected}
+            onInspect={onInspect}
           />
           {branch.children.length > 0 ? (
             <div className={cn("flex flex-col gap-1", branch.directItems.length > 0 ? "mt-2" : "mt-1")}>
@@ -512,7 +586,9 @@ function ComponentCatalogueBranch({
                   collapsedBranchIds={collapsedBranchIds}
                   onToggleBranch={onToggleBranch}
                   selectedItemIds={selectedItemIds}
+                  inspectorItemId={inspectorItemId}
                   onToggleSelected={onToggleSelected}
+                  onInspect={onInspect}
                 />
               ))}
             </div>
@@ -624,7 +700,7 @@ function ComponentLibraryTreePanel({
 }) {
   return (
     <ResizableSidePanel
-      side="right"
+      side="left"
       ariaLabel="Component library tree"
       storageKey="component_library_tree_width"
       defaultWidth={272}
@@ -646,7 +722,6 @@ function ComponentLibraryTreePanel({
           viewMode={viewMode}
           reorderStatus={reorderStatus}
           treeMutationPending={treeMutationPending}
-          bodyTopSpacer={<div className="h-6" />}
           onSelectSupplierNode={onSelectNode}
           onSelectBrandNode={onSelectBrandNode}
           onSelectFolder={onSelectFolder}
@@ -663,7 +738,6 @@ function ComponentLibraryTreePanel({
           supplierSearchPlaceholder="Search Library Tree"
           toolbarAriaLabel="Component tree tools"
           toolbarLabelPrefix={(mode) => (mode === "default" ? "library folder" : "component tree")}
-          tabsAriaLabel="Library views"
           viewModeAriaLabel="Component view mode"
         />
       </div>
@@ -684,11 +758,13 @@ function ComponentLibrarySheet({
   brands,
   status,
   selectedItemIds,
+  inspectorItemId,
   onAddComponent,
   onArchiveSelected,
   onClearSelected,
   onSelectVisible,
   onToggleSelected,
+  onInspectItem,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedFolderId: string | null;
@@ -702,13 +778,29 @@ function ComponentLibrarySheet({
   brands: ComponentLibraryBrand[];
   status: SheetStatus;
   selectedItemIds: Set<string>;
+  inspectorItemId: string | null;
   onAddComponent: () => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
+  onInspectItem: (itemId: string) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchParams = useSearchParams();
+  const facetParamsKey = searchParams?.toString() ?? "";
+  const [appliedFacetParamsKey, setAppliedFacetParamsKey] = useState(facetParamsKey);
+  const [facetFilters, setFacetFilters] = useState<ComponentFacetFilters>(() =>
+    parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)),
+  );
+  // Health-line deep links re-target this route with new facet params while
+  // the manager stays mounted; re-seed the facet state when they change.
+  if (facetParamsKey !== appliedFacetParamsKey) {
+    setAppliedFacetParamsKey(facetParamsKey);
+    setFacetFilters(parseComponentFacetSearchParams(new URLSearchParams(facetParamsKey)));
+  }
   const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
   const sheetItems = useMemo(() => {
     if (viewMode === "suppliers") {
@@ -724,17 +816,37 @@ function ComponentLibrarySheet({
     if (isAllComponentsFolderId(selectedFolderId)) return libraryItems;
     return selectedFolderNode ? getLibraryItemsForFolderNode(selectedFolderNode, libraryItems) : libraryItems;
   }, [brands, categoryTree, libraryItems, selectedBrandNode, selectedFolderId, selectedFolderNode, selectedSupplierNode, suppliers, viewMode]);
-  const visibleItems = useMemo(
-    () => sheetItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
-    [searchQuery, sheetItems],
+  const facetOptions = useMemo(() => buildComponentFacetOptions(libraryItems), [libraryItems]);
+  const activeFacetCount = countActiveComponentFacets(facetFilters);
+  const facetedItems = useMemo(
+    () => (activeFacetCount === 0 ? sheetItems : sheetItems.filter((item) => componentMatchesFacets(item, facetFilters))),
+    [activeFacetCount, facetFilters, sheetItems],
   );
+  const visibleItems = useMemo(
+    () => facetedItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
+    [facetedItems, searchQuery],
+  );
+
+  useEffect(() => {
+    function handleSearchShortcut(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+      if (document.querySelector("[role='dialog'], [role='alertdialog']")) return;
+      event.preventDefault();
+      setSearchOpen(true);
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
+
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => window.removeEventListener("keydown", handleSearchShortcut);
+  }, []);
   const catalogueOutline = useMemo(
     () => buildCatalogueOutline(visibleItems, folderNodes, selectedFolderNode, searchQuery),
     [folderNodes, searchQuery, selectedFolderNode, visibleItems],
   );
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
   const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
-  const resultSummary = getCatalogueResultSummary(visibleItems.length, sheetItems.length);
+  const resultSummary = getCatalogueScopeSummary(sheetItems.length);
   const toggleCatalogueBranch = (branchId: string) => {
     setCollapsedCatalogueBranchIds((current) => {
       const next = new Set(current);
@@ -762,41 +874,48 @@ function ComponentLibrarySheet({
       aria-label="Component sheet"
     >
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component sheet controls">
-        <div className="flex h-[38px] items-center">
-          <SearchInput
-            wrapperClassName="w-full"
-            placeholder="Search Component Sheet"
-            aria-label="Search component sheet"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            onClear={() => setSearchQuery("")}
-          />
-        </div>
-        <HeaderIconToolbar
+        <TreePanelHeader
+          className="static z-auto bg-transparent"
           ariaLabel="Component sheet tools"
           labelPrefix="component sheet"
+          searchValue={searchQuery}
+          onSearchValueChange={setSearchQuery}
+          searchPlaceholder="Search components"
+          searchLabel="Search components"
+          searchOpen={searchOpen}
+          onSearchOpenChange={setSearchOpen}
+          searchInputRef={searchInputRef}
+          showDefaultActions={false}
+          filterSlot={
+            <ComponentFacetFilterPopover
+              options={facetOptions}
+              filters={facetFilters}
+              onFiltersChange={setFacetFilters}
+            />
+          }
           addActions={[
             {
-              label: "Add Component",
-              visibleLabel: "Add Component",
+              label: "Add component",
+              visibleLabel: "Add component",
+              showVisibleLabel: true,
+              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               onClick: onAddComponent,
             },
           ]}
         />
-        <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component sheet tabs">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={true}
-            className={cn(
-              "relative h-full rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              "z-10 -mb-px border-hairline bg-white text-ink",
-            )}
-          >
-            {selectedLabel}
-          </button>
-          <p className="ml-auto self-center px-2 text-[10px] font-medium leading-4 text-tertiary">
-            {resultSummary}
+        <div
+          className="flex h-7 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2"
+          data-component-sheet-context-strip="true"
+        >
+          <p className="truncate text-[10px] font-normal leading-4 text-secondary">
+            {selectedLabel} · {resultSummary}
+          </p>
+          <p aria-live="polite" className="shrink-0 text-[9px] leading-3 text-tertiary">
+            {searchQuery
+              ? `${visibleItems.length} of ${facetedItems.length} match "${searchQuery}"`
+              : activeFacetCount > 0
+                ? `${facetedItems.length} of ${sheetItems.length} after filters`
+                : "Sorted by folder order"}
           </p>
         </div>
         {status.state !== "idle" ? (
@@ -831,7 +950,9 @@ function ComponentLibrarySheet({
                 collapsedBranchIds={collapsedCatalogueBranchIds}
                 onToggleBranch={toggleCatalogueBranch}
                 selectedItemIds={selectedItemIds}
+                inspectorItemId={inspectorItemId}
                 onToggleSelected={onToggleSelected}
+                onInspect={onInspectItem}
               />
             ))}
             {catalogueOutline.items.length > 0 ? (
@@ -851,7 +972,9 @@ function ComponentLibrarySheet({
                   cards={catalogueOutline.items}
                   label={CATALOGUE_UNASSIGNED_LABEL}
                   selectedItemIds={selectedItemIds}
+                  inspectorItemId={inspectorItemId}
                   onToggleSelected={onToggleSelected}
+                  onInspect={onInspectItem}
                 />
               </section>
             ) : null}
@@ -882,11 +1005,13 @@ function ComponentLibrarySheetPanel({
   brands,
   status,
   selectedItemIds,
+  inspectorItemId,
   onAddComponent,
   onArchiveSelected,
   onClearSelected,
   onSelectVisible,
   onToggleSelected,
+  onInspectItem,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedFolderId: string | null;
@@ -900,11 +1025,13 @@ function ComponentLibrarySheetPanel({
   brands: ComponentLibraryBrand[];
   status: SheetStatus;
   selectedItemIds: Set<string>;
+  inspectorItemId: string | null;
   onAddComponent: () => void;
   onArchiveSelected: (itemIds: string[]) => void;
   onClearSelected: () => void;
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
+  onInspectItem: (itemId: string) => void;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
@@ -921,11 +1048,13 @@ function ComponentLibrarySheetPanel({
         brands={brands}
         status={status}
         selectedItemIds={selectedItemIds}
+        inspectorItemId={inspectorItemId}
         onAddComponent={onAddComponent}
         onArchiveSelected={onArchiveSelected}
         onClearSelected={onClearSelected}
         onSelectVisible={onSelectVisible}
         onToggleSelected={onToggleSelected}
+        onInspectItem={onInspectItem}
       />
     </div>
   );
@@ -969,6 +1098,9 @@ export function ComponentLibraryManager({
   const [archiveComponentError, setArchiveComponentError] = useState<string | null>(null);
   const [archiveComponentState, setArchiveComponentState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
   const [isTreeMutationPending, startTreeMutation] = useTransition();
+  const [inspectorItemId, setInspectorItemId] = useState<string | null>(null);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
+  const [isDuplicatePending, startDuplicateTransition] = useTransition();
 
   let localLibraryItems = libraryItemState.items;
   if (libraryItemState.source !== libraryItems) {
@@ -1041,6 +1173,88 @@ export function ComponentLibraryManager({
     if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
     setSheetStatus({ state: "saved", message: "Component saved." });
     router.refresh();
+  }
+
+  const inspectorItem = localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null;
+
+  function inspectComponent(itemId: string) {
+    setInspectorItemId(itemId);
+  }
+
+  function closeInspector() {
+    const itemId = inspectorItemId;
+    setInspectorItemId(null);
+    setEditDrawerOpen(false);
+    if (itemId) {
+      requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>(`[data-component-card-inspect="${CSS.escape(itemId)}"]`)
+          ?.focus();
+      });
+    }
+  }
+
+  function handleComponentEdited(patch: Partial<EstimateRowItem> & { id: string }) {
+    setLibraryItemState((current) => ({
+      ...current,
+      items: current.items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)),
+    }));
+    setSheetStatus({ state: "saved", message: "Component updated." });
+    router.refresh();
+  }
+
+  function duplicateInspectorComponent() {
+    const source = inspectorItem;
+    if (!source) return;
+    const copyName = `${source.name?.trim() || source.material} copy`;
+    startDuplicateTransition(async () => {
+      try {
+        const result = await createCostLibraryComponent({
+          name: copyName,
+          description: source.description,
+          category: source.category,
+          categoryNodeId: source.categoryNodeId ?? null,
+          supplier: source.supplier || null,
+          supplierId: source.supplierId ?? null,
+          brand: source.brand || null,
+          brandId: source.brandId ?? null,
+          unit: source.unit,
+          libraryFolderId: source.libraryFolderId ?? null,
+          lifecycleState: source.lifecycleState ?? "available",
+          priceOptions: [
+            {
+              label: copyName,
+              unit: source.unit,
+              unitCost: source.itemCost,
+              miscCost: source.miscCost,
+              pricingSource: source.pricingSource || undefined,
+              pricingDate: source.pricingDate || undefined,
+              confidence: source.confidence || undefined,
+              isDefault: true,
+            },
+          ],
+        });
+        const duplicatedItemId = result.itemId;
+        if (!duplicatedItemId) throw new Error("Duplicate did not return a component ID.");
+        const duplicated: EstimateRowItem = {
+          ...source,
+          id: duplicatedItemId,
+          name: copyName,
+          material: copyName,
+          isCustom: true,
+          history: [],
+          priceOptions: undefined,
+          componentVersionNumber: result.versionNumber,
+        };
+        handleComponentCreated(duplicated);
+        setInspectorItemId(duplicatedItemId);
+      } catch (error) {
+        setSheetStatus({
+          state: "error",
+          message: error instanceof Error ? error.message : "Could not duplicate component.",
+        });
+      }
+    });
   }
 
   function toggleComponentSelection(itemId: string) {
@@ -1206,25 +1420,6 @@ export function ComponentLibraryManager({
     <div className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white" data-component-library-workspace="true">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
-          <ComponentLibrarySheetPanel
-            selectedFolderNode={selectedFolderNode}
-            selectedFolderId={effectiveSelectedFolderId}
-            selectedSupplierNode={selectedSupplierNode}
-            selectedBrandNode={selectedBrandNode}
-            folderNodes={folderNodes}
-            viewMode={viewMode}
-            libraryItems={localLibraryItems}
-            categoryTree={categoryTree}
-            suppliers={suppliers}
-            brands={brands}
-            status={sheetStatus}
-            selectedItemIds={selectedItemIds}
-            onAddComponent={openAddComponentModal}
-            onArchiveSelected={openArchiveComponentPreview}
-            onClearSelected={clearComponentSelection}
-            onSelectVisible={selectVisibleComponents}
-            onToggleSelected={toggleComponentSelection}
-          />
           <ComponentLibraryTreePanel
             supplierNodes={supplierTree}
             brandNodes={brandTree}
@@ -1250,6 +1445,37 @@ export function ComponentLibraryManager({
             onRenameFolder={renameFolder}
             onDeleteFolder={deleteFolder}
           />
+          <ComponentLibrarySheetPanel
+            selectedFolderNode={selectedFolderNode}
+            selectedFolderId={effectiveSelectedFolderId}
+            selectedSupplierNode={selectedSupplierNode}
+            selectedBrandNode={selectedBrandNode}
+            folderNodes={folderNodes}
+            viewMode={viewMode}
+            libraryItems={localLibraryItems}
+            categoryTree={categoryTree}
+            suppliers={suppliers}
+            brands={brands}
+            status={sheetStatus}
+            selectedItemIds={selectedItemIds}
+            inspectorItemId={inspectorItemId}
+            onAddComponent={openAddComponentModal}
+            onArchiveSelected={openArchiveComponentPreview}
+            onClearSelected={clearComponentSelection}
+            onSelectVisible={selectVisibleComponents}
+            onToggleSelected={toggleComponentSelection}
+            onInspectItem={inspectComponent}
+          />
+          {inspectorItem ? (
+            <ComponentInspectorDock
+              item={inspectorItem}
+              onClose={closeInspector}
+              onEdit={() => setEditDrawerOpen(true)}
+              onDuplicate={duplicateInspectorComponent}
+              onArchive={() => openArchiveComponentPreview([inspectorItem.id])}
+              duplicatePending={isDuplicatePending}
+            />
+          ) : null}
         </section>
       </div>
       {addComponentOpen ? (
@@ -1270,6 +1496,14 @@ export function ComponentLibraryManager({
           onDeleteFolder={deleteFolder}
           reorderStatus={reorderStatus}
           treeMutationPending={isTreeMutationPending}
+        />
+      ) : null}
+      {inspectorItem ? (
+        <EditComponentDrawer
+          item={inspectorItem}
+          open={editDrawerOpen}
+          onOpenChange={setEditDrawerOpen}
+          onSaved={handleComponentEdited}
         />
       ) : null}
       <BulkDestructivePreviewModal

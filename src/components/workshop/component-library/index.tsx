@@ -243,6 +243,12 @@ type EstimateRightSidebarProps = {
   // Fired after a server-confirmed library/template mutation so callers that
   // cache the lazy library dataset can invalidate it (remount freshness).
   onLibraryDataChanged?: () => void;
+  /**
+   * How the dock's "Add Template" creates templates: from the selected
+   * estimate node (estimate workspace, default) or from scratch (hosts with
+   * no estimate context, e.g. the template editor).
+   */
+  templateCreateMode?: "estimate-node" | "scratch";
 };
 
 const EMPTY_LIBRARY_TREE_ORDER: Record<ComponentViewMode, LibraryTreeOrder> = { default: {}, suppliers: {}, brand: {} };
@@ -294,6 +300,7 @@ export function EstimateRightSidebar({
   brands = [],
   libraryFolders = [],
   onLibraryDataChanged,
+  templateCreateMode = "estimate-node",
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   // Initial state must not read localStorage: SSR renders the fallbacks, so a
@@ -1236,6 +1243,7 @@ export function EstimateRightSidebar({
           <NewTemplateModal
             open={addTemplateOpen}
             onOpenChange={handleAddTemplateOpenChange}
+            mode={templateCreateMode}
             projectId={projectId}
             estimateId={estimateId}
             sourceNode={templateModalSourceNode}

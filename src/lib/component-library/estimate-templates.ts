@@ -6,6 +6,10 @@ export type EstimateTemplate = {
   description: string;
   category: string;
   nodes: EstimateTreeNode[];
+  /** ISO timestamp of the last template write; optional because seed/fixture templates predate the column mapping. */
+  updatedAt?: string;
+  /** Stored sibling order within the workspace template list. */
+  sortOrder?: number;
 };
 
 export type EstimateTemplateSummary = {

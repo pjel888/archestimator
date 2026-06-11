@@ -1,5 +1,44 @@
 # Decisions
 
+## 2026-06-11 - Library unification implementation posture
+
+- `/workshop/library` is the single reusable-content home: Overview (index),
+  Components, and Templates are real sub-routes under one persistent library
+  layout (`WorkshopPageShell` gained optional `subHeader` and `titleSlot`
+  slots); `/workshop/templates` is a permanent redirect and the rail shows a
+  single `Library` entry.
+- Template editing is estimate-grammar, structurally differentiated (D6):
+  breadcrumb + TEMPLATE mode chip + save indicator through the ephemeral
+  `useLibraryEditorChrome` zustand bridge; no tint, no new accent.
+- Template editor mutations are plain server actions in
+  `src/lib/component-library/template-editor-actions.ts` (not estimate-grade
+  history); the DB trigger `validate_estimate_template_tree` is the hierarchy
+  backstop and the editor pre-checks the same rules client-side. The verified
+  hierarchy is: groups at root, groups may nest groups/areas, rows attach to
+  areas only.
+- Zero database migrations were required for the entire unification
+  (Q6 confirmed in implementation: `estimate_template_row_items` already
+  carries all editable columns).
+- The estimate sheet's presentational layer lives in
+  `src/components/workshop/estimate-sheet/rows/*` and is shared with the
+  template editor through the `SheetMutationHandlers` seam; estimate page
+  behavior was preserved verbatim (137/137 characterization tests identical).
+- The editor's right dock is the same `EstimateRightSidebar` re-hosted with
+  explicit insert-target props and a `templateCreateMode="scratch"` mode; the
+  dock and editor share the `workspace-component-library` TanStack query key
+  with the estimate page.
+- Components facets (lifecycle, confidence, freshness, supplier, brand) read
+  deep links from URL params (`?freshness=stale`, `?lifecycle=discontinued`,
+  `?brand=none`) so the Overview health line routes into pre-filtered views;
+  a category facet was deliberately omitted because the left folder tree owns
+  category scoping.
+- Shared-primitive fixes that ride along: icon-only add actions in
+  `HeaderIconToolbar` are neutral (orange retired), labeled toolbar buttons
+  lay out inline (grid-stack bug), `Popover` dialogs carry accessible names,
+  and `scripts/check-storybook-boundary.mjs` resolves its matrices from the
+  archive path.
+
+
 ## 2026-06-07 - Complete overlay system remains Storybook-only review surface
 
 **Decision:** Implement the modal/dialog/popup overlay component system as a
