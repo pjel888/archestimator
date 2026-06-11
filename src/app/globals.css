@@ -93,6 +93,11 @@ body:has([data-landing-page-root="true"]) {
   font-family: var(--font-sf-pro);
 }
 
+.rough-annotation {
+  z-index: 20;
+  overflow: visible !important;
+}
+
 /* Sleek thin scrollbars — global default */
 ::-webkit-scrollbar {
   width: 5px;
