@@ -1,10 +1,12 @@
 export { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
+export { BetaFaq } from "./BetaFaq";
 export { CapabilityRowsSection } from "./CapabilityRowsSection";
 export { ProblemSection } from "./ProblemSection";
 export { CookieConsentBanner } from "./CookieConsentBanner";
 export { CtaLink } from "./CtaLink";
 export { FinalCTASection } from "./FinalCTASection";
 export { HeroSection } from "./HeroSection";
+export { HonestProofSection } from "./HonestProofSection";
 export { LandingFooter } from "./LandingFooter";
 export { ProductShowcaseSection } from "./ProductShowcaseSection";
 export { LandingHeader } from "./LandingHeader";
