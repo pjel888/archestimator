@@ -1,0 +1,49 @@
+- generic [active] [ref=e1]:
+  - main "Library" [ref=e2]:
+    - navigation "Main navigation" [ref=e3]:
+      - generic [ref=e8]:
+        - generic "Workspace shell" [ref=e13]:
+          - img [ref=e14]
+        - button "Expand sidebar" [ref=e17]:
+          - img [ref=e18]
+      - generic [ref=e20]:
+        - generic [ref=e22]:
+          - generic:
+            - paragraph: Philip Lewis
+            - paragraph: philipjonlewis@gmail.com
+        - generic [ref=e25]:
+          - link "Workshop" [ref=e26] [cursor=pointer]:
+            - /url: /workshop
+            - img [ref=e28]
+            - generic: Workshop
+          - link "Projects" [ref=e30] [cursor=pointer]:
+            - /url: /workshop/projects
+            - img [ref=e32]
+            - generic: Projects
+          - link "Components" [ref=e34] [cursor=pointer]:
+            - /url: /workshop/library
+            - img [ref=e36]
+            - generic: Components
+          - link "Templates" [ref=e38] [cursor=pointer]:
+            - /url: /workshop/templates
+            - img [ref=e40]
+            - generic: Templates
+    - region "Library canvas" [ref=e42]:
+      - generic [ref=e43]:
+        - heading "Library" [level=1] [ref=e46]
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - button "Notifications, 0 unread" [ref=e50]:
+              - img [ref=e51]
+            - generic [ref=e53]: 0 unread notifications
+          - button "Open settings" [ref=e54]:
+            - img [ref=e55]
+      - status "Loading library" [ref=e58]:
+        - region "Component library workspace" [ref=e60]
+        - generic [ref=e84]: Loading library
+      - button "Send beta feedback" [ref=e87]:
+        - img [ref=e88]
+  - generic "Notifications"
+  - button "Open Next.js Dev Tools" [ref=e95] [cursor=pointer]:
+    - img [ref=e96]
+  - alert [ref=e99]
