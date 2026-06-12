@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Template Browse Lazy Project Outline Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The `/workshop/library/templates` browse route now lazily expands readable
+project-estimate sources into tab and group/area project-source rows through the
+existing access-filtered `getReusableEstimateOutline` server action. The route
+keeps project-derived sources read-only, preserves template-only management and
+preview actions, and extracts the project-source browse tree helpers into a
+focused module instead of growing the oversized route manager. Local evidence is
+in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-template-browse-lazy-project-outline-implementation-run.md`:
+`bunx vitest run tests/vitest/template-browse-project-sources.test.tsx tests/vitest/template-gallery.test.tsx --maxWorkers=1`
+passed (2 files / 13 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local route/UI proof only: row-level provider
+detail beyond loaded outline/search metadata, live provider/RLS proof, R7.1/R7.2
+insert RPC/action proof, linked Supabase apply/typegen, hosted provider proof,
+Vercel deploy, production/manual proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Template Browse Project Sources Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The `/workshop/library/templates` browse route now receives readable
 project/estimate reusable sources and renders them as a read-only `Projects`
