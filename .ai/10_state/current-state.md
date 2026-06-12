@@ -2306,3 +2306,11 @@ Open:
 - Implemented tab-strip spring-loaded drop targeting: during drag hover, inactive estimate tabs now schedule a 450ms switch so the destination tab tree can appear before the user drops a dragged template/project source/tree item. Leaving or dropping on the tab cancels the pending switch.
 - Local evidence: `bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1` passed (1 file / 6 tests), `bun run type-check` passed, and `bun run lint:design-system` passed.
 - Boundary: this is local UI/DOM proof only; linked Supabase/provider, hosted drag/drop, and production/manual proof were not performed.
+
+## Estimate Tabs R11.1-R11.2 Ask Flip Active-tab Targeting Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Ask Flip current-route package-builder requests now include the active estimate tab id from the tab strip as additive route context without changing the existing `/workshop/projects/{projectId}/estimates/{selectedNodeId}` regex shape.
+- Package-builder read tools scope current-estimate tree/row context to the active tab when provided or to the selected node's tab when inferred; generated fill-current-estimate draft targets preserve `activeTabId`, and Apply passes `target_tab_id` to `create_estimate_node_with_history` when it creates missing Area Nodes.
+- Local evidence: `bun x vitest run tests/vitest/estimate-copilot-floating-button.test.tsx tests/vitest/ai-package-builder-read-tools.test.ts tests/vitest/ai-package-builder-draft.test.ts tests/vitest/ai-package-builder-schema.test.ts tests/vitest/ai-package-builder-apply.test.ts --maxWorkers=1` passed (5 files / 109 tests), plus `bun run type-check` and focused ESLint passed during the implementation slice.
+- Boundary: no live provider Ask Flip call, hosted browser route smoke, linked Supabase proof, or production deploy was performed.

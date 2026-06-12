@@ -223,6 +223,7 @@ function makeFillCurrentEstimateDraftWithNewArea(): PackageBuilderDraft {
       projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
       estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
       selectedNodeId: "cccccccc-3333-4ccc-8ccc-cccccccc3333",
+      activeTabId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
       nodeIdsByClientDraftId: {
         "existing-root": "cccccccc-3333-4ccc-8ccc-cccccccc3333",
       },
@@ -1043,6 +1044,7 @@ describe("package-builder Apply", () => {
       initial_sort_order: 0,
       acting_user_id: "44444444-4444-4444-8444-444444444444",
       correlation_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      target_tab_id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
     }));
     expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
       target_node_id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",

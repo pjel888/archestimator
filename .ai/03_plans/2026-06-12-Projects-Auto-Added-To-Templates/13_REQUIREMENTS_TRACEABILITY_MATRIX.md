@@ -104,8 +104,8 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R11.1 route-regex stability (no shape change) | `EstimateCopilotFloatingButton.tsx:165-172` | 02 §9; 12 D-4 | 2/7 | AI route parser, estimate route wrappers | Ask Flip live spec re-run; route regex unit check | R-AI | planned |
-| R11.2 package-builder targets resolved tab root | `draft.ts:313-359` | 04 §3, §11; 11 R-AI | 7 | draft/apply | targeting unit test; package-builder live spec | R-AI | planned |
+| R11.1 route-regex stability (no shape change) | `EstimateCopilotFloatingButton.tsx:165-172` | 02 §9; 12 D-4 | 2/7 | AI route parser, estimate route wrappers | Ask Flip live spec re-run; route regex unit check | R-AI | **implemented (local-only)** — route regex remains `/workshop/projects/{projectId}/estimates/{selectedNodeId}`; active tab is added from DOM as additive `activeTabId` route context, with focused copilot DOM regression. |
+| R11.2 package-builder targets resolved tab root | `draft.ts:313-359` | 04 §3, §11; 11 R-AI | 7 | draft/apply | targeting unit test; package-builder live spec | R-AI | **implemented (local-only)** — package-builder route reads accept active tab context, scope current-estimate tree/rows to that tab, sign `activeTabId` into fill-current-estimate targets, and pass `target_tab_id` to `create_estimate_node_with_history` for AI-created missing Area Nodes. Evidence: focused copilot + package-builder suites passed (5 files / 109 tests). |
 | R11.3 read-context tab grouping + audit tab attribution | `read-context.ts:1799-1826`; `audit.ts:11-23` | 08 §8; 11 R-AI | follow-up after core tab support | AI read-context/audit metadata | follow-up AI surface gate; no core release dependency | R-AI | **deferred** (additive) |
 
 ## Group 12 — Migration/backfill safety
