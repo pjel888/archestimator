@@ -57,3 +57,32 @@ describe("estimate tab repository compatibility wrappers", () => {
     expect(repositorySource).toContain("if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
   });
 });
+
+describe("estimate tabs compatibility cleanup governance", () => {
+  it("keeps plan-linked comments on retained legacy sheet seams", () => {
+    const actionsSource = readFileSync("src/lib/estimates/actions.ts", "utf8");
+    const contentSource = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
+    const hookSource = readFileSync("src/hooks/use-estimate-query.ts", "utf8");
+    const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+
+    expect(actionsSource).toContain('legacy "sheet_code" name kept for compatibility; see plan 2026-06-12 §01-17');
+    expect(actionsSource).toContain('legacy "fetchEstimateSheetVersionControl" name kept for compatibility; see plan 2026-06-12 §01-17');
+    expect(contentSource).toContain('legacy "EstimateSheetContent" name kept for compatibility; see plan 2026-06-12 §01-17');
+    expect(contentSource).toContain("Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17.");
+    expect(hookSource).toContain("legacy areaTree key kept for compatibility; see plan 2026-06-12 §01-17");
+    expect(repositorySource).toContain("Temporary compatibility boundary: estimate_tabs exists after the owner-authorized");
+  });
+
+  it("keeps shim deletion criteria explicit before cleanup or rename batches", () => {
+    const domainPlan = readFileSync(".ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/04_DOMAIN_AND_REPOSITORY_PLAN.md", "utf8");
+    const handoff = readFileSync(".ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/14_IMPLEMENTATION_HANDOFF.md", "utf8");
+    const phasePlan = readFileSync(".ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/10_IMPLEMENTATION_PHASES.md", "utf8");
+
+    expect(domainPlan).toContain("Immediate after Phase 7");
+    expect(domainPlan).toContain("After one beta release cycle");
+    expect(domainPlan).toContain("no caller imports the legacy key or wrapper-only behavior of `getProjectEstimateTreeByEstimate`");
+    expect(domainPlan).toContain("one completed beta release carrying Phases 1–7 has provider/manual proof archived");
+    expect(handoff).toContain("before/after `rg -i 'sheet'` keep-list diff");
+    expect(phasePlan).toContain("shim-deletion grep gates pass");
+  });
+});

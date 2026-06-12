@@ -11,6 +11,7 @@ export const estimateQueryKeys = {
   detail: (estimateId: string) => ["estimate", estimateId] as const,
   tabs: (estimateId: string) => ["estimate", estimateId, "tabs"] as const,
   tabTree: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "area-tree"] as const,
+  // legacy areaTree key kept for compatibility; see plan 2026-06-12 §01-17
   areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const,
 };
 

@@ -2236,3 +2236,30 @@ label=diff-check-r9-3-r13 exit_code=0 command="git diff --check"
 - Hosted invite/share e2e, live DB p95/provider scale proof, browser/Storybook
   a11y proof, linked Supabase apply/typegen, Vercel deploy, production deploy,
   and two-browser/manual QA remain unperformed.
+
+## Phase 8 R3 compatibility comments and cleanup-gate governance
+
+### Summary
+
+Added local governance coverage for retained legacy `sheet` names. The code now
+marks the key kept seams with plan-linked compatibility comments, and the domain
+source-contract suite guards both those markers and the Phase 8 cleanup/deletion
+criteria from the plan pack.
+
+### Gates run
+
+```text
+label=vitest-r3-compat-governance exit_code=0 command="bun x vitest run tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1" result="1 file / 6 tests passed"
+label=type-check-r3-compat-governance exit_code=0 command="bun run type-check"
+label=vitest-r3-compat-governance-post-doc exit_code=0 command="bun x vitest run tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1" result="1 file / 6 tests passed"
+label=eslint-r3-compat-governance exit_code=0 command="bunx eslint src/hooks/use-estimate-query.ts src/lib/estimates/actions.ts src/components/workshop/EstimateSheetContent.tsx tests/vitest/estimate-tabs-domain.test.ts" result="0 errors / 0 warnings"
+label=type-check-r3-compat-governance-post-doc exit_code=0 command="bun run type-check"
+label=diff-check-r3-compat-governance exit_code=0 command="git diff --check"
+```
+
+### Remaining boundary
+
+- No compatibility shim deletion or internal rename batch was performed.
+- Shim deletion remains deferred until grep gates, provider/manual proof,
+  beta-release evidence, contract-test updates, and owner/reviewer approval are
+  all present.

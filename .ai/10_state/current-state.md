@@ -2364,3 +2364,12 @@ Open:
 - Fresh local evidence: lazy-source focused Vitest passed (3 files / 67 tests), perf suite passed (4 files / 14 tests), invite/share focused Vitest passed (5 files / 40 tests), tab-strip a11y DOM suite passed (1 file / 8 tests), post-doc focused Vitest passed (13 files / 129 tests), focused ESLint passed, `bun run type-check` passed, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed after restoring `next-env.d.ts` build churn.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r9-3-r13-local-proof-run.md`.
 - Boundary: no linked Supabase apply/typegen, hosted invite/share e2e, live DB p95/provider scale proof, browser/Storybook a11y proof, Vercel deploy, production deploy, or two-browser/manual QA was performed.
+
+## Estimate Tabs R3 Compatibility Governance Locally Proven (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Retained legacy `sheet` seams now carry plan-linked compatibility comments at the key kept code boundaries: legacy `areaTree`, `sheet_code`, `fetchEstimateSheetVersionControl`, `EstimateSheetContent`, pre-tab `dataTabId`, and the narrow `estimate_tabs` type-cast boundary.
+- Cleanup/deletion criteria remain explicit and guarded: immediate deletion is limited to dead code with zero imports plus source-contract updates and validation; wrapper/alias/route fallback/internal `EstimateSheet*` renames require a completed beta release with provider/manual proof archived, no rollback, grep evidence, contract-test updates, and owner/reviewer approval.
+- Fresh local evidence: `bun x vitest run tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1` passed (1 file / 6 tests), focused ESLint passed, `bun run type-check` passed, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r3-compat-governance-run.md`.
+- Boundary: no compatibility shim deletion, internal rename batch, linked Supabase apply/typegen, hosted proof, Vercel deploy, production deploy, or manual QA was performed.
