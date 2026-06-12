@@ -6,9 +6,7 @@ import {
   CompanyProofCarouselSection,
   FinalCTASection,
   HeroSection,
-  ProductShowcaseSection,
   SecondaryClaimSection,
-  PricingSection,
   PublicPageShell,
   LandingHeader,
   LandingFooter,
@@ -37,8 +35,6 @@ export default async function LandingPage() {
             <HeroSection variant={heroVariant} isLoggedIn={isLoggedIn} />
             <CompanyProofCarouselSection />
             <SecondaryClaimSection />
-            <ProductShowcaseSection />
-            <PricingSection />
             <FinalCTASection />
           </main>
         </LandingSmoothScrollProvider>

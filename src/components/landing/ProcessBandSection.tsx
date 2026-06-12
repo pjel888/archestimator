@@ -6,7 +6,7 @@ const processSteps = [
     number: "01",
     label: "Estimate Faster",
     detail:
-      "Work in an intuitive interface that actually understands how you build. By componentizing your pricing, Archestimator ensures you never start from scratch. Build your scopes and assemblies once, then instantly reuse them across future projects.",
+      "Reusable scopes, assemblies, and proven pricing give each new estimate a trusted starting point.",
   },
   {
     number: "02",

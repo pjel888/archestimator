@@ -61,7 +61,7 @@ export function CookieConsentBanner() {
       <button
         type="button"
         aria-label="Open cookie choices"
-        className="fixed bottom-3 left-3 z-[60] rounded-[5px] border border-[#d8d6cf] bg-[#eeeeec]/95 px-3 py-2 text-[11px] font-semibold text-[#34342f] shadow-sm backdrop-blur-md transition hover:border-[#b9b5aa] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+        className="fixed bottom-3 left-3 z-[60] rounded-[5px] border border-[#d8d6cf] bg-white/95 px-3 py-2 text-[11px] font-semibold text-[#34342f] shadow-sm backdrop-blur-md transition hover:border-[#b9b5aa] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
         onClick={() => setIsEditing(true)}
       >
         Cookie settings
@@ -73,7 +73,7 @@ export function CookieConsentBanner() {
     <section
       role="region"
       aria-label="Cookie choices"
-      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-[760px] rounded-[6px] border border-[#d8d6cf] bg-[#eeeeec]/96 p-4 text-[#111111] shadow-[0_18px_45px_rgba(17,17,17,0.18)] backdrop-blur-xl sm:inset-x-6 sm:p-5"
+      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-[760px] rounded-[6px] border border-[#d8d6cf] bg-white/96 p-4 text-[#111111] shadow-[0_18px_45px_rgba(17,17,17,0.18)] backdrop-blur-xl sm:inset-x-6 sm:p-5"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-[500px]">

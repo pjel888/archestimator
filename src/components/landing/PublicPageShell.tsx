@@ -17,7 +17,7 @@ export function PublicPageShell({
   isHomePage = false,
 }: PublicPageShellProps) {
   return (
-    <div className="min-h-screen bg-[#eeeeec] text-[#111111]">
+    <div className="min-h-screen bg-white text-[#111111]">
       <style>{`
         @keyframes workspace-arrow-bounce {
           0%, 100% { transform: translateX(0); }
@@ -35,7 +35,7 @@ export function PublicPageShell({
             {children}
           </main>
 
-          <LandingFooter isHomePage={isHomePage} />
+          <LandingFooter />
         </>
       )}
       <CookieConsentBanner />

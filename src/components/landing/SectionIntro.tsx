@@ -28,8 +28,8 @@ export function SectionIntro({
       {showActions ? (
         <div className="mt-7 flex justify-center gap-3">
           <CtaLink href={workshopHref}>See the workspace</CtaLink>
-          <CtaLink href="#product" variant="secondary">
-            View product preview
+          <CtaLink href="#method" variant="secondary">
+            View estimating method
           </CtaLink>
         </div>
       ) : null}

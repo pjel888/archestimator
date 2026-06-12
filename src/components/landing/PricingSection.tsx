@@ -9,7 +9,7 @@ export function PricingSection() {
     <section
       id="pricing"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] border-b border-[#ebe4dc] bg-[#f7f1ea] px-6 py-20 sm:px-8 sm:py-28 lg:px-12"
+      className="scroll-mt-[68px] border-b border-[#ebe4dc] bg-white px-6 py-20 sm:px-8 sm:py-28 lg:px-12"
     >
       <div className="mx-auto w-full max-w-[1952px]">
         <MotionReveal>
@@ -34,7 +34,7 @@ export function PricingSection() {
               </div>
             </div>
 
-            <div className="rounded-[8px] border border-[#e4d9ce] bg-[#fbf7f2] p-5">
+            <div className="rounded-[8px] border border-[#e4d9ce] bg-white p-5">
               <span className="block text-[40px] font-normal leading-none text-[#171514]">0</span>
               <span className="mt-3 block text-[18px] font-medium text-[#171514]">
                 No payment during beta
