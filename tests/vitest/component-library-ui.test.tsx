@@ -1097,6 +1097,25 @@ describe("templates tree", () => {
     }));
   });
 
+  it("previews loaded project-source outline rows for a tab", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({
+      projectSources: projectSourcesWithMetadata,
+      onInsertProjectSource,
+      selectedNodeKind: "group",
+      selectedNodeName: "Main House",
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+
+    const preview = screen.getByRole("region", { name: "Project source preview" });
+    expect(within(preview).getByText("Source outline")).toBeInTheDocument();
+    expect(within(preview).getByText("Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("group")).toBeInTheDocument();
+  });
+
   it("bulk-adds checked project-source targets as top-level reusable selections", () => {
     const onInsertProjectSource = vi.fn(() => true);
     openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });

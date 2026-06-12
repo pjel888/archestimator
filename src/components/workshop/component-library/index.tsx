@@ -327,6 +327,51 @@ function getProjectSourcePreviewContext(
   };
 }
 
+type ProjectSourcePreviewOutlineRow = {
+  id: string;
+  label: string;
+  meta: string;
+};
+
+function getProjectSourcePreviewOutlineRows(
+  source: ProjectReusableEstimateSource,
+  sources: ReusableEstimateSource[],
+): ProjectSourcePreviewOutlineRow[] {
+  const projectSources = sources.filter(isProjectReusableEstimateSource);
+  switch (source.kind) {
+    case "project":
+      return projectSources
+        .filter((candidate): candidate is ProjectEstimateReusableSource => candidate.kind === "project-estimate" && candidate.projectId === source.projectId)
+        .map((candidate) => ({
+          id: reusableProjectSourceKey(candidate),
+          label: candidate.name,
+          meta: "estimate",
+        }));
+    case "project-estimate":
+      return projectSources
+        .filter((candidate): candidate is ProjectSourceInsertTarget => candidate.kind === "project-tab" && candidate.estimateId === source.estimateId)
+        .map((candidate) => ({
+          id: reusableProjectSourceKey(candidate),
+          label: candidate.name,
+          meta: "tab",
+        }));
+    case "project-tab":
+      return projectSources
+        .filter((candidate): candidate is ProjectNodeReusableSource => candidate.kind === "project-node" && candidate.tabId === source.tabId)
+        .map((candidate) => ({
+          id: reusableProjectSourceKey(candidate),
+          label: candidate.name,
+          meta: candidate.nodeKind,
+        }));
+    case "project-node":
+      return [];
+    default: {
+      const unreachable: never = source;
+      return unreachable;
+    }
+  }
+}
+
 function ProjectSourcePreviewPanel({
   source,
   sources,
@@ -343,6 +388,7 @@ function ProjectSourcePreviewPanel({
   addLabel: string;
 }) {
   const context = getProjectSourcePreviewContext(source, sources);
+  const outlineRows = getProjectSourcePreviewOutlineRows(source, sources);
   const nodePathText = context.nodePath.length ? context.nodePath.join(" / ") : null;
   const updatedAtText = formatPreviewDate(context.updatedAt);
   const detailRows = [
@@ -401,6 +447,19 @@ function ProjectSourcePreviewPanel({
             Live project metadata will appear here when this source supplies it.
           </p>
         )}
+        {outlineRows.length ? (
+          <div className="mt-2 border border-hairline bg-surfaceMuted/20 p-2">
+            <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Source outline</p>
+            <ul className="mt-1 grid gap-1">
+              {outlineRows.map((row) => (
+                <li key={row.id} className="flex min-w-0 items-center justify-between gap-2 text-[9px] leading-4">
+                  <span className="min-w-0 truncate font-medium text-ink">{row.label}</span>
+                  <span className="shrink-0 text-tertiary">{row.meta}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <div className="mt-2">
           {insertable ? (
             <Button onClick={() => onAdd(source)} disabled={addDisabled} aria-label={addLabel} title={addLabel} className="h-6 min-h-6 w-full text-[9px]">
