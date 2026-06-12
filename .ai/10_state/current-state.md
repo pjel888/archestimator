@@ -1,4 +1,23 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Search Action Contract Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 project-source surface now has a read-only
+`searchReusableProjectSources(query)` server action. It keeps the existing
+non-pending project access boundary, searches project, estimate, tab, and
+group/area node names, and returns flattened project-source hits with preview
+metadata for future reveal/search UI. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-search-action-implementation-run.md`:
+the focused missing-export regression failed before implementation, the focused
+search action test passed after implementation,
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts --maxWorkers=1`
+passed (1 file / 3 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/action-contract proof only: debounced
+sidebar UI integration, reveal-in-tree search result affordance, route-level
+project-source parity, row-level provider detail beyond loaded outline rows,
+R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase apply/typegen, hosted
+provider proof, Vercel deploy, production/manual proof, and browser visual proof
+remain open.
+
 **Estimate Tabs Phase 5 R4.4 Refresh Affordance Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 Templates tab now exposes a local manual `Refresh project sources`
 control for estimate/project contexts whose project sources are loaded through
