@@ -1,4 +1,19 @@
 # Current State
+**Estimate Tabs Phase 5 R5.1/R5.3 Template Flow Preservation Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 project-source work now has fresh local preservation evidence for
+existing custom template behavior. A proof-only suite covering the estimate
+sidebar Templates tab, template browse/gallery preview and insert flows, the New
+Template modal, and estimate canvas template drop zones passed without changing
+template CRUD or insert source behavior. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r5-template-preservation-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/template-gallery.test.tsx tests/vitest/new-template-modal.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx --maxWorkers=1`
+passed (4 files / 75 tests), `bun run type-check` passed, and `git diff --check`
+passed. This proves R5.1/R5.3 preservation locally only; R5.2 template-editor-only
+proof, save-as-template from project source, browse-route project-source parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R6.2 Project-Source Bulk Insert Seam Partial Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 templates panel now includes a local bulk-insertion
 seam for project-derived reusable sources. Insertable project tab and project
