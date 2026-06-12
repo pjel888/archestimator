@@ -180,6 +180,16 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(contextStrip).toHaveTextContent("Sorted by group");
   });
 
+  it("keeps the browse route scoped to template management instead of project sources", () => {
+    renderManager();
+
+    expect(screen.getByRole("treeitem", { name: "All Templates" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Condo Starter" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Insert Condo Starter into estimate" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Project source preview" })).not.toBeInTheDocument();
+  });
+
   it("selects a row on click and shows its structure in the preview dock", async () => {
     renderManager();
 

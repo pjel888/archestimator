@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 R4.6 Browse Route Divergence Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 templates work now has local route/sidebar divergence proof. The
+`/workshop/library/templates` browse manager remains a template-management
+surface with template `Open` and `Insert into estimate` actions, while project
+source tree and `Project source preview` surfaces stay absent there; the
+estimate-sidebar Templates tab owns project-source browsing in this slice. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-6-browse-route-divergence-implementation-run.md`:
+`bunx vitest run tests/vitest/template-gallery.test.tsx --maxWorkers=1` passed
+(1 file / 12 tests), `bun run type-check` passed, and `git diff --check` passed.
+This is local component proof only: if project-source browsing is later added to
+the route, the route-specific management/insert rules and permission proof must
+be updated in the same slice. Save-as-template from project source, remaining
+sidebar R4.4 completeness, insert RPC/action, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, and browser
+visual proof remain open.
+
 **Estimate Tabs Phase 5 R5.2 Template Editor Template-Only Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 templates work now has explicit local proof that the template editor
 stays template-only while project-derived sources remain out of editor
