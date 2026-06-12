@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 R6.2 Project-Source Bulk Insert Seam Partial Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now includes a local bulk-insertion
+seam for project-derived reusable sources. Insertable project tab and project
+group/area rows participate in cascade selection; project and estimate container
+rows remain non-insertable. Bulk add resolves checked project sources as
+top-most reusable selections, so a checked tab inserts once instead of also
+inserting its checked child nodes. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-2-project-source-bulk-insert-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 52 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is partial local R6.2 proof only: keyboard-specific insertion
+parity, full template/source parity review, insert RPC/action, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Preview Metadata Seam Partial Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 templates panel now includes a narrow local preview
 metadata seam for project-derived reusable sources. Clicking a project,
