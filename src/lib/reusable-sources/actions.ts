@@ -13,7 +13,6 @@ import type {
   ProjectReusableEstimateSource,
   ProjectReusableSource,
   ProjectTabReusableSource,
-  ReusableEstimateSource,
 } from "./types";
 import {
   collectProjectNodeSearchSources,
@@ -214,5 +213,3 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
 
   return { sources };
 }
-
-export type { ReusableEstimateSource };
