@@ -1,4 +1,23 @@
 # Current State
+**Estimate Tabs Phase 5 Project Dashboard UI Contract Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The project-dashboard static UI governance tests now match the current live
+project layout: `WorkshopPageShell` owns project-level actions and the estimate
+metadata strip, `ProjectMiniSidebar` remains the project-section navigation and
+hides itself on estimate-sheet detail routes, and the legacy
+`ProjectWorkspaceHeaderRow` is no longer mounted by the project layout. Because
+the edited aggregate project-dashboard test was 286 pure LOC, it was split into
+five focused dashboard governance files plus a shared fixture module; the split
+files are 67/42/79/54/55/33 pure LOC. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-project-dashboard-ui-contract-repair-run.md`:
+the focused red run failed on stale `ProjectWorkspaceHeaderRow` layout
+assertions, the split suite passed (5 files / 17 tests), `bun run type-check`
+passed, changed-file ESLint passed, the TypeScript no-excuse script passed, and
+the refreshed `bun run validate` still fails in `test:dom` but now reports 8
+failed files / 17 failed tests with project-dashboard contracts removed from the
+failure set. This is local static-test proof only; linked Supabase/provider/RLS,
+hosted, production/manual, deploy, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Security Findings Tooling Contract Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Codex security-findings tooling contract now matches the current hook
 architecture: MCP package pins remain `code-review-graph==2.3.5` in

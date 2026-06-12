@@ -1,0 +1,6 @@
+tests/vitest/project-dashboard-center-column-ui.test.ts       67
+tests/vitest/project-dashboard-charts-ui.test.ts       42
+tests/vitest/project-dashboard-core-ui.test.ts       79
+tests/vitest/project-dashboard-route-shell-ui.test.ts       54
+tests/vitest/project-dashboard-side-panel-ui.test.ts       55
+tests/vitest/project-dashboard-ui-fixtures.ts       33

@@ -1892,3 +1892,51 @@ label=diff-check-security-findings-contracts-fix exit_code=0 timed_out=False log
   contracts, and project dashboard/collaboration/publication contracts.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+## Phase 5 project dashboard UI contract repair
+
+### Summary
+
+Updated stale project-dashboard static UI governance tests for the current live
+layout: project actions and estimate metadata live in `WorkshopPageShell`, the
+mini-sidebar is navigation-only and hides on estimate detail routes, and the
+project layout no longer mounts `ProjectWorkspaceHeaderRow`. The edited aggregate
+file exceeded the 250 pure LOC ceiling, so it was split into focused dashboard
+contract files plus a shared fixture module. No runtime app code changed.
+
+### Changed files
+
+- `tests/vitest/project-dashboard-ui.test.ts` (deleted oversized aggregate)
+- `tests/vitest/project-dashboard-ui-fixtures.ts`
+- `tests/vitest/project-dashboard-core-ui.test.ts`
+- `tests/vitest/project-dashboard-charts-ui.test.ts`
+- `tests/vitest/project-dashboard-route-shell-ui.test.ts`
+- `tests/vitest/project-dashboard-center-column-ui.test.ts`
+- `tests/vitest/project-dashboard-side-panel-ui.test.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-project-dashboard-ui-contract-repair-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=vitest-project-dashboard-ui-red exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-focused-red.log result=2_failed_tests_stale_project_workspace_header_row_contracts
+label=loc-project-dashboard-ui-pre-split exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-loc-pre-split.log result=286_pure_loc_oversized
+label=vitest-project-dashboard-ui-split-green exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-split-green.log result=5_files_17_tests_passed
+label=type-check-project-dashboard-ui-split exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-split-type-check.log
+label=eslint-project-dashboard-ui-split exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-split-eslint.log
+label=no-excuse-project-dashboard-ui-split exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-split-no-excuse.log result=no_violations_in_6_files
+label=loc-project-dashboard-ui-split exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/project-dashboard-ui-split-loc.log result=67_42_79_54_55_33_pure_loc
+label=validate-after-project-dashboard-ui-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-validate-after-project-dashboard-ui-fix.log result=test_dom_remaining_8_failed_files_17_failed_tests
+label=diff-check-project-dashboard-ui-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-dashboard-ui-contract-repair.log
+```
+
+### Remaining Phase 5 boundary
+
+- Project-dashboard static governance contracts pass and are no longer part of
+  refreshed full-validation failures.
+- Full `bun run validate` still fails in unrelated `test:dom` contracts:
+  generated Supabase history RPC type expectations, landing/public font/cache
+  contracts, and project collaboration/publication summary contracts.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
