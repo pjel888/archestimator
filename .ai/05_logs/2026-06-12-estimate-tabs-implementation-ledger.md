@@ -2288,3 +2288,21 @@ label=vitest-r4-template-source-local-proof-refresh exit_code=0 command="bun x v
 - Linked/hosted provider freshness proof, provider-backed action proof, linked
   Supabase apply/typegen, hosted browser proof, Vercel deploy, production
   deploy, and manual QA remain unperformed.
+
+## Phase 4 R2.4 delegated owner/product review copy alignment
+
+### Summary
+
+Closed the R2.4 owner/product review gate under the active 2026-06-13 delegated authority. Public product/workspace copy now uses estimates and tabs outside actual Excel/spreadsheet contexts. Excel quote-sheet import wording and spreadsheet/document handoff wording remain because they describe external files.
+
+### Gates run
+
+```text
+label=vitest-r2-4-owner-review-copy-red exit_code=1 command="bun x vitest run tests/vitest/closed-beta-pricing-copy.test.ts --maxWorkers=1" result="new source-text contract failed before copy alignment"
+label=vitest-r2-4-owner-review-copy-green exit_code=0 command="bun x vitest run tests/vitest/closed-beta-pricing-copy.test.ts --maxWorkers=1" result="1 file / 3 tests passed"
+label=rg-r2-4-public-copy-residue exit_code=0 command="rg -n 'structured quote sheets|multi-sheet estimates|multiple quote sheets|version-labeled sheets|quote sheets|structured sheet|same sheet|cost sheets|quote sheet' src/app/features src/app/pricing src/app/about src/components/landing tests/vitest/closed-beta-pricing-copy.test.ts" result="only test assertions and allowed FAQ 'Excel quote sheets' remain"
+```
+
+### Remaining boundary
+
+- R2.4 is locally implemented/reviewed. Hosted browser proof, Vercel deploy, production proof, and analytics/conversion impact proof were not performed.

@@ -38,7 +38,7 @@ Four coupled changes, planned together because they share one data-model pivot:
 | [09_TEST_AND_VALIDATION_PLAN.md](09_TEST_AND_VALIDATION_PLAN.md) | Full test plan with proposed file paths, per-phase matrix, exact validation commands, baseline caveat, manual QA. |
 | [10_IMPLEMENTATION_PHASES.md](10_IMPLEMENTATION_PHASES.md) | Phases 0–8 with objective/files/DB/UI/tests/rollback/definition-of-done each. |
 | [11_RISK_REGISTER.md](11_RISK_REGISTER.md) | 21 risks with severity, probability, area, mitigation, validation method. |
-| [12_OPEN_QUESTIONS_AND_DECISIONS.md](12_OPEN_QUESTIONS_AND_DECISIONS.md) | 15 decisions made, 4 owner/deferred-shape items (none blocking Phase 1), deferred-discovery list. |
+| [12_OPEN_QUESTIONS_AND_DECISIONS.md](12_OPEN_QUESTIONS_AND_DECISIONS.md) | 15 decisions made, 3 remaining owner/deferred-shape items (Q-1 answered on 2026-06-13), deferred-discovery list. |
 | [13_REQUIREMENTS_TRACEABILITY_MATRIX.md](13_REQUIREMENTS_TRACEABILITY_MATRIX.md) | Every requirement group → doc, phase, files/tables, tests, risks, status. |
 | [14_IMPLEMENTATION_HANDOFF.md](14_IMPLEMENTATION_HANDOFF.md) | Execution contract for the implementing agent + short pointer prompt. |
 | [15_REVIEW_CHECKLIST.md](15_REVIEW_CHECKLIST.md) | Reviewer pass/fail checklist for implementation readiness. |
@@ -58,7 +58,7 @@ Phase 0 audit/baseline → **Phase 1 DB tab foundation** → Phase 2 repo/domain
 
 ## 7. Unresolved questions
 
-**None blocking.** Two product-owner items ride along with defaults (marketing-copy alignment Q-1; default-tab name Q-2) and two minor export/template-shape items (Q-3, Q-4) — see [12_OPEN_QUESTIONS_AND_DECISIONS.md](12_OPEN_QUESTIONS_AND_DECISIONS.md) §B. Phase 1 can start without any of them.
+**None blocking.** Q-1 marketing-copy alignment was answered by delegated owner/product review on 2026-06-13; Q-2 default-tab name and the two minor export/template-shape items (Q-3, Q-4) remain recorded with defaults — see [12_OPEN_QUESTIONS_AND_DECISIONS.md](12_OPEN_QUESTIONS_AND_DECISIONS.md) §B. Phase 1 can start without any of them.
 
 ## Evidence Used
 

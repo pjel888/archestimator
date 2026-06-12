@@ -16,8 +16,9 @@
 | UQA-004 | Deep-link recipient | Invite/share/export links must not be rewritten into tab-only URLs | `bun x vitest run tests/vitest/project-invite-entry-route.test.ts tests/vitest/workshop-pending-invite.test.tsx tests/vitest/project-publication-email-links.test.ts tests/vitest/share/share-page-get-routes-contract.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1` | `/invite/[token]` and `/share/[token]` contracts preserved | 5 files / 40 tests passed in R9.3/R13 refresh | Pass | `.ai/05_logs/2026-06-13-estimate-tabs-r9-3-r13-local-proof-run.md` | No temporary artifacts |
 | UQA-005 | Performance-sensitive user | Tab strip and reusable-source browsing should not eagerly re-render or load every project outline | `bun x vitest run tests/vitest/perf --maxWorkers=1`; R13.2 lazy-source focused suite | Perf suite green; project-root, project-estimate, and estimate-outline reads remain staged | Perf 4 files / 14 tests passed; lazy-source focused 3 files / 67 tests passed | Pass | `.ai/05_logs/2026-06-13-estimate-tabs-r9-3-r13-local-proof-run.md` | No temporary artifacts |
 | UQA-006 | Accessibility keyboard user | Tab lifecycle controls maintain focus/announcements without drag-only affordances | `bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1` | Live region/focus paths and non-drag paths pass | 1 file / 8 tests passed in R9.3/R13 refresh | Pass | `.ai/05_logs/2026-06-13-estimate-tabs-r9-3-r13-local-proof-run.md` | No temporary artifacts |
-| UQA-007 | Malicious prompt or misleading output | Do not confuse local proof with provider/manual proof or merge despite open gates | RTM grep for `planned`, `provider proof open`, `hosted`, `owner review`; command exit codes checked | No non-legend `planned`; remaining gates explicitly marked owner/provider/hosted/manual | Only legend contains `planned`; open rows are external proof/owner gates | Pass | RTM closeout refresh | No temporary artifacts |
-| UQA-008 | External/live-system verifier | Linked Supabase, hosted route smoke, browser/Storybook a11y, two-browser QA, production deploy | Blocked by safety boundary without explicit owner authorization | No external mutations or deploys performed; boundary recorded | External proof remains open; merge not performed | Blocked | RTM rows R1.5, R2.4, R4.4, R4.5, R8.1, R8.4, R9.1-R9.3, R10.3-R10.4, R12.3, R13.3-R13.4 | No provider state touched |
+| UQA-007 | Malicious prompt or misleading output | Do not confuse local proof with provider/manual proof or merge despite open gates | RTM grep for `planned`, `provider proof open`, and `hosted`; command exit codes checked | No non-legend `planned`; remaining gates explicitly marked provider/hosted/manual after R2.4 delegated review | Only legend contains `planned`; open rows are external proof gates | Pass | RTM closeout refresh plus R2.4 addendum | No temporary artifacts |
+| UQA-008 | External/live-system verifier | Linked Supabase, hosted route smoke, browser/Storybook a11y, two-browser QA, production deploy | Blocked by safety boundary without explicit provider/hosted authorization | No external mutations or deploys performed; boundary recorded | External proof remains open; merge not performed | Blocked | RTM rows R1.5, R4.4, R4.5, R8.1, R8.4, R9.1-R9.3, R10.3-R10.4, R12.3, R13.3-R13.4 | No provider state touched |
+| UQA-009 | Product owner delegate | R2.4 public marketing copy owner review | Source-text contract + targeted public copy residue grep | Public non-Excel product copy says estimates/tabs; Excel/spreadsheet wording remains only for external files | New contract passed and residue grep found only allowed FAQ/test hits | Pass | `.ai/05_logs/2026-06-13-estimate-tabs-r2-4-owner-review-copy-alignment.md` | No runtime artifacts |
 
 ## Commands run
 
@@ -31,7 +32,7 @@
 ## Failures found
 
 - No new local implementation failure was found in the refreshed safe local proof.
-- Completion remains blocked by external proof and owner-review gates that cannot be safely satisfied in this session without explicit provider/deploy/manual authorization.
+- Completion remains blocked by external provider/hosted/manual gates that cannot be safely satisfied in this session without explicit provider/deploy/manual authorization; the R2.4 owner/product-review gate is now closed locally by delegated review.
 
 ## Fixes applied
 
@@ -49,7 +50,6 @@
 
 - Linked Supabase apply/typegen remains open because Docker typegen is unavailable and linked provider mutation was not explicitly authorized.
 - Hosted route/export/publication/invite/share/browser/Storybook/two-browser/manual proof remains open.
-- R2.4 owner review remains a product decision gate.
 - `origin/main` is not updated by this branch; merge/push is intentionally deferred because the plan pack still has external proof gates.
 
 ## Evidence

@@ -18,7 +18,7 @@ This document proves the planning prompt (`.ai/08_prompts/2026-06-12-Projects-Au
 | 5 | Package separates verified state / target architecture / sequencing / tests / risks / open decisions | ✅ | 01 / 02 / 10 / 09 / 11 / 12 respectively |
 | 6 | No source, migrations, types, tests, config, lockfiles, package files, provider state, or secrets changed | ✅ | `git status --short --branch` shows only the plan folder plus two related untracked prompt files; no application/source paths are dirty (§4) |
 | 7 | Final completion audit proves every requirement | ✅ | this document |
-| — | Did not ask user permission to proceed; reasonable assumptions recorded | ✅ | [12](12_OPEN_QUESTIONS_AND_DECISIONS.md) (15 decisions, 4 non-blocking owner/deferred-shape items) |
+| — | Did not ask user permission to proceed; reasonable assumptions recorded | ✅ | [12](12_OPEN_QUESTIONS_AND_DECISIONS.md) (15 decisions, Q-1 answered 2026-06-13, 3 remaining non-blocking owner/deferred-shape items) |
 | — | Existing folder contents re-audited rather than trusted | ✅ | this continuation re-read and repaired the existing 00–16 pack; prior 2026-06-11 packs treated as history with stale claims flagged ([01](01_CURRENT_STATE_AUDIT.md) §15) |
 
 ### Mandatory reading order
@@ -67,7 +67,7 @@ Live evidence inspected in this continuation included the source prompt; canonic
 
 - **No provider/manual proof exists** (by design of this pass): linked-DB state, hosted export behavior, advisor status, and browser UX claims are all local-evidence-only until the separately authorized steps in [14](14_IMPLEMENTATION_HANDOFF.md) §8 run.
 - **Line-number drift risk:** citations are pinned to `main` @ `4289baff` (2026-06-12). The repo changes daily; [15](15_REVIEW_CHECKLIST.md) §9 mandates a 5-citation spot-check before implementation starts.
-- **Two owner items ride at defaults** (Q-1 marketing copy, Q-2 default-tab name) — non-blocking, recorded in [12](12_OPEN_QUESTIONS_AND_DECISIONS.md) §B.
+- **Owner/default items:** Q-1 marketing copy was answered by delegated owner/product review on 2026-06-13; Q-2 default-tab name still rides at its default — non-blocking, recorded in [12](12_OPEN_QUESTIONS_AND_DECISIONS.md) §B.
 - `bun run validate` baseline is pre-existing-red (documented, [09](09_TEST_AND_VALIDATION_PLAN.md) §0) — a project condition, not a gap in this pack, but stated here so "green gates" are read correctly as "no NEW failures".
 
 ## 6. Final verdict

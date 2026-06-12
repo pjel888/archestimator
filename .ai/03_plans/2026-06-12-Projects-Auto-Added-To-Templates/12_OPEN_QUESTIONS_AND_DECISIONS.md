@@ -28,7 +28,7 @@
 
 | ID | Question | Default if unanswered | Needed by |
 |---|---|---|---|
-| Q-1 | Marketing/landing copy: keep "quote sheets" wording on `/`, `/features`, `/pricing`, or align to "estimates/tabs"? (Product surfaces flip regardless.) | keep marketing as-is; flip product surfaces only | Phase 4 |
+| Q-1 | Marketing/landing copy: keep "quote sheets" wording on `/`, `/features`, `/pricing`, or align to "estimates/tabs"? | **answered 2026-06-13 by delegated owner/product review:** align public product/workspace copy to estimates/tabs; retain "Excel quote sheets" and "spreadsheet" only for external-file import/handoff contexts | Phase 4 |
 | Q-2 | Default-tab display name `Main` acceptable, or prefer e.g. `Tab 1`/estimate-derived? | `Main` (D-3) | Phase 1 (cheap to change pre-backfill) |
 | Q-3 | Should multi-tab Source Breakdown remain one global worksheet (with Tab column) vs per-tab breakdown sheets? | global + Tab column (D-10 shape) | Phase 6 |
 | Q-4 | Save-as-template naming-conflict behavior: silent " (2)" suffix vs always-prompt? | prompt pre-filled with suffix ([06](06_TEMPLATES_PANEL_UNIFICATION_PLAN.md) §9) | Phase 5 |

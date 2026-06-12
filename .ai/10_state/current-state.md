@@ -2319,7 +2319,7 @@ Open:
 
 - Refreshed stale matrix rows that were already locally implemented/proven by the current branch: R1.1-R1.6, R7.1-R7.3, R9.1, R12.1-R12.3, and R13.4 now distinguish local implementation from linked/provider/browser proof gaps.
 - Fresh broad evidence after commits `bacf01bd` and `d7c9c450`: `bun run validate` passed (typecheck, ESLint with 549 warnings / 0 errors, design-system, strict design, unit tests, 243 Vitest files passed / 1 skipped, 1,771 tests passed / 3 skipped), `bun run build` passed, and `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed.
-- Merge-to-main remains blocked because the matrix still has planned/open rows requiring implementation or external proof, especially activity/audit tab events and UI scope (R10.1-R10.2), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, 2-browser collaboration/publication manual proof, and owner/product review rows.
+- Merge-to-main remained blocked at that audit point because the matrix still had planned/open rows requiring implementation or external proof, especially activity/audit tab events and UI scope (R10.1-R10.2), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, 2-browser collaboration/publication manual proof, and owner/product review rows. Later 2026-06-13 work closed those local rows, including delegated R2.4 owner/product review; external provider/hosted/manual gates remain separate.
 
 ## Estimate Tabs R10.3 Collaboration Presence Active-tab Attribution Implemented Locally (2026-06-13)
 
@@ -2383,3 +2383,13 @@ Open:
 - Fresh local evidence: `bun x vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-browse-project-sources.test.tsx tests/vitest/library-overview.test.tsx --maxWorkers=1` passed (4 files / 77 tests).
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r4-template-source-local-proof-refresh.md`.
 - Boundary: no linked/hosted provider freshness proof, provider-backed action proof, linked Supabase apply/typegen, hosted browser proof, Vercel deploy, production deploy, or manual QA was performed.
+
+## Estimate Tabs R2.4 Owner/Product Review Copy Alignment Completed Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Owner/product review authority was delegated in the active goal; reviewed outcome is to align public product/workspace copy to estimates/tabs while preserving Excel quote-sheet and spreadsheet/document handoff wording only for external-file contexts.
+- Updated public copy in `src/app/features/page.tsx`, `src/app/pricing/page.tsx`, `src/app/about/page.tsx`, `src/components/landing/AnimatedProposalRecordSection.tsx`, `src/components/landing/FeaturesSection.tsx`, `src/components/landing/PricingSection.tsx`, and `src/components/landing/SecondaryClaimSection.tsx`.
+- Added `tests/vitest/closed-beta-pricing-copy.test.ts` coverage to prevent non-Excel public `quote sheets` / `multi-sheet` / `structured sheet` drift while allowing the FAQ's `Excel quote sheets` and `spreadsheet/document handoff` wording.
+- Fresh local evidence: the new R2.4 contract failed red before the copy changes, then `bun x vitest run tests/vitest/closed-beta-pricing-copy.test.ts --maxWorkers=1` passed (1 file / 3 tests); targeted residue grep found only test assertions and allowed FAQ `Excel quote sheets`.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r2-4-owner-review-copy-alignment.md`.
+- Boundary: no hosted browser proof, Vercel deploy, production proof, or analytics/conversion impact proof was performed.

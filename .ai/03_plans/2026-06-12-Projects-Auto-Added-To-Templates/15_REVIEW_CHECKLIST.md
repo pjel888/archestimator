@@ -92,7 +92,7 @@
 
 ## 10. Explicit pass/fail criteria
 
-**PASS (implementation may start)** when: sections 1, 2, 6 fully ✓; sections 3–5, 7–9 at thresholds; the two product-decision items (Q-1 marketing copy, Q-2 default-tab name) either answered or accepted at their defaults; and the reviewer's §9 spot-check finds no broken citations.
+**PASS (implementation may start)** when: sections 1, 2, 6 fully ✓; sections 3–5, 7–9 at thresholds; Q-1 marketing copy is answered or accepted at its reviewed outcome, Q-2 default-tab name is answered or accepted at its default, and the reviewer's §9 spot-check finds no broken citations. Q-1 was answered by delegated owner/product review on 2026-06-13.
 **FAIL** if: any §2 or §6 item is unanswered; any seed-claim refutation turns out wrong on spot-check; or the copy table / keep-list conflict on any string.
 
 **Reviewer result (2026-06-12): PASS after repair.** Independent review findings were applied before this checklist was marked: restricted-estimate access matrix corrected; pending-invite citation fixed; decision IDs normalized; insert RPC mode resolved as SECURITY DEFINER with explicit checks; performance budgets added; Projects-section default clarified to all readable workspace projects; release gate D-15 added; cleanup gate defined; traceability matrix narrowed for deferred rows. A fresh implementation kickoff must still rerun the §9 citation spot-check against the then-current branch because line numbers drift.

@@ -105,7 +105,7 @@ Authoritative rebrand list; bucket A anchors in 01 §16. "Estimate sheet" (meani
 | "Template sheet" aria family (`TemplateEditorSheet.tsx:558-565`; `TemplateGallery.tsx:215-221`) | "Template content" family (e2e label assertions update together — 09 §10) |
 | "Component sheet" aria family (`ComponentLibraryManager.tsx:874-880`) | "Component table" family (same e2e coupling) |
 | Backfilled default tab name (03 §7) | `Main` — shown as the single tab on every existing estimate |
-| Marketing/landing "sheet" nouns (`app/features/page.tsx`, `app/pricing/page.tsx:11`, `FeaturesSection.tsx` etc.) | Phase 4 decision with owner review: product surfaces say "estimates" and "tabs"; "Excel quote sheets"/"spreadsheet" references stay (they mean Excel) — flagged non-blocking in [12](12_OPEN_QUESTIONS_AND_DECISIONS.md) Q-1 |
+| Marketing/landing "sheet" nouns (`app/features/page.tsx`, `app/pricing/page.tsx:11`, `FeaturesSection.tsx` etc.) | Phase 4 delegated owner review completed 2026-06-13: public product/workspace surfaces say "estimates" and "tabs"; "Excel quote sheets"/"spreadsheet" references stay only when they mean external files — see [12](12_OPEN_QUESTIONS_AND_DECISIONS.md) Q-1 and R2.4 evidence log |
 
 Do-not-touch vocabulary: ExcelJS/worksheet code, `Sheet` overlay primitive, "sheet vinyl"/"Sheet Membranes"/unit "sheet", "spreadsheet" (01 §16E).
 
