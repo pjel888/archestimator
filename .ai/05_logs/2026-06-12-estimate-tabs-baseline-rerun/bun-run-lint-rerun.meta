@@ -1,0 +1,8 @@
+label=bun-run-lint-rerun
+command=bun run lint
+started=2026-06-12T09:36:45Z
+ended=2026-06-12T09:37:07Z
+exit_code=1
+timeout_seconds=900
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/bun-run-lint-rerun.log

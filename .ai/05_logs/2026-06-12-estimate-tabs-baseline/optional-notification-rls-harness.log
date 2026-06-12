@@ -1,0 +1,15 @@
+
+>>> [2026-06-12T09:32:59Z] node scripts/prove-notification-rls-postgres.mjs
+file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/scripts/prove-notification-rls-postgres.mjs:95
+    throw new Error(`Missing PostgreSQL binary: ${path}. Install postgresql@16 or set POSTGRES_BIN_DIR.`);
+          ^
+
+Error: Missing PostgreSQL binary: /opt/homebrew/opt/postgresql@16/bin/initdb. Install postgresql@16 or set POSTGRES_BIN_DIR.
+    at requireBinary (file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/scripts/prove-notification-rls-postgres.mjs:95:11)
+    at Array.forEach (<anonymous>)
+    at file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/scripts/prove-notification-rls-postgres.mjs:100:25
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:642:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.0.0

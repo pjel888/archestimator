@@ -1,0 +1,4 @@
+
+>>> [2026-06-12T09:28:02Z] bun run lint:design-system
+$ node scripts/enforce-app-design-system.mjs
+App/workshop design-system enforcement passed: compact hierarchy, 12px font-size cap, SF/system stack, regular/medium weight, xs radius, zero tracking, reference tokens, and regular icons.

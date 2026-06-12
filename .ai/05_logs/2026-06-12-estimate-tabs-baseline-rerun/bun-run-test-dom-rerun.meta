@@ -1,0 +1,8 @@
+label=bun-run-test-dom-rerun
+command=bun run test:dom
+started=2026-06-12T09:37:08Z
+ended=2026-06-12T09:41:08Z
+exit_code=1
+timeout_seconds=1200
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/bun-run-test-dom-rerun.log
