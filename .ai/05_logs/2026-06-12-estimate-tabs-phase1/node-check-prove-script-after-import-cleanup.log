@@ -1,0 +1,5 @@
+$ node --check scripts/prove-estimate-tabs-postgres.mjs
+started=2026-06-12T10:13:42.211039+00:00
+ended=2026-06-12T10:13:42.410333+00:00
+exit_code=0
+timed_out=False

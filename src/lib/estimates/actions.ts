@@ -326,8 +326,53 @@ type EstimatePermissionRpcClient = {
   rpc: (fn: "can_edit_estimate", args: { target_estimate_id: string }) => Promise<{ data: boolean | null; error: { message: string } | null }>;
 };
 
+type EstimateTabInsertClient = {
+  from: (table: "estimate_tabs") => {
+    insert: (values: {
+      estimate_id: string;
+      name: string;
+      sort_order: number;
+      is_default: boolean;
+      created_by: string | null;
+    }) => {
+      select: (columns: "id") => {
+        single: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>;
+      };
+    };
+  };
+};
+
+type EstimateNodeInsertWithTab = TablesInsert<"estimate_nodes"> & {
+  estimate_tab_id: string;
+};
+
+type EstimateNodeInsertWithTabTable = {
+  insert: {
+    (values: EstimateNodeInsertWithTab): {
+      select: (columns: "id") => {
+        single: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>;
+      };
+    };
+    (values: EstimateNodeInsertWithTab[]): Promise<{ error: { message: string } | null }>;
+  };
+};
+
+type EstimateNodeInsertWithTabClient = {
+  from: (table: "estimate_nodes") => EstimateNodeInsertWithTabTable;
+};
+
 function asEstimateHistoryRpcClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
   return supabase as unknown as EstimateHistoryRpcClient;
+}
+
+function asEstimateTabInsertClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  // Temporary compatibility boundary: linked Supabase type regeneration is owner-gated for Phase 1.
+  // The migration creates public.estimate_tabs; remove this cast after authorized type regen.
+  return supabase as unknown as EstimateTabInsertClient;
+}
+
+function asEstimateNodeInsertWithTabClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  return supabase as unknown as EstimateNodeInsertWithTabClient;
 }
 
 async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, estimateId: string) {
@@ -989,23 +1034,46 @@ async function createEstimateWithDefaultTree({
     sheetCode,
   );
 
-  const { data: projectGroupNode, error: projectGroupError } = await supabase
-    .from("estimate_nodes")
+  const { data: defaultTab, error: defaultTabError } = await asEstimateTabInsertClient(supabase)
+    .from("estimate_tabs")
     .insert({
       estimate_id: estimate.id,
-      parent_id: null,
-      kind: "group",
-      name: "Project Scope",
+      name: "Main",
       sort_order: 0,
+      is_default: true,
+      created_by: createdBy,
     })
     .select("id")
     .single();
 
-  if (projectGroupError) throw projectGroupError;
+  if (defaultTabError) throw defaultTabError;
+  if (!defaultTab?.id) throw new Error("Default estimate tab was not created.");
 
-  const { error: generalNodesError } = await supabase.from("estimate_nodes").insert([
+  const defaultTabId = defaultTab.id;
+  const estimateNodeInsertClient = asEstimateNodeInsertWithTabClient(supabase);
+
+  const projectGroupInsert: EstimateNodeInsertWithTab = {
+    estimate_id: estimate.id,
+    estimate_tab_id: defaultTabId,
+    parent_id: null,
+    kind: "group",
+    name: "Project Scope",
+    sort_order: 0,
+  };
+
+  const { data: projectGroupNode, error: projectGroupError } = await estimateNodeInsertClient
+    .from("estimate_nodes")
+    .insert(projectGroupInsert)
+    .select("id")
+    .single();
+
+  if (projectGroupError) throw projectGroupError;
+  if (!projectGroupNode?.id) throw new Error("Default estimate root group was not created.");
+
+  const generalNodeInserts: EstimateNodeInsertWithTab[] = [
     {
       estimate_id: estimate.id,
+      estimate_tab_id: defaultTabId,
       parent_id: projectGroupNode.id,
       kind: "group",
       name: "General Requirements",
@@ -1013,56 +1081,71 @@ async function createEstimateWithDefaultTree({
     },
     {
       estimate_id: estimate.id,
+      estimate_tab_id: defaultTabId,
       parent_id: projectGroupNode.id,
       kind: "group",
       name: "Site Works",
       sort_order: 10,
     },
-  ]);
+  ];
+
+  const { error: generalNodesError } = await estimateNodeInsertClient.from("estimate_nodes").insert(generalNodeInserts);
 
   if (generalNodesError) throw generalNodesError;
 
-  const { data: buildingGroupNode, error: buildingGroupError } = await supabase
+  const buildingGroupInsert: EstimateNodeInsertWithTab = {
+    estimate_id: estimate.id,
+    estimate_tab_id: defaultTabId,
+    parent_id: projectGroupNode.id,
+    kind: "group",
+    name: project.name,
+    sort_order: 20,
+  };
+
+  const { data: buildingGroupNode, error: buildingGroupError } = await estimateNodeInsertClient
     .from("estimate_nodes")
-    .insert({
-      estimate_id: estimate.id,
-      parent_id: projectGroupNode.id,
-      kind: "group",
-      name: project.name,
-      sort_order: 20,
-    })
+    .insert(buildingGroupInsert)
     .select("id")
     .single();
 
   if (buildingGroupError) throw buildingGroupError;
+  if (!buildingGroupNode?.id) throw new Error("Default estimate building group was not created.");
 
-  const { data: levelGroupNode, error: levelGroupError } = await supabase
+  const levelGroupInsert: EstimateNodeInsertWithTab = {
+    estimate_id: estimate.id,
+    estimate_tab_id: defaultTabId,
+    parent_id: buildingGroupNode.id,
+    kind: "group",
+    name: "Ground Floor",
+    sort_order: 0,
+  };
+
+  const { data: levelGroupNode, error: levelGroupError } = await estimateNodeInsertClient
     .from("estimate_nodes")
-    .insert({
-      estimate_id: estimate.id,
-      parent_id: buildingGroupNode.id,
-      kind: "group",
-      name: "Ground Floor",
-      sort_order: 0,
-    })
+    .insert(levelGroupInsert)
     .select("id")
     .single();
 
   if (levelGroupError) throw levelGroupError;
+  if (!levelGroupNode?.id) throw new Error("Default estimate level group was not created.");
 
-  const { data: areaNode, error: areaError } = await supabase
+  const areaNodeInsert: EstimateNodeInsertWithTab = {
+    estimate_id: estimate.id,
+    estimate_tab_id: defaultTabId,
+    parent_id: levelGroupNode.id,
+    kind: "area",
+    name: "Project-wide",
+    sort_order: 0,
+  };
+
+  const { data: areaNode, error: areaError } = await estimateNodeInsertClient
     .from("estimate_nodes")
-    .insert({
-      estimate_id: estimate.id,
-      parent_id: levelGroupNode.id,
-      kind: "area",
-      name: "Project-wide",
-      sort_order: 0,
-    })
+    .insert(areaNodeInsert)
     .select("id")
     .single();
 
   if (areaError) throw areaError;
+  if (!areaNode?.id) throw new Error("Default estimate area was not created.");
 
   return { estimate, areaNodeId: areaNode.id };
 }

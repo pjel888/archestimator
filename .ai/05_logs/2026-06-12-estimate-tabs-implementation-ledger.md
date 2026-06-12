@@ -325,3 +325,45 @@ Verifier subagent result: **PASS** for five selected `01_CURRENT_STATE_AUDIT.md`
 ### Phase 0 decision
 
 Phase 0 is complete enough to start Phase 1 implementation: branch baseline is recorded, initial environment artifacts are separated from true baseline debt, core target-domain gates are green, plan citations spot-checked cleanly, and terminology/non-rename guardrails are recorded. The current stop condition remains the full prompt objective, so do not mark the overall goal complete.
+## Phase 1 local database foundation iteration
+
+### Summary
+
+Phase 1 local implementation is complete enough for a phase-scoped commit. The migration, proof harness, schema test, and app default-tab creation shim are authored and locally validated. Linked Supabase apply/typegen and provider/manual proof remain explicitly deferred and owner-gated.
+
+### Changed files
+
+- `supabase/migrations/20260612094734_estimate_tabs_foundation.sql`
+- `scripts/prove-estimate-tabs-postgres.mjs`
+- `tests/vitest/estimate-tabs-schema.test.ts`
+- `src/lib/estimates/actions.ts`
+- `package.json`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase1/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase1-implementation-run.md`
+
+### Gates run
+
+```text
+label=node-check-prove-script-after-import-cleanup exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/node-check-prove-script-after-import-cleanup.log
+label=schema-vitest exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/schema-vitest.log
+label=type-check exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/type-check.log
+label=postgres-rls-pg16-default exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/postgres-rls-pg16-default.log classification=local_prerequisite_gap_missing_/opt/homebrew/opt/postgresql@16/bin/initdb
+label=postgres-rls-pg15-local exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/postgres-rls-pg15-local.log
+label=targeted-estimate-characterization exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/targeted-estimate-characterization.log
+label=targeted-perf exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/targeted-perf.log
+label=targeted-export-regression exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/targeted-export-regression.log
+label=build exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/build.log
+label=lint-after-import-cleanup exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase1/lint-after-import-cleanup.log classification=pre_existing_baseline_3_errors_548_warnings
+```
+
+### RTM rows locally satisfied / still open
+
+- Local Phase 1 evidence satisfies R1.1, R1.2, R7.3, R10.5, R12.1, R12.2, and the local-boundary portion of R12.3.
+- Provider/typegen parts of R12.3 remain owner-gated; do not claim provider proof until linked apply and type regeneration are explicitly authorized and run.
+- Rows spanning Phase 2+ stay open: R10.1 activity composer/tab labels, repository/domain wrappers, UI, templates, export, collaboration, AI/package-builder, and final cleanup.
+
+### Remaining Phase 1 boundary
+
+- `src/lib/supabase/types.ts` intentionally not regenerated; temporary typed compatibility shims in `src/lib/estimates/actions.ts` document the owner-gated type regeneration boundary.
+- Default harness path still expects Homebrew Postgres 16; this machine only proved the harness with the available `/opt/homebrew/bin` Postgres binary.
+- `next-env.d.ts` build churn restored before staging.
