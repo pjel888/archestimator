@@ -2306,3 +2306,24 @@ label=rg-r2-4-public-copy-residue exit_code=0 command="rg -n 'structured quote s
 ### Remaining boundary
 
 - R2.4 is locally implemented/reviewed. Hosted browser proof, Vercel deploy, production proof, and analytics/conversion impact proof were not performed.
+
+## Phase 6 R8.5 preview scope-chip hardening
+
+### Summary
+
+Closed the remaining local R8.5 hardening follow-up. Multi-tab proposal export previews now default to the all-tabs workbook route, show explicit All tabs / active-tab scope chips, switch to `?tab={tabId}` only when the active-tab chip is selected, and keep the preview copy aligned with per-tab consolidation.
+
+### Gates run
+
+```text
+label=vitest-r8-5-preview-scope-red exit_code=1 command="bun x vitest run tests/vitest/proposal-export-preview.test.tsx --maxWorkers=1" result="new scope-chip/default-all-tabs assertions failed before implementation"
+label=vitest-r8-5-preview-scope-green exit_code=0 command="bun x vitest run tests/vitest/proposal-export-preview.test.tsx --maxWorkers=1" result="1 file / 3 tests passed"
+label=vitest-r8-5-export-regression exit_code=0 command="bun x vitest run tests/vitest/proposal-export-preview.test.tsx tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts --maxWorkers=1" result="5 files / 25 tests passed"
+label=eslint-r8-5-preview-scope exit_code=0 command="bunx eslint src/components/workshop/EstimateSheetContent.tsx src/components/workshop/ProposalExportPreviewDialog.tsx tests/vitest/proposal-export-preview.test.tsx" result="0 errors / 0 warnings"
+label=type-check-r8-5-preview-scope exit_code=0 command="bun run type-check" result="tsc --noEmit passed"
+label=diff-check-r8-5-preview-scope exit_code=0 command="git diff --check" result="no whitespace errors"
+```
+
+### Remaining boundary
+
+- R8.5 is implemented/proven locally only. Hosted browser proof, spreadsheet-app manual inspection, Vercel deploy, production deploy, and linked provider proof remain unperformed.
