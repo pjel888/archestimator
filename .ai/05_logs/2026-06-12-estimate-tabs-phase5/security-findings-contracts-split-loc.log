@@ -1,0 +1,6 @@
+tests/vitest/security-findings-auth-contracts.test.ts       62
+tests/vitest/security-findings-library-tooling-contracts.test.ts       86
+tests/vitest/security-findings-publication-contracts.test.ts      101
+tests/vitest/security-findings-proof-contracts.test.ts       58
+tests/vitest/security-findings-implementation-contracts.test.ts       41
+tests/vitest/security-findings-test-helpers.ts       27

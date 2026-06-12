@@ -1,4 +1,24 @@
 # Current State
+**Estimate Tabs Phase 5 Security Findings Tooling Contract Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Codex security-findings tooling contract now matches the current hook
+architecture: MCP package pins remain `code-review-graph==2.3.5` in
+`.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`, while
+`.codex/hooks.json` delegates to the pinned `oh-my-codex` native hook instead of
+carrying direct `code-review-graph update/status` shell commands. The contract
+continues to forbid unpinned direct `code-review-graph` hook commands and now
+asserts the OMX native hook path. Because the edited aggregate contract test was
+355 pure LOC, it was split into five focused security contract files plus a
+shared helper; the split files are 62/86/101/58/41/27 pure LOC. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-security-findings-tooling-contract-repair-run.md`:
+the focused red run failed on the stale direct hook expectation, the split suite
+passed (5 files / 23 tests), `bun run type-check` passed, changed-file ESLint
+passed, the TypeScript no-excuse script passed, and the refreshed
+`bun run validate` still fails in `test:dom` but now reports 9 failed files / 19
+failed tests with security-findings contracts removed from the failure set. This
+is local config/test proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Estimate Tree Bulk Selection Test Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tree bulk-selection DOM test now matches the current compact
 bottom-dock toolbar contract: the dock visibly renders the numeric count while
