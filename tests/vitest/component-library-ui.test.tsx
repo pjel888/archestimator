@@ -11,6 +11,7 @@ import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const templateActionMocks = vi.hoisted(() => ({
   createEstimateTemplate: vi.fn(),
+  createEstimateTemplateFromEstimateTab: vi.fn(),
   createEstimateTemplateFromEstimateNode: vi.fn(),
   renameEstimateTemplate: vi.fn(),
   deleteEstimateTemplate: vi.fn(),
@@ -24,6 +25,7 @@ const reusableSourceActionMocks = vi.hoisted(() => ({
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
   createEstimateTemplate: templateActionMocks.createEstimateTemplate,
+  createEstimateTemplateFromEstimateTab: templateActionMocks.createEstimateTemplateFromEstimateTab,
   createEstimateTemplateFromEstimateNode: templateActionMocks.createEstimateTemplateFromEstimateNode,
   renameEstimateTemplate: templateActionMocks.renameEstimateTemplate,
   deleteEstimateTemplate: templateActionMocks.deleteEstimateTemplate,
@@ -706,6 +708,7 @@ describe("templates tree", () => {
   beforeEach(() => {
     useEstimateWorkshopDragState.setState({ activeDrag: null });
     templateActionMocks.createEstimateTemplate.mockReset();
+    templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
     templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
     templateActionMocks.renameEstimateTemplate.mockReset();
     templateActionMocks.deleteEstimateTemplate.mockReset();
@@ -1021,6 +1024,42 @@ describe("templates tree", () => {
       description: "",
     }));
     expect(await screen.findByRole("treeitem", { name: "Amenity Template estimate template" })).toBeInTheDocument();
+  });
+
+  it("opens the save-as-template flow from a whole project tab source", async () => {
+    const createdTemplate: EstimateTemplate = {
+      id: "tpl-project-tab-source",
+      name: "Lobby Main Template",
+      description: "",
+      category: "Project Sources",
+      nodes: [],
+    };
+    templateActionMocks.createEstimateTemplateFromEstimateTab.mockResolvedValue({ template: createdTemplate });
+    openTemplatesTab({ projectSources, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Save as template" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "New template" });
+    expect(within(dialog).getByText("Lobby Main")).toBeInTheDocument();
+    expect(within(dialog).getByText(/Tab source/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Template group")).toHaveValue("Project Sources");
+    fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Lobby Main Template" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
+
+    await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledWith({
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      tabName: "Lobby Main",
+      name: "Lobby Main Template",
+      category: "Project Sources",
+      description: "",
+    }));
+    expect(templateActionMocks.createEstimateTemplateFromEstimateNode).not.toHaveBeenCalled();
+    expect(await screen.findByRole("treeitem", { name: "Lobby Main Template estimate template" })).toBeInTheDocument();
   });
 
   it("previews project-source live metadata without template management actions", () => {

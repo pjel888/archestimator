@@ -826,6 +826,191 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   }
 }
 
+export type CreateEstimateTemplateFromTabInput = {
+  projectId: string;
+  estimateId: string;
+  tabId: string;
+  tabName: string;
+  name: string;
+  description?: string;
+  category?: string;
+};
+
+type EstimateTabTemplateNodeRow = EstimateNodeSubtreeRow & {
+  kind: "group" | "area";
+};
+
+export async function createEstimateTemplateFromEstimateTab(input: CreateEstimateTemplateFromTabInput) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const supabase = await createSupabaseServerClient();
+
+  const templateName = input.name.trim();
+  if (!templateName) throw new Error("Template name is required.");
+  const templateCategory = (input.category ?? "").trim() || "General";
+  const templateDescription = (input.description ?? "").trim();
+  const sourceTabName = input.tabName.trim() || "Project tab";
+  if (!isUuid(input.estimateId) || !isUuid(input.tabId)) {
+    throw new Error("Estimate tab not found in the current workspace.");
+  }
+
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id, projects!inner(id, workspace_id)")
+    .eq("id", input.estimateId)
+    .eq("project_id", input.projectId)
+    .eq("projects.workspace_id", workspace.id)
+    .maybeSingle();
+  if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
+  if (!estimate) throw new Error("Estimate not found in the current workspace.");
+
+  const { data: nodeRows, error: nodesError } = await supabase
+    .from("estimate_nodes")
+    .select("id, parent_id, kind, name, sort_order")
+    .eq("estimate_id", input.estimateId)
+    .filter("estimate_tab_id", "eq", input.tabId)
+    .order("sort_order", { ascending: true });
+  if (nodesError) throw new Error(`Could not load the estimate tab tree: ${nodesError.message}`);
+
+  const sourceNodes: EstimateTabTemplateNodeRow[] = [];
+  for (const node of nodeRows ?? []) {
+    const kind = normalizeEstimateTreeNodeKind(node.kind);
+    if (!kind) continue;
+    sourceNodes.push({ ...node, kind });
+  }
+  if (sourceNodes.length === 0) throw new Error("The selected tab has no estimate nodes to save.");
+
+  const sourceNodeIds = sourceNodes.map((node) => node.id);
+  const { data: rowItemRows, error: rowItemsError } = await supabase
+    .from("estimate_row_items")
+    .select(
+      "id, node_id, sort_order, source_library_item_id, source_snapshot, category_node_id, supplier_id, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, discipline, designation, link_state, metadata",
+    )
+    .eq("estimate_id", input.estimateId)
+    .in("node_id", sourceNodeIds)
+    .order("sort_order", { ascending: true });
+  if (rowItemsError) throw new Error(`Could not load the estimate rows: ${rowItemsError.message}`);
+
+  const { data: siblingTemplates, error: sortError } = await supabase
+    .from("estimate_templates")
+    .select("sort_order")
+    .eq("workspace_id", workspace.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (sortError) throw new Error(`Could not create the template: ${sortError.message}`);
+  const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
+
+  const { data: insertedTemplate, error: templateError } = await supabase
+    .from("estimate_templates")
+    .insert({
+      workspace_id: workspace.id,
+      name: templateName,
+      description: templateDescription,
+      category: templateCategory,
+      sort_order: nextSortOrder,
+      created_by: currentUser.userId,
+      metadata: {
+        savedFrom: "estimate-workspace-tab",
+        sourceEstimateId: input.estimateId,
+        sourceTabId: input.tabId,
+        sourceTabName,
+      },
+    })
+    .select("*")
+    .single();
+  if (templateError || !insertedTemplate) {
+    throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
+  }
+
+  try {
+    const wrapperNodeId = randomUUID();
+    const templateNodeIdBySourceId = new Map<string, string>(sourceNodes.map((node) => [node.id, randomUUID()]));
+    const sourceNodeIdSet = new Set(sourceNodeIds);
+    const copiedNodeInserts = sourceNodes.map((node) => {
+      const templateNodeId = templateNodeIdBySourceId.get(node.id);
+      if (!templateNodeId) throw new Error("Could not map the estimate tab tree.");
+      const mappedParentId = node.parent_id && sourceNodeIdSet.has(node.parent_id)
+        ? templateNodeIdBySourceId.get(node.parent_id) ?? wrapperNodeId
+        : wrapperNodeId;
+      return {
+        id: templateNodeId,
+        template_id: insertedTemplate.id,
+        parent_id: mappedParentId,
+        kind: node.kind,
+        name: node.name,
+        sort_order: node.sort_order,
+        metadata: {},
+      };
+    });
+    const templateNodeInserts = [
+      {
+        id: wrapperNodeId,
+        template_id: insertedTemplate.id,
+        parent_id: null,
+        kind: "group" as const,
+        name: sourceTabName,
+        sort_order: 0,
+        metadata: {},
+      },
+      ...copiedNodeInserts,
+    ];
+
+    const { data: insertedNodes, error: nodeInsertError } = await supabase
+      .from("estimate_template_nodes")
+      .insert(templateNodeInserts)
+      .select("*");
+    if (nodeInsertError) throw new Error(`Could not copy the tab structure: ${nodeInsertError.message}`);
+
+    const rowInserts = (rowItemRows ?? []).map((row) => {
+      const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
+      if (!templateNodeId) throw new Error("Could not map the estimate tab rows.");
+      return {
+        template_id: insertedTemplate.id,
+        template_node_id: templateNodeId,
+        sort_order: row.sort_order,
+        source_library_item_id: row.source_library_item_id,
+        source_snapshot: row.source_snapshot,
+        category_node_id: row.category_node_id,
+        supplier_id: row.supplier_id,
+        material: row.material,
+        description: row.description,
+        supplier: row.supplier,
+        unit: row.unit,
+        quantity: row.quantity,
+        unit_cost: row.unit_cost,
+        contingency_percentage: row.contingency_percentage,
+        misc_cost: row.misc_cost,
+        discipline: row.discipline,
+        designation: row.designation,
+        link_state: row.link_state,
+        metadata: row.metadata,
+      };
+    });
+
+    let insertedRowItems: Tables<"estimate_template_row_items">[] = [];
+    if (rowInserts.length > 0) {
+      const { data, error: rowInsertError } = await supabase
+        .from("estimate_template_row_items")
+        .insert(rowInserts)
+        .select("*");
+      if (rowInsertError) throw new Error(`Could not copy the estimate rows: ${rowInsertError.message}`);
+      insertedRowItems = data ?? [];
+    }
+
+    revalidatePath("/workshop/library/templates");
+
+    const [template] = buildEstimateTemplatesFromRows({
+      templates: [insertedTemplate],
+      nodes: insertedNodes ?? [],
+      rowItems: insertedRowItems,
+    });
+    if (!template) throw new Error("Could not read back the created template.");
+    return { template };
+  } catch (error) {
+    await supabase.from("estimate_templates").delete().eq("id", insertedTemplate.id);
+    throw error;
+  }
+}
+
 /** Renames a workspace estimate template. */
 export async function renameEstimateTemplate(input: { templateId: string; name: string }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);

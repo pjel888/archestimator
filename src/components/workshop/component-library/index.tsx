@@ -525,13 +525,28 @@ function sourceBelongsToProject(source: ReusableEstimateSource, projectId: strin
   return source.kind === "custom-template" || source.projectId === projectId;
 }
 
-function projectSourceToTemplateSourceNode(source: ProjectNodeReusableSource): EstimateTreeNode {
+function projectNodeSourceToTemplateSourceNode(source: ProjectNodeReusableSource): EstimateTreeNode {
   return {
     id: source.nodeId,
     name: source.name,
     kind: source.nodeKind,
     total: "",
     children: [],
+    estimateRowItems: [],
+  };
+}
+
+function projectSourceToTemplateSourceNode(source: ProjectSourceInsertTarget, projectSources: ReusableEstimateSource[]): EstimateTreeNode {
+  if (source.kind === "project-node") return projectNodeSourceToTemplateSourceNode(source);
+  const children = projectSources
+    .filter((candidate): candidate is ProjectNodeReusableSource => candidate.kind === "project-node" && candidate.tabId === source.tabId)
+    .map((nodeSource) => projectNodeSourceToTemplateSourceNode(nodeSource));
+  return {
+    id: source.tabId,
+    name: source.name,
+    kind: "group",
+    total: "",
+    children,
     estimateRowItems: [],
   };
 }
@@ -614,7 +629,7 @@ export function EstimateRightSidebar({
   // "Save as template" from the sheets tree targets the right-clicked node
   // instead of the current selection; categories prefill from their menu.
   const [templateSourceNodeId, setTemplateSourceNodeId] = useState<string | null>(null);
-  const [templateSourceProjectNode, setTemplateSourceProjectNode] = useState<ProjectNodeReusableSource | null>(null);
+  const [templateSourceProjectSource, setTemplateSourceProjectSource] = useState<ProjectSourceInsertTarget | null>(null);
   const [templateDefaultCategory, setTemplateDefaultCategory] = useState<string | null>(null);
   const [renameTemplateTarget, setRenameTemplateTarget] = useState<EstimateTemplate | null>(null);
   const [renameTemplateName, setRenameTemplateName] = useState("");
@@ -1143,19 +1158,19 @@ export function EstimateRightSidebar({
   }, []);
 
   const startNewTemplate = useCallback(() => {
-    setTemplateSourceProjectNode(null);
+    setTemplateSourceProjectSource(null);
     setAddTemplateOpen(true);
   }, []);
 
   const startNewTemplateInCategory = useCallback((category: string) => {
-    setTemplateSourceProjectNode(null);
+    setTemplateSourceProjectSource(null);
     setTemplateDefaultCategory(category);
     setAddTemplateOpen(true);
   }, []);
 
-  const startNewTemplateFromProjectSource = useCallback((source: ProjectNodeReusableSource) => {
+  const startNewTemplateFromProjectSource = useCallback((source: ProjectSourceInsertTarget) => {
     setTemplateSourceNodeId(null);
-    setTemplateSourceProjectNode(source);
+    setTemplateSourceProjectSource(source);
     setTemplateDefaultCategory("Project Sources");
     setAddTemplateOpen(true);
   }, []);
@@ -1164,7 +1179,7 @@ export function EstimateRightSidebar({
     setAddTemplateOpen(open);
     if (!open) {
       setTemplateSourceNodeId(null);
-      setTemplateSourceProjectNode(null);
+      setTemplateSourceProjectSource(null);
       setTemplateDefaultCategory(null);
     }
   }, []);
@@ -1176,7 +1191,7 @@ export function EstimateRightSidebar({
       const detail = (event as CustomEvent<Partial<CreateEstimateTemplateFromNodeEventDetail>>).detail;
       if (typeof detail?.sourceNodeId !== "string" || !detail.sourceNodeId) return;
       setTemplateSourceNodeId(detail.sourceNodeId);
-      setTemplateSourceProjectNode(null);
+      setTemplateSourceProjectSource(null);
       setAddTemplateOpen(true);
     }
     window.addEventListener(CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT, handleCreateTemplateFromNode);
@@ -1184,16 +1199,17 @@ export function EstimateRightSidebar({
   }, []);
 
   const templateModalSourceNode = useMemo(() => {
-    if (templateSourceProjectNode) {
-      return projectSourceToTemplateSourceNode(templateSourceProjectNode);
+    if (templateSourceProjectSource) {
+      return projectSourceToTemplateSourceNode(templateSourceProjectSource, loadedProjectSources);
     }
     if (templateSourceNodeId) {
       return nodes?.length ? findEstimateNode(nodes, templateSourceNodeId) ?? null : null;
     }
     return selectedTargetNode;
-  }, [nodes, selectedTargetNode, templateSourceNodeId, templateSourceProjectNode]);
-  const templateModalProjectId = templateSourceProjectNode?.projectId ?? projectId;
-  const templateModalEstimateId = templateSourceProjectNode?.estimateId ?? estimateId;
+  }, [loadedProjectSources, nodes, selectedTargetNode, templateSourceNodeId, templateSourceProjectSource]);
+  const templateModalProjectId = templateSourceProjectSource?.projectId ?? projectId;
+  const templateModalEstimateId = templateSourceProjectSource?.estimateId ?? estimateId;
+  const templateModalSourceTab = templateSourceProjectSource?.kind === "project-tab" ? templateSourceProjectSource : null;
 
   const handleComponentCreated = useCallback((item: EstimateRowItem) => {
     setLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
@@ -1811,10 +1827,11 @@ export function EstimateRightSidebar({
           <NewTemplateModal
             open={addTemplateOpen}
             onOpenChange={handleAddTemplateOpenChange}
-            mode={templateSourceProjectNode ? "estimate-node" : templateCreateMode}
+            mode={templateModalSourceTab ? "estimate-tab" : templateSourceProjectSource ? "estimate-node" : templateCreateMode}
             projectId={templateModalProjectId}
             estimateId={templateModalEstimateId}
             sourceNode={templateModalSourceNode}
+            sourceTabId={templateModalSourceTab?.tabId}
             existingCategories={Array.from(new Set(templateList.map((template) => template.category))).sort()}
             defaultCategory={templateDefaultCategory ?? undefined}
             onCreated={handleTemplateCreated}
