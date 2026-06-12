@@ -114,6 +114,7 @@ export {
 export { EstimateRightSidebar } from "./component-library";
 export { pesoFormatter };
 
+// legacy "EstimateSheetContent" name kept for compatibility; see plan 2026-06-12 §01-17
 type EstimateSheetContentProps = {
   selectedNodeId: string | null;
   nodes?: EstimateTreeNode[];
@@ -121,7 +122,7 @@ type EstimateSheetContentProps = {
   estimateId?: string;
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string;
-  /** Real persisted tab id. Undefined means pre-tab compatibility mode. */
+  /** Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17. */
   dataTabId?: string;
   initialTabId?: string;
   onActiveTabChange?: (tabId: string) => void;

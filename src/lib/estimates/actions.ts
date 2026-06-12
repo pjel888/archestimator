@@ -765,6 +765,7 @@ async function insertEstimateWithSheetCodeFallback(
   payload: TablesInsert<"estimates">,
   sheetCode: string,
 ) {
+  // legacy "sheet_code" name kept for compatibility; see plan 2026-06-12 §01-17
   const nextPayload = { ...payload };
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -1140,6 +1141,7 @@ export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: Fet
   return tree;
 }
 
+// legacy "fetchEstimateSheetVersionControl" name kept for compatibility; see plan 2026-06-12 §01-17
 export async function fetchEstimateSheetVersionControl({
   projectId,
   estimateId,

@@ -30,8 +30,8 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
 | R3.1 keep-list honored (tables/RPCs/event values/sheet_code/Excel/primitive/material) | 01 §17 | 01 §17; 04 §9 | all | — | Phase 4 residue grep; review checklist | R-NAME, R-DATA | **implemented (Phase 4 local-only portion)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase4/terminology-exact-final.log`; standing check remains for later phases |
-| R3.2 compat comments at every kept site | prompt §04 | 04 §9 | 2–8 | touched files | code review gate (15 §3) | — | planned |
-| R3.3 shim deletion criteria for cleanup | — | 04 §12 | 8 | wrappers, dead stores/hooks | grep gates; contract batches | R-TEST | planned |
+| R3.2 compat comments at every kept site | prompt §04 | 04 §9 | 2–8 | touched files | code review gate (15 §3) | — | **implemented (local-only governance)** — retained legacy `sheet` seams now carry plan-linked compatibility comments for `areaTree`, `sheet_code`, `fetchEstimateSheetVersionControl`, `EstimateSheetContent`, pre-tab `dataTabId`, and the narrow `estimate_tabs` cast boundary; `estimate-tabs-domain.test.ts` guards the comment set. |
+| R3.3 shim deletion criteria for cleanup | — | 04 §12 | 8 | wrappers, dead stores/hooks | grep gates; contract batches | R-TEST | **implemented (docs + local guard)** — 04 §12 and 14 §6.1 define immediate vs one-release-cycle deletion gates, grep requirements, provider/manual proof requirements, owner approval, and rename-batch test updates; `estimate-tabs-domain.test.ts` guards those criteria. Actual shim deletion remains deferred until gates are satisfied. |
 
 ## Group 4 — Project-derived sources in templates panel
 
