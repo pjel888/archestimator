@@ -356,6 +356,7 @@ function buildCurrentEstimateTargetTree(readData: PackageBuilderReadToolsData, r
       projectId: readData.projectSummary.id,
       estimateId: readData.estimateSummary.id,
       selectedNodeId: readData.estimateSummary.firstNodeId,
+      activeTabId: readData.estimateSummary.activeTabId ?? null,
       nodeIdsByClientDraftId,
       areaNodeIdsByClientDraftId,
     },

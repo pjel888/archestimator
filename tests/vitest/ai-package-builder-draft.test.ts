@@ -144,6 +144,7 @@ describe("AI package-builder draft assembly", () => {
           nodeCount: 3,
           rowCount: 0,
           firstNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+          activeTabId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
         },
         estimateTree: [
           {
@@ -179,6 +180,7 @@ describe("AI package-builder draft assembly", () => {
       projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
       estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
       selectedNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+      activeTabId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
     }));
     expect(Object.values(draft.target?.areaNodeIdsByClientDraftId ?? {})).toEqual(expect.arrayContaining([
       "dddddddd-4444-4ddd-8ddd-dddddddd4444",

@@ -350,6 +350,7 @@ describe("AI package-builder schemas", () => {
         projectId: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111",
         estimateId: "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222",
         selectedNodeId: "dddddddd-4444-4ddd-8ddd-dddddddd4444",
+        activeTabId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
         areaNodeIdsByClientDraftId: {
           "area-bedroom-1": "dddddddd-4444-4ddd-8ddd-dddddddd4444",
         },

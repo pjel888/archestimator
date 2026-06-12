@@ -258,6 +258,7 @@ export type PackageBuilderTarget = {
   projectId: string;
   estimateId: string;
   selectedNodeId: string | null;
+  activeTabId?: string | null;
   nodeIdsByClientDraftId: Record<string, string>;
   areaNodeIdsByClientDraftId: Record<string, string>;
 };
@@ -849,7 +850,7 @@ function parseApplyEligibility(value: unknown): PackageBuilderApplyEligibility {
 function parsePackageBuilderTarget(value: unknown): PackageBuilderTarget | null {
   if (value === undefined || value === null) return null;
   const record = readRecord(value, "Package target");
-  assertAllowedKeys(record, ["projectId", "estimateId", "selectedNodeId", "nodeIdsByClientDraftId", "areaNodeIdsByClientDraftId"], "Package target");
+  assertAllowedKeys(record, ["projectId", "estimateId", "selectedNodeId", "activeTabId", "nodeIdsByClientDraftId", "areaNodeIdsByClientDraftId"], "Package target");
   const nodeMap = record.nodeIdsByClientDraftId === undefined ? {} : readRecord(record.nodeIdsByClientDraftId, "Node id map");
   const areaMap = readRecord(record.areaNodeIdsByClientDraftId, "Area node id map");
   const nodeIdsByClientDraftId = Object.fromEntries(
@@ -869,6 +870,7 @@ function parsePackageBuilderTarget(value: unknown): PackageBuilderTarget | null 
     projectId: readString(record.projectId, "Target project id", 80),
     estimateId: readString(record.estimateId, "Target estimate id", 80),
     selectedNodeId: readNullableString(record.selectedNodeId, "Target selected node id", 80),
+    activeTabId: readNullableString(record.activeTabId, "Target active tab id", 80),
     nodeIdsByClientDraftId,
     areaNodeIdsByClientDraftId,
   };
@@ -1183,6 +1185,7 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
       if (!isUuidLike(draft.target.projectId)) errors.push("Fill-current-estimate target project id must be a UUID.");
       if (!isUuidLike(draft.target.estimateId)) errors.push("Fill-current-estimate target estimate id must be a UUID.");
       if (draft.target.selectedNodeId && !isUuidLike(draft.target.selectedNodeId)) errors.push("Fill-current-estimate selected node id must be a UUID.");
+      if (draft.target.activeTabId && !isUuidLike(draft.target.activeTabId)) errors.push("Fill-current-estimate active tab id must be a UUID.");
       for (const [clientDraftId, nodeId] of Object.entries(draft.target.nodeIdsByClientDraftId)) {
         if (!treeIds.has(clientDraftId)) errors.push(`Fill-current-estimate target ${clientDraftId} must reference a draft tree node.`);
         if (!isUuidLike(nodeId)) errors.push(`Fill-current-estimate target node ${clientDraftId} must be a UUID.`);
