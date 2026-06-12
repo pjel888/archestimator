@@ -251,7 +251,7 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
           id: projectSourceTreeItemId(estimate.source),
           label: estimate.source.name,
           ariaLabel: estimate.source.sheetCode ? `${estimate.source.name} estimate ${estimate.source.sheetCode}` : `${estimate.source.name} estimate`,
-          isLeaf: estimate.tabs.size === 0,
+          isLeaf: false,
           selectable: false,
           icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
           data: { templatesNode: { type: "project-estimate", source: estimate.source } satisfies TemplatesTreeDatum },

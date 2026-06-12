@@ -664,3 +664,45 @@ label=diff-check-project-source-default-load exit_code=0 timed_out=False log=.ai
 - Source children below estimates still need the lazy outline-on-expand slice.
 - Project-source insertion is still a callback seam only; no server action or RPC
   is wired yet.
+
+## Phase 5 R4.3 project-source outline-on-expand slice
+
+### Summary
+
+Phase 5 now includes local UI consumption of the lazy reusable estimate outline
+action. Project-estimate rows in the Templates tree stay expandable before child
+sources are loaded; expanding one calls `getReusableEstimateOutline`, merges the
+returned tab/group/area sources into the virtual Projects tree, and skips the
+call when outline sources were supplied by props.
+
+### Changed files
+
+- `src/components/workshop/component-library/index.tsx`
+- `src/components/workshop/component-library/tree/TemplatesTree.tsx`
+- `tests/vitest/component-library-ui.test.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-3-outline-on-expand-implementation-run.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-outline-on-expand exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-outline-on-expand.log result=1_file_49_tests_passed
+label=type-check-outline-on-expand exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-outline-on-expand.log
+label=diff-check-outline-on-expand exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-outline-on-expand.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence completes R4.3 as an action-plus-UI lazy-load contract.
+- R4.2a remains partial for current-project narrowing controls.
+- R4.4 preview/live metadata, R4.5, R4.6, R5.1-R5.3, R6.2, and R7.1-R7.2 remain
+  open; no filter chips, preview docks, browse-route parity, insert RPC/action,
+  keyboard/bulk parity, RLS harness, or provider proof is claimed.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- Lazy outline loading is proven locally in the sidebar only.
+- Project-source insertion is still a callback seam only; no server action or RPC
+  is wired yet.

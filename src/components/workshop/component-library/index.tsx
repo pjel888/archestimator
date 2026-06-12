@@ -19,8 +19,8 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
-import { listReusableProjectSources } from "@/lib/reusable-sources/actions";
-import type { ProjectSourceInsertTarget, ReusableEstimateSource } from "@/lib/reusable-sources/types";
+import { getReusableEstimateOutline, listReusableProjectSources } from "@/lib/reusable-sources/actions";
+import type { ProjectEstimateReusableSource, ProjectSourceInsertTarget, ReusableEstimateSource } from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -90,6 +90,7 @@ const LIBRARY_TREE_TABS = [
 ] as const;
 
 const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
+const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
@@ -289,6 +290,46 @@ function componentToForm(item: EstimateRowItem): NewComponentFormType {
   };
 }
 
+function reusableProjectSourceKey(source: ReusableEstimateSource) {
+  if (source.kind === "custom-template") return `custom-template:${source.template.id}`;
+  if (source.kind === "project") return `project:${source.projectId}`;
+  if (source.kind === "project-estimate") return `project-estimate:${source.estimateId}`;
+  if (source.kind === "project-tab") return `project-tab:${source.tabId}`;
+  return `project-node:${source.nodeId}`;
+}
+
+function mergeReusableProjectSources(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ReusableEstimateSource[],
+  outlineEstimateId: string,
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) {
+    if ((source.kind === "project-tab" || source.kind === "project-node") && source.estimateId === outlineEstimateId) {
+      continue;
+    }
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  for (const source of incomingSources) {
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  return Array.from(sourcesByKey.values());
+}
+
+function findProjectEstimateSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectEstimateReusableSource | null {
+  if (!nodeId.startsWith(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX)) return null;
+  const estimateId = nodeId.slice(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX.length);
+  return sources.find(
+    (source): source is ProjectEstimateReusableSource => source.kind === "project-estimate" && source.estimateId === estimateId,
+  ) ?? null;
+}
+
+function hasReusableEstimateOutline(sources: ReusableEstimateSource[], estimateId: string) {
+  return sources.some((source) =>
+    (source.kind === "project-tab" || source.kind === "project-node") && source.estimateId === estimateId,
+  );
+}
+
 export function EstimateRightSidebar({
   onInsertComponent,
   onInsertTemplate,
@@ -341,6 +382,8 @@ export function EstimateRightSidebar({
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
   const [projectSourcesError, setProjectSourcesError] = useState("");
+  const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
+  const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
     Array.from(new Set([
       templatesTreeSectionId("custom-templates"),
@@ -518,6 +561,7 @@ export function EstimateRightSidebar({
 
   useEffect(() => {
     setLoadedProjectSources(projectSources);
+    setProjectOutlineErrors({});
   }, [projectSources]);
 
   useEffect(() => {
@@ -595,6 +639,25 @@ export function EstimateRightSidebar({
     }
     return undefined;
   }, [projectSourcesError, projectSourcesLoading]);
+  const templatesProjectSourceStatus = useMemo(() => {
+    const loadingCount = projectOutlineLoadingEstimateIds.length;
+    const errors = Object.values(projectOutlineErrors);
+    if (loadingCount > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Loading {loadingCount === 1 ? "estimate outline" : `${loadingCount} estimate outlines`}…
+        </div>
+      );
+    }
+    if (errors.length > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t load estimate outline. {errors[0]}
+        </div>
+      );
+    }
+    return null;
+  }, [projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -1057,10 +1120,39 @@ export function EstimateRightSidebar({
   }, [activeTab, componentViewMode]);
 
   const handleTemplatesToggle = useCallback((nodeId: string) => {
+    const isExpanded = templatesExpandedIds.includes(nodeId);
     setTemplatesExpandedIds((current) =>
       current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
     );
-  }, []);
+    if (isExpanded) return;
+
+    const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
+    if (!source) return;
+    if (hasReusableEstimateOutline(loadedProjectSources, source.estimateId)) return;
+    if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
+
+    setProjectOutlineLoadingEstimateIds((current) =>
+      current.includes(source.estimateId) ? current : [...current, source.estimateId],
+    );
+    setProjectOutlineErrors((current) => {
+      const next = { ...current };
+      delete next[source.estimateId];
+      return next;
+    });
+    getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
+      .then((result) => {
+        setLoadedProjectSources((current) => mergeReusableProjectSources(current, result.sources, source.estimateId));
+      })
+      .catch((error: unknown) => {
+        setProjectOutlineErrors((current) => ({
+          ...current,
+          [source.estimateId]: error instanceof Error ? error.message : "Could not load estimate outline.",
+        }));
+      })
+      .finally(() => {
+        setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
+      });
+  }, [loadedProjectSources, projectOutlineLoadingEstimateIds, templatesExpandedIds]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
@@ -1231,33 +1323,36 @@ export function EstimateRightSidebar({
         <div className="min-h-0 flex-1 overflow-auto">
           <div className={cn("p-2", bulkSelectionCount > 0 && "pb-16")}>
             {activeTab === "templates" ? (
-              <TemplatesTree
-                templates={templateList}
-                projectSources={loadedProjectSources}
-                searchQuery={searchQuery}
-                expandedNodeIds={templatesExpandedIds}
-                onToggle={handleTemplatesToggle}
-                canInsertTemplate={canInsertTemplate}
-                templateTargetName={effectiveTemplateTargetName || "selected group"}
-                onAddTemplate={addTemplate}
-                onAddTemplateNode={addTemplateNode}
-                onTemplateDragStart={handleTemplateDragStart}
-                onCategoryDragStart={handleCategoryDragStart}
-                onTemplateNodeDragStart={handleTemplateNodeDragStart}
-                onAddProjectSource={addProjectSource}
-                onProjectSourceDragStart={handleProjectSourceDragStart}
-                onRenameTemplate={startRenameTemplate}
-                onDeleteTemplate={startDeleteTemplate}
-                onCreateTemplate={startNewTemplateInCategory}
-                componentAddDisabled={!canInsert}
-                componentAddLabel={targetLabel}
-                onAddComponent={(item) => addComponent(item)}
-                onItemDragStart={handleItemDragStart}
-                selectable
-                checkedIds={bulkSelectedIds}
-                onCheckToggle={handleBulkCheckToggle}
-                emptyState={templatesProjectSourceEmptyState}
-              />
+              <>
+                {templatesProjectSourceStatus}
+                <TemplatesTree
+                  templates={templateList}
+                  projectSources={loadedProjectSources}
+                  searchQuery={searchQuery}
+                  expandedNodeIds={templatesExpandedIds}
+                  onToggle={handleTemplatesToggle}
+                  canInsertTemplate={canInsertTemplate}
+                  templateTargetName={effectiveTemplateTargetName || "selected group"}
+                  onAddTemplate={addTemplate}
+                  onAddTemplateNode={addTemplateNode}
+                  onTemplateDragStart={handleTemplateDragStart}
+                  onCategoryDragStart={handleCategoryDragStart}
+                  onTemplateNodeDragStart={handleTemplateNodeDragStart}
+                  onAddProjectSource={addProjectSource}
+                  onProjectSourceDragStart={handleProjectSourceDragStart}
+                  onRenameTemplate={startRenameTemplate}
+                  onDeleteTemplate={startDeleteTemplate}
+                  onCreateTemplate={startNewTemplateInCategory}
+                  componentAddDisabled={!canInsert}
+                  componentAddLabel={targetLabel}
+                  onAddComponent={(item) => addComponent(item)}
+                  onItemDragStart={handleItemDragStart}
+                  selectable
+                  checkedIds={bulkSelectedIds}
+                  onCheckToggle={handleBulkCheckToggle}
+                  emptyState={templatesProjectSourceEmptyState}
+                />
+              </>
             ) : (
               <LibraryTree
                 nodes={filteredTreeNodes}
