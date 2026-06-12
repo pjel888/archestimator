@@ -1313,3 +1313,51 @@ label=diff-check-project-source-refresh-affordance exit_code=0 timed_out=False l
   polling, provider mutation, server search filters, or deeper row fetches.
 - The inherited sidebar/test files remain oversized; no broad refactor was
   performed in this slice.
+
+## Phase 5 R4.4 reusable project-source search action
+
+### Summary
+
+Phase 5 now has a read-only `searchReusableProjectSources(query)` action for
+project-derived reusable sources. The action excludes pending-invite projects,
+searches project, estimate, tab, and group/area node names, and returns flattened
+project-source hits with preview metadata that future sidebar/search UI can use
+for reveal-in-tree behavior.
+
+### Changed files
+
+- `src/lib/reusable-sources/actions.ts`
+- `tests/vitest/reusable-sources-actions.test.ts`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-search-action-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-reusable-project-source-search-action-red exit_code=1 timed_out=False result=expected_missing_export_failure
+label=phase5-reusable-project-source-search-action-focused exit_code=0 timed_out=False result=1_file_1_test_passed
+label=phase5-reusable-project-source-search-action exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-reusable-project-source-search-action.log result=1_file_3_tests_passed
+label=type-check-reusable-project-source-search-action exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-reusable-project-source-search-action.log
+label=diff-check-reusable-project-source-search-action exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-reusable-project-source-search-action.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence further advances R4.4 with the server-action search
+  contract for readable project-derived sources.
+- R4.4 remains open for debounced sidebar UI integration, reveal-in-tree search
+  result affordance, route-level project-source parity, and row-level provider
+  detail beyond loaded outline rows.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- This search action is read-only and local/mock-proven; it does not prove live
+  provider RLS, hosted latency, or production search behavior.
+- The inherited sidebar/test files remain oversized; no broad refactor was
+  performed in this slice.

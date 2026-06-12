@@ -121,4 +121,57 @@ describe("reusable project source actions", () => {
       },
     ]);
   });
+
+  it("searches readable project source outlines without returning pending invites", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+        { accessKind: "pending-invite", project: { id: projectBId, name: "Pending Invite Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002" },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      tree: [
+        {
+          id: "group-1",
+          name: "Amenity Millwork",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "amenity" });
+
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId);
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId);
+    expect(result.sources).toEqual([
+      {
+        kind: "project-node",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        tabId: tabAId,
+        nodeId: "group-1",
+        nodeKind: "group",
+        name: "Amenity Millwork",
+        metadata: {
+          projectName: "Accessible Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+          nodePath: ["Lobby Main", "Amenity Millwork"],
+        },
+      },
+    ]);
+  });
 });
