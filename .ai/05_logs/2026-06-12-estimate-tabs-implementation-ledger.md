@@ -617,3 +617,50 @@ label=diff-check-reusable-actions exit_code=0 timed_out=False log=.ai/05_logs/20
 
 - The sidebar and browse route do not consume these actions yet.
 - `getReusableEstimateOutline` loads one estimate outline at a time; broader search and preview metadata are still future slices.
+
+## Phase 5 R4.2a default project-source root load slice
+
+### Summary
+
+Phase 5 now includes a local root-load seam from the estimate right sidebar
+Templates tab to the reusable project-source read action. In an estimate context,
+when callers do not supply `projectSources`, `EstimateRightSidebar` calls
+`listReusableProjectSources`, renders the returned project/estimate roots under
+the unified `Projects` section, and avoids refetching when sources are supplied
+by props. Project-derived sources remain virtual/read-through.
+
+### Changed files
+
+- `src/components/workshop/component-library/index.tsx`
+- `tests/vitest/component-library-ui.test.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2a-default-project-source-load-implementation-run.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-default-load exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-default-load.log result=1_file_48_tests_passed
+label=type-check-project-source-default-load exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-project-source-default-load.log
+label=diff-check-project-source-default-load exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-source-default-load.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence partially advances R4.2a by wiring default readable
+  project/estimate root loading into the estimate sidebar Templates tab.
+- R4.2a remains open for current-project narrowing controls.
+- R4.3 remains action-contract complete but UI-partial: per-estimate outline
+  loading on expansion is not wired yet.
+- R4.4 preview/live metadata, R4.5, R4.6, R5.1-R5.3, R6.2, and R7.1-R7.2 remain
+  open; no filter chips, preview docks, browse-route parity, insert RPC/action,
+  keyboard/bulk parity, RLS harness, or provider proof is claimed.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- The root source list loads only when the sidebar has estimate context and no
+  caller-supplied project sources.
+- Source children below estimates still need the lazy outline-on-expand slice.
+- Project-source insertion is still a callback seam only; no server action or RPC
+  is wired yet.
