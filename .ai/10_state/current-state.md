@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 Local Consolidation Proof Recorded (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has a consolidated local verification pass across
+the reusable-source action/drag suites, estimate-sidebar Templates tab,
+template browse/gallery divergence, template editor template-only boundary,
+library tab layout, New Template modal, and estimate template drop zones. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the
+consolidation run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-local-consolidation-run.md`:
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/reusable-source-drag.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-gallery.test.tsx tests/vitest/template-editor.test.tsx tests/vitest/library-tabs-layout.test.tsx tests/vitest/new-template-modal.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx --maxWorkers=1`
+passed (8 files / 103 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is a local consolidation boundary only: R4.4
+server-backed metadata freshness/richer preview detail, R4.5 whole-tab
+save-as-template wrapping/live provider proof, R7.1/R7.2 provider/RLS and insert
+RPC/action proof, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.5 Project Node Save-As-Template Seam Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 Templates tab now has an explicit local save-as-template seam for
 project-derived group/area sources. Project node context menus expose `Save as

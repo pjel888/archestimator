@@ -1126,3 +1126,47 @@ label=diff-check-project-source-save-as-template exit_code=0 timed_out=False log
   roots into one template remains a future R4.5 slice.
 - The DOM test mocks `createEstimateTemplateFromEstimateNode`; it proves the
   handoff shape, not live provider execution.
+
+## Phase 5 local consolidation proof
+
+### Summary
+
+Ran a consolidated local verification pass across the Phase 5 reusable-source,
+sidebar, template-preservation, route divergence, editor, modal, layout, and
+drop-zone tests after the R4/R5/R6 local slices. The pass proves the local
+project-source preview/filter/insertion/save-as-template seams and preserved
+custom-template flows still work together.
+
+### Changed files
+
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-local-consolidation-run.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-local-consolidation exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-phase5-local-consolidation.log result=8_files_103_tests_passed
+label=type-check-phase5-local-consolidation exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-phase5-local-consolidation.log
+label=diff-check-phase5-local-consolidation exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-phase5-local-consolidation.log
+```
+
+### RTM rows locally advanced / still open
+
+- This is consolidation evidence over already-implemented local slices; it does
+  not newly close provider/RPC-gated rows.
+- R4.4 remains open for server-backed live metadata freshness, richer preview
+  row detail, and future route-level project-source preview/search parity.
+- R4.5 remains open for whole-tab save-as-template wrapping and live
+  provider-backed action proof.
+- R7.1-R7.2 remain open for provider/RLS coverage and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- The consolidated suite is local-only Vitest/typecheck/diff proof.
+- Remaining work requires a separate provider/RPC/server-action slice and, where
+  applicable, hosted/browser/manual evidence before any production readiness
+  claim.
