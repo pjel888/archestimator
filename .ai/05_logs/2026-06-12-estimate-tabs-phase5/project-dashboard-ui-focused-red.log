@@ -1,0 +1,200 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+(node:30419) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ tests/vitest/project-dashboard-ui.test.ts (17 tests | 2 failed) 12ms
+     × keeps the project-code header out of estimate detail routes 6ms
+     × uses one estimate center-column width contract for the totals header and estimate metadata strip 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps the project-code header out of estimate detail routes
+AssertionError: expected '"use client";\n\nimport Link from "ne…' to contain 'flex h-10 items-center border-b borde…'
+
+- Expected
++ Received
+
+- flex h-10 items-center border-b border-hairline pl-4 pr-2
++ "use client";
++
++ import Link from "next/link";
++ import { usePathname } from "next/navigation";
++ import { ChartBar, ChartPieSlice, ClipboardText } from "@phosphor-icons/react/dist/ssr";
++ import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
++
++ type ProjectMiniSidebarProps = {
++   projectId: string;
++ };
++
++ type ProjectSectionLink = {
++   href: string;
++   label: string;
++   icon: PhosphorIcon;
++   exact: boolean;
++ };
++
++ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
++   const pathname = usePathname();
++   const estimateSheetPathPrefix = `/workshop/projects/${projectId}/estimates/`;
++   const isEstimateSheetRoute = Boolean(pathname?.startsWith(estimateSheetPathPrefix));
++   const links: ProjectSectionLink[] = [
++     {
++       href: `/workshop/projects/${projectId}`,
++       label: "Dashboard",
++       icon: ChartBar,
++       exact: true,
++     },
++     {
++       href: `/workshop/projects/${projectId}/estimates`,
++       label: "Estimates",
++       icon: ClipboardText,
++       exact: false,
++     },
++     {
++       href: `/workshop/projects/${projectId}/charts`,
++       label: "Charts",
++       icon: ChartPieSlice,
++       exact: false,
++     },
++   ];
++
++   if (isEstimateSheetRoute) return null;
++
++   return (
++     <aside className="relative z-10 hidden w-[104px] shrink-0 border-r border-hairline bg-white lg:block" aria-label="Project navigation">
++       <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
++         {links.map((link) => {
++           const Icon = link.icon;
++           const active = link.exact ? pathname === link.href : pathname === link.href || Boolean(pathname?.startsWith(`${link.href}/`));
++
++           return (
++             <Link
++               key={link.href}
++               href={link.href}
++               aria-current={active ? "page" : undefined}
++               className={[
++                 "flex h-7 items-center gap-1 rounded-xs p-1 text-[10px] font-medium leading-none transition-colors",
++                 active ? "bg-surface-muted text-ink" : "text-tertiary hover:bg-surface-muted hover:text-ink",
++               ].join(" ")}
++             >
++               <Icon size={14} aria-hidden="true" />
++               <span className="truncate">{link.label}</span>
++             </Link>
++           );
++         })}
++       </nav>
++     </aside>
++   );
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:51:32
+     49|     const sidebarTitleClass = 'truncate text-[9px] font-medium upperca…
+     50|
+     51|     expect(projectMiniSidebar).toContain(sidebarHeaderClass);
+       |                                ^
+     52|     expect(projectMiniSidebar).toContain(sidebarTitleClass);
+     53|     expect(projectDashboardLayout).toContain('const projectCode = live…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > uses one estimate center-column width contract for the totals header and estimate metadata strip
+AssertionError: expected 'import { Suspense, type ReactNode } f…' to contain 'ProjectWorkspaceHeaderRow'
+
+- Expected
++ Received
+
+- ProjectWorkspaceHeaderRow
++ import { Suspense, type ReactNode } from "react";
++
++ import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
++ import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
++ import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
++ import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
++ import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
++ import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
++ import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
++ import {
++   getCurrentWorkspaceProject,
++   getProjectCollaborationSummary,
++   getProjectPublicationSummary,
++   listProjectEstimateSheets,
++ } from "@/lib/repositories/workspace-repository";
++
++ type ProjectLayoutProps = {
++   children: ReactNode;
++   params: Promise<{ projectId: string }>;
++ };
++
++ export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
++   const { projectId } = await params;
++   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
++   const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
++     ? await Promise.all([
++         getProjectCollaborationSummary(projectId),
++         getProjectPublicationSummary(projectId),
++         listProjectEstimateSheets(projectId),
++       ])
++     : [null, null, []];
++   const sampleProject = sampleProjects.find((item) => item.id === projectId);
++   const project = liveProject ?? sampleProject;
++   const title = project?.name ?? "Project";
++   const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
++   const currentCollaborator = collaborationSummary?.collaborators.find(
++     (collaborator) => collaborator.id === collaborationSummary.currentUserId,
++   );
++   const currentUserEmail = currentCollaborator?.email ?? null;
++
++   return (
++     <WorkshopPageShell
++       title={title}
++       eyebrow={projectClient}
++       breadcrumbs={[
++         { label: "Workshop", href: "/workshop" },
++         { label: "Projects", href: "/workshop/projects" },
++         { label: title, href: `/workshop/projects/${projectId}` },
++       ]}
++       alignChromeToProjectSidebar
++       contentClassName="pt-0 pb-0 pr-2 pl-0"
++       centerHeader={<ProjectEstimateMetadataStrip />}
++       projectId={projectId}
++       actions={
++         <>
++           <ProjectPublicationHeader
++             summary={publicationSummary}
++             currentUserEmail={currentUserEmail}
++             projectEstimateSheets={projectEstimateSheets}
++           />
++           <ProjectTeamspaceHeader summary={collaborationSummary} />
++         </>
++       }
++     >
++       <div className="flex h-full min-h-0 overflow-hidden bg-white">
++         <ProjectMiniSidebar projectId={projectId} />
++         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
++           <div className="min-h-0 flex-1 overflow-hidden">
++             <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
++           </div>
++         </div>
++       </div>
++     </WorkshopPageShell>
++   );
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:162:36
+    160|     expect(projectEstimateMetadataStrip).toContain("delete workshopCan…
+    161|     expect(workshopPageShell).toContain("data-workshop-page-shell-canv…
+    162|     expect(projectDashboardLayout).toContain("ProjectWorkspaceHeaderRo…
+       |                                    ^
+    163|     expect(projectDashboardLayout).toContain('{ label: "Projects", hre…
+    164|     expect(projectDashboardLayout).toContain('{ label: title, href: `/…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  23:43:40
+   Duration  817ms (transform 30ms, setup 64ms, import 19ms, tests 12ms, environment 541ms)
