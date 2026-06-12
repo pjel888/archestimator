@@ -157,6 +157,39 @@ describe("reusable project source actions", () => {
     expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId);
     expect(result.sources).toEqual([
       {
+        kind: "project",
+        projectId: projectAId,
+        name: "Accessible Project",
+        metadata: {
+          projectName: "Accessible Project",
+        },
+      },
+      {
+        kind: "project-estimate",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        metadata: {
+          projectName: "Accessible Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+        },
+      },
+      {
+        kind: "project-tab",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        tabId: tabAId,
+        name: "Lobby Main",
+        metadata: {
+          projectName: "Accessible Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+        },
+      },
+      {
         kind: "project-node",
         projectId: projectAId,
         estimateId: estimateAId,

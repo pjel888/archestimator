@@ -20,6 +20,7 @@ const templateActionMocks = vi.hoisted(() => ({
 const reusableSourceActionMocks = vi.hoisted(() => ({
   listReusableProjectSources: vi.fn(),
   getReusableEstimateOutline: vi.fn(),
+  searchReusableProjectSources: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
@@ -34,6 +35,7 @@ vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
 vi.mock("@/lib/reusable-sources/actions", () => ({
   getReusableEstimateOutline: reusableSourceActionMocks.getReusableEstimateOutline,
   listReusableProjectSources: reusableSourceActionMocks.listReusableProjectSources,
+  searchReusableProjectSources: reusableSourceActionMocks.searchReusableProjectSources,
 }));
 
 const sidebarSeedItems = estimateLibraryItems.slice(0, 8);
@@ -111,6 +113,7 @@ describe("component library UI", () => {
     window.localStorage.clear();
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
+    reusableSourceActionMocks.searchReusableProjectSources.mockReset();
   });
 
   afterEach(() => {
@@ -714,6 +717,7 @@ describe("templates tree", () => {
     templateActionMocks.deleteEstimateTemplate.mockReset();
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
+    reusableSourceActionMocks.searchReusableProjectSources.mockReset();
   });
 
   it("renders templates as a uniform node tree with costs and no structure counts", () => {
@@ -886,6 +890,26 @@ describe("templates tree", () => {
     expect(await screen.findByRole("treeitem", { name: "Hotel Refresh Project project source" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("treeitem", { name: "Hotel Refresh Project project source" }));
     expect(screen.getByRole("treeitem", { name: "Lobby Refresh Estimate estimate EST-003" })).toBeInTheDocument();
+  });
+
+  it("searches action-backed project sources and reveals unloaded outline matches", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+    });
+    reusableSourceActionMocks.searchReusableProjectSources.mockResolvedValue({ sources: projectSources });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Amenity Millwork project group" })).not.toBeInTheDocument();
+
+    const search = openLibrarySearch();
+    fireEvent.change(search, { target: { value: "Amenity" } });
+
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledWith({ query: "Amenity" }),
+    );
+    expect(await screen.findByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
   });
 
   it("lazy-loads an estimate outline when a project estimate expands", async () => {

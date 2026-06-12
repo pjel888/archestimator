@@ -1361,3 +1361,55 @@ label=diff-check-reusable-project-source-search-action exit_code=0 timed_out=Fal
   provider RLS, hosted latency, or production search behavior.
 - The inherited sidebar/test files remain oversized; no broad refactor was
   performed in this slice.
+
+## Phase 5 R4.4 project-source search UI
+
+### Summary
+
+Phase 5 now wires the sidebar Templates-tab search to the read-only
+`searchReusableProjectSources(query)` action for action-loaded project sources.
+The search is debounced, returned hits are merged into the visible project-source
+tree, and the existing expanded search view reveals unloaded tab/group/area
+matches without a route reload. Current-project narrowing remains honored for
+search hits; prop-supplied source lists and the Custom Templates-only filter stay
+client-local.
+
+### Changed files
+
+- `src/components/workshop/component-library/index.tsx`
+- `src/lib/reusable-sources/actions.ts`
+- `tests/vitest/component-library-ui.test.tsx`
+- `tests/vitest/reusable-sources-actions.test.ts`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-search-ui-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-search-ui-red exit_code=1 timed_out=False result=expected_missing_action_call_failure
+label=phase5-project-source-search-ui-focused exit_code=0 timed_out=False result=1_file_1_test_passed
+label=phase5-reusable-project-source-search-ancestor-focused exit_code=0 timed_out=False result=1_file_1_test_passed
+label=phase5-project-source-search-ui exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-search-ui.log result=2_files_63_tests_passed
+label=type-check-project-source-search-ui exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-project-source-search-ui.log
+label=diff-check-project-source-search-ui exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-source-search-ui.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence further advances R4.4 with debounced sidebar search and
+  reveal-in-tree behavior for action-loaded project-derived sources.
+- R4.4 remains open for route-level project-source parity and row-level provider
+  detail beyond loaded outline/search metadata.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- This is local UI/mock proof; it does not prove live provider latency, hosted
+  RLS, route-level browse behavior, or production search behavior.
+- The inherited sidebar/test files remain oversized; no broad refactor was
+  performed in this slice.

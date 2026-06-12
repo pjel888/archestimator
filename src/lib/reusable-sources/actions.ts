@@ -179,29 +179,32 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
 
   for (const [projectIndex, item] of accessibleProjects.entries()) {
     const project = item.project;
+    const projectSource: ProjectReusableSource = {
+      kind: "project",
+      projectId: project.id,
+      name: project.name,
+      metadata: { projectName: project.name },
+    };
     if (textMatchesReusableSourceQuery(query, [project.name])) {
-      addReusableSearchSource(sourcesByKey, {
-        kind: "project",
-        projectId: project.id,
-        name: project.name,
-        metadata: { projectName: project.name },
-      });
+      addReusableSearchSource(sourcesByKey, projectSource);
     }
 
     for (const estimate of estimatesByProject[projectIndex] ?? []) {
-      if (textMatchesReusableSourceQuery(query, [estimate.name, estimate.sheetCode])) {
-        addReusableSearchSource(sourcesByKey, {
-          kind: "project-estimate",
-          projectId: project.id,
-          estimateId: estimate.id,
-          name: estimate.name,
+      const estimateSource: ProjectEstimateReusableSource = {
+        kind: "project-estimate",
+        projectId: project.id,
+        estimateId: estimate.id,
+        name: estimate.name,
+        sheetCode: estimate.sheetCode,
+        metadata: {
+          projectName: project.name,
+          estimateName: estimate.name,
           sheetCode: estimate.sheetCode,
-          metadata: {
-            projectName: project.name,
-            estimateName: estimate.name,
-            sheetCode: estimate.sheetCode,
-          },
-        });
+        },
+      };
+      if (textMatchesReusableSourceQuery(query, [estimate.name, estimate.sheetCode])) {
+        addReusableSearchSource(sourcesByKey, projectSource);
+        addReusableSearchSource(sourcesByKey, estimateSource);
       }
 
       const tabs = await getEstimateTabs(project.id, estimate.id);
@@ -209,6 +212,19 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         tabs.map((tab) => getEstimateTabTree(project.id, estimate.id, tab.id)),
       );
       tabs.forEach((tab, tabIndex) => {
+        const tabSource: ProjectTabReusableSource = {
+          kind: "project-tab",
+          projectId: project.id,
+          estimateId: estimate.id,
+          tabId: tab.id,
+          name: tab.name,
+          metadata: {
+            projectName: project.name,
+            estimateName: estimate.name,
+            sheetCode: estimate.sheetCode,
+            tabName: tab.name,
+          },
+        };
         const context: ProjectSourceSearchContext = {
           projectId: project.id,
           projectName: project.name,
@@ -219,25 +235,18 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
           tabName: tab.name,
         };
         if (textMatchesReusableSourceQuery(query, [tab.name])) {
-          addReusableSearchSource(sourcesByKey, {
-            kind: "project-tab",
-            projectId: project.id,
-            estimateId: estimate.id,
-            tabId: tab.id,
-            name: tab.name,
-            metadata: {
-              projectName: project.name,
-              estimateName: estimate.name,
-              sheetCode: estimate.sheetCode,
-              tabName: tab.name,
-            },
-          });
+          addReusableSearchSource(sourcesByKey, projectSource);
+          addReusableSearchSource(sourcesByKey, estimateSource);
+          addReusableSearchSource(sourcesByKey, tabSource);
         }
         for (const source of collectProjectNodeSearchSources({
           context,
           nodes: tabTrees[tabIndex]?.tree ?? [],
           query,
         })) {
+          addReusableSearchSource(sourcesByKey, projectSource);
+          addReusableSearchSource(sourcesByKey, estimateSource);
+          addReusableSearchSource(sourcesByKey, tabSource);
           addReusableSearchSource(sourcesByKey, source);
         }
       });
