@@ -1612,3 +1612,40 @@ label=lint-full-project-source-updated-at-metadata exit_code=1 timed_out=False l
   logic there without a focused split.
 - `tests/vitest/reusable-sources-actions.test.ts` remains in the 200-250 pure LOC
   warning band; split future reusable-source action cases into focused files.
+
+## Phase 5 local lint blockers
+
+### Summary
+
+Cleared the six blocking repo-wide lint errors exposed after the R4.4 updatedAt
+metadata slice. Command menu selected-index reset now derives/clamps during
+render and resets on query input; templates-panel project-source effect state
+updates are scheduled outside the synchronous effect body; Tabs stories now use
+real `TabsProps` args instead of `any` casts.
+
+### Changed files
+
+- `src/components/ui/overlays/command-dialog.tsx`
+- `src/components/workshop/component-library/index.tsx`
+- `src/stories/navigation/tabs.stories.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-lint-blockers-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=eslint-lint-blockers-targeted exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-lint-blockers-targeted.log
+label=lint-lint-blockers exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-lint-lint-blockers.log result=0_errors_548_warnings
+label=type-check-lint-blockers exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-lint-blockers.log
+label=vitest-lint-blockers-component-library-ui exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-lint-blockers-component-library-ui.log result=1_file_60_tests_passed
+label=diff-check-lint-blockers exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-lint-blockers.log
+```
+
+### Remaining Phase 5 boundary
+
+- Full lint now exits 0 but still reports warnings.
+- `src/components/workshop/component-library/index.tsx` remains inherited oversized;
+  this slice only removed lint blockers and did not perform a broad split.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.

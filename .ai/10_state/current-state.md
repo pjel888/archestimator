@@ -1,4 +1,18 @@
 # Current State
+**Estimate Tabs Phase 5 Local Lint Blockers Cleared (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The repo-wide lint gate no longer has blocking errors in this worktree. The
+cleanup removed React Compiler `set-state-in-effect` errors in the command menu
+and templates-panel project-source effects, and removed stale Storybook `any`
+casts from the Tabs stories. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-lint-blockers-implementation-run.md`:
+changed-file ESLint passed, `bun run lint` exited 0 with existing warnings only
+(548 warnings / 0 errors), `bun run type-check` passed,
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 60 tests), and `git diff --check` passed. This is local lint
+and UI-regression proof only; linked Supabase/provider/RLS, hosted, production,
+manual, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Project Source UpdatedAt Metadata Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 Reusable project-source actions now carry `estimates.updated_at` through the
 lightweight estimate-source list and already-loaded per-tab tree results into

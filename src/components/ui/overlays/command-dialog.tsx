@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, type KeyboardEvent, type ReactNode, useMemo, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 import { ControlInput, CONTROL_INPUT_SURFACE_CLASS } from "@/components/ui/control-input";
@@ -86,11 +86,15 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
     [filteredGroups],
   );
   const [selectedIndex, setSelectedIndex] = useState(selectableItems.length > 0 ? 0 : -1);
+  const normalizedSelectedIndex = selectableItems.length === 0
+    ? -1
+    : Math.min(Math.max(selectedIndex, 0), selectableItems.length - 1);
   const empty = !loading && filteredGroups.length === 0;
 
-  useEffect(() => {
-    setSelectedIndex(selectableItems.length > 0 ? 0 : -1);
-  }, [selectableItems]);
+  function handleQueryChange(event: ChangeEvent<HTMLInputElement>) {
+    setSelectedIndex(0);
+    onQueryChange?.(event.target.value);
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -102,7 +106,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setSelectedIndex((currentIndex) => (currentIndex + 1) % selectableItems.length);
+      setSelectedIndex((currentIndex) => (currentIndex < 0 ? 0 : (currentIndex + 1) % selectableItems.length));
       return;
     }
 
@@ -112,9 +116,9 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
       return;
     }
 
-    if (event.key === "Enter" && selectedIndex >= 0) {
+    if (event.key === "Enter" && normalizedSelectedIndex >= 0) {
       event.preventDefault();
-      selectableItems[selectedIndex]?.item.onSelect?.();
+      selectableItems[normalizedSelectedIndex]?.item.onSelect?.();
     }
   }
 
@@ -125,7 +129,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
         <ControlInput
           className={cn(CONTROL_INPUT_SURFACE_CLASS, "h-7 border-0 bg-transparent px-0 focus:ring-0")}
           value={query}
-          onChange={(event) => onQueryChange?.(event.target.value)}
+          onChange={handleQueryChange}
           readOnly={!onQueryChange}
           placeholder="Search commands"
           aria-label="Search commands"
@@ -151,7 +155,7 @@ export function CommandMenu({ query = "", onQueryChange, groups, loading, emptyL
                   const commandIndex = item.disabled
                     ? -1
                     : selectableItems.findIndex((selectableItem) => selectableItem.groupId === group.id && selectableItem.item.id === item.id);
-                  const selected = commandIndex === selectedIndex;
+                  const selected = commandIndex === normalizedSelectedIndex;
 
                   return (
                     <button

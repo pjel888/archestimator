@@ -109,5 +109,18 @@ export const Scrollable: Story = {
   },
 };
 
-export const Default: Story = { args: { items: [{ id: "1", label: "Tab One" }, { id: "2", label: "Tab Two" }], activeTab: "1" } as any };
-export const KeyboardFocus: Story = { args: { items: [{ id: "a", label: "First Tab" }, { id: "b", label: "Second Tab" }, { id: "c", label: "Third Tab" }], activeTab: "a" } as any };
+export const Default: Story = {
+  args: {
+    tabs: [{ id: "1", label: "Tab One" }, { id: "2", label: "Tab Two" }],
+    activeId: "1",
+    onChange: () => {},
+  },
+};
+
+export const KeyboardFocus: Story = {
+  args: {
+    tabs: [{ id: "a", label: "First Tab" }, { id: "b", label: "Second Tab" }, { id: "c", label: "Third Tab" }],
+    activeId: "a",
+    onChange: () => {},
+  },
+};

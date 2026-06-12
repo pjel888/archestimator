@@ -885,30 +885,50 @@ export function EstimateRightSidebar({
   }, [viewModeMenuOpen]);
 
   useEffect(() => {
-    setLoadedProjectSources(projectSources);
-    setProjectOutlineErrors({});
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      setLoadedProjectSources(projectSources);
+      setProjectOutlineErrors({});
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [projectSources]);
 
   useEffect(() => {
     if (activeTab !== "templates" || !canLoadProjectSourcesFromActions || loadedProjectSources.length > 0) return;
     let cancelled = false;
-    void loadProjectSources(() => cancelled);
+    const timer = window.setTimeout(() => {
+      if (!cancelled) void loadProjectSources(() => cancelled);
+    }, 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources, loadedProjectSources.length]);
 
   useEffect(() => {
-    if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
+    let cancelled = false;
+    const resetTimer = window.setTimeout(() => {
+      if (cancelled) return;
       setProjectSourceSearchResults([]);
       setProjectSourceSearchError("");
       setProjectSourceSearchLoading(false);
-      return;
+    }, 0);
+    if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
+      return () => {
+        cancelled = true;
+        window.clearTimeout(resetTimer);
+      };
     }
-    let cancelled = false;
-    setProjectSourceSearchResults([]);
-    setProjectSourceSearchLoading(true);
-    setProjectSourceSearchError("");
+    const loadingTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      setProjectSourceSearchResults([]);
+      setProjectSourceSearchLoading(true);
+      setProjectSourceSearchError("");
+    }, 0);
     const timer = window.setTimeout(() => {
       searchReusableProjectSources({ query: projectSourceSearchQuery })
         .then((result) => {
@@ -923,6 +943,8 @@ export function EstimateRightSidebar({
     }, 250);
     return () => {
       cancelled = true;
+      window.clearTimeout(resetTimer);
+      window.clearTimeout(loadingTimer);
       window.clearTimeout(timer);
     };
   }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery]);
