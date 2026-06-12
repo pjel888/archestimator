@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 Build Gate Restored After Server Action Type Export Fix (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+A fresh `bun run build` after the lint-blocker cleanup exposed a Turbopack server
+action boundary error: the `"use server"` reusable-source action module exported
+a type-only `ReusableEstimateSource`, which Next/Turbopack treated as an action
+export. The type re-export was removed from `src/lib/reusable-sources/actions.ts`;
+all callers import reusable-source types directly from
+`src/lib/reusable-sources/types.ts`. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-build-server-action-type-export-fix-run.md`:
+the first build failure is captured in `bun-run-build-after-lint-blockers.log`,
+the fixed `bun run build` passed in
+`bun-run-build-after-server-action-type-export-fix.log`, `bun run type-check`
+passed, changed-file ESLint passed, and `git diff --check` passed after
+restoring generated `next-env.d.ts` route-type churn. This is local build proof
+only; linked Supabase/provider/RLS, hosted, production, manual, and browser
+visual proof remain open.
+
 **Estimate Tabs Phase 5 Local Lint Blockers Cleared (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The repo-wide lint gate no longer has blocking errors in this worktree. The
 cleanup removed React Compiler `set-state-in-effect` errors in the command menu

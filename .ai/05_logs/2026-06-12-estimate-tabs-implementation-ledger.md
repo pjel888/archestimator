@@ -1649,3 +1649,37 @@ label=diff-check-lint-blockers exit_code=0 timed_out=False log=.ai/05_logs/2026-
   this slice only removed lint blockers and did not perform a broad split.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+## Phase 5 build server-action type export fix
+
+### Summary
+
+A fresh `bun run build` after clearing lint blockers failed because
+`src/lib/reusable-sources/actions.ts` is a `"use server"` module that re-exported
+a type-only `ReusableEstimateSource`. Turbopack generated a server-action runtime
+export for that type and failed the production build. Removed the type re-export;
+all consumers already import reusable-source types from `src/lib/reusable-sources/types.ts`.
+
+### Changed files
+
+- `src/lib/reusable-sources/actions.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-build-server-action-type-export-fix-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=build-after-lint-blockers exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-build-after-lint-blockers.log result=failed_server_action_type_export
+label=build-after-server-action-type-export-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-build-after-server-action-type-export-fix.log
+label=type-check-server-action-type-export-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-server-action-type-export-fix.log
+label=eslint-server-action-type-export-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-server-action-type-export-fix.log
+label=diff-check-server-action-type-export-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-server-action-type-export-fix.log
+```
+
+### Remaining Phase 5 boundary
+
+- Local build now passes after the server-action type-export fix.
+- `next-env.d.ts` churn from the build was restored to the tracked dev route-types target.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
