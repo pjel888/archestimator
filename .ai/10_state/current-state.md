@@ -1,4 +1,19 @@
 # Current State
+**Estimate Tabs Phase 5 R4.5 Project Node Save-As-Template Seam Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has an explicit local save-as-template seam for
+project-derived group/area sources. Project node context menus expose `Save as
+template`, then hand the source project id, estimate id, and node id into the
+existing `NewTemplateModal` / `createEstimateTemplateFromEstimateNode` path with
+`Project Sources` as the default category. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-5-project-node-save-template-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 56 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local handoff proof only: whole-tab save-as-template wrapping,
+live provider execution of the action, insert RPC/action, RLS harness, linked
+Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual
+proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R6.2 Keyboard/Context/Bulk UI Parity Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 Templates tab now has local UI parity proof for non-drag insertion
 paths. Space-key tree selection plus the existing bulk add action inserts custom
