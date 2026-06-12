@@ -44,6 +44,7 @@ export type PublicationSnapshotTreeNode = {
   id: string;
   name: string;
   kind: "group" | "area";
+  tabId?: string | null;
   children: PublicationSnapshotTreeNode[];
 };
 
@@ -60,6 +61,18 @@ export type PublicationSnapshotRow = {
   imageUrl?: string | null;
   // Tree node link so the receiver can render the actual workshop hierarchy
   nodeId?: string | null;
+  tabId?: string | null;
+};
+
+export type PublicationSnapshotEstimateTab = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isDefault: boolean;
+  rowCount: number;
+  totalCost: number;
+  rows: PublicationSnapshotRow[];
+  treeNodes?: PublicationSnapshotTreeNode[];
 };
 
 export type PublicationSnapshotEstimate = {
@@ -73,10 +86,11 @@ export type PublicationSnapshotEstimate = {
   // Actual estimate node tree (groups + areas) from the workshop.
   // Added in snapshot schema v1.1 (additive; absent in older snapshots).
   treeNodes?: PublicationSnapshotTreeNode[];
+  tabs?: PublicationSnapshotEstimateTab[];
 };
 
 export type ProjectPublicationSnapshot = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 1.2;
   generatedAt: string;
   project: {
     id: string;

@@ -2121,3 +2121,40 @@ label=vitest-supabase-history-rpc-types-post-dburl-probe-red exit_code=1 timed_o
   because it would weaken the generated/provider-proof boundary.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+## Phase 7 R10.4 publication snapshot tabs
+
+### Summary
+
+Implemented local R10.4 publication snapshot v1.2 support. Publication actions now read active estimate tabs with nodes/rows, snapshot DTOs carry nested tab rows/tree nodes/totals while retaining estimate-level compatibility fields, and the public share page renders a nested estimate-tab strip only when a snapshot contains multiple tabs. Legacy snapshots without `tabs` continue through the old estimate-level rendering path.
+
+### Changed files
+
+- `src/lib/publication/types.ts`
+- `src/lib/publication/snapshot.ts`
+- `src/lib/publication/actions.ts`
+- `src/components/share/SharePageTabs.tsx`
+- `tests/vitest/project-publication-snapshot.test.ts`
+- `tests/vitest/project-publication-page.test.tsx`
+- `tests/vitest/project-publication-actions.test.ts`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-13-estimate-tabs-r10-4-publication-tabs-snapshot-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=vitest-publication-r10-4-focused-red exit_code=1 result=legacy row shape drift and duplicate UI label assertions found before fix
+label=vitest-publication-r10-4-focused-green exit_code=0 command="bun x vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-actions.test.ts --maxWorkers=1" result="3 files / 48 tests passed"
+label=type-check-r10-4 exit_code=0 command="bun run type-check"
+label=eslint-r10-4-focused-final exit_code=0 command="bunx eslint src/lib/publication/types.ts src/lib/publication/snapshot.ts src/lib/publication/actions.ts src/components/share/SharePageTabs.tsx tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-actions.test.ts" result="0 errors / 0 warnings"
+label=design-system-r10-4 exit_code=0 command="bun run lint:design-system"
+label=design-r10-4 exit_code=0 command="bun run lint:design"
+label=build-r10-4 exit_code=0 command="bun run build" result="Next.js 16.2.6 build passed; next-env.d.ts churn restored"
+label=diff-check-r10-4 exit_code=0 command="git diff --check"
+```
+
+### Remaining boundary
+
+- R10.4 is implemented locally only. Hosted shared-link proof with a real tabbed publication, linked Supabase apply/typegen, production deploy, and browser/manual proof remain open.
+- Merge-to-main remains blocked by other planned/open matrix rows and external proof gates.

@@ -134,6 +134,82 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(JSON.stringify(sanitized)).not.toContain("contingencyPercentage");
   });
 
+  it("builds v1.2 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
+    const snapshot = buildProjectPublicationSnapshot({
+      generatedAt: "2026-06-13T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "Quezon City",
+        currencyCode: "PHP",
+      },
+      estimates: [
+        {
+          id: "estimate-1",
+          name: "Main Estimate",
+          sheetCode: "ES-001",
+          updatedAt: "2026-06-13T00:00:00.000Z",
+          tabs: [
+            { id: "tab-base", name: "Base", sortOrder: 0, isDefault: true },
+            { id: "tab-alt", name: "Alternates", sortOrder: 1, isDefault: false },
+          ],
+          nodes: [
+            { id: "node-base", name: "Base Area", kind: "area", parentId: null, sortOrder: 0, estimateTabId: "tab-base" },
+            { id: "node-alt", name: "Alternate Area", kind: "area", parentId: null, sortOrder: 0, estimateTabId: "tab-alt" },
+          ],
+          rows: [
+            {
+              id: "row-base",
+              nodeId: "node-base",
+              description: "Base concrete",
+              designation: "BASE-01",
+              discipline: "Structural",
+              material: "Concrete",
+              quantity: 2,
+              unit: "cu.m",
+              unitCost: 1000,
+              miscCost: 0,
+              contingencyPercentage: 0,
+            },
+            {
+              id: "row-alt",
+              nodeId: "node-alt",
+              description: "Alternate millwork",
+              designation: "ALT-01",
+              discipline: "Joinery",
+              material: "Oak",
+              quantity: 1,
+              unit: "lot",
+              unitCost: 5000,
+              miscCost: 250,
+              contingencyPercentage: 10,
+            },
+          ],
+        },
+      ],
+    });
+
+    const estimate = snapshot.estimates[0];
+
+    expect(snapshot.schemaVersion).toBe(1.2);
+    expect(estimate?.rowCount).toBe(2);
+    expect(estimate?.rows.map((row) => row.id)).toEqual(["row-base", "row-alt"]);
+    expect(estimate?.rows.map((row) => row.tabId)).toEqual(["tab-base", "tab-alt"]);
+    expect(estimate?.treeNodes?.map((node) => [node.id, node.tabId])).toEqual([
+      ["node-base", "tab-base"],
+      ["node-alt", "tab-alt"],
+    ]);
+    expect(estimate?.tabs?.map((tab) => [tab.id, tab.rowCount, tab.totalCost])).toEqual([
+      ["tab-base", 1, 2000],
+      ["tab-alt", 1, 5750],
+    ]);
+    expect(estimate?.tabs?.[0]?.rows.map((row) => row.id)).toEqual(["row-base"]);
+    expect(estimate?.tabs?.[1]?.treeNodes?.map((node) => node.id)).toEqual(["node-alt"]);
+    expect(snapshot.totalCost).toBe(7750);
+  });
+
   it("keeps only safe public share image URLs in snapshots", () => {
     const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
