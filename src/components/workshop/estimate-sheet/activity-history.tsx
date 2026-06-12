@@ -58,6 +58,12 @@ const ACTIVITY_FILTER_EVENT_TYPES = [
   { value: "node_deleted_with_children", label: "Node deleted" },
   { value: "sheet_code_updated", label: "Estimate code" },
   { value: "sheet_metadata_updated", label: "Estimate metadata" },
+  { value: "tab_created", label: "Tab created" },
+  { value: "tab_renamed", label: "Tab renamed" },
+  { value: "tab_reordered", label: "Tab reordered" },
+  { value: "tab_duplicated", label: "Tab duplicated" },
+  { value: "tab_archived", label: "Tab archived" },
+  { value: "tab_deleted", label: "Tab deleted" },
 ] as const;
 
 const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Tabs" }];
@@ -194,6 +200,12 @@ function getLegacyEventAccessibilityLabel(eventType: string) {
     node_created: "Node created",
     node_renamed: "Node renamed",
     node_deleted_with_children: "Area deleted",
+    tab_created: "Tab created",
+    tab_renamed: "Tab renamed",
+    tab_reordered: "Tabs reordered",
+    tab_duplicated: "Tab duplicated",
+    tab_archived: "Tab archived",
+    tab_deleted: "Tab deleted",
   };
   return labels[eventType] ?? "Activity recorded";
 }

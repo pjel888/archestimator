@@ -44,7 +44,10 @@ function nodeName(event: EstimateActivityInput) {
 function targetForEstimate(event: EstimateActivityInput): ActivityTarget {
   if (event.targetRowId) return { id: event.targetRowId, kind: "row", label: rowMaterial(event), secondaryLabel: readString(event.rowContext?.nodePath, event.rowContext?.areaName, "Estimate row") };
   if (event.estimateNodeId) return { id: event.estimateNodeId, kind: "node", label: nodeName(event) };
-  if (event.eventType.startsWith("tab_")) return { id: typeof event.payload?.estimateTabId === "string" ? event.payload.estimateTabId : undefined, kind: "tab", label: readString(event.payload?.name, event.payload?.tabName, "Estimate tab") };
+  if (event.eventType.startsWith("tab_")) {
+    const tabId = event.estimateTabId ?? (typeof event.payload?.estimateTabId === "string" ? event.payload.estimateTabId : undefined);
+    return { id: tabId ?? undefined, kind: "tab", label: readString(event.payload?.name, event.payload?.tabName, "Estimate tab") };
+  }
   return { kind: "sheet", label: readString(event.payload?.estimateName, event.payload?.sheetCode, "Estimate") };
 }
 

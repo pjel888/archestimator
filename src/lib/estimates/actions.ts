@@ -159,6 +159,7 @@ export type EstimateSheetHistoryEvent = {
   createdAt: string;
   actorUserId: string | null;
   actorLabel: string;
+  estimateTabId: string | null;
   targetRowId: string | null;
   estimateNodeId: string | null;
   rowContext: Record<string, unknown>;
@@ -398,6 +399,7 @@ function normalizeHistoryEvent(row: Tables<"estimate_sheet_events">, actorLabels
     createdAt: row.created_at,
     actorUserId,
     actorLabel: actorUserId ? actorLabels.get(actorUserId) ?? getFallbackActorLabel(actorUserId) : getFallbackActorLabel(null),
+    estimateTabId: row.estimate_tab_id ?? null,
     targetRowId: row.target_row_id,
     estimateNodeId: row.estimate_node_id,
     rowContext: readJsonRecord(row.row_context),
@@ -1178,7 +1180,7 @@ export async function fetchEstimateSheetVersionControl({
   const normalizedSheetCursor = shouldFetchSheetEvents ? normalizeHistoryCursor(sheetCursor, "Estimate activity") : null;
   const normalizedRowCursor = targetRowId ? normalizeHistoryCursor(rowCursor, "Row history") : null;
   const normalizedNodeCursor = targetNodeId ? normalizeHistoryCursor(nodeCursor, "Node activity") : null;
-  const eventSelect = "id, event_type, event_source, created_at, actor_user_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id";
+  const eventSelect = "id, event_type, event_source, created_at, actor_user_id, estimate_tab_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id";
   const emptyEventsResult = Promise.resolve({ data: [], error: null });
   const sheetEventsPromise = shouldFetchSheetEvents
     ? (() => {

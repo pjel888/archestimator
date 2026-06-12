@@ -496,6 +496,8 @@ describe("estimate sheet version control server actions", () => {
     expect(actionsSource).toContain("scope?: EstimateSheetHistoryReadScope;");
     expect(actionsSource).toContain("export type EstimateSheetVersionControlData = {");
     expect(actionsSource).toContain("events: EstimateSheetHistoryEvent[];");
+    expect(actionsSource).toContain("estimateTabId: string | null;");
+    expect(actionsSource).toContain("actor_user_id, estimate_tab_id, target_row_id");
     expect(actionsSource).toContain("rowEvents: EstimateSheetHistoryEvent[];");
     expect(actionsSource).toContain("nodeEvents: EstimateSheetHistoryEvent[];");
     expect(actionsSource).toContain("nextCursor: EstimateSheetHistoryCursor | null;");
@@ -518,6 +520,7 @@ describe("estimate sheet version control server actions", () => {
         event_source: "server_action",
         created_at: "2026-05-24T03:00:00.000Z",
         actor_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        estimate_tab_id: "tab-main",
         target_row_id: "row-1",
         estimate_node_id: "node-1",
         row_context: {},
@@ -534,6 +537,7 @@ describe("estimate sheet version control server actions", () => {
         event_source: "server_action",
         created_at: "2026-05-24T02:00:00.000Z",
         actor_user_id: null,
+        estimate_tab_id: "tab-main",
         target_row_id: "row-2",
         estimate_node_id: "node-1",
         row_context: {},
@@ -572,6 +576,7 @@ describe("estimate sheet version control server actions", () => {
       "created_at.lt.2026-05-24T04:00:00.000Z,and(created_at.eq.2026-05-24T04:00:00.000Z,id.lt.aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa)",
     );
     expect(result.events).toHaveLength(1);
+    expect(result.events[0]?.estimateTabId).toBe("tab-main");
     expect(result.nextCursor).toEqual({
       createdAt: "2026-05-24T03:00:00.000Z",
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
