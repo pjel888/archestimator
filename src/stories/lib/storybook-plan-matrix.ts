@@ -1,5 +1,5 @@
-import inventorySource from "../../../.ai/03_plans/2026-06-06-ui-component-optimization-componentization/15_COMPONENT_INVENTORY_MATRIX.md?raw";
-import storyCoverageSource from "../../../.ai/03_plans/2026-06-06-ui-component-optimization-componentization/17_STORYBOOK_STORY_COVERAGE_MATRIX.md?raw";
+import inventorySource from "../../../.ai/09_archive/2026-06-06-ui-component-optimization-componentization/15_COMPONENT_INVENTORY_MATRIX.md?raw";
+import storyCoverageSource from "../../../.ai/09_archive/2026-06-06-ui-component-optimization-componentization/17_STORYBOOK_STORY_COVERAGE_MATRIX.md?raw";
 
 export type InventoryRow = {
   id: string;

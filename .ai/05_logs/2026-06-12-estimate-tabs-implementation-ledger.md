@@ -1766,3 +1766,40 @@ label=validate-after-route-error-boundary-import-fix exit_code=1 timed_out=False
   code-review-graph hook command text.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+## Phase 5 Storybook plan matrix archive import repair
+
+### Summary
+
+Repointed `src/stories/lib/storybook-plan-matrix.ts` raw Markdown imports from
+the stale `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/`
+path to the archived canonical plan pack at
+`.ai/09_archive/2026-06-06-ui-component-optimization-componentization/`. No
+runtime app code changed.
+
+### Changed files
+
+- `src/stories/lib/storybook-plan-matrix.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-storybook-plan-matrix-archive-import-repair-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=vitest-storybook-plan-matrix-archive-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-storybook-plan-matrix-archive-import-fix.log result=1_file_2_tests_passed
+label=eslint-storybook-plan-matrix-archive-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-storybook-plan-matrix-archive-import-fix.log
+label=no-excuse-storybook-plan-matrix-archive-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/no-excuse-storybook-plan-matrix-archive-import-fix.log result=no_violations_in_2_files
+label=loc-storybook-plan-matrix-archive-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/loc-storybook-plan-matrix-archive-import-fix.log result=storybook_plan_matrix_73_loc_test_24_loc
+label=validate-after-storybook-plan-matrix-archive-import-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-validate-after-storybook-plan-matrix-archive-import-fix.log result=no_failed_suites_21_failed_tests
+```
+
+### Remaining Phase 5 boundary
+
+- Storybook matrix import-suite blockers are cleared.
+- Full `bun run validate` still fails in unrelated assertion-level `test:dom`
+  contracts: generated Supabase history RPC type expectations, estimate-tree
+  bulk-selection, landing/public font/cache contracts, project dashboard/
+  collaboration/publication contracts, and code-review-graph hook command text.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
