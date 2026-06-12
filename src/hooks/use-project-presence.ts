@@ -15,6 +15,7 @@ type ProjectPresencePayload = {
   avatarUrl: string | null;
   activeRoute: string | null;
   activeEstimateId: string | null;
+  activeTabId: string | null;
   focusedCell: string | null;
   onlineAt: string;
 };
@@ -23,6 +24,7 @@ type UseProjectPresenceInput = {
   projectId: string | null | undefined;
   currentUser: Pick<ProjectCollaboratorSummary, "id" | "displayName" | "avatarUrl"> | null | undefined;
   activeEstimateId?: string | null;
+  activeTabId?: string | null;
   focusedCell?: string | null;
   enabled?: boolean;
 };
@@ -31,6 +33,7 @@ export function useProjectPresence({
   projectId,
   currentUser,
   activeEstimateId = null,
+  activeTabId = null,
   focusedCell = null,
   enabled = true,
 }: UseProjectPresenceInput) {
@@ -78,6 +81,7 @@ export function useProjectPresence({
           avatarUrl: currentUser.avatarUrl,
           activeRoute: typeof window === "undefined" ? null : window.location.pathname,
           activeEstimateId,
+          activeTabId,
           focusedCell,
           onlineAt: new Date().toISOString(),
         } satisfies ProjectPresencePayload);
@@ -87,7 +91,7 @@ export function useProjectPresence({
       cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [activeEstimateId, currentUser, enabled, focusedCell, projectId]);
+  }, [activeEstimateId, activeTabId, currentUser, enabled, focusedCell, projectId]);
 
   return useMemo(() => onlineUserIds, [onlineUserIds]);
 }
