@@ -150,10 +150,7 @@ describe("workshop sidebar baseline", () => {
     expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Send beta feedback" })).toHaveAttribute(
-      "href",
-      "/workshop/feedback",
-    );
+    expect(screen.getByRole("button", { name: "Send beta feedback" })).toHaveAttribute("aria-haspopup", "dialog");
   });
 
   test("keeps project-aligned chrome padding symmetrical", async () => {
@@ -186,13 +183,13 @@ describe("workshop sidebar baseline", () => {
 
     const greeting = screen.getByRole("region", { name: "Workshop greeting" });
     expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
-    const periodLabel = within(greeting).getByText(/^(Morning|Afternoon|Night)$/);
-    expect(periodLabel).toBeInTheDocument();
-    const periodRow = periodLabel.closest("div");
-    expect(periodRow).toBeTruthy();
-    expect(periodRow).not.toHaveClass("border");
-    expect(periodRow).not.toHaveClass("bg-surfaceMuted/50");
-    expect(periodRow).not.toHaveAttribute("aria-label");
+    const periodIcon = within(greeting).getByRole("img", { name: /^(Morning|Afternoon|Night)$/ });
+    expect(periodIcon).toBeInTheDocument();
+    const iconShell = periodIcon.closest("div");
+    expect(iconShell).toBeTruthy();
+    expect(iconShell).not.toHaveClass("border");
+    expect(iconShell).not.toHaveClass("bg-surfaceMuted/50");
+    expect(iconShell).not.toHaveAttribute("aria-label");
     expect(within(greeting).getByText("Philip Lewis")).toBeInTheDocument();
     expect(greeting.querySelector("svg")).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
