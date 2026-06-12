@@ -19,7 +19,7 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
-import { getReusableEstimateOutline, listReusableProjectSources } from "@/lib/reusable-sources/actions";
+import { getReusableEstimateOutline, listReusableProjectSources, searchReusableProjectSources } from "@/lib/reusable-sources/actions";
 import type {
   ProjectEstimateReusableSource,
   ProjectNodeReusableSource,
@@ -566,6 +566,16 @@ function mergeReusableProjectSources(
   return Array.from(sourcesByKey.values());
 }
 
+function mergeReusableSourcesByKey(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ProjectReusableEstimateSource[],
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) sourcesByKey.set(reusableProjectSourceKey(source), source);
+  for (const source of incomingSources) sourcesByKey.set(reusableProjectSourceKey(source), source);
+  return Array.from(sourcesByKey.values());
+}
+
 function findProjectEstimateSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectEstimateReusableSource | null {
   if (!nodeId.startsWith(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX)) return null;
   const estimateId = nodeId.slice(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX.length);
@@ -664,6 +674,9 @@ export function EstimateRightSidebar({
   const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
   const [projectSourcesError, setProjectSourcesError] = useState("");
+  const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
+  const [projectSourceSearchLoading, setProjectSourceSearchLoading] = useState(false);
+  const [projectSourceSearchError, setProjectSourceSearchError] = useState("");
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
   const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
@@ -762,8 +775,12 @@ export function EstimateRightSidebar({
   const refreshProjectSources = useCallback(() => {
     setPreviewProjectSourceKey(null);
     setBulkSelectedNodeIds(new Set());
+    setProjectSourceSearchResults([]);
     void loadProjectSources();
   }, [loadProjectSources]);
+  const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
+    ? searchQuery.trim()
+    : "";
 
   useEffect(() => {
     // Stored values must be read synchronously: the prefs-persist effect below
@@ -882,6 +899,35 @@ export function EstimateRightSidebar({
   }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources, loadedProjectSources.length]);
 
   useEffect(() => {
+    if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
+      setProjectSourceSearchResults([]);
+      setProjectSourceSearchError("");
+      setProjectSourceSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProjectSourceSearchResults([]);
+    setProjectSourceSearchLoading(true);
+    setProjectSourceSearchError("");
+    const timer = window.setTimeout(() => {
+      searchReusableProjectSources({ query: projectSourceSearchQuery })
+        .then((result) => {
+          if (!cancelled) setProjectSourceSearchResults(result.sources);
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) setProjectSourceSearchError(error instanceof Error ? error.message : "Could not search project sources.");
+        })
+        .finally(() => {
+          if (!cancelled) setProjectSourceSearchLoading(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery]);
+
+  useEffect(() => {
     const handler = (event: StorageEvent) => {
       if (event.key === LIBRARY_FAVORITES_KEY) {
         const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
@@ -917,13 +963,24 @@ export function EstimateRightSidebar({
     if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
     return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
   }, [loadedProjectSources, projectId, projectSourceScope]);
+  const visibleProjectSourceSearchResults = useMemo(() => {
+    if (!projectSourceSearchQuery) return [];
+    if (projectSourceScope !== "current-project" || !projectId) return projectSourceSearchResults;
+    return projectSourceSearchResults.filter((source) => sourceBelongsToProject(source, projectId));
+  }, [projectId, projectSourceScope, projectSourceSearchQuery, projectSourceSearchResults]);
+  const searchableProjectSources = useMemo(
+    () => projectSourceSearchQuery && visibleProjectSourceSearchResults.length > 0
+      ? mergeReusableSourcesByKey(visibleProjectSources, visibleProjectSourceSearchResults)
+      : visibleProjectSources,
+    [projectSourceSearchQuery, visibleProjectSourceSearchResults, visibleProjectSources],
+  );
   const visibleTemplateList = useMemo(
     () => (templateSourceFilter === "projects" ? [] : templateList),
     [templateList, templateSourceFilter],
   );
   const visibleTemplateProjectSources = useMemo(
-    () => (templateSourceFilter === "custom" ? [] : visibleProjectSources),
-    [templateSourceFilter, visibleProjectSources],
+    () => (templateSourceFilter === "custom" ? [] : searchableProjectSources),
+    [searchableProjectSources, templateSourceFilter],
   );
   const templatesSelectionNodes = useMemo(
     () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources),
@@ -974,6 +1031,24 @@ export function EstimateRightSidebar({
     }
     return null;
   }, [projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
+  const templatesProjectSourceSearchStatus = useMemo(() => {
+    if (!projectSourceSearchQuery) return null;
+    if (projectSourceSearchLoading) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Searching project sources…
+        </div>
+      );
+    }
+    if (projectSourceSearchError) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t search project sources. {projectSourceSearchError}
+        </div>
+      );
+    }
+    return null;
+  }, [projectSourceSearchError, projectSourceSearchLoading, projectSourceSearchQuery]);
   const templatesProjectSourceScopeControls = useMemo(() => {
     if (
       templateSourceFilter === "custom" ||
@@ -1760,6 +1835,7 @@ export function EstimateRightSidebar({
             {activeTab === "templates" ? (
               <>
                 {templatesProjectSourceStatus}
+                {templatesProjectSourceSearchStatus}
                 {templatesSourceFilterControls}
                 {templatesProjectSourceScopeControls}
                 {templatesProjectSourceRefreshControl}

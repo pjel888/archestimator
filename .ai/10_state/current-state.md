@@ -1,4 +1,23 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Search UI Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 sidebar Templates tab now debounces action-loaded project-source
+searches through `searchReusableProjectSources(query)` and merges the returned
+hits into the visible project-source tree so unloaded tab/group/area matches can
+be revealed by the existing expanded search view. Current-project narrowing is
+respected for returned hits, while prop-supplied source lists and the Custom
+Templates-only filter stay client-local. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-search-ui-implementation-run.md`:
+the focused missing-action-call regression failed before implementation, the
+focused UI search and action ancestor tests passed after implementation,
+`bunx vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/reusable-sources-actions.test.ts --maxWorkers=1`
+passed (2 files / 63 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/sidebar proof only: route-level
+project-source parity, row-level provider detail beyond loaded outline/search
+metadata, R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Search Action Contract Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 project-source surface now has a read-only
 `searchReusableProjectSources(query)` server action. It keeps the existing
