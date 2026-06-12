@@ -2,7 +2,7 @@
 
 Date: 2026-06-12
 Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`
-Commit baseline: `0eb38394` (`Keep landing contracts aligned with simplified launch flow`)
+Commit baseline: `e2e7a6d1` (`Preserve the generated-type boundary for estimate tabs`)
 
 ## Purpose
 
@@ -19,9 +19,13 @@ This probe determines whether that remaining failure is locally repairable witho
 | Migration marker scan | captured | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log` | `supabase/migrations/20260612094734_estimate_tabs_foundation.sql` defines `public.estimate_tabs`, `estimate_tab_id`, grants, and all six new history RPCs. |
 | Plan-boundary scan | captured | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log` | `.ai` surfaces still label linked Supabase apply/typegen and provider proof as open gates. |
 | `supabase status` | 1 | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log` | Local Docker daemon is unavailable. |
-| `supabase gen types --local --schema public` to temp probe | 1 | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log` | Local non-provider type generation cannot run because Docker is unavailable. |
+| `docker info` / `docker ps` | unavailable | terminal probe | No `docker` command is available in this shell and no Docker app candidate was found under `/Applications`. |
+| `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` | 0 | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/estimate-tabs-local-postgres-proof-rerun.log` | Homebrew Postgres migration/RLS harness passes, proving the migration applies and the tab RPC access model works locally without Docker. |
+| `supabase gen types --local --schema public` to temp probe | 1 | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log` | Local Supabase-stack type generation cannot run because Docker is unavailable. |
+| `supabase gen types --db-url postgresql://... --schema public` against the temp Homebrew Postgres harness DB | 1 | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/estimate-tabs-local-dburl-typegen-probe.log` | The CLI connects to the temp DB, then still fails on Docker image inspection; `--db-url` is not a Docker-free typegen path in this installed CLI. |
+| Focused version-control actions test after db-url probe | 1 | `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-focused-post-dburl-probe-red.log` | 24/25 tests passed; the single remaining failure is still the missing generated `archive_estimate_tab_with_history` entry. |
 
-Supabase CLI was rechecked before the probe: installed CLI is `2.98.2`, with latest notice `2.106.0`; `supabase gen types --help` supports `--local`, `--linked`, `--project-id`, `--db-url`, and `--schema`. The Supabase changelog scan noted the current 2026 breaking-change items, including the 2026-04-28 Data API exposure change for newly created tables; that reinforces the need to keep table grants/RLS/provider proof explicit, but it does not provide a local generated-types bypass.
+Supabase CLI was rechecked before the probe: installed CLI is `2.98.2`, with latest notice `2.106.0`; `supabase gen types --help` supports `--local`, `--linked`, `--project-id`, `--db-url`, and `--schema`. The Supabase changelog scan noted the current 2026 breaking-change items, including the 2026-04-28 Data API exposure change for newly created tables; that reinforces the need to keep table grants/RLS/provider proof explicit, but it does not provide a local generated-types bypass. A follow-up Homebrew Postgres probe proves the migration itself locally, while also proving this Supabase CLI still requires Docker for type generation even with `--db-url`.
 
 ## Missing generated entries
 
@@ -56,7 +60,7 @@ Local validation is code-clean except for this generated type boundary:
 
 - Focused landing/public/project/security repairs are green and committed.
 - Latest broad validation after the landing repair fails only in `tests/vitest/estimate-sheet-version-control-actions.test.ts` for missing generated Supabase function types.
-- This probe confirms the remaining failing contract depends on provider-authorized linked apply/typegen or a working local Supabase Docker typegen environment.
+- This probe confirms the remaining failing contract depends on provider-authorized linked apply/typegen or a working Docker-backed Supabase typegen environment. The Homebrew Postgres harness can prove schema/RLS behavior, but this installed Supabase CLI cannot emit types from that DB without Docker.
 
 ## Not performed
 
