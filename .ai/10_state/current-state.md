@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 Project Summary Contracts Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The project collaboration/publication static contracts now match the current
+project layout. `WorkshopPageShell.actions` mounts `ProjectPublicationHeader`
+and `ProjectTeamspaceHeader` directly; the publication header receives
+`summary={publicationSummary}`, `currentUserEmail`, and project estimate-sheet
+picker data, while the Teamspaces header continues to own private project link
+copy controls. Evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-project-summary-contract-repair-run.md`:
+the focused red run failed on stale `ProjectWorkspaceHeaderRow` prop contracts,
+the focused green run passed (2 files / 2 tests), `bun run type-check` passed,
+changed-file ESLint passed, the TypeScript no-excuse script passed, and the
+refreshed `bun run validate` still fails in `test:dom` but now reports 6 failed
+files / 15 failed tests with project summary contracts removed from the failure
+set. This is local static-test proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Project Dashboard UI Contract Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The project-dashboard static UI governance tests now match the current live
 project layout: `WorkshopPageShell` owns project-level actions and the estimate
