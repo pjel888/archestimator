@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 Route Error Boundary Import Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The stale route-boundary DOM test import for the removed legacy
+`/workshop/templates/error` module now targets the live
+`/workshop/library/templates/error` route boundary. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-route-error-boundary-import-repair-run.md`:
+`bun x vitest run tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1`
+passed (1 file / 5 tests), changed-file ESLint passed, the TypeScript
+no-excuse script passed, and the file is healthy at 56 pure LOC. The refreshed
+`bun run validate` now gets past that route-boundary suite and still fails in
+`test:dom` with 1 failed suite and 21 failed tests across unrelated stale
+contracts (Storybook plan matrix raw imports, generated Supabase history RPC
+types, estimate-tree bulk-selection, landing/public font/cache contracts,
+project summary/dashboard contracts, and code-review-graph hook command text).
+This is local test-import proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Workshop Baseline Validation Repair (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 A fresh `bun run validate` after the server-action build fix reached the local
 unit/DOM test stages and exposed stale workshop baseline assertions. The reset
