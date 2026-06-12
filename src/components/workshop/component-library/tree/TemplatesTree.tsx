@@ -22,6 +22,7 @@ import type {
   ProjectEstimateReusableSource,
   ProjectNodeReusableSource,
   ProjectReusableSource,
+  ProjectReusableEstimateSource,
   ProjectSourceInsertTarget,
   ProjectTabReusableSource,
   ReusableEstimateSource,
@@ -531,6 +532,8 @@ export type TemplatesTreeProps = {
   onTemplateNodeDragStart: (event: DragEvent<HTMLElement>, template: EstimateTemplate, node: EstimateTreeNode) => void;
   onAddProjectSource?: (source: ProjectSourceInsertTarget) => void;
   onProjectSourceDragStart?: (event: DragEvent<HTMLElement>, source: ProjectSourceInsertTarget) => void;
+  onPreviewProjectSource?: (source: ProjectReusableEstimateSource) => void;
+  onClearProjectSourcePreview?: () => void;
   /** Context-menu CRUD on template rows; items appear only when provided. */
   onRenameTemplate?: (template: EstimateTemplate) => void;
   onDeleteTemplate?: (template: EstimateTemplate) => void;
@@ -562,6 +565,8 @@ export function TemplatesTree({
   onTemplateNodeDragStart,
   onAddProjectSource,
   onProjectSourceDragStart,
+  onPreviewProjectSource,
+  onClearProjectSourcePreview,
   onRenameTemplate,
   onDeleteTemplate,
   onCreateTemplate,
@@ -631,12 +636,22 @@ export function TemplatesTree({
   const handleRowClick = useCallback(
     (nodeId: string, node: UiTreeNode) => {
       const datum = getTemplatesTreeDatum(node);
+      if (
+        datum?.type === "project" ||
+        datum?.type === "project-estimate" ||
+        datum?.type === "project-tab" ||
+        datum?.type === "project-node"
+      ) {
+        onPreviewProjectSource?.(datum.source);
+      } else if (datum?.type !== "section") {
+        onClearProjectSourcePreview?.();
+      }
       // Leaf component rows have nothing to toggle; everything else folds.
       if (datum?.type === "template-row") return;
       if (datum?.type === "project-node") return;
       if (node.children?.length || node.isLeaf === false) onToggle(nodeId);
     },
-    [onToggle],
+    [onClearProjectSourcePreview, onPreviewProjectSource, onToggle],
   );
 
   const handleTreeContextMenu = useCallback((nodeId: string) => {

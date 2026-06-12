@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, PlusSquare, SquaresFour, StackPlus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Plus, PlusSquare, SquaresFour, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -20,7 +20,13 @@ import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { getReusableEstimateOutline, listReusableProjectSources } from "@/lib/reusable-sources/actions";
-import type { ProjectEstimateReusableSource, ProjectSourceInsertTarget, ReusableEstimateSource } from "@/lib/reusable-sources/types";
+import type {
+  ProjectEstimateReusableSource,
+  ProjectReusableEstimateSource,
+  ProjectSourceInsertTarget,
+  ReusableEstimateSource,
+  ReusableSourceLiveMetadata,
+} from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -227,6 +233,187 @@ function PreviewPanel({
   );
 }
 
+type ProjectSourcePreviewContext = {
+  projectName: string | null;
+  estimateName: string | null;
+  sheetCode: string | null;
+  tabName: string | null;
+  nodePath: string[];
+  updatedAt: string | null;
+  rowCount: number | null;
+  totalCost: number | null;
+};
+
+function isProjectReusableEstimateSource(source: ReusableEstimateSource): source is ProjectReusableEstimateSource {
+  return source.kind !== "custom-template";
+}
+
+function isProjectSourceInsertTarget(source: ProjectReusableEstimateSource): source is ProjectSourceInsertTarget {
+  return source.kind === "project-tab" || source.kind === "project-node";
+}
+
+function getProjectSourceTypeLabel(source: ProjectReusableEstimateSource) {
+  if (source.kind === "project") return "Project";
+  if (source.kind === "project-estimate") return "Estimate";
+  if (source.kind === "project-tab") return "Tab";
+  return source.nodeKind === "group" ? "Group" : "Area";
+}
+
+function findProjectSourceByKey(sources: ReusableEstimateSource[], key: string | null): ProjectReusableEstimateSource | null {
+  if (!key) return null;
+  return sources.find(
+    (source): source is ProjectReusableEstimateSource =>
+      isProjectReusableEstimateSource(source) && reusableProjectSourceKey(source) === key,
+  ) ?? null;
+}
+
+function formatPreviewDate(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function getProjectSourcePreviewContext(
+  source: ProjectReusableEstimateSource,
+  sources: ReusableEstimateSource[],
+): ProjectSourcePreviewContext {
+  const metadata: ReusableSourceLiveMetadata = source.metadata ?? {};
+  const estimateId =
+    source.kind === "project-estimate" || source.kind === "project-tab" || source.kind === "project-node"
+      ? source.estimateId
+      : null;
+  const tabId = source.kind === "project-tab" || source.kind === "project-node" ? source.tabId : null;
+  const projectSource = sources.find(
+    (candidate): candidate is ProjectReusableEstimateSource =>
+      isProjectReusableEstimateSource(candidate) &&
+      candidate.kind === "project" &&
+      candidate.projectId === source.projectId,
+  );
+  const estimateSource = estimateId
+    ? sources.find(
+        (candidate): candidate is ProjectEstimateReusableSource =>
+          candidate.kind === "project-estimate" && candidate.estimateId === estimateId,
+      )
+    : null;
+  const tabSource = tabId
+    ? sources.find(
+        (candidate): candidate is ProjectReusableEstimateSource =>
+          isProjectReusableEstimateSource(candidate) &&
+          candidate.kind === "project-tab" &&
+          candidate.tabId === tabId,
+      )
+    : null;
+  const tabName =
+    metadata.tabName ??
+    (source.kind === "project-tab" ? source.name : null) ??
+    (tabSource?.kind === "project-tab" ? tabSource.name : null);
+  const nodePath =
+    metadata.nodePath ??
+    (source.kind === "project-node" ? [tabName, source.name].filter((value): value is string => Boolean(value)) : []);
+
+  return {
+    projectName: metadata.projectName ?? projectSource?.name ?? null,
+    estimateName: metadata.estimateName ?? (source.kind === "project-estimate" ? source.name : estimateSource?.name ?? null),
+    sheetCode: metadata.sheetCode ?? (source.kind === "project-estimate" ? source.sheetCode : estimateSource?.sheetCode ?? null),
+    tabName,
+    nodePath,
+    updatedAt: metadata.updatedAt ?? null,
+    rowCount: metadata.rowCount ?? null,
+    totalCost: metadata.totalCost ?? null,
+  };
+}
+
+function ProjectSourcePreviewPanel({
+  source,
+  sources,
+  onClose,
+  onAdd,
+  addDisabled,
+  addLabel,
+}: {
+  source: ProjectReusableEstimateSource;
+  sources: ReusableEstimateSource[];
+  onClose: () => void;
+  onAdd: (source: ProjectSourceInsertTarget) => void;
+  addDisabled: boolean;
+  addLabel: string;
+}) {
+  const context = getProjectSourcePreviewContext(source, sources);
+  const nodePathText = context.nodePath.length ? context.nodePath.join(" / ") : null;
+  const updatedAtText = formatPreviewDate(context.updatedAt);
+  const detailRows = [
+    context.projectName ? { label: "Project", value: context.projectName } : null,
+    context.estimateName ? { label: "Estimate", value: context.estimateName } : null,
+    context.sheetCode ? { label: "Estimate code", value: context.sheetCode } : null,
+    context.tabName ? { label: "Tab", value: context.tabName } : null,
+    nodePathText ? { label: "Node path", value: nodePathText } : null,
+    updatedAtText ? { label: "Last updated", value: updatedAtText } : null,
+    context.rowCount !== null ? { label: "Rows", value: String(context.rowCount) } : null,
+    context.totalCost !== null ? { label: "Total", value: pesoFormatter.format(context.totalCost) } : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row));
+  const insertable = isProjectSourceInsertTarget(source);
+
+  return (
+    <div className="shrink-0 border-t border-hairline bg-white" role="region" aria-label="Project source preview">
+      <div className="flex items-start gap-2 p-2">
+        <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-accent-soft text-accent">
+          <StackSimple size={18} weight="regular" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-1">
+            <div className="min-w-0">
+              <h3 className="truncate text-[11px] font-medium text-ink">{source.name}</h3>
+              <p className="text-[9px] font-medium text-tertiary">{getProjectSourceTypeLabel(source)} source</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 shrink-0 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              aria-label="Close project source preview"
+              onClick={onClose}
+            >
+              <X size={11} />
+            </Button>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <Badge size="xs" tone="info">Live source</Badge>
+            <Badge size="xs">Read-through source</Badge>
+          </div>
+        </div>
+      </div>
+      <div className="px-2 pb-2">
+        {detailRows.length ? (
+          <dl className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1 text-[9px] leading-4">
+            {detailRows.map((row) => (
+              <div key={row.label} className="contents">
+                <dt className="text-tertiary">{row.label}</dt>
+                <dd className="min-w-0 truncate font-medium text-ink" title={row.value}>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-[9px] leading-4 text-tertiary">
+            Live project metadata will appear here when this source supplies it.
+          </p>
+        )}
+        <div className="mt-2">
+          {insertable ? (
+            <Button onClick={() => onAdd(source)} disabled={addDisabled} aria-label={addLabel} title={addLabel} className="h-6 min-h-6 w-full text-[9px]">
+              {addDisabled ? "Select group" : "Add to estimate"}
+            </Button>
+          ) : (
+            <p className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[9px] leading-4 text-tertiary">
+              Expand this source to choose a tab or group/area before inserting it.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Sidebar ─── */
 
 type EstimateRightSidebarProps = {
@@ -400,6 +587,7 @@ export function EstimateRightSidebar({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+  const [previewProjectSourceKey, setPreviewProjectSourceKey] = useState<string | null>(null);
   const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [customOrderByViewMode, setCustomOrderByViewMode] = useState<Record<ComponentViewMode, LibraryTreeOrder>>(
@@ -549,12 +737,13 @@ export function EstimateRightSidebar({
         else if (showNewComponent) closeNewComponent();
         else if (searchQuery) setSearchQuery("");
         else if (searchOpen) setSearchOpen(false);
+        else if (previewProjectSourceKey) setPreviewProjectSourceKey(null);
         else if (previewItemId) setPreviewItemId(null);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, deleteTemplateTarget, previewItemId, renameTemplateTarget, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
+  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, deleteTemplateTarget, previewItemId, previewProjectSourceKey, renameTemplateTarget, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
 
   useEffect(() => {
     if (!viewModeMenuOpen) return;
@@ -628,6 +817,10 @@ export function EstimateRightSidebar({
     if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
     return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
   }, [loadedProjectSources, projectId, projectSourceScope]);
+  const previewProjectSource = useMemo(
+    () => findProjectSourceByKey(visibleProjectSources, previewProjectSourceKey),
+    [previewProjectSourceKey, visibleProjectSources],
+  );
   const templatesAllNodeIds = useMemo(
     () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, visibleProjectSources)),
     [templateList, visibleProjectSources],
@@ -921,6 +1114,7 @@ export function EstimateRightSidebar({
   const handleComponentCreated = useCallback((item: EstimateRowItem) => {
     setLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
     setPreviewItemId(item.id);
+    setPreviewProjectSourceKey(null);
     setLastActionMessage(`${getComponentName(item)} created in the component library.`);
     onLibraryDataChanged?.();
   }, [onLibraryDataChanged]);
@@ -1021,6 +1215,7 @@ export function EstimateRightSidebar({
       setShowNewComponent(false);
       resetComponentForm();
       setPreviewItemId(nextComponent.id);
+      setPreviewProjectSourceKey(null);
       setLastActionMessage(`${getComponentName(nextComponent)} ${editItemId ? "updated" : "created"}.`);
       if (addNow) addComponent(nextComponent);
       onLibraryDataChanged?.();
@@ -1052,6 +1247,7 @@ export function EstimateRightSidebar({
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
+    setPreviewProjectSourceKey(null);
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, []);
@@ -1062,6 +1258,7 @@ export function EstimateRightSidebar({
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
+    setPreviewProjectSourceKey(null);
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, []);
@@ -1378,6 +1575,11 @@ export function EstimateRightSidebar({
                   onTemplateNodeDragStart={handleTemplateNodeDragStart}
                   onAddProjectSource={addProjectSource}
                   onProjectSourceDragStart={handleProjectSourceDragStart}
+                  onPreviewProjectSource={(source) => {
+                    setPreviewItemId(null);
+                    setPreviewProjectSourceKey(reusableProjectSourceKey(source));
+                  }}
+                  onClearProjectSourcePreview={() => setPreviewProjectSourceKey(null)}
                   onRenameTemplate={startRenameTemplate}
                   onDeleteTemplate={startDeleteTemplate}
                   onCreateTemplate={startNewTemplateInCategory}
@@ -1399,7 +1601,10 @@ export function EstimateRightSidebar({
                 searchQuery={searchQuery}
                 onToggle={handleToggleNode}
                 onItemAdd={(item) => { if (item) addComponent(item); }}
-                onItemPreview={(itemId) => setPreviewItemId(itemId)}
+                onItemPreview={(itemId) => {
+                  setPreviewProjectSourceKey(null);
+                  setPreviewItemId(itemId);
+                }}
                 onItemEdit={startEditComponent}
                 onItemDuplicate={duplicateItem}
                 onItemToggleFavorite={toggleFavorite}
@@ -1468,6 +1673,21 @@ export function EstimateRightSidebar({
             addLabel={targetLabel}
             insertQuantity={insertQuantity}
             onInsertQuantityChange={setInsertQuantity}
+          />
+        ) : null}
+
+        {previewProjectSource ? (
+          <ProjectSourcePreviewPanel
+            source={previewProjectSource}
+            sources={visibleProjectSources}
+            onClose={() => setPreviewProjectSourceKey(null)}
+            onAdd={addProjectSource}
+            addDisabled={!canInsertTemplate}
+            addLabel={
+              canInsertTemplate
+                ? `Add to ${effectiveTemplateTargetName || "selected group"}`
+                : "Select a Group Node before adding project sources"
+            }
           />
         ) : null}
 

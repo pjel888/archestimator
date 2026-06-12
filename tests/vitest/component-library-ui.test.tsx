@@ -645,6 +645,39 @@ describe("templates tree", () => {
     },
   ];
 
+  const projectSourcesWithMetadata: ReusableEstimateSource[] = projectSources.map((source) => {
+    if (source.kind === "project-node") {
+      return {
+        ...source,
+        metadata: {
+          projectName: "Renovation Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+          nodePath: ["Lobby Main", "Amenity Millwork"],
+          updatedAt: "2026-06-12T08:30:00.000Z",
+          rowCount: 7,
+          totalCost: 125000,
+        },
+      };
+    }
+    if (source.kind === "project-tab") {
+      return {
+        ...source,
+        metadata: {
+          projectName: "Renovation Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+          updatedAt: "2026-06-12T08:15:00.000Z",
+          rowCount: 11,
+          totalCost: 180000,
+        },
+      };
+    }
+    return source;
+  });
+
   function createDataTransferStub() {
     const store = new Map<string, string>();
     const types: string[] = [];
@@ -928,6 +961,41 @@ describe("templates tree", () => {
     }));
     expect(screen.queryByRole("menuitem", { name: "Rename" })).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("previews project-source live metadata without template management actions", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({
+      projectSources: projectSourcesWithMetadata,
+      onInsertProjectSource,
+      selectedNodeKind: "group",
+      selectedNodeName: "Main House",
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }));
+
+    const preview = screen.getByRole("region", { name: "Project source preview" });
+    expect(within(preview).getByText("Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("Live source")).toBeInTheDocument();
+    expect(within(preview).getByText("Read-through source")).toBeInTheDocument();
+    expect(within(preview).getByText("Renovation Project")).toBeInTheDocument();
+    expect(within(preview).getByText("Lobby Estimate")).toBeInTheDocument();
+    expect(within(preview).getByText("EST-002")).toBeInTheDocument();
+    expect(within(preview).getByText("Lobby Main / Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("7")).toBeInTheDocument();
+    expect(within(preview).getByText("₱125,000.00")).toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: "Rename" })).not.toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(preview).getByRole("button", { name: /Add .* Main House/ }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-node",
+      nodeId: "node-amenity",
+    }));
   });
 
   it("searches project-source names and keeps their source ancestors visible", () => {
