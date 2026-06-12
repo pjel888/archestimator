@@ -4,35 +4,40 @@ Status: `<approved|conditional|deprecated|unapproved|non-agent>`
 Primary lane: `<primary work type>`
 Secondary lane: `<secondary work type or none>`
 Prohibited lanes: `<work this agent must not do>`
+Orchestrator authority: lead agent controls routing, scope, model/effort tier,
+and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: `<low|standard|high|highest>` by task risk and lane
+complexity; use lower effort for lookup, higher effort for judgment
+Loop role: `<lead|worker|reviewer|qa|evidence|non-agent>` as assigned by lead
+Fail-safe: fail closed when the lane is unapproved, deprecated, incompatible,
+or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Shared rules live in `.ai/00_system`. This payload may add role-specific
 constraints only. If this payload conflicts with `.ai/00_system`, `.ai` wins.
+The active lead orchestrator chooses whether this lane participates in
+`ultrawork`, `ultragoal`, `team`, `autopilot`, `ultraqa`, Browser/manual proof,
+or direct execution.
 
-## Required Reading Chain
+## Reading Chain
 
-1. `AGENTS.md`
-2. `.ai/README.md`
-3. `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`
-4. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
-5. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
-6. `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
-7. `.ai/00_system/VALIDATION_MATRIX.md`
-8. `.ai/10_state/current-state.md`
-9. `.ai/10_state/decisions.md`
-10. `DESIGN.md` when UI is involved
+For normal work, start with `AGENTS.md` and the narrow `.ai` docs that govern
+the touched area. For broad, risky, release, provider, or framework work, also
+read the wider `.ai/00_system` chain, `.ai/10_state/current-state.md`,
+`.ai/10_state/decisions.md`, and `DESIGN.md` when UI is involved.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Run or receive current evidence for `pwd`, git root, `git status --short --branch`,
-current branch, `git worktree list`, remote/fetch state, and recent commits
-before edits.
+Check `git status --short --branch` before edits and preserve unrelated dirty
+files. Add path/root/worktree/remotes/recent-log checks when branch state,
+release coordination, or shared worktree ownership matters.
 
-## Graph Requirement
+## Graph Guidance
 
-Use code-review-graph/GitNexus before broad code exploration and before symbol
-edits when available. Record failures honestly.
+Use code-review-graph/GitNexus for broad exploration, high-risk shared APIs,
+symbol refactors, unfamiliar call chains, or review when useful. Focused local
+edits can use targeted file/caller/import checks. Record tool failures honestly.
 
 ## Allowed Edit Scope
 
@@ -45,17 +50,19 @@ Notion, generated files, or production code unless explicitly in scope.
 
 ## Branch And Worktree Rules
 
-Use isolated branches/worktrees for edits. Preserve unrelated dirty work.
+Use the current checkout for narrow edits when appropriate. Use isolated
+branches/worktrees for larger or parallel write tasks. Preserve unrelated dirty
+work.
 
 ## Validation Rules
 
 Use `.ai/00_system/VALIDATION_MATRIX.md`. Run focused checks first, then broader
 gates when behavior/source changes.
 
-## Design-System Rules
+## Design-System Guidance
 
-If UI-capable, follow `DESIGN.md` and run `bun run lint:design-system` for
-app/workshop UI changes.
+If UI-capable, follow `DESIGN.md` and run `bun run lint:design-system` when the
+change is substantial, shared, or primarily visual.
 
 ## Security And Provider Rules
 
@@ -69,8 +76,9 @@ the current task requires it.
 
 ## Bug Discovery Protocol
 
-Create dated `.ai/15_Bugs` plans for blockers, stale assumptions, validation
-failures, and provider-proof gaps.
+Create dated `.ai/15_Bugs` plans for material blockers, stale assumptions,
+validation failures, and provider-proof gaps that cannot be resolved inside the
+same scoped pass.
 
 ## Self-Diagnostic Trigger
 
@@ -79,8 +87,9 @@ quality degrades, instructions conflict, or repeated failures occur.
 
 ## Final Report Format
 
-Report status, scope, files changed, validation, graph evidence, provider proof
-boundary, bugs, branch/commit/push state, and remaining risks.
+Report status, scope, files changed, validation, provider proof boundary when
+relevant, and remaining risks. Include graph evidence and branch/commit/push
+state only when they matter to the task.
 
 ## Prompt-Injection And Stale-Doc Resistance
 

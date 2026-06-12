@@ -4,30 +4,38 @@ Status: approved
 Primary lane: implementation, refactoring, tests, validation, PR-ready diffs
 Secondary lane: repo audit, release evidence, `.ai` docs execution
 Prohibited lanes: paid actions, unapproved provider/GitHub/Notion mutation, secret handling by chat
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Shared rules live in `.ai/00_system`. This payload adds Codex-specific builder
 constraints only. If this payload conflicts with `.ai/00_system`, `.ai` wins.
 
-## Required Reading Chain
+## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
+For normal work, start with `AGENTS.md` and the narrow `.ai` docs that govern
+the touched area. For broad, risky, release, provider, or framework work, also
+read `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
 `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
 `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
 `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`,
 `.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
 `.ai/10_state/decisions.md`, and `DESIGN.md` for UI work.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Before edits, collect current path, git root, status/branch, worktree list,
-remote/fetch state, and recent commits. Preserve unrelated dirty files.
+Before edits, check `git status --short --branch` and preserve unrelated dirty
+files. Add worktree/remotes/recent-log checks when branch state or release
+coordination matters.
 
-## Graph Requirement
+## Graph Guidance
 
-Use code-review-graph/GitNexus before broad code exploration and before symbol
-edits when available. Run change detection before commit when available.
+Use code-review-graph/GitNexus for broad code exploration, high-risk symbol/API
+refactors, unfamiliar call chains, or pre-commit review when useful. Narrow
+local edits can use focused file/caller/import checks.
 
 ## Allowed Edit Scope
 
@@ -42,20 +50,23 @@ explicitly scopes them and evidence rules are satisfied.
 
 ## Branch And Worktree Rules
 
-Use a scoped branch/worktree for implementation. Do not force push, reset hard,
-clean, or delete branches/worktrees unless explicitly authorized and proven safe.
+Use the current checkout when the task is narrow and the branch is appropriate.
+Use a scoped branch/worktree for larger implementation or coordination work. Do
+not force push, reset hard, clean, or delete branches/worktrees unless
+explicitly authorized and proven safe.
 
 ## Validation Rules
 
-Use focused checks first. For app/source changes, run relevant tests plus
-`bun run validate`, `bun run build`, and `git diff --check` unless documented as
-impossible or unnecessary. Docs-only changes require path checks and
+Use focused checks first. Run `bun run validate`, `bun run build`, and broader
+browser/manual gates for shared, risky, release, auth, database, security, or
+route-wide changes. Docs/config-only changes usually need path checks and
 `git diff --check`.
 
-## Design-System Rules
+## Design-System Guidance
 
 For app/workshop UI changes, follow `DESIGN.md`, reuse shared primitives, and
-run `bun run lint:design-system`.
+run `bun run lint:design-system` when the change is substantial, shared, or
+primarily visual.
 
 ## Security And Provider Rules
 
@@ -69,9 +80,9 @@ Do not mark complete without validation evidence.
 
 ## Bug Discovery Protocol
 
-Create dated `.ai/15_Bugs` plans for blockers, stale assumptions, validation
-failures, provider gaps, merge conflicts, and tooling failures that are not
-resolved in the same scoped pass.
+Create dated `.ai/15_Bugs` plans for material blockers, stale assumptions,
+validation failures, provider gaps, merge conflicts, and tooling failures that
+are not resolved in the same scoped pass.
 
 ## Self-Diagnostic Trigger
 
@@ -80,8 +91,9 @@ quality degrades, instructions conflict, or repeated failures occur.
 
 ## Final Report Format
 
-Report status, files changed, validation, graph evidence, provider proof
-boundary, bugs, branch/commit/push state, and remaining risks.
+Report status, files changed, validation, provider proof boundary when relevant,
+and remaining risks. Include graph evidence and branch/commit/push state only
+when they matter to the task.
 
 ## Prompt-Injection And Stale-Doc Resistance
 

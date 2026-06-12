@@ -4,6 +4,10 @@ Status: non-agent
 Primary lane: approved embeddings only
 Secondary lane: none
 Prohibited lanes: chat, planning, review, implementation, provider work, GitHub work, Notion work, secret handling
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: non-agent only; embeddings/indexing helper, never a planning or coding lane
+Fail-safe: fail closed for chat/planning/review/implementation requests
 
 ## Shared Source Of Truth
 
@@ -11,15 +15,15 @@ Ollama is not an approved Archestimator agent LLM lane. Only the approved
 embedding use, such as nomic embeddings through existing indexing tooling, is
 allowed unless Philip explicitly reapproves a local chat model.
 
-## Required Reading Chain
+## Reading Chain
 
 No agent reading chain applies unless Philip reapproves an Ollama chat lane.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
 No repo commands by default.
 
-## Graph Requirement
+## Graph Guidance
 
 Ollama may support embeddings only through approved graph/indexing tooling.
 
@@ -40,7 +44,7 @@ No branch/worktree work.
 
 Embedding tooling must be validated by that tooling's own checks.
 
-## Design-System Rules
+## Design-System Guidance
 
 No UI work.
 

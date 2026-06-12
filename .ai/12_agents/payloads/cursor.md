@@ -4,24 +4,28 @@ Status: conditional
 Primary lane: MCP/editor configuration support
 Secondary lane: read-only review if explicitly assigned
 Prohibited lanes: autonomous implementation, provider mutation, paid actions, secret handling, project-brain duplication
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Cursor is not an autonomous Archestimator agent lane by default. `.cursor/` is a
 config adapter. Shared rules live in `.ai/00_system`.
 
-## Required Reading Chain
+## Reading Chain
 
 For any Cursor-specific work, read `AGENTS.md`, `.ai/README.md`,
 `DOCS_SOURCE_OF_TRUTH.md`, `AGENT_OPERATING_PROTOCOL.md`,
 `AGENT_FRAMEWORK_PROTOCOL.md`, `VALIDATION_MATRIX.md`, current state, and
 decisions.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Collect path/git/status/worktree/fetch evidence before edits.
+Check `git status --short --branch` before edits; add worktree/fetch checks when branch state matters.
 
-## Graph Requirement
+## Graph Guidance
 
 Cursor MCP config may expose code-review-graph; record graph/tool failures.
 
@@ -36,14 +40,14 @@ Cursor-only project memory.
 
 ## Branch And Worktree Rules
 
-Use isolated branch/worktree for any edits.
+Use current checkout for narrow assigned edits when appropriate; use isolated branch/worktree for larger edits.
 
 ## Validation Rules
 
 Config/docs edits require path checks and `git diff --check`; tool config
 changes require the relevant tool validation where available.
 
-## Design-System Rules
+## Design-System Guidance
 
 No UI work by default.
 

@@ -1,5 +1,43 @@
 # Decisions
 
+## 2026-06-12 - Lean agent mandate and shared agent assets
+
+**Decision:** Replace always-on workflow mandates with proportional execution.
+Agents should work directly by default, read only relevant context, use plans or
+subagents only when they reduce risk or speed up independent work, and run the
+smallest verification that proves the change.
+
+**Rationale:** The prior root mandate forced routine tasks through planning,
+delegation, graph impact analysis, Impeccable, Storybook/design-system gates,
+and broad validation even when those checks did not improve the result. That
+made AI coding slower and increased instruction overhead across tools.
+
+**Follow-up:** Keep `.ai`, `.codex`, `.agents`, `.claude`, `.cursor`, and
+`.commandcode` as Git-shared agent/project intelligence surfaces. Keep secrets,
+env files, `.omx`, `.omo`, `.gitnexus`, `.code-review-graph`, `.chunkhound`,
+`.claude/worktrees`, `.ai/99_scratch`, `.ai/14_code_intelligence`, sessions,
+logs, caches, and machine-local settings ignored.
+
+## 2026-06-12 - Multi-agent orchestration and loop engineering mandate
+
+**Decision:** Make orchestrated multi-agent work the preferred shape whenever
+the task has independent lanes. The highest-capability active agent acts as the
+lead orchestrator and chooses worker lanes, model/effort tiers, loop workflow,
+integration order, verification, and the final completion claim.
+
+**Rationale:** Multi-agent systems are most useful when a coordinator fans out
+independent work, specialists operate in isolated contexts, and the coordinator
+synthesizes results. Loop engineering adds a repeatable act/observe/revise
+cycle with explicit stop conditions, persistent state, and maker/checker
+separation. The prior lean mandate removed unnecessary ceremony; this decision
+adds back parallelism and loops as leverage, not as blanket overhead.
+
+**Follow-up:** Keep this policy vendor-neutral across Codex, Claude, OpenCode,
+CommandCode, Kimi, DeepSeek, Antigravity, Cursor where approved, and future
+payloads. Use lower-cost/lower-effort lanes for lookup and bounded evidence,
+reserve stronger lanes for orchestration and high-risk judgment, and fail closed
+for deprecated, unapproved, incompatible, or missing routing metadata.
+
 ## 2026-06-11 - Library unification implementation posture
 
 - `/workshop/library` is the single reusable-content home: Overview (index),

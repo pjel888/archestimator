@@ -4,27 +4,30 @@ Status: conditional
 Primary lane: debugging, logic critique, hidden-assumption review
 Secondary lane: implementation only with explicit assignment
 Prohibited lanes: provider mutation, paid actions, secret handling, broad unsupervised source edits
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Shared rules live in `.ai/00_system`. DeepSeek defaults to diagnostic/read-only
 work unless implementation is explicitly assigned.
 
-## Required Reading Chain
+## Reading Chain
 
 `AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
 `AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
 `VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
 `.ai/10_state/decisions.md`, and relevant plan/test/source files.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Collect current git/path evidence before edits; read-only debugging can rely on
-fresh provided evidence.
+Check `git status --short --branch` before edits; read-only debugging can rely on fresh provided evidence.
 
-## Graph Requirement
+## Graph Guidance
 
-Use code-review-graph/GitNexus for root-cause mapping where available.
+Use code-review-graph/GitNexus for root-cause mapping when useful.
 
 ## Allowed Edit Scope
 
@@ -38,16 +41,16 @@ weakening.
 
 ## Branch And Worktree Rules
 
-Implementation requires isolated branch/worktree and disjoint scope.
+Implementation requires explicit scope; use branch/worktree isolation when edits are large, risky, or parallel.
 
 ## Validation Rules
 
 Reproduce first where feasible. Fixes require failing test/regression proof when
 possible and green targeted checks.
 
-## Design-System Rules
+## Design-System Guidance
 
-UI bug fixes follow `DESIGN.md` and design-system lint.
+UI bug fixes follow `DESIGN.md`; run design-system lint when the fix is substantial, shared, or primarily visual.
 
 ## Security And Provider Rules
 

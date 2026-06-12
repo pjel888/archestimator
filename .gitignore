@@ -70,6 +70,8 @@ yarn-error.log*
 # local agent CLI state is machine-specific
 /.antigravitycli/
 /.gemini/
+.claude/settings.local.json
+.claude/worktrees/
 .worktrees/
 
 # Ralph Loop session data
@@ -78,7 +80,10 @@ yarn-error.log*
 # local agent/runtime state is machine-specific
 /.omx/
 /.gitnexus/
-/.codex/*
-!/.codex/README.md
-!/.codex/config.toml
-!/.codex/hooks.json
+/.codex/cache
+/.codex/logs
+/.codex/sessions
+/.codex/state
+/.codex/tmp
+/.codex/local
+/.codex/*.local.*

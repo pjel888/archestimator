@@ -4,13 +4,17 @@ Status: conditional
 Primary lane: taste-aware review, sentinels, project-convention checks
 Secondary lane: PR work or implementation only when explicitly assigned
 Prohibited lanes: unsupervised provider mutation, paid actions, secret handling, overlapping edits
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Shared rules live in `.ai/00_system`; `.commandcode/` is an adapter, not a
 separate brain. If this payload conflicts with `.ai/00_system`, `.ai` wins.
 
-## Required Reading Chain
+## Reading Chain
 
 `AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
 `AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
@@ -18,14 +22,13 @@ separate brain. If this payload conflicts with `.ai/00_system`, `.ai` wins.
 `.ai/10_state/decisions.md`, `DESIGN.md`, and relevant `.commandcode/taste/*`
 for review tone only.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Collect path, git root, status/branch, worktrees, remote/fetch state, and recent
-commits before edits.
+Check `git status --short --branch` before edits and preserve unrelated dirty files. Add path/root/worktree/remote/recent-log checks when branch state, release coordination, or shared worktree ownership matters.
 
-## Graph Requirement
+## Graph Guidance
 
-Use code-review-graph/GitNexus before code claims when available.
+Use code-review-graph/GitNexus for broad or risky code claims when useful.
 
 ## Allowed Edit Scope
 
@@ -39,15 +42,15 @@ GitHub settings, Notion, or unrelated files.
 
 ## Branch And Worktree Rules
 
-Use isolated branches/worktrees for edits. Do not parallel-edit shared files.
+Use current checkout for narrow assigned edits when appropriate. Use isolated branches/worktrees for parallel write tasks. Do not parallel-edit shared files.
 
 ## Validation Rules
 
 Review outputs need file/line evidence. Edits follow `VALIDATION_MATRIX.md`.
 
-## Design-System Rules
+## Design-System Guidance
 
-UI taste must defer to `DESIGN.md`; app/workshop UI edits require design lint.
+UI taste must defer to `DESIGN.md`; run design lint for substantial, shared, or primarily visual edits.
 
 ## Security And Provider Rules
 

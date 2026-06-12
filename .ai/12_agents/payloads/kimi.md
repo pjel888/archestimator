@@ -3,14 +3,18 @@
 Status: conditional
 Primary lane: frontend/product UI implementation and review
 Secondary lane: long-context synthesis, fallback planning/review, document analysis
-Prohibited lanes: provider mutation, paid actions, secret handling, UI work without design-system gates
+Prohibited lanes: provider mutation, paid actions, secret handling, UI work that ignores DESIGN.md
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Shared rules live in `.ai/00_system`. Kimi UI judgment must defer to `DESIGN.md`
 and current source evidence.
 
-## Required Reading Chain
+## Reading Chain
 
 `AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
 `AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
@@ -18,14 +22,13 @@ and current source evidence.
 `.ai/10_state/decisions.md`, `DESIGN.md`, and relevant UI primitives before UI
 edits.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Collect path, git root, status/branch, worktrees, remote/fetch state, and recent
-commits before edits.
+Check `git status --short --branch` before edits and preserve unrelated dirty files. Add path/root/worktree/remote/recent-log checks when branch state, release coordination, or shared worktree ownership matters.
 
-## Graph Requirement
+## Graph Guidance
 
-Use code-review-graph/GitNexus before UI/source claims when available.
+Use code-review-graph/GitNexus for broad or risky UI/source claims when useful.
 
 ## Allowed Edit Scope
 
@@ -38,14 +41,13 @@ providers, secrets, GitHub settings, Notion, or unrelated files.
 
 ## Branch And Worktree Rules
 
-Use isolated branches/worktrees for edits and disjoint file scope.
+Use current checkout for narrow assigned edits when appropriate; use isolated branches/worktrees for larger or parallel edits and keep file scope disjoint.
 
 ## Validation Rules
 
-Run targeted UI tests where useful, `bun run lint:design-system`, and broader
-checks per `VALIDATION_MATRIX.md`.
+Run targeted UI tests where useful, `bun run lint:design-system` for substantial or shared UI changes, and broader checks per `VALIDATION_MATRIX.md`.
 
-## Design-System Rules
+## Design-System Guidance
 
 Strictly follow `DESIGN.md`: SF Pro app scale, regular/medium weights, zero
 tracking, xs radius, shared primitives, and compact app typography.

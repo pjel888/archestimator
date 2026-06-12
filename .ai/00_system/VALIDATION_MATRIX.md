@@ -2,9 +2,13 @@
 
 **Last updated:** 2026-06-10
 
-## Active code-change gate
+## Proportional code-change gate
 
-For current Archestimator app/workshop code changes, run:
+For current Archestimator app/workshop code changes, choose the smallest gate
+that proves the touched behavior.
+
+Broad gate for shared, risky, release, auth, database, security, or route-wide
+changes:
 
 ```bash
 bun run validate
@@ -21,7 +25,7 @@ git diff --check
 - Bun unit tests
 - Vitest DOM/helper tests
 
-Storybook validation (review surface only, not production gate):
+Storybook validation remains a review surface, not a production gate:
 
 ```bash
 bun run storybook:validate  # check-components + check-boundary + static build
@@ -54,7 +58,11 @@ bun run launch:check-resend-readiness
 bun run launch:check-supabase-linked-readiness
 ```
 
-Add `bun run test:e2e` when auth, protected-route behavior, login rendering, route redirects, or other browser-only flows are changed. `test:e2e` is a separate Playwright command, not part of the default app gate.
+For narrow edits, prefer focused type checks, focused Vitest/Bun tests, LSP
+diagnostics, route smoke checks, and `git diff --check`. Add `bun run test:e2e`
+when auth, protected-route behavior, login rendering, route redirects, or other
+browser-only flows are changed. `test:e2e` is a separate Playwright command,
+not part of the default app gate.
 
 ## Current active route surface
 
@@ -102,15 +110,15 @@ Add `bun run test:e2e` when auth, protected-route behavior, login rendering, rou
 
 Do not use the old reset-era assumption that `/workshop` is intentionally blank or that `/workshop/projects` is deleted. The authenticated Supabase-backed workshop path is now active.
 
-## Required checks for app/workshop UI changes
+## App/workshop UI checks
 
-- Run `bun run lint:design-system` for every app/workshop UI change. `bun run lint:font-size` is an alias kept for older runbooks.
+- Run `bun run lint:design-system` for substantial app/workshop UI changes, shared component changes, or visual-polish tasks. For tiny localized UI fixes, inspect the touched markup/styles and run the narrowest useful test or smoke check. `bun run lint:font-size` is an alias kept for older runbooks.
 - No visible non-landing font size above `12px`; normal app/workshop controls/body/table/input/button text should remain around `10px`, subtitles around `11px`, and meta/helper labels around `8-9px`.
 - Labels, eyebrows, metadata, helper copy, and muted subheaders must be smaller than the paired input/control/body text they describe; lint/test coverage must enforce role-specific hierarchy, not only the 12px ceiling.
 - No non-landing font weight outside regular/medium, no nonzero tracking, and no mono/serif/Poppins app UI typography.
 - No non-landing border radius outside `rounded-xs` / `3px`.
 - No non-landing bold/fill/duotone icon weights.
-- Shared primitives must be used or extended before creating repeated local controls:
+- Reuse or extend shared primitives before creating repeated local controls:
   - `Button`
   - `ButtonLink`
   - `ControlField`
@@ -123,15 +131,16 @@ Do not use the old reset-era assumption that `/workshop` is intentionally blank 
   - `Chip`
   - `EmptyState`
 - Add or update tests when a feature adds a new reusable-control pattern.
-- Do not create raw feature-local button/search/icon-button class strings.
+- Avoid raw feature-local button/search/icon-button class strings when a shared primitive already fits.
 
-## Required checks for Storybook (review surface only)
+## Storybook checks (review surface only)
 
-- Run `bun run storybook:check-components` to verify story file count and required standalone titles.
-- Run `bun run storybook:check-boundary` to enforce the provider boundary (no Supabase/auth dependencies in stories).
-- Run `bun run storybook:validate` for the full gate (components + boundary + static build).
+- Run Storybook checks when adding or changing Storybook stories, shared UI primitives, or the component-library review surface.
+- Use `bun run storybook:check-components` to verify story file count and required standalone titles.
+- Use `bun run storybook:check-boundary` to enforce the provider boundary (no Supabase/auth dependencies in stories).
+- Use `bun run storybook:validate` for the full gate (components + boundary + static build).
 - Storybook stories must not import live Supabase clients, server actions, or auth hooks.
-- New UI components must have story coverage before merging.
+- New shared UI components should have story coverage before merging unless the task is an urgent narrow fix with a documented follow-up.
 - Storybook is a review surface only. Do NOT migrate production app routes to new component library without Philip's explicit approval and a separate route-by-route migration plan.
 
 ## Required checks for notification system
