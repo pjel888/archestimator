@@ -50,7 +50,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
 | R5.1 template CRUD/category management unchanged | `component-library/actions.ts:831-1103` | 06 §9–10 | 5 | existing template surfaces | existing suites stay green | R-ACTIONS | **implemented (preserved local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-template-preservation.log` (4 files / 75 tests passed); no template CRUD code changed in this proof slice |
-| R5.2 template editor remains template-only | `TemplateEditorClient.tsx` | 06 §12 (D-8) | 5 | editor route | editor suite green | — | planned |
+| R5.2 template editor remains template-only | `TemplateEditorClient.tsx` | 06 §12 (D-8) | 5 | editor route | editor suite green | — | **implemented (local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-template-editor-template-only.log` (2 files / 16 tests passed); editor sidebar receives scratch/template-only props with no project-source insertion callback |
 | R5.3 template insert flow untouched for templates | `insert_…_with_history` (`20260524033151:1000`) | 06 §7 | 5 | — | template sidebar/gallery/drop-zone suites green | — | **implemented (preserved local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-template-preservation.log` (sidebar, browse/gallery, modal, drop zones); provider/RPC proof remains separate |
 
 ## Group 6 — Drag/drop and non-drag insertion

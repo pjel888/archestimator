@@ -10,6 +10,10 @@ import {
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 
+const componentLibraryMocks = vi.hoisted(() => ({
+  estimateRightSidebar: vi.fn(),
+}));
+
 vi.mock("@/lib/component-library/actions", () => ({
   loadCurrentWorkspaceComponentLibrary: vi.fn(async () => ({
     libraryItems: [],
@@ -22,7 +26,10 @@ vi.mock("@/lib/component-library/actions", () => ({
 }));
 
 vi.mock("@/components/workshop/component-library", () => ({
-  EstimateRightSidebar: () => <aside aria-label="Components dock stub" />,
+  EstimateRightSidebar: (props: unknown) => {
+    componentLibraryMocks.estimateRightSidebar(props);
+    return <aside aria-label="Components dock stub" />;
+  },
 }));
 
 function createDataTransferStub(types: string[]) {
@@ -141,6 +148,7 @@ function renderEditor(template: EstimateTemplate) {
 describe("TemplateEditorClient", () => {
   beforeEach(() => {
     navigationMocks.refresh.mockReset();
+    componentLibraryMocks.estimateRightSidebar.mockReset();
     for (const mock of Object.values(actionMocks)) mock.mockReset();
     actionMocks.updateEstimateTemplateRowItem.mockResolvedValue({ row: {} });
     actionMocks.removeEstimateTemplateRowItem.mockResolvedValue({ rowId: "row-1" });
@@ -164,6 +172,25 @@ describe("TemplateEditorClient", () => {
     expect(screen.getByRole("region", { name: "Template content" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("GROHE Lavatory Faucet")).toBeInTheDocument();
     expect(screen.getByText("Totals are reference pricing: estimates re-price on insert")).toBeInTheDocument();
+  });
+
+  it("keeps the re-hosted sidebar template-only without project-source props", async () => {
+    renderEditor(buildTemplate());
+
+    await waitFor(() => expect(componentLibraryMocks.estimateRightSidebar).toHaveBeenCalled());
+    const props = componentLibraryMocks.estimateRightSidebar.mock.calls.at(-1)?.[0] as {
+      templateCreateMode?: string;
+      projectId?: string;
+      estimateId?: string;
+      projectSources?: unknown[];
+      onInsertProjectSource?: unknown;
+    };
+
+    expect(props.templateCreateMode).toBe("scratch");
+    expect(props.projectId).toBeUndefined();
+    expect(props.estimateId).toBeUndefined();
+    expect(props.projectSources).toBeUndefined();
+    expect(props.onInsertProjectSource).toBeUndefined();
   });
 
   it("commits an inline quantity edit through the row update action", async () => {

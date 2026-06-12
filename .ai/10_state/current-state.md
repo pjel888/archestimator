@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 R5.2 Template Editor Template-Only Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 templates work now has explicit local proof that the template editor
+stays template-only while project-derived sources remain out of editor
+composition in v1. `TemplateEditorClient` mounts the re-hosted sidebar in
+`scratch` template mode without `projectId`, `estimateId`, `projectSources`, or
+`onInsertProjectSource`, and the library route layout still hides the normal tab
+strip on template editor routes. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r5-2-template-editor-only-implementation-run.md`:
+`bunx vitest run tests/vitest/template-editor.test.tsx tests/vitest/library-tabs-layout.test.tsx --maxWorkers=1`
+passed (2 files / 16 tests), `bun run type-check` passed, and `git diff --check`
+passed. D-8 remains in force: project-derived content composition in the editor
+is deferred; save-as-template from source, browse-route project-source parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R5.1/R5.3 Template Flow Preservation Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 project-source work now has fresh local preservation evidence for
 existing custom template behavior. A proof-only suite covering the estimate
