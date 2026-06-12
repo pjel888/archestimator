@@ -9,13 +9,16 @@ export type UpdateEstimateRowItemInput = Partial<Omit<EstimateRowItem, "id" | "e
 
 export type EstimateRepository = {
   getEstimateTree(estimateId: string): Promise<EstimateTree>;
+  getEstimateTabTree(estimateId: string, tabId: string): Promise<EstimateTree>;
   moveEstimateRowItem(estimateId: string, input: MoveEstimateRowItemInput): Promise<EstimateTree>;
   insertEstimateRowItem(estimateId: string, input: InsertEstimateRowItemInput): Promise<EstimateTree>;
   updateEstimateRowItem(estimateId: string, rowId: string, input: UpdateEstimateRowItemInput): Promise<EstimateTree>;
   deleteEstimateRowItem(estimateId: string, rowId: string): Promise<EstimateTree>;
 };
 
-type EstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order">;
+type EstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order"> & {
+  estimate_tab_id?: string | null;
+};
 type EstimateRowItemRow = Pick<
   Tables<"estimate_row_items">,
   | "description"
@@ -57,6 +60,7 @@ function toEstimateNode(row: EstimateNodeRow): EstimateNode | null {
   return {
     id: row.id,
     estimateId: row.estimate_id,
+    estimateTabId: row.estimate_tab_id ?? null,
     parentId: row.parent_id,
     kind: row.kind,
     name: row.name,
@@ -114,6 +118,13 @@ const inMemoryEstimateRepository: EstimateRepository = {
     return inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
   },
 
+  async getEstimateTabTree(estimateId, tabId) {
+    const current = inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
+    const nodes = current.nodes.filter((node) => !node.estimateTabId || node.estimateTabId === tabId);
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    return { nodes, rows: current.rows.filter((row) => nodeIds.has(row.nodeId)) };
+  },
+
   async moveEstimateRowItem(estimateId, input) {
     const current = inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
     const next = moveTreeRowItem(current, input);
@@ -168,6 +179,38 @@ const supabaseEstimateRepository: EstimateRepository = {
         const node = toEstimateNode(row);
         return node ? [node] : [];
       }),
+      rows: (rowsResult.data ?? []).map(toEstimateRowItem),
+    };
+  },
+
+  async getEstimateTabTree(estimateId, tabId) {
+    const supabase = createSupabaseBrowserClient();
+    const nodesQuery = supabase
+      .from("estimate_nodes")
+      .select(`${ESTIMATE_NODE_SELECT}, estimate_tab_id`)
+      .eq("estimate_id", estimateId);
+    const nodesResult = await (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
+      .eq("estimate_tab_id", tabId)
+      .order("sort_order", { ascending: true });
+
+    if (nodesResult.error) throw nodesResult.error;
+
+    const nodes = ((nodesResult.data ?? []) as unknown as EstimateNodeRow[]).flatMap((row) => {
+      const node = toEstimateNode(row);
+      return node ? [node] : [];
+    });
+    const nodeIds = nodes.map((node) => node.id);
+    if (nodeIds.length === 0) return { nodes, rows: [] };
+
+    const rowsResult = await supabase
+      .from("estimate_row_items")
+      .select(ESTIMATE_ROW_ITEM_SELECT)
+      .in("node_id", nodeIds)
+      .order("sort_order", { ascending: true });
+    if (rowsResult.error) throw rowsResult.error;
+
+    return {
+      nodes,
       rows: (rowsResult.data ?? []).map(toEstimateRowItem),
     };
   },

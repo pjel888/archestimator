@@ -44,6 +44,7 @@ function nodeName(event: EstimateActivityInput) {
 function targetForEstimate(event: EstimateActivityInput): ActivityTarget {
   if (event.targetRowId) return { id: event.targetRowId, kind: "row", label: rowMaterial(event), secondaryLabel: readString(event.rowContext?.nodePath, event.rowContext?.areaName, "Estimate row") };
   if (event.estimateNodeId) return { id: event.estimateNodeId, kind: "node", label: nodeName(event) };
+  if (event.eventType.startsWith("tab_")) return { id: typeof event.payload?.estimateTabId === "string" ? event.payload.estimateTabId : undefined, kind: "tab", label: readString(event.payload?.name, event.payload?.tabName, "Estimate tab") };
   return { kind: "sheet", label: readString(event.payload?.estimateName, event.payload?.sheetCode, "Estimate sheet") };
 }
 
@@ -100,6 +101,18 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
       return `${actor} deleted ${target.label} and its contents.`;
     case "tree_reordered":
       return `${actor} reorganized the estimate tree.`;
+    case "tab_created":
+      return `${actor} created tab ${target.label}.`;
+    case "tab_renamed":
+      return `${actor} renamed tab ${readString(oldData.name, "the previous tab")} to ${target.label}.`;
+    case "tab_reordered":
+      return `${actor} reordered estimate tabs.`;
+    case "tab_duplicated":
+      return `${actor} duplicated tab ${target.label}.`;
+    case "tab_archived":
+      return `${actor} archived tab ${target.label}.`;
+    case "tab_deleted":
+      return `${actor} deleted tab ${target.label}.`;
     default:
       return "Activity recorded.";
   }
