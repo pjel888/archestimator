@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Source Filter Chips Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 sidebar Templates tab now has local source-section filters on top of
+the earlier project-source preview metadata seam. When custom templates and
+project-derived sources are both present, `All sources`, `Custom templates`, and
+`Project sources` chips drive the rendered tree, cascade selection, bulk
+insertion resolution, preview source lookup, and expand-all node set. Existing
+current-project narrowing remains available when project sources are visible.
+Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase
+run summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-filter-chips-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 53 tests), `bun run type-check` passed, and `git diff --check`
+passed. R4.4 is still not fully complete: server-backed live metadata freshness,
+richer preview row detail, route-level project-source preview/search parity,
+save-as-template from project source, insert RPC/action, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.6 Browse Route Divergence Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 templates work now has local route/sidebar divergence proof. The
 `/workshop/library/templates` browse manager remains a template-management

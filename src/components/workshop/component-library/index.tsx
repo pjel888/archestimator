@@ -102,6 +102,7 @@ const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
 type ProjectSourceScope = "all" | "current-project";
+type TemplateSourceFilter = "all" | "custom" | "projects";
 
 function getComponentTreeTab(mode: ComponentViewMode): EstimateComponentTreeTab {
   if (mode === "brand") return "brands";
@@ -574,6 +575,7 @@ export function EstimateRightSidebar({
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
   const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
+  const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
   const [projectSourcesError, setProjectSourcesError] = useState("");
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
@@ -816,18 +818,26 @@ export function EstimateRightSidebar({
     if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
     return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
   }, [loadedProjectSources, projectId, projectSourceScope]);
+  const visibleTemplateList = useMemo(
+    () => (templateSourceFilter === "projects" ? [] : templateList),
+    [templateList, templateSourceFilter],
+  );
+  const visibleTemplateProjectSources = useMemo(
+    () => (templateSourceFilter === "custom" ? [] : visibleProjectSources),
+    [templateSourceFilter, visibleProjectSources],
+  );
   const templatesSelectionNodes = useMemo(
-    () => buildTemplatesSelectionNodes(templateList, visibleProjectSources),
-    [templateList, visibleProjectSources],
+    () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources),
+    [visibleTemplateList, visibleTemplateProjectSources],
   );
   const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
   const previewProjectSource = useMemo(
-    () => findProjectSourceByKey(visibleProjectSources, previewProjectSourceKey),
-    [previewProjectSourceKey, visibleProjectSources],
+    () => findProjectSourceByKey(visibleTemplateProjectSources, previewProjectSourceKey),
+    [previewProjectSourceKey, visibleTemplateProjectSources],
   );
   const templatesAllNodeIds = useMemo(
-    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, visibleProjectSources)),
-    [templateList, visibleProjectSources],
+    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(visibleTemplateList, visibleTemplateProjectSources)),
+    [visibleTemplateList, visibleTemplateProjectSources],
   );
   const templatesProjectSourceEmptyState = useMemo(() => {
     if (projectSourcesLoading) {
@@ -866,7 +876,11 @@ export function EstimateRightSidebar({
     return null;
   }, [projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
   const templatesProjectSourceScopeControls = useMemo(() => {
-    if (!projectId || loadedProjectSources.every((source) => source.kind === "custom-template")) return null;
+    if (
+      templateSourceFilter === "custom" ||
+      !projectId ||
+      loadedProjectSources.every((source) => source.kind === "custom-template")
+    ) return null;
     return (
       <div className="mb-2 flex gap-1" role="group" aria-label="Project source scope">
         <Button
@@ -891,7 +905,39 @@ export function EstimateRightSidebar({
         </Button>
       </div>
     );
-  }, [loadedProjectSources, projectId, projectSourceScope]);
+  }, [loadedProjectSources, projectId, projectSourceScope, templateSourceFilter]);
+  const handleTemplateSourceFilterChange = useCallback((nextFilter: TemplateSourceFilter) => {
+    setTemplateSourceFilter(nextFilter);
+    setBulkSelectedNodeIds(new Set());
+    if (nextFilter === "custom") setPreviewProjectSourceKey(null);
+  }, []);
+  const templatesSourceFilterControls = useMemo(() => {
+    const hasCustomTemplates = templateList.length > 0;
+    const hasProjectSources = loadedProjectSources.some((source) => source.kind !== "custom-template") || projectSourcesLoading;
+    if (!hasCustomTemplates || !hasProjectSources) return null;
+    const filters: Array<{ id: TemplateSourceFilter; label: string }> = [
+      { id: "all", label: "All sources" },
+      { id: "custom", label: "Custom templates" },
+      { id: "projects", label: "Project sources" },
+    ];
+    return (
+      <div className="mb-2 flex gap-1" role="group" aria-label="Reusable source filter">
+        {filters.map((filter) => (
+          <Button
+            key={filter.id}
+            type="button"
+            variant="outline"
+            size="xs"
+            aria-pressed={templateSourceFilter === filter.id}
+            className="min-h-6 min-w-0 flex-1 px-2 py-1"
+            onClick={() => handleTemplateSourceFilterChange(filter.id)}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+    );
+  }, [handleTemplateSourceFilterChange, loadedProjectSources, projectSourcesLoading, templateList.length, templateSourceFilter]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -910,13 +956,13 @@ export function EstimateRightSidebar({
   // Cascade selections resolve to top-most insertable units: whole
   // templates, group/area subtrees, and bare component rows.
   const bulkTemplateUnits = useMemo(
-    () => getCheckedTemplateUnits(templateList, bulkSelectedNodeIds),
-    [bulkSelectedNodeIds, templateList],
+    () => getCheckedTemplateUnits(visibleTemplateList, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, visibleTemplateList],
   );
   const bulkTemplateUnitCount = bulkTemplateUnits.templates.length + bulkTemplateUnits.templateNodes.length;
   const bulkProjectSourceTargets = useMemo(
-    () => getCheckedProjectSourceTargets(visibleProjectSources, bulkSelectedNodeIds),
-    [bulkSelectedNodeIds, visibleProjectSources],
+    () => getCheckedProjectSourceTargets(visibleTemplateProjectSources, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, visibleTemplateProjectSources],
   );
   const bulkProjectSourceTargetCount = bulkProjectSourceTargets.length;
 
@@ -1257,6 +1303,7 @@ export function EstimateRightSidebar({
     setSearchOpen(false);
     setPreviewItemId(null);
     setPreviewProjectSourceKey(null);
+    setTemplateSourceFilter("all");
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, []);
@@ -1580,10 +1627,11 @@ export function EstimateRightSidebar({
             {activeTab === "templates" ? (
               <>
                 {templatesProjectSourceStatus}
+                {templatesSourceFilterControls}
                 {templatesProjectSourceScopeControls}
                 <TemplatesTree
-                  templates={templateList}
-                  projectSources={visibleProjectSources}
+                  templates={visibleTemplateList}
+                  projectSources={visibleTemplateProjectSources}
                   searchQuery={searchQuery}
                   expandedNodeIds={templatesExpandedIds}
                   onToggle={handleTemplatesToggle}
@@ -1700,7 +1748,7 @@ export function EstimateRightSidebar({
         {previewProjectSource ? (
           <ProjectSourcePreviewPanel
             source={previewProjectSource}
-            sources={visibleProjectSources}
+            sources={visibleTemplateProjectSources}
             onClose={() => setPreviewProjectSourceKey(null)}
             onAdd={addProjectSource}
             addDisabled={!canInsertTemplate}
