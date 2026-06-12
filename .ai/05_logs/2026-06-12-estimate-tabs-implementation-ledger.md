@@ -2026,3 +2026,50 @@ label=diff-check-public-cache-font-fix exit_code=0 timed_out=False log=.ai/05_lo
   hero/company-proof/footer contracts.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+
+## Phase 5 landing contract repair
+
+### Summary
+
+Updated stale landing contract tests for the current simplified public landing
+flow: hero, company-proof/workflow section, secondary claim, final CTA, and
+centered footer. Removed unused CSS for the retired empty company-logo marquee
+rail. The landing-focused suite now passes, and full validation is down to the
+provider/typegen-gated Supabase history RPC generated-types contract.
+
+### Changed files
+
+- `src/app/globals.css`
+- `tests/vitest/landing-amigo-redesign.test.tsx`
+- `tests/vitest/landing-company-proof.test.ts`
+- `tests/vitest/landing-interactivity.test.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-landing-contracts-repair-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=vitest-landing-contracts-red exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-focused-red.log result=3_files_11_failed_tests_stale_landing_contracts
+label=vitest-landing-contracts-green exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-focused-green.log result=3_files_17_tests_passed
+label=type-check-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-type-check.log
+label=eslint-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-eslint.log
+label=no-excuse-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-no-excuse.log result=no_violations_in_3_files
+label=loc-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-loc.log result=135_80_208_664_pure_loc_globals_inherited_oversized_decreased
+label=design-system-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-design-system.log
+label=design-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-design.log
+label=build-landing-contracts exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/landing-contracts-build.log result=next_build_passed_next_env_route_type_churn_restored
+label=validate-after-landing-contracts-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-validate-after-landing-contracts-fix.log result=test_dom_remaining_1_failed_file_1_failed_test_supabase_history_rpc_generated_type_gap
+label=diff-check-landing-contracts-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-landing-contracts-repair.log
+```
+
+### Remaining Phase 5 boundary
+
+- Landing contracts pass and are no longer part of refreshed full-validation
+  failures.
+- Full `bun run validate` still fails only in the generated Supabase history RPC
+  type contract (`estimate-sheet-version-control-actions.test.ts`), which is
+  provider/typegen-gated and not repaired by this local landing slice.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.

@@ -2254,3 +2254,12 @@ Open:
 - Linked Supabase proof: migration `20260606095935` was applied to ArchEstimator project `ebxxqidacheyapmmzavr` by exact-file query, repaired into migration history, and verified by table/grant/RLS/type-shape readback. Evidence lives at `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/evidence/2026-06-06-linked-supabase-terms-migration-proof.md`.
 - Validation: red-first focused Terms tests, focused green 7 files / 19 tests, `bun run validate` passed (typecheck, lint, design-system lint, unit tests, 195 Vitest files / 1475 passing / 2 skipped), `bun run build` passed, and `bun run test:e2e` passed (9 passed / 24 environment-gated skipped).
 - Remaining gates: qualified lawyer review before public/paid launch enforcement, exact entity/notices/venue/dispute language, hosted real-user acceptance smoke, global Supabase migration-parity reconciliation for broad `db push`, and normal production release/deployment proof if/when this merged main is deployed.
+
+## Estimate Tabs Phase 5 Landing Contract Repair (2026-06-12)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Repaired stale landing tests for the current simplified public landing flow: hero, company-proof/workflow section, secondary claim, final CTA, and centered footer.
+- Removed unused CSS for the retired empty company-logo marquee rail in `src/app/globals.css`; retained testimonial crossfade reduced-motion behavior.
+- Evidence: `.ai/05_logs/2026-06-12-estimate-tabs-phase5-landing-contracts-repair-run.md` plus focused red/green, type-check, ESLint, no-excuse, design, build, LOC, diff-check, and full-validate logs under `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`.
+- Fresh broad status: `bun run validate` now fails only in `tests/vitest/estimate-sheet-version-control-actions.test.ts` because generated Supabase types still lack the estimate-tab history RPC names (for example `archive_estimate_tab_with_history`). No landing/public cache/font/project-summary/project-dashboard failures remain in the refreshed validation run.
+- Boundary: no linked Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual proof, or browser visual proof was performed.
