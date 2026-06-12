@@ -2320,3 +2320,10 @@ Open:
 - Refreshed stale matrix rows that were already locally implemented/proven by the current branch: R1.1-R1.6, R7.1-R7.3, R9.1, R12.1-R12.3, and R13.4 now distinguish local implementation from linked/provider/browser proof gaps.
 - Fresh broad evidence after commits `bacf01bd` and `d7c9c450`: `bun run validate` passed (typecheck, ESLint with 549 warnings / 0 errors, design-system, strict design, unit tests, 243 Vitest files passed / 1 skipped, 1,771 tests passed / 3 skipped), `bun run build` passed, and `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed.
 - Merge-to-main remains blocked because the matrix still has planned/open rows requiring implementation or external proof, especially publication snapshot v1.2 tabs (R10.4), activity/collaboration tab proof (R10.1-R10.3), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, and owner/product review rows.
+
+## Estimate Tabs R10.3 Collaboration Presence Active-tab Attribution Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Added additive `activeTabId` support to `useProjectPresence` so slow presence state can advertise the active estimate tab when callers provide it; existing high-frequency cursor broadcast already includes and filters by `tabId`.
+- Local evidence: `bun x vitest run tests/vitest/project-collaboration-realtime.test.ts tests/vitest/estimate-cursor-broadcast-throttle.test.ts --maxWorkers=1` passed (2 files / 4 tests), `bun run type-check` passed, focused ESLint passed, and `git diff --check` passed.
+- Boundary: no live Supabase realtime, 2-browser hosted/manual QA, linked provider proof, or production deploy was performed.

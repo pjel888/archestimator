@@ -95,7 +95,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 |---|---|---|---|---|---|---|---|
 | R10.1 tab events (`tab_*`) + node/row event tab stamping | `estimate_sheet_events` free-text types | 04 §7; 03 §8 | 1–2 | RPCs, composer | activity tests | — | planned |
 | R10.2 activity UI tab scope | `activity-history.tsx:22-24` | 04 §7 | 3 | activity surfaces | version-control-ui ext | — | planned |
-| R10.3 cursor tabId filter; presence additive | `use-estimate-cursor-broadcast.ts:11-19` | 05 §7 | 3 | hooks, cursor layer | realtime test; 2-browser QA | R-COLLAB | planned |
+| R10.3 cursor tabId filter; presence additive | `use-estimate-cursor-broadcast.ts:11-19` | 05 §7 | 3 | hooks, cursor layer | realtime test; 2-browser QA | R-COLLAB | **implemented (local-only)** — cursor payload/filter already includes `tabId`; project presence payload now accepts/tracks additive `activeTabId`; focused collaboration realtime + cursor tests pass. 2-browser hosted/manual QA remains open. |
 | R10.4 publication snapshot v1.2 (tabs) + old-snapshot rendering | `snapshot.ts:118-187` | 02 §11 | 5/7 | publication builder, share components | v1.1/v1.2 side-by-side | R-PUB | planned |
 | R10.5 dormant version stack guarded, v3 documented | zero call sites (01 §12) | 03 §8–9 | 1 (guard) | migration comment | schema test | R-VERS | planned (feature itself deferred) |
 | R10.6 release gate prevents user-visible tab creation before export support | D-15 | 07 §10; 10 Phase 3/6; 14 §6 | 3/6 | editor controls, export preview | release checklist; browser QA | R-RELEASE | locally satisfied for export support; browser/provider release proof open |

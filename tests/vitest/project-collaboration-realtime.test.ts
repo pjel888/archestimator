@@ -14,6 +14,10 @@ describe("project collaboration realtime hooks", () => {
     expect(presenceHook).toContain("config: { private: true }");
     expect(presenceHook).toContain(".on(\"presence\", { event: \"sync\" }");
     expect(presenceHook).toContain(".track(");
+    expect(presenceHook).toContain("activeTabId: string | null");
+    expect(presenceHook).toContain("activeTabId = null");
+    expect(presenceHook).toContain("activeTabId,");
+    expect(presenceHook).toContain("[activeEstimateId, activeTabId");
     expect(cursorHook).toContain('export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:"');
     expect(cursorHook).toContain('export const CURSOR_BROADCAST_EVENT = "cursor"');
     expect(cursorHook).toContain("config: { private: true }");
