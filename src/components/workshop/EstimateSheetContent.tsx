@@ -748,16 +748,21 @@ export function EstimateSheetContent({
       currency: "PHP",
     };
   }, [estimateId, projectId, proposalExportMetadata]);
-  const currentProposalPreviewSignature = useMemo(
-    () => createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
-    [editableRows, estimateTree, resolvedProposalExportMetadata],
-  );
-  const proposalDownloadHref = useMemo(
-    () => (projectId && estimateId ? `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx` : null),
-    [estimateId, projectId],
-  );
   const persistedTabs = useMemo(() => estimateTabs.filter((tab) => tab.id !== "legacy-main"), [estimateTabs]);
   const hasMultiplePersistedTabs = persistedTabs.length > 1;
+  const currentProposalPreviewSignature = useMemo(
+    () => [
+      createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
+      dataTabId ?? "legacy",
+      persistedTabs.map((tab) => `${tab.id}:${tab.name}:${tab.sortOrder}`).join("|"),
+    ].join("::"),
+    [dataTabId, editableRows, estimateTree, persistedTabs, resolvedProposalExportMetadata],
+  );
+  const proposalDownloadHref = useMemo(() => {
+    if (!projectId || !estimateId) return null;
+    const baseHref = `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
+    return hasMultiplePersistedTabs && dataTabId ? `${baseHref}?tab=${encodeURIComponent(dataTabId)}` : baseHref;
+  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId]);
   const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
@@ -1035,7 +1040,6 @@ export function EstimateSheetContent({
       });
   }, [activityFilters, estimateId, historyData, inspector, isHistoryLoadingMore, projectId]);
   const buildProposalPreview = useCallback(() => {
-    if (hasMultiplePersistedTabs) return null;
     if (!resolvedProposalExportMetadata) return null;
 
     const model = buildProposalExportModel({
@@ -1045,7 +1049,7 @@ export function EstimateSheetContent({
     setProposalPreviewModel(model);
     setProposalPreviewSignature(currentProposalPreviewSignature);
     return model;
-  }, [currentProposalPreviewSignature, editableRows, estimateTree, hasMultiplePersistedTabs, resolvedProposalExportMetadata]);
+  }, [currentProposalPreviewSignature, editableRows, estimateTree, resolvedProposalExportMetadata]);
   const openProposalPreview = useCallback(() => {
     const model = buildProposalPreview();
     if (model) setIsProposalPreviewOpen(true);
@@ -1591,7 +1595,7 @@ export function EstimateSheetContent({
     setBulkSelectedRowIds(new Set());
   }
   const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
-  const canPreviewCurrentExport = Boolean(resolvedProposalExportMetadata) && !hasMultiplePersistedTabs;
+  const canPreviewCurrentExport = Boolean(resolvedProposalExportMetadata);
 
   return (
     <>
@@ -1689,7 +1693,7 @@ export function EstimateSheetContent({
         ) : null}
         {hasMultiplePersistedTabs ? (
           <p className="border-b border-hairline bg-white px-3 py-1 text-[10px] leading-4 text-tertiary">
-            Export currently includes the Main tab only. Tab-aware export controls ship in the export phase before multi-tab editing is beta-visible.
+            XLSX export now supports all tabs by default. This preview and its download link are scoped to the active tab.
           </p>
         ) : null}
         {isActiveTabTreeLoading ? (

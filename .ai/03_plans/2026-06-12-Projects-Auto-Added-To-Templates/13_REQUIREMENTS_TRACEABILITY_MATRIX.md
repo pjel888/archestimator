@@ -74,19 +74,19 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R8.1 one worksheet per tab; global Summary/Terms/Breakdown (Option C) | workbook audit (07 §1) | 07 §3 (D-10) | 6 | create-proposal-workbook, model | multi-tab suite | R-XLSX2 | planned |
-| R8.2 single-tab byte-shape preserved | pinned tests (`proposal-workbook.test.ts:92-97`) | 07 §3 | 6 | same | unmodified assertions pass | R-XLSX2 | planned |
-| R8.3 worksheet-name sanitizer (chars/31/dedupe/escape) | none exists (verified) | 07 §4 | 6 | new `worksheet-name.ts` | sanitizer unit suite | R-XLSX | planned |
-| R8.4 route back-compat + `?tab=` + filename slug | `route.ts`; `filename.ts` | 07 §5 | 6 | route, filename | route tests; hosted smoke | R-URL | planned |
-| R8.5 preview/export model alignment | shared model (01 §10) | 07 §6, §9 | 6 | preview dialog, shared fixtures | aligned fixtures | R-TEST | planned |
-| R8.6 large-estimate behavior (limits, benchmark, streaming escape hatch) | benchmark evidence | 07 §8 | 6 | benchmark script | 5-tab benchmark | R-PERF2 | **assumption** (buffered OK at beta scale) |
+| R8.1 one worksheet per tab; global Summary/Terms/Breakdown (Option C) | workbook audit (07 §1) | 07 §3 (D-10) | 6 | create-proposal-workbook, model | multi-tab suite | R-XLSX2 | implemented locally; provider/manual proof open |
+| R8.2 single-tab byte-shape preserved | pinned tests (`proposal-workbook.test.ts:92-97`) | 07 §3 | 6 | same | unmodified assertions pass | R-XLSX2 | implemented locally; focused tests pass |
+| R8.3 worksheet-name sanitizer (chars/31/dedupe/escape) | none exists (verified) | 07 §4 | 6 | new `worksheet-name.ts` | sanitizer unit suite | R-XLSX | implemented locally; focused tests pass |
+| R8.4 route back-compat + `?tab=` + filename slug | `route.ts`; `filename.ts` | 07 §5 | 6 | route, filename | route tests; hosted smoke | R-URL | implemented locally; hosted smoke open |
+| R8.5 preview/export model alignment | shared model (01 §10) | 07 §6, §9 | 6 | preview dialog, shared fixtures | aligned fixtures | R-TEST | implemented locally for active-tab preview/download; all-tabs scope-chip UX remains hardening follow-up |
+| R8.6 large-estimate behavior (limits, benchmark, streaming escape hatch) | benchmark evidence | 07 §8 | 6 | benchmark script | 5-tab benchmark | R-PERF2 | implemented locally; 5×500 benchmark 443.59ms / 0.39 MiB |
 
 ## Group 9 — Backward-compatible routes
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
 | R9.1 `/estimates/[nodeId]` node/estimate fallback preserved; tab derived | `workspace-repository.ts:1655` | 02 §13 (D-4) | 2–3 | resolver, page | route tests; QA #7 | R-URL | planned |
-| R9.2 export links unchanged | `route.ts` | 07 §5 | 6 | route | hosted smoke | R-URL | planned |
+| R9.2 export links unchanged | `route.ts` | 07 §5 | 6 | route | hosted smoke | R-URL | implemented locally; hosted smoke open |
 | R9.3 invite/share deep links unchanged | `invite/[token]/page.tsx:68-72` | 02 §9 | 4, 7 | none (estimate-id URLs) | invite e2e | R-COLLAB | planned |
 
 ## Group 10 — Collaboration / versioning / publication / audit impacts
@@ -98,7 +98,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | R10.3 cursor tabId filter; presence additive | `use-estimate-cursor-broadcast.ts:11-19` | 05 §7 | 3 | hooks, cursor layer | realtime test; 2-browser QA | R-COLLAB | planned |
 | R10.4 publication snapshot v1.2 (tabs) + old-snapshot rendering | `snapshot.ts:118-187` | 02 §11 | 5/7 | publication builder, share components | v1.1/v1.2 side-by-side | R-PUB | planned |
 | R10.5 dormant version stack guarded, v3 documented | zero call sites (01 §12) | 03 §8–9 | 1 (guard) | migration comment | schema test | R-VERS | planned (feature itself deferred) |
-| R10.6 release gate prevents user-visible tab creation before export support | D-15 | 07 §10; 10 Phase 3/6; 14 §6 | 3/6 | editor controls, export preview | release checklist; browser QA | R-RELEASE | planned |
+| R10.6 release gate prevents user-visible tab creation before export support | D-15 | 07 §10; 10 Phase 3/6; 14 §6 | 3/6 | editor controls, export preview | release checklist; browser QA | R-RELEASE | locally satisfied for export support; browser/provider release proof open |
 
 ## Group 11 — AI / Ask Flip / package-builder impacts
 

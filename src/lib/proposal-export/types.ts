@@ -161,3 +161,17 @@ export type ProposalExportModel = {
   totals: ProposalExportTotals;
   generatedAt: string;
 };
+
+export type ProposalExportWorkbookTab = {
+  tabId: string;
+  tabName: string;
+  worksheetName: string;
+  model: ProposalExportModel;
+};
+
+export type ProposalTabbedWorkbookModel = {
+  metadata: ProposalExportMetadata;
+  settings: ProposalExportSettings;
+  tabs: ProposalExportWorkbookTab[];
+  generatedAt: string;
+};

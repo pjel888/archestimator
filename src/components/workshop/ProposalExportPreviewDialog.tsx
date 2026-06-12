@@ -64,7 +64,7 @@ export function ProposalExportPreviewDialog({
             <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
             <h2 className="mt-0.5 text-[10px] font-medium tracking-normal text-ink">Read-only Excel preview</h2>
             <p className="mt-1 max-w-2xl text-[10px] leading-4 text-secondary">
-              This preview consolidates identical items across rooms/areas. The workbook becomes editable only after XLSX download.
+              This preview consolidates identical items across rooms/areas within the selected tab. The workbook becomes editable only after XLSX download.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
