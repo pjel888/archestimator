@@ -9,6 +9,7 @@ describe("estimate cursor broadcast pressure guard", () => {
     expect(shouldQueueCursorBroadcast(null, previous)).toBe(true);
     expect(shouldQueueCursorBroadcast(previous, { ...previous, rowId: "row-2" })).toBe(true);
     expect(shouldQueueCursorBroadcast(previous, { ...previous, columnId: "col-2" })).toBe(true);
+    expect(shouldQueueCursorBroadcast({ ...previous, tabId: "tab-a" }, { ...previous, tabId: "tab-b" })).toBe(true);
   });
 
   it("suppresses tiny same-cell cursor movements", () => {

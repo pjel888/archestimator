@@ -1,5 +1,27 @@
 # Current State
 
+**Estimate Tabs Phase 0-3 Local Implementation Complete Through Editor UI (2026-06-12 local, branch `feat/estimate-tabs-phase3-editor-ui`):**
+The canonical estimate-tabs plan pack
+`.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/` has local implementation
+through Phase 3 on the stacked branch family. Phase 0 recorded the rerun baseline
+and known failures; Phase 1 added the local database foundation/migration harness;
+Phase 2 added tab-aware repository/domain/actions/query/state compatibility
+wrappers; Phase 3 now wires the estimate editor UI with a WAI-ARIA tab strip,
+route-resolved initial tabs, tab-scoped tree/sheet queries, per-tab selection,
+expansion, sheet collapse state, row invalidation, and cursor payload filtering.
+Release gate D-15 is enforced locally: tab create/duplicate/rename/reorder controls
+are hidden by default in beta editor routes, and proposal preview is blocked with a
+warning when multiple persisted tabs exist because tab-aware export remains Phase 6.
+Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase3/`: Phase 3 tab
+UI/domain/tree/cursor tests passed (4 files / 20 tests), sheet regression/perf tests
+passed (4 files / 54 tests), `bun run type-check` passed, `bun run build` passed,
+`bun run lint:design-system` passed, and `git diff --check` passed. Repo-wide
+`bun run lint` still fails only at the known baseline (3 errors / 548 warnings).
+No linked Supabase apply/typegen, hosted provider proof, Vercel deploy, or
+production/manual proof was performed. Browser visual proof is not claimed because
+the in-app Browser `iab` surface was unavailable and local `/workshop/projects`
+redirected to `/login`.
+
 **Lean agent mandate adopted (2026-06-12 local, branch `main`):**
 The root agent mandate now defaults to direct solo execution, minimal relevant
 context, scoped edits, and proportional verification. Heavy surfaces such as

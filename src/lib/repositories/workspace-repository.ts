@@ -1871,6 +1871,13 @@ export async function resolveEstimateTabRouteContext(
     };
   }
 
+  try {
+    const defaultTab = await getDefaultEstimateTab(routeSegment);
+    if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options);
+  } catch (error) {
+    if (!isEstimateTabsSchemaMissing(error)) throw error;
+  }
+
   const defaultResult = await getProjectEstimateTreeByEstimate(projectId, routeSegment, options);
   return { ...defaultResult, tab: null };
 }

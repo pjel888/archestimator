@@ -3,7 +3,8 @@ import { useCallback, useMemo } from "react";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { moveEstimateRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
 import type { EstimateTree } from "@/lib/domain/estimate-tree";
-import { fetchEstimateTabTree, fetchEstimateTree } from "@/lib/estimates/actions";
+import { fetchEstimateTabs, fetchEstimateTabTree, fetchEstimateTree } from "@/lib/estimates/actions";
+import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { estimateRepository } from "@/lib/repositories/estimate-repository";
 
 export const estimateQueryKeys = {
@@ -25,11 +26,13 @@ export function useEstimateAreaTreeQuery({
   estimateId,
   initialNodes,
   refetchOnWindowFocus = false,
+  enabled = true,
 }: {
   projectId?: string;
   estimateId?: string;
   initialNodes: EstimateTreeNode[];
   refetchOnWindowFocus?: boolean;
+  enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => estimateQueryKeys.areaTree(estimateId ?? "local-estimate"), [estimateId]);
@@ -38,7 +41,7 @@ export function useEstimateAreaTreeQuery({
     queryKey,
     queryFn: () => (projectId && estimateId ? fetchEstimateTree({ projectId, estimateId }) : Promise.resolve(initialNodes)),
     initialData: initialNodes,
-    enabled: Boolean(projectId && estimateId),
+    enabled: enabled && Boolean(projectId && estimateId),
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
@@ -83,12 +86,14 @@ export function useEstimateTabTreeQuery({
   tabId,
   initialNodes,
   refetchOnWindowFocus = false,
+  enabled = true,
 }: {
   projectId?: string;
   estimateId?: string;
   tabId?: string;
   initialNodes: EstimateTreeNode[];
   refetchOnWindowFocus?: boolean;
+  enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => estimateQueryKeys.tabTree(estimateId ?? "local-estimate", tabId ?? "local-tab"), [estimateId, tabId]);
@@ -97,7 +102,7 @@ export function useEstimateTabTreeQuery({
     queryKey,
     queryFn: () => (projectId && estimateId && tabId ? fetchEstimateTabTree({ projectId, estimateId, tabId }) : Promise.resolve(initialNodes)),
     initialData: initialNodes,
-    enabled: Boolean(projectId && estimateId && tabId),
+    enabled: enabled && Boolean(projectId && estimateId && tabId),
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
@@ -134,6 +139,28 @@ export function useEstimateTabTreeQuery({
   }, [queryClient, queryKey, tree]);
 
   return { ...query, data: tree, tree, queryKey, setTree, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
+}
+
+export function useEstimateTabsQuery({
+  projectId,
+  estimateId,
+  initialTabs = [],
+  enabled = true,
+}: {
+  projectId?: string;
+  estimateId?: string;
+  initialTabs?: EstimateTabSummary[];
+  enabled?: boolean;
+}) {
+  const query = useQuery({
+    queryKey: estimateQueryKeys.tabs(estimateId ?? "local-estimate"),
+    queryFn: () => (projectId && estimateId ? fetchEstimateTabs({ projectId, estimateId }) : Promise.resolve(initialTabs)),
+    initialData: initialTabs,
+    enabled: enabled && Boolean(projectId && estimateId),
+    staleTime: 5 * 60_000,
+  });
+
+  return { ...query, tabs: query.data ?? initialTabs };
 }
 
 export function useMoveEstimateRowItem(estimateId: string) {

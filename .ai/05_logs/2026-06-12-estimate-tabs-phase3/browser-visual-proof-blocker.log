@@ -1,0 +1,3 @@
+Browser skill was read and the in-app Browser bootstrap was attempted with the required browser-client runtime.
+Result from node_repl setup: Browser is not available: iab
+Fallback local route smoke against the running Next dev server returned 307 to /login?next=%2Fworkshop%2Fprojects, so authenticated estimate-workspace visual proof was not available in this local session without an authenticated browser surface.

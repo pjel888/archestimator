@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-06-12 - Estimate tabs Phase 3 keeps lifecycle controls hidden until export parity
+
+**Decision:** Phase 3 may render editor tab switching and tab-scoped state, but
+must not expose beta-visible tab create, duplicate, rename, or reorder controls by
+default. The internal tab-strip lifecycle path remains opt-in only for tests/future
+phases, and proposal preview is disabled with a warning when multiple persisted
+tabs exist until Phase 6 tab-aware export ships.
+
+**Rationale:** The plan-pack D-15 gate prevents users from creating multi-tab
+estimate state before export can represent every tab. Shipping lifecycle controls
+without all-tabs export would create a data/product mismatch where edited tab data
+could be omitted from proposal packages.
+
+**Follow-up:** Do not enable `EstimateTabStrip` lifecycle controls in beta routes
+or marketing/support copy until Phase 6 export parity has local and provider-backed
+proof. Continue preserving legacy estimate-wide fallback behavior before linked
+Supabase apply/typegen is owner-authorized.
+
 ## 2026-06-12 - Lean agent mandate and shared agent assets
 
 **Decision:** Replace always-on workflow mandates with proportional execution.

@@ -11,6 +11,7 @@ export const CURSOR_BROADCAST_MIN_DISTANCE_PX = 6;
 export type EstimateCursorBroadcastPayload = {
   userId: string;
   displayName: string | null;
+  tabId?: string | null;
   x: number;
   y: number;
   rowId: string | null;
@@ -27,6 +28,7 @@ type EstimateCursorSendStatus = "idle" | "ok" | "error" | "timed out";
 
 type UseEstimateCursorBroadcastInput = {
   estimateId: string | null | undefined;
+  tabId?: string | null;
   userId: string | null | undefined;
   displayName?: string | null;
   enabled?: boolean;
@@ -34,7 +36,7 @@ type UseEstimateCursorBroadcastInput = {
   minDistancePx?: number;
 };
 
-type CursorBroadcastPosition = Pick<EstimateCursorBroadcastPayload, "x" | "y" | "rowId" | "columnId">;
+type CursorBroadcastPosition = Pick<EstimateCursorBroadcastPayload, "tabId" | "x" | "y" | "rowId" | "columnId">;
 
 export function shouldQueueCursorBroadcast(
   previous: CursorBroadcastPosition | null,
@@ -42,6 +44,7 @@ export function shouldQueueCursorBroadcast(
   minDistancePx = CURSOR_BROADCAST_MIN_DISTANCE_PX,
 ) {
   if (!previous) return true;
+  if ((previous.tabId ?? null) !== (next.tabId ?? null)) return true;
   if (previous.rowId !== next.rowId || previous.columnId !== next.columnId) return true;
   const deltaX = next.x - previous.x;
   const deltaY = next.y - previous.y;
@@ -50,6 +53,7 @@ export function shouldQueueCursorBroadcast(
 
 export function useEstimateCursorCollaboration({
   estimateId,
+  tabId = null,
   userId,
   displayName = null,
   enabled = true,
@@ -92,6 +96,7 @@ export function useEstimateCursorCollaboration({
           next.set(remoteUserId, {
             userId: remoteUserId,
             displayName: typeof cursor.displayName === "string" ? cursor.displayName : null,
+            tabId: typeof cursor.tabId === "string" ? cursor.tabId : null,
             x: remoteX,
             y: remoteY,
             rowId: typeof cursor.rowId === "string" ? cursor.rowId : null,
@@ -144,6 +149,7 @@ export function useEstimateCursorCollaboration({
       pendingPayloadRef.current = {
         ...cursor,
         userId,
+        tabId,
         displayName,
         sentAt: new Date().toISOString(),
       };
@@ -166,10 +172,13 @@ export function useEstimateCursorCollaboration({
           .catch(() => setLastSendStatus("error"));
       }, throttleMs);
     },
-    [displayName, enabled, minDistancePx, throttleMs, userId],
+    [displayName, enabled, minDistancePx, tabId, throttleMs, userId],
   );
 
-  const remoteCursors = useMemo(() => Array.from(remoteCursorMap.values()), [remoteCursorMap]);
+  const remoteCursors = useMemo(
+    () => Array.from(remoteCursorMap.values()).filter((cursor) => !tabId || cursor.tabId === tabId),
+    [remoteCursorMap, tabId],
+  );
 
   return { broadcastCursor, channelStatus, lastSendStatus, remoteCursors };
 }

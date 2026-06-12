@@ -1,0 +1,12 @@
+cwd=/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+timestamp=2026-06-12T11:07:48Z
+command=bunx vitest run tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/perf/estimate-sheet-render-relief.test.tsx tests/vitest/perf/estimate-sheet-cursor-isolation.test.tsx --maxWorkers=1
+
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  4 passed (4)
+      Tests  54 passed (54)
+   Start at  19:07:48
+   Duration  11.21s (transform 598ms, setup 106ms, import 3.46s, tests 6.05s, environment 1.12s)

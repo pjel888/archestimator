@@ -202,11 +202,11 @@ describe("estimate sheet tree DOM integration", () => {
     ).toBeTruthy();
   });
 
-  it("renders the estimate tree under the shared Sheets tab strip", () => {
+  it("renders the estimate tree under the shared Tabs tab strip", () => {
     renderTree();
 
     expect(screen.getByRole("tablist", { name: "Estimate tree views" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Tabs" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("scopes the drag/select rail reveal to the whole sidebar, not just the rows", () => {

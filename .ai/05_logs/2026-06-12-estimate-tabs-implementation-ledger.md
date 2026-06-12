@@ -416,3 +416,53 @@ label=lint-after-lint-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12
 - Repository wrappers include missing-schema fallback because local/provider DB apply is still owner-gated.
 - New tab CRUD actions are available but no user-visible controls were added in this phase.
 - `next-env.d.ts` build churn restored before staging.
+
+## Phase 3 editor tab UI iteration
+
+### Summary
+
+Phase 3 local implementation is complete enough for a phase-scoped commit. The estimate editor now has a release-gated tab strip, tab-aware route hydration, tab-scoped tree/sheet query selection, per-tab UI state, cursor tab isolation, empty-tab affordances, and explicit multi-tab export warning behavior. Lifecycle controls that could create/duplicate/rename/reorder tabs remain hidden in beta editor routes until Phase 6 tab-aware export ships.
+
+### Changed files
+
+- `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx`
+- `src/components/workshop/EstimateWorkspaceClient.tsx`
+- `src/components/workshop/EstimateSheetTree.tsx`
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `src/components/workshop/estimate-sheet/EstimateTabStrip.tsx`
+- `src/components/workshop/estimate-sheet/events.ts`
+- `src/hooks/use-estimate-query.ts`
+- `src/hooks/use-estimate-cursor-broadcast.ts`
+- `src/lib/repositories/workspace-repository.ts`
+- `tests/vitest/estimate-tab-strip.test.tsx`
+- `tests/vitest/estimate-tabs-domain.test.ts`
+- `tests/vitest/estimate-sheet-tree-dom.test.tsx`
+- `tests/vitest/estimate-cursor-broadcast-throttle.test.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase3/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase3-implementation-run.md`
+
+### Gates run
+
+```text
+label=phase3-tab-ui-vitest exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/phase3-tab-ui-vitest.log
+label=phase3-sheet-regression-vitest exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/phase3-sheet-regression-vitest.log
+label=type-check exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/type-check.log
+label=build exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/build.log
+label=lint exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/lint.log classification=pre_existing_baseline_3_errors_548_warnings
+label=lint-design-system exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/lint-design-system.log
+label=diff-check exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/diff-check.log
+label=localhost-auth-smoke exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/localhost-auth-smoke.log classification=local_route_redirects_to_login
+label=browser-visual-proof exit_code=blocked timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/browser-visual-proof-blocker.log classification=in_app_browser_iab_unavailable
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 3 evidence advances editor tab UI, per-tab UI state, tab-scoped tree/sheet query selection, route/default-tab compatibility, cursor tab isolation, and D-15 lifecycle/export gating.
+- R12.3 remains provider/typegen-gated; no linked Supabase apply or generated remote types were claimed.
+- Rows spanning Phase 4+ stay open: terminology/copy rebrand, templates/source automation, all-tabs export, AI/package-builder, hosted/manual proof, and final cleanup/archive.
+
+### Remaining Phase 3 boundary
+
+- Browser/manual editor proof was not claimed because the in-app Browser `iab` surface was unavailable and the local workshop route redirected to `/login` without an authenticated browser session.
+- Tab lifecycle server actions are wired for internal tests but not visible in the editor by default.
+- `next-env.d.ts` build churn restored before staging.

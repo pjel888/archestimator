@@ -1,0 +1,4 @@
+command=bun run lint:design-system
+exit_code=0
+log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/lint-design-system.log
+timestamp=2026-06-12T11:08:41Z

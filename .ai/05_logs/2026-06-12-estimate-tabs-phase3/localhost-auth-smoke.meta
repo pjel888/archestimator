@@ -1,0 +1,4 @@
+command=curl -I -sS http://localhost:3001/workshop/projects
+exit_code=0
+log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/localhost-auth-smoke.log
+timestamp=2026-06-12T11:08:41Z

@@ -30,7 +30,7 @@ import {
   toggleCascadeSelection,
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
-import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
+import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
 import {
@@ -48,11 +48,14 @@ import {
   type InsertEstimateTemplateEventDetail,
 } from "./component-library/templates";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
+import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, type RequestEstimateTreeNodeCreateEventDetail } from "./estimate-sheet/events";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
 type EstimateSheetTreeProps = {
   projectId: string;
   estimateId: string;
+  activeTabId?: string;
+  initialTabId?: string;
   projectName: string;
   selectedNodeId: string | null;
   nodes: EstimateTreeNode[];
@@ -60,7 +63,7 @@ type EstimateSheetTreeProps = {
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
 const ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE = "application/x-archestimator-estimate-tree-item";
-const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheets" }] as const;
+const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Tabs" }] as const;
 
 type ReorderStatus =
   | { state: "idle" }
@@ -225,9 +228,12 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
   }
 }
 
-export function EstimateSheetTree({ projectId, estimateId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
+export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
   const pathname = usePathname();
   const { toast, dismissToast } = useToast();
+  const tabInitialNodes = activeTabId && activeTabId === initialTabId ? nodes : [];
+  const legacyTreeQuery = useEstimateAreaTreeQuery({ projectId, estimateId, initialNodes: nodes, enabled: !activeTabId });
+  const tabTreeQuery = useEstimateTabTreeQuery({ projectId, estimateId, tabId: activeTabId, initialNodes: tabInitialNodes, enabled: Boolean(activeTabId) });
   const {
     tree: localNodes,
     setTree: setLocalNodes,
@@ -235,7 +241,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     restore: restoreLocalNodes,
     getTreeRevision: getLocalTreeRevision,
     prepareOptimisticUpdate: prepareAreaTreeOptimisticUpdate,
-  } = useEstimateAreaTreeQuery({ projectId, estimateId, initialNodes: nodes });
+  } = activeTabId ? tabTreeQuery : legacyTreeQuery;
   const pendingReordersRef = useRef(0);
   const suppressPrimaryActionUntilRef = useRef(0);
   const renameCommitInFlightRef = useRef(false);
@@ -265,7 +271,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const [contextMenuNode, setContextMenuNode] = useState<EstimateTreeNode | null>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [treeSearchQuery, setTreeSearchQuery] = useState("");
-  const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
+  const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, activeTabId);
   const currentRouteNodeId = useMemo(
     () => getEstimateRouteNodeIdFromPathname(pathname, estimateId) ?? selectedNodeId,
     [estimateId, pathname, selectedNodeId],
@@ -285,7 +291,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     [bulkSelectedNodeIds, treeSelectionNodes],
   );
   const allFolderItemIds = useMemo(() => Array.from(folderIds), [folderIds]);
-  const { expandedNodeIds, setExpandedNodeIds } = useEstimateWorkspaceExpansion(estimateId, allFolderItemIds);
+  const { expandedNodeIds, setExpandedNodeIds } = useEstimateWorkspaceExpansion(estimateId, allFolderItemIds, activeTabId);
 
   useEffect(() => {
     let cancelled = false;
@@ -643,6 +649,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
       formData.set("kind", kind);
       formData.set("name", nodeName);
       if (serverParentId) formData.set("parentId", serverParentId);
+      if (activeTabId) formData.set("estimateTabId", activeTabId);
       return createEstimateNode(projectId, estimateId, formData).then((result) => result.nodeId);
     }
 
@@ -660,9 +667,10 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         resolvedNodeIdsRef.current.set(optimisticNodeId, serverNodeId);
         pendingNodeCreatesRef.current.delete(optimisticNodeId);
         setLocalNodes((currentNodes) => replaceLocalEstimateTreeNodeId(currentNodes, optimisticNodeId, serverNodeId));
-        const expandedForEstimate = useEstimateWorkspaceState.getState().expandedNodeIdsByEstimateId[estimateId];
-        if (expandedForEstimate?.includes(optimisticNodeId)) {
-          setExpandedNodeIds(expandedForEstimate.map((nodeId) => (nodeId === optimisticNodeId ? serverNodeId : nodeId)));
+        const workspaceState = useEstimateWorkspaceState.getState();
+        const expandedForScope = activeTabId ? workspaceState.expandedNodeIdsByTabId[activeTabId] : workspaceState.expandedNodeIdsByEstimateId[estimateId];
+        if (expandedForScope?.includes(optimisticNodeId)) {
+          setExpandedNodeIds(expandedForScope.map((nodeId) => (nodeId === optimisticNodeId ? serverNodeId : nodeId)));
         }
         setBulkSelectedNodeIds((current) => {
           if (!current.has(optimisticNodeId)) return current;
@@ -676,8 +684,10 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
           skipRenameAutoSelectRef.current = true;
           return serverNodeId;
         });
-        const { selectedNodeIdByEstimateId } = useEstimateWorkspaceState.getState();
-        if (selectedNodeIdByEstimateId[estimateId] === optimisticNodeId) {
+        const selectedNodeIdForScope = activeTabId
+          ? useEstimateWorkspaceState.getState().selectedNodeIdByTabId[activeTabId]
+          : useEstimateWorkspaceState.getState().selectedNodeIdByEstimateId[estimateId];
+        if (selectedNodeIdForScope === optimisticNodeId) {
           setSelectedNodeId(serverNodeId);
           syncEstimateRouteUrl(serverNodeId);
         }
@@ -688,14 +698,17 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         pendingNodeCreatesRef.current.delete(optimisticNodeId);
         setLocalNodes((currentNodes) => removeLocalEstimateTreeNode(currentNodes, optimisticNodeId));
         setEditingNodeId((current) => (current === optimisticNodeId ? null : current));
-        const { selectedNodeIdByEstimateId } = useEstimateWorkspaceState.getState();
-        if (selectedNodeIdByEstimateId[estimateId] === optimisticNodeId) {
+        const selectedNodeIdForScope = activeTabId
+          ? useEstimateWorkspaceState.getState().selectedNodeIdByTabId[activeTabId]
+          : useEstimateWorkspaceState.getState().selectedNodeIdByEstimateId[estimateId];
+        if (selectedNodeIdForScope === optimisticNodeId) {
           setSelectedNodeId(previousSelectedNodeId);
         }
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not add estimate tree node." });
       });
   }, [
     activeSelectedNodeId,
+    activeTabId,
     estimateId,
     expandedItems,
     localNodes,
@@ -707,6 +720,17 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     setSelectedNodeId,
     syncEstimateRouteUrl,
   ]);
+
+  useEffect(() => {
+    function handleRequestedTreeNodeCreate(event: Event) {
+      const detail = (event as CustomEvent<Partial<RequestEstimateTreeNodeCreateEventDetail>>).detail;
+      if (detail?.kind !== "group" && detail?.kind !== "area") return;
+      handleAddTreeNode(detail.kind);
+    }
+
+    window.addEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handleRequestedTreeNodeCreate);
+    return () => window.removeEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handleRequestedTreeNodeCreate);
+  }, [handleAddTreeNode]);
 
   // Focus from the ref callback: the rename editor for a just-created node
   // mounts a render after the focus effect fires, so timer-based focusing
