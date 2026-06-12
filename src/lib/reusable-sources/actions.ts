@@ -72,6 +72,9 @@ export async function listReusableProjectSources(): Promise<ReusableProjectSourc
         estimateId: estimate.id,
         name: estimate.name,
         sheetCode: estimate.sheetCode,
+        metadata: {
+          updatedAt: estimate.updatedAt,
+        },
       });
     }
   });
@@ -114,6 +117,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
           projectName: project.name,
           estimateName: estimate.name,
           sheetCode: estimate.sheetCode,
+          updatedAt: estimate.updatedAt,
         },
       };
       if (textMatchesReusableSourceQuery(query, [estimate.name, estimate.sheetCode])) {
@@ -126,6 +130,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         tabs.map((tab) => getEstimateTabTree(project.id, estimate.id, tab.id)),
       );
       tabs.forEach((tab, tabIndex) => {
+        const updatedAt = tabTrees[tabIndex]?.estimate?.updated_at ?? estimate.updatedAt;
         const tabSource: ProjectTabReusableSource = {
           kind: "project-tab",
           projectId: project.id,
@@ -137,6 +142,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
             estimateName: estimate.name,
             sheetCode: estimate.sheetCode,
             tabName: tab.name,
+            updatedAt,
             ...summarizeEstimateTreeNodes(tabTrees[tabIndex]?.tree ?? []),
           },
         };
@@ -148,6 +154,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
           sheetCode: estimate.sheetCode,
           tabId: tab.id,
           tabName: tab.name,
+          updatedAt,
         };
         if (textMatchesReusableSourceQuery(query, [tab.name])) {
           addReusableSearchSource(sourcesByKey, projectSource);
@@ -180,6 +187,7 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
 
   const sources: ReusableEstimateOutlineResult["sources"] = [];
   tabs.forEach((tab, index) => {
+    const updatedAt = tabTrees[index]?.estimate?.updated_at ?? null;
     sources.push({
       kind: "project-tab",
       projectId: input.projectId,
@@ -188,6 +196,7 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
       name: tab.name,
       metadata: {
         tabName: tab.name,
+        updatedAt,
         ...summarizeEstimateTreeNodes(tabTrees[index]?.tree ?? []),
       },
     });
@@ -197,6 +206,7 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
         estimateId: input.estimateId,
         tabId: tab.id,
         tabName: tab.name,
+        updatedAt,
       },
       nodes: tabTrees[index]?.tree ?? [],
     }));

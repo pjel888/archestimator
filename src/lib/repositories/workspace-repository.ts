@@ -9,6 +9,7 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
 import { isMissingColumnError, isMissingRelationError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
+import { listProjectEstimateSheetsForProject, type ProjectEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type {
   CollaborationInvitationSummary,
   CollaborationRole,
@@ -1380,28 +1381,15 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
 }
 
 /**
- * Lightweight list of estimates for a project (id, name, sheetCode).
+ * Lightweight list of estimates for a project (id, name, sheetCode, updatedAt).
  * Used by ProjectPublicationHeader (Estimates tab picker) for selection without loading heavy node/row aggregates.
  * Additive for Shared Link Overhaul V2 (P1).
  */
-export async function listProjectEstimateSheets(projectId: string): Promise<Array<{ id: string; name: string; sheetCode: string | null }>> {
+export async function listProjectEstimateSheets(projectId: string): Promise<ProjectEstimateSheetSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("estimates")
-    .select("id, name, sheet_code")
-    .eq("project_id", project.id)
-    .order("sheet_code", { ascending: true });
-
-  if (error) throw error;
-
-  return (data ?? []).map((estimate) => ({
-    id: estimate.id,
-    name: estimate.name,
-    sheetCode: estimate.sheet_code ?? null,
-  }));
+  return listProjectEstimateSheetsForProject(project.id);
 }
 
 type EstimateNodeKind = Tables<"estimate_nodes">["kind"];

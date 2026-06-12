@@ -1,4 +1,23 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Project Source UpdatedAt Metadata Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+Reusable project-source actions now carry `estimates.updated_at` through the
+lightweight estimate-source list and already-loaded per-tab tree results into
+project estimate/tab/group/area metadata. The Supabase read helper for project
+estimate sheets was extracted to
+`src/lib/repositories/project-estimate-sheets-repository.ts` so the oversized
+workspace repository delegates the lightweight query instead of growing. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-project-source-updated-at-metadata-implementation-run.md`:
+`bunx vitest run tests/vitest/project-estimate-sheets-repository.test.ts tests/vitest/reusable-sources-actions.test.ts tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (4 files / 65 tests), `bun run type-check` passed,
+`git diff --check` passed, and changed-file ESLint passed. Full `bun run lint`
+was attempted and remains blocked by pre-existing/repo-wide lint errors outside
+this slice (logged separately). This is local code/test proof only: live linked
+Supabase/RLS/provider proof, R7.1/R7.2 insert RPC/action proof, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Project Source Outline Metadata Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 Reusable project-source outline/search actions now attach local row-count and
 total-cost metadata to loaded tab and group/area sources, so existing preview

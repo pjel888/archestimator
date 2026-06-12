@@ -9,6 +9,7 @@ export type ProjectSourceSearchContext = {
   sheetCode: string | null;
   tabId: string;
   tabName: string;
+  updatedAt: string | null;
 };
 
 type ProjectSourceOutlineContext = {
@@ -16,6 +17,7 @@ type ProjectSourceOutlineContext = {
   estimateId: string;
   tabId: string;
   tabName: string;
+  updatedAt: string | null;
 };
 
 type EstimateTreeSummary = {
@@ -81,6 +83,7 @@ export function collectProjectNodeSources({
         metadata: {
           tabName: context.tabName,
           nodePath: [context.tabName, ...nodePath],
+          updatedAt: context.updatedAt,
           rowCount: summary.rowCount,
           totalCost: summary.totalCost,
         },
@@ -129,6 +132,7 @@ export function collectProjectNodeSearchSources({
           sheetCode: context.sheetCode,
           tabName: context.tabName,
           nodePath: [context.tabName, ...nodePath],
+          updatedAt: context.updatedAt,
           rowCount: summary.rowCount,
           totalCost: summary.totalCost,
         },
