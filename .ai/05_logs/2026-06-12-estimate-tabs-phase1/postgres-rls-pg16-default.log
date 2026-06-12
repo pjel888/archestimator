@@ -1,0 +1,21 @@
+$ bun run prove:estimate-tabs-rls
+started=2026-06-12T10:11:15.483304+00:00
+ended=2026-06-12T10:11:15.795929+00:00
+exit_code=1
+timed_out=False
+
+$ node scripts/prove-estimate-tabs-postgres.mjs
+file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/scripts/prove-estimate-tabs-postgres.mjs:127
+    throw new Error(`Missing PostgreSQL binary: ${path}. Install postgresql@16 or set POSTGRES_BIN_DIR.`);
+          ^
+
+Error: Missing PostgreSQL binary: /opt/homebrew/opt/postgresql@16/bin/initdb. Install postgresql@16 or set POSTGRES_BIN_DIR.
+    at requireBinary (file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/scripts/prove-estimate-tabs-postgres.mjs:127:11)
+    at Array.forEach (<anonymous>)
+    at file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/scripts/prove-estimate-tabs-postgres.mjs:143:25
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v25.8.0
+error: script "prove:estimate-tabs-rls" exited with code 1

@@ -1,0 +1,14 @@
+$ bunx vitest run tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-tree-context-menu.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx --maxWorkers=1
+started=2026-06-12T10:11:21.832220+00:00
+ended=2026-06-12T10:11:40.913181+00:00
+exit_code=0
+timed_out=False
+
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  7 passed (7)
+      Tests  126 passed (126)
+   Start at  18:11:22
+   Duration  18.85s (transform 667ms, setup 174ms, import 5.67s, tests 10.21s, environment 1.92s)

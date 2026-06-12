@@ -1,0 +1,14 @@
+$ bunx vitest run tests/vitest/estimate-tabs-schema.test.ts --maxWorkers=1
+started=2026-06-12T10:11:11.794559+00:00
+ended=2026-06-12T10:11:12.963200+00:00
+exit_code=0
+timed_out=False
+
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  18:11:12
+   Duration  747ms (transform 21ms, setup 59ms, import 13ms, tests 2ms, environment 515ms)
