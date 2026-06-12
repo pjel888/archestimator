@@ -1,4 +1,19 @@
 # Current State
+**Estimate Tabs Phase 5 R6.2 Keyboard/Context/Bulk UI Parity Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has local UI parity proof for non-drag insertion
+paths. Space-key tree selection plus the existing bulk add action inserts custom
+templates and project-source tab rows into the selected group target; earlier
+local slices already proved project-source drag payloads, context-menu
+insertion, and bulk project-source top-level resolution. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-2-keyboard-insert-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 55 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local UI/callback proof only: save-as-template from project
+source, insert RPC/action, RLS harness, linked Supabase apply/typegen, hosted
+provider proof, Vercel deploy, production/manual proof, and browser visual proof
+remain open.
+
 **Estimate Tabs Phase 5 R4.4 Source Filter Chips Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 sidebar Templates tab now has local source-section filters on top of
 the earlier project-source preview metadata seam. When custom templates and
