@@ -5,7 +5,7 @@ export function SecondaryClaimSection() {
     <section
       id="method"
       data-landing-snap-section="true"
-      className="relative overflow-hidden scroll-mt-[68px] border-b border-[#ebe4dc] bg-[#fffdf9] px-6 py-20 sm:px-8 sm:py-24 lg:px-12"
+      className="relative overflow-hidden scroll-mt-[68px] border-b border-[#ebe4dc] bg-white px-6 py-20 sm:px-8 sm:py-24 lg:px-12"
     >
       <div className="relative z-10 mx-auto w-full max-w-[1952px]">
         <MotionReveal>

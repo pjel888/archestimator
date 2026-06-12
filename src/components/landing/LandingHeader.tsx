@@ -13,11 +13,10 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isOverFooter, setIsOverFooter] = useState(false);
   // Test annotations for static regex scans:
-  // href: "#product"
   // href: "#method"
   // href: "#contact"
   const landingNavItems = [
-    { label: "Platform", href: isHomePage ? "#product" : "/features" },
+    { label: "Platform", href: isHomePage ? "#method" : "/features" },
     { label: "Specialties", href: isHomePage ? "#method" : "/#method" },
     { label: "Company", href: isHomePage ? "#contact" : "/contact" },
   ];
@@ -44,10 +43,10 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300 ${
+      className={`sticky top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 ${
         isOverFooter
-          ? "border-white/10 bg-[#aa412a]/96 text-white"
-          : "border-[#e5e0d8] bg-[#fffdf9]/92 text-[#171514]"
+          ? "border-white/16 bg-[#aa412a]/82 text-white shadow-[0_1px_0_rgba(255,255,255,0.08)]"
+          : "border-white/42 bg-white/62 text-[#171514] shadow-[0_1px_0_rgba(17,17,17,0.04)]"
       }`}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
@@ -115,7 +114,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
             aria-controls="landing-mobile-menu"
             onClick={() => setIsMenuOpen((current) => !current)}
             className={`inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold transition lg:hidden ${
-              isOverFooter ? "bg-white/12 text-white hover:bg-white/18" : "bg-[#f4f1ec] text-[#171514] hover:bg-[#ece4da]"
+              isOverFooter ? "bg-white/12 text-white hover:bg-white/18" : "bg-white text-[#171514] hover:bg-white"
             }`}
           >
             Menu
@@ -125,8 +124,8 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
         <div
           id="landing-mobile-menu"
           hidden={!isMenuOpen}
-          className={`absolute left-6 right-6 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] sm:left-8 sm:right-8 lg:hidden ${
-            isOverFooter ? "border-white/16 bg-[#aa412a] text-white" : "border-[#e4ddd3] bg-[#fffdf9]"
+          className={`absolute left-6 right-6 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] backdrop-blur-2xl backdrop-saturate-150 sm:left-8 sm:right-8 lg:hidden ${
+            isOverFooter ? "border-white/16 bg-[#aa412a]/88 text-white" : "border-white/50 bg-white/72"
           }`}
         >
           <nav aria-label="Mobile primary" className="grid gap-1">
@@ -136,7 +135,7 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
                 className={`rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 ${
-                  isOverFooter ? "text-white hover:bg-white/10 focus-visible:ring-white/70" : "text-[#2c2925] hover:bg-[#f4f1ec] focus-visible:ring-brand-orange"
+                  isOverFooter ? "text-white hover:bg-white/10 focus-visible:ring-white/70" : "text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"
                 }`}
               >
                 {item.label}

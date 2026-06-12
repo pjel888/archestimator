@@ -727,8 +727,9 @@ export function AnimatedProposalRecordSection() {
     <section
       ref={sectionRef}
       aria-labelledby="proposal-record-heading"
-      className="landing-quote-grid-paper border-y border-[#e5e0d8] px-6 py-14 before:![background-size:16px_16px] sm:px-8 sm:py-[72px] lg:px-12 lg:py-[59px]"
+      className="landing-quote-grid-paper bg-white px-6 py-14 before:![background-image:linear-gradient(rgba(118,126,136,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(118,126,136,0.08)_1px,transparent_1px)] before:![background-size:16px_16px] before:!opacity-[0.55] sm:px-8 sm:py-[72px] lg:px-12 lg:py-[59px]"
       data-animated-proposal-record="true"
+      style={{ backgroundColor: "rgb(255, 255, 255)" }}
     >
       <div className="relative z-10 grid w-full gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,635px)] lg:items-stretch lg:gap-x-0">
         <div
@@ -769,7 +770,7 @@ export function AnimatedProposalRecordSection() {
 
         <div className="md:hidden">
           <div className={styles.mobileFlow}>
-            <section className="rounded-[3px] border border-[#ded2c7] bg-[#fffdf9]/72 p-4">
+            <section className="rounded-[3px] border border-[#ded2c7] bg-white/72 p-4">
               <p className="text-[12px] font-semibold leading-5 text-[#a9532d]">Estimate engine</p>
               <ul className="mt-3 grid gap-3">
                 {estimateInputSteps.map((step) => (
@@ -783,9 +784,9 @@ export function AnimatedProposalRecordSection() {
 
             <ol className="grid gap-3">
               {mobileWorkflowSteps.map((step, index) => (
-                <li key={step.id} className="rounded-[3px] border border-[#ded2c7] bg-[#fffdf9]/72 p-4">
+                <li key={step.id} className="rounded-[3px] border border-[#ded2c7] bg-white/72 p-4">
                   <div className="flex items-start gap-3">
-                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[3px] border border-[#eadfd6] bg-[#fbf7f2] text-[12px] font-semibold text-[#a9532d]">
+                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-[3px] border border-[#eadfd6] bg-white text-[12px] font-semibold text-[#a9532d]">
                       {index + 1}
                     </span>
                     <div>
@@ -797,7 +798,7 @@ export function AnimatedProposalRecordSection() {
               ))}
             </ol>
 
-            <section className="rounded-[3px] border border-[#b65f2f]/40 bg-[#f1e8df] p-4">
+            <section className="rounded-[3px] border border-[#b65f2f]/40 bg-white p-4">
               <p className="text-[12px] font-semibold leading-5 text-[#a9532d]">Activity History</p>
               <p className="mt-1 text-[13px] leading-6 text-[#4f463f]">
                 Every comment, change, and decision stays on record.

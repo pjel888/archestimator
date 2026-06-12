@@ -108,17 +108,8 @@ function LaunchFeatureVideoPlaceholder() {
 }
 
 export function CompanyProofCarouselSection() {
-  const companyProofRail = (
-    <div
-      className="landing-company-carousel-viewport relative z-10 w-full overflow-hidden border-y border-[#e7ded6] bg-[#fffdf9] py-10 shadow-[0_34px_80px_rgba(72,29,19,0.28)] sm:py-11"
-      aria-hidden="true"
-    />
-  );
-
   return (
     <>
-      {companyProofRail}
-
       <AnimatedProposalRecordSection />
 
       <section
