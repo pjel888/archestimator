@@ -29,6 +29,7 @@ const navigationMocks = vi.hoisted(() => ({
 
 const reusableSourceActionMocks = vi.hoisted(() => ({
   getReusableEstimateOutline: vi.fn(),
+  listReusableProjectEstimateSources: vi.fn(),
 }));
 
 vi.mock("@/lib/component-library/actions", () => componentLibraryActionMocks);
@@ -82,6 +83,27 @@ describe("TemplatesBrowseManager project sources", () => {
     for (const mock of Object.values(componentLibraryActionMocks)) mock.mockReset();
     estimateActionMocks.insertEstimateTemplateIntoEstimate.mockReset();
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
+  });
+
+  it("loads route-level project estimates only after a project expands", async () => {
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
+      sources: fixtureProjectSources.filter((source) => source.kind === "project-estimate"),
+    });
+
+    render(<TemplatesBrowseManager templates={[fixtureTemplate]} projectSources={[fixtureProjectSources[0]]} />);
+
+    const projectRow = screen.getByRole("treeitem", { name: "Library Route Project project source" });
+    expect(screen.queryByRole("treeitem", { name: "Route Estimate estimate EST-ROUTE" })).not.toBeInTheDocument();
+    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
+
+    fireEvent.click(within(projectRow).getByRole("button", { name: "Expand" }));
+
+    await waitFor(() => {
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-1" });
+    });
+    expect(await screen.findByRole("treeitem", { name: "Route Estimate estimate EST-ROUTE" })).toBeInTheDocument();
+    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
   });
 
   it("lazy-loads a route-level project estimate outline when the estimate expands", async () => {

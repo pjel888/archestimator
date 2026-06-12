@@ -242,7 +242,7 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
       id: projectSourceTreeItemId(project.source),
       label: project.source.name,
       ariaLabel: `${project.source.name} project source`,
-      isLeaf: project.estimates.size === 0,
+      isLeaf: false,
       selectable: false,
       icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       data: { templatesNode: { type: "project", source: project.source } satisfies TemplatesTreeDatum },

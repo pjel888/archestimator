@@ -2353,3 +2353,14 @@ Open:
 - Local evidence: focused activity/version-control suites passed (`7 files / 177 tests`), `bun run type-check` passed, focused ESLint passed, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-1-r10-2-activity-tabs-run.md`.
 - Boundary: no linked Supabase apply/typegen, live provider Activity History proof, hosted/manual two-browser proof, Vercel deploy, or production proof was performed.
+
+## Estimate Tabs R9.3 / R13.1-R13.3 Local Proof and A11y Hardening (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- R9.3 invite/share deep-link preservation is locally proven: invite route contracts remain `/invite/[token]`, pending-invite auth still bridges through `/workshop/pending-invite`, and shared-link email/API contracts continue using `/share/[token]` with recipient query tokens rather than tab-id URL rewrites.
+- R13.1 perf guard is locally proven by the existing `tests/vitest/perf` suite with the tab strip mounted.
+- R13.2 lazy reusable-source browsing is locally implemented: `listReusableProjectSources` returns readable project roots only, `listReusableProjectEstimateSources` fetches one expanded project's estimate rows, and existing outline loading remains per expanded estimate. Both the templates browse route and estimate sidebar use this two-step lazy flow.
+- R13.3 tab-strip a11y is locally hardened: `EstimateTabStrip` now has polite live-region announcements, keyboard reorder focus retention, and gated delete/archive focus fallback to the nearest remaining tab. Prior R6.2 proof covers non-drag insertion paths.
+- Fresh local evidence: lazy-source focused Vitest passed (3 files / 67 tests), perf suite passed (4 files / 14 tests), invite/share focused Vitest passed (5 files / 40 tests), tab-strip a11y DOM suite passed (1 file / 8 tests), post-doc focused Vitest passed (13 files / 129 tests), focused ESLint passed, `bun run type-check` passed, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed after restoring `next-env.d.ts` build churn.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r9-3-r13-local-proof-run.md`.
+- Boundary: no linked Supabase apply/typegen, hosted invite/share e2e, live DB p95/provider scale proof, browser/Storybook a11y proof, Vercel deploy, production deploy, or two-browser/manual QA was performed.

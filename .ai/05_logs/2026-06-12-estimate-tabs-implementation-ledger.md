@@ -2199,3 +2199,40 @@ label=diff-check-r10-1-r10-2 exit_code=0 command="git diff --check"
 ### Remaining boundary
 
 - R10.1-R10.2 are locally implemented only. Linked Supabase apply/typegen/provider proof, live tab lifecycle Activity History proof, hosted/manual two-browser proof, and production deploy remain open.
+
+## Phase 5 R9.3 / R13.1-R13.3 local proof and a11y hardening
+
+### Summary
+
+Closed the remaining local-only proof rows for invite/share deep-link preservation,
+perf guards, lazy reusable-source browsing, and tab-strip accessibility. Reusable
+project source listing is now root-first and lazy across both the sidebar and
+browse route: project expansion loads one project's estimate list, and estimate
+expansion loads the tab/node outline. `EstimateTabStrip` now exposes a polite
+live region and gated delete/archive focus fallback while preserving the hidden
+lifecycle gate in the live editor.
+
+### Gates run
+
+```text
+label=vitest-r13-2-lazy-source-focused exit_code=0 command="bun x vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-ui.test.tsx --maxWorkers=1" result="3 files / 67 tests passed"
+label=vitest-r13-1-perf exit_code=0 command="bun x vitest run tests/vitest/perf --maxWorkers=1" result="4 files / 14 tests passed"
+label=vitest-r9-3-invite-share-focused exit_code=0 command="bun x vitest run tests/vitest/project-invite-entry-route.test.ts tests/vitest/workshop-pending-invite.test.tsx tests/vitest/project-publication-email-links.test.ts tests/vitest/share/share-page-get-routes-contract.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1" result="5 files / 40 tests passed"
+label=vitest-r13-3-tabstrip-a11y exit_code=0 command="bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1" result="1 file / 8 tests passed"
+label=type-check-r9-3-r13-proof exit_code=0 command="bun run type-check"
+
+label=vitest-r9-3-r13-post-doc-focused exit_code=0 command="bun x vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-ui.test.tsx tests/vitest/estimate-tab-strip.test.tsx tests/vitest/project-invite-entry-route.test.ts tests/vitest/workshop-pending-invite.test.tsx tests/vitest/project-publication-email-links.test.ts tests/vitest/share/share-page-get-routes-contract.test.ts tests/vitest/project-publication-actions.test.ts tests/vitest/perf --maxWorkers=1" result="13 files / 129 tests passed"
+label=eslint-r9-3-r13-focused exit_code=0 command="bunx eslint src/lib/reusable-sources/actions.ts src/components/workshop/library/templates-browse/project-source-browse-tree.tsx src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx src/components/workshop/component-library/tree/TemplatesTree.tsx src/components/workshop/component-library/index.tsx src/components/workshop/estimate-sheet/EstimateTabStrip.tsx tests/vitest/reusable-sources-actions.test.ts tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-ui.test.tsx tests/vitest/estimate-tab-strip.test.tsx" result="0 errors / 0 warnings"
+label=type-check-r9-3-r13-post-doc exit_code=0 command="bun run type-check"
+label=design-system-r9-3-r13 exit_code=0 command="bun run lint:design-system"
+label=design-r9-3-r13 exit_code=0 command="bun run lint:design"
+label=build-r9-3-r13 exit_code=0 command="bun run build" result="Next.js 16.2.6 build passed; next-env.d.ts churn restored"
+label=diff-check-r9-3-r13 exit_code=0 command="git diff --check"
+```
+
+### Remaining boundary
+
+- Rows R9.3 and R13.1-R13.3 are implemented/proven locally only.
+- Hosted invite/share e2e, live DB p95/provider scale proof, browser/Storybook
+  a11y proof, linked Supabase apply/typegen, Vercel deploy, production deploy,
+  and two-browser/manual QA remain unperformed.

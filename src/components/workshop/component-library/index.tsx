@@ -19,10 +19,16 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
-import { getReusableEstimateOutline, listReusableProjectSources, searchReusableProjectSources } from "@/lib/reusable-sources/actions";
+import {
+  getReusableEstimateOutline,
+  listReusableProjectEstimateSources,
+  listReusableProjectSources,
+  searchReusableProjectSources,
+} from "@/lib/reusable-sources/actions";
 import type {
   ProjectEstimateReusableSource,
   ProjectNodeReusableSource,
+  ProjectReusableSource,
   ProjectReusableEstimateSource,
   ProjectSourceInsertTarget,
   ReusableEstimateSource,
@@ -98,6 +104,7 @@ const LIBRARY_TREE_TABS = [
 ] as const;
 
 const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
+const PROJECT_SOURCE_NODE_PREFIX = "source-project-";
 const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
@@ -566,6 +573,22 @@ function mergeReusableProjectSources(
   return Array.from(sourcesByKey.values());
 }
 
+function mergeReusableProjectEstimateSources(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ProjectEstimateReusableSource[],
+  projectId: string,
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) {
+    if (source.kind !== "custom-template" && source.projectId === projectId && source.kind !== "project") continue;
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  for (const source of incomingSources) {
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  return Array.from(sourcesByKey.values());
+}
+
 function mergeReusableSourcesByKey(
   currentSources: ReusableEstimateSource[],
   incomingSources: ProjectReusableEstimateSource[],
@@ -582,6 +605,16 @@ function findProjectEstimateSourceByNodeId(sources: ReusableEstimateSource[], no
   return sources.find(
     (source): source is ProjectEstimateReusableSource => source.kind === "project-estimate" && source.estimateId === estimateId,
   ) ?? null;
+}
+
+function findProjectSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectReusableSource | null {
+  if (!nodeId.startsWith(PROJECT_SOURCE_NODE_PREFIX)) return null;
+  const projectId = nodeId.slice(PROJECT_SOURCE_NODE_PREFIX.length);
+  return sources.find((source): source is ProjectReusableSource => source.kind === "project" && source.projectId === projectId) ?? null;
+}
+
+function hasReusableProjectEstimates(sources: ReusableEstimateSource[], projectId: string) {
+  return sources.some((source) => source.kind === "project-estimate" && source.projectId === projectId);
 }
 
 function hasReusableEstimateOutline(sources: ReusableEstimateSource[], estimateId: string) {
@@ -677,6 +710,9 @@ export function EstimateRightSidebar({
   const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
   const [projectSourceSearchLoading, setProjectSourceSearchLoading] = useState(false);
   const [projectSourceSearchError, setProjectSourceSearchError] = useState("");
+  const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
+  const [projectEstimateLoadedProjectIds, setProjectEstimateLoadedProjectIds] = useState<string[]>([]);
+  const [projectEstimateErrors, setProjectEstimateErrors] = useState<Record<string, string>>({});
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
   const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
@@ -759,6 +795,9 @@ export function EstimateRightSidebar({
     if (!canLoadProjectSourcesFromActions) return Promise.resolve();
     setProjectSourcesLoading(true);
     setProjectSourcesError("");
+    setProjectEstimateErrors({});
+    setProjectEstimateLoadedProjectIds([]);
+    setProjectEstimateLoadingProjectIds([]);
     setProjectOutlineErrors({});
     setProjectOutlineLoadingEstimateIds([]);
     return listReusableProjectSources()
@@ -776,6 +815,8 @@ export function EstimateRightSidebar({
     setPreviewProjectSourceKey(null);
     setBulkSelectedNodeIds(new Set());
     setProjectSourceSearchResults([]);
+    setProjectEstimateLoadedProjectIds([]);
+    setProjectEstimateErrors({});
     void loadProjectSources();
   }, [loadProjectSources]);
   const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
@@ -889,6 +930,9 @@ export function EstimateRightSidebar({
     const timer = window.setTimeout(() => {
       if (cancelled) return;
       setLoadedProjectSources(projectSources);
+      setProjectEstimateLoadedProjectIds([]);
+      setProjectEstimateLoadingProjectIds([]);
+      setProjectEstimateErrors({});
       setProjectOutlineErrors({});
     }, 0);
     return () => {
@@ -1035,6 +1079,22 @@ export function EstimateRightSidebar({
     return undefined;
   }, [projectSourcesError, projectSourcesLoading]);
   const templatesProjectSourceStatus = useMemo(() => {
+    const projectLoadingCount = projectEstimateLoadingProjectIds.length;
+    const projectErrors = Object.values(projectEstimateErrors);
+    if (projectLoadingCount > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Loading {projectLoadingCount === 1 ? "project estimates" : `${projectLoadingCount} project estimate lists`}…
+        </div>
+      );
+    }
+    if (projectErrors.length > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t load project estimates. {projectErrors[0]}
+        </div>
+      );
+    }
     const loadingCount = projectOutlineLoadingEstimateIds.length;
     const errors = Object.values(projectOutlineErrors);
     if (loadingCount > 0) {
@@ -1052,7 +1112,7 @@ export function EstimateRightSidebar({
       );
     }
     return null;
-  }, [projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
+  }, [projectEstimateErrors, projectEstimateLoadingProjectIds.length, projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
   const templatesProjectSourceSearchStatus = useMemo(() => {
     if (!projectSourceSearchQuery) return null;
     if (projectSourceSearchLoading) {
@@ -1658,6 +1718,41 @@ export function EstimateRightSidebar({
     );
     if (isExpanded) return;
 
+    const projectSource = findProjectSourceByNodeId(loadedProjectSources, nodeId);
+    if (projectSource) {
+      if (hasReusableProjectEstimates(loadedProjectSources, projectSource.projectId)) return;
+      if (projectEstimateLoadedProjectIds.includes(projectSource.projectId)) return;
+      if (projectEstimateLoadingProjectIds.includes(projectSource.projectId)) return;
+
+      setProjectEstimateLoadingProjectIds((current) =>
+        current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
+      );
+      setProjectEstimateErrors((current) => {
+        const next = { ...current };
+        delete next[projectSource.projectId];
+        return next;
+      });
+      listReusableProjectEstimateSources({ projectId: projectSource.projectId })
+        .then((result) => {
+          setLoadedProjectSources((current) =>
+            mergeReusableProjectEstimateSources(current, result.sources, projectSource.projectId),
+          );
+          setProjectEstimateLoadedProjectIds((current) =>
+            current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
+          );
+        })
+        .catch((error: unknown) => {
+          setProjectEstimateErrors((current) => ({
+            ...current,
+            [projectSource.projectId]: error instanceof Error ? error.message : "Could not load project estimates.",
+          }));
+        })
+        .finally(() => {
+          setProjectEstimateLoadingProjectIds((current) => current.filter((projectId) => projectId !== projectSource.projectId));
+        });
+      return;
+    }
+
     const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
     if (!source) return;
     if (hasReusableEstimateOutline(loadedProjectSources, source.estimateId)) return;
@@ -1684,7 +1779,13 @@ export function EstimateRightSidebar({
       .finally(() => {
         setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
       });
-  }, [loadedProjectSources, projectOutlineLoadingEstimateIds, templatesExpandedIds]);
+  }, [
+    loadedProjectSources,
+    projectEstimateLoadedProjectIds,
+    projectEstimateLoadingProjectIds,
+    projectOutlineLoadingEstimateIds,
+    templatesExpandedIds,
+  ]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
