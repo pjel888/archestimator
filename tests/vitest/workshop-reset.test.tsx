@@ -202,7 +202,7 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByRole("link", { name: /Open Templates/ })).toBeNull();
     expect(container.querySelector('img[src="/Cards/Projects-Card.jpg"]')).toBeNull();
     expect(screen.queryByText("Project shortcuts")).toBeNull();
-    expect(screen.queryByText("Estimate sheet shortcuts")).toBeNull();
+    expect(screen.queryByText("Estimate shortcuts")).toBeNull();
     expect(screen.queryByText("First move")).toBeNull();
     expect(screen.queryByText("Recommended")).toBeNull();
 
@@ -220,7 +220,7 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
     expect(screen.queryByRole("region", { name: "Favorites" })).toBeNull();
     expect(screen.queryByText("No favorite projects yet")).toBeNull();
-    expect(screen.queryByText("No favorite estimate sheets yet")).toBeNull();
+    expect(screen.queryByText("No favorite estimates yet")).toBeNull();
     expect(screen.queryByText("Recent Projects")).toBeNull();
     expect(screen.queryByText("Sample Projects")).toBeNull();
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();

@@ -146,7 +146,7 @@ describe("project estimates table inline editing", () => {
 
     renderTable();
 
-    const nameInput = screen.getByLabelText("Estimate sheet name for Original Estimate");
+    const nameInput = screen.getByLabelText("Estimate name for Original Estimate");
     await user.clear(nameInput);
     await user.type(nameInput, "Updated Estimate{Enter}");
 
@@ -164,7 +164,7 @@ describe("project estimates table inline editing", () => {
 
     renderTable();
 
-    const nameInput = screen.getByLabelText("Estimate sheet name for Original Estimate");
+    const nameInput = screen.getByLabelText("Estimate name for Original Estimate");
     await user.clear(nameInput);
     await user.type(nameInput, "Should Not Save{Escape}");
 
@@ -236,7 +236,7 @@ describe("project estimates table inline editing", () => {
     });
 
     expect(() => renderTable()).not.toThrow();
-    expect(screen.getByLabelText("Estimate sheet name for Original Estimate")).toBeInTheDocument();
+    expect(screen.getByLabelText("Estimate name for Original Estimate")).toBeInTheDocument();
   });
 
   it("duplicates an estimate sheet from the row actions once and refreshes the table", async () => {

@@ -397,8 +397,8 @@ function buildActivityScopeTreeItems({
       scope: { mode: "sheet" },
       depth: 0,
       kind: "sheet",
-      label: metadata?.estimateName ?? "Estimate sheet",
-      eyebrow: metadata?.estimateSheetCode ?? "Sheet",
+      label: metadata?.estimateName ?? "Estimate",
+      eyebrow: metadata?.estimateSheetCode ?? "Estimate",
       total: projectTotal,
       row: null,
     },
@@ -466,18 +466,18 @@ function EstimateSheetHeader({
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Sheet controls">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
-        ariaLabel="Sheet tools"
-        labelPrefix="sheet"
+        ariaLabel="Tab tools"
+        labelPrefix="tab"
         onExpandAll={onExpandAll}
         onCollapseAll={onCollapseAll}
-        startActionsLabel="Sheet search"
+        startActionsLabel="Tab search"
         searchValue={searchQuery}
         onSearchValueChange={onSearchQueryChange}
-        searchPlaceholder="Search Sheet"
-        searchLabel="Search Sheet"
+        searchPlaceholder="Search Tab"
+        searchLabel="Search Tab"
         addActions={[
           {
             label: "Activity",
@@ -1753,7 +1753,7 @@ export function EstimateSheetContent({
                 </EstimateSheetExpansionContext.Provider>
                 ) : (
                   <div className="mt-4 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center text-[10px] leading-4 text-tertiary">
-                    No sheet rows match &quot;{sheetSearchQuery}&quot;.
+                    No rows in this tab match &quot;{sheetSearchQuery}&quot;.
                   </div>
                 )}
               </div>
@@ -1853,7 +1853,7 @@ function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolea
       {isError ? (
         <div role="alert" className="mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
-          <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate sheet is still editable. Retry to load components and templates.</p>
+          <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate is still editable. Retry to load components and templates.</p>
           <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
             Retry
           </Button>

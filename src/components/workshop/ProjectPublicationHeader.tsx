@@ -159,7 +159,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   }));
   const [isPending, startTransition] = useTransition();
 
-  // P1: selected sheets for the Sheets tab picker (defaults to all when estimates provided)
+  // P1: selected estimates for the Estimates tab picker (defaults to all when estimates provided)
   const summarySelectedEstimateIds = summary?.selectedEstimateIds ?? EMPTY_ESTIMATE_IDS;
   const defaultSelectedEstimateIds = useMemo(() => {
     const allEstimateIds = projectEstimateSheets.map((estimate) => estimate.id);
@@ -181,7 +181,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     setSelectedEstimateOverride({ ids, summaryKey });
   };
 
-  // P1/P4/P8: 5-tab navigation (Link / Sheets / Access / Recipients / Activity owner-only)
+  // P1/P4/P8: 5-tab navigation (Link / Estimates / Access / Recipients / Activity owner-only)
   const [activeTab, setActiveTab] = useState<PublicationTabId>("link");
   const browserOrigin = useSyncExternalStore(subscribeToOriginChange, readBrowserOrigin, readServerOrigin);
   const hasLocalResult = localResult?.summaryKey === summaryKey;
@@ -398,7 +398,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               tabs={(
                 [
                   { id: "link", label: "Link" },
-                  { id: "sheets", label: "Sheets" },
+                  { id: "sheets", label: "Estimates" },
                   { id: "access", label: "Access" },
                   { id: "recipients", label: "Recipients" },
                   { id: "activity", label: "Activity" },
@@ -471,12 +471,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
               {activeTab === "sheets" && (
                 <div className="space-y-2">
-                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Estimate sheets to include</h3>
+                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Estimates to include</h3>
                   <SheetPickerList
                     estimates={projectEstimateSheets}
                     selectedIds={selectedEstimateIds}
                     onChange={setSelectedEstimateIds}
-                    aria-label="Select estimate sheets to include in shared link"
+                    aria-label="Select estimates to include in shared link"
                     disabled={isPending}
                   />
                   {!hasSelectedEstimates && projectEstimateSheets.length > 0 && (
@@ -542,7 +542,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               )}
             </div>
 
-            {/* Link controls — always visible below tabs so Generate can be disabled from Sheets tab state */}
+            {/* Link controls — always visible below tabs so Generate can be disabled from Estimates tab state */}
             <div className="border-t border-hairline p-6">
               <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Link controls</h3>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -655,8 +655,8 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   );
 }
 
-/* P1: SheetPickerList — compact, a11y, keyboard-friendly picker for estimate sheets.
- * Used exclusively inside the "Sheets" tab of the publication modal.
+/* P1: SheetPickerList — compact, a11y, keyboard-friendly picker for estimates.
+ * Used exclusively inside the "Estimates" tab of the publication modal.
  * Design: SF Pro via parent, 10-12px text, rounded-xs (3px), regular Phosphor if needed, native checkboxes for max keyboard.
  */
 export type SheetPickerListProps = {
@@ -667,7 +667,7 @@ export type SheetPickerListProps = {
   "aria-label"?: string;
 };
 
-export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "aria-label": ariaLabel = "Select estimate sheets to include in shared link" }: SheetPickerListProps) {
+export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "aria-label": ariaLabel = "Select estimates to include in shared link" }: SheetPickerListProps) {
   const selectedSet = new Set(selectedIds);
   const allIds = estimates.map((e) => e.id);
   const allSelected = estimates.length > 0 && selectedIds.length === estimates.length;
@@ -691,7 +691,7 @@ export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "a
   if (estimates.length === 0) {
     return (
       <div className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center text-[10px] text-tertiary">
-        No estimate sheets in this project.
+        No estimates in this project.
       </div>
     );
   }

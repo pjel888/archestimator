@@ -149,7 +149,7 @@ function InvitePreview({
       <dl className="grid gap-2 rounded-xs bg-surfaceMuted p-3 text-[10px] leading-4 text-secondary">
         <div className="flex justify-between gap-3">
           <dt className="text-tertiary">Scope</dt>
-          <dd>{row.scope === "estimate" ? `Estimate sheet${row.estimate_name ? `: ${row.estimate_name}` : ""}` : "Project"}</dd>
+          <dd>{row.scope === "estimate" ? `Estimate${row.estimate_name ? `: ${row.estimate_name}` : ""}` : "Project"}</dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-tertiary">Project code</dt>

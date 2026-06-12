@@ -1012,7 +1012,7 @@ async function assertEstimateSheetCodeIsAvailable(
     (estimate) => estimate.id !== currentEstimateId && estimate.sheetCode.trim().toLocaleLowerCase() === normalizedSheetCode,
   );
 
-  if (duplicate) throw new Error(`Sheet code ${sheetCode} already exists in this project.`);
+  if (duplicate) throw new Error(`Estimate code ${sheetCode} already exists in this project.`);
 }
 
 async function getEstimateRecordAfterMutation(
@@ -1251,7 +1251,7 @@ export async function fetchEstimateSheetVersionControl({
   const shouldFetchNodeEvents = Boolean(nodeId) && (scope === "node" || scope === "both");
   const targetRowId = shouldFetchRowEvents ? rowId : null;
   const targetNodeId = shouldFetchNodeEvents ? nodeId : null;
-  const normalizedSheetCursor = shouldFetchSheetEvents ? normalizeHistoryCursor(sheetCursor, "Sheet activity") : null;
+  const normalizedSheetCursor = shouldFetchSheetEvents ? normalizeHistoryCursor(sheetCursor, "Estimate activity") : null;
   const normalizedRowCursor = targetRowId ? normalizeHistoryCursor(rowCursor, "Row history") : null;
   const normalizedNodeCursor = targetNodeId ? normalizeHistoryCursor(nodeCursor, "Node activity") : null;
   const eventSelect = "id, event_type, event_source, created_at, actor_user_id, target_row_id, estimate_node_id, row_context, old_snapshot, new_snapshot, changed_fields, total_delta, payload, correlation_id";
@@ -1520,7 +1520,7 @@ export async function createEstimateSheetDraft(projectId: string) {
   const { estimate, areaNodeId } = await createEstimateWithDefaultTree({
     supabase,
     project,
-    name: `${sheetCode} Estimate Sheet`,
+    name: `${sheetCode} Estimate`,
     sheetCode,
     createdBy: currentUser.userId,
   });
@@ -1654,7 +1654,7 @@ export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateS
     }]);
   }
 
-  const { ids, issues } = normalizeBulkActionIds(input.estimateIds, { label: "estimate sheets", max: 100 });
+  const { ids, issues } = normalizeBulkActionIds(input.estimateIds, { label: "estimates", max: 100 });
   if (issues.length > 0) return buildRejectedPreviewResult("estimate_sheet", ids, issues);
 
   const { project } = await getCurrentWorkspaceProject(input.projectId);
@@ -1679,7 +1679,7 @@ export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateS
   if (error) {
     return buildRejectedPreviewResult("estimate_sheet", ids, [{
       code: "rpc_error",
-      message: `Could not preview estimate sheet deletion: ${error.message}`,
+      message: `Could not preview estimate deletion: ${error.message}`,
     }]);
   }
 
@@ -1698,7 +1698,7 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
     };
   }
 
-  const { ids, issues } = normalizeBulkActionIds(input.estimateIds, { label: "estimate sheets", max: 100 });
+  const { ids, issues } = normalizeBulkActionIds(input.estimateIds, { label: "estimates", max: 100 });
   if (issues.length > 0) {
     return {
       ...buildRejectedPreviewResult("estimate_sheet", ids, issues),
@@ -1738,7 +1738,7 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
       summary: { requestedCount: ids.length, eligibleCount: 0, blockedCount: 1 },
       issues: [{
         code: "rpc_error",
-        message: `Could not delete estimate sheets: ${error.message}`,
+        message: `Could not delete estimates: ${error.message}`,
       }],
     };
   }
@@ -1772,12 +1772,12 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   const estimatePatch: Record<string, unknown> = {};
 
   if (input.name !== undefined) {
-    const name = normalizeEditableText(input.name, "Estimate sheet name");
+    const name = normalizeEditableText(input.name, "Estimate name");
     payload.name = name;
     estimatePatch.name = name;
   }
   if (input.sheetCode !== undefined) {
-    const sheetCode = normalizeEditableText(input.sheetCode, "Sheet code");
+    const sheetCode = normalizeEditableText(input.sheetCode, "Estimate code");
     await assertEstimateSheetCodeIsAvailable(supabase, project.id, sheetCode, input.estimateId);
     payload.sheet_code = sheetCode;
     estimatePatch.sheetCode = sheetCode;
@@ -1823,7 +1823,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
   });
-  if (error) throw new Error(`Could not regenerate estimate sheet code: ${error.message}`);
+  if (error) throw new Error(`Could not regenerate estimate code: ${error.message}`);
 
   const estimate = await getEstimateRecordAfterMutation(supabase, input.estimateId, project.id);
   revalidateProjectEstimatePaths(project.id);

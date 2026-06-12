@@ -132,7 +132,7 @@ describe("ProjectsPageClient shared access", () => {
     routerMock.refresh.mockClear();
   });
 
-  it("renders owned, shared project, and sheet-only cards with text badges", async () => {
+  it("renders owned, shared project, and estimate-only cards with text badges", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
@@ -140,10 +140,10 @@ describe("ProjectsPageClient shared access", () => {
     await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
 
     expect(screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access")).toBeInTheDocument();
-    expect(screen.getByLabelText("Shared Sheet Project project, sheet-only access, viewer access")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shared Sheet Project project, estimate-only access, viewer access")).toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
-    expect(screen.getByText("Sheet-only")).toBeInTheDocument();
-    expect(screen.getByText("2 shared sheets")).toBeInTheDocument();
+    expect(screen.getByText("Estimate-only")).toBeInTheDocument();
+    expect(screen.getByText("2 shared estimates")).toBeInTheDocument();
     expect(screen.getByText("Shared by Studio Partner")).toBeInTheDocument();
   });
 
@@ -178,7 +178,7 @@ describe("ProjectsPageClient shared access", () => {
     expect(screen.getByLabelText("Live projects")).toBeInTheDocument();
     expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
-    expect(screen.getByText("Sheet-only")).toBeInTheDocument();
+    expect(screen.getByText("Estimate-only")).toBeInTheDocument();
   });
 
   it("renders invitee pending-invite project cards with accept actions", async () => {

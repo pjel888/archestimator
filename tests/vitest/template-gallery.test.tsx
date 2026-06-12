@@ -156,7 +156,7 @@ function renderManager(templates: EstimateTemplate[] = fixtureTemplates) {
 }
 
 function getGallery() {
-  return screen.getByLabelText("Template sheet");
+  return screen.getByLabelText("Template content");
 }
 
 describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
@@ -316,7 +316,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
   it("matches row content in the gallery search (material/supplier extension)", async () => {
     renderManager();
 
-    fireEvent.click(screen.getByRole("button", { name: "Show template sheet search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show template content search" }));
     const input = await screen.findByLabelText("Search templates");
     fireEvent.change(input, { target: { value: "Zirconium" } });
 

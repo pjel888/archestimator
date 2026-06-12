@@ -11,7 +11,7 @@ const UUID_B = "22222222-2222-4222-8222-222222222222";
 
 describe("mass deletion bulk action validation", () => {
   it("deduplicates UUID ids and preserves first-seen order", () => {
-    expect(normalizeBulkActionIds([UUID_A, UUID_A, UUID_B], { label: "estimate sheets", max: 10 })).toEqual({
+    expect(normalizeBulkActionIds([UUID_A, UUID_A, UUID_B], { label: "estimates", max: 10 })).toEqual({
       ids: [UUID_A, UUID_B],
       issues: [],
     });
@@ -36,7 +36,7 @@ describe("mass deletion bulk action validation", () => {
   it("uses exact typed confirmation phrases for single and bulk destructive operations", () => {
     expect(getBulkActionConfirmationPhrase("project", 1)).toBe("DELETE PROJECT");
     expect(getBulkActionConfirmationPhrase("project", 3)).toBe("DELETE 3 PROJECTS");
-    expect(getBulkActionConfirmationPhrase("sheet", 1)).toBe("DELETE SHEET");
+    expect(getBulkActionConfirmationPhrase("sheet", 1)).toBe("DELETE ESTIMATE");
     expect(getBulkActionConfirmationPhrase("component", 2, "archive")).toBe("ARCHIVE 2 COMPONENTS");
     expect(validateTypedConfirmationPhrase(" DELETE PROJECT ", "DELETE PROJECT")).toBe(true);
     expect(validateTypedConfirmationPhrase("delete project", "DELETE PROJECT")).toBe(false);

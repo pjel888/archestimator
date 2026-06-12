@@ -968,6 +968,6 @@ describe("estimate sheet version control server actions", () => {
         createdAt: "not-a-date",
         id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       },
-    })).rejects.toThrow("Sheet activity cursor timestamp is invalid.");
+    })).rejects.toThrow("Estimate activity cursor timestamp is invalid.");
   });
 });

@@ -24,7 +24,7 @@ export default async function PricingPage() {
   const pricingFaq = [
     {
       q: "Is Archestimator production-ready?",
-      a: "Archestimator is in a closed beta. It is useful for structured estimate sheets, reusable catalog logic, and workflow feedback, but it is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files.",
+      a: "Archestimator is in a closed beta. It is useful for structured estimates, reusable catalog logic, and workflow feedback, but it is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files.",
     },
     {
       q: "Is payment required during closed beta?",

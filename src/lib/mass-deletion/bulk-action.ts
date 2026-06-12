@@ -73,13 +73,13 @@ export type StorageCleanupReport = {
 
 const singularLabels = {
   project: "PROJECT",
-  sheet: "SHEET",
+  sheet: "ESTIMATE",
   component: "COMPONENT",
 } as const;
 
 const pluralLabels = {
   project: "PROJECTS",
-  sheet: "SHEETS",
+  sheet: "ESTIMATES",
   component: "COMPONENTS",
 } as const;
 

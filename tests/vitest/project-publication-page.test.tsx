@@ -427,7 +427,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />
       );
 
-      const tablist = screen.getByRole("tablist", { name: /estimate sheets/i });
+      const tablist = screen.getByRole("tablist", { name: /estimates/i });
       expect(tablist).toBeInTheDocument();
 
       const tabs = within(tablist).getAllByRole("tab");
@@ -632,7 +632,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(container.innerHTML).toMatch(/gradient|from-proposalPaper|to-transparent/);
     });
 
-    it("even for a single estimate sheet, renders exactly one tab + its full table content (no bypass)", async () => {
+    it("even for a single estimate, renders exactly one tab + its full table content (no bypass)", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       render(
         <SharePageTabs
@@ -642,7 +642,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />
       );
 
-      const tablist = screen.getByRole("tablist", { name: /estimate sheets/i });
+      const tablist = screen.getByRole("tablist", { name: /estimates/i });
       const tabs = within(tablist).getAllByRole("tab");
       expect(tabs).toHaveLength(1);
       expect(screen.getByRole("heading", { name: "Main Estimate" })).toBeInTheDocument();
@@ -651,7 +651,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   });
 
   describe("OpenGraph metadata on /share/[token] (P2)", () => {
-    it("generateMetadata returns title with project name, description containing sheet count, and handles image from projects.metadata (inline query path)", async () => {
+    it("generateMetadata returns title with project name, description containing estimate count, and handles image from projects.metadata (inline query path)", async () => {
       // Real exercise now that generateMetadata + inline getProjectImageUrl + service client is in page
       const pageMod = await import("@/app/share/[token]/page");
       const { generateMetadata } = pageMod;
@@ -660,7 +660,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const meta = await generateMetadata({ params: Promise.resolve({ token: "client-token" }) });
 
       expect(meta.title).toContain("Valencia Residence");
-      expect(meta.description).toContain("1 estimate sheet");
+      expect(meta.description).toContain("1 estimate");
       expect(meta.description).toContain("1 rows");
       // image may be undefined (no real supabase in this env) — contract is graceful
       expect(meta.openGraph?.title).toContain("Valencia Residence");

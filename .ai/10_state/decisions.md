@@ -1,5 +1,25 @@
 # Decisions
 
+
+## 2026-06-12 - Phase 4 rebrands visible sheets while preserving internal sheet contracts
+
+**Decision:** Phase 4 changes user-facing terminology only. Copy that names the
+estimate moves from "estimate sheet" / "sheet" to "estimate"; tree containers are
+called "tabs"; and `sheet_code` is labeled "Estimate code" in UI/audit surfaces.
+Internal names on the keep-list remain unchanged until an explicit cleanup phase
+or migration plan says otherwise.
+
+**Rationale:** The plan intentionally separates product language from compatibility
+contracts. Renaming DB tables, RPCs, generated types, `EstimateSheet*` files, stored
+`sheet_*` event names, localStorage keys, or Excel/worksheet terminology during the
+copy pass would add migration/refactor risk and could break existing data, tests,
+and older links.
+
+**Follow-up:** Future agents must keep Phase 4 terminology edits copy-only unless
+a dedicated Phase 8 cleanup or owner-approved migration updates contracts and tests
+in one atomic batch. Marketing/landing copy is locally aligned, but owner review is
+still the product-decision boundary for final product wording.
+
 ## 2026-06-12 - Estimate tabs Phase 3 keeps lifecycle controls hidden until export parity
 
 **Decision:** Phase 3 may render editor tab switching and tab-scoped state, but

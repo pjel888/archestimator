@@ -249,7 +249,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     const count = snap.estimateCount;
 
     const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Proposal Review`;
-    const desc = `${count} estimate sheet${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. Prepared for client review.`;
+    const desc = `${count} estimate${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. Prepared for client review.`;
 
     // OG image deliberately omitted here to avoid introducing direct
     // `createClient` + service-role + `supabase.from("projects")` access

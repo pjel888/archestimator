@@ -22,10 +22,10 @@ const E2E_ENABLED = !!process.env.ARCHESTIMATOR_E2E_SHARED_LINK;
 test.describe('Shared Link V2 Receiver (per 12-testing-strategy-plan.md)', () => {
   test.skip(!E2E_ENABLED, 'Requires ARCHESTIMATOR_E2E_SHARED_LINK=1 + seeded publication/recipient (see plan §4 and §7)');
 
-  test('4.1 owner selects sheets and generates a shared link', async ({ page }) => {
+  test('4.1 owner selects estimates and generates a shared link', async ({ page }) => {
     await page.goto('/workshop/projects/test-project');
     await page.click('button:has-text("Shared link")');
-    await page.click('text=Sheets');
+    await page.click('text=Estimates');
     await page.check('label:has-text("ES-001 — Structure")');
     await page.check('label:has-text("ES-002 — Finishes")');
     await page.click('button:has-text("Generate shared link")');
@@ -37,7 +37,7 @@ test.describe('Shared Link V2 Receiver (per 12-testing-strategy-plan.md)', () =>
     // If password protected
     await page.fill('input[type="password"]', 'test-pass');
     await page.click('button:has-text("Unlock")');
-    // Tabs (Sheets/Recipients/Activity + default)
+    // Tabs (Estimates/Recipients/Activity + default)
     await expect(page.locator('role=tab:has-text("Structure")')).toBeVisible();
     await page.click('role=tab:has-text("Finishes")');
     await expect(page.locator('text=Concrete works')).not.toBeVisible();

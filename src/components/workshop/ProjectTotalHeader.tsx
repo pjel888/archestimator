@@ -230,7 +230,7 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
     <div
       className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 bg-white px-2"
       data-estimate-center-column="project-total-header"
-      aria-label="Sheet running totals"
+      aria-label="Estimate running totals"
     >
       <div className="flex min-w-[118px] shrink-0 flex-col items-start justify-center text-left">
         <span className={`font-sans text-[12px] font-medium leading-4 tabular-nums ${BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS}`}>{formatPeso(budget)}</span>
