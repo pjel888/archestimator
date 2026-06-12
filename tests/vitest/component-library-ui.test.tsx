@@ -14,10 +14,18 @@ const templateActionMocks = vi.hoisted(() => ({
   deleteEstimateTemplate: vi.fn(),
 }));
 
+const reusableSourceActionMocks = vi.hoisted(() => ({
+  listReusableProjectSources: vi.fn(),
+}));
+
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
   renameEstimateTemplate: templateActionMocks.renameEstimateTemplate,
   deleteEstimateTemplate: templateActionMocks.deleteEstimateTemplate,
+}));
+
+vi.mock("@/lib/reusable-sources/actions", () => ({
+  listReusableProjectSources: reusableSourceActionMocks.listReusableProjectSources,
 }));
 
 const sidebarSeedItems = estimateLibraryItems.slice(0, 8);
@@ -93,6 +101,7 @@ describe("component library UI", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    reusableSourceActionMocks.listReusableProjectSources.mockReset();
   });
 
   afterEach(() => {
@@ -658,6 +667,7 @@ describe("templates tree", () => {
     useEstimateWorkshopDragState.setState({ activeDrag: null });
     templateActionMocks.renameEstimateTemplate.mockReset();
     templateActionMocks.deleteEstimateTemplate.mockReset();
+    reusableSourceActionMocks.listReusableProjectSources.mockReset();
   });
 
   it("renders templates as a uniform node tree with costs and no structure counts", () => {
@@ -784,6 +794,28 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
     expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+  });
+
+  it("loads readable project sources when the Templates tab opens in an estimate context", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+    });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+  });
+
+  it("uses prop-supplied project sources without refetching on Templates tab open", () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({ sources: [] });
+
+    openTemplatesTab({ projectSources, projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(reusableSourceActionMocks.listReusableProjectSources).not.toHaveBeenCalled();
+    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
   });
 
   it("drags a project tab source with the project-source payload", () => {

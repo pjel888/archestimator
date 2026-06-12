@@ -19,6 +19,7 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import { listReusableProjectSources } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget, ReusableEstimateSource } from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
@@ -87,6 +88,8 @@ const LIBRARY_TREE_TABS = [
   { id: "components", label: "Components" },
   { id: "templates", label: "Templates" },
 ] as const;
+
+const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
 
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
@@ -300,7 +303,7 @@ export function EstimateRightSidebar({
   nodes,
   initialLibraryItems = estimateLibraryItems,
   templates = [],
-  projectSources = [],
+  projectSources = EMPTY_REUSABLE_PROJECT_SOURCES,
   onInsertProjectSource,
   categoryTree = componentCategoryTree,
   suppliers = [],
@@ -335,6 +338,9 @@ export function EstimateRightSidebar({
   // Like libraryItems, the template list seeds from the server prop once and
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
+  const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
+  const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
+  const [projectSourcesError, setProjectSourcesError] = useState("");
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
     Array.from(new Set([
       templatesTreeSectionId("custom-templates"),
@@ -511,6 +517,30 @@ export function EstimateRightSidebar({
   }, [viewModeMenuOpen]);
 
   useEffect(() => {
+    setLoadedProjectSources(projectSources);
+  }, [projectSources]);
+
+  useEffect(() => {
+    if (activeTab !== "templates" || !projectId || !estimateId || projectSources.length > 0) return;
+    let cancelled = false;
+    setProjectSourcesLoading(true);
+    setProjectSourcesError("");
+    listReusableProjectSources()
+      .then((result) => {
+        if (!cancelled) setLoadedProjectSources(result.sources);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setProjectSourcesError(error instanceof Error ? error.message : "Could not load project sources.");
+      })
+      .finally(() => {
+        if (!cancelled) setProjectSourcesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, estimateId, projectId, projectSources.length]);
+
+  useEffect(() => {
     const handler = (event: StorageEvent) => {
       if (event.key === LIBRARY_FAVORITES_KEY) {
         const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
@@ -545,9 +575,26 @@ export function EstimateRightSidebar({
   const templatesSelectionNodes = useMemo(() => buildTemplatesSelectionNodes(templateList), [templateList]);
   const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
   const templatesAllNodeIds = useMemo(
-    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, projectSources)),
-    [projectSources, templateList],
+    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, loadedProjectSources)),
+    [loadedProjectSources, templateList],
   );
+  const templatesProjectSourceEmptyState = useMemo(() => {
+    if (projectSourcesLoading) {
+      return (
+        <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Loading project sources…
+        </div>
+      );
+    }
+    if (projectSourcesError) {
+      return (
+        <div className="rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t load project sources. {projectSourcesError}
+        </div>
+      );
+    }
+    return undefined;
+  }, [projectSourcesError, projectSourcesLoading]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -1186,7 +1233,7 @@ export function EstimateRightSidebar({
             {activeTab === "templates" ? (
               <TemplatesTree
                 templates={templateList}
-                projectSources={projectSources}
+                projectSources={loadedProjectSources}
                 searchQuery={searchQuery}
                 expandedNodeIds={templatesExpandedIds}
                 onToggle={handleTemplatesToggle}
@@ -1209,6 +1256,7 @@ export function EstimateRightSidebar({
                 selectable
                 checkedIds={bulkSelectedIds}
                 onCheckToggle={handleBulkCheckToggle}
+                emptyState={templatesProjectSourceEmptyState}
               />
             ) : (
               <LibraryTree
