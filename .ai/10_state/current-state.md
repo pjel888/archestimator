@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Project Source Outline Metadata Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+Reusable project-source outline/search actions now attach local row-count and
+total-cost metadata to loaded tab and group/area sources, so existing preview
+surfaces can show richer live-source details without additional provider calls.
+The collector logic moved from the oversized server-action file into
+`src/lib/reusable-sources/source-collectors.ts`, reducing
+`src/lib/reusable-sources/actions.ts` to 188 pure LOC. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-project-source-outline-metadata-implementation-run.md`:
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-browse-project-sources.test.tsx --maxWorkers=1`
+passed (3 files / 64 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local action/UI proof only: `updatedAt` live
+freshness from provider data, hosted RLS/provider proof, R7.1/R7.2 insert
+RPC/action proof, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Template Browse Lazy Project Outline Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The `/workshop/library/templates` browse route now lazily expands readable
 project-estimate sources into tab and group/area project-source rows through the

@@ -1,7 +1,6 @@
 "use server";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateTreeNode } from "@/lib/estimates/types";
 import {
   getEstimateTabs,
   getEstimateTabTree,
@@ -16,6 +15,13 @@ import type {
   ProjectTabReusableSource,
   ReusableEstimateSource,
 } from "./types";
+import {
+  collectProjectNodeSearchSources,
+  collectProjectNodeSources,
+  summarizeEstimateTreeNodes,
+  textMatchesReusableSourceQuery,
+  type ProjectSourceSearchContext,
+} from "./source-collectors";
 
 export type ReusableProjectSourceListResult = {
   sources: Array<ProjectReusableSource | ProjectEstimateReusableSource>;
@@ -29,16 +35,6 @@ export type ReusableProjectSourceSearchResult = {
   sources: ProjectReusableEstimateSource[];
 };
 
-type ProjectSourceSearchContext = {
-  projectId: string;
-  projectName: string;
-  estimateId: string;
-  estimateName: string;
-  sheetCode: string | null;
-  tabId: string;
-  tabName: string;
-};
-
 function normalizeReusableSourceSearchQuery(query: string) {
   return query.trim().replace(/[,()"]/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();
 }
@@ -50,90 +46,8 @@ function reusableProjectSourceResultKey(source: ProjectReusableEstimateSource) {
   return `project-node:${source.nodeId}`;
 }
 
-function textMatchesReusableSourceQuery(query: string, values: Array<string | null | undefined>) {
-  return values.some((value) => value?.toLocaleLowerCase().includes(query));
-}
-
 function addReusableSearchSource(sourcesByKey: Map<string, ProjectReusableEstimateSource>, source: ProjectReusableEstimateSource) {
   sourcesByKey.set(reusableProjectSourceResultKey(source), source);
-}
-
-function collectProjectNodeSources({
-  projectId,
-  estimateId,
-  tabId,
-  nodes,
-}: {
-  projectId: string;
-  estimateId: string;
-  tabId: string;
-  nodes: EstimateTreeNode[];
-}): ProjectNodeReusableSource[] {
-  const sources: ProjectNodeReusableSource[] = [];
-
-  function visit(node: EstimateTreeNode) {
-    if (node.kind === "group" || node.kind === "area") {
-      sources.push({
-        kind: "project-node",
-        projectId,
-        estimateId,
-        tabId,
-        nodeId: node.id,
-        nodeKind: node.kind,
-        name: node.name,
-      });
-    }
-    node.children?.forEach(visit);
-  }
-
-  nodes.forEach(visit);
-  return sources;
-}
-
-function collectProjectNodeSearchSources({
-  context,
-  nodes,
-  query,
-  path = [],
-}: {
-  context: ProjectSourceSearchContext;
-  nodes: EstimateTreeNode[];
-  query: string;
-  path?: string[];
-}): ProjectNodeReusableSource[] {
-  const sources: ProjectNodeReusableSource[] = [];
-
-  for (const node of nodes) {
-    const nodePath = [...path, node.name];
-    if ((node.kind === "group" || node.kind === "area") && textMatchesReusableSourceQuery(query, [node.name])) {
-      sources.push({
-        kind: "project-node",
-        projectId: context.projectId,
-        estimateId: context.estimateId,
-        tabId: context.tabId,
-        nodeId: node.id,
-        nodeKind: node.kind,
-        name: node.name,
-        metadata: {
-          projectName: context.projectName,
-          estimateName: context.estimateName,
-          sheetCode: context.sheetCode,
-          tabName: context.tabName,
-          nodePath: [context.tabName, ...nodePath],
-        },
-      });
-    }
-    if (node.children?.length) {
-      sources.push(...collectProjectNodeSearchSources({
-        context,
-        nodes: node.children,
-        query,
-        path: nodePath,
-      }));
-    }
-  }
-
-  return sources;
 }
 
 export async function listReusableProjectSources(): Promise<ReusableProjectSourceListResult> {
@@ -223,6 +137,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
             estimateName: estimate.name,
             sheetCode: estimate.sheetCode,
             tabName: tab.name,
+            ...summarizeEstimateTreeNodes(tabTrees[tabIndex]?.tree ?? []),
           },
         };
         const context: ProjectSourceSearchContext = {
@@ -271,11 +186,18 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
       estimateId: input.estimateId,
       tabId: tab.id,
       name: tab.name,
+      metadata: {
+        tabName: tab.name,
+        ...summarizeEstimateTreeNodes(tabTrees[index]?.tree ?? []),
+      },
     });
     sources.push(...collectProjectNodeSources({
-      projectId: input.projectId,
-      estimateId: input.estimateId,
-      tabId: tab.id,
+      context: {
+        projectId: input.projectId,
+        estimateId: input.estimateId,
+        tabId: tab.id,
+        tabName: tab.name,
+      },
       nodes: tabTrees[index]?.tree ?? [],
     }));
   });
