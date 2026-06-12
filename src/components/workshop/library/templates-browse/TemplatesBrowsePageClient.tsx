@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const TemplatesBrowseManager = dynamic(
   () => import("./TemplatesBrowseManager").then((module) => module.TemplatesBrowseManager),
@@ -46,8 +47,9 @@ function TemplatesBrowseFallback() {
 
 type TemplatesBrowsePageClientProps = {
   templates?: EstimateTemplate[];
+  projectSources?: ReusableEstimateSource[];
 };
 
-export function TemplatesBrowsePageClient({ templates }: TemplatesBrowsePageClientProps = {}) {
-  return <TemplatesBrowseManager templates={templates} />;
+export function TemplatesBrowsePageClient({ templates, projectSources }: TemplatesBrowsePageClientProps = {}) {
+  return <TemplatesBrowseManager templates={templates} projectSources={projectSources} />;
 }

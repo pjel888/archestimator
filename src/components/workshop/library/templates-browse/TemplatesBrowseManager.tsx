@@ -10,6 +10,7 @@ import {
   PencilSimple,
   Plus,
   SquaresFour,
+  StackSimple,
   StackPlus,
   Trash,
 } from "@phosphor-icons/react/dist/ssr";
@@ -40,6 +41,13 @@ import {
   renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
+import type {
+  ProjectEstimateReusableSource,
+  ProjectNodeReusableSource,
+  ProjectReusableEstimateSource,
+  ProjectTabReusableSource,
+  ReusableEstimateSource,
+} from "@/lib/reusable-sources/types";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
 import { TemplatePreviewDock } from "./TemplatePreviewDock";
 
@@ -59,7 +67,9 @@ const ALL_TEMPLATES_NODE_ID = "all-templates";
 type BrowseTreeDatum =
   | { type: "all" }
   | { type: "category"; category: string }
-  | { type: "template"; template: EstimateTemplate };
+  | { type: "template"; template: EstimateTemplate }
+  | { type: "project-section" }
+  | { type: "project-source"; source: ProjectReusableEstimateSource };
 
 function browseCategoryNodeId(category: string) {
   return `browse-category:${category}`;
@@ -67,6 +77,13 @@ function browseCategoryNodeId(category: string) {
 
 function browseTemplateNodeId(templateId: string) {
   return `browse-template:${templateId}`;
+}
+
+function browseProjectSourceNodeId(source: ProjectReusableEstimateSource) {
+  if (source.kind === "project") return `browse-project:${source.projectId}`;
+  if (source.kind === "project-estimate") return `browse-project-estimate:${source.estimateId}`;
+  if (source.kind === "project-tab") return `browse-project-tab:${source.tabId}`;
+  return `browse-project-node:${source.nodeId}`;
 }
 
 function getBrowseTreeDatum(node: UiTreeNode | undefined): BrowseTreeDatum | undefined {
@@ -77,8 +94,157 @@ function getTemplateCategories(templates: EstimateTemplate[]) {
   return Array.from(new Set(templates.map((template) => template.category))).sort();
 }
 
-/** All Templates root → category folders → template leaves. */
-function buildBrowseTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
+function projectFallbackName(prefix: string, id: string) {
+  return `${prefix} ${id.slice(0, 8)}`;
+}
+
+type BrowseProjectGroup = {
+  source: Extract<ProjectReusableEstimateSource, { kind: "project" }>;
+  estimates: Map<string, BrowseEstimateGroup>;
+};
+
+type BrowseEstimateGroup = {
+  source: ProjectEstimateReusableSource;
+  tabs: Map<string, BrowseTabGroup>;
+};
+
+type BrowseTabGroup = {
+  source: ProjectTabReusableSource;
+  nodes: ProjectNodeReusableSource[];
+};
+
+function buildProjectSourceBrowseTreeNodes(projectSources: ReusableEstimateSource[]): UiTreeNode[] {
+  const projects = new Map<string, BrowseProjectGroup>();
+
+  function ensureProject(projectId: string, name?: string): BrowseProjectGroup {
+    const existing = projects.get(projectId);
+    if (existing) {
+      if (name && existing.source.name === projectFallbackName("Project", projectId)) existing.source = { ...existing.source, name };
+      return existing;
+    }
+    const group = {
+      source: { kind: "project", projectId, name: name ?? projectFallbackName("Project", projectId) },
+      estimates: new Map(),
+    } satisfies BrowseProjectGroup;
+    projects.set(projectId, group);
+    return group;
+  }
+
+  function ensureEstimate(projectId: string, estimateId: string, name?: string, sheetCode?: string | null): BrowseEstimateGroup {
+    const project = ensureProject(projectId);
+    const existing = project.estimates.get(estimateId);
+    if (existing) {
+      if (name && existing.source.name === projectFallbackName("Estimate", estimateId)) existing.source = { ...existing.source, name, sheetCode: sheetCode ?? existing.source.sheetCode };
+      return existing;
+    }
+    const group = {
+      source: {
+        kind: "project-estimate",
+        projectId,
+        estimateId,
+        name: name ?? projectFallbackName("Estimate", estimateId),
+        sheetCode: sheetCode ?? null,
+      },
+      tabs: new Map(),
+    } satisfies BrowseEstimateGroup;
+    project.estimates.set(estimateId, group);
+    return group;
+  }
+
+  function ensureTab(projectId: string, estimateId: string, tabId: string, name?: string): BrowseTabGroup {
+    const estimate = ensureEstimate(projectId, estimateId);
+    const existing = estimate.tabs.get(tabId);
+    if (existing) {
+      if (name && existing.source.name === projectFallbackName("Tab", tabId)) existing.source = { ...existing.source, name };
+      return existing;
+    }
+    const group = {
+      source: { kind: "project-tab", projectId, estimateId, tabId, name: name ?? projectFallbackName("Tab", tabId) },
+      nodes: [],
+    } satisfies BrowseTabGroup;
+    estimate.tabs.set(tabId, group);
+    return group;
+  }
+
+  for (const source of projectSources) {
+    if (source.kind === "custom-template") continue;
+    if (source.kind === "project") {
+      ensureProject(source.projectId, source.name).source = source;
+      continue;
+    }
+    if (source.kind === "project-estimate") {
+      ensureEstimate(source.projectId, source.estimateId, source.name, source.sheetCode).source = source;
+      continue;
+    }
+    if (source.kind === "project-tab") {
+      ensureTab(source.projectId, source.estimateId, source.tabId, source.name).source = source;
+      continue;
+    }
+    const tab = ensureTab(source.projectId, source.estimateId, source.tabId);
+    tab.nodes = [...tab.nodes.filter((node) => node.nodeId !== source.nodeId), source];
+  }
+
+  const projectNodes = Array.from(projects.values())
+    .sort((left, right) => left.source.name.localeCompare(right.source.name))
+    .map((project) => ({
+      id: browseProjectSourceNodeId(project.source),
+      label: project.source.name,
+      ariaLabel: `${project.source.name} project source`,
+      isLeaf: project.estimates.size === 0,
+      draggable: false,
+      icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+      data: { browseNode: { type: "project-source", source: project.source } satisfies BrowseTreeDatum },
+      children: Array.from(project.estimates.values())
+        .sort((left, right) => left.source.name.localeCompare(right.source.name))
+        .map((estimate) => ({
+          id: browseProjectSourceNodeId(estimate.source),
+          label: estimate.source.name,
+          ariaLabel: estimate.source.sheetCode ? `${estimate.source.name} estimate ${estimate.source.sheetCode}` : `${estimate.source.name} estimate`,
+          isLeaf: estimate.tabs.size === 0,
+          draggable: false,
+          icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+          data: { browseNode: { type: "project-source", source: estimate.source } satisfies BrowseTreeDatum },
+          children: Array.from(estimate.tabs.values())
+            .sort((left, right) => left.source.name.localeCompare(right.source.name))
+            .map((tab) => ({
+              id: browseProjectSourceNodeId(tab.source),
+              label: tab.source.name,
+              ariaLabel: `${tab.source.name} project tab source`,
+              isLeaf: tab.nodes.length === 0,
+              draggable: false,
+              icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+              data: { browseNode: { type: "project-source", source: tab.source } satisfies BrowseTreeDatum },
+              children: tab.nodes
+                .sort((left, right) => left.name.localeCompare(right.name))
+                .map((node) => ({
+                  id: browseProjectSourceNodeId(node),
+                  label: node.name,
+                  ariaLabel: `${node.name} project ${node.nodeKind}`,
+                  isLeaf: true,
+                  draggable: false,
+                  icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+                  data: { browseNode: { type: "project-source", source: node } satisfies BrowseTreeDatum },
+                })),
+            })),
+        })),
+    }));
+
+  if (projectNodes.length === 0) return [];
+  return [
+    {
+      id: "browse-project-sources",
+      label: "Projects",
+      ariaLabel: "Projects reusable sources",
+      isLeaf: false,
+      draggable: false,
+      icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+      data: { browseNode: { type: "project-section" } satisfies BrowseTreeDatum },
+      children: projectNodes,
+    },
+  ];
+}
+
+function buildBrowseTreeNodes(templates: EstimateTemplate[], projectSources: ReusableEstimateSource[] = []): UiTreeNode[] {
   const categories = getTemplateCategories(templates);
 
   return [
@@ -113,6 +279,7 @@ function buildBrowseTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
           })),
       })),
     },
+    ...buildProjectSourceBrowseTreeNodes(projectSources),
   ];
 }
 
@@ -139,6 +306,7 @@ function BrowseTreeRowContent({ label, total }: { label: string; total: number |
 
 type TemplatesBrowseTreePanelProps = {
   templates: EstimateTemplate[];
+  projectSources: ReusableEstimateSource[];
   selectedCategory: string | null;
   selectedTemplateId: string | null;
   onSelectAll: () => void;
@@ -157,6 +325,7 @@ type TemplatesBrowseTreePanelProps = {
 
 function TemplatesBrowseTreePanel({
   templates,
+  projectSources,
   selectedCategory,
   selectedTemplateId,
   onSelectAll,
@@ -181,7 +350,7 @@ function TemplatesBrowseTreePanel({
     () => filterTemplatesByQuery(templates, searchQuery),
     [searchQuery, templates],
   );
-  const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates), [filteredTemplates]);
+  const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates, projectSources), [filteredTemplates, projectSources]);
   const folderIds = useMemo(() => getBrowseTreeFolderIds(treeNodes), [treeNodes]);
   const searchActive = searchQuery.trim().length > 0;
   // New categories default expanded: collapse state is tracked, not expansion.
@@ -289,6 +458,7 @@ function TemplatesBrowseTreePanel({
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     const datum = contextMenuNodeId ? getBrowseTreeDatum(nodeById.get(contextMenuNodeId)) : undefined;
     if (!datum) return [];
+    if (datum.type === "project-section" || datum.type === "project-source") return [];
 
     if (datum.type === "all") {
       return [
@@ -408,6 +578,9 @@ function TemplatesBrowseTreePanel({
           <BrowseTreeRowContent label={datum.template.name} total={summarizeEstimateTemplate(datum.template).total} />
         );
       }
+      if (datum?.type === "project-source") {
+        return <BrowseTreeRowContent label={datum.source.name} total={null} />;
+      }
       return <BrowseTreeRowContent label={treeNode.label} total={null} />;
     },
     [totalsByCategory],
@@ -503,6 +676,7 @@ function TemplatesBrowseTreePanel({
 
 export type TemplatesBrowseManagerProps = {
   templates?: EstimateTemplate[];
+  projectSources?: ReusableEstimateSource[];
 };
 
 /**
@@ -510,7 +684,7 @@ export type TemplatesBrowseManagerProps = {
  * center `TemplateGallery`, right `TemplatePreviewDock`. Selection state
  * lives here so the tree, gallery, and preview dock stay in sync.
  */
-export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManagerProps = {}) {
+export function TemplatesBrowseManager({ templates = [], projectSources = [] }: TemplatesBrowseManagerProps = {}) {
   const router = useNavigationRouter();
   const [templateState, setTemplateState] = useState<{ source: EstimateTemplate[]; items: EstimateTemplate[] }>(() => ({
     source: templates,
@@ -731,6 +905,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Template library workspace">
           <TemplatesBrowseTreePanel
             templates={localTemplates}
+            projectSources={projectSources}
             selectedCategory={selectedCategory}
             selectedTemplateId={selectedTemplateId}
             onSelectAll={selectAll}
