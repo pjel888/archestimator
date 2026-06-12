@@ -53,6 +53,7 @@ import {
   findLibrarySiblingOrder,
   findNode,
   getAllNodeIds,
+  getCheckedProjectSourceTargets,
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,
   LibraryTree,
@@ -811,12 +812,15 @@ export function EstimateRightSidebar({
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, searchQuery), [treeNodes, searchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
-  const templatesSelectionNodes = useMemo(() => buildTemplatesSelectionNodes(templateList), [templateList]);
-  const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
   const visibleProjectSources = useMemo(() => {
     if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
     return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
   }, [loadedProjectSources, projectId, projectSourceScope]);
+  const templatesSelectionNodes = useMemo(
+    () => buildTemplatesSelectionNodes(templateList, visibleProjectSources),
+    [templateList, visibleProjectSources],
+  );
+  const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
   const previewProjectSource = useMemo(
     () => findProjectSourceByKey(visibleProjectSources, previewProjectSourceKey),
     [previewProjectSourceKey, visibleProjectSources],
@@ -910,6 +914,11 @@ export function EstimateRightSidebar({
     [bulkSelectedNodeIds, templateList],
   );
   const bulkTemplateUnitCount = bulkTemplateUnits.templates.length + bulkTemplateUnits.templateNodes.length;
+  const bulkProjectSourceTargets = useMemo(
+    () => getCheckedProjectSourceTargets(visibleProjectSources, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, visibleProjectSources],
+  );
+  const bulkProjectSourceTargetCount = bulkProjectSourceTargets.length;
 
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
@@ -1305,12 +1314,24 @@ export function EstimateRightSidebar({
       templateNodes.forEach(({ template, node }) => {
         if (addTemplateNode(template, node)) insertedCount += 1;
       });
+      bulkProjectSourceTargets.forEach((source) => {
+        if (addProjectSource(source)) insertedCount += 1;
+      });
     }
     if (items.length > 0 && insertLibraryItems(items)) insertedCount += items.length;
     if (insertedCount === 0) return;
-    if (insertedCount > 1) setLastActionMessage(`${insertedCount} template selections added.`);
+    if (insertedCount > 1) setLastActionMessage(`${insertedCount} reusable selections added.`);
     clearBulkSelection();
-  }, [addTemplate, addTemplateNode, bulkTemplateUnits, canInsertTemplate, clearBulkSelection, insertLibraryItems]);
+  }, [
+    addProjectSource,
+    addTemplate,
+    addTemplateNode,
+    bulkProjectSourceTargets,
+    bulkTemplateUnits,
+    canInsertTemplate,
+    clearBulkSelection,
+    insertLibraryItems,
+  ]);
 
   const handleConfirmBulkDelete = useCallback(() => {
     if (bulkSelectedItems.length === 0) {
@@ -1635,7 +1656,7 @@ export function EstimateRightSidebar({
                     label: "Add selected to estimate",
                     icon: <Plus size={12} weight="regular" />,
                     disabled:
-                      (!canInsertTemplate || bulkTemplateUnitCount === 0) &&
+                      (!canInsertTemplate || (bulkTemplateUnitCount === 0 && bulkProjectSourceTargetCount === 0)) &&
                       (!canInsert || bulkTemplateUnits.items.length === 0),
                     onClick: handleBulkAddSelectedTemplates,
                   },

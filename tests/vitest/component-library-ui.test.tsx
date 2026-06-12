@@ -998,6 +998,22 @@ describe("templates tree", () => {
     }));
   });
 
+  it("bulk-adds checked project-source targets as top-level reusable selections", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Lobby Main" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-tab",
+      tabId: "tab-2",
+    }));
+  });
+
   it("searches project-source names and keeps their source ancestors visible", () => {
     openTemplatesTab({ projectSources });
 

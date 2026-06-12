@@ -3,6 +3,7 @@ export {
   TemplatesTree,
   buildTemplatesTreeNodes,
   buildTemplatesSelectionNodes,
+  getCheckedProjectSourceTargets,
   getCheckedTemplates,
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,
