@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 
-import type { ProposalExportModel } from "./types";
+import type { ProposalExportModel, ProposalExportWorkbookTab, ProposalTabbedWorkbookModel } from "./types";
+import { quoteWorksheetCellReference } from "./worksheet-name";
 
 export type ProposalWorkbookColumn = {
   key: string;
@@ -48,6 +49,11 @@ const BREAKDOWN_COLUMNS = [
   { key: "contingencySubtotal", header: "CONTINGENCY / DISCOUNT", width: 20, style: { numFmt: PHP_FORMAT } },
   { key: "miscSubtotal", header: "MISC / OTHER", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "costAmount", header: "COST AMOUNT", width: 18, style: { numFmt: PHP_FORMAT } },
+] as const satisfies ProposalWorkbookColumn[];
+
+const BREAKDOWN_COLUMNS_WITH_TAB = [
+  { key: "tab", header: "TAB", width: 22 },
+  ...BREAKDOWN_COLUMNS,
 ] as const satisfies ProposalWorkbookColumn[];
 
 function applyColumnDefinitions(worksheet: ExcelJS.Worksheet, columns: readonly ProposalWorkbookColumn[]) {
@@ -170,8 +176,8 @@ type BidSectionRange = {
   subtotalResult: number;
 };
 
-function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel) {
-  const worksheet = workbook.addWorksheet("Bid Form", {
+function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel, worksheetName = "Bid Form") {
+  const worksheet = workbook.addWorksheet(worksheetName, {
     views: [{ state: "frozen", ySplit: DETAIL_HEADER_ROW }],
     pageSetup: {
       paperSize: 9,
@@ -261,7 +267,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   return { worksheet, sectionRanges };
 }
 
-function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel, sectionRanges: BidSectionRange[]) {
+function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel, sectionRanges: BidSectionRange[], bidWorksheetName = "Bid Form") {
   const worksheet = workbook.addWorksheet("Summary", {
     views: [{ state: "frozen", ySplit: SUMMARY_HEADER_ROW }],
   });
@@ -280,7 +286,10 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
     const row = worksheet.addRow([
       sectionRange.sectionLabel,
       sectionRange.rowCount,
-      { formula: `'Bid Form'!H${sectionRange.subtotalRowNumber}`, result: sectionRange.subtotalResult },
+      {
+        formula: quoteWorksheetCellReference(bidWorksheetName, `H${sectionRange.subtotalRowNumber}`),
+        result: sectionRange.subtotalResult,
+      },
     ]);
     styleBodyRow(row);
   });
@@ -343,6 +352,76 @@ function createCommercialTermsWorksheet(workbook: ExcelJS.Workbook) {
   return worksheet;
 }
 
+function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: ProposalTabbedWorkbookModel, tabRanges: Array<{ tab: ProposalExportWorkbookTab; sectionRanges: BidSectionRange[] }>) {
+  applyColumnDefinitions(worksheet, SUMMARY_COLUMNS);
+  addTitleRow(worksheet, "SUMMARY OF BID", SUMMARY_COLUMNS.length);
+  addHeaderField(worksheet, "Project", input.metadata.projectName);
+  addHeaderField(worksheet, "Location", input.metadata.projectAddress);
+  addHeaderField(worksheet, "Estimate / Revision", `${input.metadata.estimateName} (${input.metadata.versionLabel})`);
+  addHeaderField(worksheet, "Generated", input.generatedAt);
+
+  while (worksheet.rowCount < SUMMARY_HEADER_ROW - 1) worksheet.addRow([]);
+  const headerRow = worksheet.addRow(SUMMARY_COLUMNS.map((column) => column.header));
+  styleHeaderRow(headerRow);
+
+  const amountRows: number[] = [];
+  for (const { tab, sectionRanges } of tabRanges) {
+    const tabHeaderRow = worksheet.addRow([tab.tabName]);
+    tabHeaderRow.font = { bold: true, size: 10, color: { argb: "FF111827" } };
+    tabHeaderRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
+    worksheet.mergeCells(tabHeaderRow.number, 1, tabHeaderRow.number, SUMMARY_COLUMNS.length);
+
+    if (sectionRanges.length === 0) {
+      const emptyRow = worksheet.addRow(["No exportable rows", 0, { formula: "0", result: 0 }]);
+      styleBodyRow(emptyRow);
+      amountRows.push(emptyRow.number);
+      continue;
+    }
+
+    sectionRanges.forEach((sectionRange) => {
+      const row = worksheet.addRow([
+        sectionRange.sectionLabel,
+        sectionRange.rowCount,
+        {
+          formula: quoteWorksheetCellReference(tab.worksheetName, `H${sectionRange.subtotalRowNumber}`),
+          result: sectionRange.subtotalResult,
+        },
+      ]);
+      styleBodyRow(row);
+      amountRows.push(row.number);
+    });
+  }
+
+  const totalsStartRow = worksheet.rowCount + 2;
+  const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
+  const grandTotal = tabRanges.reduce((total, { tab }) => total + tab.model.totals.grandTotal, 0);
+  worksheet.getCell(`A${totalsStartRow}`).value = "Direct Cost";
+  worksheet.getCell(`B${totalsStartRow}`).value = { formula: directCostFormula, result: grandTotal };
+  worksheet.getCell(`A${totalsStartRow + 1}`).value = "Contingency";
+  worksheet.getCell(`B${totalsStartRow + 1}`).value = { formula: "0", result: 0 };
+  worksheet.getCell(`A${totalsStartRow + 2}`).value = "VAT";
+  worksheet.getCell(`B${totalsStartRow + 2}`).value = { formula: "0", result: 0 };
+  worksheet.getCell(`A${totalsStartRow + 3}`).value = "Grand Total";
+  worksheet.getCell(`B${totalsStartRow + 3}`).value = {
+    formula: `B${totalsStartRow}+B${totalsStartRow + 1}+B${totalsStartRow + 2}`,
+    result: grandTotal,
+  };
+  worksheet.getCell(`A${totalsStartRow + 4}`).value = "Cost per sqm";
+  worksheet.getCell(`B${totalsStartRow + 4}`).value = "N/A";
+  worksheet.getCell(`A${totalsStartRow + 5}`).value = "Estimated duration";
+  worksheet.getCell(`B${totalsStartRow + 5}`).value = "To be confirmed";
+
+  [totalsStartRow, totalsStartRow + 1, totalsStartRow + 2, totalsStartRow + 3].forEach((rowNumber) => {
+    const row = worksheet.getRow(rowNumber);
+    row.getCell(1).font = { bold: rowNumber === totalsStartRow + 3, size: 10, color: { argb: "FF111827" } };
+    row.getCell(2).numFmt = PHP_FORMAT;
+    row.getCell(2).font = { bold: rowNumber === totalsStartRow + 3, size: rowNumber === totalsStartRow + 3 ? 12 : 10, color: { argb: "FF111827" } };
+  });
+  styleTotalRow(worksheet.getRow(totalsStartRow + 3));
+  setPrintLayout(worksheet);
+  return worksheet;
+}
+
 function createSourceBreakdownWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel) {
   const worksheet = workbook.addWorksheet("Source Breakdown", {
     views: [{ state: "frozen", ySplit: 6 }],
@@ -380,28 +459,93 @@ function createSourceBreakdownWorksheet(workbook: ExcelJS.Workbook, model: Propo
   return worksheet;
 }
 
-export function createProposalWorkbook(model: ProposalExportModel) {
+function createTabbedSourceBreakdownWorksheet(workbook: ExcelJS.Workbook, input: ProposalTabbedWorkbookModel) {
+  const worksheet = workbook.addWorksheet("Source Breakdown", {
+    views: [{ state: "frozen", ySplit: 6 }],
+  });
+  applyColumnDefinitions(worksheet, BREAKDOWN_COLUMNS_WITH_TAB);
+  addTitleRow(worksheet, "Source Breakdown", BREAKDOWN_COLUMNS_WITH_TAB.length);
+  addHeaderField(worksheet, "Project", input.metadata.projectName);
+  addHeaderField(worksheet, "Estimate", input.metadata.estimateName);
+  addHeaderField(worksheet, "Generated", input.generatedAt);
+  worksheet.addRow([]);
+  const headerRow = worksheet.addRow(BREAKDOWN_COLUMNS_WITH_TAB.map((column) => column.header));
+  styleHeaderRow(headerRow);
+
+  input.tabs.forEach((tab) => {
+    tab.model.sourceBreakdownRows.forEach((breakdownRow) => {
+      const row = worksheet.addRow([
+        tab.tabName,
+        breakdownRow.proposalRowNumber,
+        breakdownRow.sourceRowId,
+        breakdownRow.sourceNodeName,
+        breakdownRow.areaPathLabel,
+        breakdownRow.particulars,
+        breakdownRow.quantity,
+        breakdownRow.unit,
+        breakdownRow.materialUnitCost,
+        breakdownRow.laborUnitCost,
+        breakdownRow.materialSubtotal,
+        breakdownRow.laborSubtotal,
+        breakdownRow.contingencySubtotal,
+        breakdownRow.miscSubtotal,
+        breakdownRow.costAmount,
+      ]);
+      styleBodyRow(row);
+    });
+  });
+
+  setPrintLayout(worksheet);
+  return worksheet;
+}
+
+function isTabbedWorkbookModel(input: ProposalExportModel | ProposalTabbedWorkbookModel): input is ProposalTabbedWorkbookModel {
+  return "tabs" in input;
+}
+
+function createBaseWorkbook(input: ProposalExportModel | ProposalTabbedWorkbookModel) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Archestimator";
   workbook.lastModifiedBy = "Archestimator";
-  workbook.created = new Date(model.generatedAt);
-  workbook.modified = new Date(model.generatedAt);
-  workbook.title = `${model.metadata.projectName} — ${model.metadata.estimateName}`;
+  workbook.created = new Date(input.generatedAt);
+  workbook.modified = new Date(input.generatedAt);
+  workbook.title = `${input.metadata.projectName} — ${input.metadata.estimateName}`;
   workbook.subject = "Industry-standard proposal workbook";
   workbook.company = "Archestimator";
+  return workbook;
+}
 
-  const { sectionRanges } = createBidFormWorksheet(workbook, model);
-  createSummaryWorksheet(workbook, model, sectionRanges);
+export function createProposalWorkbook(input: ProposalExportModel | ProposalTabbedWorkbookModel) {
+  const workbook = createBaseWorkbook(input);
+
+  if (isTabbedWorkbookModel(input)) {
+    const summaryWorksheet = workbook.addWorksheet("Summary", {
+      views: [{ state: "frozen", ySplit: SUMMARY_HEADER_ROW }],
+    });
+    const tabRanges = input.tabs.map((tab) => ({
+      tab,
+      sectionRanges: createBidFormWorksheet(workbook, tab.model, tab.worksheetName).sectionRanges,
+    }));
+    populateTabbedSummaryWorksheet(summaryWorksheet, input, tabRanges);
+    createCommercialTermsWorksheet(workbook);
+    if (input.settings.includeSourceBreakdownSheet) {
+      createTabbedSourceBreakdownWorksheet(workbook, input);
+    }
+    return workbook;
+  }
+
+  const { sectionRanges } = createBidFormWorksheet(workbook, input);
+  createSummaryWorksheet(workbook, input, sectionRanges);
   createCommercialTermsWorksheet(workbook);
-  if (model.settings.includeSourceBreakdownSheet) {
-    createSourceBreakdownWorksheet(workbook, model);
+  if (input.settings.includeSourceBreakdownSheet) {
+    createSourceBreakdownWorksheet(workbook, input);
   }
 
   return workbook;
 }
 
-export async function createProposalWorkbookBuffer(model: ProposalExportModel): Promise<Buffer> {
-  const workbook = createProposalWorkbook(model);
+export async function createProposalWorkbookBuffer(input: ProposalExportModel | ProposalTabbedWorkbookModel): Promise<Buffer> {
+  const workbook = createProposalWorkbook(input);
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 }

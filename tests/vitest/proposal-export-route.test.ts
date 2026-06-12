@@ -6,11 +6,15 @@ import type { EstimateTreeNode } from "@/lib/estimates/types";
 
 const mocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
+  getEstimateTabs: vi.fn(),
+  getEstimateTabTree: vi.fn(),
   createProposalWorkbookBuffer: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getProjectEstimateTreeByEstimate: mocks.getProjectEstimateTreeByEstimate,
+  getEstimateTabs: mocks.getEstimateTabs,
+  getEstimateTabTree: mocks.getEstimateTabTree,
 }));
 
 vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
@@ -53,10 +57,15 @@ function request() {
   return new Request("http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx");
 }
 
+function tabRequest(tabId: string) {
+  return new Request(`http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=${tabId}`);
+}
+
 describe("proposal xlsx export route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
+    mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       workspace: { id: "workspace-1" },
       project: {
@@ -73,6 +82,26 @@ describe("proposal xlsx export route", () => {
         currency_code: "PHP",
         metadata: { versionNumber: 3 },
       },
+      selectedNodeId: "area-1",
+      tree,
+    });
+    mocks.getEstimateTabTree.mockResolvedValue({
+      workspace: { id: "workspace-1" },
+      project: {
+        id: "project-1",
+        name: "Synthetic Hotel Fit-Out Study",
+        project_code: "SYN-001",
+        location: "Metro City",
+        currency_code: "PHP",
+      },
+      estimate: {
+        id: "estimate-1",
+        name: "Interior Fit-Out Estimate",
+        sheet_code: "EST-001",
+        currency_code: "PHP",
+        metadata: { versionNumber: 3 },
+      },
+      tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
       selectedNodeId: "area-1",
       tree,
     });
@@ -112,6 +141,113 @@ describe("proposal xlsx export route", () => {
     expect(response.headers.get("content-disposition")).toContain("attachment");
     expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
     expect(await response.text()).toBe("xlsx-bytes");
+  });
+
+  it("exports a requested active tab in the legacy four-sheet workbook shape", async () => {
+    const response = await GET(tabRequest("tab-main"), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(mocks.getEstimateTabTree).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      "tab-main",
+      expect.objectContaining({
+        maxNodeCount: expect.any(Number),
+        maxRowItemCount: expect.any(Number),
+      }),
+    );
+    expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ estimateSheetCode: "EST-001" }),
+        totals: expect.objectContaining({ grandTotal: 11_900 }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-Main-proposal.xlsx");
+  });
+
+  it("exports all active tabs by default when an estimate has multiple tabs", async () => {
+    mocks.getEstimateTabs.mockResolvedValueOnce([
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-alt", name: "Alt / Scope", sortOrder: 10, isDefault: false },
+    ]);
+    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => Promise.resolve({
+      workspace: { id: "workspace-1" },
+      project: {
+        id: "project-1",
+        name: "Synthetic Hotel Fit-Out Study",
+        project_code: "SYN-001",
+        location: "Metro City",
+        currency_code: "PHP",
+      },
+      estimate: {
+        id: "estimate-1",
+        name: "Interior Fit-Out Estimate",
+        sheet_code: "EST-001",
+        currency_code: "PHP",
+        metadata: { versionNumber: 3 },
+      },
+      tab: { id: tabId, name: tabId === "tab-alt" ? "Alt / Scope" : "Main", sortOrder: tabId === "tab-alt" ? 10 : 0, isDefault: tabId === "tab-main" },
+      selectedNodeId: "area-1",
+      tree,
+      loadLimitState: {
+        maxNodeCount: 1200,
+        maxRowItemCount: 3000,
+        fetchedNodeCount: 1,
+        fetchedRowItemCount: 1,
+        didExceedNodeLimit: false,
+        didExceedRowItemLimit: false,
+      },
+    }));
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tabs: [
+          expect.objectContaining({ tabId: "tab-main", tabName: "Main", worksheetName: "Main" }),
+          expect.objectContaining({ tabId: "tab-alt", tabName: "Alt / Scope", worksheetName: "Alt Scope" }),
+        ],
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
+  });
+
+  it("returns 404 when an explicit tab is unknown or archived", async () => {
+    mocks.getEstimateTabTree.mockResolvedValueOnce({
+      workspace: { id: "workspace-1" },
+      project: {
+        id: "project-1",
+        name: "Synthetic Hotel Fit-Out Study",
+        project_code: "SYN-001",
+        location: "Metro City",
+        currency_code: "PHP",
+      },
+      estimate: {
+        id: "estimate-1",
+        name: "Interior Fit-Out Estimate",
+        sheet_code: "EST-001",
+        currency_code: "PHP",
+        metadata: { versionNumber: 3 },
+      },
+      tab: null,
+      selectedNodeId: null,
+      tree: [],
+    });
+
+    const response = await GET(tabRequest("archived-tab"), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Estimate not found." });
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
   it("treats version labels as mutable estimate metadata, not dormant named-version snapshots", () => {
@@ -198,6 +334,9 @@ describe("proposal xlsx export route", () => {
   it("sanitizes workbook filenames for content-disposition", () => {
     expect(buildProposalWorkbookFilename("Synthetic Hotel / Tower?", "EST:001")).toBe(
       "Synthetic-Hotel-Tower-EST-001-proposal.xlsx",
+    );
+    expect(buildProposalWorkbookFilename("Synthetic Hotel / Tower?", "EST:001", "Main Tab")).toBe(
+      "Synthetic-Hotel-Tower-EST-001-Main-Tab-proposal.xlsx",
     );
     expect(buildProposalWorkbookFilename("", "")).toBe("estimate-proposal.xlsx");
   });
