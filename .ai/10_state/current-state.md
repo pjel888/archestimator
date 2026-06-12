@@ -2299,3 +2299,10 @@ Open:
 - Fresh local evidence: `bun run type-check` passed; focused Phase 6 Vitest suites passed (6 files / 29 tests); no-excuse checker passed on 13 touched TS/TSX/test/script files; `git diff --check` passed; `bun run validate` passed (243 Vitest files passed / 1 skipped, 1,767 tests passed / 3 skipped); `bun run build` passed; `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed; 5-tab × 500-row benchmark passed at 443.59ms and 413,142 bytes / 0.39 MiB.
 - Evidence log: `.ai/05_logs/2026-06-12-estimate-tabs-phase6-xlsx-tabs-export-implementation-run.md`.
 - Boundaries: no linked Supabase apply/typegen, hosted route smoke, production deploy, or manual spreadsheet-app proof was performed.
+
+## Estimate Tabs R6.3 Spring-loaded Drop Targeting Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Implemented tab-strip spring-loaded drop targeting: during drag hover, inactive estimate tabs now schedule a 450ms switch so the destination tab tree can appear before the user drops a dragged template/project source/tree item. Leaving or dropping on the tab cancels the pending switch.
+- Local evidence: `bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1` passed (1 file / 6 tests), `bun run type-check` passed, and `bun run lint:design-system` passed.
+- Boundary: this is local UI/DOM proof only; linked Supabase/provider, hosted drag/drop, and production/manual proof were not performed.

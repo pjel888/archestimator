@@ -59,7 +59,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 |---|---|---|---|---|---|---|---|
 | R6.1 new project-source mime + parser | `templates.ts:7,59-111` + `tests/vitest/reusable-source-drag.test.ts` | 06 §7 | 5 | templates.ts, drop-zones | payload unit tests | — | **implemented (local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-reusable-source-drag.log`; `.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check.log` |
 | R6.2 keyboard/context-menu/bulk insertion parity for every drag action | `TemplatesTree.tsx`; bulk `index.tsx`; `getCheckedProjectSourceTargets` local seam | 05 §8; 06 §9 | 3, 5 | menus, bulk resolver | a11y DOM cases | — | **implemented (local-only UI parity contract)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-bulk-insert.log`; `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-keyboard-insert.log`; insert RPC/action remains R7.2 |
-| R6.3 tab-strip spring-loaded drop targeting | `tree-external-drop` precedent | 05 §6 | 3 | strip | strip DOM case | — | planned |
+| R6.3 tab-strip spring-loaded drop targeting | `tree-external-drop` precedent | 05 §6 | 3 | strip | strip DOM case | — | **implemented (local-only)** — `EstimateTabStrip` switches to an inactive tab after a 450ms drag hover and cancels on drag-leave/drop; `tests/vitest/estimate-tab-strip.test.tsx` covers switch and cancel paths. Evidence: focused strip Vitest 1 file / 6 tests, `bun run type-check`, and `bun run lint:design-system` passed on 2026-06-13. |
 
 ## Group 7 — Permission-safe browsing and insertion
 

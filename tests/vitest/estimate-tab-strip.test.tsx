@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateTabStrip } from "@/components/workshop/estimate-sheet/EstimateTabStrip";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
@@ -47,6 +47,10 @@ describe("EstimateTabStrip", () => {
     actionMocks.reorderEstimateTabs.mockReset();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders a WAI-ARIA tablist with the active estimate tab", () => {
     renderStrip();
 
@@ -77,6 +81,32 @@ describe("EstimateTabStrip", () => {
     expect(screen.queryByRole("button", { name: "Create tab" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Duplicate tab" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Rename active tab" })).not.toBeInTheDocument();
+  });
+
+  it("spring-loads inactive tabs during drag hover so drops can target another tab tree", () => {
+    vi.useFakeTimers();
+    const { onTabChange } = renderStrip();
+    const alternateTab = screen.getByRole("tab", { name: "Alternate" });
+
+    fireEvent.dragOver(alternateTab, { dataTransfer: { dropEffect: "none", types: ["application/x-archestimator-estimate-template"] } });
+    act(() => vi.advanceTimersByTime(449));
+    expect(onTabChange).not.toHaveBeenCalled();
+
+    act(() => vi.advanceTimersByTime(1));
+
+    expect(onTabChange).toHaveBeenCalledWith("tab-alt");
+  });
+
+  it("cancels spring-loaded tab targeting when the drag leaves before the delay", () => {
+    vi.useFakeTimers();
+    const { onTabChange } = renderStrip();
+    const alternateTab = screen.getByRole("tab", { name: "Alternate" });
+
+    fireEvent.dragOver(alternateTab, { dataTransfer: { dropEffect: "none", types: ["application/x-archestimator-estimate-template"] } });
+    fireEvent.dragLeave(alternateTab);
+    act(() => vi.advanceTimersByTime(450));
+
+    expect(onTabChange).not.toHaveBeenCalled();
   });
 
   it("renames the active tab only through the gated lifecycle path", async () => {
