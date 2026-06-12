@@ -1,5 +1,19 @@
 # Current State
 
+**Estimate Tabs Phase 5 R6.1 Local Parser Slice Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs stacked implementation now includes the narrow Phase 5 R6.1
+project-source drag payload foundation. `templates.ts` exposes a distinct
+`application/x-archestimator-project-source` MIME type plus a strict parser for
+whole-tab (`project-tab`) and subtree (`project-node`) project-source payloads,
+while preserving the existing template drag parser as a separate contract. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-1-implementation-run.md`:
+`bunx vitest run tests/vitest/reusable-source-drag.test.ts --maxWorkers=1`
+passed (1 file / 5 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is parser/test groundwork only: no unified Projects/Templates panel
+UI, project-source read actions, insert RPC/action, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, or browser visual
+proof was performed.
 
 **Estimate Tabs Phase 4 Local Terminology Rebrand Complete (2026-06-12 local, branch `feat/estimate-tabs-phase4-terminology`):**
 The estimate-tabs stacked implementation now includes Phase 4 local copy alignment.

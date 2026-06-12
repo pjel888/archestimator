@@ -514,3 +514,35 @@ label=phase4-additional-copy-rerun exit_code=1 timed_out=False log=.ai/05_logs/2
 
 - The exact source-copy scan is clean for the table-driven user-facing patterns, but internal compatibility `sheet*` names remain intentionally present by the keep-list.
 - Broad repo gates still contain the documented baseline failures above; Phase 4 did not add a new failure in the targeted copy/test/build/type-check evidence.
+
+## Phase 5 R6.1 reusable project-source drag parser slice
+
+### Summary
+
+Phase 5 has started with a narrow, local-only R6.1 contract slice. The component-library templates module now exposes a distinct project-source drag MIME type and strict payload parser for whole-tab and subtree project-derived reusable sources. Template payload parsing remains separate from project-source parsing.
+
+### Changed files
+
+- `src/components/workshop/component-library/templates.ts`
+- `tests/vitest/reusable-source-drag.test.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-1-implementation-run.md`
+
+### Gates run
+
+```text
+label=phase5-reusable-source-drag exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-reusable-source-drag.log result=1_file_5_tests_passed
+label=type-check exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check.log
+label=diff-check exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence advances R6.1 only.
+- R4.1-R4.6, R5.1-R5.3, R6.2, and R7.1-R7.2 remain open; no panel UI, read actions, insertion RPC/action, keyboard/context-menu parity, or RLS/provider proof is claimed.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- Project-derived sources remain virtual/read-through; this parser slice does not persist project data into template tables.
+- Project sources are not yet visible or insertable from the UI.
