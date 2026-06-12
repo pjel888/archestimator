@@ -1265,3 +1265,51 @@ label=diff-check-project-source-preview-outline exit_code=0 timed_out=False log=
   fetch deeper row details or invalidate stale metadata.
 - The inherited sidebar/test files remain oversized; no broad refactor was
   performed in this slice.
+
+## Phase 5 R4.4 project-source refresh affordance
+
+### Summary
+
+Phase 5 now includes a local manual freshness affordance for project-derived
+sources in the sidebar Templates tab. In estimate/project contexts whose project
+sources are loaded from the reusable-source action, `Refresh project sources`
+re-runs `listReusableProjectSources`, clears stale project-source preview and
+bulk selection state, resets outline loading/errors, and renders the refreshed
+project-source tree.
+
+### Changed files
+
+- `src/components/workshop/component-library/index.tsx`
+- `tests/vitest/component-library-ui.test.tsx`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-refresh-affordance-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-refresh-affordance-red exit_code=1 timed_out=False result=expected_missing_button_failure
+label=phase5-project-source-refresh-affordance-focused exit_code=0 timed_out=False result=1_file_1_test_passed
+label=phase5-project-source-refresh-affordance exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-refresh-affordance.log result=1_file_59_tests_passed
+label=type-check-project-source-refresh-affordance exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-project-source-refresh-affordance.log
+label=diff-check-project-source-refresh-affordance exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-source-refresh-affordance.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence further advances R4.4 with a user-triggered refresh
+  seam for action-loaded project sources.
+- R4.4 remains open for server-backed search, route-level project-source
+  parity, and row-level provider detail beyond loaded outline rows.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- The refresh path reuses the existing read-only list action; it does not add
+  polling, provider mutation, server search filters, or deeper row fetches.
+- The inherited sidebar/test files remain oversized; no broad refactor was
+  performed in this slice.

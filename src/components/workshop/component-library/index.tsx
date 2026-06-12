@@ -741,6 +741,29 @@ export function EstimateRightSidebar({
     setShowNewComponent(false);
     resetComponentForm();
   }, [form, resetComponentForm]);
+  const canLoadProjectSourcesFromActions = Boolean(projectId && estimateId && projectSources.length === 0);
+  const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
+    if (!canLoadProjectSourcesFromActions) return Promise.resolve();
+    setProjectSourcesLoading(true);
+    setProjectSourcesError("");
+    setProjectOutlineErrors({});
+    setProjectOutlineLoadingEstimateIds([]);
+    return listReusableProjectSources()
+      .then((result) => {
+        if (!isCancelled?.()) setLoadedProjectSources(result.sources);
+      })
+      .catch((error: unknown) => {
+        if (!isCancelled?.()) setProjectSourcesError(error instanceof Error ? error.message : "Could not load project sources.");
+      })
+      .finally(() => {
+        if (!isCancelled?.()) setProjectSourcesLoading(false);
+      });
+  }, [canLoadProjectSourcesFromActions]);
+  const refreshProjectSources = useCallback(() => {
+    setPreviewProjectSourceKey(null);
+    setBulkSelectedNodeIds(new Set());
+    void loadProjectSources();
+  }, [loadProjectSources]);
 
   useEffect(() => {
     // Stored values must be read synchronously: the prefs-persist effect below
@@ -850,24 +873,13 @@ export function EstimateRightSidebar({
   }, [projectSources]);
 
   useEffect(() => {
-    if (activeTab !== "templates" || !projectId || !estimateId || projectSources.length > 0) return;
+    if (activeTab !== "templates" || !canLoadProjectSourcesFromActions || loadedProjectSources.length > 0) return;
     let cancelled = false;
-    setProjectSourcesLoading(true);
-    setProjectSourcesError("");
-    listReusableProjectSources()
-      .then((result) => {
-        if (!cancelled) setLoadedProjectSources(result.sources);
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setProjectSourcesError(error instanceof Error ? error.message : "Could not load project sources.");
-      })
-      .finally(() => {
-        if (!cancelled) setProjectSourcesLoading(false);
-      });
+    void loadProjectSources(() => cancelled);
     return () => {
       cancelled = true;
     };
-  }, [activeTab, estimateId, projectId, projectSources.length]);
+  }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources, loadedProjectSources.length]);
 
   useEffect(() => {
     const handler = (event: StorageEvent) => {
@@ -993,6 +1005,23 @@ export function EstimateRightSidebar({
       </div>
     );
   }, [loadedProjectSources, projectId, projectSourceScope, templateSourceFilter]);
+  const templatesProjectSourceRefreshControl = useMemo(() => {
+    if (templateSourceFilter === "custom" || !canLoadProjectSourcesFromActions) return null;
+    return (
+      <div className="mb-2 flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          className="min-h-6 px-2 py-1"
+          disabled={projectSourcesLoading}
+          onClick={refreshProjectSources}
+        >
+          Refresh project sources
+        </Button>
+      </div>
+    );
+  }, [canLoadProjectSourcesFromActions, projectSourcesLoading, refreshProjectSources, templateSourceFilter]);
   const handleTemplateSourceFilterChange = useCallback((nextFilter: TemplateSourceFilter) => {
     setTemplateSourceFilter(nextFilter);
     setBulkSelectedNodeIds(new Set());
@@ -1733,6 +1762,7 @@ export function EstimateRightSidebar({
                 {templatesProjectSourceStatus}
                 {templatesSourceFilterControls}
                 {templatesProjectSourceScopeControls}
+                {templatesProjectSourceRefreshControl}
                 <TemplatesTree
                   templates={visibleTemplateList}
                   projectSources={visibleTemplateProjectSources}

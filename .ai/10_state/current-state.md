@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Refresh Affordance Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now exposes a local manual `Refresh project sources`
+control for estimate/project contexts whose project sources are loaded through
+the existing read-only reusable-source action. Refresh clears stale preview and
+bulk source selections, resets outline loading/error state, and replaces the
+project-source tree with the freshly returned source list. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-refresh-affordance-implementation-run.md`:
+the focused missing-button regression failed before implementation, the focused
+refresh test passed after implementation, `bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 59 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/sidebar proof only: server search,
+route-level project-source parity, row-level provider detail beyond loaded
+outline rows, R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Preview Outline Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 Templates tab project-source preview now includes a local source
 outline for already-loaded children: project previews list estimates, estimate
