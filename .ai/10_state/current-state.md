@@ -1,4 +1,22 @@
 # Current State
+**Estimate Tabs Phase 5 Storybook Plan Matrix Archive Import Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Storybook plan-matrix module now imports the 2026-06-06 component inventory
+and Storybook coverage Markdown from the archived canonical plan pack under
+`.ai/09_archive/2026-06-06-ui-component-optimization-componentization/` instead
+of the now-empty `.ai/03_plans/...` path. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-storybook-plan-matrix-archive-import-repair-run.md`:
+`bun x vitest run tests/vitest/storybook-plan-matrix.test.ts --maxWorkers=1`
+passed (1 file / 2 tests), changed-file ESLint passed, the TypeScript
+no-excuse script passed, and the files are healthy (73/24 pure LOC). The
+refreshed `bun run validate` now has no failed import suites and still fails in
+`test:dom` with 11 failed files / 21 failed assertion-level stale contracts
+(generated Supabase history RPC types, estimate-tree bulk-selection,
+landing/public font/cache contracts, project summary/dashboard contracts, and
+code-review-graph hook command text). This is local Storybook-doc import proof
+only; linked Supabase/provider/RLS, hosted, production/manual, deploy, and
+browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Route Error Boundary Import Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The stale route-boundary DOM test import for the removed legacy
 `/workshop/templates/error` module now targets the live
