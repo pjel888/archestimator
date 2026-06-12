@@ -16,7 +16,8 @@ authoritative surfaces. Tool-specific files are adapters only.
 
 ## Agent Receipt
 
-Every non-trivial agent run should begin internally with this receipt:
+Use this internal receipt for broad, risky, provider-facing, or durable
+evidence-producing work:
 
 ```txt
 AGENT_RECEIPT:
@@ -27,36 +28,44 @@ writes=<allowed write folders or none>
 validation=<commands/checks/manual proof required>
 proof_boundary=<local-only|provider-proven|manual-proof-pending>
 stop_condition=<done/blocker/owner-decision/destructive-approval>
+orchestrator=<lead agent/tool owning scope, routing, integration, final claim>
+loop_phase=<none|plan|execute|review|qa|cleanup|complete>
+lead_lane=<agent/tool lane and model/effort tier>
+worker_lanes=<parallel lanes with agent/tool, model/effort tier, scope>
 ```
 
-The receipt is a discipline aid, not a new chat ritual. Record it in run logs
-when the run produces durable `.ai` evidence.
+The receipt is optional for small fixes. It is a discipline aid, not a new chat
+ritual. Record it in run logs only when the run produces durable `.ai`
+evidence.
 
-## Required Preflight
+## Proportional Preflight
 
-Before editing files, an agent must verify:
+Before editing files, verify only the context needed for the risk level.
+
+For small local work, a focused file read plus `git status --short --branch` is
+usually enough. Add deeper checks when they materially affect correctness:
 
 1. Current path, git root, branch, status, worktrees, remotes, and recent log.
 2. Relevant `.ai` source-of-truth chain from `DOCS_SOURCE_OF_TRUTH.md`.
 3. Current package/runtime facts from `package.json` when stack facts matter.
-4. Code-review-graph or GitNexus evidence before broad code exploration and
-   before symbol edits when available.
+4. Code-review-graph or GitNexus evidence for broad exploration, high-risk
+   shared APIs, symbol refactors, or unfamiliar call chains when available.
 5. Dirty files and ownership boundaries. Unrelated dirty files must not be
    overwritten, staged, or reformatted.
-6. Provider, GitHub, Notion, legal, support, and launch claims are backed by
-   actual provider/manual evidence, not plan text.
+6. Provider, GitHub, Notion, legal, support, and launch claims backed by actual
+   provider/manual evidence, not plan text.
 
 ## Modes
 
-| Mode | Writes | Required proof |
-|---|---:|---|
-| plan-only | `.ai/03_plans`, related `.ai` state/log/task docs | path checks, graph/repo-truth where relevant, `git diff --check` |
-| read-only | none | command/source citations and no writes |
-| implementation | scoped source/tests/docs | graph impact where applicable, targeted tests, `bun run validate`/`bun run build` when meaningful |
-| review | none unless explicitly assigned | findings with severity and file references |
-| debug | usually none until root cause known | reproduction or documented blocker |
-| release/provider-proof | evidence docs only unless action approved | local/provider/manual proof separated |
-| recovery | smallest corrective docs/source change | self-diagnostic chain and validation |
+| Mode | Writes | Effort posture | Required proof |
+|---|---:|---|---|
+| plan-only | `.ai/03_plans`, related `.ai` state/log/task docs | lead high for strategy/architecture; lower lanes for lookup | path checks, graph/repo-truth where relevant, `git diff --check` |
+| read-only | none | lower lanes for inventory; high lanes for risk judgment | command/source citations and no writes |
+| implementation | scoped source/tests/docs | lead high/standard; workers matched to slice complexity | focused source checks and targeted tests; broader `bun run validate`/`bun run build` only when meaningful |
+| review | none unless explicitly assigned | independent reviewer at standard/high; final call by lead | findings with severity and file references |
+| debug | usually none until root cause known | high for root cause; lower lanes for reproduction inventory | reproduction or documented blocker |
+| release/provider-proof | evidence docs only unless action approved | high lead, cautious provider lanes | local/provider/manual proof separated |
+| recovery | smallest corrective docs/source change | high lead until state is coherent | self-diagnostic chain and validation |
 
 ## Agent Status Rules
 
@@ -65,31 +74,70 @@ Before editing files, an agent must verify:
 - Deprecated agents fail closed unless Philip explicitly reapproves them.
 - Unapproved agents do not receive work.
 - Non-agent tools may be used only for their approved non-agent function.
+- The lead orchestrator assigns model/effort and loop role. Payload files may
+  declare defaults and constraints, but they do not override the lead or the
+  canonical framework protocol.
+- Missing model/effort/routing metadata is not permission to improvise. Use the
+  safest lower-scope lane or fail closed with a short blocker.
 
 When a lane is ambiguous, choose the fail-closed status and document the
 decision instead of silently activating the lane.
 
+## Model And Effort Routing
+
+The lead orchestrator should reserve the highest-capability model/reasoning for
+planning the work, assigning lanes, integrating results, resolving conflicts,
+and making final quality calls. Worker lanes should use the cheapest model and
+effort tier that can reliably complete their bounded task.
+
+Default tiers:
+
+- **Low:** file search, inventory, path checks, simple docs cleanup, status
+  checks, and deterministic evidence gathering.
+- **Standard:** ordinary implementation, focused tests, straightforward
+  refactors, and normal review.
+- **High:** architecture, security, data integrity, auth, migrations,
+  multi-surface behavior, ambiguous debugging, adversarial review, and release
+  or provider-proof decisions.
+- **Highest:** lead orchestration for broad or risky work, final blocker
+  arbitration, and cases where a wrong decision would create expensive rework.
+
+Escalate or de-escalate after observing results. A lower-tier lane that reports
+uncertainty should hand back to the lead instead of stretching beyond its
+assignment.
+
 ## Multi-Agent Rules
 
-- Use the smallest number of agents that materially improves quality or speed.
+- Use multi-agent orchestration whenever independent lanes materially improve
+  quality, speed, or coverage.
+- Use the smallest lane set that captures that benefit.
 - The lead owns scope, integration, validation, and final evidence.
 - Write-capable agents need disjoint file scopes and usually separate
   branches/worktrees.
 - Shared policy files are edited sequentially.
 - Workers report blockers and recommended handoffs upward; they do not widen
   scope or re-plan the whole task.
+- Maker/checker separation is preferred for non-trivial implementation: use a
+  different lane for review, adversarial QA, or final verification when
+  practical.
+- Loop workflows must preserve state outside chat: `.ai`, `.omx`, issue
+  trackers, or another approved durable surface.
 
 ## Evidence And Run Logs
 
-Durable work should create or update a run log under
+Major framework, release, provider-proof, or multi-agent work should create or update a run log under
 `.ai/05_logs/YYYY-MM-DD-<task-slug>-<mode>-run.md` with:
 
 - goal, mode, branch, commit, and dirty status before/after;
+- orchestrator, loop phase, iteration number, and stop condition;
+- routing decisions, including lane owner, model/effort tier, and why parallel
+  work was or was not used;
 - source-of-truth docs read;
-- graph/GitNexus/tool evidence;
+- graph/GitNexus/tool evidence when used;
 - commands with exit codes and key output;
 - files changed;
 - validation result;
+- lead integration/validation outcome after worker results are reconciled;
 - provider/manual proof boundary;
 - bug plans created;
 - final status and remaining risks.
@@ -109,10 +157,11 @@ hashes, IDs, statuses, and sanitized metadata only.
 
 ## Bug Protocol
 
-Create a dated bug plan in `.ai/15_Bugs` when a blocker, stale source-of-truth
-claim, tool failure, validation failure, provider proof gap, merge conflict, or
-security concern is discovered and cannot be resolved immediately inside the
-same scoped change.
+Create a dated bug plan in `.ai/15_Bugs` for material blockers, stale
+source-of-truth claims, validation failures, provider proof gaps, merge
+conflicts, or security concerns that cannot be resolved inside the same scoped
+change. Do not create bug plans for transient tool noise that has an obvious
+local workaround.
 
 The bug plan must include classification, evidence, impact, blocking status,
 proposed fix, verification plan, and a link back to the active plan/run.

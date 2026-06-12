@@ -4,28 +4,30 @@ Status: unapproved
 Primary lane: none until explicitly approved
 Secondary lane: possible future orchestration, memory, routing, task delegation, evidence verification
 Prohibited lanes: autonomous orchestration, provider mutation, paid actions, secret handling, overlapping writes
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: none until Philip explicitly approves this lane; possible future orchestrator only after approval
+Fail-safe: fail closed because this lane is unapproved unless explicitly activated
 
 ## Shared Source Of Truth
 
 Hermes is listed historically but is not active until Philip approves this lane.
 Shared rules live in `.ai/00_system`.
 
-## Required Reading Chain
+## Reading Chain
 
 If approved later, Hermes must read `AGENTS.md`, `.ai/README.md`,
 `DOCS_SOURCE_OF_TRUTH.md`, `AGENT_OPERATING_PROTOCOL.md`,
 `AGENT_FRAMEWORK_PROTOCOL.md`, `VALIDATION_MATRIX.md`, current state, decisions,
 and active plan/task docs.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-No commands by default. Future approval requires path/git/status/worktree/fetch
-evidence before edits.
+No commands by default. Future approval should check `git status --short --branch` before edits and add deeper branch checks when needed.
 
-## Graph Requirement
+## Graph Guidance
 
-No graph ownership by default. Future use must record code-review-graph/GitNexus
-evidence.
+No graph ownership by default. Future use should record code-review-graph/GitNexus evidence when used.
 
 ## Allowed Edit Scope
 
@@ -44,7 +46,7 @@ No branch/worktree control until approved.
 
 No validation ownership until approved.
 
-## Design-System Rules
+## Design-System Guidance
 
 No UI work.
 

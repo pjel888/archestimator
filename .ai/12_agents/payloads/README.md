@@ -12,5 +12,11 @@ Required shared files:
 5. `.ai/10_state/current-state.md`
 6. `.ai/10_state/decisions.md`
 
+All payloads inherit the orchestrator-led routing contract from
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`: the active lead chooses lane,
+model/effort tier, loop role, and whether parallel execution is worth the token
+cost. Payloads may declare defaults and constraints, but they must not fork that
+policy.
+
 Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent
 payloads must still state their fail-closed behavior.

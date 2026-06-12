@@ -1,5 +1,30 @@
 # Current State
 
+**Lean agent mandate adopted (2026-06-12 local, branch `main`):**
+The root agent mandate now defaults to direct solo execution, minimal relevant
+context, scoped edits, and proportional verification. Heavy surfaces such as
+formal planning workflows, subagent/team orchestration, Impeccable, Storybook,
+code-review graph/GitNexus, full `bun run validate`, and broad builds are
+optional accelerators or high-risk-task gates rather than always-on
+requirements. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` and
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` were aligned to the same policy.
+Shared agent/project intelligence should travel through Git via `.ai/`,
+`.codex/`, `.agents/`, `.claude/`, `.cursor/`, and `.commandcode/`, while
+runtime/cache/session/worktree state remains local-only through `.gitignore`.
+
+**Multi-agent loop orchestration mandate added (2026-06-12 local, branch `main`):**
+The lean mandate now explicitly prefers multi-agent orchestration whenever work
+can split into safe independent lanes. The top-capability active agent is the
+lead orchestrator and owns scope, lane selection, model/effort tiering,
+integration, validation, and final claims. Lower-cost lanes should handle
+bounded lookup/evidence work; stronger lanes are reserved for architecture,
+security, data integrity, complex implementation, adversarial review, and final
+judgment. Loop engineering is now part of the shared agent contract: define the
+goal, run parallel or sequential lanes, observe evidence, persist state, decide
+the next action, and stop only on a proven pass, explicit blocker, or owner
+decision. This applies across Codex, Claude, OpenCode, CommandCode, Kimi,
+DeepSeek, Antigravity, Cursor where approved, and future payloads.
+
 **Library Unification Implemented (2026-06-11 local, branch `claude/unification-plan-components-templates`):**
 The 2026-06-11 unification plan pack (`.ai/03_plans/2026-06-11-Unification-Plan-For-Components-And-Templates/`)
 was implemented end to end. `/workshop/library` is now the single reusable-content home

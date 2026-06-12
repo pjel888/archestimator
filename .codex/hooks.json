@@ -2,16 +2,6 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uvx --from code-review-graph==2.3.5 code-review-graph update --skip-flows",
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "hooks": [
           {
             "type": "command",
@@ -22,16 +12,6 @@
       }
     ],
     "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uvx --from code-review-graph==2.3.5 code-review-graph status",
-            "timeout": 10
-          }
-        ]
-      },
       {
         "matcher": "startup|resume|clear",
         "hooks": [

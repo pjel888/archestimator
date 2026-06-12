@@ -4,13 +4,17 @@ Status: conditional
 Primary lane: exploration, fallback planning/review, codebase traversal
 Secondary lane: alternative implementation plans after repo-truth pass
 Prohibited lanes: provider mutation, config migration by guess, paid actions, secret handling
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
 Shared rules live in `.ai/00_system`. If this payload conflicts with
 `.ai/00_system`, `.ai` wins.
 
-## Required Reading Chain
+## Reading Chain
 
 `AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
 `AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
@@ -18,12 +22,11 @@ Shared rules live in `.ai/00_system`. If this payload conflicts with
 `.ai/10_state/current-state.md`, `.ai/10_state/decisions.md`, and `DESIGN.md`
 for UI.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Collect path, git root, status/branch, worktrees, remote/fetch state, and recent
-commits before edits.
+Check `git status --short --branch` before edits and preserve unrelated dirty files. Add path/root/worktree/remote/recent-log checks when branch state, release coordination, or shared worktree ownership matters.
 
-## Graph Requirement
+## Graph Guidance
 
 Use code-review-graph/GitNexus where available; record failures.
 
@@ -39,16 +42,16 @@ GitHub settings, Notion, generated files, or unrelated source.
 
 ## Branch And Worktree Rules
 
-Use isolated branches/worktrees for any writes.
+Use current checkout for narrow assigned writes when appropriate; use isolated branches/worktrees for larger writes.
 
 ## Validation Rules
 
 Docs-only: path checks and `git diff --check`. Config changes require the
 official/installed validation command for that tool plus repo checks.
 
-## Design-System Rules
+## Design-System Guidance
 
-UI analysis must use `DESIGN.md`; UI edits require assignment and lint.
+UI analysis should use `DESIGN.md`; UI edits require assignment, with lint for substantial or shared changes.
 
 ## Security And Provider Rules
 

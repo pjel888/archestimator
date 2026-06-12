@@ -4,6 +4,10 @@ Status: approved
 Primary lane: planning, architecture, critique, writing, strategy review
 Secondary lane: read-only code review, implementation only when assigned
 Prohibited lanes: autonomous provider mutation, paid actions, secret handling, unsupervised source merges
+Orchestrator authority: lead agent controls routing, scope, model/effort tier, and final integration under `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+Model/effort assignment: assigned by the lead by task risk and lane complexity; lower effort for lookup, higher effort for judgment
+Loop role: lead, worker, reviewer, QA, or evidence lane only as assigned by the lead
+Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing required routing metadata
 
 ## Shared Source Of Truth
 
@@ -11,7 +15,7 @@ Shared rules live in `.ai/00_system`. This payload adds Claude-specific review
 and planning constraints only. If this payload conflicts with `.ai/00_system`,
 `.ai` wins.
 
-## Required Reading Chain
+## Reading Chain
 
 `AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
 `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
@@ -20,16 +24,13 @@ and planning constraints only. If this payload conflicts with `.ai/00_system`,
 `.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
 `.ai/10_state/decisions.md`, and `DESIGN.md` for UI work.
 
-## Required Repo-Safety Commands
+## Repo-Safety Commands
 
-Before scoped edits, collect current path, git root, status/branch, worktrees,
-remote/fetch state, and recent commits. Planning/review can use provided current
-evidence if it is fresh.
+Before scoped edits, check `git status --short --branch` and preserve unrelated dirty files. Planning/review can use provided current evidence if it is fresh; add deeper branch checks only when they matter.
 
-## Graph Requirement
+## Graph Guidance
 
-Use code-review-graph/GitNexus before broad architecture/code claims when
-available. Record graph/tool failures honestly.
+Use code-review-graph/GitNexus for broad architecture/code claims when useful. Record graph/tool failures honestly.
 
 ## Allowed Edit Scope
 
@@ -43,16 +44,16 @@ generated files unless explicitly scoped and approved.
 
 ## Branch And Worktree Rules
 
-Use isolated branches/worktrees for edits. Keep read-only reviews read-only.
+Use current checkout for narrow assigned edits when appropriate. Use isolated branches/worktrees for larger write tasks. Keep read-only reviews read-only.
 
 ## Validation Rules
 
 Docs-only changes require referenced paths and `git diff --check`. Source/UI
 changes follow `VALIDATION_MATRIX.md`.
 
-## Design-System Rules
+## Design-System Guidance
 
-UI recommendations must follow `DESIGN.md`; UI edits require design-system lint.
+UI recommendations must follow `DESIGN.md`; run design-system lint for substantial, shared, or primarily visual edits.
 
 ## Security And Provider Rules
 
