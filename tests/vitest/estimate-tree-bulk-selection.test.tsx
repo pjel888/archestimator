@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -83,17 +84,18 @@ describe("estimate tree bulk selection", () => {
   });
 
   it("checkbox click selects a node without navigating or changing route selection", async () => {
+    const user = userEvent.setup();
     renderTree();
 
     const livingCheckbox = screen.getByRole("checkbox", { name: "Select Living Area" });
-    fireEvent.click(livingCheckbox);
+    await user.click(livingCheckbox);
 
     expect(livingCheckbox).toBeChecked();
     expect(treeNode("kitchen")).toHaveAttribute("aria-current", "page");
     expect(treeNode("living")).not.toHaveAttribute("aria-current");
     expect(routerMock.push).not.toHaveBeenCalled();
-    const dock = screen.getByRole("region", { name: "Bulk action toolbar" });
-    expect(dock).toHaveTextContent(/1\s*node selected/);
+    const dock = await screen.findByRole("region", { name: "Bulk action toolbar" });
+    await waitFor(() => expect(within(dock).getByLabelText("1 node selected")).toHaveTextContent("1"));
     expect(within(dock).getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
     expect(within(dock).getByRole("button", { name: "Clear selection" })).toBeInTheDocument();
   });

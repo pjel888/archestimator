@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 Estimate Tree Bulk Selection Test Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tree bulk-selection DOM test now matches the current compact
+bottom-dock toolbar contract: the dock visibly renders the numeric count while
+exposing the full "1 node selected" phrase as the count label's accessible name.
+The test also uses `userEvent` and waits for the accessible count label, removing
+the React `act(...)` warning captured in the red run. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-estimate-tree-bulk-selection-test-repair-run.md`:
+the focused red run failed on the stale visible-text assertion, the focused
+green run passed (1 file / 4 tests), `bun run type-check` passed, changed-file
+ESLint passed, the TypeScript no-excuse script passed, and the file is healthy
+at 155 pure LOC. The refreshed `bun run validate` still fails in `test:dom` but
+now reports 10 failed files / 20 failed tests, with the estimate-tree
+bulk-selection suite removed from the failure set. This is local DOM-test proof
+only; linked Supabase/provider/RLS, hosted, production/manual, deploy, and
+browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Storybook Plan Matrix Archive Import Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Storybook plan-matrix module now imports the 2026-06-06 component inventory
 and Storybook coverage Markdown from the archived canonical plan pack under
