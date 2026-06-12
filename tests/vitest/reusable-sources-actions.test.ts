@@ -75,13 +75,14 @@ describe("reusable project source actions", () => {
           name: "Amenity Millwork",
           kind: "group",
           total: "₱0.00",
+          estimateRowItems: [{ totalItemCosts: 100 }],
           children: [
             {
               id: "area-1",
               name: "Reception Feature Wall",
               kind: "area",
               total: "₱0.00",
-              estimateRowItems: [],
+              estimateRowItems: [{ totalItemCosts: 200 }, { totalItemCosts: 50 }],
             },
           ],
         },
@@ -100,6 +101,11 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: tabAId,
         name: "Lobby Main",
+        metadata: {
+          tabName: "Lobby Main",
+          rowCount: 3,
+          totalCost: 350,
+        },
       },
       {
         kind: "project-node",
@@ -109,6 +115,12 @@ describe("reusable project source actions", () => {
         nodeId: "group-1",
         nodeKind: "group",
         name: "Amenity Millwork",
+        metadata: {
+          tabName: "Lobby Main",
+          nodePath: ["Lobby Main", "Amenity Millwork"],
+          rowCount: 3,
+          totalCost: 350,
+        },
       },
       {
         kind: "project-node",
@@ -118,6 +130,12 @@ describe("reusable project source actions", () => {
         nodeId: "area-1",
         nodeKind: "area",
         name: "Reception Feature Wall",
+        metadata: {
+          tabName: "Lobby Main",
+          nodePath: ["Lobby Main", "Amenity Millwork", "Reception Feature Wall"],
+          rowCount: 2,
+          totalCost: 250,
+        },
       },
     ]);
   });
@@ -143,7 +161,7 @@ describe("reusable project source actions", () => {
           kind: "group",
           total: "₱0.00",
           children: [],
-          estimateRowItems: [],
+          estimateRowItems: [{ totalItemCosts: 125000 }],
         },
       ],
     });
@@ -187,6 +205,8 @@ describe("reusable project source actions", () => {
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
           tabName: "Lobby Main",
+          rowCount: 1,
+          totalCost: 125000,
         },
       },
       {
@@ -203,6 +223,8 @@ describe("reusable project source actions", () => {
           sheetCode: "EST-002",
           tabName: "Lobby Main",
           nodePath: ["Lobby Main", "Amenity Millwork"],
+          rowCount: 1,
+          totalCost: 125000,
         },
       },
     ]);

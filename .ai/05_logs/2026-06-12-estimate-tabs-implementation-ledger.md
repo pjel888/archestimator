@@ -1513,3 +1513,51 @@ label=diff-check-template-browse-lazy-project-outline exit_code=0 timed_out=Fals
 - `project-source-browse-tree.tsx` is a focused extraction but sits in the
   warning band (~215 pure LOC); split it before adding another substantial
   project-source browse behavior.
+
+## Phase 5 R4.4 project source outline metadata
+
+### Summary
+
+Phase 5 project-source outline/search actions now include local row-count and
+total-cost metadata for loaded tab and group/area sources. The existing preview
+surface already renders these fields, so loaded project-source detail is richer
+without provider mutation, polling, or template-table persistence.
+
+The source collectors and subtree summary logic moved into
+`src/lib/reusable-sources/source-collectors.ts`, shrinking
+`src/lib/reusable-sources/actions.ts` to 188 pure LOC before adding metadata.
+
+### Changed files
+
+- `src/lib/reusable-sources/actions.ts`
+- `src/lib/reusable-sources/source-collectors.ts`
+- `tests/vitest/reusable-sources-actions.test.ts`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-project-source-outline-metadata-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-outline-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-outline-metadata.log result=3_files_64_tests_passed
+label=type-check-project-source-outline-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-project-source-outline-metadata.log
+label=diff-check-project-source-outline-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-source-outline-metadata.log
+```
+
+### RTM rows locally advanced / still open
+
+- R4.4 now has local row-count and total-cost metadata for loaded outline/search
+  project-source rows.
+- `updatedAt` live freshness from provider estimate timestamps remains planned.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- This is local action/UI proof against mocked repository data; it does not
+  prove hosted provider RLS, latency/freshness, production behavior, or insertion RPC/action execution.
+- `tests/vitest/reusable-sources-actions.test.ts` is now in the 200-250 pure LOC
+  warning band after exact metadata assertions; split future reusable-source
+  action coverage into focused files before adding more cases.
