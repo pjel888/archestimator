@@ -2,9 +2,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import LibraryRouteError from "@/app/workshop/library/error";
+import TemplatesRouteError from "@/app/workshop/library/templates/error";
 import ChartsRouteError from "@/app/workshop/projects/[projectId]/charts/error";
 import EstimateRouteError from "@/app/workshop/projects/[projectId]/estimates/[nodeId]/error";
-import TemplatesRouteError from "@/app/workshop/templates/error";
 import { WorkshopRouteErrorState } from "@/components/workshop/WorkshopRouteErrorState";
 
 const sensitiveError = Object.assign(

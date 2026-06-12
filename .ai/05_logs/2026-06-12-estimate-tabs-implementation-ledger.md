@@ -1729,3 +1729,40 @@ label=validate-after-workshop-baseline-fixes exit_code=1 timed_out=False log=.ai
   split future additions before growing it further.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+## Phase 5 route error boundary import repair
+
+### Summary
+
+Updated the route-boundary DOM test to import the current templates error
+boundary from `src/app/workshop/library/templates/error.tsx` instead of the
+removed legacy `/workshop/templates/error` path. No runtime code changed.
+
+### Changed files
+
+- `tests/vitest/workshop-route-error-boundaries.test.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-route-error-boundary-import-repair-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=vitest-workshop-route-error-boundaries-after-library-template-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-workshop-route-error-boundaries-after-library-template-import-fix.log result=1_file_5_tests_passed
+label=eslint-workshop-route-error-boundaries-library-template-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-workshop-route-error-boundaries-library-template-import-fix.log
+label=no-excuse-workshop-route-error-boundaries-library-template-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/no-excuse-workshop-route-error-boundaries-library-template-import-fix.log result=no_violations_in_1_file
+label=loc-workshop-route-error-boundaries-library-template-import-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/loc-workshop-route-error-boundaries-library-template-import-fix.log result=56_pure_loc
+label=validate-after-route-error-boundary-import-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-validate-after-route-error-boundary-import-fix.log result=test_dom_remaining_1_failed_suite_21_failed_tests
+```
+
+### Remaining Phase 5 boundary
+
+- The route-boundary suite passes and is no longer part of the refreshed
+  full-validation failures.
+- Full `bun run validate` still fails in unrelated `test:dom` contracts: older
+  Storybook plan matrix imports, generated Supabase history RPC type
+  expectations, estimate-tree bulk-selection, landing/public font/cache
+  contracts, project dashboard/collaboration/publication contracts, and
+  code-review-graph hook command text.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
