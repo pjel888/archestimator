@@ -1081,6 +1081,12 @@ describe("estimate sheet version control UI", () => {
       "node_renamed",
       "node_deleted_with_children",
       "tree_reordered",
+      "tab_created",
+      "tab_renamed",
+      "tab_reordered",
+      "tab_duplicated",
+      "tab_archived",
+      "tab_deleted",
     ];
     actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
       events: eventTypes.map((eventType, index) => ({
@@ -1090,6 +1096,7 @@ describe("estimate sheet version control UI", () => {
         createdAt: `2026-05-24T03:${String(index).padStart(2, "0")}:00.000Z`,
         actorUserId: "user-1",
         actorLabel: "Philip Lewis",
+        estimateTabId: eventType.startsWith("tab_") ? "tab-main" : null,
         targetRowId: eventType.startsWith("row_") || eventType === "template_inserted" ? `row-${index}` : null,
         estimateNodeId: eventType.startsWith("node_") || eventType === "tree_reordered" ? "living-area" : null,
         rowContext: { material: "Hardwood Oak Flooring", nodePath: "Main House / Living Area" },
@@ -1097,7 +1104,7 @@ describe("estimate sheet version control UI", () => {
         newSnapshot: { material: "Hardwood Oak Flooring", quantity: 2, unitCost: 1500, sheetCode: "ES-002", name: "Living Area" },
         changedFields: ["quantity", "unitCost"],
         totalDelta: 5000,
-        payload: { templateName: "Living Package", name: "Living Area", oldName: "Old Living Area", newName: "Living Area", updatedCount: 3 },
+        payload: { templateName: "Living Package", name: eventType.startsWith("tab_") ? "Main" : "Living Area", tabName: "Main", estimateTabId: "tab-main", oldName: "Old Living Area", newName: "Living Area", updatedCount: 3 },
         correlationId: `composer-${index}`,
       })),
       rowEvents: [],
@@ -1137,6 +1144,7 @@ describe("estimate sheet version control UI", () => {
     expect(within(listbox).queryByRole("option", { name: "Inserted rows" })).not.toBeInTheDocument();
     expect(within(listbox).getByRole("option", { name: "Added rows" })).toBeInTheDocument();
     expect(within(listbox).getByRole("option", { name: "Added blank rows" })).toBeInTheDocument();
+    expect(within(listbox).getByRole("option", { name: "Tab renamed" })).toBeInTheDocument();
 
     await user.click(within(listbox).getByRole("option", { name: "Added blank rows" }));
 

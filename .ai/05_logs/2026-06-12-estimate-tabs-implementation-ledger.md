@@ -2176,3 +2176,26 @@ label=diff-check-r10-5 exit_code=0 command="git diff --check"
 
 - The named-version feature remains deferred by design.
 - Linked Supabase apply/typegen/provider proof, hosted/manual proof, and production deploy remain unperformed.
+
+## Phase 7 R10.1-R10.2 activity tab attribution
+
+### Summary
+
+Implemented local TypeScript/UI support for tab-attributed activity history. `fetchEstimateSheetVersionControl` now selects and normalizes `estimate_tab_id`, `EstimateActivityInput` and the activity composer can target tab lifecycle events, Activity History exposes tab lifecycle filters and accessibility labels, and public-safe copy sanitizes the new `tab_*` technical tokens.
+
+### Gates run
+
+```text
+label=vitest-activity-tabs-focused-red exit_code=1 result="missing tab_* sanitizer entries"
+label=vitest-activity-tabs-focused-green exit_code=0 command="bun x vitest run tests/vitest/activity-composer.test.ts tests/vitest/activity-copy-regression.test.ts tests/vitest/activity-view-model.test.ts tests/vitest/activity-security.test.ts tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-sheet-version-control-ui.test.tsx tests/vitest/estimate-sheet-activity-history-ui.test.tsx --maxWorkers=1" result="7 files / 177 tests passed"
+label=type-check-r10-1-r10-2 exit_code=0 command="bun run type-check"
+label=eslint-r10-1-r10-2-focused exit_code=0 command="bunx eslint src/lib/activity/activity-formatters.ts src/lib/activity/activity-composer.ts src/lib/activity/types.ts src/lib/estimates/actions.ts src/components/workshop/estimate-sheet/activity-history.tsx tests/vitest/fixtures/activity-events.ts tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-sheet-version-control-ui.test.tsx"
+label=design-system-r10-1-r10-2 exit_code=0 command="bun run lint:design-system"
+label=design-r10-1-r10-2 exit_code=0 command="bun run lint:design"
+label=build-r10-1-r10-2 exit_code=0 command="bun run build" result="next-env.d.ts churn restored"
+label=diff-check-r10-1-r10-2 exit_code=0 command="git diff --check"
+```
+
+### Remaining boundary
+
+- R10.1-R10.2 are locally implemented only. Linked Supabase apply/typegen/provider proof, live tab lifecycle Activity History proof, hosted/manual two-browser proof, and production deploy remain open.

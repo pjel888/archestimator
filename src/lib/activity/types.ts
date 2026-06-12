@@ -93,6 +93,7 @@ export type EstimateActivityInput = {
   createdAt: string;
   actorUserId?: string | null;
   actorLabel?: string | null;
+  estimateTabId?: string | null;
   targetRowId?: string | null;
   estimateNodeId?: string | null;
   rowContext?: Record<string, unknown> | null;

@@ -2344,3 +2344,12 @@ Open:
 - Local evidence: `bun x vitest run tests/vitest/estimate-tabs-schema.test.ts --maxWorkers=1` passed (1 file / 7 tests), and `git diff --check` passed after the traceability update.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-5-dormant-version-guard-run.md`.
 - Boundary: named-version restore remains deferred; no linked Supabase apply/typegen, provider proof, hosted/manual proof, or production deploy was performed.
+
+## Estimate Tabs R10.1-R10.2 Activity Tab Attribution Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Activity reads now select and normalize `estimate_sheet_events.estimate_tab_id` as `estimateTabId`, so tab lifecycle/node/row history rows can carry their tab attribution into TypeScript view models.
+- Activity composer/UI support now covers `tab_created`, `tab_renamed`, `tab_reordered`, `tab_duplicated`, `tab_archived`, and `tab_deleted`: tab events produce human-readable copy, event filters expose tab lifecycle options, accessibility labels handle tab event cards, and public-safe copy scrubs the new technical tokens.
+- Local evidence: focused activity/version-control suites passed (`7 files / 177 tests`), `bun run type-check` passed, focused ESLint passed, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-1-r10-2-activity-tabs-run.md`.
+- Boundary: no linked Supabase apply/typegen, live provider Activity History proof, hosted/manual two-browser proof, Vercel deploy, or production proof was performed.
