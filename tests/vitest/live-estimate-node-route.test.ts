@@ -12,7 +12,7 @@ const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
 describe("live estimate node route", () => {
   it("loads project-scoped Supabase estimate tree data instead of sample project/tree data", () => {
-    expect(estimateNodePage).toContain("getProjectEstimateTreeByNode");
+    expect(estimateNodePage).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
     expect(estimateNodePage).not.toContain("sampleProjects");
     expect(estimateNodePage).not.toContain("sampleEstimateTree");
     expect(estimateNodePage).toContain("if (!project || !estimate) notFound()");
@@ -61,7 +61,8 @@ describe("live estimate node route", () => {
     expect(estimateTree).not.toContain("ArrowsOutSimple");
     expect(estimateTree).toContain("FolderSimple");
     expect(estimateTree).not.toContain("HouseLine");
-    expect(estimateTree).not.toContain("Stack");
+    expect(estimateTree).not.toContain("Stack,");
+    expect(estimateTree).toContain("StackPlus");
     expect(estimateTree).not.toContain("Files");
     expect(estimateTree).not.toContain("border border-hairline bg-white text-tertiary");
     expect(estimateTree).not.toContain("context.isSelected || isRouteSelected");
@@ -121,7 +122,7 @@ describe("live estimate node route", () => {
     expect(metadataStrip).toContain("items-center gap-1");
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
     expect(estimateContent).toContain("<TreePanelHeader");
-    expect(estimateContent).toContain('searchPlaceholder="Search Sheet"');
+    expect(estimateContent).toContain('searchPlaceholder="Search Tab"');
     expect(estimateContent).toContain("filterEstimateSheetNode");
     expect(estimateContent).toContain('id="estimate-sheet-center-column"');
   });

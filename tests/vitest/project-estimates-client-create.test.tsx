@@ -60,7 +60,7 @@ describe("project estimates create flow", () => {
     routerMock.refresh.mockReset();
   });
 
-  it("guards the create estimate sheet action against rapid double-submit", async () => {
+  it("guards the create estimate action against rapid double-submit", async () => {
     let resolveCreate: ((value: { estimateId: string; areaNodeId: string; sheetCode: string }) => void) | undefined;
     actionMocks.createEstimateSheetDraft.mockImplementation(
       () =>
@@ -72,13 +72,13 @@ describe("project estimates create flow", () => {
 
     renderClient();
 
-    const createButton = screen.getByRole("button", { name: "Create Estimate Sheet" });
-    expect(createButton).not.toHaveTextContent("Create Estimate Sheet");
+    const createButton = screen.getByRole("button", { name: "Create Estimate" });
+    expect(createButton).not.toHaveTextContent("Create Estimate");
     await user.dblClick(createButton);
 
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledTimes(1);
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
-    expect(screen.getByRole("button", { name: "Creating estimate sheet" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Creating estimate" })).toBeDisabled();
 
     resolveCreate?.({ estimateId: "estimate-1", areaNodeId: "node-1", sheetCode: "ES-001" });
     await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
@@ -94,11 +94,11 @@ describe("project estimates create flow", () => {
 
     renderClient();
 
-    expect(screen.getByText("Create the first estimate sheet")).toBeInTheDocument();
-    expect(screen.getByText(/Start an estimate sheet before adding groups/)).toBeInTheDocument();
+    expect(screen.getByText("Create the first estimate")).toBeInTheDocument();
+    expect(screen.getByText(/Start an estimate before adding groups/)).toBeInTheDocument();
     expect(screen.queryByTestId("project-estimates-table")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Create first estimate sheet" }));
+    await user.click(screen.getByRole("button", { name: "Create first estimate" }));
 
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
     await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
@@ -111,11 +111,11 @@ describe("project estimates create flow", () => {
 
     expect(screen.getByTestId("project-estimates-table")).toBeInTheDocument();
 
-    await user.type(screen.getByRole("searchbox", { name: "Search Estimate Sheets" }), "zzzz-estimate");
+    await user.type(screen.getByRole("searchbox", { name: "Search Estimates" }), "zzzz-estimate");
 
-    expect(screen.getByText("No matching estimate sheets")).toBeInTheDocument();
-    expect(screen.getByText("Try a sheet code, estimate name, or clear search to return to all sheets.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Create first estimate sheet" })).not.toBeInTheDocument();
+    expect(screen.getByText("No matching estimates")).toBeInTheDocument();
+    expect(screen.getByText("Try an estimate code, estimate name, or clear search to return to all estimates.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create first estimate" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("project-estimates-table")).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 # 13 — Requirements Traceability Matrix
 
-**Date:** 2026-06-12 · Status values: **planned** / **assumption** / **deferred** / **product decision needed**.
+**Date:** 2026-06-12 · Status values: **planned** / **implemented (local-only)** / **assumption** / **deferred** / **product decision needed**.
 Columns: Requirement ID · Source request / repo evidence · Planned architecture doc · Implementation phase ([10](10_IMPLEMENTATION_PHASES.md)) · Primary files/tables likely affected · Tests/validation ([09](09_TEST_AND_VALIDATION_PLAN.md)) · Risk linkage ([11](11_RISK_REGISTER.md)) · Status.
 
 ## Group 1 — Multi-tab estimate support
@@ -19,17 +19,17 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R2.1 copy table applied (exhaustive bucket A) | 01 §16A sweep (1,289 src matches) | 05 §10 | 4 | copy clusters listed in 10 §Phase 4 | copy-coupled test batch; residue grep | R-NAME | planned |
-| R2.2 DELETE SHEET typed phrase atomic flip | `ProjectEstimatesTable.tsx:684` + `bulk-action.ts:76,82` | 05 §10 | 4 | both files together | `mass-deletion-ui-contract` update | R-NAME, R-TEST | planned |
-| R2.3 `sheet_code` relabel "Estimate code" | audited meaning (01 §16 Task 3) | 05 §10 (D-12) | 4 | tables/strips/activity labels | copy tests | R-NAME | planned |
-| R2.4 marketing/landing copy alignment | `app/features/page.tsx` etc. | 05 §10 last row | 4 | landing components | owner review | R-NAME | **product decision needed** (Q-1) |
-| R2.5 AI intent regexes match "tab" additively | `EstimateCopilotFloatingButton.tsx:103-145`; `draft.ts:128-179` | 01 §14; 10 §Phase 4 | 4 | AI surfaces | regex unit cases | R-AI | planned |
+| R2.1 copy table applied (exhaustive bucket A) | 01 §16A sweep (1,289 src matches) | 05 §10 | 4 | copy clusters listed in 10 §Phase 4 | copy-coupled test batch; residue grep | R-NAME | **implemented (local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-targeted-final.log`; `.ai/05_logs/2026-06-12-estimate-tabs-phase4/terminology-exact-final.log` |
+| R2.2 DELETE SHEET typed phrase atomic flip | `ProjectEstimatesTable.tsx:684` + `bulk-action.ts:76,82` | 05 §10 | 4 | both files together | `mass-deletion-ui-contract` update | R-NAME, R-TEST | **implemented (local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-targeted-final.log` |
+| R2.3 `sheet_code` relabel "Estimate code" | audited meaning (01 §16 Task 3) | 05 §10 (D-12) | 4 | tables/strips/activity labels | copy tests | R-NAME | **implemented (local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-targeted-final.log`; `.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-history-cursor-copy-rerun.log` |
+| R2.4 marketing/landing copy alignment | `app/features/page.tsx` etc. | 05 §10 last row | 4 | landing components | owner review | R-NAME | **product decision needed** (Q-1) — local copy aligned in Phase 4; owner review still pending |
+| R2.5 AI intent regexes match "tab" additively | `EstimateCopilotFloatingButton.tsx:103-145`; `draft.ts:128-179` | 01 §14; 10 §Phase 4 | 4 | AI surfaces | regex unit cases | R-AI | **implemented (local-only)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-ai-package-builder.log`; `.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-type-check-final.log` |
 
 ## Group 3 — Existing DB/internal sheet-name compatibility
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R3.1 keep-list honored (tables/RPCs/event values/sheet_code/Excel/primitive/material) | 01 §17 | 01 §17; 04 §9 | all | — | Phase 4 residue grep; review checklist | R-NAME, R-DATA | planned |
+| R3.1 keep-list honored (tables/RPCs/event values/sheet_code/Excel/primitive/material) | 01 §17 | 01 §17; 04 §9 | all | — | Phase 4 residue grep; review checklist | R-NAME, R-DATA | **implemented (Phase 4 local-only portion)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase4/terminology-exact-final.log`; standing check remains for later phases |
 | R3.2 compat comments at every kept site | prompt §04 | 04 §9 | 2–8 | touched files | code review gate (15 §3) | — | planned |
 | R3.3 shim deletion criteria for cleanup | — | 04 §12 | 8 | wrappers, dead stores/hooks | grep gates; contract batches | R-TEST | planned |
 

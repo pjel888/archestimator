@@ -70,7 +70,7 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
 }
 
 export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavoriteInput) {
-  assertUuid(estimateId, "Estimate sheet");
+  assertUuid(estimateId, "Estimate");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
@@ -82,7 +82,7 @@ export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavo
     .maybeSingle();
 
   if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate sheet was not found.");
+  if (!estimate) throw new Error("Estimate was not found.");
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
@@ -92,7 +92,7 @@ export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavo
     .maybeSingle();
 
   if (projectError) throw projectError;
-  if (!project) throw new Error("Estimate sheet was not found in this workspace.");
+  if (!project) throw new Error("Estimate was not found in this workspace.");
 
   if (favorite) {
     const { error } = await supabase

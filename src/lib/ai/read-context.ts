@@ -460,8 +460,8 @@ const ASK_ACTIVITY_EVENT_LABELS: Record<string, string> = {
   row_deleted: "Row deleted",
   tree_reordered: "Tree reordered",
   template_inserted: "Template inserted",
-  sheet_code_updated: "Sheet code updated",
-  sheet_metadata_updated: "Sheet metadata updated",
+  sheet_code_updated: "Estimate code updated",
+  sheet_metadata_updated: "Estimate metadata updated",
   node_created: "Node created",
   node_renamed: "Node renamed",
   node_deleted_with_children: "Area deleted",
@@ -783,7 +783,7 @@ function getAskActivityTarget(eventType: string, rowContext: Record<string, unkn
 
   if (eventType.startsWith("node_")) return "Estimate node";
   if (eventType === "template_inserted") return "Estimate template";
-  return readBoundedString(payload.title) ?? "Estimate sheet";
+  return readBoundedString(payload.title) ?? "Estimate";
 }
 
 function getAskActivitySummary({
@@ -804,7 +804,7 @@ function getAskActivitySummary({
   if (eventType === "tree_reordered") return "Estimate tree order changed";
   if (eventType === "template_inserted") return "Template rows were inserted into the estimate tree";
   if (eventType === "node_deleted_with_children") return "Area and nested rows removed";
-  return target === "Estimate sheet" ? eventLabel : `${eventLabel}: ${target.replace(/^Row: /, "")}`;
+  return target === "Estimate" ? eventLabel : `${eventLabel}: ${target.replace(/^Row: /, "")}`;
 }
 
 async function resolveAskActivityActorLabels(
@@ -1868,7 +1868,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
         "Use historicalRows.matches when answering prior-row or other-project usage questions; historical rows are read-only precedents, not live supplier-priced sources.",
         "Use projectCharts when answering project chart, cost-breakdown, or distribution questions; chart summaries are compact read-only buckets, not full row exports.",
         "Use activityHistory.events when answering current-estimate activity, change-history, or who-edited questions; activity history is compact and read-only, not a full audit export.",
-        "Use currentEstimate when answering current-estimate questions; do not invent row items, totals, areas, or sheet contents that are not present in currentEstimate.",
+        "Use currentEstimate when answering current-estimate questions; do not invent row items, totals, areas, or estimate/tab contents that are not present in currentEstimate.",
       ],
     },
     auditEvents,

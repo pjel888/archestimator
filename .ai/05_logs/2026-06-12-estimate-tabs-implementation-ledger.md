@@ -466,3 +466,51 @@ label=browser-visual-proof exit_code=blocked timed_out=False log=.ai/05_logs/202
 - Browser/manual editor proof was not claimed because the in-app Browser `iab` surface was unavailable and the local workshop route redirected to `/login` without an authenticated browser session.
 - Tab lifecycle server actions are wired for internal tests but not visible in the editor by default.
 - `next-env.d.ts` build churn restored before staging.
+
+
+## Phase 4 terminology rebrand iteration
+
+### Summary
+
+Phase 4 local implementation is complete enough for a phase-scoped commit. User-facing “estimate sheet/sheet” copy now reads as “estimate” when it names the estimate, active tree containers are labeled “tabs,” and `sheet_code` is displayed as “Estimate code.” Internal compatibility names stay unchanged: DB/RPC/table/function symbols, `EstimateSheet*` component/file names, `sheetCode`, stored `sheet_*` event names, Excel worksheet vocabulary, overlay `Sheet`, material/unit strings, localStorage/data attributes, and mass-deletion RPC tokens.
+
+### Changed files
+
+- App/share/invite/marketing copy: `src/app/**`, `src/components/landing/**`, `src/components/share/**`.
+- Workshop UI copy: estimate list/table/create form, editor center chrome, metadata strips, publication/teamspace headers, homebase/invites, template/gallery/editor, and component-library aria families.
+- Copy helpers/actions: `src/lib/activity/**`, `src/lib/ai/**`, `src/lib/collaboration/**`, `src/lib/estimates/actions.ts`, `src/lib/mass-deletion/bulk-action.ts`, `src/lib/publication/types.ts`, `src/lib/workshop/actions.ts`.
+- Copy-coupled tests/e2e/story assertions: `tests/vitest/**`, `tests/unit/reset-baseline.test.ts`, `e2e/shared-link-receiver.spec.ts`, `e2e/workshop-library-demo-smoke.spec.ts`, `src/stories/trees/tree-panel-header.stories.tsx`.
+- Evidence: `.ai/05_logs/2026-06-12-estimate-tabs-phase4/`; run summary: `.ai/05_logs/2026-06-12-estimate-tabs-phase4-implementation-run.md`.
+
+### Gates run
+
+```text
+label=phase4-targeted-copy-final exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-targeted-final.log result=15_files_176_tests_passed
+label=phase4-adjacent-copy-without-known-mcp-baseline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-adjacent-copy-without-baseline-mcp.log result=5_files_64_tests_passed
+label=phase4-ai-package-builder-copy exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-ai-package-builder.log result=4_files_88_tests_passed
+label=phase4-teamspace-invite-copy-rerun exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-teamspace-invite-copy-rerun.log result=3_files_29_tests_passed
+label=phase4-history-cursor-copy-rerun exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-history-cursor-copy-rerun.log result=1_test_passed_24_skipped
+label=phase4-exact-source-copy-scan exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/terminology-exact-final.log result=no_exact_legacy_source_copy_output
+label=type-check-final exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-type-check-final.log
+label=build-final exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-build-final.log
+label=lint-design-system exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-lint-design-system.log
+label=lint-design exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-lint-design.log
+label=diff-check-final exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/git-diff-check-final.log
+label=lint exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-lint.log classification=pre_existing_baseline_3_errors_548_warnings
+label=validate exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-validate.log classification=pre_existing_lint_gate_3_errors_548_warnings
+label=unit-tests-rerun exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/bun-run-test-unit-rerun.log classification=pre_existing_reset_baseline_line_54
+label=phase4-adjacent-copy-rerun exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-adjacent-copy-rerun.log classification=pre_existing_mcp_hook_contract_baseline
+label=phase4-additional-copy-rerun exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase4/vitest-phase4-additional-copy-rerun.log classification=pre_existing_stale_generated_supabase_types_and_workshop_reset_baselines
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 4 evidence advances R2.1, R2.2, R2.3, R2.5, and the Phase-4 keep-list portion of R3.1.
+- R2.4 has local marketing/landing alignment, but owner review remains product-decision proof.
+- R12.3 and provider/manual proof remain owner-gated; no linked Supabase apply/typegen, Vercel deploy, hosted proof, or manual/browser proof is claimed.
+- Rows spanning Phase 5+ stay open: templates/source automation, all-tabs export, collaboration/publication/provider proof, AI/package-builder follow-ups, and final cleanup/archive.
+
+### Remaining Phase 4 boundary
+
+- The exact source-copy scan is clean for the table-driven user-facing patterns, but internal compatibility `sheet*` names remain intentionally present by the keep-list.
+- Broad repo gates still contain the documented baseline failures above; Phase 4 did not add a new failure in the targeted copy/test/build/type-check evidence.

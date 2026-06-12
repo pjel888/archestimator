@@ -1109,8 +1109,8 @@ export type EstimateInsertTargetProject = {
 };
 
 /**
- * Projects and their estimate sheets for the "Insert into estimate" picker.
- * Wraps the workspace project list and the lightweight per-project sheet
+ * Projects and their estimates for the "Insert into estimate" picker.
+ * Wraps the workspace project list and the lightweight per-project estimate
  * list; pending-invite projects are excluded (no insert access yet).
  */
 export async function listEstimateInsertTargets(): Promise<{ projects: EstimateInsertTargetProject[] }> {

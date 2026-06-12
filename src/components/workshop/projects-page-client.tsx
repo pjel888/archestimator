@@ -88,7 +88,7 @@ function getProjectAccessSearchText(item: ProjectListItem) {
     : item.accessKind === "project-member"
       ? "shared project"
       : item.accessKind === "sheet-member"
-        ? "sheet-only"
+        ? "estimate-only"
         : "owned";
   const linkStatus = item.publicationSummary?.status === "published" ? "shared link published" : null;
   return [
@@ -98,7 +98,7 @@ function getProjectAccessSearchText(item: ProjectListItem) {
     item.pendingInvite?.projectCode,
     item.pendingInvite?.inviterLabel,
     item.pendingInvite?.estimateName,
-    item.sharedEstimateCount ? `${item.sharedEstimateCount} shared sheets` : null,
+    item.sharedEstimateCount ? `${item.sharedEstimateCount} shared estimates` : null,
     linkStatus,
   ]
     .filter(Boolean)
@@ -258,7 +258,7 @@ function canSelectProjectForDeletion(item: ProjectListItem) {
 
 function getProjectDeletionDisabledReason(item: ProjectListItem) {
   if (canSelectProjectForDeletion(item)) return null;
-  if (item.accessKind === "sheet-member") return "Sheet-only access cannot delete the project.";
+  if (item.accessKind === "sheet-member") return "Estimate-only access cannot delete the project.";
   if (item.accessKind === "pending-invite") return "Accept the invite before managing the project.";
   return "Only project owners and admins can delete projects.";
 }

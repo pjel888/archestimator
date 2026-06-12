@@ -161,7 +161,7 @@ describe("TemplateEditorClient", () => {
       templateName: "Powder Room Basic",
       category: "Residential Rooms",
     });
-    expect(screen.getByRole("region", { name: "Template sheet" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Template content" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("GROHE Lavatory Faucet")).toBeInTheDocument();
     expect(screen.getByText("Totals are reference pricing: estimates re-price on insert")).toBeInTheDocument();
   });
@@ -233,7 +233,7 @@ describe("TemplateEditorClient", () => {
     vi.spyOn(window, "prompt").mockReturnValue("Second Bathroom");
     renderEditor(buildTemplate());
 
-    const sheet = screen.getByRole("region", { name: "Template sheet" });
+    const sheet = screen.getByRole("region", { name: "Template content" });
     fireEvent.click(within(sheet).getByRole("button", { name: "Add group" }));
 
     await waitFor(() => {

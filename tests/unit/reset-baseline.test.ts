@@ -72,11 +72,11 @@ describe("workshop sidebar baseline", () => {
     expect(homebase).not.toContain("Open Projects");
     expect(homebase).not.toContain("Open Components");
     expect(homebase).not.toContain("Open Templates");
-    expect(homebase).not.toContain("Estimate Sheets");
+    expect(homebase).not.toContain("Estimates");
     expect(homebase).not.toContain("Favorite projects");
-    expect(homebase).not.toContain("Favorite estimate sheets");
+    expect(homebase).not.toContain("Favorite estimates");
     expect(homebase).not.toContain("Project shortcuts");
-    expect(homebase).not.toContain("Estimate sheet shortcuts");
+    expect(homebase).not.toContain("Estimate shortcuts");
     expect(homebase).toContain("setProjectFavorite");
     expect(homebase).not.toContain("setEstimateFavorite");
     expect(homebase).not.toContain('title="First move"');

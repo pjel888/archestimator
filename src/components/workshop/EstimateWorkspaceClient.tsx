@@ -145,7 +145,7 @@ function EstimateTreeFallback() {
 
 function EstimateContentFallback() {
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-2" role="status" aria-label="Loading estimate sheet">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-2" role="status" aria-label="Loading estimate">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-hairline" aria-hidden="true">
         <Skeleton className="h-6 w-28" />
         <Skeleton className="h-6 w-20" />
@@ -156,7 +156,7 @@ function EstimateContentFallback() {
           <Skeleton key={index} className="h-7 w-full" />
         ))}
       </div>
-      <span className="sr-only">Loading estimate sheet</span>
+      <span className="sr-only">Loading estimate</span>
     </div>
   );
 }

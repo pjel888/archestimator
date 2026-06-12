@@ -1380,8 +1380,8 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
 }
 
 /**
- * Lightweight list of estimate sheets for a project (id, name, sheetCode).
- * Used by ProjectPublicationHeader (Sheets tab picker) for selection without loading heavy node/row aggregates.
+ * Lightweight list of estimates for a project (id, name, sheetCode).
+ * Used by ProjectPublicationHeader (Estimates tab picker) for selection without loading heavy node/row aggregates.
  * Additive for Shared Link Overhaul V2 (P1).
  */
 export async function listProjectEstimateSheets(projectId: string): Promise<Array<{ id: string; name: string; sheetCode: string | null }>> {

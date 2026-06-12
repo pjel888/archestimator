@@ -67,7 +67,7 @@ const roleLabels: Record<CollaborationRole, string> = {
 function getAccessBadgeLabel(accessKind: ProjectAccessKind) {
   if (accessKind === "pending-invite") return "Pending invite";
   if (accessKind === "project-member") return "Shared project";
-  if (accessKind === "sheet-member") return "Sheet-only";
+  if (accessKind === "sheet-member") return "Estimate-only";
   return "Owned";
 }
 
@@ -90,7 +90,7 @@ function getAccessibleAccessLabel({
 }) {
   if (accessKind === "owned") return `${projectName} project, owned access`;
   if (accessKind === "pending-invite") return `${projectName} project, pending invite, ${role} access`;
-  if (accessKind === "sheet-member") return `${projectName} project, sheet-only access, ${role} access`;
+  if (accessKind === "sheet-member") return `${projectName} project, estimate-only access, ${role} access`;
   return `${projectName} project, shared project, ${role} access`;
 }
 
@@ -119,7 +119,7 @@ export function LiveProjectCard({
   const isSharedAccess = accessKind !== "owned" && !isPendingInvite;
   const canToggleFavorite = Boolean(onToggleFavorite) && !isPendingInvite;
   const livePublication = publicationSummary?.status === "published" ? publicationSummary : null;
-  const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open sheet" : "Open";
+  const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open estimate" : "Open";
   const projectHref = `/workshop/projects/${project.id}`;
   const prefetchRoutes = useMemo(() => [{ pathname: projectHref }], [projectHref]);
   const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
@@ -293,7 +293,7 @@ export function LiveProjectCard({
               </span>
               <span className="truncate">
                 {accessKind === "sheet-member"
-                  ? `${sharedEstimateCount} ${sharedEstimateCount === 1 ? "shared sheet" : "shared sheets"}`
+                  ? `${sharedEstimateCount} ${sharedEstimateCount === 1 ? "shared estimate" : "shared estimates"}`
                   : ownerWorkspaceName
                     ? `Shared by ${ownerWorkspaceName}`
                     : "Shared with you"}

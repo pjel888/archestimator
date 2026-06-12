@@ -45,7 +45,7 @@ function targetForEstimate(event: EstimateActivityInput): ActivityTarget {
   if (event.targetRowId) return { id: event.targetRowId, kind: "row", label: rowMaterial(event), secondaryLabel: readString(event.rowContext?.nodePath, event.rowContext?.areaName, "Estimate row") };
   if (event.estimateNodeId) return { id: event.estimateNodeId, kind: "node", label: nodeName(event) };
   if (event.eventType.startsWith("tab_")) return { id: typeof event.payload?.estimateTabId === "string" ? event.payload.estimateTabId : undefined, kind: "tab", label: readString(event.payload?.name, event.payload?.tabName, "Estimate tab") };
-  return { kind: "sheet", label: readString(event.payload?.estimateName, event.payload?.sheetCode, "Estimate sheet") };
+  return { kind: "sheet", label: readString(event.payload?.estimateName, event.payload?.sheetCode, "Estimate") };
 }
 
 function changesForEstimate(event: EstimateActivityInput): ActivityChange[] {
@@ -86,9 +86,9 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
     case "template_inserted":
       return `${actor} inserted ${readString(event.payload?.templateName, event.payload?.name, newData.name, "template rows")}.`;
     case "sheet_code_updated":
-      return `${actor} changed sheet code from ${formatActivityValue("sheetCode", oldData.sheetCode)} to ${formatActivityValue("sheetCode", newData.sheetCode)}.`;
+      return `${actor} changed estimate code from ${formatActivityValue("sheetCode", oldData.sheetCode)} to ${formatActivityValue("sheetCode", newData.sheetCode)}.`;
     case "sheet_metadata_updated":
-      return `${actor} updated estimate sheet details.`;
+      return `${actor} updated estimate details.`;
     case "sheet_version_created":
       return `${actor} created a version snapshot.`;
     case "sheet_restored_as_copy":

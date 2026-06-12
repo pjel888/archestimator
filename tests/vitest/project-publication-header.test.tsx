@@ -350,8 +350,8 @@ describe("ProjectPublicationHeader publication control", () => {
     );
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
-    // Switch to Sheets (starts default empty when no sheets)
-    await user.click(within(dialog).getByRole("tab", { name: "Sheets" }));
+    // Switch to Estimates (starts default empty when no sheets)
+    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
     const generateBtn = within(dialog).getByRole("button", { name: "Generate shared link" });
     expect(generateBtn).toBeDisabled();
   });
@@ -434,7 +434,7 @@ describe("ProjectPublicationHeader publication control", () => {
   // Historical red placeholder (P0/P2): "Tab rendering on receiver — red until P2 SharePageTabs"
   // P2 delivered (SharePageTabs + ARIA tabs); placeholder retained for historical red-first record.
   // No active assertion (would be noise post-delivery).
-  it("receiver page renders accessible tabs for selected estimate sheets", () => {
+  it("receiver page renders accessible tabs for selected estimates", () => {
     // P2 delivered; original expect(true).toBe(false) removed.
   });
 });
@@ -467,11 +467,11 @@ describe("SheetPickerList (P1)", () => {
   });
 
   it("renders list of estimates with checkboxes, labels showing name and sheetCode, and aria-label", () => {
-    render(<SheetPickerList estimates={mockEstimates} selectedIds={["est-1"]} onChange={onChange} aria-label="Select estimate sheets to include in shared link" />);
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={["est-1"]} onChange={onChange} aria-label="Select estimates to include in shared link" />);
     expect(screen.getAllByRole("checkbox")).toHaveLength(3);
     expect(screen.getByLabelText(/S-100.*Foundation/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Electrical/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Select estimate sheets to include in shared link")).toBeInTheDocument();
+    expect(screen.getByLabelText("Select estimates to include in shared link")).toBeInTheDocument();
   });
 
   it("toggles individual estimate on checkbox change and calls onChange with updated set", async () => {
@@ -506,7 +506,7 @@ describe("SheetPickerList (P1)", () => {
 
   it("renders empty state when project has 0 estimates", () => {
     render(<SheetPickerList estimates={[]} selectedIds={[]} onChange={onChange} />);
-    expect(screen.getByText(/no estimate sheets/i)).toBeInTheDocument();
+    expect(screen.getByText(/no estimates/i)).toBeInTheDocument();
   });
 
   it("respects disabled prop (no toggles, no select-all)", async () => {
@@ -519,7 +519,7 @@ describe("SheetPickerList (P1)", () => {
   });
 
   it("supports keyboard navigation (checkboxes are focusable with proper aria labels)", () => {
-    render(<SheetPickerList estimates={mockEstimates} selectedIds={[]} onChange={onChange} aria-label="Sheets" />);
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={[]} onChange={onChange} aria-label="Estimates" />);
     const checkboxes = screen.getAllByRole("checkbox");
     expect(checkboxes[0]).toHaveAttribute("aria-label", "S-100 — Foundation");
     // Native checkbox keyboard (Space/Enter) is provided by browser; focusable + labelled for a11y
@@ -559,7 +559,7 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
     expect(`${headerSrc}\n${recipientComposerSrc}`).toMatch(/isPending|startTransition|loading|disabled.*send/i);
   });
 
-  it("Recipients tab integrates cleanly without breaking Link/Sheets/Access (backwards compat RED gate)", () => {
+  it("Recipients tab integrates cleanly without breaking Link/Estimates/Access (backwards compat RED gate)", () => {
     expect(headerSrc).toContain("activeTab");
     // Existing 3 tabs still present; 4th added without removal
     expect(headerSrc).toMatch(/"link"|"sheets"|"access"/);

@@ -279,7 +279,7 @@ describe("Codex security findings hardening contracts", () => {
     expect(estimateActivityHistory).toContain("normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl)");
   });
 
-  it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
+  it("prevents estimate-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");
 
@@ -377,11 +377,13 @@ describe("Codex security findings hardening contracts", () => {
     expect(repairMigration).toContain("on conflict (id) do update");
   });
 
-  it("keeps estimate sheet quantity and misc edits nonnegative before totals and persistence", () => {
+  it("keeps estimate quantity and misc edits nonnegative before totals and persistence", () => {
     const estimateSheet = read("src/components/workshop/EstimateSheetContent.tsx");
 
-    expect(estimateSheet).toContain("function parseNonNegativeEditableNumber");
-    expect(estimateSheet).toContain("Math.max(0, parseEditableNumber(value))");
+    expect(estimateSheet).toContain("parseNonNegativeEditableNumber,");
+    const editableRowModel = read("src/components/workshop/estimate-sheet/rows/editable-row-model.ts");
+    expect(editableRowModel).toContain("function parseNonNegativeEditableNumber");
+    expect(editableRowModel).toContain("Math.max(0, parseEditableNumber(value))");
     expect(estimateSheet).toContain("quantity: parseNonNegativeEditableNumber(values.quantity)");
     expect(estimateSheet).toContain("miscCost: parseNonNegativeEditableNumber(values.miscCost)");
     expect(estimateSheet).not.toContain("applyEstimateGridEdit");

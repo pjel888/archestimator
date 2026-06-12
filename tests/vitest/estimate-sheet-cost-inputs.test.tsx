@@ -279,7 +279,7 @@ describe("estimate sheet cost inputs", () => {
 
     const dialog = screen.getByRole("dialog", { name: "Activity History" });
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole("treeitem", { name: /Estimate sheet/i })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getByRole("treeitem", { name: /Estimate/i })).toHaveAttribute("aria-selected", "true");
   });
 
   it("does not expose discipline or designation as estimate row item fields", () => {
@@ -662,22 +662,22 @@ describe("estimate sheet cost inputs", () => {
 
     expect(screen.queryByLabelText("Active estimate group context")).not.toBeInTheDocument();
 
-    const actionHeader = screen.getByLabelText("Sheet controls");
+    const actionHeader = screen.getByLabelText("Tab controls");
     expect(within(actionHeader).queryByRole("heading", { name: "Sheet" })).not.toBeInTheDocument();
     expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();
-    expect(within(actionHeader).queryByLabelText("Search Sheet")).not.toBeInTheDocument();
-    expect(within(actionHeader).queryByPlaceholderText("Search Sheet")).not.toBeInTheDocument();
-    const sheetTools = within(actionHeader).getByLabelText("Sheet tools");
+    expect(within(actionHeader).queryByLabelText("Search Tab")).not.toBeInTheDocument();
+    expect(within(actionHeader).queryByPlaceholderText("Search Tab")).not.toBeInTheDocument();
+    const sheetTools = within(actionHeader).getByLabelText("Tab tools");
     expect(sheetTools).not.toHaveClass("border-y");
-    expect(within(sheetTools).queryByText("Sheet tools")).not.toBeInTheDocument();
-    const showSearchButton = within(sheetTools).getByRole("button", { name: "Show sheet search" });
-    expect(showSearchButton).toHaveAttribute("title", "Show sheet search");
+    expect(within(sheetTools).queryByText("Tab tools")).not.toBeInTheDocument();
+    const showSearchButton = within(sheetTools).getByRole("button", { name: "Show tab search" });
+    expect(showSearchButton).toHaveAttribute("title", "Show tab search");
     expect(showSearchButton).toHaveAttribute("aria-expanded", "false");
-    expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toHaveAttribute("title", "Filter sheet");
-    expect(within(sheetTools).getByRole("button", { name: "Group sheet" })).toHaveAttribute("title", "Group sheet");
-    expect(within(sheetTools).getByRole("button", { name: "Collapse all sheet" })).toHaveAttribute("title", "Collapse all sheet");
-    expect(within(sheetTools).getByRole("button", { name: "Expand all sheet" })).toHaveAttribute("title", "Expand all sheet");
-    expect(within(sheetTools).queryByRole("button", { name: "Add sheet" })).not.toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Filter tab" })).toHaveAttribute("title", "Filter tab");
+    expect(within(sheetTools).getByRole("button", { name: "Group tab" })).toHaveAttribute("title", "Group tab");
+    expect(within(sheetTools).getByRole("button", { name: "Collapse all tab" })).toHaveAttribute("title", "Collapse all tab");
+    expect(within(sheetTools).getByRole("button", { name: "Expand all tab" })).toHaveAttribute("title", "Expand all tab");
+    expect(within(sheetTools).queryByRole("button", { name: "Add tab" })).not.toBeInTheDocument();
     expect(within(sheetTools).getByRole("button", { name: "Activity" })).toHaveAttribute("title", "Activity");
     expect(within(sheetTools).getByRole("button", { name: "Preview Excel Export" })).toHaveAttribute("title", "Preview Excel Export");
 
@@ -685,19 +685,19 @@ describe("estimate sheet cost inputs", () => {
     const searchPanel = within(actionHeader).getByRole("search");
     expect(searchPanel).toHaveAttribute("data-tree-search-panel", "true");
     expect(searchPanel).toHaveClass("absolute", "left-0", "right-0", "top-[40px]");
-    expect(within(searchPanel).getByLabelText("Search Sheet")).toBeEnabled();
-    expect(within(sheetTools).getByRole("button", { name: "Hide sheet search" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(searchPanel).getByLabelText("Search Tab")).toBeEnabled();
+    expect(within(sheetTools).getByRole("button", { name: "Hide tab search" })).toHaveAttribute("aria-expanded", "true");
 
     // A non-empty query pins the panel open through outside clicks.
-    fireEvent.change(within(searchPanel).getByLabelText("Search Sheet"), { target: { value: "oak" } });
+    fireEvent.change(within(searchPanel).getByLabelText("Search Tab"), { target: { value: "oak" } });
     fireEvent.pointerDown(document.body);
     expect(within(actionHeader).getByRole("search")).toBeInTheDocument();
 
-    fireEvent.change(within(searchPanel).getByLabelText("Search Sheet"), { target: { value: "" } });
+    fireEvent.change(within(searchPanel).getByLabelText("Search Tab"), { target: { value: "" } });
     fireEvent.pointerDown(document.body);
     expect(within(actionHeader).queryByRole("search")).not.toBeInTheDocument();
 
-    expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Tab running totals")).not.toBeInTheDocument();
   });
 
   it("replaces the row estimate component on drop while preserving editable row fields", async () => {

@@ -1,6 +1,6 @@
 export type ProjectPublicationStatus = "unpublished" | "published" | "expired" | "revoked";
 
-/** Lightweight estimate sheet info for the Sheets tab picker in publication manager (P1). */
+/** Lightweight estimate info for the Estimates tab picker in publication manager (P1). */
 export type ProjectEstimateSheet = {
   id: string;
   name: string;

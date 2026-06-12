@@ -1,5 +1,29 @@
 # Current State
 
+
+**Estimate Tabs Phase 4 Local Terminology Rebrand Complete (2026-06-12 local, branch `feat/estimate-tabs-phase4-terminology`):**
+The estimate-tabs stacked implementation now includes Phase 4 local copy alignment.
+User-facing "estimate sheet/sheet" copy that referred to the estimate now reads
+"estimate"; active tree containers are labeled "tabs"; and `sheet_code` is
+displayed as "Estimate code" while internal compatibility names stay unchanged.
+The keep-list remains active: `estimate_sheet_*` tables/RPCs, `EstimateSheet*`
+component/file names, `sheetCode`/`sheet_code`, stored `sheet_*` event names,
+Excel worksheet vocabulary, overlay `Sheet`, material/unit strings, localStorage
+keys, and mass-deletion RPC tokens were not renamed. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase4/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase4-implementation-run.md`: targeted
+Phase 4 copy suites passed (15 files / 176 tests), adjacent copy-sensitive suites
+passed when the known MCP baseline test was excluded (5 files / 64 tests), AI
+package-builder copy tests passed (4 files / 88 tests), teamspace/invite copy
+rerun passed (3 files / 29 tests), the history cursor label assertion passed in
+isolation, the exact source-copy scan had no legacy pattern output, `bun run
+type-check` passed, `bun run build` passed, `bun run lint:design-system` passed,
+and `bun run lint:design` passed. Repo-wide `bun run lint`/`bun run validate`
+still fail at the known lint baseline (3 errors / 548 warnings), and `bun test
+tests/unit` still fails the known `tests/unit/reset-baseline.test.ts:54` homebase
+class assertion. No linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, or browser visual proof was performed.
+
 **Estimate Tabs Phase 0-3 Local Implementation Complete Through Editor UI (2026-06-12 local, branch `feat/estimate-tabs-phase3-editor-ui`):**
 The canonical estimate-tabs plan pack
 `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/` has local implementation

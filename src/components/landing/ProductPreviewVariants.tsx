@@ -240,7 +240,7 @@ export function ProposalComparisonsPreview() {
             <span className="font-mono text-[14px] font-semibold text-brand-orange">−₱510,000 (−10.6%)</span>
           </div>
           <p className="mt-3 text-[12px] text-[#7b7b78]">
-            Planned comparison views should help teams compare estimate sheets, alternates, and value-engineering options before client handoff.
+            Planned comparison views should help teams compare estimates, alternates, and value-engineering options before client handoff.
           </p>
         </div>
       </div>

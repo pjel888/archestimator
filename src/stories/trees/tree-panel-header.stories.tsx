@@ -147,8 +147,8 @@ function SheetHeaderPreview() {
   return (
     <div className="flex h-40 w-96 flex-col overflow-hidden rounded-xs border border-hairline bg-white">
       <TreePanelHeader
-        ariaLabel="Sheet tools"
-        labelPrefix="sheet"
+        ariaLabel="Tree tools"
+        labelPrefix="tree"
         searchValue={query}
         onSearchValueChange={setQuery}
         searchPlaceholder="Search components"

@@ -82,7 +82,7 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetDialog).getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("button", { name: "Add Group" })).toBeDisabled();
     expect(within(sheetDialog).getByRole("button", { name: "Add Node" })).toBeDisabled();
-    expect(within(sheetDialog).getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheetDialog).getByRole("tab", { name: "Tabs" })).toHaveAttribute("aria-selected", "true");
     const scopeTree = within(sheetDialog).getByRole("tree", { name: "Activity scope tree" });
     expect(scopeTree).toBeInTheDocument();
     expect(scopeTree.querySelectorAll("[data-workshop-tree-row]").length).toBeGreaterThan(0);
@@ -91,7 +91,7 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetDialog).getByRole("treeitem", { name: /Main House/i })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("treeitem", { name: /Living Area/i })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i })).toBeInTheDocument();
-    expect(within(sheetDialog).queryByText("Whole estimate sheet")).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByText("Whole estimate")).not.toBeInTheDocument();
     const selectedScopeHeader = within(sheetDialog).getByRole("region", { name: "Selected activity scope" });
     expect(within(selectedScopeHeader).getByText("ES-001")).toBeInTheDocument();
     expect(within(selectedScopeHeader).getByText("Lewis Residence Estimate")).toBeInTheDocument();
@@ -408,9 +408,9 @@ describe("estimate sheet version control UI", () => {
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
-    const sheetActivityCard = within(sheetDialog).getByLabelText(/^Sheet code updated audit event/);
+    const sheetActivityCard = within(sheetDialog).getByLabelText(/^Estimate code updated audit event/);
 
-    expect(within(sheetActivityCard).getAllByText("Philip Lewis changed sheet code from ES-001 to ES-002.").length).toBeGreaterThan(0);
+    expect(within(sheetActivityCard).getAllByText("Philip Lewis changed estimate code from ES-001 to ES-002.").length).toBeGreaterThan(0);
     const activityFeed = within(sheetDialog).getByRole("feed", { name: "Activity history events" });
     expect(activityFeed).toBeInTheDocument();
     const dayRegion = within(sheetDialog).getByRole("region", { name: "May 24, 2026 activity" });
@@ -420,7 +420,7 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetActivityCard).getByText("Philip Lewis")).toBeInTheDocument();
     expect(within(sheetActivityCard).queryByText(/^User /)).not.toBeInTheDocument();
     expect(within(sheetActivityCard).queryByText("Server action")).not.toBeInTheDocument();
-    expect(within(sheetActivityCard).getByText("Sheet code")).toBeInTheDocument();
+    expect(within(sheetActivityCard).getByText("Estimate code")).toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("Previous")).toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("Current")).toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("ES-001")).toBeInTheDocument();
@@ -620,12 +620,12 @@ describe("estimate sheet version control UI", () => {
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
-    expect(within(sheetDialog).getByLabelText(/^Sheet code updated audit event/)).toBeInTheDocument();
+    expect(within(sheetDialog).getByLabelText(/^Estimate code updated audit event/)).toBeInTheDocument();
 
     await user.click(within(sheetDialog).getByRole("button", { name: "Load more activity" }));
 
     await waitFor(() => {
-      expect(within(sheetDialog).getByLabelText(/^Sheet metadata updated audit event/)).toBeInTheDocument();
+      expect(within(sheetDialog).getByLabelText(/^Estimate metadata updated audit event/)).toBeInTheDocument();
     });
     expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
       projectId: "project-1",
@@ -771,7 +771,7 @@ describe("estimate sheet version control UI", () => {
     await user.click(within(rowDialog).getByRole("button", { name: "Load more row activity" }));
     await user.click(within(rowDialog).getByRole("treeitem", { name: /Lewis Residence Estimate/i }));
     await waitFor(() => {
-      expect(within(rowDialog).getByText("No sheet activity yet")).toBeInTheDocument();
+      expect(within(rowDialog).getByText("No activity yet in this estimate")).toBeInTheDocument();
     });
     expect(within(rowDialog).queryByRole("button", { name: "Loading..." })).not.toBeInTheDocument();
     expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledTimes(4);
@@ -968,7 +968,7 @@ describe("estimate sheet version control UI", () => {
     await waitFor(() => {
       expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
     });
-    expect(within(rowDialog).queryByLabelText(/^Sheet metadata updated audit event/)).not.toBeInTheDocument();
+    expect(within(rowDialog).queryByLabelText(/^Estimate metadata updated audit event/)).not.toBeInTheDocument();
   });
 
   it("opens node activity for the selected node without named-version controls", async () => {
@@ -1371,7 +1371,7 @@ describe("estimate sheet version control UI", () => {
 
     const reopenedDialog = await screen.findByRole("dialog", { name: "Activity History" });
     await waitFor(() => {
-      expect(within(reopenedDialog).getByText("No sheet activity yet")).toBeInTheDocument();
+      expect(within(reopenedDialog).getByText("No activity yet in this estimate")).toBeInTheDocument();
     });
 
     staleLoadMore.reject(new Error("stale sheet load failed after reopen"));
@@ -1379,6 +1379,6 @@ describe("estimate sheet version control UI", () => {
     await Promise.resolve();
 
     expect(within(reopenedDialog).queryByText("stale sheet load failed after reopen")).not.toBeInTheDocument();
-    expect(within(reopenedDialog).getByText("No sheet activity yet")).toBeInTheDocument();
+    expect(within(reopenedDialog).getByText("No activity yet in this estimate")).toBeInTheDocument();
   });
 });

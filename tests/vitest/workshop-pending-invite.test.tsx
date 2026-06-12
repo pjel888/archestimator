@@ -66,7 +66,7 @@ describe("workshop pending invite bridge", () => {
     expect(homebaseClient).toContain("removedProjectBanner");
     expect(homebaseClient).toContain("Project access removed");
     expect(homebaseClient).toContain("Project added");
-    expect(homebaseClient).toContain("Sheet shared");
+    expect(homebaseClient).toContain("Estimate shared");
     expect(homebaseClient).toContain("roleLabel");
     expect(homebaseClient).toContain("projectName");
     expect(homebaseClient).not.toContain("country");

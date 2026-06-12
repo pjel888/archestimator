@@ -459,7 +459,7 @@ function parseEstimateDraft(value: unknown): PackageBuilderEstimateDraft {
   assertAllowedKeys(record, ["name", "sheetCode"], "Estimate draft");
   return {
     name: readString(record.name, "Estimate draft name", 120),
-    sheetCode: readNullableString(record.sheetCode, "Sheet code", 40),
+    sheetCode: readNullableString(record.sheetCode, "Estimate code", 40),
   };
 }
 

@@ -25,7 +25,7 @@ import type { ShareTreeNode } from "@/lib/share/reconstruct-share-tree";
  * Mirrors the visual shell of the workshop EstimateSheetTree sidebar:
  * - Search input header
  * - Icon toolbar header (expand/collapse only — no add actions)
- * - "Sheets" tab
+ * - "Tabs" tab
  * - Tree content with WorkshopTree/WorkshopTreeRow primitives
  *
  * Supports search filtering and expand/collapse all.
@@ -399,7 +399,7 @@ export function ShareEstimateTreePanel({
           addActions={[]}
         />
         <WorkshopTreeTabs
-          tabs={[{ id: "sheets", label: "Sheets" }]}
+          tabs={[{ id: "sheets", label: "Tabs" }]}
           activeTab="sheets"
           ariaLabel="Estimate tree views"
         />

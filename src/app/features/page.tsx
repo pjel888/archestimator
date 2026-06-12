@@ -91,7 +91,7 @@ export default async function FeaturesPage() {
       title: "Proposal Comparisons",
       maturity: "Planned next",
       maturityColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-      description: "Build multiple quote or estimate sheets inside one workspace to compare different options.",
+      description: "Build multiple estimates inside one workspace to compare different options.",
       problem: "Replaces duplicating entire folders and manually cross-referencing alternate bids.",
       details: [
         "Support for alternate quote structures (e.g. Option A vs Option B).",

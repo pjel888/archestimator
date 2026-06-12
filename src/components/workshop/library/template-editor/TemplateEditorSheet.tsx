@@ -555,14 +555,14 @@ export function TemplateEditorSheet({
   return (
     <section
       className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
-      aria-label="Template sheet"
+      aria-label="Template content"
       data-template-editor-sheet="true"
     >
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Template sheet controls">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Template content controls">
         <TreePanelHeader
           className="static z-auto bg-transparent"
-          ariaLabel="Template sheet tools"
-          labelPrefix="template sheet"
+          ariaLabel="Template content tools"
+          labelPrefix="template content"
           searchValue={searchQuery}
           onSearchValueChange={setSearchQuery}
           searchPlaceholder="Search template"

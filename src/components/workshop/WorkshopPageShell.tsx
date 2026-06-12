@@ -141,7 +141,7 @@ export async function WorkshopPageShell({
                 right: "388px",
               }}
               data-estimate-center-column="project-total-footer"
-              aria-label="Sheet running totals"
+              aria-label="Estimate running totals"
             >
               <ProjectTotalHeader projectId={projectId} />
             </div>

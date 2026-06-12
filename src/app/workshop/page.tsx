@@ -39,7 +39,7 @@ function readInviteBannerFromSearchParams(params: Record<string, string | string
       roleLabel: readDisplayParam(params, "roleLabel", 32),
       scope,
       targetHref: targetHref?.startsWith("/workshop/projects") ? targetHref : "/workshop/projects",
-      targetLabel: targetLabel === "Open sheet" ? "Open sheet" : "Open project",
+      targetLabel: targetLabel === "Open estimate" ? "Open estimate" : "Open project",
     };
   }
   if (invite === "wrong-account") {

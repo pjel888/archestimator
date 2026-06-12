@@ -242,7 +242,7 @@ export default function SharePageTabs({
         <div
           ref={scrollRef}
           role="tablist"
-          aria-label="Estimate sheets"
+          aria-label="Estimates"
           className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
           style={{ scrollbarWidth: "thin" }}
         >
