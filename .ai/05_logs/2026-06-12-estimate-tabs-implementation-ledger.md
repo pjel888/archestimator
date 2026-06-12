@@ -2158,3 +2158,21 @@ label=diff-check-r10-4 exit_code=0 command="git diff --check"
 
 - R10.4 is implemented locally only. Hosted shared-link proof with a real tabbed publication, linked Supabase apply/typegen, production deploy, and browser/manual proof remain open.
 - Merge-to-main remains blocked by other planned/open matrix rows and external proof gates.
+
+## Phase 1/7 R10.5 dormant version guard proof
+
+### Summary
+
+Confirmed R10.5 was already implemented by the Phase 1 migration guard and schema test. The migration keeps the dormant named-version v2 stack dormant and documents that a future v3 must carry `tabs[]` plus per-node `estimateTabId` before the feature is awakened. No app-visible version feature was enabled.
+
+### Gates run
+
+```text
+label=vitest-r10-5-schema-guard exit_code=0 command="bun x vitest run tests/vitest/estimate-tabs-schema.test.ts --maxWorkers=1" result="1 file / 7 tests passed"
+label=diff-check-r10-5 exit_code=0 command="git diff --check"
+```
+
+### Remaining boundary
+
+- The named-version feature remains deferred by design.
+- Linked Supabase apply/typegen/provider proof, hosted/manual proof, and production deploy remain unperformed.

@@ -2336,3 +2336,11 @@ Open:
 - Local evidence: `bun x vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed (3 files / 48 tests), `bun run type-check` passed, focused ESLint passed with 0 warnings after the hook-dependency fix, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-4-publication-tabs-snapshot-run.md`.
 - Boundary: no linked Supabase apply/typegen, hosted shared-link publication smoke, live browser/manual proof, Vercel deploy, or production proof was performed.
+
+## Estimate Tabs R10.5 Dormant Version Guard Proven Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- R10.5 was already satisfied by the Phase 1 migration guard and schema contract: the dormant `estimate_sheet_snapshot` / `create_estimate_sheet_version` / `restore_estimate_sheet_version_as_copy` v2 stack is not recreated or awakened, and the migration documents that a future v3 must carry `tabs[]` plus per-node `estimateTabId` before that feature can return.
+- Local evidence: `bun x vitest run tests/vitest/estimate-tabs-schema.test.ts --maxWorkers=1` passed (1 file / 7 tests), and `git diff --check` passed after the traceability update.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-5-dormant-version-guard-run.md`.
+- Boundary: named-version restore remains deferred; no linked Supabase apply/typegen, provider proof, hosted/manual proof, or production deploy was performed.
