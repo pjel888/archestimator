@@ -1,4 +1,19 @@
 # Current State
+**Estimate Tabs Phase 5 R4.2a Default Projects + Current-Project Narrowing Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now covers the local R4.2a sidebar UI
+contract. The `Projects` section shows all readable project roots by default,
+and a secondary `Current project only` control narrows the virtual project-source
+list to the active project only when the user opts in. `All projects` restores
+the full readable source list. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2a-current-project-filter-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 50 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local UI proof only: broader section filter chips,
+preview/live metadata, browse-route parity, insert RPC/action, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.3 Outline-On-Expand Local UI Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 templates panel now consumes the lazy per-estimate
 outline read action from the estimate right sidebar. Project-estimate rows remain
@@ -10,10 +25,10 @@ into the virtual Projects tree, and avoids refetching when caller-supplied
 `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-3-outline-on-expand-implementation-run.md`:
 `bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
 passed (1 file / 49 tests), `bun run type-check` passed, and `git diff --check`
-passed. This is local UI/action proof only: current-project narrowing controls,
-preview/live metadata, browse-route parity, insert RPC/action, linked Supabase
-apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
-and browser visual proof remain open.
+passed. This is local UI/action proof; the later R4.2a filter slice now
+covers current-project narrowing. Preview/live metadata, browse-route parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
 
 **Estimate Tabs Phase 5 R4.2a Default Project Source Root Load Partial Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 templates panel now consumes the reusable project-source
@@ -26,11 +41,11 @@ evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
 summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2a-default-project-source-load-implementation-run.md`:
 `bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
 passed (1 file / 48 tests), `bun run type-check` passed, and `git diff --check`
-passed. This is a local root-load slice; the later R4.3 slice now covers
-lazy per-estimate outline-on-expand. Current-project narrowing controls,
-preview/live metadata, insert RPC/action, linked Supabase apply/typegen, hosted
-provider proof, Vercel deploy, production/manual proof, and browser visual proof
-remain open.
+passed. This local R4.2a work now includes both default all-project root
+loading and the later opt-in current-project narrowing control; the R4.3 slice
+covers lazy per-estimate outline-on-expand. Preview/live metadata, insert
+RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+production/manual proof, and browser visual proof remain open.
 
 **Estimate Tabs Phase 5 R4.1/R4.3 Local Read Actions Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 reusable-source foundation now includes local
@@ -46,10 +61,11 @@ the phase run summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-1-r4-3-
 passed (1 file / 2 tests), `bun run type-check` passed, and `git diff --check`
 passed. This is action-contract groundwork: the root source list is now consumed
 by the later R4.2a sidebar slice, and the later R4.3 slice now consumes lazy
-outline loading in the sidebar. Browse-route consumption, current-project filter
-chips, and preview/live metadata remain open. No
-insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
-deploy, production/manual proof, or browser visual proof was performed.
+outline loading in the sidebar, and the later R4.2a filter slice covers
+current-project narrowing. Browse-route consumption, broader section filter
+chips, and preview/live metadata remain open. No insert RPC/action, linked
+Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual
+proof, or browser visual proof was performed.
 
 **Estimate Tabs Phase 5 R4.2 Local UI Seam Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 templates panel now has a local prop-driven unified

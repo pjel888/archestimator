@@ -94,6 +94,7 @@ const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
+type ProjectSourceScope = "all" | "current-project";
 
 function getComponentTreeTab(mode: ComponentViewMode): EstimateComponentTreeTab {
   if (mode === "brand") return "brands";
@@ -330,6 +331,10 @@ function hasReusableEstimateOutline(sources: ReusableEstimateSource[], estimateI
   );
 }
 
+function sourceBelongsToProject(source: ReusableEstimateSource, projectId: string) {
+  return source.kind === "custom-template" || source.projectId === projectId;
+}
+
 export function EstimateRightSidebar({
   onInsertComponent,
   onInsertTemplate,
@@ -380,6 +385,7 @@ export function EstimateRightSidebar({
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
+  const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
   const [projectSourcesError, setProjectSourcesError] = useState("");
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
@@ -618,9 +624,13 @@ export function EstimateRightSidebar({
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
   const templatesSelectionNodes = useMemo(() => buildTemplatesSelectionNodes(templateList), [templateList]);
   const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
+  const visibleProjectSources = useMemo(() => {
+    if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
+    return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
+  }, [loadedProjectSources, projectId, projectSourceScope]);
   const templatesAllNodeIds = useMemo(
-    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, loadedProjectSources)),
-    [loadedProjectSources, templateList],
+    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, visibleProjectSources)),
+    [templateList, visibleProjectSources],
   );
   const templatesProjectSourceEmptyState = useMemo(() => {
     if (projectSourcesLoading) {
@@ -658,6 +668,33 @@ export function EstimateRightSidebar({
     }
     return null;
   }, [projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
+  const templatesProjectSourceScopeControls = useMemo(() => {
+    if (!projectId || loadedProjectSources.every((source) => source.kind === "custom-template")) return null;
+    return (
+      <div className="mb-2 flex gap-1" role="group" aria-label="Project source scope">
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          aria-pressed={projectSourceScope === "all"}
+          className="min-h-6 min-w-0 flex-1 px-2 py-1"
+          onClick={() => setProjectSourceScope("all")}
+        >
+          All projects
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          aria-pressed={projectSourceScope === "current-project"}
+          className="min-h-6 min-w-0 flex-1 px-2 py-1"
+          onClick={() => setProjectSourceScope("current-project")}
+        >
+          Current project only
+        </Button>
+      </div>
+    );
+  }, [loadedProjectSources, projectId, projectSourceScope]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -1325,9 +1362,10 @@ export function EstimateRightSidebar({
             {activeTab === "templates" ? (
               <>
                 {templatesProjectSourceStatus}
+                {templatesProjectSourceScopeControls}
                 <TemplatesTree
                   templates={templateList}
-                  projectSources={loadedProjectSources}
+                  projectSources={visibleProjectSources}
                   searchQuery={searchQuery}
                   expandedNodeIds={templatesExpandedIds}
                   onToggle={handleTemplatesToggle}

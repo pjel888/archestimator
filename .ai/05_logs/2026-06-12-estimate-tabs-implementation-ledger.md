@@ -706,3 +706,44 @@ label=diff-check-outline-on-expand exit_code=0 timed_out=False log=.ai/05_logs/2
 - Lazy outline loading is proven locally in the sidebar only.
 - Project-source insertion is still a callback seam only; no server action or RPC
   is wired yet.
+
+## Phase 5 R4.2a current-project narrowing slice
+
+### Summary
+
+Phase 5 now includes the local optional current-project narrowing control for
+the estimate-sidebar Projects section. All readable project roots remain visible
+by default; selecting `Current project only` filters the virtual source list to
+the active project, and `All projects` restores the full list.
+
+### Changed files
+
+- `src/components/workshop/component-library/index.tsx`
+- `tests/vitest/component-library-ui.test.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2a-current-project-filter-implementation-run.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-current-project-filter exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-current-project-filter.log result=1_file_50_tests_passed
+label=type-check-current-project-filter exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-current-project-filter.log
+label=diff-check-current-project-filter exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-current-project-filter.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence completes R4.2a as a sidebar UI contract: default all
+  readable projects plus opt-in current-project narrowing.
+- R4.4 broader search/filter chips, preview/live metadata, R4.5, R4.6,
+  R5.1-R5.3, R6.2, and R7.1-R7.2 remain open; no preview docks, browse-route
+  parity, insert RPC/action, keyboard/bulk parity, RLS harness, or provider proof
+  is claimed.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- Current-project narrowing is proven locally in the sidebar only.
+- Project-source insertion is still a callback seam only; no server action or RPC
+  is wired yet.

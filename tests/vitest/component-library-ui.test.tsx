@@ -849,6 +849,40 @@ describe("templates tree", () => {
     expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
   });
 
+  it("shows all project sources by default and narrows to the current project only on request", () => {
+    const mixedProjectSources: ReusableEstimateSource[] = [
+      {
+        kind: "project",
+        projectId: "project-1",
+        name: "Active Project",
+      },
+      {
+        kind: "project-estimate",
+        projectId: "project-1",
+        estimateId: "estimate-active",
+        name: "Active Estimate",
+        sheetCode: "EST-ACT",
+      },
+      ...projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+    ];
+
+    openTemplatesTab({ projectSources: mixedProjectSources, projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(screen.getByRole("treeitem", { name: "Active Project project source" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All projects" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Current project only" }));
+
+    expect(screen.getByRole("button", { name: "Current project only" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("treeitem", { name: "Active Project project source" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Renovation Project project source" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "All projects" }));
+
+    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+  });
+
   it("drags a project tab source with the project-source payload", () => {
     openTemplatesTab({ projectSources });
 
