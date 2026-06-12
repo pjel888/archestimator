@@ -581,7 +581,7 @@ export type TemplatesTreeProps = {
   onProjectSourceDragStart?: (event: DragEvent<HTMLElement>, source: ProjectSourceInsertTarget) => void;
   onPreviewProjectSource?: (source: ProjectReusableEstimateSource) => void;
   onClearProjectSourcePreview?: () => void;
-  onSaveProjectSourceAsTemplate?: (source: ProjectNodeReusableSource) => void;
+  onSaveProjectSourceAsTemplate?: (source: ProjectSourceInsertTarget) => void;
   /** Context-menu CRUD on template rows; items appear only when provided. */
   onRenameTemplate?: (template: EstimateTemplate) => void;
   onDeleteTemplate?: (template: EstimateTemplate) => void;
@@ -819,7 +819,7 @@ export function TemplatesTree({
                 : "Project source insertion is not wired in this surface yet.",
               onSelect: () => onAddProjectSource?.(datum.source),
             },
-            ...(datum.type === "project-node" && onSaveProjectSourceAsTemplate
+            ...((datum.type === "project-tab" || datum.type === "project-node") && onSaveProjectSourceAsTemplate
               ? [
                   {
                     id: "save-project-source-template",

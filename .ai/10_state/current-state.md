@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 R4.5 Whole-Tab Save-As-Template Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has a local explicit save-as-template seam for
+whole project tab sources in addition to project group/area sources. Project tab
+context menus expose `Save as template`, the shared `NewTemplateModal` opens in
+an `estimate-tab` mode with a tab-source summary, and
+`createEstimateTemplateFromEstimateTab` wraps the tab's copied nodes under one
+generated template group root. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-5-project-tab-save-template-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/new-template-modal.test.tsx --maxWorkers=1`
+passed (2 files / 62 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/mock proof only: linked Supabase
+action execution, hosted typegen/provider proof, R4.4 metadata freshness/richer
+preview detail, R7.1/R7.2 provider/RLS and insert RPC/action proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Local Consolidation Proof Recorded (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 Templates tab now has a consolidated local verification pass across
 the reusable-source action/drag suites, estimate-sidebar Templates tab,
