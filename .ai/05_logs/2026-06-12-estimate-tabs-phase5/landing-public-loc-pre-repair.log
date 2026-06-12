@@ -1,0 +1,5 @@
+tests/vitest/landing-interactivity.test.tsx 77
+tests/vitest/landing-amigo-redesign.test.tsx 137
+tests/vitest/public-cache-safety-harness.test.tsx 122
+tests/vitest/landing-company-proof.test.ts 218
+tests/vitest/public-font-lcp-audit.test.ts 28

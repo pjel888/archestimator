@@ -1,4 +1,22 @@
 # Current State
+**Estimate Tabs Phase 5 Public Cache/Font Contracts Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The root app layout no longer loads unused Inter or Source Serif public webfont
+variables; it keeps only the `Roboto_Mono` `next/font` variable used by the mono
+Tailwind token while the current CSS baseline remains the SF Pro system stack.
+The public cache-safety harness now matches the current anonymous landing header
+CTA (`Book a walkthrough` to `/contact`) and logged-in `Workspace` CTA. Evidence
+is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-public-cache-font-repair-run.md`:
+the focused red run failed on stale header CTA and font contracts, the focused
+green run passed (2 files / 7 tests), `bun run type-check` passed,
+changed-file ESLint passed, the TypeScript no-excuse script passed, `bun run
+build` passed after which generated `next-env.d.ts` route-type churn was
+restored, and the refreshed `bun run validate` still fails in `test:dom` but now
+reports 4 failed files / 12 failed tests with public cache/font contracts
+removed from the failure set. This is local build/static-test proof only; linked
+Supabase/provider/RLS, hosted, production/manual, deploy, and browser visual
+proof remain open.
+
 **Estimate Tabs Phase 5 Project Summary Contracts Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The project collaboration/publication static contracts now match the current
 project layout. `WorkshopPageShell.actions` mounts `ProjectPublicationHeader`

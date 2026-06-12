@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono, Source_Serif_4 } from "next/font/google";
+import { Roboto_Mono } from "next/font/google";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { AppProviders } from "./providers";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"] });
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
-  subsets: ["latin"],
-  weight: ["300", "400"],
-  style: ["normal", "italic"],
-});
 
 export const metadata: Metadata = {
   title: "Archestimator | Quote, Proposal & Estimate Workspace",
@@ -30,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${robotoMono.variable} ${sourceSerif.variable}`}>
+      <body className={robotoMono.variable}>
         <AppProviders>{children}</AppProviders>
         <VercelWebAnalytics />
       </body>
