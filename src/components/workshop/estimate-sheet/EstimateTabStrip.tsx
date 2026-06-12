@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { CopySimple, PencilSimple, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ export type EstimateTabStripProps = {
 };
 
 type PendingAction = "create" | "duplicate" | "rename" | "reorder" | null;
+
+const SPRING_LOADED_TAB_DELAY_MS = 450;
 
 function getNextTabName(tabs: readonly EstimateTabSummary[]) {
   const usedNames = new Set(tabs.map((tab) => tab.name.toLowerCase()));
@@ -57,6 +59,8 @@ export function EstimateTabStrip({
     : orderedTabs[0]?.id ?? activeTabId;
   const activeIndex = Math.max(0, orderedTabs.findIndex((tab) => tab.id === resolvedActiveTabId));
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const springLoadTimerRef = useRef<number | null>(null);
+  const springLoadTargetRef = useRef<string | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
@@ -68,6 +72,41 @@ export function EstimateTabStrip({
     if (!tab) return;
     tabRefs.current[index]?.focus();
   }, [orderedTabs]);
+
+  const clearSpringLoadedTabTarget = useCallback(() => {
+    if (springLoadTimerRef.current !== null) {
+      window.clearTimeout(springLoadTimerRef.current);
+      springLoadTimerRef.current = null;
+    }
+    springLoadTargetRef.current = null;
+  }, []);
+
+  useEffect(() => clearSpringLoadedTabTarget, [clearSpringLoadedTabTarget]);
+
+  const scheduleSpringLoadedTabTarget = useCallback((event: DragEvent<HTMLButtonElement>, tabId: string) => {
+    // Spring-load tab switching during external/tree drags so a user can hover
+    // another tab, reveal its tree, then finish the drop against that tab's
+    // normal drop zones. The tab itself is only a temporary target.
+    if (tabId === resolvedActiveTabId || editingTabId === tabId) {
+      clearSpringLoadedTabTarget();
+      return;
+    }
+
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = event.dataTransfer.dropEffect === "move" ? "move" : "copy";
+    }
+
+    if (springLoadTargetRef.current === tabId) return;
+
+    clearSpringLoadedTabTarget();
+    springLoadTargetRef.current = tabId;
+    springLoadTimerRef.current = window.setTimeout(() => {
+      springLoadTimerRef.current = null;
+      springLoadTargetRef.current = null;
+      onTabChange(tabId);
+    }, SPRING_LOADED_TAB_DELAY_MS);
+  }, [clearSpringLoadedTabTarget, editingTabId, onTabChange, resolvedActiveTabId]);
 
   const beginRename = useCallback((tab: EstimateTabSummary) => {
     if (!lifecycleActionsReady) return;
@@ -250,6 +289,9 @@ export function EstimateTabStrip({
                   onClick={() => onTabChange(tab.id)}
                   onDoubleClick={() => beginRename(tab)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
+                  onDragOver={(event) => scheduleSpringLoadedTabTarget(event, tab.id)}
+                  onDragLeave={clearSpringLoadedTabTarget}
+                  onDrop={clearSpringLoadedTabTarget}
                 >
                   <span className="truncate">{tab.name}</span>
                   {tab.isDefault ? <span className="text-[8px] font-normal leading-none text-tertiary">Default</span> : null}
