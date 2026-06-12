@@ -2294,7 +2294,7 @@ Open:
 ## Estimate Tabs Phase 6 XLSX Tab Export Implemented Locally (2026-06-13)
 
 - Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
-- Implemented local Phase 6 XLSX tab-aware export: worksheet-name sanitization/dedup/escaping, all-active-tabs default route export, `?tab={tabId}` active-tab single-tab fallback, global Summary/Commercial Terms/Source Breakdown, per-tab bid-form worksheets, Source Breakdown `TAB` column, optional tab filename slug, active-tab preview/download alignment, and tabbed benchmark fixtures.
+- Implemented local Phase 6 XLSX tab-aware export: worksheet-name sanitization/dedup/escaping, all-active-tabs default route export, `?tab={tabId}` active-tab single-tab fallback, global Summary/Commercial Terms/Source Breakdown, per-tab bid-form worksheets, Source Breakdown `TAB` column, optional tab filename slug, all-tabs-default preview/download scope chips, active-tab `?tab=` preview/download fallback, and tabbed benchmark fixtures.
 - Preserved the legacy single-tab workbook shape (`Bid Form`, `Summary`, `Commercial Terms`, `Source Breakdown`) and existing worksheet/cell assertions.
 - Fresh local evidence: `bun run type-check` passed; focused Phase 6 Vitest suites passed (6 files / 29 tests); no-excuse checker passed on 13 touched TS/TSX/test/script files; `git diff --check` passed; `bun run validate` passed (243 Vitest files passed / 1 skipped, 1,767 tests passed / 3 skipped); `bun run build` passed; `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed; 5-tab × 500-row benchmark passed at 443.59ms and 413,142 bytes / 0.39 MiB.
 - Evidence log: `.ai/05_logs/2026-06-12-estimate-tabs-phase6-xlsx-tabs-export-implementation-run.md`.
@@ -2393,3 +2393,12 @@ Open:
 - Fresh local evidence: the new R2.4 contract failed red before the copy changes, then `bun x vitest run tests/vitest/closed-beta-pricing-copy.test.ts --maxWorkers=1` passed (1 file / 3 tests); targeted residue grep found only test assertions and allowed FAQ `Excel quote sheets`.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r2-4-owner-review-copy-alignment.md`.
 - Boundary: no hosted browser proof, Vercel deploy, production proof, or analytics/conversion impact proof was performed.
+
+## Estimate Tabs R8.5 Preview Scope Chips Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Multi-tab proposal export previews now default to the all-tabs workbook route, expose All tabs / active-tab scope chips, and switch the download href to `?tab={tabId}` only when the active-tab chip is selected.
+- Preview copy now says consolidation occurs within each tab, matching the tab-aware workbook/export model.
+- Fresh local evidence: the new preview contract failed red before implementation, then `bun x vitest run tests/vitest/proposal-export-preview.test.tsx --maxWorkers=1` passed (1 file / 3 tests), and the adjacent export/model regression command passed (`5 files / 25 tests`); focused ESLint, `bun run type-check`, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r8-5-preview-scope-chips-run.md`.
+- Boundary: no hosted browser proof, spreadsheet-app manual inspection, Vercel deploy, production deploy, or linked provider proof was performed.

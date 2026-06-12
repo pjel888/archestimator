@@ -78,7 +78,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | R8.2 single-tab byte-shape preserved | pinned tests (`proposal-workbook.test.ts:92-97`) | 07 §3 | 6 | same | unmodified assertions pass | R-XLSX2 | implemented locally; focused tests pass |
 | R8.3 worksheet-name sanitizer (chars/31/dedupe/escape) | none exists (verified) | 07 §4 | 6 | new `worksheet-name.ts` | sanitizer unit suite | R-XLSX | implemented locally; focused tests pass |
 | R8.4 route back-compat + `?tab=` + filename slug | `route.ts`; `filename.ts` | 07 §5 | 6 | route, filename | route tests; hosted smoke | R-URL | implemented locally; hosted smoke open |
-| R8.5 preview/export model alignment | shared model (01 §10) | 07 §6, §9 | 6 | preview dialog, shared fixtures | aligned fixtures | R-TEST | implemented locally for active-tab preview/download; all-tabs scope-chip UX remains hardening follow-up |
+| R8.5 preview/export model alignment | shared model (01 §10) | 07 §6, §9 | 6 | preview dialog, shared fixtures | aligned fixtures | R-TEST | **implemented locally** — preview now defaults to all-tabs download scope, exposes All tabs / active-tab chips, switches `?tab=` only for active-tab export, and guards scope/copy with focused DOM tests. Fresh proof: `.ai/05_logs/2026-06-13-estimate-tabs-r8-5-preview-scope-chips-run.md` |
 | R8.6 large-estimate behavior (limits, benchmark, streaming escape hatch) | benchmark evidence | 07 §8 | 6 | benchmark script | 5-tab benchmark | R-PERF2 | implemented locally; 5×500 benchmark 443.59ms / 0.39 MiB |
 
 ## Group 9 — Backward-compatible routes
@@ -125,7 +125,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | R13.3 tablist a11y + non-drag paths + focus management + live regions | `SharePageTabs.tsx:245` precedent | 05 §8 | 3, 5 | strip, menus | a11y DOM cases | — | **implemented (local-only)** — `EstimateTabStrip` now has polite live-region announcements, keyboard reorder focus retention, and gated delete/archive focus fallback; prior R6.2 DOM coverage proves non-drag insertion paths. `estimate-tab-strip` now passes 8 DOM tests; browser/Storybook a11y proof remains open. |
 | R13.4 design-system gate compliance | `enforce-app-design-system.mjs` | 05 §13 | 3–6 | all new UI | `bun run lint:design-system` | — | **implemented (local-only)** — `bun run lint:design-system` passed in focused R6.3 proof and fresh `bun run validate`; hosted visual/design proof remains open. |
 
-**Coverage check:** every requirement group named by the prompt has rows; every row has either phase/files/tests/risk linkage or an explicit deferred/assumption status with the owning follow-up gate named (R1.7, R7.4, R8.6 assumption, R11.3). R2.4 is now locally implemented after delegated owner/product review.
+**Coverage check:** every requirement group named by the prompt has rows; every row has either phase/files/tests/risk linkage or an explicit deferred/assumption status with the owning follow-up gate named (R1.7, R7.4, R8.6 assumption, R11.3). R2.4 is now locally implemented after delegated owner/product review, and R8.5 preview scope-chip UX is locally implemented.
 
 ## Evidence Used
 

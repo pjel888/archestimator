@@ -38,7 +38,7 @@ import type { ComponentLibrarySupplierOption } from "./component-library/tree/bu
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip } from "./estimate-sheet/EstimateTabStrip";
 import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "./estimate-sheet/events";
-import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
+import { ProposalExportPreviewDialog, type ProposalExportPreviewScope } from "./ProposalExportPreviewDialog";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import {
   ActivityHistoryModal,
@@ -694,6 +694,7 @@ export function EstimateSheetContent({
   const [collapsedNodeIdsByScope, setCollapsedNodeIdsByScope] = useState<Record<string, string[]>>({});
   const [bulkSelectedRowIds, setBulkSelectedRowIds] = useState<Set<string>>(() => new Set());
   const [isProposalPreviewOpen, setIsProposalPreviewOpen] = useState(false);
+  const [proposalPreviewScope, setProposalPreviewScope] = useState<ProposalExportPreviewScope>("all-tabs");
   const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
@@ -751,19 +752,39 @@ export function EstimateSheetContent({
   }, [estimateId, projectId, proposalExportMetadata]);
   const persistedTabs = useMemo(() => estimateTabs.filter((tab) => tab.id !== "legacy-main"), [estimateTabs]);
   const hasMultiplePersistedTabs = persistedTabs.length > 1;
-  const currentProposalPreviewSignature = useMemo(
-    () => [
+  const activeProposalExportTab = useMemo(
+    () =>
+      persistedTabs.find((tab) => tab.id === dataTabId) ??
+      persistedTabs.find((tab) => tab.id === activeTabId) ??
+      persistedTabs.find((tab) => tab.isDefault) ??
+      persistedTabs[0],
+    [activeTabId, dataTabId, persistedTabs],
+  );
+  const activeProposalExportTabName = activeProposalExportTab?.name ?? "Current";
+  const tabScopeSignature = useMemo(
+    () => persistedTabs.map((tab) => `${tab.id}:${tab.name}:${tab.sortOrder}`).join("|"),
+    [persistedTabs],
+  );
+  const getProposalPreviewSignature = useCallback(
+    (scope: ProposalExportPreviewScope) => [
       createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
       dataTabId ?? "legacy",
-      persistedTabs.map((tab) => `${tab.id}:${tab.name}:${tab.sortOrder}`).join("|"),
+      tabScopeSignature,
+      scope,
     ].join("::"),
-    [dataTabId, editableRows, estimateTree, persistedTabs, resolvedProposalExportMetadata],
+    [dataTabId, editableRows, estimateTree, resolvedProposalExportMetadata, tabScopeSignature],
+  );
+  const currentProposalPreviewSignature = useMemo(
+    () => getProposalPreviewSignature(proposalPreviewScope),
+    [getProposalPreviewSignature, proposalPreviewScope],
   );
   const proposalDownloadHref = useMemo(() => {
     if (!projectId || !estimateId) return null;
     const baseHref = `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
-    return hasMultiplePersistedTabs && dataTabId ? `${baseHref}?tab=${encodeURIComponent(dataTabId)}` : baseHref;
-  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId]);
+    return hasMultiplePersistedTabs && proposalPreviewScope === "active-tab" && dataTabId
+      ? `${baseHref}?tab=${encodeURIComponent(dataTabId)}`
+      : baseHref;
+  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId, proposalPreviewScope]);
   const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
@@ -1040,7 +1061,7 @@ export function EstimateSheetContent({
         setIsHistoryLoadingMore(false);
       });
   }, [activityFilters, estimateId, historyData, inspector, isHistoryLoadingMore, projectId]);
-  const buildProposalPreview = useCallback(() => {
+  const buildProposalPreview = useCallback((scope: ProposalExportPreviewScope = proposalPreviewScope) => {
     if (!resolvedProposalExportMetadata) return null;
 
     const model = buildProposalExportModel({
@@ -1048,9 +1069,13 @@ export function EstimateSheetContent({
       nodes: materializeEditableEstimateTree(estimateTree, editableRows),
     });
     setProposalPreviewModel(model);
-    setProposalPreviewSignature(currentProposalPreviewSignature);
+    setProposalPreviewSignature(getProposalPreviewSignature(scope));
     return model;
-  }, [currentProposalPreviewSignature, editableRows, estimateTree, resolvedProposalExportMetadata]);
+  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalPreviewScope, resolvedProposalExportMetadata]);
+  const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
+    setProposalPreviewScope(scope);
+    if (isProposalPreviewOpen) buildProposalPreview(scope);
+  }, [buildProposalPreview, isProposalPreviewOpen]);
   const openProposalPreview = useCallback(() => {
     const model = buildProposalPreview();
     if (model) setIsProposalPreviewOpen(true);
@@ -1058,6 +1083,14 @@ export function EstimateSheetContent({
   const refreshProposalPreview = useCallback(() => {
     buildProposalPreview();
   }, [buildProposalPreview]);
+  const proposalPreviewScopeControls = hasMultiplePersistedTabs
+    ? {
+        selectedScope: proposalPreviewScope,
+        activeTabName: activeProposalExportTabName,
+        tabCount: persistedTabs.length,
+        onScopeChange: changeProposalPreviewScope,
+      }
+    : undefined;
   const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
   useEffect(() => {
     if (!inspectorScopeKey) return;
@@ -1613,6 +1646,7 @@ export function EstimateSheetContent({
         model={proposalPreviewModel}
         isStale={isProposalPreviewStale}
         downloadHref={proposalDownloadHref}
+        scopeControls={proposalPreviewScopeControls}
         onRefresh={refreshProposalPreview}
         onClose={() => setIsProposalPreviewOpen(false)}
       />
@@ -1694,7 +1728,7 @@ export function EstimateSheetContent({
         ) : null}
         {hasMultiplePersistedTabs ? (
           <p className="border-b border-hairline bg-white px-3 py-1 text-[10px] leading-4 text-tertiary">
-            XLSX export now supports all tabs by default. This preview and its download link are scoped to the active tab.
+            XLSX export includes all tabs by default. Use the preview scope chips to download all tabs or just the active tab.
           </p>
         ) : null}
         {isActiveTabTreeLoading ? (

@@ -6,11 +6,21 @@ import { ArrowClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 import type { ProposalExportModel } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
 
+export type ProposalExportPreviewScope = "all-tabs" | "active-tab";
+
+type ProposalExportPreviewScopeControls = {
+  selectedScope: ProposalExportPreviewScope;
+  activeTabName: string;
+  tabCount: number;
+  onScopeChange: (scope: ProposalExportPreviewScope) => void;
+};
+
 type ProposalExportPreviewDialogProps = {
   open: boolean;
   model: ProposalExportModel | null;
   isStale?: boolean;
   downloadHref?: string | null;
+  scopeControls?: ProposalExportPreviewScopeControls;
   onRefresh: () => void;
   onClose: () => void;
 };
@@ -42,10 +52,16 @@ export function ProposalExportPreviewDialog({
   model,
   isStale = false,
   downloadHref,
+  scopeControls,
   onRefresh,
   onClose,
 }: ProposalExportPreviewDialogProps) {
   if (!open || typeof document === "undefined") return null;
+
+  const activeTabName = scopeControls?.activeTabName.trim() || "Current";
+  const activeTabLabel = `${activeTabName} tab`;
+  const scopeButtonClass =
+    "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none transition";
 
   const dialog = (
     <div
@@ -64,7 +80,8 @@ export function ProposalExportPreviewDialog({
             <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
             <h2 className="mt-0.5 text-[10px] font-medium tracking-normal text-ink">Read-only Excel preview</h2>
             <p className="mt-1 max-w-2xl text-[10px] leading-4 text-secondary">
-              This preview consolidates identical items across rooms/areas within the selected tab. The workbook becomes editable only after XLSX download.
+              <span>This preview consolidates identical items across rooms/areas within each tab.</span>{" "}
+              <span>The workbook becomes editable only after XLSX download.</span>
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -112,6 +129,45 @@ export function ProposalExportPreviewDialog({
 
         {model ? (
           <div className="flex min-h-0 flex-1 flex-col">
+            {scopeControls ? (
+              <div className="flex flex-wrap items-center gap-2 border-b border-hairline bg-white px-3 py-2 text-[10px] text-secondary">
+                <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Export scope</span>
+                <div className="flex items-center gap-1" role="group" aria-label="Proposal export scope">
+                  <button
+                    type="button"
+                    aria-pressed={scopeControls.selectedScope === "all-tabs"}
+                    className={cn(
+                      scopeButtonClass,
+                      scopeControls.selectedScope === "all-tabs"
+                        ? "border-primary bg-accentSoft text-primary"
+                        : "border-hairline bg-white text-tertiary hover:bg-surfaceMuted hover:text-ink",
+                    )}
+                    onClick={() => scopeControls.onScopeChange("all-tabs")}
+                  >
+                    All tabs
+                    <span className="ml-1 text-[8px] font-normal text-tertiary">({scopeControls.tabCount} tabs)</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={scopeControls.selectedScope === "active-tab"}
+                    className={cn(
+                      scopeButtonClass,
+                      scopeControls.selectedScope === "active-tab"
+                        ? "border-primary bg-accentSoft text-primary"
+                        : "border-hairline bg-white text-tertiary hover:bg-surfaceMuted hover:text-ink",
+                    )}
+                    onClick={() => scopeControls.onScopeChange("active-tab")}
+                  >
+                    {activeTabLabel}
+                  </button>
+                </div>
+                <span className="min-w-0 flex-1 text-[9px] leading-4 text-tertiary">
+                  {scopeControls.selectedScope === "all-tabs"
+                    ? `Download includes all ${scopeControls.tabCount} estimate tabs; this preview is built from the active tab rows.`
+                    : `Download is scoped to the active ${activeTabLabel}.`}
+                </span>
+              </div>
+            ) : null}
             <div className="grid grid-cols-4 border-b border-hairline bg-surfaceMuted/40 text-[10px]">
               <div className="border-r border-hairline px-3 py-2">
                 <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Project</p>
