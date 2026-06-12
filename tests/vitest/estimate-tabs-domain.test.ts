@@ -45,4 +45,15 @@ describe("estimate tab repository compatibility wrappers", () => {
     expect(source).toContain("await getEstimateTabTree(projectId, estimateId, defaultTab.id, options)");
     expect(source).toContain("if (isEstimateTabsSchemaMissing(error)) return getProjectEstimateTreeByEstimateLegacy(projectId, estimateId, options)");
   });
+
+  it("routes estimate URLs through the tab-aware resolver and resolves estimate ids to their default tab", () => {
+    const routeSource = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
+    const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+
+    expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
+    expect(routeSource).toContain("const estimateTabs = tab ? await getEstimateTabs(project.id, estimate.id) : []");
+    expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
+    expect(repositorySource).toContain("const defaultTab = await getDefaultEstimateTab(routeSegment)");
+    expect(repositorySource).toContain("if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
+  });
 });

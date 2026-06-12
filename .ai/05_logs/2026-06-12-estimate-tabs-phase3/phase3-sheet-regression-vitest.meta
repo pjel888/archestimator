@@ -1,0 +1,4 @@
+command=bunx vitest run tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/perf/estimate-sheet-render-relief.test.tsx tests/vitest/perf/estimate-sheet-cursor-isolation.test.tsx --maxWorkers=1
+exit_code=0
+log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/phase3-sheet-regression-vitest.log
+timestamp=2026-06-12T11:08:00Z

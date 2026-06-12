@@ -1,0 +1,10 @@
+cwd=/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+timestamp=2026-06-12T11:08:41Z
+command=curl -I -sS http://localhost:3001/workshop/projects
+
+HTTP/1.1 307 Temporary Redirect
+cache-control: private, no-cache, no-store, max-age=0, must-revalidate
+location: /login?next=%2Fworkshop%2Fprojects
+Date: Fri, 12 Jun 2026 11:08:41 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5

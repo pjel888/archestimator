@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
+import { getEstimateTabs, resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 import type { Json } from "@/lib/supabase/types";
 
@@ -32,10 +32,10 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
   // the sheet client lazy-loads it through a server action so first paint is
   // not gated on library queries.
   const [estimateTreeResult, currentUser] = await Promise.all([
-    getProjectEstimateTreeByNode(projectId, nodeId),
+    resolveEstimateTabRouteContext(projectId, nodeId),
     requireCurrentUserContext(),
   ]);
-  const { project, estimate, selectedNodeId, tree } = estimateTreeResult;
+  const { project, estimate, selectedNodeId, tree, tab } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
 
@@ -59,6 +59,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
     versionLabel: estimateVersionLabel,
     currency: estimate.currency_code || project.currency_code || "PHP",
   };
+  const estimateTabs = tab ? await getEstimateTabs(project.id, estimate.id) : [];
 
   return (
     <>
@@ -69,6 +70,8 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
         projectName={project.name}
         selectedNodeId={selectedNodeId}
         nodes={tree}
+        estimateTabs={estimateTabs}
+        activeTabId={tab?.id ?? null}
         collaborationUserId={currentUser.userId}
         collaborationDisplayName={currentUser.displayName}
         proposalExportMetadata={proposalExportMetadata}
