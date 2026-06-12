@@ -1,4 +1,25 @@
 # Current State
+**Estimate Tabs Phase 5 Workshop Baseline Validation Repair (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+A fresh `bun run validate` after the server-action build fix reached the local
+unit/DOM test stages and exposed stale workshop baseline assertions. The reset
+baseline tests now assert the current grid-based workshop greeting shell and the
+inline beta-feedback dialog trigger instead of the older inline period row and
+feedback route link. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-workshop-baseline-validation-repair-run.md`:
+`bun test tests/unit/reset-baseline.test.ts` passed (2 tests),
+`bun x vitest run tests/vitest/workshop-reset.test.tsx --maxWorkers=1` passed
+(1 file / 5 tests), `bun run type-check` passed, changed-file ESLint passed,
+full `bun run lint` exited 0 with existing warnings only (548 warnings / 0
+errors), the TypeScript no-excuse script passed, and `git diff --check` passed.
+The refreshed `bun run validate` still fails in `test:dom` with 2 failed suites
+and 21 failed tests across unrelated stale contracts (Storybook plan import,
+legacy templates error route import, generated Supabase history RPC types,
+landing/public font/cache contracts, project summary/dashboard contracts,
+estimate-tree bulk-selection, and code-review-graph hook command text). This is
+local test-baseline proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
 **Estimate Tabs Phase 5 Build Gate Restored After Server Action Type Export Fix (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 A fresh `bun run build` after the lint-blocker cleanup exposed a Turbopack server
 action boundary error: the `"use server"` reusable-source action module exported

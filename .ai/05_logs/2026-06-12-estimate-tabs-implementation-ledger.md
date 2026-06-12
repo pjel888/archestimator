@@ -1683,3 +1683,49 @@ label=diff-check-server-action-type-export-fix exit_code=0 timed_out=False log=.
 - `next-env.d.ts` churn from the build was restored to the tracked dev route-types target.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.
+
+## Phase 5 workshop baseline validation repair
+
+### Summary
+
+Updated stale workshop reset/baseline tests to match the current UI contract: the
+homebase greeting uses a grid icon shell with the period label exposed as the SVG
+accessible name, and beta feedback opens from an inline dialog trigger button in
+`WorkshopPageShell` rather than a route link. No runtime component code changed.
+
+### Changed files
+
+- `tests/unit/reset-baseline.test.ts`
+- `tests/vitest/workshop-reset.test.tsx`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-workshop-baseline-validation-repair-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=validate-after-server-action-type-export-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-validate-after-server-action-type-export-fix.log result=failed_at_stale_reset_baseline_unit_test
+label=unit-reset-baseline-final exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-test-reset-baseline-final.log result=2_tests_passed
+label=vitest-workshop-reset-final exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-workshop-reset-final.log result=1_file_5_tests_passed
+label=type-check-greeting-feedback-baseline-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-greeting-feedback-baseline-fix.log
+label=eslint-greeting-feedback-baseline-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-greeting-feedback-baseline-fix.log
+label=lint-greeting-feedback-baseline-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-lint-greeting-feedback-baseline-fix.log result=0_errors_548_warnings
+label=no-excuse-greeting-feedback-baseline-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/no-excuse-greeting-feedback-baseline-fix.log result=no_violations_in_2_files
+label=loc-greeting-feedback-baseline-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/loc-greeting-feedback-baseline-fix.log result=reset_baseline_132_loc_workshop_reset_233_loc_warning_band
+label=diff-check-greeting-feedback-baseline-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-workshop-baseline-validation-repair-final.log
+label=validate-after-workshop-baseline-fixes exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-validate-after-workshop-baseline-fixes.log result=test_dom_remaining_2_failed_suites_21_failed_tests
+```
+
+### Remaining Phase 5 boundary
+
+- The repaired workshop unit/Vitest baselines pass and are not part of the
+  refreshed full-validation failures.
+- Full `bun run validate` still fails in unrelated `test:dom` contracts: older
+  Storybook plan import, legacy `/workshop/templates/error` import, generated
+  Supabase history RPC type expectations, estimate-tree bulk-selection,
+  landing/public font/cache contracts, project dashboard/collaboration/
+  publication contracts, and code-review-graph hook command text.
+- `tests/vitest/workshop-reset.test.tsx` is in the 200-250 pure LOC warning band;
+  split future additions before growing it further.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
