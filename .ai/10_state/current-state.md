@@ -2319,7 +2319,7 @@ Open:
 
 - Refreshed stale matrix rows that were already locally implemented/proven by the current branch: R1.1-R1.6, R7.1-R7.3, R9.1, R12.1-R12.3, and R13.4 now distinguish local implementation from linked/provider/browser proof gaps.
 - Fresh broad evidence after commits `bacf01bd` and `d7c9c450`: `bun run validate` passed (typecheck, ESLint with 549 warnings / 0 errors, design-system, strict design, unit tests, 243 Vitest files passed / 1 skipped, 1,771 tests passed / 3 skipped), `bun run build` passed, and `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed.
-- Merge-to-main remains blocked because the matrix still has planned/open rows requiring implementation or external proof, especially publication snapshot v1.2 tabs (R10.4), activity/collaboration tab proof (R10.1-R10.3), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, and owner/product review rows.
+- Merge-to-main remains blocked because the matrix still has planned/open rows requiring implementation or external proof, especially activity/audit tab events and UI scope (R10.1-R10.2), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, 2-browser collaboration/publication manual proof, and owner/product review rows.
 
 ## Estimate Tabs R10.3 Collaboration Presence Active-tab Attribution Implemented Locally (2026-06-13)
 
@@ -2327,3 +2327,12 @@ Open:
 - Added additive `activeTabId` support to `useProjectPresence` so slow presence state can advertise the active estimate tab when callers provide it; existing high-frequency cursor broadcast already includes and filters by `tabId`.
 - Local evidence: `bun x vitest run tests/vitest/project-collaboration-realtime.test.ts tests/vitest/estimate-cursor-broadcast-throttle.test.ts --maxWorkers=1` passed (2 files / 4 tests), `bun run type-check` passed, focused ESLint passed, and `git diff --check` passed.
 - Boundary: no live Supabase realtime, 2-browser hosted/manual QA, linked provider proof, or production deploy was performed.
+
+## Estimate Tabs R10.4 Publication Snapshot Tabs Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Publication snapshots now emit schema version `1.2` when estimate tabs are present: the server-side publication builder reads active `estimate_tabs` alongside nodes/rows, the snapshot DTO carries nested tab rows/tree nodes/totals, and estimate-level rows/tree nodes remain for compatibility.
+- The public share surface now renders a nested estimate-tab strip for v1.2 tabbed snapshots, with donut, total, tree view, and grid preview scoped to the selected nested tab. Legacy v1/v1.1 snapshots without `tabs` continue rendering from estimate-level rows/tree nodes without a nested strip.
+- Local evidence: `bun x vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed (3 files / 48 tests), `bun run type-check` passed, focused ESLint passed with 0 warnings after the hook-dependency fix, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-4-publication-tabs-snapshot-run.md`.
+- Boundary: no linked Supabase apply/typegen, hosted shared-link publication smoke, live browser/manual proof, Vercel deploy, or production proof was performed.

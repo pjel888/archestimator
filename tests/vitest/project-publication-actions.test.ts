@@ -48,6 +48,17 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toMatch(/if \(selectedEstimateIds\.length\)|\.in\("id", selectedEstimateIds\)/);
   });
 
+  it("builds publication snapshots from estimate tabs as well as nodes and rows", () => {
+    expect(actions).toContain('.from("estimate_tabs")');
+    expect(actions).toContain('.select("id, estimate_id, name, sort_order, is_default")');
+    expect(actions).toContain('.is("archived_at", null)');
+    expect(actions).toContain('.select("id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order")');
+    expect(actions).toContain("tabsByEstimateId");
+    expect(actions).toContain("estimateTabId: node.estimate_tab_id");
+    expect(actions).toContain("sortOrder: tab.sort_order");
+    expect(actions).toContain("isDefault: tab.is_default");
+  });
+
   // Historical red placeholder (P0/P2): "Tab rendering for receiver (will fail until P2 implements SharePageTabs + ARIA tablist in share page)"
   // P2 delivered (SharePageTabs + ARIA); placeholder retained for historical red-first record.
   // No active assertion (would be noise post-delivery).
