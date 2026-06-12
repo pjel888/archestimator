@@ -10,7 +10,6 @@ import {
   PencilSimple,
   Plus,
   SquaresFour,
-  StackSimple,
   StackPlus,
   Trash,
 } from "@phosphor-icons/react/dist/ssr";
@@ -41,13 +40,16 @@ import {
   renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
-import type {
-  ProjectEstimateReusableSource,
-  ProjectNodeReusableSource,
-  ProjectReusableEstimateSource,
-  ProjectTabReusableSource,
-  ReusableEstimateSource,
-} from "@/lib/reusable-sources/types";
+import { getReusableEstimateOutline } from "@/lib/reusable-sources/actions";
+import type { ProjectEstimateReusableSource, ReusableEstimateSource } from "@/lib/reusable-sources/types";
+import {
+  buildProjectSourceBrowseTreeNodes,
+  findProjectEstimateSourceByBrowseNodeId,
+  getUnloadedProjectEstimateBrowseNodeIds,
+  hasReusableEstimateOutline,
+  mergeReusableProjectBrowseSources,
+  type ProjectBrowseTreeDatum,
+} from "./project-source-browse-tree";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
 import { TemplatePreviewDock } from "./TemplatePreviewDock";
 
@@ -68,8 +70,7 @@ type BrowseTreeDatum =
   | { type: "all" }
   | { type: "category"; category: string }
   | { type: "template"; template: EstimateTemplate }
-  | { type: "project-section" }
-  | { type: "project-source"; source: ProjectReusableEstimateSource };
+  | ProjectBrowseTreeDatum;
 
 function browseCategoryNodeId(category: string) {
   return `browse-category:${category}`;
@@ -79,169 +80,12 @@ function browseTemplateNodeId(templateId: string) {
   return `browse-template:${templateId}`;
 }
 
-function browseProjectSourceNodeId(source: ProjectReusableEstimateSource) {
-  if (source.kind === "project") return `browse-project:${source.projectId}`;
-  if (source.kind === "project-estimate") return `browse-project-estimate:${source.estimateId}`;
-  if (source.kind === "project-tab") return `browse-project-tab:${source.tabId}`;
-  return `browse-project-node:${source.nodeId}`;
-}
-
 function getBrowseTreeDatum(node: UiTreeNode | undefined): BrowseTreeDatum | undefined {
   return node?.data?.browseNode as BrowseTreeDatum | undefined;
 }
 
 function getTemplateCategories(templates: EstimateTemplate[]) {
   return Array.from(new Set(templates.map((template) => template.category))).sort();
-}
-
-function projectFallbackName(prefix: string, id: string) {
-  return `${prefix} ${id.slice(0, 8)}`;
-}
-
-type BrowseProjectGroup = {
-  source: Extract<ProjectReusableEstimateSource, { kind: "project" }>;
-  estimates: Map<string, BrowseEstimateGroup>;
-};
-
-type BrowseEstimateGroup = {
-  source: ProjectEstimateReusableSource;
-  tabs: Map<string, BrowseTabGroup>;
-};
-
-type BrowseTabGroup = {
-  source: ProjectTabReusableSource;
-  nodes: ProjectNodeReusableSource[];
-};
-
-function buildProjectSourceBrowseTreeNodes(projectSources: ReusableEstimateSource[]): UiTreeNode[] {
-  const projects = new Map<string, BrowseProjectGroup>();
-
-  function ensureProject(projectId: string, name?: string): BrowseProjectGroup {
-    const existing = projects.get(projectId);
-    if (existing) {
-      if (name && existing.source.name === projectFallbackName("Project", projectId)) existing.source = { ...existing.source, name };
-      return existing;
-    }
-    const group = {
-      source: { kind: "project", projectId, name: name ?? projectFallbackName("Project", projectId) },
-      estimates: new Map(),
-    } satisfies BrowseProjectGroup;
-    projects.set(projectId, group);
-    return group;
-  }
-
-  function ensureEstimate(projectId: string, estimateId: string, name?: string, sheetCode?: string | null): BrowseEstimateGroup {
-    const project = ensureProject(projectId);
-    const existing = project.estimates.get(estimateId);
-    if (existing) {
-      if (name && existing.source.name === projectFallbackName("Estimate", estimateId)) existing.source = { ...existing.source, name, sheetCode: sheetCode ?? existing.source.sheetCode };
-      return existing;
-    }
-    const group = {
-      source: {
-        kind: "project-estimate",
-        projectId,
-        estimateId,
-        name: name ?? projectFallbackName("Estimate", estimateId),
-        sheetCode: sheetCode ?? null,
-      },
-      tabs: new Map(),
-    } satisfies BrowseEstimateGroup;
-    project.estimates.set(estimateId, group);
-    return group;
-  }
-
-  function ensureTab(projectId: string, estimateId: string, tabId: string, name?: string): BrowseTabGroup {
-    const estimate = ensureEstimate(projectId, estimateId);
-    const existing = estimate.tabs.get(tabId);
-    if (existing) {
-      if (name && existing.source.name === projectFallbackName("Tab", tabId)) existing.source = { ...existing.source, name };
-      return existing;
-    }
-    const group = {
-      source: { kind: "project-tab", projectId, estimateId, tabId, name: name ?? projectFallbackName("Tab", tabId) },
-      nodes: [],
-    } satisfies BrowseTabGroup;
-    estimate.tabs.set(tabId, group);
-    return group;
-  }
-
-  for (const source of projectSources) {
-    if (source.kind === "custom-template") continue;
-    if (source.kind === "project") {
-      ensureProject(source.projectId, source.name).source = source;
-      continue;
-    }
-    if (source.kind === "project-estimate") {
-      ensureEstimate(source.projectId, source.estimateId, source.name, source.sheetCode).source = source;
-      continue;
-    }
-    if (source.kind === "project-tab") {
-      ensureTab(source.projectId, source.estimateId, source.tabId, source.name).source = source;
-      continue;
-    }
-    const tab = ensureTab(source.projectId, source.estimateId, source.tabId);
-    tab.nodes = [...tab.nodes.filter((node) => node.nodeId !== source.nodeId), source];
-  }
-
-  const projectNodes = Array.from(projects.values())
-    .sort((left, right) => left.source.name.localeCompare(right.source.name))
-    .map((project) => ({
-      id: browseProjectSourceNodeId(project.source),
-      label: project.source.name,
-      ariaLabel: `${project.source.name} project source`,
-      isLeaf: project.estimates.size === 0,
-      draggable: false,
-      icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
-      data: { browseNode: { type: "project-source", source: project.source } satisfies BrowseTreeDatum },
-      children: Array.from(project.estimates.values())
-        .sort((left, right) => left.source.name.localeCompare(right.source.name))
-        .map((estimate) => ({
-          id: browseProjectSourceNodeId(estimate.source),
-          label: estimate.source.name,
-          ariaLabel: estimate.source.sheetCode ? `${estimate.source.name} estimate ${estimate.source.sheetCode}` : `${estimate.source.name} estimate`,
-          isLeaf: estimate.tabs.size === 0,
-          draggable: false,
-          icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
-          data: { browseNode: { type: "project-source", source: estimate.source } satisfies BrowseTreeDatum },
-          children: Array.from(estimate.tabs.values())
-            .sort((left, right) => left.source.name.localeCompare(right.source.name))
-            .map((tab) => ({
-              id: browseProjectSourceNodeId(tab.source),
-              label: tab.source.name,
-              ariaLabel: `${tab.source.name} project tab source`,
-              isLeaf: tab.nodes.length === 0,
-              draggable: false,
-              icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
-              data: { browseNode: { type: "project-source", source: tab.source } satisfies BrowseTreeDatum },
-              children: tab.nodes
-                .sort((left, right) => left.name.localeCompare(right.name))
-                .map((node) => ({
-                  id: browseProjectSourceNodeId(node),
-                  label: node.name,
-                  ariaLabel: `${node.name} project ${node.nodeKind}`,
-                  isLeaf: true,
-                  draggable: false,
-                  icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
-                  data: { browseNode: { type: "project-source", source: node } satisfies BrowseTreeDatum },
-                })),
-            })),
-        })),
-    }));
-
-  if (projectNodes.length === 0) return [];
-  return [
-    {
-      id: "browse-project-sources",
-      label: "Projects",
-      ariaLabel: "Projects reusable sources",
-      isLeaf: false,
-      draggable: false,
-      icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
-      data: { browseNode: { type: "project-section" } satisfies BrowseTreeDatum },
-      children: projectNodes,
-    },
-  ];
 }
 
 function buildBrowseTreeNodes(templates: EstimateTemplate[], projectSources: ReusableEstimateSource[] = []): UiTreeNode[] {
@@ -309,6 +153,9 @@ type TemplatesBrowseTreePanelProps = {
   projectSources: ReusableEstimateSource[];
   selectedCategory: string | null;
   selectedTemplateId: string | null;
+  projectOutlineLoadingEstimateIds: readonly string[];
+  projectOutlineError: string | null;
+  onLoadProjectEstimateOutline: (source: ProjectEstimateReusableSource) => void;
   onSelectAll: () => void;
   onSelectCategory: (category: string) => void;
   onSelectTemplate: (templateId: string) => void;
@@ -328,6 +175,9 @@ function TemplatesBrowseTreePanel({
   projectSources,
   selectedCategory,
   selectedTemplateId,
+  projectOutlineLoadingEstimateIds,
+  projectOutlineError,
+  onLoadProjectEstimateOutline,
   onSelectAll,
   onSelectCategory,
   onSelectTemplate,
@@ -353,11 +203,17 @@ function TemplatesBrowseTreePanel({
   const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates, projectSources), [filteredTemplates, projectSources]);
   const folderIds = useMemo(() => getBrowseTreeFolderIds(treeNodes), [treeNodes]);
   const searchActive = searchQuery.trim().length > 0;
+  const unloadedProjectEstimateNodeIds = useMemo(
+    () => new Set(getUnloadedProjectEstimateBrowseNodeIds(projectSources, projectOutlineLoadingEstimateIds)),
+    [projectOutlineLoadingEstimateIds, projectSources],
+  );
   // New categories default expanded: collapse state is tracked, not expansion.
   // Active searches reveal every match instead of hiding hits under folds.
   const expandedIds = useMemo(
-    () => (searchActive ? folderIds : folderIds.filter((id) => !collapsedIds.has(id))),
-    [collapsedIds, folderIds, searchActive],
+    () => (searchActive
+      ? folderIds
+      : folderIds.filter((id) => !collapsedIds.has(id) && !unloadedProjectEstimateNodeIds.has(id))),
+    [collapsedIds, folderIds, searchActive, unloadedProjectEstimateNodeIds],
   );
 
   const nodeById = useMemo(() => {
@@ -391,14 +247,22 @@ function TemplatesBrowseTreePanel({
     ? templates.find((template) => template.id === selectedTemplateId)?.category
     : selectedCategory ?? undefined;
 
-  const toggleNode = useCallback((nodeId: string) => {
+  const toggleNode = useCallback((nodeId: string, expanded: boolean) => {
     setCollapsedIds((current) => {
       const next = new Set(current);
-      if (next.has(nodeId)) next.delete(nodeId);
+      if (expanded) next.delete(nodeId);
       else next.add(nodeId);
       return next;
     });
   }, []);
+
+  const handleTreeToggle = useCallback((nodeId: string, expanded: boolean) => {
+    toggleNode(nodeId, expanded);
+    if (!expanded) return;
+
+    const source = findProjectEstimateSourceByBrowseNodeId(projectSources, nodeId);
+    if (source) onLoadProjectEstimateOutline(source);
+  }, [onLoadProjectEstimateOutline, projectSources, toggleNode]);
 
   const handleRowClick = useCallback(
     (_nodeId: string, node: UiTreeNode) => {
@@ -617,18 +481,18 @@ function TemplatesBrowseTreePanel({
         />
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
-          {templates.length === 0 ? (
+          {templates.length === 0 && projectSources.length === 0 ? (
             <EmptyState
               icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
               title="No templates yet"
               description="Create a template from scratch, or save any estimate group as a template from the estimate page."
               className="min-h-24 rounded-xs"
             />
-          ) : filteredTemplates.length === 0 ? (
+          ) : treeNodes.length === 0 ? (
             <EmptyState
               icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
-              title="No matching templates"
-              description={`No templates match "${searchQuery}".`}
+              title="No matching sources"
+              description={`No reusable sources match "${searchQuery}".`}
               className="min-h-24 rounded-xs"
             />
           ) : (
@@ -644,12 +508,22 @@ function TemplatesBrowseTreePanel({
                     }
                   }}
                 >
+                  {projectOutlineLoadingEstimateIds.length > 0 ? (
+                    <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+                      Loading {projectOutlineLoadingEstimateIds.length === 1 ? "estimate outline" : `${projectOutlineLoadingEstimateIds.length} estimate outlines`}…
+                    </div>
+                  ) : null}
+                  {projectOutlineError ? (
+                    <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+                      Couldn&apos;t load estimate outline. {projectOutlineError}
+                    </div>
+                  ) : null}
                   <Tree
                     nodes={treeNodes}
                     ariaLabel="Template library tree"
                     className="relative min-h-7 overflow-visible"
                     expandedIds={expandedIds}
-                    onToggle={(nodeId) => toggleNode(nodeId)}
+                    onToggle={handleTreeToggle}
                     currentId={currentNodeId}
                     railsPinned={contextMenuOpen}
                     draggable
@@ -697,12 +571,24 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
   const [insertTarget, setInsertTarget] = useState<EstimateTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EstimateTemplate | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [projectSourceState, setProjectSourceState] = useState<{ source: ReusableEstimateSource[]; items: ReusableEstimateSource[] }>(() => ({
+    source: projectSources,
+    items: projectSources,
+  }));
+  const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
+  const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
 
   // Server refreshes re-seed the local list; optimistic edits hold otherwise.
   let localTemplates = templateState.items;
   if (templateState.source !== templates) {
     localTemplates = templates;
     setTemplateState({ source: templates, items: templates });
+  }
+
+  let localProjectSources = projectSourceState.items;
+  if (projectSourceState.source !== projectSources) {
+    localProjectSources = projectSources;
+    setProjectSourceState({ source: projectSources, items: projectSources });
   }
 
   const categories = useMemo(() => getTemplateCategories(localTemplates), [localTemplates]);
@@ -712,10 +598,43 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
   );
   const selectedTemplate = localTemplates.find((template) => template.id === selectedTemplateId) ?? null;
   const scopeLabel = selectedCategory ?? "All Templates";
+  const projectOutlineError = Object.values(projectOutlineErrors)[0] ?? null;
 
   const setItems = useCallback((updater: (items: EstimateTemplate[]) => EstimateTemplate[]) => {
     setTemplateState((current) => ({ ...current, items: updater(current.items) }));
   }, []);
+
+
+  const loadProjectEstimateOutline = useCallback((source: ProjectEstimateReusableSource) => {
+    if (hasReusableEstimateOutline(localProjectSources, source.estimateId)) return;
+    if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
+
+    setProjectOutlineLoadingEstimateIds((current) =>
+      current.includes(source.estimateId) ? current : [...current, source.estimateId],
+    );
+    setProjectOutlineErrors((current) => {
+      const next = { ...current };
+      delete next[source.estimateId];
+      return next;
+    });
+
+    void getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
+      .then((result) => {
+        setProjectSourceState((current) => ({
+          ...current,
+          items: mergeReusableProjectBrowseSources(current.items, result.sources, source.estimateId),
+        }));
+      })
+      .catch((error: unknown) => {
+        setProjectOutlineErrors((current) => ({
+          ...current,
+          [source.estimateId]: error instanceof Error ? error.message : "Could not load estimate outline.",
+        }));
+      })
+      .finally(() => {
+        setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
+      });
+  }, [localProjectSources, projectOutlineLoadingEstimateIds]);
 
   const selectAll = useCallback(() => {
     setSelectedCategory(null);
@@ -905,9 +824,12 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Template library workspace">
           <TemplatesBrowseTreePanel
             templates={localTemplates}
-            projectSources={projectSources}
+            projectSources={localProjectSources}
             selectedCategory={selectedCategory}
             selectedTemplateId={selectedTemplateId}
+            projectOutlineLoadingEstimateIds={projectOutlineLoadingEstimateIds}
+            projectOutlineError={projectOutlineError}
+            onLoadProjectEstimateOutline={loadProjectEstimateOutline}
             onSelectAll={selectAll}
             onSelectCategory={selectCategory}
             onSelectTemplate={selectTemplate}

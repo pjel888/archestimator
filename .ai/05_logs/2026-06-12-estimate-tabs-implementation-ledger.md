@@ -1464,3 +1464,52 @@ label=diff-check-template-browse-project-sources exit_code=0 timed_out=False log
 - This is local UI/mock proof plus route wiring; it does not prove live provider
   RLS, hosted latency, or production browse-route behavior.
 - Project-source rows are deliberately read-only in the browse route.
+
+## Phase 5 R4.4 template browse lazy project outline
+
+### Summary
+
+Phase 5 now includes local route-level lazy expansion for project-derived reusable
+sources in `/workshop/library/templates`. Project estimates are read-only folder
+rows; expanding one calls the existing access-filtered `getReusableEstimateOutline`
+action and merges returned tab/group/area virtual sources into the browse tree.
+Project-source rows still do not expose template management, template editor, or
+sidebar preview actions.
+
+### Changed files
+
+- `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx`
+- `src/components/workshop/library/templates-browse/project-source-browse-tree.tsx`
+- `tests/vitest/template-browse-project-sources.test.tsx`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-template-browse-lazy-project-outline-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-template-browse-lazy-project-outline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-template-browse-lazy-project-outline.log result=2_files_13_tests_passed
+label=type-check-template-browse-lazy-project-outline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-template-browse-lazy-project-outline.log
+label=diff-check-template-browse-lazy-project-outline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-template-browse-lazy-project-outline.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence further advances R4.3 with browse-route lazy outline
+  consumption and R4.4 with route-level tab/group/area outline display.
+- R4.6 remains the same divergence boundary: project sources may be shown and
+  lazily expanded, but template management/editor/preview actions are template-only.
+- R4.4 remains open for row-level provider detail beyond loaded outline/search
+  metadata and live provider freshness proof.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- This is local UI/mock proof. It does not prove live provider RLS, hosted
+  latency/freshness, production browse-route behavior, or insertion RPC/action execution.
+- `project-source-browse-tree.tsx` is a focused extraction but sits in the
+  warning band (~215 pure LOC); split it before adding another substantial
+  project-source browse behavior.
