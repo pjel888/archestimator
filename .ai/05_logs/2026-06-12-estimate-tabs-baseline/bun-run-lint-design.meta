@@ -1,0 +1,6 @@
+label=bun-run-lint-design
+command=CI=1 npm_config_yes=true bun run lint:design
+exit_code=143
+started=2026-06-12T09:28:03Z
+ended=2026-06-12T09:32:52Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/bun-run-lint-design.log

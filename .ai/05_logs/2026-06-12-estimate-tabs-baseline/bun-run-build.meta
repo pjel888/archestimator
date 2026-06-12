@@ -1,0 +1,6 @@
+label=bun-run-build
+command=bun run build
+exit_code=127
+started=2026-06-12T09:32:53Z
+ended=2026-06-12T09:32:53Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/bun-run-build.log

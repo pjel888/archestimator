@@ -1,0 +1,10 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+(node:36814) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ Test Files  4 passed (4)
+      Tests  17 passed (17)
+   Start at  17:41:56
+   Duration  2.63s (transform 70ms, setup 118ms, import 352ms, tests 171ms, environment 1.25s)

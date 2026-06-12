@@ -1,0 +1,6 @@
+label=optional-notification-rls-harness
+command=node scripts/prove-notification-rls-postgres.mjs
+exit_code=1
+started=2026-06-12T09:32:59Z
+ended=2026-06-12T09:32:59Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/optional-notification-rls-harness.log

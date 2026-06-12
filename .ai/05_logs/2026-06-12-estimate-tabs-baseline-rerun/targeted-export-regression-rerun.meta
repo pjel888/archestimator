@@ -1,0 +1,8 @@
+label=targeted-export-regression-rerun
+command=bunx vitest run tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts --maxWorkers=1
+started=2026-06-12T09:41:56Z
+ended=2026-06-12T09:41:59Z
+exit_code=0
+timeout_seconds=900
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/targeted-export-regression-rerun.log

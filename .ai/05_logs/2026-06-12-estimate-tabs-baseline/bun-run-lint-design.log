@@ -1,0 +1,16 @@
+
+>>> [2026-06-12T09:28:03Z] CI=1 npm_config_yes=true bun run lint:design
+$ bun x impeccable detect --strict
+Resolving dependencies
+Resolved, downloaded and extracted [228]
+Saved lockfile
+
+Next.js dev server detected on localhost:3000.
+For more accurate results, scan the running site:
+  npx impeccable detect http://localhost:3000
+
+
+Found 877 files (30 HTML) in /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates.
+Scanning may take a while (static HTML/CSS processes each HTML file individually).
+Target a specific subdirectory to narrow scope.
+Continue? [Y/n] error: script "lint:design" was terminated by signal SIGTERM (Polite quit request)
