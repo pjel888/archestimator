@@ -465,17 +465,15 @@ describe("estimate sheet version control server actions", () => {
   it("keeps hardcoded history RPC names aligned with generated Supabase function types", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
     const generatedTypesSource = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
-    const rpcNames = Array.from(actionsSource.matchAll(/asEstimateHistoryRpcClient\(supabase\)\.rpc\("([^"]+)"/g))
+    const rpcNames = Array.from(actionsSource.matchAll(/supabase\.rpc\("([^"]+_with_history|update_estimate_details_with_history)"/g))
       .map((match) => match[1])
       .sort();
-    const unionNames = Array.from(actionsSource.matchAll(/\|\s*"([^"]+_with_history|update_estimate_details_with_history|delete_estimate_node_with_history)"/g))
-      .map((match) => match[1]);
 
     const uniqueRpcNames = Array.from(new Set(rpcNames));
 
     expect(uniqueRpcNames.length).toBeGreaterThan(0);
+    expect(actionsSource).not.toContain("asEstimateHistoryRpcClient");
     for (const rpcName of uniqueRpcNames) {
-      expect(unionNames).toContain(rpcName);
       expect(generatedTypesSource).toContain(`${rpcName}: {`);
     }
   });

@@ -341,97 +341,10 @@ function readHistoryRowResult(value: unknown) {
   } satisfies UpdateEstimateRowItemResult;
 }
 
-type RpcFunctionName =
-  | "insert_estimate_row_item_with_history"
-  | "update_estimate_row_item_with_history"
-  | "replace_estimate_row_item_with_history"
-  | "unlink_estimate_row_item_from_library_with_history"
-  | "delete_estimate_row_item_with_history"
-  | "reorder_estimate_nodes_with_history"
-  | "create_estimate_node_with_history"
-  | "rename_estimate_node_with_history"
-  | "insert_estimate_template_into_estimate_with_history"
-  | "update_estimate_details_with_history"
-  | "delete_estimate_node_with_history"
-  | "create_estimate_tab_with_history"
-  | "rename_estimate_tab_with_history"
-  | "reorder_estimate_tabs_with_history"
-  | "duplicate_estimate_tab_with_history"
-  | "archive_estimate_tab_with_history"
-  | "delete_estimate_tab_with_history";
-
-type EstimateHistoryRpcClient = {
-  rpc: (fn: RpcFunctionName, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-};
-
-type EstimatePermissionRpcClient = {
-  rpc: (fn: "can_edit_estimate", args: { target_estimate_id: string }) => Promise<{ data: boolean | null; error: { message: string } | null }>;
-};
-
-type EstimateTabInsertClient = {
-  from: (table: "estimate_tabs") => {
-    insert: (values: {
-      estimate_id: string;
-      name: string;
-      sort_order: number;
-      is_default: boolean;
-      created_by: string | null;
-    }) => {
-      select: (columns: "id") => {
-        single: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>;
-      };
-    };
-  };
-};
-
-type EstimateNodeInsertWithTab = TablesInsert<"estimate_nodes"> & {
-  estimate_tab_id: string;
-};
-
-type EstimateNodeInsertWithTabTable = {
-  insert: {
-    (values: EstimateNodeInsertWithTab): {
-      select: (columns: "id") => {
-        single: () => Promise<{ data: { id: string } | null; error: { message: string } | null }>;
-      };
-    };
-    (values: EstimateNodeInsertWithTab[]): Promise<{ error: { message: string } | null }>;
-  };
-};
-
-type EstimateNodeInsertWithTabClient = {
-  from: (table: "estimate_nodes") => EstimateNodeInsertWithTabTable;
-};
-
-function asEstimateHistoryRpcClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  return supabase as unknown as EstimateHistoryRpcClient;
-}
-
-function asEstimateTabInsertClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  // Temporary compatibility boundary: linked Supabase type regeneration is owner-gated for Phase 1.
-  // The migration creates public.estimate_tabs; remove this cast after authorized type regen.
-  return supabase as unknown as EstimateTabInsertClient;
-}
-
-function asEstimateNodeInsertWithTabClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  return supabase as unknown as EstimateNodeInsertWithTabClient;
-}
-
 async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, estimateId: string) {
-  const { data, error } = await (supabase as unknown as EstimatePermissionRpcClient).rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
   if (error) throw error;
   if (data !== true) throw new Error("Estimate edit access denied.");
-}
-
-type EstimateActivityRetentionMetricsRpcClient = {
-  rpc: (
-    fn: "get_estimate_activity_retention_metrics",
-    args: { target_project_id: string },
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-};
-
-function asEstimateActivityRetentionMetricsRpcClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  return supabase as unknown as EstimateActivityRetentionMetricsRpcClient;
 }
 
 function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
@@ -797,7 +710,7 @@ function readEstimateNodeName(input: FormData | string) {
   return readRequiredText(input, "name");
 }
 
-function getSourceSnapshot(libraryItem: EstimateRowItem) {
+function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
   return sanitizeEstimateRowSourceSnapshot({
     category: libraryItem.category,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
@@ -823,10 +736,10 @@ function getSourceSnapshot(libraryItem: EstimateRowItem) {
     contingency_percentage: libraryItem.contingencyPercentage ?? 0,
     misc_cost: libraryItem.miscCost,
     currency: libraryItem.currency ?? "PHP",
-  });
+  }) as Json;
 }
 
-function getEstimateRowMetadata(libraryItem: EstimateRowItem) {
+function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
   return {
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
@@ -884,13 +797,27 @@ async function insertEstimateWithSheetCodeFallback(
     .single();
 
   if (legacyResult.error) throw legacyResult.error;
-  return normalizeEstimateRecord(legacyResult.data as unknown as EstimateRecordWithLegacy);
+  return normalizeEstimateRecord(legacyResult.data as EstimateRecordWithLegacy);
 }
 
 type ProjectEstimateCodeRow = {
   id: string;
   sheetCode: string;
 };
+
+function readLegacyEstimateCodeRows(value: unknown): ProjectEstimateCodeRow[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const id = typeof record.id === "string" ? record.id : "";
+    if (!id) return [];
+    return [{
+      id,
+      sheetCode: typeof record.revision_label === "string" ? record.revision_label : "",
+    }];
+  });
+}
 
 type UpdateEstimateDetailsInput = {
   projectId: string;
@@ -906,7 +833,8 @@ type DuplicateEstimateSheetInput = {
   estimateId: string;
 };
 
-type DuplicateEstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "kind" | "metadata" | "name" | "parent_id" | "sort_order">;
+type DuplicateEstimateTabRow = Pick<Tables<"estimate_tabs">, "id" | "is_default" | "metadata" | "name" | "sort_order">;
+type DuplicateEstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_tab_id" | "kind" | "metadata" | "name" | "parent_id" | "sort_order">;
 type DuplicateEstimateRowItemRow = Tables<"estimate_row_items">;
 
 const GENERATED_SHEET_CODE_PREFIX = "ES";
@@ -962,10 +890,7 @@ async function listProjectEstimateCodes(
     .eq("project_id", projectId);
 
   if (legacyResult.error) throw legacyResult.error;
-  return ((legacyResult.data ?? []) as unknown as Array<{ id: string; revision_label?: string | null }>).map((estimate) => ({
-    id: estimate.id,
-    sheetCode: estimate.revision_label ?? "",
-  }));
+  return readLegacyEstimateCodeRows(legacyResult.data);
 }
 
 function getNextGeneratedSheetCode(existingCodes: string[]) {
@@ -1043,7 +968,7 @@ async function getEstimateRecordAfterMutation(
 
   if (legacyResult.error) throw legacyResult.error;
   if (!legacyResult.data) throw new Error("Estimate not found in the current project.");
-  return normalizeEstimateRecord(legacyResult.data as unknown as EstimateRecordWithLegacy);
+  return normalizeEstimateRecord(legacyResult.data as EstimateRecordWithLegacy);
 }
 
 async function createEstimateWithDefaultTree({
@@ -1076,7 +1001,7 @@ async function createEstimateWithDefaultTree({
     sheetCode,
   );
 
-  const { data: defaultTab, error: defaultTabError } = await asEstimateTabInsertClient(supabase)
+  const { data: defaultTab, error: defaultTabError } = await supabase
     .from("estimate_tabs")
     .insert({
       estimate_id: estimate.id,
@@ -1092,9 +1017,8 @@ async function createEstimateWithDefaultTree({
   if (!defaultTab?.id) throw new Error("Default estimate tab was not created.");
 
   const defaultTabId = defaultTab.id;
-  const estimateNodeInsertClient = asEstimateNodeInsertWithTabClient(supabase);
 
-  const projectGroupInsert: EstimateNodeInsertWithTab = {
+  const projectGroupInsert: TablesInsert<"estimate_nodes"> = {
     estimate_id: estimate.id,
     estimate_tab_id: defaultTabId,
     parent_id: null,
@@ -1103,7 +1027,7 @@ async function createEstimateWithDefaultTree({
     sort_order: 0,
   };
 
-  const { data: projectGroupNode, error: projectGroupError } = await estimateNodeInsertClient
+  const { data: projectGroupNode, error: projectGroupError } = await supabase
     .from("estimate_nodes")
     .insert(projectGroupInsert)
     .select("id")
@@ -1112,7 +1036,7 @@ async function createEstimateWithDefaultTree({
   if (projectGroupError) throw projectGroupError;
   if (!projectGroupNode?.id) throw new Error("Default estimate root group was not created.");
 
-  const generalNodeInserts: EstimateNodeInsertWithTab[] = [
+  const generalNodeInserts: TablesInsert<"estimate_nodes">[] = [
     {
       estimate_id: estimate.id,
       estimate_tab_id: defaultTabId,
@@ -1131,11 +1055,11 @@ async function createEstimateWithDefaultTree({
     },
   ];
 
-  const { error: generalNodesError } = await estimateNodeInsertClient.from("estimate_nodes").insert(generalNodeInserts);
+  const { error: generalNodesError } = await supabase.from("estimate_nodes").insert(generalNodeInserts);
 
   if (generalNodesError) throw generalNodesError;
 
-  const buildingGroupInsert: EstimateNodeInsertWithTab = {
+  const buildingGroupInsert: TablesInsert<"estimate_nodes"> = {
     estimate_id: estimate.id,
     estimate_tab_id: defaultTabId,
     parent_id: projectGroupNode.id,
@@ -1144,7 +1068,7 @@ async function createEstimateWithDefaultTree({
     sort_order: 20,
   };
 
-  const { data: buildingGroupNode, error: buildingGroupError } = await estimateNodeInsertClient
+  const { data: buildingGroupNode, error: buildingGroupError } = await supabase
     .from("estimate_nodes")
     .insert(buildingGroupInsert)
     .select("id")
@@ -1153,7 +1077,7 @@ async function createEstimateWithDefaultTree({
   if (buildingGroupError) throw buildingGroupError;
   if (!buildingGroupNode?.id) throw new Error("Default estimate building group was not created.");
 
-  const levelGroupInsert: EstimateNodeInsertWithTab = {
+  const levelGroupInsert: TablesInsert<"estimate_nodes"> = {
     estimate_id: estimate.id,
     estimate_tab_id: defaultTabId,
     parent_id: buildingGroupNode.id,
@@ -1162,7 +1086,7 @@ async function createEstimateWithDefaultTree({
     sort_order: 0,
   };
 
-  const { data: levelGroupNode, error: levelGroupError } = await estimateNodeInsertClient
+  const { data: levelGroupNode, error: levelGroupError } = await supabase
     .from("estimate_nodes")
     .insert(levelGroupInsert)
     .select("id")
@@ -1171,7 +1095,7 @@ async function createEstimateWithDefaultTree({
   if (levelGroupError) throw levelGroupError;
   if (!levelGroupNode?.id) throw new Error("Default estimate level group was not created.");
 
-  const areaNodeInsert: EstimateNodeInsertWithTab = {
+  const areaNodeInsert: TablesInsert<"estimate_nodes"> = {
     estimate_id: estimate.id,
     estimate_tab_id: defaultTabId,
     parent_id: levelGroupNode.id,
@@ -1180,7 +1104,7 @@ async function createEstimateWithDefaultTree({
     sort_order: 0,
   };
 
-  const { data: areaNode, error: areaError } = await estimateNodeInsertClient
+  const { data: areaNode, error: areaError } = await supabase
     .from("estimate_nodes")
     .insert(areaNodeInsert)
     .select("id")
@@ -1372,7 +1296,7 @@ export async function fetchEstimateActivityRetentionMetrics({
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await asEstimateActivityRetentionMetricsRpcClient(supabase).rpc("get_estimate_activity_retention_metrics", {
+  const { data, error } = await supabase.rpc("get_estimate_activity_retention_metrics", {
     target_project_id: project.id,
   });
 
@@ -1479,7 +1403,7 @@ export async function reorderEstimateTreeNodes(
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
   };
-  const { error: rpcError } = await asEstimateHistoryRpcClient(supabase).rpc("reorder_estimate_nodes_with_history", rpcPayload);
+  const { error: rpcError } = await supabase.rpc("reorder_estimate_nodes_with_history", rpcPayload);
   if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
@@ -1563,16 +1487,63 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     sheetCode,
   );
 
-  const { data: sourceNodes, error: sourceNodesError } = await supabase
-    .from("estimate_nodes")
-    .select("id, kind, metadata, name, parent_id, sort_order")
+  const { data: sourceTabs, error: sourceTabsError } = await supabase
+    .from("estimate_tabs")
+    .select("id, is_default, metadata, name, sort_order")
     .eq("estimate_id", normalizedSourceEstimate.id)
+    .is("archived_at", null)
     .order("sort_order", { ascending: true });
+
+  if (sourceTabsError) throw sourceTabsError;
+
+  const sourceTabRows = (sourceTabs ?? []) as DuplicateEstimateTabRow[];
+  const sourceTabsToDuplicate: DuplicateEstimateTabRow[] = sourceTabRows.length > 0
+    ? sourceTabRows
+    : [{
+        id: "__legacy_default_tab__",
+        is_default: true,
+        metadata: {},
+        name: "Main",
+        sort_order: 0,
+      }];
+  const defaultSourceTabId = sourceTabsToDuplicate.find((tab) => tab.is_default)?.id ?? sourceTabsToDuplicate[0]?.id;
+  const tabIdBySourceId = new Map<string, string>();
+  const duplicatedTabs = sourceTabsToDuplicate.map((tab) => {
+    const nextTabId = randomUUID();
+    tabIdBySourceId.set(tab.id, nextTabId);
+    return {
+      archived_at: null,
+      created_by: currentUser.userId,
+      estimate_id: duplicatedEstimate.id,
+      id: nextTabId,
+      is_default: tab.is_default,
+      metadata: tab.metadata,
+      name: tab.name,
+      sort_order: tab.sort_order,
+    } satisfies TablesInsert<"estimate_tabs">;
+  });
+
+  const { error: insertTabsError } = await supabase.from("estimate_tabs").insert(duplicatedTabs);
+  if (insertTabsError) throw insertTabsError;
+
+  const sourceNodeTabIds = sourceTabRows.map((tab) => tab.id);
+  let sourceNodesQuery = supabase
+    .from("estimate_nodes")
+    .select("id, estimate_tab_id, kind, metadata, name, parent_id, sort_order")
+    .eq("estimate_id", normalizedSourceEstimate.id);
+
+  if (sourceNodeTabIds.length > 0) {
+    sourceNodesQuery = sourceNodesQuery.in("estimate_tab_id", sourceNodeTabIds);
+  }
+
+  const { data: sourceNodes, error: sourceNodesError } = await sourceNodesQuery.order("sort_order", { ascending: true });
 
   if (sourceNodesError) throw sourceNodesError;
 
   const nodeIdBySourceId = new Map<string, string>();
   const pendingNodes = [...((sourceNodes ?? []) as DuplicateEstimateNodeRow[])];
+  const fallbackDuplicatedTabId = defaultSourceTabId ? tabIdBySourceId.get(defaultSourceTabId) : duplicatedTabs[0]?.id;
+  if (!fallbackDuplicatedTabId) throw new Error("Could not duplicate estimate tabs because no tab mapping was created.");
 
   while (pendingNodes.length > 0) {
     const nextIndex = pendingNodes.findIndex((node) => node.parent_id === null || nodeIdBySourceId.has(node.parent_id));
@@ -1580,11 +1551,13 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
 
     const [node] = pendingNodes.splice(nextIndex, 1);
     const nextNodeId = randomUUID();
+    const nextEstimateTabId = tabIdBySourceId.get(node.estimate_tab_id) ?? fallbackDuplicatedTabId;
     nodeIdBySourceId.set(node.id, nextNodeId);
 
     const { error: insertNodeError } = await supabase.from("estimate_nodes").insert({
       id: nextNodeId,
       estimate_id: duplicatedEstimate.id,
+      estimate_tab_id: nextEstimateTabId,
       parent_id: node.parent_id ? nodeIdBySourceId.get(node.parent_id) ?? null : null,
       kind: node.kind,
       metadata: node.metadata,
@@ -1603,11 +1576,11 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
 
   if (sourceRowsError) throw sourceRowsError;
 
-  const duplicatedRows = ((sourceRows ?? []) as DuplicateEstimateRowItemRow[]).map((row) => {
+  const duplicatedRows = ((sourceRows ?? []) as DuplicateEstimateRowItemRow[]).flatMap((row) => {
     const nodeId = nodeIdBySourceId.get(row.node_id);
-    if (!nodeId) throw new Error("Could not duplicate estimate rows because a source row node is missing.");
+    if (!nodeId) return [];
 
-    return {
+    return [{
       category_node_id: row.category_node_id,
       description: row.description,
       designation: row.designation,
@@ -1628,7 +1601,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
       supplier_id: row.supplier_id,
       unit: row.unit,
       unit_cost: row.unit_cost,
-    } satisfies TablesInsert<"estimate_row_items">;
+    } satisfies TablesInsert<"estimate_row_items">];
   });
 
   if (duplicatedRows.length > 0) {
@@ -1769,7 +1742,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
   const payload: TablesUpdate<"estimates"> = {};
-  const estimatePatch: Record<string, unknown> = {};
+  const estimatePatch: Record<string, Json | undefined> = {};
 
   if (input.name !== undefined) {
     const name = normalizeEditableText(input.name, "Estimate name");
@@ -1795,7 +1768,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
 
   if (Object.keys(payload).length === 0) throw new Error("No estimate changes provided.");
 
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("update_estimate_details_with_history", {
+  const { error } = await supabase.rpc("update_estimate_details_with_history", {
     target_project_id: project.id,
     target_estimate_id: input.estimateId,
     estimate_patch: estimatePatch,
@@ -1816,7 +1789,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id, input.estimateId);
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("update_estimate_details_with_history", {
+  const { error } = await supabase.rpc("update_estimate_details_with_history", {
     target_project_id: project.id,
     target_estimate_id: input.estimateId,
     estimate_patch: { sheetCode },
@@ -1866,7 +1839,7 @@ async function getProjectScopedEstimateActionContext(projectId: string, estimate
 export async function createEstimateTab(input: CreateEstimateTabInput): Promise<EstimateTabMutationResult> {
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_tab_with_history", {
+  const { data, error } = await supabase.rpc("create_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     tab_name: name,
@@ -1880,7 +1853,7 @@ export async function createEstimateTab(input: CreateEstimateTabInput): Promise<
 export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<EstimateTabMutationResult> {
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
   const name = normalizeEditableText(input.name, "Estimate tab name");
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("rename_estimate_tab_with_history", {
+  const { data, error } = await supabase.rpc("rename_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_tab_id: input.tabId,
@@ -1900,7 +1873,7 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
     seen.add(update.id);
   }
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("reorder_estimate_tabs_with_history", {
+  const { error } = await supabase.rpc("reorder_estimate_tabs_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     sort_updates: input.updates.map((update) => ({ id: update.id, sort_order: update.sortOrder })),
@@ -1914,11 +1887,12 @@ export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Prom
 
 export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Promise<EstimateTabMutationResult> {
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("duplicate_estimate_tab_with_history", {
+  const nextName = input.name ? normalizeEditableText(input.name, "Estimate tab name") : undefined;
+  const { data, error } = await supabase.rpc("duplicate_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     source_tab_id: input.tabId,
-    next_name: input.name ? normalizeEditableText(input.name, "Estimate tab name") : null,
+    next_name: nextName,
     acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(input.correlationId),
   });
@@ -1928,7 +1902,7 @@ export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Pr
 
 export async function archiveEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("archive_estimate_tab_with_history", {
+  const { data, error } = await supabase.rpc("archive_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_tab_id: input.tabId,
@@ -1941,7 +1915,7 @@ export async function archiveEstimateTab(input: EstimateTabActionInput): Promise
 
 export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
   const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("delete_estimate_tab_with_history", {
+  const { data, error } = await supabase.rpc("delete_estimate_tab_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_tab_id: input.tabId,
@@ -1999,16 +1973,19 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     .select("id, kind, sort_order")
     .eq("estimate_id", estimate.id)
     .order("sort_order", { ascending: true });
-  const rootSiblingQuery = parentId ? siblingQuery.eq("parent_id", parentId) : siblingQuery.is("parent_id", null);
-  const { data: siblings, error: siblingsError } = !parentId && estimateTabId
-    ? await (rootSiblingQuery as unknown as { eq: (column: string, value: string) => typeof rootSiblingQuery }).eq("estimate_tab_id", estimateTabId)
-    : await rootSiblingQuery;
+  const scopedSiblingQuery = parentId
+    ? siblingQuery.eq("parent_id", parentId)
+    : siblingQuery.is("parent_id", null);
+  const tabScopedSiblingQuery = !parentId && estimateTabId
+    ? scopedSiblingQuery.eq("estimate_tab_id", estimateTabId)
+    : scopedSiblingQuery;
+  const { data: siblings, error: siblingsError } = await tabScopedSiblingQuery;
 
   if (siblingsError) throw siblingsError;
 
   const siblingRows = (siblings ?? []) as CreateEstimateNodeSiblingRow[];
   const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), -1);
-  const createNodePayload: Record<string, unknown> = {
+  const createNodePayload = {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     parent_node_id: parentId,
@@ -2017,9 +1994,9 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     initial_sort_order: maxSiblingSortOrder + 1,
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
+    ...(estimateTabId ? { target_tab_id: estimateTabId } : {}),
   };
-  if (estimateTabId) createNodePayload.target_tab_id = estimateTabId;
-  const { data: nodeResult, error: rpcError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", createNodePayload);
+  const { data: nodeResult, error: rpcError } = await supabase.rpc("create_estimate_node_with_history", createNodePayload);
   if (rpcError) {
     throw new Error(`Could not create estimate tree node: ${rpcError.message}`);
   }
@@ -2055,7 +2032,7 @@ export async function renameEstimateNode(
   const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
   const currentUser = await requireCurrentUserContext();
 
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("rename_estimate_node_with_history", {
+  const { error } = await supabase.rpc("rename_estimate_node_with_history", {
     target_project_id: projectId,
     target_estimate_id: estimate.id,
     target_node_id: node.id,
@@ -2080,7 +2057,7 @@ export async function deleteEstimateNode(
   if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the tree node.");
 
   const deletePlan = planEstimateTreeDelete(currentTree, node.id, node.id);
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("delete_estimate_node_with_history", {
+  const { error } = await supabase.rpc("delete_estimate_node_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     target_node_id: node.id,
@@ -2152,7 +2129,7 @@ export async function deleteEstimateNodesBulk(
   }
 
   for (const rootNodeId of rootNodeIds) {
-    const { error } = await asEstimateHistoryRpcClient(supabase).rpc("delete_estimate_node_with_history", {
+    const { error } = await supabase.rpc("delete_estimate_node_with_history", {
       target_project_id: project.id,
       target_estimate_id: estimate.id,
       target_node_id: rootNodeId,
@@ -2184,7 +2161,7 @@ export async function insertEstimateTemplateIntoEstimate({
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
-  const { data: copyResult, error: copyError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_template_into_estimate_with_history", {
+  const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_parent_node_id: targetParentNodeId,
@@ -2294,7 +2271,8 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   const subtreeNodes: TemplateSubtreeNodeRow[] = [];
   const queue: TemplateSubtreeNodeRow[] = [sourceNode];
   while (queue.length > 0) {
-    const node = queue.shift()!;
+    const node = queue.shift();
+    if (!node) break;
     subtreeNodes.push(node);
     queue.push(...(childrenByParentId.get(node.id) ?? []));
   }
@@ -2315,7 +2293,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
       node.id === sourceNode.id ? targetParentNodeId : createdNodeIdByTemplateNodeId.get(node.parent_id ?? "");
     if (!parentEstimateNodeId) throw new Error("Template node structure is inconsistent.");
 
-    const { data: createResult, error: createError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", {
+    const { data: createResult, error: createError } = await supabase.rpc("create_estimate_node_with_history", {
       target_project_id: project.id,
       target_estimate_id: estimateId,
       parent_node_id: parentEstimateNodeId,
@@ -2343,7 +2321,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
     const targetNodeId = createdNodeIdByTemplateNodeId.get(row.template_node_id);
     if (!targetNodeId) continue;
 
-    const { error: rowInsertError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_row_item_with_history", {
+    const { error: rowInsertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
       target_project_id: project.id,
       target_estimate_id: estimateId,
       target_node_id: targetNodeId,
@@ -2431,7 +2409,7 @@ export async function wrapEstimateAreaAndInsertTemplate({
   if (!areaNode) throw new Error("Area node not found in the current estimate.");
   if (!areaNode.parent_id) throw new Error("Area node has no parent group to wrap under.");
 
-  const { data: groupResult, error: groupError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", {
+  const { data: groupResult, error: groupError } = await supabase.rpc("create_estimate_node_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     parent_node_id: areaNode.parent_id,
@@ -2451,7 +2429,7 @@ export async function wrapEstimateAreaAndInsertTemplate({
       : "";
   if (!newGroupNodeId) throw new Error("Estimate node history RPC did not return the created wrapper group id.");
 
-  const { error: moveError } = await asEstimateHistoryRpcClient(supabase).rpc("reorder_estimate_nodes_with_history", {
+  const { error: moveError } = await supabase.rpc("reorder_estimate_nodes_with_history", {
     target_estimate_id: estimateId,
     move_updates: [{ id: areaNodeId, parent_id: newGroupNodeId, sort_order: 0 }],
     acting_user_id: currentUser.userId,
@@ -2469,7 +2447,7 @@ export async function wrapEstimateAreaAndInsertTemplate({
     });
   } else {
     for (const templateId of insert.templateIds) {
-      const { error: copyError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_template_into_estimate_with_history", {
+      const { error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
         target_project_id: project.id,
         target_estimate_id: estimateId,
         target_parent_node_id: newGroupNodeId,
@@ -2521,28 +2499,28 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
 
-  const { error: insertError } = await asEstimateHistoryRpcClient(supabase).rpc("insert_estimate_row_item_with_history", {
+  const { error: insertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_node_id: targetNodeId,
     row_payload: {
-    id: persistedRowId,
+      id: persistedRowId,
       sortOrder: nextSortOrder,
       sourceLibraryItemId,
       sourceSnapshot,
       categoryNodeId: libraryItem.categoryNodeId ?? null,
       supplierId: libraryItem.supplierId ?? null,
-    material: libraryItem.material,
-    description: libraryItem.description,
-    supplier: libraryItem.supplier,
+      material: libraryItem.material,
+      description: libraryItem.description,
+      supplier: libraryItem.supplier,
       unit: libraryItem.unit,
-    quantity,
+      quantity,
       unitCost: libraryItem.itemCost,
       contingencyPercentage: libraryItem.contingencyPercentage ?? 0,
       miscCost: libraryItem.miscCost,
-    discipline: libraryItem.discipline,
-    designation: libraryItem.designation,
-    metadata: getEstimateRowMetadata(libraryItem),
+      discipline: libraryItem.discipline,
+      designation: libraryItem.designation,
+      metadata: getEstimateRowMetadata(libraryItem),
       linkState: sourceLibraryItemId ? "linked-clean" : "unlinked",
     },
     acting_user_id: currentUser.userId,
@@ -2562,7 +2540,7 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, quan
     ...(row.source_library_item_id ? { linkState: "linked-overridden" } : {}),
   };
 
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("update_estimate_row_item_with_history", {
+  const { data, error } = await supabase.rpc("update_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -2582,7 +2560,7 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   const currentUser = await requireCurrentUserContext();
   const quantity = libraryItem.quantity || 1;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("replace_estimate_row_item_with_history", {
+  const { error } = await supabase.rpc("replace_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -2623,8 +2601,8 @@ export async function detachEstimateRowItemFromLibrary({
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
   await assertCanEditEstimate(supabase, estimateId);
   const currentUser = await requireCurrentUserContext();
-  const trimmedReason = reason?.trim() || null;
-  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("unlink_estimate_row_item_from_library_with_history", {
+  const trimmedReason = reason?.trim() || undefined;
+  const { data, error } = await supabase.rpc("unlink_estimate_row_item_from_library_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
@@ -2643,7 +2621,7 @@ export async function detachEstimateRowItemFromLibrary({
 export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput) {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
   const currentUser = await requireCurrentUserContext();
-  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("delete_estimate_row_item_with_history", {
+  const { error } = await supabase.rpc("delete_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: row.id,
