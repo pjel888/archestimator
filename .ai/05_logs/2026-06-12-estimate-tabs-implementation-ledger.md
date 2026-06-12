@@ -1219,3 +1219,49 @@ label=diff-check-project-tab-save-as-template exit_code=0 timed_out=False log=.a
 - The action path relies on the existing `estimate_nodes.estimate_tab_id` column
   while the local generated Supabase types remain stale until the provider-gated
   typegen step.
+
+## Phase 5 R4.4 project-source preview outline
+
+### Summary
+
+Phase 5 now includes local richer preview detail for already-loaded
+project-derived sources. The preview panel lists direct children in a source
+outline: projects list estimates, estimates list tabs, and tabs list loaded
+group/area rows. This builds on the earlier metadata and filter-chip seams
+without adding server search or provider refresh behavior.
+
+### Changed files
+
+- `src/components/workshop/component-library/index.tsx`
+- `tests/vitest/component-library-ui.test.tsx`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-preview-outline-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-preview-outline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-preview-outline.log result=1_file_58_tests_passed
+label=type-check-project-source-preview-outline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-project-source-preview-outline.log
+label=diff-check-project-source-preview-outline exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-source-preview-outline.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence further advances R4.4 with an already-loaded source
+  outline inside the preview panel.
+- R4.4 remains open for server-backed live metadata freshness, server search,
+  row-level provider detail beyond loaded outline rows, and future route-level
+  project-source preview/search parity.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- The outline uses the sidebar's current project-source list only; it does not
+  fetch deeper row details or invalidate stale metadata.
+- The inherited sidebar/test files remain oversized; no broad refactor was
+  performed in this slice.

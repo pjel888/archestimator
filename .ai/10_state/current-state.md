@@ -1,4 +1,20 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Preview Outline Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab project-source preview now includes a local source
+outline for already-loaded children: project previews list estimates, estimate
+previews list tabs, and tab previews list loaded group/area rows. This adds
+richer preview detail without server search, polling, or provider refresh
+behavior. Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-preview-outline-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 58 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/sidebar proof only: server-backed
+metadata freshness, server search, row-level provider detail beyond loaded
+outline rows, route-level project-source parity, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, and browser
+visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.5 Whole-Tab Save-As-Template Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 Templates tab now has a local explicit save-as-template seam for
 whole project tab sources in addition to project group/area sources. Project tab
