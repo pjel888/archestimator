@@ -367,3 +367,52 @@ label=lint-after-import-cleanup exit_code=1 timed_out=False log=.ai/05_logs/2026
 - `src/lib/supabase/types.ts` intentionally not regenerated; temporary typed compatibility shims in `src/lib/estimates/actions.ts` document the owner-gated type regeneration boundary.
 - Default harness path still expects Homebrew Postgres 16; this machine only proved the harness with the available `/opt/homebrew/bin` Postgres binary.
 - `next-env.d.ts` build churn restored before staging.
+## Phase 2 repository/domain compatibility-wrapper iteration
+
+### Summary
+
+Phase 2 local implementation is complete enough for a phase-scoped commit. Tab-aware types, loaders, query keys, actions, row invalidation targets, per-tab workspace state, and activity labels are additive. Legacy callers keep their signatures and default-tab wrapper behavior. Linked Supabase apply/typegen remains owner-gated.
+
+### Changed files
+
+- `src/lib/domain/estimate-tree.ts`
+- `src/lib/estimates/types.ts`
+- `src/lib/reusable-sources/types.ts`
+- `src/lib/repositories/workspace-repository.ts`
+- `src/lib/repositories/estimate-repository.ts`
+- `src/lib/estimates/actions.ts`
+- `src/hooks/use-estimate-query.ts`
+- `src/hooks/use-estimate-row-mutations.ts`
+- `src/hooks/use-estimate-workspace-state.ts`
+- `src/lib/activity/activity-composer.ts`
+- `src/lib/activity/activity-copy-dictionary.ts`
+- `src/lib/activity/types.ts`
+- `tests/vitest/estimate-node-reorder-action.test.ts`
+- `tests/vitest/estimate-tabs-domain.test.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase2/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase2-implementation-run.md`
+
+### Gates run
+
+```text
+label=type-check-after-lint-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/type-check-after-lint-fix.log
+label=phase2-domain-actions exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/phase2-domain-actions.log
+label=postgres-rls-pg15-local exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/postgres-rls-pg15-local.log
+label=targeted-estimate-characterization exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/targeted-estimate-characterization.log
+label=targeted-perf exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/targeted-perf.log
+label=targeted-export-regression exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/targeted-export-regression.log
+label=build-after-lint-fix exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/build-after-lint-fix.log
+label=lint-after-lint-fix exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase2/lint-after-lint-fix.log classification=pre_existing_baseline_3_errors_548_warnings
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 2 evidence advances R1.3, R1.5, R1.6, and the activity-label portion of R10.1.
+- R12.3 remains provider/typegen-gated; no linked apply or generated remote types were claimed.
+- Rows spanning Phase 3+ stay open: editor UI, copy rebrand, templates panel, export, collaboration/presence UI, AI/package-builder, hosted/manual proof, and cleanup/archive.
+
+### Remaining Phase 2 boundary
+
+- Repository wrappers include missing-schema fallback because local/provider DB apply is still owner-gated.
+- New tab CRUD actions are available but no user-visible controls were added in this phase.
+- `next-env.d.ts` build churn restored before staging.

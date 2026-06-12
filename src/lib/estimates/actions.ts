@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
+import type { EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   canNestEstimateNodeKind,
@@ -26,7 +26,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
-import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
+import { getCurrentWorkspaceProject, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/types";
 
@@ -193,6 +193,39 @@ type FetchEstimateTreeInput = {
   estimateId: string;
 };
 
+type FetchEstimateTabTreeInput = FetchEstimateTreeInput & {
+  tabId: string;
+};
+
+type EstimateTabActionInput = FetchEstimateTreeInput & {
+  tabId: string;
+  correlationId?: string;
+};
+
+type CreateEstimateTabInput = FetchEstimateTreeInput & {
+  name: string;
+  correlationId?: string;
+};
+
+type RenameEstimateTabInput = EstimateTabActionInput & {
+  name: string;
+};
+
+type ReorderEstimateTabsInput = FetchEstimateTreeInput & {
+  updates: Array<{ id: string; sortOrder: number }>;
+  correlationId?: string;
+};
+
+type DuplicateEstimateTabInput = EstimateTabActionInput & {
+  name?: string;
+};
+
+type EstimateTabMutationResult = {
+  estimateTabId: string;
+  replacementTabId?: string | null;
+  tabs?: EstimateTabSummary[];
+};
+
 type ReorderEstimateTreeNodeUpdate = {
   id: string;
   parentId: string | null;
@@ -210,6 +243,7 @@ type ReorderEstimateTreeNodesResult = {
 type ReorderEstimateNodeRow = {
   id: string;
   estimate_id: string;
+  estimate_tab_id?: string | null;
   parent_id: string | null;
   kind: string;
 };
@@ -217,6 +251,7 @@ type ReorderEstimateNodeRow = {
 type ValidatedEstimateNodeRow = {
   id: string;
   estimate_id: string;
+  estimate_tab_id?: string | null;
   parent_id: string | null;
   kind: string;
 };
@@ -231,6 +266,7 @@ type CreateEstimateNodeResult = {
   name: string;
   kind: CreateEstimateNodeKind;
   parentId: string | null;
+  estimateTabId?: string | null;
 };
 
 type DeleteEstimateNodeResult = {
@@ -316,7 +352,13 @@ type RpcFunctionName =
   | "rename_estimate_node_with_history"
   | "insert_estimate_template_into_estimate_with_history"
   | "update_estimate_details_with_history"
-  | "delete_estimate_node_with_history";
+  | "delete_estimate_node_with_history"
+  | "create_estimate_tab_with_history"
+  | "rename_estimate_tab_with_history"
+  | "reorder_estimate_tabs_with_history"
+  | "duplicate_estimate_tab_with_history"
+  | "archive_estimate_tab_with_history"
+  | "delete_estimate_tab_with_history";
 
 type EstimateHistoryRpcClient = {
   rpc: (fn: RpcFunctionName, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -1162,6 +1204,16 @@ export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimate
   return tree;
 }
 
+export async function fetchEstimateTabs({ projectId, estimateId }: FetchEstimateTreeInput) {
+  return getEstimateTabs(projectId, estimateId);
+}
+
+export async function fetchEstimateTabTree({ projectId, estimateId, tabId }: FetchEstimateTabTreeInput) {
+  const { project, estimate, tab, tree } = await getEstimateTabTree(projectId, estimateId, tabId);
+  if (!project || !estimate || !tab) throw new Error("Estimate tab not found in the current project.");
+  return tree;
+}
+
 export async function fetchEstimateSheetVersionControl({
   projectId,
   estimateId,
@@ -1371,10 +1423,21 @@ export async function reorderEstimateTreeNodes(
     ...input.updates.map((update) => update.id),
     ...input.updates.flatMap((update) => (update.parentId ? [update.parentId] : [])),
   ]));
-  const { data: referencedNodes, error: nodeError } = await supabase
+  const tabScopedNodeResult = await supabase
     .from("estimate_nodes")
-    .select("id, estimate_id, parent_id, kind")
+    .select("id, estimate_id, estimate_tab_id, parent_id, kind")
     .in("id", referencedNodeIds);
+  let referencedNodes: unknown = tabScopedNodeResult.data;
+  let nodeError = tabScopedNodeResult.error;
+
+  if (nodeError && isMissingColumnError(nodeError, "estimate_tab_id")) {
+    const legacyResult = await supabase
+      .from("estimate_nodes")
+      .select("id, estimate_id, parent_id, kind")
+      .in("id", referencedNodeIds);
+    referencedNodes = legacyResult.data;
+    nodeError = legacyResult.error;
+  }
 
   if (nodeError) throw nodeError;
 
@@ -1387,6 +1450,9 @@ export async function reorderEstimateTreeNodes(
     const parentNode = update.parentId ? nodesById.get(update.parentId) : null;
     if (update.parentId && (!parentNode || parentNode.estimate_id !== estimate.id)) {
       throw new Error("Estimate tree update parent not found in the current estimate.");
+    }
+    if (parentNode && node.estimate_tab_id && parentNode.estimate_tab_id && node.estimate_tab_id !== parentNode.estimate_tab_id) {
+      throw new Error("Estimate tree nodes cannot be moved across tabs.");
     }
 
     const nodeKind = normalizeEstimateTreeNodeKind(node.kind);
@@ -1764,6 +1830,128 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
   return estimate;
 }
 
+function readEstimateTabMutationResult(value: unknown, fallbackTabId?: string): EstimateTabMutationResult {
+  const record = readJsonRecord(value);
+  const estimateTabId = typeof record.estimateTabId === "string"
+    ? record.estimateTabId
+    : typeof record.tabId === "string"
+      ? record.tabId
+      : fallbackTabId ?? "";
+  if (!estimateTabId) throw new Error("Estimate tab RPC did not return a tab id.");
+  return {
+    estimateTabId,
+    replacementTabId: typeof record.replacementTabId === "string" ? record.replacementTabId : null,
+  };
+}
+
+async function getProjectScopedEstimateActionContext(projectId: string, estimateId: string) {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  const currentUser = await requireCurrentUserContext();
+  return { project, estimate, supabase, currentUser };
+}
+
+export async function createEstimateTab(input: CreateEstimateTabInput): Promise<EstimateTabMutationResult> {
+  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const name = normalizeEditableText(input.name, "Estimate tab name");
+  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_tab_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    tab_name: name,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+  if (error) throw new Error(`Could not create estimate tab: ${error.message}`);
+  return { ...readEstimateTabMutationResult(data), tabs: await getEstimateTabs(project.id, estimate.id) };
+}
+
+export async function renameEstimateTab(input: RenameEstimateTabInput): Promise<EstimateTabMutationResult> {
+  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const name = normalizeEditableText(input.name, "Estimate tab name");
+  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("rename_estimate_tab_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    target_tab_id: input.tabId,
+    next_name: name,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+  if (error) throw new Error(`Could not rename estimate tab: ${error.message}`);
+  return { ...readEstimateTabMutationResult(data, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+}
+
+export async function reorderEstimateTabs(input: ReorderEstimateTabsInput): Promise<EstimateTabMutationResult> {
+  if (input.updates.length === 0) throw new Error("At least one estimate tab update is required.");
+  const seen = new Set<string>();
+  for (const update of input.updates) {
+    if (seen.has(update.id)) throw new Error(`Duplicate estimate tab update: ${update.id}.`);
+    seen.add(update.id);
+  }
+  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { error } = await asEstimateHistoryRpcClient(supabase).rpc("reorder_estimate_tabs_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    sort_updates: input.updates.map((update) => ({ id: update.id, sort_order: update.sortOrder })),
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+  if (error) throw new Error(`Could not reorder estimate tabs: ${error.message}`);
+  const tabs = await getEstimateTabs(project.id, estimate.id);
+  return { estimateTabId: input.updates[0]?.id ?? estimate.id, tabs };
+}
+
+export async function duplicateEstimateTab(input: DuplicateEstimateTabInput): Promise<EstimateTabMutationResult> {
+  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("duplicate_estimate_tab_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    source_tab_id: input.tabId,
+    next_name: input.name ? normalizeEditableText(input.name, "Estimate tab name") : null,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+  if (error) throw new Error(`Could not duplicate estimate tab: ${error.message}`);
+  return { ...readEstimateTabMutationResult(data), tabs: await getEstimateTabs(project.id, estimate.id) };
+}
+
+export async function archiveEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
+  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("archive_estimate_tab_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    target_tab_id: input.tabId,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+  if (error) throw new Error(`Could not archive estimate tab: ${error.message}`);
+  return { ...readEstimateTabMutationResult(data, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+}
+
+export async function deleteEstimateTab(input: EstimateTabActionInput): Promise<EstimateTabMutationResult> {
+  const { project, estimate, supabase, currentUser } = await getProjectScopedEstimateActionContext(input.projectId, input.estimateId);
+  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("delete_estimate_tab_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimate.id,
+    target_tab_id: input.tabId,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+  if (error) throw new Error(`Could not delete estimate tab: ${error.message}`);
+  return { ...readEstimateTabMutationResult(data, input.tabId), tabs: await getEstimateTabs(project.id, estimate.id) };
+}
+
 export async function createEstimateNode(projectId: string, estimateId: string, formData: FormData) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -1773,6 +1961,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   const name = readRequiredText(formData, "name");
   const kind = readEstimateNodeKind(formData);
   const parentId = readOptionalText(formData, "parentId");
+  const estimateTabId = readOptionalText(formData, "estimateTabId");
   if (parentId) assertNotOptimisticEstimateNodeId(parentId, "Parent estimate node");
   let parentKind: EstimateTreeNodeKind | null = null;
 
@@ -1810,15 +1999,16 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     .select("id, kind, sort_order")
     .eq("estimate_id", estimate.id)
     .order("sort_order", { ascending: true });
-  const { data: siblings, error: siblingsError } = parentId
-    ? await siblingQuery.eq("parent_id", parentId)
-    : await siblingQuery.is("parent_id", null);
+  const rootSiblingQuery = parentId ? siblingQuery.eq("parent_id", parentId) : siblingQuery.is("parent_id", null);
+  const { data: siblings, error: siblingsError } = !parentId && estimateTabId
+    ? await (rootSiblingQuery as unknown as { eq: (column: string, value: string) => typeof rootSiblingQuery }).eq("estimate_tab_id", estimateTabId)
+    : await rootSiblingQuery;
 
   if (siblingsError) throw siblingsError;
 
   const siblingRows = (siblings ?? []) as CreateEstimateNodeSiblingRow[];
   const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), -1);
-  const { data: nodeResult, error: rpcError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", {
+  const createNodePayload: Record<string, unknown> = {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     parent_node_id: parentId,
@@ -1827,7 +2017,9 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     initial_sort_order: maxSiblingSortOrder + 1,
     acting_user_id: currentUser.userId,
     correlation_id: randomUUID(),
-  });
+  };
+  if (estimateTabId) createNodePayload.target_tab_id = estimateTabId;
+  const { data: nodeResult, error: rpcError } = await asEstimateHistoryRpcClient(supabase).rpc("create_estimate_node_with_history", createNodePayload);
   if (rpcError) {
     throw new Error(`Could not create estimate tree node: ${rpcError.message}`);
   }
@@ -1843,7 +2035,13 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   // No revalidatePath/redirect here: the client reconciles its optimistic node
   // with this id in place, so a server-driven navigation would remount the
   // whole workspace mid-edit.
-  return { nodeId, name, kind, parentId: parentId ?? null } satisfies CreateEstimateNodeResult;
+  return {
+    nodeId,
+    name,
+    kind,
+    parentId: parentId ?? null,
+    ...(estimateTabId ? { estimateTabId } : {}),
+  } satisfies CreateEstimateNodeResult;
 }
 
 export async function renameEstimateNode(

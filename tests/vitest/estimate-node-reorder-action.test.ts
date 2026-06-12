@@ -37,6 +37,7 @@ type EstimateNodeRow = {
   id: string;
   kind: "group" | "area" | "lot" | "general" | "structure" | "level" | "assembly" | "legacy";
   estimate_id: string;
+  estimate_tab_id?: string | null;
   parent_id: string | null;
 };
 
@@ -260,6 +261,25 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
 
+  it("rejects cross-tab reparenting before the reorder RPC", async () => {
+    const supabase = makeSupabase({
+      nodes: [
+        { id: "ground-floor", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: null },
+        { id: "kitchen", kind: "area", estimate_id: "estimate-1", estimate_tab_id: "tab-a", parent_id: "ground-floor" },
+        { id: "site-works", kind: "group", estimate_id: "estimate-1", estimate_tab_id: "tab-b", parent_id: null },
+      ],
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
+
+    await expect(
+      reorderEstimateTreeNodes("project-1", "estimate-1", {
+        updates: [{ id: "kitchen", parentId: "site-works", sortOrder: 10 }],
+      }),
+    ).rejects.toThrow("Estimate tree nodes cannot be moved across tabs.");
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
   it("converts RPC errors into a user-readable reorder failure", async () => {
     const supabase = makeSupabase({
       nodes: [{ id: "project-scope", kind: "group", estimate_id: "estimate-1", parent_id: null }],
@@ -382,6 +402,42 @@ describe("createEstimateNode server action", () => {
     });
     expect(result).toEqual({ nodeId: "new-group", name: "New Group", kind: "group", parentId: "main-house" });
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("scopes root-node creation to an explicit estimate tab", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const siblingQuery = queryResult({ data: [{ id: "project-scope", kind: "group", sort_order: 3 }], error: null });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") return siblingQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async () => ({ data: { nodeId: "new-root-group" }, error: null })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const formData = new FormData();
+    formData.set("name", "Alternate Scope");
+    formData.set("kind", "group");
+    formData.set("estimateTabId", "tab-b");
+    const { createEstimateNode } = await import("@/lib/estimates/actions");
+
+    const result = await createEstimateNode("project-1", "estimate-1", formData);
+
+    expect(siblingQuery.is).toHaveBeenCalledWith("parent_id", null);
+    expect(siblingQuery.eq).toHaveBeenCalledWith("estimate_tab_id", "tab-b");
+    expect(supabase.rpc).toHaveBeenCalledWith("create_estimate_node_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      parent_node_id: null,
+      node_kind: "group",
+      node_name: "Alternate Scope",
+      initial_sort_order: 4,
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+      target_tab_id: "tab-b",
+    });
+    expect(result).toEqual({ nodeId: "new-root-group", name: "Alternate Scope", kind: "group", parentId: null, estimateTabId: "tab-b" });
   });
 
   it("surfaces create RPC failures without app-side rollback writes", async () => {

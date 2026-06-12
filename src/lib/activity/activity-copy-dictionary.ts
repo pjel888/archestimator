@@ -15,6 +15,12 @@ export const ESTIMATE_EVENT_ACTIONS: Record<string, ActivityAction> = {
   node_renamed: "renamed",
   node_deleted_with_children: "deleted",
   tree_reordered: "reorganized",
+  tab_created: "created",
+  tab_renamed: "renamed",
+  tab_reordered: "reorganized",
+  tab_duplicated: "created",
+  tab_archived: "removed",
+  tab_deleted: "deleted",
 };
 
 export const DECISION_ACTIONS: Record<string, ActivityAction> = {

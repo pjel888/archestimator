@@ -2,13 +2,13 @@ import { cache } from "react";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
-import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateRowItem, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
-import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
+import { isMissingColumnError, isMissingRelationError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import type {
   CollaborationInvitationSummary,
   CollaborationRole,
@@ -1407,6 +1407,33 @@ export async function listProjectEstimateSheets(projectId: string): Promise<Arra
 type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
 type EstimateNodeRow = Tables<"estimate_nodes">;
 type EstimateRowItemRow = Tables<"estimate_row_items">;
+type WorkspaceSupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+type QueryError = { message: string; code?: string | null };
+type QueryResult<T> = { data: T | null; error: QueryError | null };
+type EstimateTabQueryRow = {
+  id: string;
+  estimate_id: string;
+  name: string;
+  sort_order: number;
+  is_default: boolean;
+  archived_at: string | null;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+};
+
+type EstimateTabsQuery = {
+  eq: (column: string, value: string | boolean) => EstimateTabsQuery;
+  is: (column: string, value: null) => EstimateTabsQuery;
+  order: (column: string, options?: { ascending?: boolean }) => Promise<QueryResult<EstimateTabQueryRow[]>>;
+  maybeSingle: () => Promise<QueryResult<EstimateTabQueryRow>>;
+};
+
+type EstimateTabsReadClient = {
+  from: (table: "estimate_tabs") => {
+    select: (columns: string) => EstimateTabsQuery;
+  };
+};
 
 // Estimate-sheet tree loads fetch every node and row of the estimate, so the
 // column list is explicit: only fields consumed by buildEstimateTree/toUiRow.
@@ -1463,6 +1490,20 @@ type LiveEstimateTreeLoadLimitState = {
   fetchedRowItemCount: number;
   didExceedNodeLimit: boolean;
   didExceedRowItemLimit: boolean;
+};
+
+type LiveEstimateTabTreeResult = LiveEstimateTreeResult & {
+  tab: EstimateTabSummary | null;
+};
+
+type EstimateTabRouteContext = LiveEstimateTabTreeResult & {
+  selectedNodeId: string | null;
+};
+type EstimateNodeRouteRow = {
+  id: string;
+  estimate_id: string;
+  estimate_tab_id?: string | null;
+  estimates: EstimateRecordWithLegacy;
 };
 
 function getDisplayNodeKind(kind: EstimateNodeKind): EstimateTreeNode["kind"] | null {
@@ -1541,6 +1582,26 @@ function limitTreeRows<T>(rows: T[], limit: number | null): { rows: T[]; didExce
   };
 }
 
+function asEstimateTabsReadClient(supabase: WorkspaceSupabaseClient) {
+  // Temporary compatibility boundary: estimate_tabs exists after the owner-authorized
+  // linked apply/type regeneration. Keep casts narrow and delete them after regen.
+  return supabase as unknown as EstimateTabsReadClient;
+}
+
+function toEstimateTabSummary(row: EstimateTabQueryRow): EstimateTabSummary {
+  return {
+    id: row.id,
+    name: row.name,
+    sortOrder: row.sort_order,
+    isDefault: row.is_default,
+  };
+}
+
+function isEstimateTabsSchemaMissing(error: unknown) {
+  const candidate = error as { code?: string | null; message?: string | null } | null | undefined;
+  return isMissingRelationError(candidate, "estimate_tabs") || isMissingColumnError(candidate, "estimate_tab_id");
+}
+
 export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: EstimateTreeRowItemQueryRow[]): EstimateTreeNode[] {
   const rowItemsByNode = new Map<string, EstimateRowItem[]>();
   for (const row of rows) {
@@ -1587,7 +1648,7 @@ export function buildEstimateTree(nodes: EstimateTreeNodeQueryRow[], rows: Estim
   return roots;
 }
 
-export async function getProjectEstimateTreeByEstimate(
+async function getProjectEstimateTreeByEstimateLegacy(
   projectId: string,
   estimateId: string,
   options: LiveEstimateTreeLoadOptions = {},
@@ -1639,7 +1700,182 @@ export async function getProjectEstimateTreeByEstimate(
   return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
 }
 
-export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
+export async function getEstimateTabs(projectId: string, estimateId: string): Promise<EstimateTabSummary[]> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return [];
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) return [];
+
+  const { data, error } = await asEstimateTabsReadClient(supabase)
+    .from("estimate_tabs")
+    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
+    .eq("estimate_id", estimate.id)
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map(toEstimateTabSummary);
+}
+
+export async function getDefaultEstimateTab(estimateId: string): Promise<EstimateTabSummary | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await asEstimateTabsReadClient(supabase)
+    .from("estimate_tabs")
+    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
+    .eq("estimate_id", estimateId)
+    .eq("is_default", true)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? toEstimateTabSummary(data) : null;
+}
+
+export async function getEstimateTabTree(
+  projectId: string,
+  estimateId: string,
+  tabId: string,
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<LiveEstimateTabTreeResult> {
+  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("*")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+
+  const { data: tab, error: tabError } = await asEstimateTabsReadClient(supabase)
+    .from("estimate_tabs")
+    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
+    .eq("id", tabId)
+    .eq("estimate_id", estimate.id)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (tabError) throw tabError;
+  if (!tab) return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tab: null, selectedNodeId: null, tree: [] };
+
+  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
+  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+  const nodesQuery = supabase
+    .from("estimate_nodes")
+    .select(ESTIMATE_TREE_NODE_COLUMNS)
+    .eq("estimate_id", estimate.id);
+  const tabScopedNodesQuery = (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
+    .eq("estimate_tab_id", tab.id)
+    .order("sort_order", { ascending: true });
+  const nodesResult = maxNodeCount ? await tabScopedNodesQuery.limit(maxNodeCount + 1) : await tabScopedNodesQuery;
+
+  if (nodesResult.error) throw nodesResult.error;
+
+  const rawNodes = (nodesResult.data ?? []) as EstimateTreeNodeQueryRow[];
+  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
+  const nodeIds = limitedNodes.rows.map((node) => node.id);
+  let rawRows: EstimateTreeRowItemQueryRow[] = [];
+  if (nodeIds.length > 0) {
+    const rowsQuery = supabase
+      .from("estimate_row_items")
+      .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
+      .in("node_id", nodeIds)
+      .order("sort_order", { ascending: true });
+    const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
+    if (rowsResult.error) throw rowsResult.error;
+    rawRows = rowsResult.data ?? [];
+  }
+
+  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
+  const loadLimitState = maxNodeCount || maxRowItemCount
+    ? {
+      maxNodeCount,
+      maxRowItemCount,
+      fetchedNodeCount: rawNodes.length,
+      fetchedRowItemCount: rawRows.length,
+      didExceedNodeLimit: limitedNodes.didExceedLimit,
+      didExceedRowItemLimit: limitedRows.didExceedLimit,
+    }
+    : undefined;
+  const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
+  const tree = buildEstimateTree(limitedNodes.rows, limitedRows.rows);
+  return { workspace, project, estimate: normalizedEstimate, tab: toEstimateTabSummary(tab), selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
+}
+
+export async function getProjectEstimateTreeByEstimate(
+  projectId: string,
+  estimateId: string,
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<LiveEstimateTreeResult> {
+  try {
+    const defaultTab = await getDefaultEstimateTab(estimateId);
+    if (!defaultTab) return getProjectEstimateTreeByEstimateLegacy(projectId, estimateId, options);
+    const result = await getEstimateTabTree(projectId, estimateId, defaultTab.id, options);
+    return {
+      workspace: result.workspace,
+      project: result.project,
+      estimate: result.estimate,
+      selectedNodeId: result.selectedNodeId,
+      tree: result.tree,
+      loadLimitState: result.loadLimitState,
+    };
+  } catch (error) {
+    if (isEstimateTabsSchemaMissing(error)) return getProjectEstimateTreeByEstimateLegacy(projectId, estimateId, options);
+    throw error;
+  }
+}
+
+export async function resolveEstimateTabRouteContext(
+  projectId: string,
+  routeSegment: string,
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<EstimateTabRouteContext> {
+  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: selectedNode, error: selectedNodeError } = await supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, estimate_tab_id, estimates!inner(*)")
+    .eq("id", routeSegment)
+    .eq("estimates.project_id", project.id)
+    .maybeSingle();
+
+  if (selectedNodeError) {
+    if (isEstimateTabsSchemaMissing(selectedNodeError)) {
+      const legacyResult = await getProjectEstimateTreeByNode(projectId, routeSegment);
+      return { ...legacyResult, tab: null };
+    }
+    throw selectedNodeError;
+  }
+
+  const routeNode = selectedNode as unknown as EstimateNodeRouteRow | null;
+  if (routeNode?.estimate_tab_id) {
+    const result = await getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id, options);
+    return {
+      ...result,
+      selectedNodeId: routeNode.id,
+    };
+  }
+
+  const defaultResult = await getProjectEstimateTreeByEstimate(projectId, routeSegment, options);
+  return { ...defaultResult, tab: null };
+}
+
+async function getProjectEstimateTreeByNodeLegacy(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
@@ -1652,12 +1888,55 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
     .maybeSingle();
 
   if (selectedNodeError) throw selectedNodeError;
-  if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
+  if (!selectedNode) return getProjectEstimateTreeByEstimateLegacy(projectId, nodeId);
 
   const estimate = normalizeEstimateRecord(selectedNode.estimates as EstimateRecordWithLegacy);
   const [nodesResult, rowsResult] = await Promise.all([
     supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
     supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
+  ]);
+
+  if (nodesResult.error) throw nodesResult.error;
+  if (rowsResult.error) throw rowsResult.error;
+
+  const nodes = nodesResult.data ?? [];
+  const tree = buildEstimateTree(nodes, rowsResult.data ?? []);
+  const selectedNodeId = nodes.some((node) => node.id === nodeId) ? nodeId : tree[0]?.id ?? null;
+
+  return { workspace, project, estimate, selectedNodeId, tree };
+}
+
+export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
+  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: selectedNode, error: selectedNodeError } = await supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, estimate_tab_id, estimates!inner(*)")
+    .eq("id", nodeId)
+    .eq("estimates.project_id", project.id)
+    .maybeSingle();
+
+  if (selectedNodeError) {
+    if (isEstimateTabsSchemaMissing(selectedNodeError)) return getProjectEstimateTreeByNodeLegacy(projectId, nodeId);
+    throw selectedNodeError;
+  }
+  if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
+
+  const routeNode = selectedNode as unknown as EstimateNodeRouteRow;
+  if (routeNode.estimate_tab_id) {
+    const result = await getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id);
+    return {
+      ...result,
+      selectedNodeId: nodeId,
+    };
+  }
+
+  const estimate = normalizeEstimateRecord(routeNode.estimates);
+  const [nodesResult, rowsResult] = await Promise.all([
+    supabase.from("estimate_nodes").select(ESTIMATE_TREE_NODE_COLUMNS).eq("estimate_id", routeNode.estimate_id).order("sort_order", { ascending: true }),
+    supabase.from("estimate_row_items").select(ESTIMATE_TREE_ROW_ITEM_COLUMNS).eq("estimate_id", routeNode.estimate_id).order("sort_order", { ascending: true }),
   ]);
 
   if (nodesResult.error) throw nodesResult.error;
