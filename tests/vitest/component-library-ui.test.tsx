@@ -855,6 +855,39 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
   });
 
+  it("refreshes readable project sources from the Templates tab", async () => {
+    const refreshedProjectSources: ReusableEstimateSource[] = [
+      ...projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+      {
+        kind: "project",
+        projectId: "project-3",
+        name: "Hotel Refresh Project",
+      },
+      {
+        kind: "project-estimate",
+        projectId: "project-3",
+        estimateId: "estimate-3",
+        name: "Lobby Refresh Estimate",
+        sheetCode: "EST-003",
+      },
+    ];
+    reusableSourceActionMocks.listReusableProjectSources
+      .mockResolvedValueOnce({
+        sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+      })
+      .mockResolvedValueOnce({ sources: refreshedProjectSources });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh project sources" }));
+
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("treeitem", { name: "Hotel Refresh Project project source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Hotel Refresh Project project source" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Refresh Estimate estimate EST-003" })).toBeInTheDocument();
+  });
+
   it("lazy-loads an estimate outline when a project estimate expands", async () => {
     reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
       sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
