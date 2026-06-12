@@ -19,6 +19,7 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import type { ProjectSourceInsertTarget, ReusableEstimateSource } from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -31,6 +32,7 @@ import { NewTemplateModal } from "./NewTemplateModal";
 import {
   CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  PROJECT_SOURCE_DRAG_MIME_TYPE,
   type CreateEstimateTemplateFromNodeEventDetail,
   type EstimateTemplate,
 } from "./templates";
@@ -49,6 +51,7 @@ import {
   LibraryTree,
   TemplatesTree,
   templatesTreeCategoryId,
+  templatesTreeSectionId,
   type LibraryTreeNode,
   type LibraryTreeOrder,
 } from "./tree";
@@ -236,6 +239,8 @@ type EstimateRightSidebarProps = {
   nodes?: EstimateTreeNode[];
   initialLibraryItems?: EstimateRowItem[];
   templates?: EstimateTemplate[];
+  projectSources?: ReusableEstimateSource[];
+  onInsertProjectSource?: (source: ProjectSourceInsertTarget) => boolean | void;
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
@@ -295,6 +300,8 @@ export function EstimateRightSidebar({
   nodes,
   initialLibraryItems = estimateLibraryItems,
   templates = [],
+  projectSources = [],
+  onInsertProjectSource,
   categoryTree = componentCategoryTree,
   suppliers = [],
   brands = [],
@@ -329,7 +336,11 @@ export function EstimateRightSidebar({
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
-    Array.from(new Set(templates.map((template) => templatesTreeCategoryId(template.category)))),
+    Array.from(new Set([
+      templatesTreeSectionId("custom-templates"),
+      templatesTreeSectionId("projects"),
+      ...templates.map((template) => templatesTreeCategoryId(template.category)),
+    ])),
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -534,8 +545,8 @@ export function EstimateRightSidebar({
   const templatesSelectionNodes = useMemo(() => buildTemplatesSelectionNodes(templateList), [templateList]);
   const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
   const templatesAllNodeIds = useMemo(
-    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList)),
-    [templateList],
+    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList, projectSources)),
+    [projectSources, templateList],
   );
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
@@ -679,6 +690,25 @@ export function EstimateRightSidebar({
     [canInsertTemplate, effectiveTemplateTargetName, onInsertTemplateNode],
   );
 
+  const addProjectSource = useCallback(
+    (source: ProjectSourceInsertTarget) => {
+      if (!canInsertTemplate) {
+        setLastActionMessage("Select a Group Node before adding project sources.");
+        return false;
+      }
+
+      const didInsert = onInsertProjectSource ? onInsertProjectSource(source) !== false : false;
+      if (!didInsert) {
+        setLastActionMessage(`${source.name} was not inserted. Select a Group Node and try again.`);
+        return false;
+      }
+
+      setLastActionMessage(`${source.name} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      return true;
+    },
+    [canInsertTemplate, effectiveTemplateTargetName, onInsertProjectSource],
+  );
+
   const duplicateItem = useCallback((item: EstimateRowItem) => {
     const now = new Date().toISOString();
     setLibraryItems((items) => [
@@ -751,7 +781,11 @@ export function EstimateRightSidebar({
   const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
     setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
     setActiveTab("templates");
-    setTemplatesExpandedIds((current) => Array.from(new Set([...current, templatesTreeCategoryId(template.category)])));
+    setTemplatesExpandedIds((current) => Array.from(new Set([
+      ...current,
+      templatesTreeSectionId("custom-templates"),
+      templatesTreeCategoryId(template.category),
+    ])));
     setLastActionMessage(`${template.name} saved to templates.`);
     onLibraryDataChanged?.();
   }, [onLibraryDataChanged]);
@@ -1034,6 +1068,37 @@ export function EstimateRightSidebar({
     [],
   );
 
+  const handleProjectSourceDragStart = useCallback(
+    (event: React.DragEvent<HTMLElement>, source: ProjectSourceInsertTarget) => {
+      event.dataTransfer.effectAllowed = "copy";
+      const payload = source.kind === "project-node"
+        ? {
+            kind: "project-node",
+            projectId: source.projectId,
+            estimateId: source.estimateId,
+            tabId: source.tabId,
+            nodeId: source.nodeId,
+          }
+        : {
+            kind: "project-tab",
+            projectId: source.projectId,
+            estimateId: source.estimateId,
+            tabId: source.tabId,
+          };
+      event.dataTransfer.setData(PROJECT_SOURCE_DRAG_MIME_TYPE, JSON.stringify(payload));
+      event.dataTransfer.setData("text/plain", source.name);
+      beginEstimateWorkshopDrag({ kind: "project-source", sourceName: source.name });
+
+      const dragGhost = document.createElement("div");
+      dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
+      dragGhost.textContent = `${source.name} · project source`;
+      document.body.appendChild(dragGhost);
+      event.dataTransfer.setDragImage(dragGhost, 12, 12);
+      window.setTimeout(() => dragGhost.remove(), 0);
+    },
+    [],
+  );
+
   // Dragging a category header carries every template in it; the drop
   // inserts them all under the target group, in tree order.
   const handleCategoryDragStart = useCallback(
@@ -1121,6 +1186,7 @@ export function EstimateRightSidebar({
             {activeTab === "templates" ? (
               <TemplatesTree
                 templates={templateList}
+                projectSources={projectSources}
                 searchQuery={searchQuery}
                 expandedNodeIds={templatesExpandedIds}
                 onToggle={handleTemplatesToggle}
@@ -1131,6 +1197,8 @@ export function EstimateRightSidebar({
                 onTemplateDragStart={handleTemplateDragStart}
                 onCategoryDragStart={handleCategoryDragStart}
                 onTemplateNodeDragStart={handleTemplateNodeDragStart}
+                onAddProjectSource={addProjectSource}
+                onProjectSourceDragStart={handleProjectSourceDragStart}
                 onRenameTemplate={startRenameTemplate}
                 onDeleteTemplate={startDeleteTemplate}
                 onCreateTemplate={startNewTemplateInCategory}
