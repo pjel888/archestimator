@@ -14,6 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const ASK_READ_CONTEXT_ESTIMATE_LIMIT = 8;
 const ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT = 48;
 const ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT = 48;
+const ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT = 12;
 const ASK_READ_CONTEXT_CHART_ESTIMATE_LIMIT = 8;
 const ASK_READ_CONTEXT_CHART_NODE_LIMIT = 120;
 const ASK_READ_CONTEXT_CHART_ROW_LIMIT = 500;
@@ -64,6 +65,7 @@ type AiAskCurrentEstimateTreeNode = {
 
 type AiAskCurrentEstimateRow = {
   areaName: string | null;
+  tabName?: string | null;
   material: string;
   quantity: number;
   unit: string;
@@ -72,12 +74,26 @@ type AiAskCurrentEstimateRow = {
   sourceType: "library" | "manual";
 };
 
-type AiAskProviderCurrentEstimate = {
+type AiAskProviderCurrentEstimateTab = {
   name: string;
-  sheetCode: string | null;
+  isDefault: boolean;
+  isActive: boolean;
   total: number;
   nodeCount: number;
   rowCount: number;
+  tree: AiAskCurrentEstimateTreeNode[];
+  rows: AiAskCurrentEstimateRow[];
+};
+
+type AiAskProviderCurrentEstimate = {
+  name: string;
+  sheetCode: string | null;
+  activeTabName?: string | null;
+  tabCount?: number;
+  total: number;
+  nodeCount: number;
+  rowCount: number;
+  tabs?: AiAskProviderCurrentEstimateTab[];
   tree: AiAskCurrentEstimateTreeNode[];
   rows: AiAskCurrentEstimateRow[];
 };
@@ -177,6 +193,7 @@ type AiAskProviderActivityEvent = {
   eventLabel: string;
   createdAt: string;
   actorLabel: string;
+  tabName?: string | null;
   target: string;
   summary: string;
   changedFields: string[];
@@ -187,6 +204,7 @@ type AiAskProviderActivityHistory = {
   projectName: string;
   estimateName: string;
   sheetCode: string | null;
+  tabCount?: number;
   eventCount: number;
   resultLimit: number;
   events: AiAskProviderActivityEvent[];
@@ -307,10 +325,18 @@ type AiAskComponentPriceOption = {
 type AiAskEstimateNodeRow = {
   id: string;
   estimate_id: string;
+  estimate_tab_id: string | null;
   parent_id: string | null;
   kind: "group" | "area";
   name: string;
   sort_order: number;
+};
+
+type AiAskEstimateTabRow = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_default: boolean;
 };
 
 type AiAskEstimateRowItemRow = {
@@ -439,6 +465,7 @@ type AiAskActivityEventRow = {
   event_source: string;
   created_at: string;
   actor_user_id: string | null;
+  estimate_tab_id: string | null;
   row_context: unknown;
   changed_fields: unknown;
   total_delta: number | null;
@@ -831,7 +858,11 @@ async function resolveAskActivityActorLabels(
   }
 }
 
-function compactAskActivityEvent(row: AiAskActivityEventRow, actorLabels: Map<string, string>): AiAskProviderActivityEvent {
+function compactAskActivityEvent(
+  row: AiAskActivityEventRow,
+  actorLabels: Map<string, string>,
+  tabNameById: Map<string, string>,
+): AiAskProviderActivityEvent {
   const rowContext = readJsonRecord(row.row_context);
   const payload = readJsonRecord(row.payload);
   const changedFields = readStringArray(row.changed_fields).slice(0, 8);
@@ -843,6 +874,7 @@ function compactAskActivityEvent(row: AiAskActivityEventRow, actorLabels: Map<st
     eventLabel,
     createdAt: row.created_at,
     actorLabel: row.actor_user_id ? actorLabels.get(row.actor_user_id) ?? getAskActivityFallbackActorLabel(row.actor_user_id) : getAskActivityFallbackActorLabel(null),
+    tabName: row.estimate_tab_id ? tabNameById.get(row.estimate_tab_id) ?? null : null,
     target,
     summary: getAskActivitySummary({ eventType: row.event_type, eventLabel, target, changedFields }),
     changedFields,
@@ -886,10 +918,11 @@ async function readAskCurrentEstimateActivityHistory({
       summary: null,
       rowCount: 0,
       sourceTables: ["projects"] as string[],
+      tabIds: [] as string[],
     };
   }
 
-  const sourceTables = ["projects", "estimates", "estimate_sheet_events", "profiles"];
+  const sourceTables = ["projects", "estimates", "estimate_tabs", "estimate_sheet_events", "profiles"];
   let rowCount = 1;
   let resolvedEstimateId = estimateId;
   if (!resolvedEstimateId && selectedNodeId) {
@@ -910,6 +943,7 @@ async function readAskCurrentEstimateActivityHistory({
       summary: null,
       rowCount,
       sourceTables,
+      tabIds: [] as string[],
     };
   }
 
@@ -927,13 +961,25 @@ async function readAskCurrentEstimateActivityHistory({
       summary: null,
       rowCount,
       sourceTables,
+      tabIds: [] as string[],
     };
   }
   rowCount += 1;
 
+  const { data: tabsData, error: tabsError } = await supabase
+    .from("estimate_tabs")
+    .select("id, name, sort_order, is_default")
+    .eq("estimate_id", estimate.id)
+    .order("sort_order", { ascending: true })
+    .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT);
+  if (tabsError) throw tabsError;
+  const tabRows = (tabsData ?? []) as AiAskEstimateTabRow[];
+  const tabNameById = new Map(tabRows.map((tab) => [tab.id, tab.name]));
+  rowCount += tabRows.length;
+
   const { data: eventsData, error: eventsError } = await supabase
     .from("estimate_sheet_events")
-    .select("event_type, event_source, created_at, actor_user_id, row_context, changed_fields, total_delta, payload")
+    .select("event_type, event_source, created_at, actor_user_id, estimate_tab_id, row_context, changed_fields, total_delta, payload")
     .eq("workspace_id", workspaceId)
     .eq("estimate_id", estimate.id)
     .not("event_type", "in", `(${ASK_ACTIVITY_DORMANT_EVENT_TYPES.join(",")})`)
@@ -952,12 +998,14 @@ async function readAskCurrentEstimateActivityHistory({
       projectName: project.name,
       estimateName: estimate.name,
       sheetCode: estimate.sheetCode,
+      tabCount: tabRows.length,
       eventCount: eventRows.length,
       resultLimit: ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT,
-      events: eventRows.map((row) => compactAskActivityEvent(row, actorLabels.labels)),
+      events: eventRows.map((row) => compactAskActivityEvent(row, actorLabels.labels, tabNameById)),
     } satisfies AiAskProviderActivityHistory,
     rowCount,
     sourceTables,
+    tabIds: tabRows.map((tab) => tab.id),
   };
 }
 
@@ -1135,15 +1183,15 @@ async function readAskProjectChartSummary({
   };
 }
 
-function compactCurrentEstimateContext({
-  estimate,
+function compactCurrentEstimateTreeAndRows({
   nodes,
   rows,
+  tabName,
 }: {
-  estimate: AiAskCompactEstimate;
   nodes: AiAskEstimateNodeRow[];
   rows: AiAskEstimateRowItemRow[];
-}): AiAskProviderCurrentEstimate {
+  tabName: string | null;
+}) {
   const rowsByNodeId = new Map<string, AiAskEstimateRowItemRow[]>();
   for (const row of rows) rowsByNodeId.set(row.node_id, [...(rowsByNodeId.get(row.node_id) ?? []), row]);
 
@@ -1175,6 +1223,7 @@ function compactCurrentEstimateContext({
     const node = nodeById.get(row.node_id);
     return {
       areaName: node?.kind === "area" ? node.name : null,
+      tabName,
       material: row.material,
       quantity: row.quantity,
       unit: row.unit,
@@ -1185,13 +1234,80 @@ function compactCurrentEstimateContext({
   });
 
   return {
-    name: estimate.name,
-    sheetCode: estimate.sheetCode,
     total: compactRows.reduce((sum, row) => sum + row.total, 0),
-    nodeCount: nodes.length,
-    rowCount: rows.length,
     tree,
     rows: compactRows,
+  };
+}
+
+function compactCurrentEstimateContext({
+  estimate,
+  nodes,
+  rows,
+  tabs,
+  activeTabId,
+}: {
+  estimate: AiAskCompactEstimate;
+  nodes: AiAskEstimateNodeRow[];
+  rows: AiAskEstimateRowItemRow[];
+  tabs: AiAskEstimateTabRow[];
+  activeTabId: string | null;
+}): AiAskProviderCurrentEstimate {
+  const tabById = new Map(tabs.map((tab) => [tab.id, tab]));
+  const fallbackTab = tabs.length === 0 ? { id: "legacy-main", name: "Main", sort_order: 0, is_default: true } satisfies AiAskEstimateTabRow : null;
+  const groupingTabs = tabs.length > 0 ? tabs : fallbackTab ? [fallbackTab] : [];
+  const defaultActiveTabId = groupingTabs.find((tab) => tab.is_default)?.id ?? groupingTabs[0]?.id ?? null;
+  const resolvedActiveTabId = activeTabId && (tabById.has(activeTabId) || fallbackTab?.id === activeTabId)
+    ? activeTabId
+    : defaultActiveTabId;
+
+  const nodesByTabId = new Map<string, AiAskEstimateNodeRow[]>();
+  const nodeTabIdByNodeId = new Map<string, string>();
+  for (const node of nodes) {
+    const tabId = node.estimate_tab_id && (tabById.has(node.estimate_tab_id) || fallbackTab?.id === node.estimate_tab_id)
+      ? node.estimate_tab_id
+      : defaultActiveTabId;
+    if (!tabId) continue;
+    nodesByTabId.set(tabId, [...(nodesByTabId.get(tabId) ?? []), node]);
+    nodeTabIdByNodeId.set(node.id, tabId);
+  }
+
+  const rowsByTabId = new Map<string, AiAskEstimateRowItemRow[]>();
+  for (const row of rows) {
+    const tabId = nodeTabIdByNodeId.get(row.node_id) ?? defaultActiveTabId;
+    if (!tabId) continue;
+    rowsByTabId.set(tabId, [...(rowsByTabId.get(tabId) ?? []), row]);
+  }
+
+  const globalContext = compactCurrentEstimateTreeAndRows({ nodes, rows, tabName: null });
+  const tabContexts: AiAskProviderCurrentEstimateTab[] = groupingTabs.map((tab) => {
+    const tabNodes = nodesByTabId.get(tab.id) ?? [];
+    const tabRows = rowsByTabId.get(tab.id) ?? [];
+    const tabContext = compactCurrentEstimateTreeAndRows({ nodes: tabNodes, rows: tabRows, tabName: tab.name });
+    return {
+      name: tab.name,
+      isDefault: tab.is_default,
+      isActive: tab.id === resolvedActiveTabId,
+      total: tabContext.total,
+      nodeCount: tabNodes.length,
+      rowCount: tabRows.length,
+      tree: tabContext.tree,
+      rows: tabContext.rows,
+    };
+  });
+  const activeTabName = tabContexts.find((tab) => tab.isActive)?.name ?? null;
+
+  return {
+    name: estimate.name,
+    sheetCode: estimate.sheetCode,
+    activeTabName,
+    tabCount: tabContexts.length,
+    total: globalContext.total,
+    nodeCount: nodes.length,
+    rowCount: rows.length,
+    tabs: tabContexts,
+    tree: globalContext.tree,
+    rows: globalContext.rows,
   };
 }
 
@@ -1573,6 +1689,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
   const routeProjectId = readRouteId(input.routeContext, "projectId");
   const routeEstimateId = readRouteId(input.routeContext, "estimateId");
   const routeSelectedNodeId = readRouteId(input.routeContext, "selectedNodeId");
+  const routeActiveTabId = readRouteId(input.routeContext, "activeTabId");
   let projectCount: number | null = null;
   let projectList: AiAskCompactProject[] = [];
   let componentLibraryMatches: AiAskProviderComponent[] = [];
@@ -1712,6 +1829,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
         scope: "current_workspace",
         operation: "current_estimate_activity",
         limit: ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT,
+        tabIds: activitySearch.tabIds,
       },
       rowCount: activitySearch.rowCount,
       safeSummary: "Read compact current-estimate activity history for Ask Flip.",
@@ -1793,10 +1911,10 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
       });
 
       if (compactCurrentEstimate) {
-        const [nodesResult, rowsResult] = await Promise.all([
+        const [nodesResult, rowsResult, tabsResult] = await Promise.all([
           supabase
             .from("estimate_nodes")
-            .select("id, estimate_id, parent_id, kind, name, sort_order")
+            .select("id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order")
             .eq("estimate_id", compactCurrentEstimate.id)
             .order("sort_order", { ascending: true })
             .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT),
@@ -1806,26 +1924,54 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
             .eq("estimate_id", compactCurrentEstimate.id)
             .order("sort_order", { ascending: true })
             .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT),
+          supabase
+            .from("estimate_tabs")
+            .select("id, name, sort_order, is_default")
+            .eq("estimate_id", compactCurrentEstimate.id)
+            .order("sort_order", { ascending: true })
+            .limit(ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT),
         ]);
         if (nodesResult.error) throw nodesResult.error;
         if (rowsResult.error) throw rowsResult.error;
+        if (tabsResult.error) throw tabsResult.error;
 
         const nodes = (nodesResult.data ?? []) as AiAskEstimateNodeRow[];
         const rows = (rowsResult.data ?? []) as AiAskEstimateRowItemRow[];
-        currentEstimate = compactCurrentEstimateContext({ estimate: compactCurrentEstimate, nodes, rows });
+        const tabs = (tabsResult.data ?? []) as AiAskEstimateTabRow[];
+        const tabIds = tabs.map((tab) => tab.id);
+        currentEstimate = compactCurrentEstimateContext({
+          estimate: compactCurrentEstimate,
+          nodes,
+          rows,
+          tabs,
+          activeTabId: routeActiveTabId,
+        });
         auditEvents.push({
           eventName: "ask_read_current_estimate_tree",
-          sourceTables: ["estimate_nodes"],
-          filter: { projectId: routeProjectId, estimateId: compactCurrentEstimate.id, limit: ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT },
-          rowCount: nodes.length,
-          safeSummary: "Read compact current-estimate tree for Ask Flip.",
+          sourceTables: ["estimate_nodes", "estimate_tabs"],
+          filter: {
+            projectId: routeProjectId,
+            estimateId: compactCurrentEstimate.id,
+            activeTabId: routeActiveTabId,
+            tabIds,
+            limit: ASK_READ_CONTEXT_CURRENT_ESTIMATE_NODE_LIMIT,
+            tabLimit: ASK_READ_CONTEXT_CURRENT_ESTIMATE_TAB_LIMIT,
+          },
+          rowCount: nodes.length + tabs.length,
+          safeSummary: "Read compact current-estimate tree grouped by estimate tab for Ask Flip.",
         });
         auditEvents.push({
           eventName: "ask_read_current_estimate_rows",
-          sourceTables: ["estimate_row_items"],
-          filter: { projectId: routeProjectId, estimateId: compactCurrentEstimate.id, limit: ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT },
+          sourceTables: ["estimate_row_items", "estimate_nodes", "estimate_tabs"],
+          filter: {
+            projectId: routeProjectId,
+            estimateId: compactCurrentEstimate.id,
+            activeTabId: routeActiveTabId,
+            tabIds,
+            limit: ASK_READ_CONTEXT_CURRENT_ESTIMATE_ROW_LIMIT,
+          },
           rowCount: rows.length,
-          safeSummary: "Read compact current-estimate row summaries for Ask Flip.",
+          safeSummary: "Read compact current-estimate row summaries with tab grouping for Ask Flip.",
         });
       }
     }
@@ -1868,7 +2014,7 @@ export async function readAiAskReadContext(input: AiAskReadContextInput): Promis
         "Use historicalRows.matches when answering prior-row or other-project usage questions; historical rows are read-only precedents, not live supplier-priced sources.",
         "Use projectCharts when answering project chart, cost-breakdown, or distribution questions; chart summaries are compact read-only buckets, not full row exports.",
         "Use activityHistory.events when answering current-estimate activity, change-history, or who-edited questions; activity history is compact and read-only, not a full audit export.",
-        "Use currentEstimate when answering current-estimate questions; do not invent row items, totals, areas, or estimate/tab contents that are not present in currentEstimate.",
+        "Use currentEstimate and currentEstimate.tabs when answering current-estimate questions; do not invent row items, totals, areas, or estimate/tab contents that are not present in currentEstimate.",
       ],
     },
     auditEvents,
