@@ -2327,3 +2327,24 @@ label=diff-check-r8-5-preview-scope exit_code=0 command="git diff --check" resul
 ### Remaining boundary
 
 - R8.5 is implemented/proven locally only. Hosted browser proof, spreadsheet-app manual inspection, Vercel deploy, production deploy, and linked provider proof remain unperformed.
+
+## Phase 7 R11.3 AI tab context and audit attribution
+
+### Summary
+
+Closed the additive AI follow-up locally. Ask read context now groups current-estimate rows/tree and activity events by provider-safe tab names, reads `estimate_tabs`, and includes tab IDs/active tab IDs only in hashed audit filters while adding `estimate_tabs` to the audit source table list.
+
+### Gates run
+
+```text
+label=vitest-r11-3-ai-tab-context-red exit_code=1 command="bun x vitest run tests/vitest/ai-ask-read-context.test.ts --maxWorkers=1" result="new current-route tab grouping contract failed before implementation: node select lacked estimate_tab_id"
+label=vitest-r11-3-ai-read-context-green exit_code=0 command="bun x vitest run tests/vitest/ai-ask-read-context.test.ts --maxWorkers=1" result="1 file / 9 tests passed"
+label=vitest-r11-3-ai-regression exit_code=0 command="bun x vitest run tests/vitest/ai-ask-read-context.test.ts tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-package-builder-read-tools.test.ts tests/vitest/ai-package-builder-draft.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1" result="7 files / 118 tests passed"
+label=eslint-r11-3-ai-tab-context exit_code=0 command="bunx eslint src/lib/ai/read-context.ts tests/vitest/ai-ask-read-context.test.ts" result="0 errors / 0 warnings"
+label=type-check-r11-3-ai-tab-context exit_code=0 command="bun run type-check" result="tsc --noEmit passed"
+label=diff-check-r11-3-ai-tab-context exit_code=0 command="git diff --check" result="no whitespace errors"
+```
+
+### Remaining boundary
+
+- R11.3 is implemented/proven locally only. No live AI provider request, linked Supabase audit-table insert, hosted browser proof, Vercel deploy, production deploy, or provider dashboard proof was performed.

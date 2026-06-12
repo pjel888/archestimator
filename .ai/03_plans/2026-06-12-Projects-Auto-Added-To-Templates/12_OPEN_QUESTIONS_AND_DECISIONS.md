@@ -52,7 +52,7 @@
 - Cross-tab drag/move RPC (D-7 follow-up).
 - ExcelJS streaming writer (only if multi-tab benchmark regresses — [07](07_XLSX_EXPORT_TABS_PLAN.md) §8).
 - Internal `EstimateSheet*` → `EstimateTab*` renames (Phase 8 only, with contract-test batches).
-- AI read-context tab grouping + `ai_data_access_events` tab attribution (additive, AI surface's own pass — [08](08_ACCESS_SECURITY_RLS_PLAN.md) §8).
+- AI read-context tab grouping + `ai_data_access_events` tab attribution was implemented locally on 2026-06-13; provider/live audit-table proof remains external.
 - Awakening the named-versions feature with v3 snapshots (guarded, [03](03_DATABASE_MIGRATION_PLAN.md) §9).
 
 ## Evidence Used
