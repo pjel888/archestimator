@@ -584,3 +584,36 @@ label=diff-check-project-sources exit_code=0 timed_out=False log=.ai/05_logs/202
 - Project-derived sources remain virtual/read-through and are not persisted into template tables.
 - Project sources are visible only when supplied through the new sidebar prop.
 - Project-source insertion is a callback seam only; no server action or RPC is wired yet.
+
+## Phase 5 R4.1/R4.3 reusable-source read actions
+
+### Summary
+
+Phase 5 now includes local server-action contracts for reusable project sources. `listReusableProjectSources` returns readable project/estimate roots while excluding pending invites, and `getReusableEstimateOutline` lazily returns tabs plus group/area source rows for one estimate at a time. Project-derived sources remain virtual/read-through and are not persisted into template tables.
+
+### Changed files
+
+- `src/lib/reusable-sources/actions.ts`
+- `tests/vitest/reusable-sources-actions.test.ts`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-1-r4-3-read-actions-implementation-run.md`
+
+### Gates run
+
+```text
+label=phase5-reusable-sources-actions exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-reusable-sources-actions.log result=1_file_2_tests_passed
+label=type-check-reusable-actions exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-reusable-actions.log
+label=diff-check-reusable-actions exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-reusable-actions.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence advances R4.1 and R4.3 as server-action contracts.
+- R4.2a remains open until the UI consumes these actions and proves all readable workspace projects show by default with narrowing controls.
+- R4.4 preview/live metadata, R4.5, R4.6, R5.1-R5.3, R6.2, and R7.1-R7.2 remain open; no panel data wiring, filter chips, preview docks, browse-route parity, insert RPC/action, keyboard/bulk parity, RLS harness, or provider proof is claimed.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- The sidebar and browse route do not consume these actions yet.
+- `getReusableEstimateOutline` loads one estimate outline at a time; broader search and preview metadata are still future slices.
