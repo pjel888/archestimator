@@ -1561,3 +1561,54 @@ label=diff-check-project-source-outline-metadata exit_code=0 timed_out=False log
 - `tests/vitest/reusable-sources-actions.test.ts` is now in the 200-250 pure LOC
   warning band after exact metadata assertions; split future reusable-source
   action coverage into focused files before adding more cases.
+
+## Phase 5 R4.4 project source updatedAt metadata
+
+### Summary
+
+Phase 5 project-source actions now propagate `estimates.updated_at` through
+lightweight estimate-source roots, search results, and lazy outline tab/group/area
+sources. The query moved into a focused repository helper while
+`workspace-repository.ts` keeps the existing project-access boundary.
+
+### Changed files
+
+- `src/lib/repositories/project-estimate-sheets-repository.ts`
+- `src/lib/repositories/workspace-repository.ts`
+- `src/lib/reusable-sources/actions.ts`
+- `src/lib/reusable-sources/source-collectors.ts`
+- `tests/vitest/project-estimate-sheets-repository.test.ts`
+- `tests/vitest/reusable-sources-actions.test.ts`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-project-source-updated-at-metadata-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-project-source-updated-at-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-updated-at-metadata.log result=4_files_65_tests_passed
+label=type-check-project-source-updated-at-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-project-source-updated-at-metadata.log
+label=diff-check-project-source-updated-at-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-project-source-updated-at-metadata.log
+label=eslint-changed-files-project-source-updated-at-metadata exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/eslint-changed-files-project-source-updated-at-metadata.log
+label=lint-full-project-source-updated-at-metadata exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-lint-project-source-updated-at-metadata.log result=blocked_by_pre_existing_repo_wide_lint_errors
+```
+
+### RTM rows locally advanced / still open
+
+- R4.4 now has local server-backed `updatedAt` metadata propagation for
+  project estimate roots, search results, and loaded outline rows.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- This is local code/test proof against mocked Supabase/repository data; it does
+  not prove linked provider RLS, hosted latency/freshness, production behavior,
+  or insertion RPC/action execution.
+- `workspace-repository.ts` remains an inherited oversized file (reduced in this
+  slice by extracting the lightweight estimate-sheet query); avoid adding query
+  logic there without a focused split.
+- `tests/vitest/reusable-sources-actions.test.ts` remains in the 200-250 pure LOC
+  warning band; split future reusable-source action cases into focused files.

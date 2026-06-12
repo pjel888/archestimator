@@ -44,7 +44,7 @@ describe("reusable project source actions", () => {
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002" },
+      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
     ]);
 
     const { listReusableProjectSources } = await import("@/lib/reusable-sources/actions");
@@ -60,6 +60,9 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         name: "Lobby Estimate",
         sheetCode: "EST-002",
+        metadata: {
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
       },
     ]);
   });
@@ -69,6 +72,7 @@ describe("reusable project source actions", () => {
       { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
     ]);
     repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:30:00.000Z" },
       tree: [
         {
           id: "group-1",
@@ -103,6 +107,7 @@ describe("reusable project source actions", () => {
         name: "Lobby Main",
         metadata: {
           tabName: "Lobby Main",
+          updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 3,
           totalCost: 350,
         },
@@ -118,6 +123,7 @@ describe("reusable project source actions", () => {
         metadata: {
           tabName: "Lobby Main",
           nodePath: ["Lobby Main", "Amenity Millwork"],
+          updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 3,
           totalCost: 350,
         },
@@ -133,6 +139,7 @@ describe("reusable project source actions", () => {
         metadata: {
           tabName: "Lobby Main",
           nodePath: ["Lobby Main", "Amenity Millwork", "Reception Feature Wall"],
+          updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 2,
           totalCost: 250,
         },
@@ -148,12 +155,13 @@ describe("reusable project source actions", () => {
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002" },
+      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
     ]);
     repositoryMocks.getEstimateTabs.mockResolvedValue([
       { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
     ]);
     repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
       tree: [
         {
           id: "group-1",
@@ -192,6 +200,7 @@ describe("reusable project source actions", () => {
           projectName: "Accessible Project",
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
+          updatedAt: "2026-06-12T08:00:00.000Z",
         },
       },
       {
@@ -205,6 +214,7 @@ describe("reusable project source actions", () => {
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
           tabName: "Lobby Main",
+          updatedAt: "2026-06-12T08:45:00.000Z",
           rowCount: 1,
           totalCost: 125000,
         },
@@ -223,6 +233,7 @@ describe("reusable project source actions", () => {
           sheetCode: "EST-002",
           tabName: "Lobby Main",
           nodePath: ["Lobby Main", "Amenity Millwork"],
+          updatedAt: "2026-06-12T08:45:00.000Z",
           rowCount: 1,
           totalCost: 125000,
         },
