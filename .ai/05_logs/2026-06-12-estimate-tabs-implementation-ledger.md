@@ -1413,3 +1413,54 @@ label=diff-check-project-source-search-ui exit_code=0 timed_out=False log=.ai/05
   RLS, route-level browse behavior, or production search behavior.
 - The inherited sidebar/test files remain oversized; no broad refactor was
   performed in this slice.
+
+## Phase 5 R4.4 template browse project sources
+
+### Summary
+
+Phase 5 now passes readable project/estimate reusable sources into the
+`/workshop/library/templates` browse route and renders them as a read-only
+`Projects` section in the left template tree. Project-source rows remain virtual
+references: they do not expose template management menu actions, do not navigate
+to the template editor, and do not mount the sidebar project-source preview dock.
+
+### Changed files
+
+- `src/app/workshop/library/templates/page.tsx`
+- `src/components/workshop/library/templates-browse/TemplatesBrowsePageClient.tsx`
+- `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx`
+- `tests/vitest/template-gallery.test.tsx`
+- `.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-template-browse-project-sources-implementation-run.md`
+- `.ai/10_state/current-state.md`
+
+### Gates run
+
+```text
+label=phase5-template-browse-project-sources-red exit_code=1 timed_out=False result=expected_missing_projects_section_failure
+label=phase5-template-browse-project-sources-focused exit_code=0 timed_out=False result=1_file_1_test_passed
+label=phase5-template-browse-project-sources exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-template-browse-project-sources.log result=1_file_12_tests_passed
+label=type-check-template-browse-project-sources exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/bun-run-type-check-template-browse-project-sources.log
+label=diff-check-template-browse-project-sources exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/git-diff-check-template-browse-project-sources.log
+```
+
+### RTM rows locally advanced / still open
+
+- Local Phase 5 evidence further advances R4.4 with route-level project-source
+  tree parity for the template browse route.
+- R4.6 is updated from "template-management-only route" to the current boundary:
+  the route may show read-only virtual project sources while management/editor
+  actions remain template-only.
+- R4.4 remains open for row-level provider detail beyond loaded outline/search
+  metadata and browse-route lazy tab/node expansion provider proof.
+- R7.1-R7.2 remain open for RLS/provider and insert RPC/action proof.
+- No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+  production/manual proof, or browser visual proof was performed.
+
+### Remaining Phase 5 boundary
+
+- This is local UI/mock proof plus route wiring; it does not prove live provider
+  RLS, hosted latency, or production browse-route behavior.
+- Project-source rows are deliberately read-only in the browse route.

@@ -1,4 +1,23 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Template Browse Project Sources Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The `/workshop/library/templates` browse route now receives readable
+project/estimate reusable sources and renders them as a read-only `Projects`
+section in the left template tree. Project-source rows do not expose template
+management actions, do not open the template editor route, and do not mount the
+sidebar project-source preview dock; custom template management remains scoped to
+template rows. Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-template-browse-project-sources-implementation-run.md`:
+the focused missing-Projects-section regression failed before implementation,
+the focused test passed after implementation,
+`bunx vitest run tests/vitest/template-gallery.test.tsx --maxWorkers=1` passed
+(1 file / 12 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local route/UI proof only: row-level provider detail beyond
+loaded outline/search metadata, browse-route lazy tab/node expansion provider
+proof, R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, and browser
+visual proof remain open.
+
 **Estimate Tabs Phase 5 R4.4 Search UI Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The Phase 5 sidebar Templates tab now debounces action-loaded project-source
 searches through `searchReusableProjectSources(query)` and merges the returned
