@@ -1,17 +1,17 @@
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 
-type CustomEstimateTemplateSource = {
+export type CustomEstimateTemplateSource = {
   kind: "custom-template";
   template: EstimateTemplate;
 };
 
-type ProjectReusableSource = {
+export type ProjectReusableSource = {
   kind: "project";
   projectId: string;
   name: string;
 };
 
-type ProjectEstimateReusableSource = {
+export type ProjectEstimateReusableSource = {
   kind: "project-estimate";
   projectId: string;
   estimateId: string;
@@ -19,7 +19,7 @@ type ProjectEstimateReusableSource = {
   sheetCode: string | null;
 };
 
-type ProjectTabReusableSource = {
+export type ProjectTabReusableSource = {
   kind: "project-tab";
   projectId: string;
   estimateId: string;
@@ -27,7 +27,7 @@ type ProjectTabReusableSource = {
   name: string;
 };
 
-type ProjectNodeReusableSource = {
+export type ProjectNodeReusableSource = {
   kind: "project-node";
   projectId: string;
   estimateId: string;
@@ -36,6 +36,8 @@ type ProjectNodeReusableSource = {
   nodeKind: "group" | "area";
   name: string;
 };
+
+export type ProjectSourceInsertTarget = ProjectTabReusableSource | ProjectNodeReusableSource;
 
 export type ReusableEstimateSource =
   | CustomEstimateTemplateSource

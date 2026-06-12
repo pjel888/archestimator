@@ -38,7 +38,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
 | R4.1 virtual/read-through sources (no auto-persistence) | prompt critical principle | 02 §2; 06 §2 (D-11) | 5 | reusable-sources types/actions | conversion unit tests | R-STALE | planned |
-| R4.2 unified tree (Custom Templates + Projects) | `TemplatesTree.tsx:33-37` union | 06 §3–4 | 5 | TemplatesTree, panel index | panel DOM suite | R-ACTIONS | planned |
+| R4.2 unified tree (Custom Templates + Projects) | `TemplatesTree.tsx` section/project-source datum variants; `component-library/index.tsx` project-source props | 06 §3–4 | 5 | TemplatesTree, panel index | panel DOM suite | R-ACTIONS | **implemented (local-only UI seam)** — `.ai/05_logs/2026-06-12-estimate-tabs-phase5/vitest-project-source-tree-ui.log`; read actions/RPC/provider proof remain tracked by R4.1, R4.2a, R4.3, R7.1-R7.2 |
 | R4.2a Projects section shows all readable workspace projects by default | product clarification | 02 §12; 06 §5 | 5 | reusable-sources actions, TemplatesTree, panel filters | panel DOM default + current-project narrowing tests | R-PERF2, R-PERM1 | planned |
 | R4.3 lazy per-level read path | `listEstimateInsertTargets` (`actions.ts:1116`) | 06 §8 | 5 | new read actions | call-counting test | R-PERF2 | planned |
 | R4.4 search/filter/preview incl. live metadata fields | `searchLibraryOverview` (`:1239`); `TemplatePreviewDock` | 06 §5–6 | 5 | panel + dock | DOM tests | R-STALE | planned |

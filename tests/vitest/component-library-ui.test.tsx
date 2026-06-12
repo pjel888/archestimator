@@ -3,10 +3,11 @@ import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testi
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
-import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { PROJECT_SOURCE_DRAG_MIME_TYPE, type EstimateTemplate } from "@/components/workshop/component-library/templates";
 import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { useEstimateWorkshopDragState } from "@/components/workshop/estimate-workshop-drag";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const templateActionMocks = vi.hoisted(() => ({
   renameEstimateTemplate: vi.fn(),
@@ -601,6 +602,37 @@ describe("templates tree", () => {
     },
   ];
 
+  const projectSources: ReusableEstimateSource[] = [
+    {
+      kind: "project",
+      projectId: "project-2",
+      name: "Renovation Project",
+    },
+    {
+      kind: "project-estimate",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      name: "Lobby Estimate",
+      sheetCode: "EST-002",
+    },
+    {
+      kind: "project-tab",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      name: "Lobby Main",
+    },
+    {
+      kind: "project-node",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      nodeId: "node-amenity",
+      nodeKind: "group",
+      name: "Amenity Millwork",
+    },
+  ];
+
   function createDataTransferStub() {
     const store = new Map<string, string>();
     const types: string[] = [];
@@ -630,6 +662,8 @@ describe("templates tree", () => {
 
   it("renders templates as a uniform node tree with costs and no structure counts", () => {
     openTemplatesTab();
+
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
 
     // The category reads as a plain group node row: name + summed cost only.
     const categoryRow = screen.getByRole("treeitem", { name: "Rooms templates" });
@@ -733,6 +767,86 @@ describe("templates tree", () => {
 
     fireEvent.dragEnd(categoryRow, { dataTransfer });
     expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
+  });
+
+  it("renders project-derived sources under a Projects section without hiding custom templates", () => {
+    openTemplatesTab({ projectSources });
+
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Rooms templates" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+  });
+
+  it("drags a project tab source with the project-source payload", () => {
+    openTemplatesTab({ projectSources });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+
+    const dataTransfer = createDataTransferStub();
+    fireEvent.dragStart(tabRow, { dataTransfer });
+
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      PROJECT_SOURCE_DRAG_MIME_TYPE,
+      JSON.stringify({
+        kind: "project-tab",
+        projectId: "project-2",
+        estimateId: "estimate-2",
+        tabId: "tab-2",
+      }),
+    );
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toEqual({
+      kind: "project-source",
+      sourceName: "Lobby Main",
+    });
+
+    fireEvent.dragEnd(tabRow, { dataTransfer });
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
+  });
+
+  it("uses the project-source context menu seam without template management actions", async () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }), { clientX: 16, clientY: 16 });
+
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Add to Main House" }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-node",
+      nodeId: "node-amenity",
+    }));
+    expect(screen.queryByRole("menuitem", { name: "Rename" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("searches project-source names and keeps their source ancestors visible", () => {
+    openTemplatesTab({ projectSources });
+
+    const search = openLibrarySearch();
+    fireEvent.change(search, { target: { value: "Amenity" } });
+
+    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Rooms templates" })).not.toBeInTheDocument();
   });
 
   it("keeps rows button-free and disables context-menu insertion until a group target exists", async () => {

@@ -1,4 +1,19 @@
 # Current State
+**Estimate Tabs Phase 5 R4.2 Local UI Seam Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now has a local prop-driven unified
+reusable-source tree seam. `TemplatesTree` supports `Custom Templates` and
+`Projects` sections, project/estimate/tab/node source rows, shared search that
+keeps matched source ancestors visible, project-source drag payload stamping,
+and a context-menu insertion callback seam for project tab/node sources. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2-ui-seam-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 46 tests), the reusable-source drag parser rerun passed (1 file
+/ 5 tests), `bun run type-check` passed, and `git diff --check` passed. This is
+UI seam groundwork only: no RLS-scoped project-source read action, all-readable
+projects default population, preview/live metadata dock, browse-route parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, or browser visual proof was performed.
 
 **Estimate Tabs Phase 5 R6.1 Local Parser Slice Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs stacked implementation now includes the narrow Phase 5 R6.1

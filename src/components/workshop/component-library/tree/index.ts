@@ -7,6 +7,7 @@ export {
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,
   templatesTreeCategoryId,
+  templatesTreeSectionId,
 } from "./TemplatesTree";
 export type { CheckedTemplateUnits, TemplatesTreeDatum, TemplatesTreeProps } from "./TemplatesTree";
 export {
