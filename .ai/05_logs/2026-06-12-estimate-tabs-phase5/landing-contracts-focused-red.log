@@ -1,0 +1,1422 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+ ❯ tests/vitest/landing-interactivity.test.tsx (5 tests | 2 failed) 197ms
+     × keeps closed-beta hero A/B copy grounded in product workflow 102ms
+     × renders a professional footer with grounded quote-and-proposal navigation 9ms
+ ❯ tests/vitest/landing-amigo-redesign.test.tsx (4 tests | 4 failed) 202ms
+     × orders the home page around the reference flow without moving product proof below the fold 2ms
+     × renders a compact header without the removed announcement strip 115ms
+     × uses an Archestimator hero with the frosted construction visual rail 33ms
+     × maps the reference section rhythm onto original Archestimator sections 50ms
+ ❯ tests/vitest/landing-company-proof.test.ts (8 tests | 5 failed) 29ms
+     × keeps the locked hero first and inserts the company proof carousel before the product showcase 2ms
+     × marks company carousel data as placeholder scaffolding instead of real social proof 5ms
+     × keeps landing header hash links pointed at rendered below-hero sections 2ms
+     × uses CSS marquee motion with reduced-motion fallback inside a light full-width rail 3ms
+     × scopes Lenis to the home landing wrapper and preserves native non-home scrolling 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/landing-amigo-redesign.test.tsx > Amigo-inspired public landing redesign > orders the home page around the reference flow without moving product proof below the fold
+AssertionError: expected -1 to be greater than 1459
+ ❯ tests/vitest/landing-amigo-redesign.test.tsx:35:56
+     33|       page.indexOf("<CompanyProofCarouselSection />"),
+     34|     );
+     35|     expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
+       |                                                        ^
+     36|       page.indexOf("<SecondaryClaimSection />"),
+     37|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  tests/vitest/landing-amigo-redesign.test.tsx > Amigo-inspired public landing redesign > renders a compact header without the removed announcement strip
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Workflow"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"sticky top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 border-white/42 bg-white/62 text-[#171514] shadow-[0_1px_0_rgba(17,17,17,0.04)]"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Archestimator home":
+  [36m<a[39m
+    [33maria-label[39m=[32m"Archestimator home"[39m
+    [33mclass[39m=[32m"inline-flex items-center text-[18px] font-semibold"[39m
+    [33mhref[39m=[32m"/"[39m
+  [36m/>[39m
+
+  Name "Platform":
+  [36m<a[39m
+    [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+    [33mhref[39m=[32m"#method"[39m
+  [36m/>[39m
+
+  Name "Specialties":
+  [36m<a[39m
+    [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+    [33mhref[39m=[32m"#method"[39m
+  [36m/>[39m
+
+  Name "Company":
+  [36m<a[39m
+    [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+    [33mhref[39m=[32m"#contact"[39m
+  [36m/>[39m
+
+  Name "Book a walkthrough":
+  [36m<a[39m
+    [33maria-label[39m=[32m"Book a walkthrough"[39m
+    [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition bg-brand-orange hover:bg-brand-orange-dark"[39m
+    [33mhref[39m=[32m"/contact"[39m
+  [36m/>[39m
+
+  Name "Log In":
+  [36m<a[39m
+    [33mclass[39m=[32m"hidden sm:inline hover:text-brand-orange"[39m
+    [33mhref[39m=[32m"/login?next=/workshop/projects"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  presentation:
+
+  Name "":
+  [36m<img[39m
+    [33malt[39m=[32m""[39m
+    [33mclass[39m=[32m"shrink-0 size-[42px]"[39m
+    [33mdata-nimg[39m=[32m"1"[39m
+    [33mdecoding[39m=[32m"async"[39m
+    [33mheight[39m=[32m"42"[39m
+    [33msrc[39m=[32m"/archestimator_logo.svg"[39m
+    [33mstyle[39m=[32m"color: transparent;"[39m
+    [33mwidth[39m=[32m"42"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Primary":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"Primary"[39m
+    [33mclass[39m=[32m"hidden items-center gap-7 text-[12px] font-medium lg:flex text-[#2c2925]"[39m
+  [36m/>[39m
+
+  Name "Account":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"Account"[39m
+    [33mclass[39m=[32m"flex items-center gap-2 text-[12px] text-[#111111]"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Menu":
+  [36m<button[39m
+    [33maria-controls[39m=[32m"landing-mobile-menu"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold transition lg:hidden bg-white text-[#171514] hover:bg-white"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"sticky top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 border-white/42 bg-white/62 text-[#171514] shadow-[0_1px_0_rgba(17,17,17,0.04)]"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"relative flex h-[72px] w-full items-center justify-between px-6 sm:px-8 lg:px-12"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33maria-label[39m=[32m"Archestimator home"[39m
+          [33mclass[39m=[32m"inline-flex items-center text-[18px] font-semibold"[39m
+          [33mhref[39m=[32m"/"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"inline-flex min-w-0 items-center gap-2"[39m
+          [36m>[39m
+            [36m<img[39m
+              [33malt[39m=[32m""[39m
+              [33mclass[39m=[32m"shrink-0 size-[42px]"[39m
+              [33mdata-nimg[39m=[32m"1"[39m
+              [33mdecoding[39m=[32m"async"[39m
+              [33mheight[39m=[32m"42"[39m
+              [33msrc[39m=[32m"/archestimator_logo.svg"[39m
+              [33mstyle[39m=[32m"color: transparent;"[39m
+              [33mwidth[39m=[32m"42"[39m
+            [36m/>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"h-7 w-px shrink-0 bg-current/20 hidden"[39m
+            [36m/>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-sans font-normal lowercase tracking-normal min-w-0 truncate text-[17px] text-[#111111]"[39m
+            [36m>[39m
+              [0marchestimator[0m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</a>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Primary"[39m
+          [33mclass[39m=[32m"hidden items-center gap-7 text-[12px] font-medium lg:flex text-[#2c2925]"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+            [33mhref[39m=[32m"#method"[39m
+          [36m>[39m
+            [0mPlatform[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+            [33mhref[39m=[32m"#method"[39m
+          [36m>[39m
+            [0mSpecialties[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+            [33mhref[39m=[32m"#contact"[39m
+          [36m>[39m
+            [0mCompany[0m
+          [36m</a>[39m
+        [36m</nav>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Account"[39m
+          [33mclass[39m=[32m"flex items-center gap-2 text-[12px] text-[#111111]"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33maria-label[39m=[32m"Book a walkthrough"[39m
+            [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition bg-brand-orange hover:bg-brand-orange-dark"[39m
+            [33mhref[39m=[32m"/contact"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"hidden sm:inline"[39m
+            [36m>[39m
+              [0mBook a walkthrough[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"sm:hidden"[39m
+            [36m>[39m
+              [0mBook[0m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"hidden sm:inline hover:text-brand-orange"[39m
+            [33mhref[39m=[32m"/login?next=/workshop/projects"[39m
+          [36m>[39m
+            [0mLog In[0m
+          [36m</a>[39m
+          [36m<button[39m
+            [33maria-controls[39m=[32m"landing-mobile-menu"[39m
+            [33maria-expanded[39m=[32m"false"[39m
+            [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold transition lg:hidden bg-white text-[#171514] hover:bg-white"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mMenu[0m
+          [36m</button>[39m
+        [36m</nav>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"absolute left-6 right-6 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] backdrop-blur-2xl backdrop-saturate-150 sm:left-8 sm:right-8 lg:hidden border-white/50 bg-white/72"[39m
+          [33mhidden[39m=[32m""[39m
+          [33mid[39m=[32m"landing-mobile-menu"[39m
+        [36m>[39m
+          [36m<nav[39m
+            [33maria-label[39m=[32m"Mobile primary"[39m
+            [33mclass[39m=[32m"grid gap-1"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"[39m
+              [33mhref[39m=[32m"#method"[39m
+            [36m>[39m
+              [0mPlatform[0m
+            [36m</a>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"[39m
+              [33mhref[39m=[32m"#method"[39m
+            [36m>[39m
+              [0mSpecialties[0m
+            [36m</a>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"[39m
+              [33mhref[39m=[32m"#contact"[39m
+            [36m>[39m
+              [0mCompany[0m
+            [36m</a>[39m
+          [36m</nav>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/landing-amigo-redesign.test.tsx:73:21
+     71|
+     72|     for (const label of ["Platform", "Specialties", "Workflow", "Insig…
+     73|       expect(screen.getByRole("link", { name: label })).toBeInTheDocum…
+       |                     ^
+     74|     }
+     75|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  tests/vitest/landing-amigo-redesign.test.tsx > Amigo-inspired public landing redesign > uses an Archestimator hero with the frosted construction visual rail
+TestingLibraryElementError: Unable to find an accessible element with the role "heading" and name "The proposal workspace for construction estimates."
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"max-w-[440px] text-[13px] font-medium leading-6"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"max-w-[420px] border-l border-t border-[#d9d1c8] pl-5 pt-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0 lg:pt-7"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "The fastest path from proposal to approval.":
+  [36m<h1[39m
+    [33mclass[39m=[32m"mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Start Winning":
+  [36m<a[39m
+    [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] bg-brand-orange px-4 text-[12px] font-semibold text-white transition hover:bg-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]"[39m
+    [33mhref[39m=[32m"/contact"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "Frosted commercial construction site with crane":
+  [36m<img[39m
+    [33malt[39m=[32m"Frosted commercial construction site with crane"[39m
+    [33mclass[39m=[32m"landing-hero-slide landing-hero-slide-01 landing-hero-slide-motion-a absolute inset-0 size-full object-cover"[39m
+    [33mdata-nimg[39m=[32m"fill"[39m
+    [33mdata-testid[39m=[32m"landing-hero-slide"[39m
+    [33mdecoding[39m=[32m"async"[39m
+    [33msizes[39m=[32m"(min-width: 1024px) 58vw, 100vw"[39m
+    [33msrc[39m=[32m"/_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=3840&q=75"[39m
+    [33msrcset[39m=[32m"/_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=384&q=75 384w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=640&q=75 640w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=750&q=75 750w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=828&q=75 828w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=1080&q=75 1080w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=1200&q=75 1200w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=1920&q=75 1920w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=2048&q=75 2048w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=3840&q=75 3840w"[39m
+    [33mstyle[39m=[32m"position: absolute; height: 100%; width: 100%; left: 0px; top: 0px; right: 0px; bottom: 0px; color: transparent;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"relative isolate z-10 flex min-h-[calc(100dvh-73px)] w-full items-center overflow-hidden bg-white px-6 py-10 text-[#171514] shadow-[0_30px_70px_-42px_rgba(17,24,39,0.48)] sm:px-8 sm:py-12 lg:px-12 lg:py-0"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33maria-hidden[39m=[32m"true"[39m
+        [33mclass[39m=[32m"landing-hero-plus-grid pointer-events-none absolute right-[-10vw] top-20 h-[620px] w-[86vw] max-w-[1280px]"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"relative z-10 grid w-full gap-y-12 lg:grid-cols-[minmax(0,635px)_minmax(0,1fr)] lg:gap-x-0 lg:items-start"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"relative flex max-w-[635px] flex-col lg:h-[603px] lg:border-l lg:border-[#d6cec5] lg:pl-7"[39m
+          [33mdata-testid[39m=[32m"landing-hero-copy-block"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"relative z-10"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"max-w-[440px] text-[13px] font-medium leading-6"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"relative isolate inline-flex items-center overflow-visible px-2 py-0.5 text-white"[39m
+                [33mdata-testid[39m=[32m"landing-hero-kicker-highlight"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"pointer-events-none absolute -inset-x-1 -inset-y-0.5 z-0"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"block size-full overflow-visible"[39m
+                    [33mpreserveAspectRatio[39m=[32m"none"[39m
+                    [33mviewBox[39m=[32m"0 0 180 34"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M7 8 C45 4 92 5 172 8 L174 25 C120 30 60 29 6 26 Z"[39m
+                      [33mfill[39m=[32m"rgb(170, 65, 42)"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M8 9 C48 3 110 6 172 8 M173 25 C117 30 54 29 7 25"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mstroke[39m=[32m"rgb(170, 65, 42)"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.5"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"relative z-10 text-white"[39m
+                  [33mdata-testid[39m=[32m"landing-hero-kicker-text"[39m
+                [36m>[39m
+                  [0mClose Projects Faster.[0m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</p>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"relative inline-block"[39m
+              [36m>[39m
+                [0mThe fastest path from[0m
+                [0m [0m
+                [36m<span[39m
+                  [33mclass[39m=[32m"relative inline-block whitespace-nowrap pb-[0.22em]"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"relative inline-block"[39m
+                  [36m>[39m
+                    [0mproposal[0m
+                  [36m</span>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"rough-annotation"[39m
+                    [33mstyle[39m=[32m"position: absolute; top: 0px; left: 0px; overflow: visible; pointer-events: none; width: 100px; height: 100px;"[39m
+                  [36m/>[39m
+                  [36m<span[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"pointer-events-none absolute bottom-[-0.05em] left-[29%] right-[20%] z-[18] h-[0.52em]"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33mclass[39m=[32m"block size-full overflow-visible"[39m
+                      [33mpreserveAspectRatio[39m=[32m"none"[39m
+                      [33mviewBox[39m=[32m"0 0 128 28"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M4 17 C36 29 77 27 121 9"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mstroke[39m=[32m"rgb(170, 65, 42)"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2.2"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M112 5 L123 9 L115 18"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mstroke[39m=[32m"rgb(170, 65, 42)"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2.2"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</span>[39m
+                  [0m [0m
+                  [0mto[0m
+                  [0m [0m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"relative inline-block"[39m
+                  [36m>[39m
+                    [0mapproval[0m
+                  [36m</span>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"rough-annotation"[39m
+                    [33mstyle[39m=[32m"position: absolute; top: 0px; left: 0px; overflow: visible; pointer-events: none; width: 100px; height: 100px;"[39m
+                  [36m/>[39m
+                  [0m.[0m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"relative z-10 mt-4 lg:mt-5"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"max-w-[420px] border-l border-t border-[#d9d1c8] pl-5 pt-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0 lg:pt-7"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [36m<span>[39m
+                  [0mStop wasting time on messy spreadsheets and scattered feedback. [0m
+             ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/landing-amigo-redesign.test.tsx:81:14
+     79|
+     80|     expect(
+     81|       screen.getByRole("heading", {
+       |              ^
+     82|         level: 1,
+     83|         name: "The proposal workspace for construction estimates.",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  tests/vitest/landing-amigo-redesign.test.tsx > Amigo-inspired public landing redesign > maps the reference section rhythm onto original Archestimator sections
+TestingLibraryElementError: Unable to find an element with the text: General contractors. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"relative overflow-hidden scroll-mt-[68px] border-b border-[#ebe4dc] bg-white px-6 py-20 sm:px-8 sm:py-24 lg:px-12"[39m
+      [33mdata-landing-snap-section[39m=[32m"true"[39m
+      [33mid[39m=[32m"method"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"relative z-10 mx-auto w-full max-w-[1952px]"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m""[39m
+          [33mdata-motion-reveal[39m=[32m"revealed"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mx-auto max-w-[740px] text-center"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-[12px] font-semibold text-brand-orange"[39m
+            [36m>[39m
+              [0mBuilt around construction estimate patterns[0m
+            [36m</p>[39m
+            [36m<h2[39m
+              [33mclass[39m=[32m"mt-4 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[48px]"[39m
+            [36m>[39m
+              [0mWorkflows designed for every estimating specialty.[0m
+            [36m</h2>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"mx-auto mt-5 max-w-[600px] text-[15px] leading-7 text-[#5f554d]"[39m
+            [36m>[39m
+              [0mEvery team names scope differently. Archestimator gives the quote enough structure to carry rooms, assemblies, supplier context, allowances, and revisions without flattening the work into one brittle spreadsheet.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</section>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"scroll-mt-[68px] border-b border-[#ebe4dc] bg-[#f7f1ea] px-6 py-20 sm:px-8 sm:py-28 lg:px-12"[39m
+      [33mdata-landing-snap-section[39m=[32m"true"[39m
+      [33mid[39m=[32m"product"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mx-auto w-full max-w-[1952px]"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mb-12 grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(320px,0.58fr)] lg:items-end"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-[12px] font-semibold text-brand-orange"[39m
+            [36m>[39m
+              [0mPlatform method[0m
+            [36m</p>[39m
+            [36m<h2[39m
+              [33mclass[39m=[32m"mt-4 max-w-[760px] text-[42px] font-normal leading-[1.06] tracking-normal text-[#171514] sm:text-[58px]"[39m
+            [36m>[39m
+              [0mThe Archestimator estimate residency[0m
+            [36m</h2>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"max-w-[500px] text-[15px] leading-7 text-[#5f554d]"[39m
+          [36m>[39m
+            [0mA structured workspace for training your own estimate logic: the project tree, reusable library, revision memory, and proposal path all stay visible as the quote matures.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Product features"[39m
+          [33mclass[39m=[32m"grid gap-3 text-[12px] font-semibold text-[#87796f] md:grid-cols-4"[39m
+          [33mrole[39m=[32m"tablist"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-controls[39m=[32m"panel-estimate-workspace"[39m
+            [33maria-label[39m=[32m"Estimate Workspace"[39m
+            [33maria-selected[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 motion-reduce:transition-none border-[#171514] text-[#171514]"[39m
+            [33mid[39m=[32m"tab-estimate-workspace"[39m
+            [33mrole[39m=[32m"tab"[39m
+            [33mtabindex[39m=[32m"0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<span>[39m
+              [0mEstimate Workspace[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold bg-[#171514]/5 text-[#625950]"[39m
+            [36m>[39m
+              [0mMVP preview[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-controls[39m=[32m"panel-component-library"[39m
+            [33maria-label[39m=[32m"Component Library"[39m
+            [33maria-selected[39m=[32m"false"[39m
+            [33mclass[39m=[32m"flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 motion-reduce:transition-none border-[#ded2c7] hover:text-[#171514]"[39m
+            [33mid[39m=[32m"tab-component-library"[39m
+            [33mrole[39m=[32m"tab"[39m
+            [33mtabindex[39m=[32m"-1"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<span>[39m
+              [0mComponent Library[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold bg-[#171514]/5 text-[#625950]"[39m
+            [36m>[39m
+              [0mMVP preview[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-controls[39m=[32m"panel-revision-intelligence"[39m
+            [33maria-label[39m=[32m"Revision Intelligence"[39m
+            [33maria-selected[39m=[32m"false"[39m
+            [33mclass[39m=[32m"flex min-h-14 flex-col gap-1 border-b pb-3 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 motion-reduce:transition-none border-[#ded2c7] hover:text-[#171514]"[39m
+            [33mid[39m=[32m"tab-revision-intelligence"[39m
+            [33mrole[39m=[32m"tab"[39m
+            [33mtabindex[39m=[32m"-1"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<span>[39m
+              [0mRevision Intelligence[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold bg-brand-orange/10 text-brand-orange-dark"[39m
+            [36m>[39m
+              [0mPlanned preview[0m
+            [36m</span>[39m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-controls[39m=[32m"panel-proposal-comparisons"[39m
+            [33maria-label[39m=[32m"Proposal Comparisons"[3...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ tests/vitest/landing-amigo-redesign.test.tsx:136:19
+    134|       screen.getByRole("heading", { name: "Workflows designed for ever…
+    135|     ).toBeInTheDocument();
+    136|     expect(screen.getAllByText("General contractors").length).toBeGrea…
+       |                   ^
+    137|     expect(screen.getAllByText("Specialty trades").length).toBeGreater…
+    138|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  tests/vitest/landing-company-proof.test.ts > landing page company proof and Lenis integration > keeps the locked hero first and inserts the company proof carousel before the product showcase
+AssertionError: expected -1 to be greater than 1415
+ ❯ tests/vitest/landing-company-proof.test.ts:40:56
+     38|       page.indexOf("<HeroSection"),
+     39|     );
+     40|     expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
+       |                                                        ^
+     41|       page.indexOf("<CompanyProofCarouselSection />"),
+     42|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  tests/vitest/landing-company-proof.test.ts > landing page company proof and Lenis integration > marks company carousel data as placeholder scaffolding instead of real social proof
+AssertionError: expected 'import {\n  ClockCounterClockwise,\n …' to contain 'getRenderableCompanyProofItems'
+
+- Expected
++ Received
+
+- getRenderableCompanyProofItems
++ import {
++   ClockCounterClockwise,
++   Package,
++   PaperPlaneTilt,
++   PlayCircle,
++   TreeStructure,
++ } from "@phosphor-icons/react/dist/ssr";
++ import { MotionReveal } from "./MotionReveal";
++ import { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
++ import { LaunchFeatureHeading } from "./LaunchFeatureHeading";
++
++ const iconMap = {
++   TreeStructure,
++   Package,
++   PaperPlaneTilt,
++   ClockCounterClockwise,
++ } as const;
++
++ const betaStats = [
++   {
++     icon: "TreeStructure" as const,
++     label: "Project-Shaped Workflow",
++     detail: "Structure your proposal the way you think about the work",
++     body: "Organize costs around the real shape of the engagement, by phase, location, scope, or package, however your team naturally thinks. Archestimator handles the format, so your clients always receive a clean, professional proposal.",
++   },
++   {
++     icon: "Package" as const,
++     label: "Reusable Component Library",
++     detail: "Build it once. Use it everywhere.",
++     body: "Save any component, materials, services, labor, packages, and reuse it across future proposals. Variants included, so every size, spec, and configuration is ready when you need it.",
++   },
++   {
++     icon: "PaperPlaneTilt" as const,
++     label: "Proposal Handoff",
++     detail: "From costing to client-ready in one flow",
++     body: "Carry your line items, totals, exclusions, and assumptions straight into a polished proposal output, no reformatting, no copy-pasting, no last-minute scrambling.",
++   },
++   {
++     icon: "ClockCounterClockwise" as const,
++     label: "Activity History",
++     detail: "Every revision. Every decision. Always on record.",
++     body: "Track every change across your entire proposal, who updated what, and when. Revisit any version, recover anything, and walk into every client meeting with the full story behind your numbers.",
++   },
++ ] as const;
++
++ const testimonialSlides = [
++   {
++     quote: "The estimate finally reads like the work, not a spreadsheet we have to explain after the fact.",
++     source: "Estimating lead",
++     context: "Commercial interiors beta workflow",
++   },
++   {
++     quote: "Reusable assemblies make review calmer because the team can see what changed, where it changed, and why.",
++     source: "Preconstruction manager",
++     context: "General contractor beta workflow",
++   },
++   {
++     quote: "The handoff feels cleaner when the client-ready proposal is still tied to the original numbers.",
++     source: "Proposal owner",
++     context: "Specialty trade beta workflow",
++   },
++ ] as const;
++
++ function FeatureVideoPlaceholder({ label }: { label: string }) {
++   return (
++     <div
++       role="img"
++       aria-label={`${label} product video placeholder`}
++       data-youtube-video-placeholder="true"
++       className="group/video relative min-h-[112px] overflow-hidden rounded-[3px] border border-white/18 bg-[linear-gradient(145deg,rgba(255,255,255,0.20),rgba(255,255,255,0.07)_52%,rgba(64,25,16,0.18))]"
++     >
++       <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:18px_18px]" aria-hidden="true" />
++       <div className="absolute inset-x-0 top-0 h-px bg-white/40" aria-hidden="true" />
++       <div className="relative flex h-full min-h-[112px] items-center justify-center p-3">
++         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.16),transparent_48%)] opacity-80 transition duration-300 group-hover/video:opacity-100" aria-hidden="true" />
++         <span className="relative inline-flex size-10 items-center justify-center rounded-[3px] border border-white/34 bg-white/18 text-white shadow-[0_10px_26px_rgba(64,25,16,0.14)] transition duration-300 group-hover/video:scale-105 group-hover/video:bg-white/26">
++           <PlayCircle size={22} weight="fill" aria-hidden="true" />
++         </span>
++       </div>
++     </div>
++   );
++ }
++
++ function LaunchFeatureVideoPlaceholder() {
++   return (
++     <div
++       role="img"
++       aria-label="Full launch feature video placeholder"
++       data-launch-feature-video-placeholder="true"
++       className="group/video relative aspect-video w-full overflow-hidden rounded-[3px] border border-white/20 bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.08)_52%,rgba(64,25,16,0.22))]"
++     >
++       <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:22px_22px]" aria-hidden="true" />
++       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.2),transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.12),rgba(64,25,16,0.18))]" aria-hidden="true" />
++       <div className="absolute inset-x-0 top-0 h-px bg-white/46" aria-hidden="true" />
++       <div className="relative flex size-full flex-col items-center justify-center gap-4 p-6 text-center">
++         <span className="inline-flex size-14 items-center justify-center rounded-[3px] border border-white/36 bg-white/18 text-white shadow-[0_18px_42px_rgba(64,25,16,0.18)] transition duration-300 group-hover/video:scale-105 group-hover/video:bg-white/26">
++           <PlayCircle size={30} weight="fill" aria-hidden="true" />
++         </span>
++         <div>
++           <p className="text-[12px] font-medium leading-5 text-white/66">Full launch feature vid</p>
++           <p className="mt-1 text-[16px] font-normal leading-6 text-white sm:text-[18px]">
++             Product walkthrough placeholder
++           </p>
++         </div>
++       </div>
++     </div>
++   );
++ }
++
++ export function CompanyProofCarouselSection() {
++   return (
++     <>
++       <AnimatedProposalRecordSection />
++
++       <section
++         aria-label="Company proof and workflow highlights"
++         data-company-proof-section="true"
++         data-company-proof-state="empty"
++         data-landing-snap-section="true"
++         className="relative z-20 scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white shadow-[0_-34px_72px_rgba(71,31,20,0.3)] sm:py-14 lg:py-16"
++       >
++         <div className="grid w-full gap-10 px-6 sm:gap-12 sm:px-8 lg:gap-14 lg:px-12">
++           <MotionReveal replayOnExit>
++             <article className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-7 border-y border-white/18 py-7 text-center sm:py-8 lg:gap-9 lg:py-9">
++               <div className="mx-auto max-w-[760px]">
++                 <p className="text-[12px] font-medium leading-5 text-white/62">Launch feature video</p>
++                 <LaunchFeatureHeading />
++                 <p className="mx-auto mt-5 max-w-[620px] text-[13px] leading-6 text-white/64 sm:text-[14px] sm:leading-7">
++                     A single launch-ready walkthrough for estimating, reusable components, proposal handoff, review, and client decision records.
++                 </p>
++               </div>
++
++               <div className="w-full max-w-[1040px]">
++                 <LaunchFeatureVideoPlaceholder />
++               </div>
++             </article>
++           </MotionReveal>
++
++           <div className="grid border-y border-white/18 py-2 sm:py-3 lg:grid-cols-4 lg:py-0">
++             {betaStats.map((stat, index) => {
++               const IconComponent = iconMap[stat.icon];
++
++               return (
++                 <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
++                   <article className={`grid min-h-[252px] grid-rows-[28px_48px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
++                     <IconComponent size={28} weight="thin" className="text-white" />
++                     <h2 className="pt-2 text-[21px] font-normal leading-[1.08] tracking-normal text-white text-balance xl:text-[22px] 2xl:text-[24px]">
++                       {stat.label}
++                     </h2>
++                     <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
++                     <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)] lg:grid-cols-1 xl:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)]">
++                       <FeatureVideoPlaceholder label={stat.label} />
++                       <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
++                     </div>
++                   </article>
++                 </MotionReveal>
++               );
++             })}
++           </div>
++
++           <MotionReveal replayOnExit>
++             <div
++               aria-label="Closed beta testimonial carousel"
++               className="landing-testimonial-rotator relative mx-auto grid min-h-[90px] w-full max-w-[960px] place-items-center text-center sm:min-h-[100px]"
++             >
++               {testimonialSlides.map((testimonial, index) => (
++                 <figure
++                   key={testimonial.quote}
++                   className={`landing-testimonial-slide landing-testimonial-slide-${index + 1}`}
++                 >
++                   <blockquote className="mx-auto max-w-[780px] text-[22px] font-normal italic leading-[1.18] tracking-normal text-white text-balance sm:text-[30px]">
++                     &ldquo;{testimonial.quote}&rdquo;
++                   </blockquote>
++                   <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-medium leading-5 text-white/62">
++                     <span className="text-white/78">{testimonial.source}</span>
++                     <span aria-hidden="true" className="text-white/34">/</span>
++                     <span>{testimonial.context}</span>
++                   </figcaption>
++                 </figure>
++               ))}
++             </div>
++           </MotionReveal>
++         </div>
++       </section>
++     </>
++   );
++ }
++
+
+ ❯ tests/vitest/landing-company-proof.test.ts:63:21
+     61|       "Real customer proof will replace this rail before any public tr…
+     62|     );
+     63|     expect(section).toContain("getRenderableCompanyProofItems");
+       |                     ^
+     64|     expect(section).toContain("data-company-proof-state={proofState}");
+     65|     expect(section).toContain(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  tests/vitest/landing-company-proof.test.ts > landing page company proof and Lenis integration > keeps landing header hash links pointed at rendered below-hero sections
+AssertionError: expected [ 'method', 'contact' ] to deeply equal [ 'product', 'method', …(3) ]
+
+- Expected
++ Received
+
+  [
+-   "product",
+    "method",
+-   "solutions",
+-   "insights",
+    "contact",
+  ]
+
+ ❯ tests/vitest/landing-company-proof.test.ts:138:23
+    136|     );
+    137|
+    138|     expect(hashHrefs).toEqual([
+       |                       ^
+    139|       "product",
+    140|       "method",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  tests/vitest/landing-company-proof.test.ts > landing page company proof and Lenis integration > uses CSS marquee motion with reduced-motion fallback inside a light full-width rail
+AssertionError: expected 'import {\n  ClockCounterClockwise,\n …' to contain 'landing-company-carousel-viewport'
+
+- Expected
++ Received
+
+- landing-company-carousel-viewport
++ import {
++   ClockCounterClockwise,
++   Package,
++   PaperPlaneTilt,
++   PlayCircle,
++   TreeStructure,
++ } from "@phosphor-icons/react/dist/ssr";
++ import { MotionReveal } from "./MotionReveal";
++ import { AnimatedProposalRecordSection } from "./AnimatedProposalRecordSection";
++ import { LaunchFeatureHeading } from "./LaunchFeatureHeading";
++
++ const iconMap = {
++   TreeStructure,
++   Package,
++   PaperPlaneTilt,
++   ClockCounterClockwise,
++ } as const;
++
++ const betaStats = [
++   {
++     icon: "TreeStructure" as const,
++     label: "Project-Shaped Workflow",
++     detail: "Structure your proposal the way you think about the work",
++     body: "Organize costs around the real shape of the engagement, by phase, location, scope, or package, however your team naturally thinks. Archestimator handles the format, so your clients always receive a clean, professional proposal.",
++   },
++   {
++     icon: "Package" as const,
++     label: "Reusable Component Library",
++     detail: "Build it once. Use it everywhere.",
++     body: "Save any component, materials, services, labor, packages, and reuse it across future proposals. Variants included, so every size, spec, and configuration is ready when you need it.",
++   },
++   {
++     icon: "PaperPlaneTilt" as const,
++     label: "Proposal Handoff",
++     detail: "From costing to client-ready in one flow",
++     body: "Carry your line items, totals, exclusions, and assumptions straight into a polished proposal output, no reformatting, no copy-pasting, no last-minute scrambling.",
++   },
++   {
++     icon: "ClockCounterClockwise" as const,
++     label: "Activity History",
++     detail: "Every revision. Every decision. Always on record.",
++     body: "Track every change across your entire proposal, who updated what, and when. Revisit any version, recover anything, and walk into every client meeting with the full story behind your numbers.",
++   },
++ ] as const;
++
++ const testimonialSlides = [
++   {
++     quote: "The estimate finally reads like the work, not a spreadsheet we have to explain after the fact.",
++     source: "Estimating lead",
++     context: "Commercial interiors beta workflow",
++   },
++   {
++     quote: "Reusable assemblies make review calmer because the team can see what changed, where it changed, and why.",
++     source: "Preconstruction manager",
++     context: "General contractor beta workflow",
++   },
++   {
++     quote: "The handoff feels cleaner when the client-ready proposal is still tied to the original numbers.",
++     source: "Proposal owner",
++     context: "Specialty trade beta workflow",
++   },
++ ] as const;
++
++ function FeatureVideoPlaceholder({ label }: { label: string }) {
++   return (
++     <div
++       role="img"
++       aria-label={`${label} product video placeholder`}
++       data-youtube-video-placeholder="true"
++       className="group/video relative min-h-[112px] overflow-hidden rounded-[3px] border border-white/18 bg-[linear-gradient(145deg,rgba(255,255,255,0.20),rgba(255,255,255,0.07)_52%,rgba(64,25,16,0.18))]"
++     >
++       <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:18px_18px]" aria-hidden="true" />
++       <div className="absolute inset-x-0 top-0 h-px bg-white/40" aria-hidden="true" />
++       <div className="relative flex h-full min-h-[112px] items-center justify-center p-3">
++         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.16),transparent_48%)] opacity-80 transition duration-300 group-hover/video:opacity-100" aria-hidden="true" />
++         <span className="relative inline-flex size-10 items-center justify-center rounded-[3px] border border-white/34 bg-white/18 text-white shadow-[0_10px_26px_rgba(64,25,16,0.14)] transition duration-300 group-hover/video:scale-105 group-hover/video:bg-white/26">
++           <PlayCircle size={22} weight="fill" aria-hidden="true" />
++         </span>
++       </div>
++     </div>
++   );
++ }
++
++ function LaunchFeatureVideoPlaceholder() {
++   return (
++     <div
++       role="img"
++       aria-label="Full launch feature video placeholder"
++       data-launch-feature-video-placeholder="true"
++       className="group/video relative aspect-video w-full overflow-hidden rounded-[3px] border border-white/20 bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.08)_52%,rgba(64,25,16,0.22))]"
++     >
++       <div className="absolute inset-0 opacity-45 mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:22px_22px]" aria-hidden="true" />
++       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.2),transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.12),rgba(64,25,16,0.18))]" aria-hidden="true" />
++       <div className="absolute inset-x-0 top-0 h-px bg-white/46" aria-hidden="true" />
++       <div className="relative flex size-full flex-col items-center justify-center gap-4 p-6 text-center">
++         <span className="inline-flex size-14 items-center justify-center rounded-[3px] border border-white/36 bg-white/18 text-white shadow-[0_18px_42px_rgba(64,25,16,0.18)] transition duration-300 group-hover/video:scale-105 group-hover/video:bg-white/26">
++           <PlayCircle size={30} weight="fill" aria-hidden="true" />
++         </span>
++         <div>
++           <p className="text-[12px] font-medium leading-5 text-white/66">Full launch feature vid</p>
++           <p className="mt-1 text-[16px] font-normal leading-6 text-white sm:text-[18px]">
++             Product walkthrough placeholder
++           </p>
++         </div>
++       </div>
++     </div>
++   );
++ }
++
++ export function CompanyProofCarouselSection() {
++   return (
++     <>
++       <AnimatedProposalRecordSection />
++
++       <section
++         aria-label="Company proof and workflow highlights"
++         data-company-proof-section="true"
++         data-company-proof-state="empty"
++         data-landing-snap-section="true"
++         className="relative z-20 scroll-mt-[68px] overflow-hidden border-b border-white/10 bg-brand-orange py-12 text-white shadow-[0_-34px_72px_rgba(71,31,20,0.3)] sm:py-14 lg:py-16"
++       >
++         <div className="grid w-full gap-10 px-6 sm:gap-12 sm:px-8 lg:gap-14 lg:px-12">
++           <MotionReveal replayOnExit>
++             <article className="mx-auto flex w-full max-w-[1180px] flex-col items-center gap-7 border-y border-white/18 py-7 text-center sm:py-8 lg:gap-9 lg:py-9">
++               <div className="mx-auto max-w-[760px]">
++                 <p className="text-[12px] font-medium leading-5 text-white/62">Launch feature video</p>
++                 <LaunchFeatureHeading />
++                 <p className="mx-auto mt-5 max-w-[620px] text-[13px] leading-6 text-white/64 sm:text-[14px] sm:leading-7">
++                     A single launch-ready walkthrough for estimating, reusable components, proposal handoff, review, and client decision records.
++                 </p>
++               </div>
++
++               <div className="w-full max-w-[1040px]">
++                 <LaunchFeatureVideoPlaceholder />
++               </div>
++             </article>
++           </MotionReveal>
++
++           <div className="grid border-y border-white/18 py-2 sm:py-3 lg:grid-cols-4 lg:py-0">
++             {betaStats.map((stat, index) => {
++               const IconComponent = iconMap[stat.icon];
++
++               return (
++                 <MotionReveal key={stat.label} staggerIndex={index} replayOnExit className="h-full">
++                   <article className={`grid min-h-[252px] grid-rows-[28px_48px_44px_1fr] border-white/18 py-6 sm:min-h-[264px] lg:h-full lg:px-6 ${index === 0 ? "lg:pl-0" : ""} ${index < betaStats.length - 1 ? "border-b lg:border-b-0 lg:border-r" : "lg:pr-0"}`}>
++                     <IconComponent size={28} weight="thin" className="text-white" />
++                     <h2 className="pt-2 text-[21px] font-normal leading-[1.08] tracking-normal text-white text-balance xl:text-[22px] 2xl:text-[24px]">
++                       {stat.label}
++                     </h2>
++                     <p className="border-b border-white/18 text-[12px] leading-5 text-white/68 2xl:text-[13px] 2xl:leading-6">{stat.detail}</p>
++                     <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)] lg:grid-cols-1 xl:grid-cols-[minmax(120px,0.88fr)_minmax(0,1.12fr)]">
++                       <FeatureVideoPlaceholder label={stat.label} />
++                       <p className="text-[12px] leading-5 text-white/56 2xl:text-[13px] 2xl:leading-6">{stat.body}</p>
++                     </div>
++                   </article>
++                 </MotionReveal>
++               );
++             })}
++           </div>
++
++           <MotionReveal replayOnExit>
++             <div
++               aria-label="Closed beta testimonial carousel"
++               className="landing-testimonial-rotator relative mx-auto grid min-h-[90px] w-full max-w-[960px] place-items-center text-center sm:min-h-[100px]"
++             >
++               {testimonialSlides.map((testimonial, index) => (
++                 <figure
++                   key={testimonial.quote}
++                   className={`landing-testimonial-slide landing-testimonial-slide-${index + 1}`}
++                 >
++                   <blockquote className="mx-auto max-w-[780px] text-[22px] font-normal italic leading-[1.18] tracking-normal text-white text-balance sm:text-[30px]">
++                     &ldquo;{testimonial.quote}&rdquo;
++                   </blockquote>
++                   <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-medium leading-5 text-white/62">
++                     <span className="text-white/78">{testimonial.source}</span>
++                     <span aria-hidden="true" className="text-white/34">/</span>
++                     <span>{testimonial.context}</span>
++                   </figcaption>
++                 </figure>
++               ))}
++             </div>
++           </MotionReveal>
++         </div>
++       </section>
++     </>
++   );
++ }
++
+
+ ❯ tests/vitest/landing-company-proof.test.ts:156:21
+    154|     const globals = readProjectFile("src/app/globals.css");
+    155|
+    156|     expect(section).toContain("landing-company-carousel-viewport");
+       |                     ^
+    157|     expect(section).toContain("w-full overflow-hidden border-y");
+    158|     expect(section).toContain("bg-[#f8f6f1]");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  tests/vitest/landing-company-proof.test.ts > landing page company proof and Lenis integration > scopes Lenis to the home landing wrapper and preserves native non-home scrolling
+AssertionError: expected 'import type { Metadata } from "next";…' to contain 'import "lenis/dist/lenis.css";'
+
+- Expected
++ Received
+
+- import "lenis/dist/lenis.css";
++ import type { Metadata } from "next";
++ import { Roboto_Mono } from "next/font/google";
++ import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
++ import { AppProviders } from "./providers";
++ import "./globals.css";
++
++ const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"] });
++
++ export const metadata: Metadata = {
++   title: "Archestimator | Quote, Proposal & Estimate Workspace",
++   description: "A workspace for teams that build quotes, estimates, and proposals from reusable line items, supplier context, assumptions, and document-ready handoff steps.",
++   icons: {
++     icon: [
++       { url: "/favicon_io/favicon.ico", sizes: "any" },
++       { url: "/favicon_io/favicon-32x32.png", sizes: "32x32", type: "image/png" },
++       { url: "/favicon_io/favicon-16x16.png", sizes: "16x16", type: "image/png" },
++     ],
++     apple: [{ url: "/favicon_io/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
++   },
++   manifest: "/favicon_io/site.webmanifest",
++ };
++
++ export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
++   return (
++     <html lang="en">
++       <body className={robotoMono.variable}>
++         <AppProviders>{children}</AppProviders>
++         <VercelWebAnalytics />
++       </body>
++     </html>
++   );
++ }
++
+
+ ❯ tests/vitest/landing-company-proof.test.ts:187:20
+    185|
+    186|     expect(packageJson).toContain('"lenis"');
+    187|     expect(layout).toContain('import "lenis/dist/lenis.css";');
+       |                    ^
+    188|     expect(homePage).toContain("<LandingSmoothScrollProvider>");
+    189|     expect(publicShell).not.toContain("LandingSmoothScrollProvider");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  tests/vitest/landing-interactivity.test.tsx > landing page below-hero interactivity > keeps closed-beta hero A/B copy grounded in product workflow
+TestingLibraryElementError: Unable to find an accessible element with the role "heading" and name `/proposal workspace for construction estimates/i`
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"max-w-[440px] text-[13px] font-medium leading-6"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"max-w-[420px] border-l border-t border-[#d9d1c8] pl-5 pt-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0 lg:pt-7"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "The fastest path from proposal to approval.":
+  [36m<h1[39m
+    [33mclass[39m=[32m"mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Start Winning":
+  [36m<a[39m
+    [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] bg-brand-orange px-4 text-[12px] font-semibold text-white transition hover:bg-brand-orange-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:min-h-11 sm:px-5 sm:text-[13px]"[39m
+    [33mhref[39m=[32m"/contact"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "Frosted commercial construction site with crane":
+  [36m<img[39m
+    [33malt[39m=[32m"Frosted commercial construction site with crane"[39m
+    [33mclass[39m=[32m"landing-hero-slide landing-hero-slide-01 landing-hero-slide-motion-a absolute inset-0 size-full object-cover"[39m
+    [33mdata-nimg[39m=[32m"fill"[39m
+    [33mdata-testid[39m=[32m"landing-hero-slide"[39m
+    [33mdecoding[39m=[32m"async"[39m
+    [33msizes[39m=[32m"(min-width: 1024px) 58vw, 100vw"[39m
+    [33msrc[39m=[32m"/_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=3840&q=75"[39m
+    [33msrcset[39m=[32m"/_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=384&q=75 384w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=640&q=75 640w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=750&q=75 750w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=828&q=75 828w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=1080&q=75 1080w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=1200&q=75 1200w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=1920&q=75 1920w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=2048&q=75 2048w, /_next/image?url=%2Flanding%2Fhero-slides%2Fconstruction-slide-01.jpg&w=3840&q=75 3840w"[39m
+    [33mstyle[39m=[32m"position: absolute; height: 100%; width: 100%; left: 0px; top: 0px; right: 0px; bottom: 0px; color: transparent;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"relative isolate z-10 flex min-h-[calc(100dvh-73px)] w-full items-center overflow-hidden bg-white px-6 py-10 text-[#171514] shadow-[0_30px_70px_-42px_rgba(17,24,39,0.48)] sm:px-8 sm:py-12 lg:px-12 lg:py-0"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33maria-hidden[39m=[32m"true"[39m
+        [33mclass[39m=[32m"landing-hero-plus-grid pointer-events-none absolute right-[-10vw] top-20 h-[620px] w-[86vw] max-w-[1280px]"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"relative z-10 grid w-full gap-y-12 lg:grid-cols-[minmax(0,635px)_minmax(0,1fr)] lg:gap-x-0 lg:items-start"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"relative flex max-w-[635px] flex-col lg:h-[603px] lg:border-l lg:border-[#d6cec5] lg:pl-7"[39m
+          [33mdata-testid[39m=[32m"landing-hero-copy-block"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"relative z-10"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"max-w-[440px] text-[13px] font-medium leading-6"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"relative isolate inline-flex items-center overflow-visible px-2 py-0.5 text-white"[39m
+                [33mdata-testid[39m=[32m"landing-hero-kicker-highlight"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"pointer-events-none absolute -inset-x-1 -inset-y-0.5 z-0"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"block size-full overflow-visible"[39m
+                    [33mpreserveAspectRatio[39m=[32m"none"[39m
+                    [33mviewBox[39m=[32m"0 0 180 34"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M7 8 C45 4 92 5 172 8 L174 25 C120 30 60 29 6 26 Z"[39m
+                      [33mfill[39m=[32m"rgb(170, 65, 42)"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M8 9 C48 3 110 6 172 8 M173 25 C117 30 54 29 7 25"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mstroke[39m=[32m"rgb(170, 65, 42)"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"1.5"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"relative z-10 text-white"[39m
+                  [33mdata-testid[39m=[32m"landing-hero-kicker-text"[39m
+                [36m>[39m
+                  [0mClose Projects Faster.[0m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</p>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"mt-3 text-[38px] font-normal leading-[1.06] tracking-normal text-[#171514] text-balance sm:mt-4 sm:text-[48px] sm:leading-[1.05] lg:text-[54px]"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"relative inline-block"[39m
+              [36m>[39m
+                [0mThe fastest path from[0m
+                [0m [0m
+                [36m<span[39m
+                  [33mclass[39m=[32m"relative inline-block whitespace-nowrap pb-[0.22em]"[39m
+                [36m>[39m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"relative inline-block"[39m
+                  [36m>[39m
+                    [0mproposal[0m
+                  [36m</span>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"rough-annotation"[39m
+                    [33mstyle[39m=[32m"position: absolute; top: 0px; left: 0px; overflow: visible; pointer-events: none; width: 100px; height: 100px;"[39m
+                  [36m/>[39m
+                  [36m<span[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"pointer-events-none absolute bottom-[-0.05em] left-[29%] right-[20%] z-[18] h-[0.52em]"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33mclass[39m=[32m"block size-full overflow-visible"[39m
+                      [33mpreserveAspectRatio[39m=[32m"none"[39m
+                      [33mviewBox[39m=[32m"0 0 128 28"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M4 17 C36 29 77 27 121 9"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mstroke[39m=[32m"rgb(170, 65, 42)"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2.2"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M112 5 L123 9 L115 18"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mstroke[39m=[32m"rgb(170, 65, 42)"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2.2"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                  [36m</span>[39m
+                  [0m [0m
+                  [0mto[0m
+                  [0m [0m
+                  [36m<span[39m
+                    [33mclass[39m=[32m"relative inline-block"[39m
+                  [36m>[39m
+                    [0mapproval[0m
+                  [36m</span>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"rough-annotation"[39m
+                    [33mstyle[39m=[32m"position: absolute; top: 0px; left: 0px; overflow: visible; pointer-events: none; width: 100px; height: 100px;"[39m
+                  [36m/>[39m
+                  [0m.[0m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"relative z-10 mt-4 lg:mt-5"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"max-w-[420px] border-l border-t border-[#d9d1c8] pl-5 pt-5 text-[12px] font-normal leading-6 text-[#473f39] text-pretty sm:text-[14px] sm:leading-7 lg:border-l-0 lg:pl-0 lg:pt-7"[39m
+            [36m>[39m
+              [36m<span>[39m
+                [36m<span>[39m
+                  [0mStop wasting time on messy spreadsheets and scattered feedback. [0m
+             ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/landing-interactivity.test.tsx:17:19
+     15|     render(<HeroSection />);
+     16|
+     17|     expect(screen.getByRole("heading", { name: /proposal workspace for…
+       |                   ^
+     18|     expect(heroCopyVariants.map((variant) => variant.headline)).toEqua…
+     19|       expect.arrayContaining([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  tests/vitest/landing-interactivity.test.tsx > landing page below-hero interactivity > renders a professional footer with grounded quote-and-proposal navigation
+TestingLibraryElementError: Unable to find an accessible element with the role "contentinfo" and name `/estimate infrastructure/i`
+
+Here are the accessible roles:
+
+  contentinfo:
+
+  Name "":
+  [36m<footer[39m
+    [33mclass[39m=[32m"relative isolate flex min-h-[520px] items-center justify-center overflow-hidden px-5 py-24 text-white sm:px-8 lg:min-h-[640px] lg:px-12"[39m
+    [33mdata-landing-snap-section[39m=[32m"true"[39m
+    [33mdata-visual-reference[39m=[32m"amigo-footer"[39m
+    [33mstyle[39m=[32m"background-color: rgb(8, 50, 65);"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Archestimator home":
+  [36m<a[39m
+    [33maria-label[39m=[32m"Archestimator home"[39m
+    [33mclass[39m=[32m"inline-flex items-center"[39m
+    [33mhref[39m=[32m"/"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  presentation:
+
+  Name "":
+  [36m<img[39m
+    [33malt[39m=[32m""[39m
+    [33mclass[39m=[32m"shrink-0 size-12"[39m
+    [33mdata-nimg[39m=[32m"1"[39m
+    [33mdecoding[39m=[32m"async"[39m
+    [33mheight[39m=[32m"48"[39m
+    [33mloading[39m=[32m"lazy"[39m
+    [33msrc[39m=[32m"/archestimator_logo_white.svg"[39m
+    [33mstyle[39m=[32m"color: transparent;"[39m
+    [33mwidth[39m=[32m"48"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<footer[39m
+      [33mclass[39m=[32m"relative isolate flex min-h-[520px] items-center justify-center overflow-hidden px-5 py-24 text-white sm:px-8 lg:min-h-[640px] lg:px-12"[39m
+      [33mdata-landing-snap-section[39m=[32m"true"[39m
+      [33mdata-visual-reference[39m=[32m"amigo-footer"[39m
+      [33mstyle[39m=[32m"background-color: rgb(8, 50, 65);"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33maria-label[39m=[32m"Archestimator home"[39m
+        [33mclass[39m=[32m"inline-flex items-center"[39m
+        [33mhref[39m=[32m"/"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"inline-flex min-w-0 items-center gap-2"[39m
+        [36m>[39m
+          [36m<img[39m
+            [33malt[39m=[32m""[39m
+            [33mclass[39m=[32m"shrink-0 size-12"[39m
+            [33mdata-nimg[39m=[32m"1"[39m
+            [33mdecoding[39m=[32m"async"[39m
+            [33mheight[39m=[32m"48"[39m
+            [33mloading[39m=[32m"lazy"[39m
+            [33msrc[39m=[32m"/archestimator_logo_white.svg"[39m
+            [33mstyle[39m=[32m"color: transparent;"[39m
+            [33mwidth[39m=[32m"48"[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"h-7 w-px shrink-0 bg-current/20 hidden"[39m
+          [36m/>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"font-sans font-normal lowercase tracking-normal min-w-0 truncate text-[38px] text-white"[39m
+          [36m>[39m
+            [0marchestimator[0m
+          [36m</span>[39m
+        [36m</span>[39m
+      [36m</a>[39m
+    [36m</footer>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/landing-interactivity.test.tsx:85:27
+     83|     render(<LandingFooter />);
+     84|
+     85|     const footer = screen.getByRole("contentinfo", { name: /estimate i…
+       |                           ^
+     86|     expect(footer).toBeInTheDocument();
+     87|     expect(footer).toHaveAttribute("data-visual-reference", "amigo-foo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  11 failed | 6 passed (17)
+   Start at  00:12:38
+   Duration  2.35s (transform 107ms, setup 81ms, import 758ms, tests 427ms, environment 827ms)
+

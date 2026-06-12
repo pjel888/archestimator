@@ -1,0 +1,4 @@
+$ bun x impeccable detect --strict
+Resolving dependencies
+Resolved, downloaded and extracted [2]
+Saved lockfile
