@@ -2082,14 +2082,20 @@ Fresh focused validation confirms the only remaining local `bun run validate`
 failure is the generated Supabase type contract for the estimate-tab history
 RPCs. The migration defines the table, `estimate_tab_id` columns, grants, and
 all six RPCs, but `src/lib/supabase/types.ts` has not been regenerated and still
-lacks those entries. Local Docker is unavailable, so non-provider local typegen
-cannot run. Linked apply/typegen remains an explicit provider boundary and was
-not executed.
+lacks those entries. Local Docker is unavailable, and a follow-up temp Homebrew Postgres probe
+proved that `supabase gen types --db-url` still fails on Docker image
+inspection in this installed CLI. The Homebrew Postgres schema/RLS harness
+passes, so the migration itself is locally proven; only generated type emission
+remains Docker/provider-gated. Linked apply/typegen remains an explicit provider
+boundary and was not executed.
 
 ### Changed files
 
 - `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-focused-red.log`
 - `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/estimate-tabs-local-postgres-proof-rerun.log`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/estimate-tabs-local-dburl-typegen-probe.log`
+- `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-focused-post-dburl-probe-red.log`
 - `.ai/05_logs/2026-06-12-estimate-tabs-phase5-supabase-generated-types-boundary-run.md`
 - `.ai/10_state/current-state.md`
 
@@ -2098,6 +2104,9 @@ not executed.
 ```text
 label=vitest-supabase-history-rpc-types-focused-red exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-focused-red.log result=1_failed_test_missing_generated_archive_estimate_tab_with_history_entry
 label=supabase-history-rpc-types-boundary-probe exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log result=6_missing_estimate_tab_rpc_generated_entries_local_docker_unavailable_for_local_typegen
+label=estimate-tabs-local-postgres-proof-rerun exit_code=0 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/estimate-tabs-local-postgres-proof-rerun.log result=local_homebrew_postgres_migration_rls_proof_passed
+label=estimate-tabs-local-dburl-typegen-probe exit_code=2 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/estimate-tabs-local-dburl-typegen-probe.log result=supabase_gen_types_db_url_connects_then_fails_on_docker_image_inspection
+label=vitest-supabase-history-rpc-types-post-dburl-probe-red exit_code=1 timed_out=False log=.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-focused-post-dburl-probe-red.log result=1_failed_test_missing_generated_archive_estimate_tab_with_history_entry
 ```
 
 ### Remaining Phase 5 boundary
@@ -2107,8 +2116,8 @@ label=supabase-history-rpc-types-boundary-probe exit_code=0 timed_out=False log=
   `duplicate_estimate_tab_with_history`, `rename_estimate_tab_with_history`, and
   `reorder_estimate_tabs_with_history`.
 - Safe next proof path is owner-approved linked Supabase migration apply plus
-  linked type generation, or a working local Supabase Docker environment for
-  local type generation. Hand-editing `src/lib/supabase/types.ts` was rejected
+  linked type generation, or a working Docker-backed Supabase typegen
+  environment. Hand-editing `src/lib/supabase/types.ts` was rejected
   because it would weaken the generated/provider-proof boundary.
 - No linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
   production/manual proof, or browser visual proof was performed.

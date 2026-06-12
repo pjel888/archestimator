@@ -1,6 +1,6 @@
 # Current State
 **Estimate Tabs Phase 5 Supabase Generated Types Boundary Confirmed (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
-After commit `0eb38394`, fresh focused validation confirms the remaining local
+After commit `e2e7a6d1`, fresh focused validation confirms the remaining local
 failure is the generated Supabase type contract in
 `tests/vitest/estimate-sheet-version-control-actions.test.ts`: the migration
 `supabase/migrations/20260612094734_estimate_tabs_foundation.sql` defines
@@ -14,13 +14,15 @@ and
 `.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log`:
 the focused action test fails only on the missing generated function entry,
 coverage probing reports six missing estimate-tab RPCs, `supabase status` cannot
-inspect local services because Docker is unavailable, and local
-`supabase gen types --local --schema public` cannot run for the same reason.
-No generated-type hand edit was made because the plan pack treats
+inspect local services because Docker is unavailable, no `docker` CLI is visible,
+the Homebrew Postgres estimate-tabs migration/RLS harness passes, and
+`supabase gen types --db-url` against that temp DB still fails on Docker image
+inspection. Local `supabase gen types --local --schema public` also cannot run
+without Docker. No generated-type hand edit was made because the plan pack treats
 `src/lib/supabase/types.ts` as provider/local-generated output after authorized
 Supabase apply/typegen. Remaining proof gate: owner-approved linked Supabase
-apply/typegen or a working local Supabase Docker typegen environment, followed
-by focused action validation and full `bun run validate`. No linked Supabase
+apply/typegen or a working Docker-backed Supabase typegen environment,
+followed by focused action validation and full `bun run validate`. No linked Supabase
 apply/typegen, hosted provider proof, Vercel deploy, production/manual proof, or
 browser visual proof was performed.
 
