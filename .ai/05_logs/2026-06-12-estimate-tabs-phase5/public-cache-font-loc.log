@@ -1,0 +1,3 @@
+src/app/layout.tsx 29
+tests/vitest/public-cache-safety-harness.test.tsx 119
+tests/vitest/public-font-lcp-audit.test.ts 29
