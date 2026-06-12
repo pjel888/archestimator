@@ -23,7 +23,11 @@ import {
 } from "./source-collectors";
 
 export type ReusableProjectSourceListResult = {
-  sources: Array<ProjectReusableSource | ProjectEstimateReusableSource>;
+  sources: ProjectReusableSource[];
+};
+
+export type ReusableProjectEstimateListResult = {
+  sources: ProjectEstimateReusableSource[];
 };
 
 export type ReusableEstimateOutlineResult = {
@@ -53,32 +57,38 @@ export async function listReusableProjectSources(): Promise<ReusableProjectSourc
   await requireCurrentUserContext();
   const { projects } = await listCurrentWorkspaceProjects();
   const accessibleProjects = projects.filter((item) => item.accessKind !== "pending-invite");
-  const estimatesByProject = await Promise.all(
-    accessibleProjects.map((item) => listProjectEstimateSheets(item.project.id)),
-  );
 
-  const sources: ReusableProjectSourceListResult["sources"] = [];
-  accessibleProjects.forEach((item, index) => {
-    sources.push({
+  return {
+    sources: accessibleProjects.map((item) => ({
       kind: "project",
       projectId: item.project.id,
       name: item.project.name,
-    });
-    for (const estimate of estimatesByProject[index] ?? []) {
-      sources.push({
-        kind: "project-estimate",
-        projectId: item.project.id,
-        estimateId: estimate.id,
-        name: estimate.name,
-        sheetCode: estimate.sheetCode,
-        metadata: {
-          updatedAt: estimate.updatedAt,
-        },
-      });
-    }
-  });
+    })),
+  };
+}
 
-  return { sources };
+export async function listReusableProjectEstimateSources(input: { projectId: string }): Promise<ReusableProjectEstimateListResult> {
+  await requireCurrentUserContext();
+  const { projects } = await listCurrentWorkspaceProjects();
+  const project = projects.find((item) => item.project.id === input.projectId && item.accessKind !== "pending-invite");
+  if (!project) return { sources: [] };
+  const estimates = await listProjectEstimateSheets(input.projectId);
+
+  return {
+    sources: estimates.map((estimate) => ({
+      kind: "project-estimate",
+      projectId: input.projectId,
+      estimateId: estimate.id,
+      name: estimate.name,
+      sheetCode: estimate.sheetCode,
+      metadata: {
+        projectName: project.project.name,
+        estimateName: estimate.name,
+        sheetCode: estimate.sheetCode,
+        updatedAt: estimate.updatedAt,
+      },
+    })),
+  };
 }
 
 export async function searchReusableProjectSources(input: { query: string }): Promise<ReusableProjectSourceSearchResult> {

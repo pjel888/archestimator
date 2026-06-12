@@ -40,13 +40,17 @@ import {
   renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
-import { getReusableEstimateOutline } from "@/lib/reusable-sources/actions";
-import type { ProjectEstimateReusableSource, ReusableEstimateSource } from "@/lib/reusable-sources/types";
+import { getReusableEstimateOutline, listReusableProjectEstimateSources } from "@/lib/reusable-sources/actions";
+import type { ProjectEstimateReusableSource, ProjectReusableSource, ReusableEstimateSource } from "@/lib/reusable-sources/types";
 import {
   buildProjectSourceBrowseTreeNodes,
   findProjectEstimateSourceByBrowseNodeId,
+  findProjectSourceByBrowseNodeId,
+  getUnloadedProjectBrowseNodeIds,
   getUnloadedProjectEstimateBrowseNodeIds,
   hasReusableEstimateOutline,
+  hasReusableProjectEstimates,
+  mergeReusableProjectEstimateBrowseSources,
   mergeReusableProjectBrowseSources,
   type ProjectBrowseTreeDatum,
 } from "./project-source-browse-tree";
@@ -153,8 +157,12 @@ type TemplatesBrowseTreePanelProps = {
   projectSources: ReusableEstimateSource[];
   selectedCategory: string | null;
   selectedTemplateId: string | null;
+  projectEstimateLoadingProjectIds: readonly string[];
+  projectEstimateLoadedProjectIds: readonly string[];
+  projectEstimateError: string | null;
   projectOutlineLoadingEstimateIds: readonly string[];
   projectOutlineError: string | null;
+  onLoadProjectEstimates: (source: ProjectReusableSource) => void;
   onLoadProjectEstimateOutline: (source: ProjectEstimateReusableSource) => void;
   onSelectAll: () => void;
   onSelectCategory: (category: string) => void;
@@ -175,8 +183,12 @@ function TemplatesBrowseTreePanel({
   projectSources,
   selectedCategory,
   selectedTemplateId,
+  projectEstimateLoadingProjectIds,
+  projectEstimateLoadedProjectIds,
+  projectEstimateError,
   projectOutlineLoadingEstimateIds,
   projectOutlineError,
+  onLoadProjectEstimates,
   onLoadProjectEstimateOutline,
   onSelectAll,
   onSelectCategory,
@@ -203,6 +215,10 @@ function TemplatesBrowseTreePanel({
   const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates, projectSources), [filteredTemplates, projectSources]);
   const folderIds = useMemo(() => getBrowseTreeFolderIds(treeNodes), [treeNodes]);
   const searchActive = searchQuery.trim().length > 0;
+  const unloadedProjectNodeIds = useMemo(
+    () => new Set(getUnloadedProjectBrowseNodeIds(projectSources, projectEstimateLoadingProjectIds, projectEstimateLoadedProjectIds)),
+    [projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds, projectSources],
+  );
   const unloadedProjectEstimateNodeIds = useMemo(
     () => new Set(getUnloadedProjectEstimateBrowseNodeIds(projectSources, projectOutlineLoadingEstimateIds)),
     [projectOutlineLoadingEstimateIds, projectSources],
@@ -212,8 +228,8 @@ function TemplatesBrowseTreePanel({
   const expandedIds = useMemo(
     () => (searchActive
       ? folderIds
-      : folderIds.filter((id) => !collapsedIds.has(id) && !unloadedProjectEstimateNodeIds.has(id))),
-    [collapsedIds, folderIds, searchActive, unloadedProjectEstimateNodeIds],
+      : folderIds.filter((id) => !collapsedIds.has(id) && !unloadedProjectNodeIds.has(id) && !unloadedProjectEstimateNodeIds.has(id))),
+    [collapsedIds, folderIds, searchActive, unloadedProjectEstimateNodeIds, unloadedProjectNodeIds],
   );
 
   const nodeById = useMemo(() => {
@@ -260,9 +276,11 @@ function TemplatesBrowseTreePanel({
     toggleNode(nodeId, expanded);
     if (!expanded) return;
 
-    const source = findProjectEstimateSourceByBrowseNodeId(projectSources, nodeId);
-    if (source) onLoadProjectEstimateOutline(source);
-  }, [onLoadProjectEstimateOutline, projectSources, toggleNode]);
+    const projectSource = findProjectSourceByBrowseNodeId(projectSources, nodeId);
+    if (projectSource) onLoadProjectEstimates(projectSource);
+    const estimateSource = findProjectEstimateSourceByBrowseNodeId(projectSources, nodeId);
+    if (estimateSource) onLoadProjectEstimateOutline(estimateSource);
+  }, [onLoadProjectEstimateOutline, onLoadProjectEstimates, projectSources, toggleNode]);
 
   const handleRowClick = useCallback(
     (_nodeId: string, node: UiTreeNode) => {
@@ -508,6 +526,16 @@ function TemplatesBrowseTreePanel({
                     }
                   }}
                 >
+                  {projectEstimateLoadingProjectIds.length > 0 ? (
+                    <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+                      Loading {projectEstimateLoadingProjectIds.length === 1 ? "project estimates" : `${projectEstimateLoadingProjectIds.length} project estimate lists`}…
+                    </div>
+                  ) : null}
+                  {projectEstimateError ? (
+                    <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+                      Couldn&apos;t load project estimates. {projectEstimateError}
+                    </div>
+                  ) : null}
                   {projectOutlineLoadingEstimateIds.length > 0 ? (
                     <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
                       Loading {projectOutlineLoadingEstimateIds.length === 1 ? "estimate outline" : `${projectOutlineLoadingEstimateIds.length} estimate outlines`}…
@@ -575,6 +603,9 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
     source: projectSources,
     items: projectSources,
   }));
+  const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
+  const [projectEstimateLoadedProjectIds, setProjectEstimateLoadedProjectIds] = useState<string[]>([]);
+  const [projectEstimateErrors, setProjectEstimateErrors] = useState<Record<string, string>>({});
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
   const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
 
@@ -598,12 +629,48 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
   );
   const selectedTemplate = localTemplates.find((template) => template.id === selectedTemplateId) ?? null;
   const scopeLabel = selectedCategory ?? "All Templates";
+  const projectEstimateError = Object.values(projectEstimateErrors)[0] ?? null;
   const projectOutlineError = Object.values(projectOutlineErrors)[0] ?? null;
 
   const setItems = useCallback((updater: (items: EstimateTemplate[]) => EstimateTemplate[]) => {
     setTemplateState((current) => ({ ...current, items: updater(current.items) }));
   }, []);
 
+
+  const loadProjectEstimates = useCallback((source: ProjectReusableSource) => {
+    if (hasReusableProjectEstimates(localProjectSources, source.projectId)) return;
+    if (projectEstimateLoadedProjectIds.includes(source.projectId)) return;
+    if (projectEstimateLoadingProjectIds.includes(source.projectId)) return;
+
+    setProjectEstimateLoadingProjectIds((current) =>
+      current.includes(source.projectId) ? current : [...current, source.projectId],
+    );
+    setProjectEstimateErrors((current) => {
+      const next = { ...current };
+      delete next[source.projectId];
+      return next;
+    });
+
+    void listReusableProjectEstimateSources({ projectId: source.projectId })
+      .then((result) => {
+        setProjectSourceState((current) => ({
+          ...current,
+          items: mergeReusableProjectEstimateBrowseSources(current.items, result.sources, source.projectId),
+        }));
+        setProjectEstimateLoadedProjectIds((current) =>
+          current.includes(source.projectId) ? current : [...current, source.projectId],
+        );
+      })
+      .catch((error: unknown) => {
+        setProjectEstimateErrors((current) => ({
+          ...current,
+          [source.projectId]: error instanceof Error ? error.message : "Could not load project estimates.",
+        }));
+      })
+      .finally(() => {
+        setProjectEstimateLoadingProjectIds((current) => current.filter((projectId) => projectId !== source.projectId));
+      });
+  }, [localProjectSources, projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds]);
 
   const loadProjectEstimateOutline = useCallback((source: ProjectEstimateReusableSource) => {
     if (hasReusableEstimateOutline(localProjectSources, source.estimateId)) return;
@@ -822,14 +889,18 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Template library workspace">
-          <TemplatesBrowseTreePanel
-            templates={localTemplates}
-            projectSources={localProjectSources}
-            selectedCategory={selectedCategory}
-            selectedTemplateId={selectedTemplateId}
-            projectOutlineLoadingEstimateIds={projectOutlineLoadingEstimateIds}
-            projectOutlineError={projectOutlineError}
-            onLoadProjectEstimateOutline={loadProjectEstimateOutline}
+        <TemplatesBrowseTreePanel
+          templates={localTemplates}
+          projectSources={localProjectSources}
+          selectedCategory={selectedCategory}
+          selectedTemplateId={selectedTemplateId}
+          projectEstimateLoadingProjectIds={projectEstimateLoadingProjectIds}
+          projectEstimateLoadedProjectIds={projectEstimateLoadedProjectIds}
+          projectEstimateError={projectEstimateError}
+          projectOutlineLoadingEstimateIds={projectOutlineLoadingEstimateIds}
+          projectOutlineError={projectOutlineError}
+          onLoadProjectEstimates={loadProjectEstimates}
+          onLoadProjectEstimateOutline={loadProjectEstimateOutline}
             onSelectAll={selectAll}
             onSelectCategory={selectCategory}
             onSelectTemplate={selectTemplate}

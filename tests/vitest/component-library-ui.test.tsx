@@ -19,6 +19,7 @@ const templateActionMocks = vi.hoisted(() => ({
 
 const reusableSourceActionMocks = vi.hoisted(() => ({
   listReusableProjectSources: vi.fn(),
+  listReusableProjectEstimateSources: vi.fn(),
   getReusableEstimateOutline: vi.fn(),
   searchReusableProjectSources: vi.fn(),
 }));
@@ -34,6 +35,7 @@ vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
 
 vi.mock("@/lib/reusable-sources/actions", () => ({
   getReusableEstimateOutline: reusableSourceActionMocks.getReusableEstimateOutline,
+  listReusableProjectEstimateSources: reusableSourceActionMocks.listReusableProjectEstimateSources,
   listReusableProjectSources: reusableSourceActionMocks.listReusableProjectSources,
   searchReusableProjectSources: reusableSourceActionMocks.searchReusableProjectSources,
 }));
@@ -112,6 +114,7 @@ describe("component library UI", () => {
   beforeEach(() => {
     window.localStorage.clear();
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
     reusableSourceActionMocks.searchReusableProjectSources.mockReset();
   });
@@ -716,6 +719,7 @@ describe("templates tree", () => {
     templateActionMocks.renameEstimateTemplate.mockReset();
     templateActionMocks.deleteEstimateTemplate.mockReset();
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
     reusableSourceActionMocks.searchReusableProjectSources.mockReset();
   });
@@ -848,25 +852,35 @@ describe("templates tree", () => {
 
   it("loads readable project sources when the Templates tab opens in an estimate context", async () => {
     reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
-      sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project-estimate"),
     });
 
     openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
 
     await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-2" }),
+    );
     expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
   });
 
   it("refreshes readable project sources from the Templates tab", async () => {
     const refreshedProjectSources: ReusableEstimateSource[] = [
-      ...projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+      ...projectSources.filter((source) => source.kind === "project"),
       {
         kind: "project",
         projectId: "project-3",
         name: "Hotel Refresh Project",
       },
+    ];
+    const refreshedEstimateSources: ReusableEstimateSource[] = [
       {
         kind: "project-estimate",
         projectId: "project-3",
@@ -877,9 +891,10 @@ describe("templates tree", () => {
     ];
     reusableSourceActionMocks.listReusableProjectSources
       .mockResolvedValueOnce({
-        sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+        sources: projectSources.filter((source) => source.kind === "project"),
       })
       .mockResolvedValueOnce({ sources: refreshedProjectSources });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({ sources: refreshedEstimateSources });
 
     openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
 
@@ -889,12 +904,15 @@ describe("templates tree", () => {
     await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("treeitem", { name: "Hotel Refresh Project project source" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("treeitem", { name: "Hotel Refresh Project project source" }));
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-3" }),
+    );
     expect(screen.getByRole("treeitem", { name: "Lobby Refresh Estimate estimate EST-003" })).toBeInTheDocument();
   });
 
   it("searches action-backed project sources and reveals unloaded outline matches", async () => {
     reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
-      sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+      sources: projectSources.filter((source) => source.kind === "project"),
     });
     reusableSourceActionMocks.searchReusableProjectSources.mockResolvedValue({ sources: projectSources });
 
@@ -914,7 +932,10 @@ describe("templates tree", () => {
 
   it("lazy-loads an estimate outline when a project estimate expands", async () => {
     reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
-      sources: projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project-estimate"),
     });
     reusableSourceActionMocks.getReusableEstimateOutline.mockResolvedValue({
       sources: projectSources.filter((source) => source.kind === "project-tab" || source.kind === "project-node"),
@@ -923,7 +944,10 @@ describe("templates tree", () => {
     openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
 
     fireEvent.click(await screen.findByRole("treeitem", { name: "Renovation Project project source" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-2" }),
+    );
+    fireEvent.click(await screen.findByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
 
     await waitFor(() =>
       expect(reusableSourceActionMocks.getReusableEstimateOutline).toHaveBeenCalledWith({

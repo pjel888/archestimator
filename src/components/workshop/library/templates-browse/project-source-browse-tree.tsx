@@ -77,6 +77,46 @@ export function findProjectEstimateSourceByBrowseNodeId(sources: ReusableEstimat
   return null;
 }
 
+export function findProjectSourceByBrowseNodeId(sources: ReusableEstimateSource[], nodeId: string) {
+  for (const source of sources) {
+    if (source.kind === "project" && browseProjectSourceNodeId(source) === nodeId) return source;
+  }
+  return null;
+}
+
+export function hasReusableProjectEstimates(sources: ReusableEstimateSource[], projectId: string) {
+  return sources.some((source) => source.kind === "project-estimate" && source.projectId === projectId);
+}
+
+export function mergeReusableProjectEstimateBrowseSources(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ReusableEstimateSource[],
+  projectId: string,
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) {
+    if (source.kind !== "custom-template" && source.projectId === projectId && source.kind !== "project") continue;
+    sourcesByKey.set(reusableProjectBrowseSourceKey(source), source);
+  }
+  for (const source of incomingSources) sourcesByKey.set(reusableProjectBrowseSourceKey(source), source);
+  return Array.from(sourcesByKey.values());
+}
+
+export function getUnloadedProjectBrowseNodeIds(
+  sources: ReusableEstimateSource[],
+  loadingProjectIds: readonly string[],
+  loadedProjectIds: readonly string[],
+) {
+  const loadingIds = new Set(loadingProjectIds);
+  const loadedIds = new Set(loadedProjectIds);
+  return sources.flatMap((source) => {
+    if (source.kind !== "project") return [];
+    if (loadingIds.has(source.projectId) || loadedIds.has(source.projectId)) return [];
+    if (hasReusableProjectEstimates(sources, source.projectId)) return [];
+    return [browseProjectSourceNodeId(source)];
+  });
+}
+
 export function getUnloadedProjectEstimateBrowseNodeIds(
   sources: ReusableEstimateSource[],
   loadingEstimateIds: readonly string[],
@@ -181,7 +221,7 @@ export function buildProjectSourceBrowseTreeNodes(projectSources: ReusableEstima
       id: browseProjectSourceNodeId(project.source),
       label: project.source.name,
       ariaLabel: `${project.source.name} project source`,
-      isLeaf: project.estimates.size === 0,
+      isLeaf: false,
       draggable: false,
       icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       data: { browseNode: { type: "project-source", source: project.source } satisfies ProjectBrowseTreeDatum },

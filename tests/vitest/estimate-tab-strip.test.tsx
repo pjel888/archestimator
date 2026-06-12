@@ -1,13 +1,15 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateTabStrip } from "@/components/workshop/estimate-sheet/EstimateTabStrip";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
+  archiveEstimateTab: vi.fn(),
   createEstimateTab: vi.fn(),
+  deleteEstimateTab: vi.fn(),
   duplicateEstimateTab: vi.fn(),
   renameEstimateTab: vi.fn(),
   reorderEstimateTabs: vi.fn(),
@@ -42,6 +44,8 @@ function renderStrip(overrides: Partial<ComponentProps<typeof EstimateTabStrip>>
 describe("EstimateTabStrip", () => {
   beforeEach(() => {
     actionMocks.createEstimateTab.mockReset();
+    actionMocks.archiveEstimateTab.mockReset();
+    actionMocks.deleteEstimateTab.mockReset();
     actionMocks.duplicateEstimateTab.mockReset();
     actionMocks.renameEstimateTab.mockReset();
     actionMocks.reorderEstimateTabs.mockReset();
@@ -130,5 +134,73 @@ describe("EstimateTabStrip", () => {
       });
     });
     expect(onTabsChange).toHaveBeenCalledWith(renamedTabs);
+    expect(screen.getByRole("status")).toHaveTextContent("Renamed tab to Main Revised.");
+  });
+
+  it("announces keyboard reorder and keeps focus on the moved tab", async () => {
+    actionMocks.reorderEstimateTabs.mockResolvedValue({
+      estimateTabId: "tab-main",
+      tabs: [
+        { id: "tab-alt", name: "Alternate", sortOrder: 0, isDefault: false },
+        { id: "tab-main", name: "Main", sortOrder: 1, isDefault: true },
+      ],
+    });
+    renderStrip({ enableLifecycleActions: true });
+
+    const mainTab = screen.getByRole("tab", { name: /Main/ });
+    mainTab.focus();
+    fireEvent.keyDown(mainTab, { key: "ArrowRight", metaKey: true, shiftKey: true });
+
+    await waitFor(() => {
+      expect(actionMocks.reorderEstimateTabs).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        updates: [
+          { id: "tab-alt", sortOrder: 0 },
+          { id: "tab-main", sortOrder: 1 },
+        ],
+      });
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Main tab moved right.");
+    expect(document.activeElement).toBe(mainTab);
+  });
+
+  it("focuses the nearest remaining tab after a gated delete", async () => {
+    function Harness() {
+      const [tabs, setTabs] = useState(fixtureTabs());
+      const [activeTabId, setActiveTabId] = useState("tab-main");
+      return (
+        <EstimateTabStrip
+          tabs={tabs}
+          activeTabId={activeTabId}
+          projectId="project-1"
+          estimateId="estimate-1"
+          enableLifecycleActions
+          canDeleteTabs
+          onTabChange={setActiveTabId}
+          onTabsChange={setTabs}
+        />
+      );
+    }
+    const remainingTabs = [{ id: "tab-alt", name: "Alternate", sortOrder: 0, isDefault: false }];
+    actionMocks.deleteEstimateTab.mockResolvedValue({
+      estimateTabId: "tab-main",
+      replacementTabId: "tab-alt",
+      tabs: remainingTabs,
+    });
+    render(<Harness />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete active tab" }));
+
+    await waitFor(() => {
+      expect(actionMocks.deleteEstimateTab).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        tabId: "tab-main",
+      });
+    });
+    const alternateTab = await screen.findByRole("tab", { name: "Alternate" });
+    await waitFor(() => expect(document.activeElement).toBe(alternateTab));
+    expect(screen.getByRole("status")).toHaveTextContent("Main tab deleted.");
   });
 });

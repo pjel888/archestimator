@@ -1,10 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
-import { CopySimple, PencilSimple, Plus } from "@phosphor-icons/react/dist/ssr";
+import { CopySimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { createEstimateTab, duplicateEstimateTab, renameEstimateTab, reorderEstimateTabs } from "@/lib/estimates/actions";
+import {
+  archiveEstimateTab,
+  createEstimateTab,
+  deleteEstimateTab,
+  duplicateEstimateTab,
+  renameEstimateTab,
+  reorderEstimateTabs,
+} from "@/lib/estimates/actions";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 
@@ -23,10 +30,12 @@ export type EstimateTabStripProps = {
   enableLifecycleActions?: boolean;
   canCreateTabs?: boolean;
   canDuplicateTabs?: boolean;
+  canArchiveTabs?: boolean;
+  canDeleteTabs?: boolean;
   className?: string;
 };
 
-type PendingAction = "create" | "duplicate" | "rename" | "reorder" | null;
+type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "archive" | "delete" | null;
 
 const SPRING_LOADED_TAB_DELAY_MS = 450;
 
@@ -51,6 +60,8 @@ export function EstimateTabStrip({
   enableLifecycleActions = false,
   canCreateTabs = false,
   canDuplicateTabs = false,
+  canArchiveTabs = false,
+  canDeleteTabs = false,
   className,
 }: EstimateTabStripProps) {
   const orderedTabs = useMemo(() => sortTabs(tabs), [tabs]);
@@ -65,6 +76,9 @@ export function EstimateTabStrip({
   const [editingName, setEditingName] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [error, setError] = useState("");
+  const [announcement, setAnnouncement] = useState("");
+  const lastAnnouncedTabIdRef = useRef<string | null>(null);
+  const suppressNextSelectionAnnouncementRef = useRef(false);
   const lifecycleActionsReady = enableLifecycleActions && Boolean(projectId && estimateId);
 
   const focusTab = useCallback((index: number) => {
@@ -82,6 +96,19 @@ export function EstimateTabStrip({
   }, []);
 
   useEffect(() => clearSpringLoadedTabTarget, [clearSpringLoadedTabTarget]);
+
+  useEffect(() => {
+    const activeTab = orderedTabs[activeIndex];
+    if (!activeTab) return;
+    if (lastAnnouncedTabIdRef.current && lastAnnouncedTabIdRef.current !== activeTab.id) {
+      if (suppressNextSelectionAnnouncementRef.current) {
+        suppressNextSelectionAnnouncementRef.current = false;
+      } else {
+        setAnnouncement(`${activeTab.name} tab selected.`);
+      }
+    }
+    lastAnnouncedTabIdRef.current = activeTab.id;
+  }, [activeIndex, orderedTabs]);
 
   const scheduleSpringLoadedTabTarget = useCallback((event: DragEvent<HTMLButtonElement>, tabId: string) => {
     // Spring-load tab switching during external/tree drags so a user can hover
@@ -126,6 +153,7 @@ export function EstimateTabStrip({
     if (currentTab?.name === nextName) {
       setEditingTabId(null);
       setError("");
+      window.requestAnimationFrame(() => focusTab(activeIndex));
       return;
     }
 
@@ -135,12 +163,14 @@ export function EstimateTabStrip({
       const result = await renameEstimateTab({ projectId, estimateId, tabId: editingTabId, name: nextName });
       if (result.tabs) onTabsChange?.(result.tabs);
       setEditingTabId(null);
+      setAnnouncement(`Renamed tab to ${nextName}.`);
+      window.requestAnimationFrame(() => focusTab(activeIndex));
     } catch (renameError) {
       setError(renameError instanceof Error ? renameError.message : "Could not rename tab.");
     } finally {
       setPendingAction(null);
     }
-  }, [editingName, editingTabId, estimateId, onTabsChange, orderedTabs, projectId]);
+  }, [activeIndex, editingName, editingTabId, estimateId, focusTab, onTabsChange, orderedTabs, projectId]);
 
   const createTab = useCallback(async () => {
     if (!projectId || !estimateId || !lifecycleActionsReady || !canCreateTabs) return;
@@ -149,8 +179,10 @@ export function EstimateTabStrip({
     try {
       const result = await createEstimateTab({ projectId, estimateId, name: getNextTabName(orderedTabs) });
       if (result.tabs) onTabsChange?.(result.tabs);
+      suppressNextSelectionAnnouncementRef.current = true;
       onTabChange(result.estimateTabId);
       const nextTab = result.tabs?.find((tab) => tab.id === result.estimateTabId);
+      setAnnouncement(`Created ${nextTab?.name ?? "tab"}.`);
       if (nextTab) beginRename(nextTab);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Could not create tab.");
@@ -166,7 +198,10 @@ export function EstimateTabStrip({
     try {
       const result = await duplicateEstimateTab({ projectId, estimateId, tabId: resolvedActiveTabId });
       if (result.tabs) onTabsChange?.(result.tabs);
+      suppressNextSelectionAnnouncementRef.current = true;
       onTabChange(result.estimateTabId);
+      const nextTab = result.tabs?.find((tab) => tab.id === result.estimateTabId);
+      setAnnouncement(`Duplicated ${nextTab?.name ?? "tab"}.`);
     } catch (duplicateError) {
       setError(duplicateError instanceof Error ? duplicateError.message : "Could not duplicate tab.");
     } finally {
@@ -193,6 +228,7 @@ export function EstimateTabStrip({
         updates: reordered.map((tab, index) => ({ id: tab.id, sortOrder: index })),
       });
       onTabsChange?.(result.tabs ?? reordered.map((tab, index) => ({ ...tab, sortOrder: index })));
+      setAnnouncement(`${moved.name} tab moved ${direction < 0 ? "left" : "right"}.`);
       window.requestAnimationFrame(() => focusTab(nextIndex));
     } catch (reorderError) {
       setError(reorderError instanceof Error ? reorderError.message : "Could not reorder tabs.");
@@ -200,6 +236,34 @@ export function EstimateTabStrip({
       setPendingAction(null);
     }
   }, [estimateId, focusTab, lifecycleActionsReady, onTabsChange, orderedTabs, projectId, resolvedActiveTabId]);
+
+  const archiveOrDeleteActiveTab = useCallback(async (action: "archive" | "delete") => {
+    if (!projectId || !estimateId || !lifecycleActionsReady || orderedTabs.length < 2) return;
+    const activeTab = orderedTabs[activeIndex];
+    if (!activeTab) return;
+
+    setPendingAction(action);
+    setError("");
+    try {
+      const result = action === "archive"
+        ? await archiveEstimateTab({ projectId, estimateId, tabId: activeTab.id })
+        : await deleteEstimateTab({ projectId, estimateId, tabId: activeTab.id });
+      const nextTabs = result.tabs ?? orderedTabs.filter((tab) => tab.id !== activeTab.id);
+      const replacementTabId = result.replacementTabId ?? nextTabs[Math.min(activeIndex, Math.max(0, nextTabs.length - 1))]?.id ?? null;
+      if (result.tabs) onTabsChange?.(result.tabs);
+      if (replacementTabId) {
+        suppressNextSelectionAnnouncementRef.current = true;
+        onTabChange(replacementTabId);
+      }
+      setAnnouncement(`${activeTab.name} tab ${action === "archive" ? "archived" : "deleted"}.`);
+      const nextIndex = Math.max(0, nextTabs.findIndex((tab) => tab.id === replacementTabId));
+      window.requestAnimationFrame(() => focusTab(nextIndex));
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : `Could not ${action} tab.`);
+    } finally {
+      setPendingAction(null);
+    }
+  }, [activeIndex, estimateId, focusTab, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId]);
 
   const handleTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const moveFocus = (nextIndex: number) => {
@@ -342,8 +406,37 @@ export function EstimateTabStrip({
             <PencilSimple size={12} weight="regular" aria-hidden="true" />
           </Button>
         ) : null}
+        {lifecycleActionsReady && canArchiveTabs && orderedTabs.length > 1 ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="mb-0.5 h-6 min-h-0 min-w-0 shrink-0 rounded-xs px-2 text-[9px] text-tertiary"
+            aria-label="Archive active tab"
+            disabled={Boolean(pendingAction)}
+            onClick={() => void archiveOrDeleteActiveTab("archive")}
+          >
+            Archive
+          </Button>
+        ) : null}
+        {lifecycleActionsReady && canDeleteTabs && orderedTabs.length > 1 ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="mb-0.5 size-6 shrink-0 rounded-xs text-danger"
+            aria-label="Delete active tab"
+            disabled={Boolean(pendingAction)}
+            onClick={() => void archiveOrDeleteActiveTab("delete")}
+          >
+            <Trash size={12} weight="regular" aria-hidden="true" />
+          </Button>
+        ) : null}
       </div>
       {error ? <p role="alert" className="px-2 pb-1 text-[10px] leading-4 text-danger">{error}</p> : null}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {announcement}
+      </div>
     </div>
   );
 }

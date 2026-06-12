@@ -87,7 +87,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 |---|---|---|---|---|---|---|---|
 | R9.1 `/estimates/[nodeId]` node/estimate fallback preserved; tab derived | `workspace-repository.ts:1655` | 02 §13 (D-4) | 2–3 | resolver, page | route tests; QA #7 | R-URL | **implemented (local-only)** — `resolveProjectEstimateRoute` derives the tab from route node/default tab and `estimate-tabs-domain.test.ts` asserts the route resolver/page wiring; hosted route smoke remains open. |
 | R9.2 export links unchanged | `route.ts` | 07 §5 | 6 | route | hosted smoke | R-URL | implemented locally; hosted smoke open |
-| R9.3 invite/share deep links unchanged | `invite/[token]/page.tsx:68-72` | 02 §9 | 4, 7 | none (estimate-id URLs) | invite e2e | R-COLLAB | planned |
+| R9.3 invite/share deep links unchanged | `invite/[token]/page.tsx:68-72` | 02 §9 | 4, 7 | none (estimate-id URLs) | invite e2e | R-COLLAB | **implemented (local-only)** — invite route contracts still resolve `/invite/[token]` without tab URL rewrites, pending-invite bridge still returns to workshop, and shared-link email/API contracts still use `/share/[token]` + recipient query tokens. Focused invite/share suites passed; hosted invite/share e2e remains open. |
 
 ## Group 10 — Collaboration / versioning / publication / audit impacts
 
@@ -120,9 +120,9 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R13.1 zero re-render guard holds with strip | perf suites (01 §15) | 05 §2 | 3 | EstimateSheetContent | perf suites + switch case | R-PERF1 | planned |
-| R13.2 lazy source browsing scale | 02 §12 | 06 §8 | 5 | read actions | call-counting + timing | R-PERF2 | planned |
-| R13.3 tablist a11y + non-drag paths + focus management + live regions | `SharePageTabs.tsx:245` precedent | 05 §8 | 3, 5 | strip, menus | a11y DOM cases | — | planned |
+| R13.1 zero re-render guard holds with strip | perf suites (01 §15) | 05 §2 | 3 | EstimateSheetContent | perf suites + switch case | R-PERF1 | **implemented (local-only)** — existing perf suites pass with the strip mounted (`tests/vitest/perf`, 4 files / 14 tests). Browser/provider performance proof remains open. |
+| R13.2 lazy source browsing scale | 02 §12 | 06 §8 | 5 | read actions | call-counting + timing | R-PERF2 | **implemented (local-only)** — reusable project sources now load project roots first, fetch one project's estimates only on project expansion, and fetch tab/node outline only on estimate expansion. 20-project × 5-estimate × 3-tab call-count tests and route/sidebar lazy UI suites passed; live DB p95/provider scale proof remains open. |
+| R13.3 tablist a11y + non-drag paths + focus management + live regions | `SharePageTabs.tsx:245` precedent | 05 §8 | 3, 5 | strip, menus | a11y DOM cases | — | **implemented (local-only)** — `EstimateTabStrip` now has polite live-region announcements, keyboard reorder focus retention, and gated delete/archive focus fallback; prior R6.2 DOM coverage proves non-drag insertion paths. `estimate-tab-strip` now passes 8 DOM tests; browser/Storybook a11y proof remains open. |
 | R13.4 design-system gate compliance | `enforce-app-design-system.mjs` | 05 §13 | 3–6 | all new UI | `bun run lint:design-system` | — | **implemented (local-only)** — `bun run lint:design-system` passed in focused R6.3 proof and fresh `bun run validate`; hosted visual/design proof remains open. |
 
 **Coverage check:** every requirement group named by the prompt has rows; every row has either phase/files/tests/risk linkage or an explicit product-decision/deferred status with the owning follow-up gate named (R1.7, R2.4, R7.4, R8.6 assumption, R11.3).
