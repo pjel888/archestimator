@@ -1,4 +1,21 @@
 # Current State
+**Estimate Tabs Phase 5 R4.4 Preview Metadata Seam Partial Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now includes a narrow local preview
+metadata seam for project-derived reusable sources. Clicking a project,
+estimate, tab, or group/area row opens a read-through `Project source preview`
+that can display action-provided live metadata fields (project, estimate,
+Estimate code, tab, node path, last updated, row count, and total) plus a
+non-management insert handoff for insertable tab/node sources. Local evidence is
+in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-preview-metadata-seam-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 51 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is partial local R4.4 proof only: broader section/search filter
+chips, server-backed live metadata freshness, richer preview row detail,
+browse-route parity, insert RPC/action, linked Supabase apply/typegen, hosted
+provider proof, Vercel deploy, production/manual proof, and browser visual proof
+remain open.
+
 **Estimate Tabs Phase 5 R4.2a Default Projects + Current-Project Narrowing Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The estimate-tabs Phase 5 templates panel now covers the local R4.2a sidebar UI
 contract. The `Projects` section shows all readable project roots by default,
