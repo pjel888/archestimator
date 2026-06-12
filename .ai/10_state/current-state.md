@@ -2373,3 +2373,13 @@ Open:
 - Fresh local evidence: `bun x vitest run tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1` passed (1 file / 6 tests), focused ESLint passed, `bun run type-check` passed, and `git diff --check` passed.
 - Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r3-compat-governance-run.md`.
 - Boundary: no compatibility shim deletion, internal rename batch, linked Supabase apply/typegen, hosted proof, Vercel deploy, production deploy, or manual QA was performed.
+
+
+## Estimate Tabs R4.4-R4.5 Template Source Local Proof Refreshed (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- R4.4 search/filter/preview local seams are implemented and freshly re-proven: local filter chips, project-source preview metadata/outline rows, manual refresh, search action/UI, browse-route Projects tree, and server-backed reusable-source search.
+- R4.5 save-as-template local seams are implemented and freshly re-proven: explicit project-node and whole-tab source handoffs call the template creation actions and update the template tree.
+- Fresh local evidence: `bun x vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-browse-project-sources.test.tsx tests/vitest/library-overview.test.tsx --maxWorkers=1` passed (4 files / 77 tests).
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r4-template-source-local-proof-refresh.md`.
+- Boundary: no linked/hosted provider freshness proof, provider-backed action proof, linked Supabase apply/typegen, hosted browser proof, Vercel deploy, production deploy, or manual QA was performed.

@@ -2263,3 +2263,28 @@ label=diff-check-r3-compat-governance exit_code=0 command="git diff --check"
 - Shim deletion remains deferred until grep gates, provider/manual proof,
   beta-release evidence, contract-test updates, and owner/reviewer approval are
   all present.
+
+
+## Phase 5 R4.4-R4.5 template-source status refresh
+
+### Summary
+
+Refreshed the remaining Phase 5 template-source matrix rows that still used the
+status word `planned` after local implementation was already present. R4.4 is
+local-only implemented for search/filter/preview metadata, refresh affordance,
+browse-route Projects source tree, and reusable-source server-backed search.
+R4.5 is local-only implemented for explicit project-node and whole-tab
+save-as-template handoffs.
+
+### Gates run
+
+```text
+label=vitest-r4-template-source-local-proof-refresh exit_code=0 command="bun x vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-browse-project-sources.test.tsx tests/vitest/library-overview.test.tsx --maxWorkers=1" result="4 files / 77 tests passed"
+```
+
+### Remaining boundary
+
+- R4.4-R4.5 are implemented/proven locally only.
+- Linked/hosted provider freshness proof, provider-backed action proof, linked
+  Supabase apply/typegen, hosted browser proof, Vercel deploy, production
+  deploy, and manual QA remain unperformed.
