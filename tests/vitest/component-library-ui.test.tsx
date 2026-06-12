@@ -1034,6 +1034,27 @@ describe("templates tree", () => {
     }));
   });
 
+  it("keyboard-selects a project source for bulk insertion", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+    fireEvent.click(tabRow);
+    fireEvent.keyDown(tabRow, { key: " " });
+
+    expect(screen.getByRole("checkbox", { name: "Select Lobby Main" })).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-tab",
+      tabId: "tab-2",
+    }));
+  });
+
   it("searches project-source names and keeps their source ancestors visible", () => {
     openTemplatesTab({ projectSources });
 
@@ -1067,6 +1088,21 @@ describe("templates tree", () => {
     openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen Starter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertTemplate).toHaveBeenCalledTimes(1);
+    expect(onInsertTemplate).toHaveBeenCalledWith(expect.objectContaining({ id: "tpl-1" }));
+  });
+
+  it("keyboard-selects a custom template for bulk insertion", () => {
+    const onInsertTemplate = vi.fn(() => true);
+    openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    fireEvent.click(templateRow);
+    fireEvent.keyDown(templateRow, { key: " " });
+    expect(screen.getByRole("checkbox", { name: "Select Kitchen Starter" })).toHaveAttribute("aria-checked", "true");
+
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
     expect(onInsertTemplate).toHaveBeenCalledTimes(1);
