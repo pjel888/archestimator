@@ -7,12 +7,12 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R1.1 estimate_tabs entity + default-tab invariant | prompt §Core intent; no tab dimension today (`estimate-repository.ts:154,159`) | 02 §3; 03 §3 | 1 | `estimate_tabs`, migration M1 | schema contract; P1 proof; RLS harness | R-MIG1..3, R-RLS | planned |
-| R1.2 nodes belong to tabs | `estimate_nodes` schema (`types.ts:1461-1472`) | 03 §3–4 | 1 | `estimate_nodes.estimate_tab_id`, composite FK, constraint swap | P2–P4 proofs; reorder harness | R-MIG2 | planned |
-| R1.3 tab-aware loaders/actions/keys + compat wrappers | `workspace-repository.ts:1590-1671`; `use-estimate-query.ts:9-12` | 04 §2–4 | 2 | workspace-repository, estimates/actions, hooks | tab-action tests; wrapper equivalence | R-TEST | planned |
-| R1.4 tab CRUD UI (create/rename/duplicate/reorder/archive/delete) | prompt §05 spec | 05 §1–3 | 3 | `EstimateTabStrip.tsx`, `EstimateSheetContent.tsx`, `EstimateSheetTree.tsx` | strip DOM suite; e2e 1–4 | R-PERF1 | planned |
-| R1.5 per-tab selection/expansion + URL continuity | `use-estimate-workspace-state.ts:6-11`; `EstimateSheetTree.tsx:468-479` | 04 §11; 05 §4 | 2–3 | workspace-state hook, tree | switch-tab DOM cases; e2e 5 | R-URL | planned |
-| R1.6 per-tab tree isolation under load limits | route limits (`route.ts:12-13`) | 02 §12; 04 §3 | 2 | `getEstimateTabTree` | tab-tree unit tests | R-PERF2 | planned |
+| R1.1 estimate_tabs entity + default-tab invariant | prompt §Core intent; no tab dimension today (`estimate-repository.ts:154,159`) | 02 §3; 03 §3 | 1 | `estimate_tabs`, migration M1 | schema contract; P1 proof; RLS harness | R-MIG1..3, R-RLS | **implemented (local-only)** — migration `20260612094734_estimate_tabs_foundation.sql`, generated type patch, `estimate-tabs-schema.test.ts`, and local Postgres proof enforce one default tab per estimate; linked apply/proof remains open. |
+| R1.2 nodes belong to tabs | `estimate_nodes` schema (`types.ts:1461-1472`) | 03 §3–4 | 1 | `estimate_nodes.estimate_tab_id`, composite FK, constraint swap | P2–P4 proofs; reorder harness | R-MIG2 | **implemented (local-only)** — migration/types add `estimate_nodes.estimate_tab_id`, composite tab FK, parent-tab constraint, tab-scoped sibling logic, and P2–P4 local Postgres proof; linked apply/proof remains open. |
+| R1.3 tab-aware loaders/actions/keys + compat wrappers | `workspace-repository.ts:1590-1671`; `use-estimate-query.ts:9-12` | 04 §2–4 | 2 | workspace-repository, estimates/actions, hooks | tab-action tests; wrapper equivalence | R-TEST | **implemented (local-only)** — `getEstimateTabs`, `getEstimateTabTree`, `fetchEstimateTabTree`, `estimateQueryKeys.tabTree/tabs`, row mutation tab invalidation, and compat fallback tests are present; provider proof remains open. |
+| R1.4 tab CRUD UI (create/rename/duplicate/reorder/archive/delete) | prompt §05 spec | 05 §1–3 | 3 | `EstimateTabStrip.tsx`, `EstimateSheetContent.tsx`, `EstimateSheetTree.tsx` | strip DOM suite; e2e 1–4 | R-PERF1 | **implemented (local-only behind lifecycle gate)** — strip renders ARIA tabs plus create/rename/duplicate/reorder internals and archive/delete server actions exist; user-visible lifecycle controls remain release-gated pending browser/provider proof. |
+| R1.5 per-tab selection/expansion + URL continuity | `use-estimate-workspace-state.ts:6-11`; `EstimateSheetTree.tsx:468-479` | 04 §11; 05 §4 | 2–3 | workspace-state hook, tree | switch-tab DOM cases; e2e 5 | R-URL | **implemented (local-only)** — workspace state stores active tab, selected node, and expansion per tab; route resolver derives tab from selected node/default tab; hosted/browser continuity proof remains open. |
+| R1.6 per-tab tree isolation under load limits | route limits (`route.ts:12-13`) | 02 §12; 04 §3 | 2 | `getEstimateTabTree` | tab-tree unit tests | R-PERF2 | **implemented (local-only)** — `getEstimateTabTree` filters nodes by `estimate_tab_id`, export route reuses tab trees with sentinel limits, and Phase 6 benchmark passed 5 tabs × 500 rows in 443.59ms / 0.39 MiB. |
 | R1.7 cross-tab node moves | — | 05 §6 | follow-up | new move RPC | — | R-PERM2 | **deferred** (D-7) |
 
 ## Group 2 — "Sheet" → "tab" user-facing rebrand
@@ -65,9 +65,9 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R7.1 browse lists only readable sources (RLS-scoped reads, no admin client) | `can_access_estimate` (`20260526142913:365-386`) | 08 §5–6 | 5 | read actions | denial 1–2; RLS harness | R-PERM1 | planned |
-| R7.2 insert verifies target edit + source read + same workspace | `20260522091621:250-262`; `assertCanEditEstimate` | 08 §5 (D-6) | 5 | insert RPC + action | denial 3–5 | R-PERM2 | planned |
-| R7.3 estimate_tabs RLS mirrors nodes | `20260526142913:740-746` | 08 §3 | 1 | M1 | harness allow/deny | R-RLS | planned |
+| R7.1 browse lists only readable sources (RLS-scoped reads, no admin client) | `can_access_estimate` (`20260526142913:365-386`) | 08 §5–6 | 5 | read actions | denial 1–2; RLS harness | R-PERM1 | **implemented (local-only)** — reusable-source reads use authenticated repository paths and local Postgres RLS harness proves readable-tab isolation; linked/provider proof remains open. |
+| R7.2 insert verifies target edit + source read + same workspace | `20260522091621:250-262`; `assertCanEditEstimate` | 08 §5 (D-6) | 5 | insert RPC + action | denial 3–5 | R-PERM2 | **implemented (local-only action/RPC contract)** — project-source/template insertion flows route through authenticated edit/read checks and tab-aware history RPCs; linked/provider denial proof remains open. |
+| R7.3 estimate_tabs RLS mirrors nodes | `20260526142913:740-746` | 08 §3 | 1 | M1 | harness allow/deny | R-RLS | **implemented (local-only)** — migration enables RLS/grants on `estimate_tabs`; local Postgres harness proves owner/viewer readable-tab boundaries and forbidden viewer mutation. |
 | R7.4 tab-level ACLs | — | 08 §2 (D-5) | — | — | — | — | **deferred** |
 
 ## Group 8 — XLSX worksheet-tab export
@@ -85,7 +85,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R9.1 `/estimates/[nodeId]` node/estimate fallback preserved; tab derived | `workspace-repository.ts:1655` | 02 §13 (D-4) | 2–3 | resolver, page | route tests; QA #7 | R-URL | planned |
+| R9.1 `/estimates/[nodeId]` node/estimate fallback preserved; tab derived | `workspace-repository.ts:1655` | 02 §13 (D-4) | 2–3 | resolver, page | route tests; QA #7 | R-URL | **implemented (local-only)** — `resolveProjectEstimateRoute` derives the tab from route node/default tab and `estimate-tabs-domain.test.ts` asserts the route resolver/page wiring; hosted route smoke remains open. |
 | R9.2 export links unchanged | `route.ts` | 07 §5 | 6 | route | hosted smoke | R-URL | implemented locally; hosted smoke open |
 | R9.3 invite/share deep links unchanged | `invite/[token]/page.tsx:68-72` | 02 §9 | 4, 7 | none (estimate-id URLs) | invite e2e | R-COLLAB | planned |
 
@@ -112,9 +112,9 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 
 | ID | Source / evidence | Arch doc | Phase | Primary files/tables | Tests/validation | Risks | Status |
 |---|---|---|---|---|---|---|---|
-| R12.1 backfill exactly-one-default-tab + full node attachment + boundary proofs | 03 §7 P1–P5 | 03 §7 | 1 | M1 | proof harness + linked runbook | R-MIG3 | planned |
-| R12.2 constraint swap safety + rollback notes | `20260518090000:93`; `20260519192045:26-40` | 03 §3, §12 | 1 | M1b | harness reorder cases | R-MIG2 | planned |
-| R12.3 local-vs-linked apply boundary + type regen | VALIDATION_MATRIX.md:165-179 | 03 §11, §14 | 1 | types.ts | type-check; **provider proof separate** | R-TYPES | planned |
+| R12.1 backfill exactly-one-default-tab + full node attachment + boundary proofs | 03 §7 P1–P5 | 03 §7 | 1 | M1 | proof harness + linked runbook | R-MIG3 | **implemented (local-only)** — migration backfill and `scripts/prove-estimate-tabs-postgres.mjs` prove default tabs and full node attachment locally; linked runbook/apply proof remains open. |
+| R12.2 constraint swap safety + rollback notes | `20260518090000:93`; `20260519192045:26-40` | 03 §3, §12 | 1 | M1b | harness reorder cases | R-MIG2 | **implemented (local-only)** — migration adds composite tab boundary constraints and scoped sibling/order logic; local schema and Postgres proof pass; linked rollback/apply proof remains open. |
+| R12.3 local-vs-linked apply boundary + type regen | VALIDATION_MATRIX.md:165-179 | 03 §11, §14 | 1 | types.ts | type-check; **provider proof separate** | R-TYPES | **implemented (local-only) / provider proof open** — Docker typegen remains unavailable, so `types.ts` was patched from the migration contract and `bun run type-check` passes; linked Supabase apply/typegen proof remains blocked without explicit provider mutation approval. |
 
 ## Group 13 — Performance and accessibility
 
@@ -123,7 +123,7 @@ Columns: Requirement ID · Source request / repo evidence · Planned architectur
 | R13.1 zero re-render guard holds with strip | perf suites (01 §15) | 05 §2 | 3 | EstimateSheetContent | perf suites + switch case | R-PERF1 | planned |
 | R13.2 lazy source browsing scale | 02 §12 | 06 §8 | 5 | read actions | call-counting + timing | R-PERF2 | planned |
 | R13.3 tablist a11y + non-drag paths + focus management + live regions | `SharePageTabs.tsx:245` precedent | 05 §8 | 3, 5 | strip, menus | a11y DOM cases | — | planned |
-| R13.4 design-system gate compliance | `enforce-app-design-system.mjs` | 05 §13 | 3–6 | all new UI | `bun run lint:design-system` | — | planned |
+| R13.4 design-system gate compliance | `enforce-app-design-system.mjs` | 05 §13 | 3–6 | all new UI | `bun run lint:design-system` | — | **implemented (local-only)** — `bun run lint:design-system` passed in focused R6.3 proof and fresh `bun run validate`; hosted visual/design proof remains open. |
 
 **Coverage check:** every requirement group named by the prompt has rows; every row has either phase/files/tests/risk linkage or an explicit product-decision/deferred status with the owning follow-up gate named (R1.7, R2.4, R7.4, R8.6 assumption, R11.3).
 

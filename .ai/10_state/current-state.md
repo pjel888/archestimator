@@ -2314,3 +2314,9 @@ Open:
 - Package-builder read tools scope current-estimate tree/row context to the active tab when provided or to the selected node's tab when inferred; generated fill-current-estimate draft targets preserve `activeTabId`, and Apply passes `target_tab_id` to `create_estimate_node_with_history` when it creates missing Area Nodes.
 - Local evidence: `bun x vitest run tests/vitest/estimate-copilot-floating-button.test.tsx tests/vitest/ai-package-builder-read-tools.test.ts tests/vitest/ai-package-builder-draft.test.ts tests/vitest/ai-package-builder-schema.test.ts tests/vitest/ai-package-builder-apply.test.ts --maxWorkers=1` passed (5 files / 109 tests), plus `bun run type-check` and focused ESLint passed during the implementation slice.
 - Boundary: no live provider Ask Flip call, hosted browser route smoke, linked Supabase proof, or production deploy was performed.
+
+## Estimate Tabs Traceability Matrix Audit Refresh (2026-06-13)
+
+- Refreshed stale matrix rows that were already locally implemented/proven by the current branch: R1.1-R1.6, R7.1-R7.3, R9.1, R12.1-R12.3, and R13.4 now distinguish local implementation from linked/provider/browser proof gaps.
+- Fresh broad evidence after commits `bacf01bd` and `d7c9c450`: `bun run validate` passed (typecheck, ESLint with 549 warnings / 0 errors, design-system, strict design, unit tests, 243 Vitest files passed / 1 skipped, 1,771 tests passed / 3 skipped), `bun run build` passed, and `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed.
+- Merge-to-main remains blocked because the matrix still has planned/open rows requiring implementation or external proof, especially publication snapshot v1.2 tabs (R10.4), activity/collaboration tab proof (R10.1-R10.3), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, and owner/product review rows.
