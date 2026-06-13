@@ -207,3 +207,32 @@ See `.ai/03_plans/database-indexing-and-query-performance/03-index-strategy-and-
 ### Dependencies
 - Migration parity check (CODEX-P0-DBIDX-002) — shared-link tables may not exist in live schema
 - Staging environment with representative seed data (CODEX-P0-DBIDX-003)
+
+---
+
+## 2026-06-14 — Estimates List Page Performance Optimization (COMPLETE, merged to `main`)
+
+`/workshop/projects/[id]/estimates` "extremely slow / full of loading screens"
+was diagnosed as architectural, not volume: a global blur overlay on every
+`router.refresh()`, no optimistic client store, and a wrong-shaped skeleton.
+**Shipped & merged** (`.ai/03_plans/2026-06-14-Estimates-List-Page-Performance-Optimization/`,
+archived; ledger `.ai/05_logs/2026-06-14-estimates-list-page-implementation.md`):
+
+- **Felt latency (P0):** optimistic create/edit/delete/duplicate via a per-mount
+  Zustand store; in-place mutations no longer fire the overlay; table-shaped
+  loading skeleton.
+- **Waterfall (P1):** `ensureDefaultWorkspace` `cache()`-memoized (F6); header
+  chrome streamed behind Suspense so the shell + table skeleton paint first (F5).
+- **DB scaling (P2):** `project_estimate_list_summaries` aggregate RPC replaces
+  the all-rows JS fold (F8 — at 5,000 rows: 1 row/estimate vs 5,000 scanned/shipped);
+  explicit estimate columns stop shipping `metadata`/`created_by` (F9); `is_workspace_member`
+  `(select auth.uid())` initplan caching (F10). RPC + RLS proven byte-identical via
+  PG17 prove-harnesses + real-data parity; applied to prod `ebxxqidacheyapmmzavr`,
+  advisors 0 new findings.
+- **Hardening (P3):** list-route `error.tsx`, `/workshop` security headers,
+  edit-authZ on sheet actions (F13/F14/F15).
+
+**Deferred:** create/duplicate rate-limit (F16); pagination/server-side search
+(row-count not the dominant cost at current volume); live browser RUM (dev-auth
+disabled — `traced()`/`WebVitalsProbe` scaffolding + e2e specs ship ready behind
+`PERF_TRACE`).
