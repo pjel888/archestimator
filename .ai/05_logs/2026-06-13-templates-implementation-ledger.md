@@ -342,3 +342,38 @@ remained was the **first/cold expand UX**: inline "Loading…" banners that push
 - type-check ✓ · eslint (both files) ✓ · lint:design-system ✓. Full `bun run validate` re-run pending.
 - RTM: PERF-3 (U6) ✓ local; Loading-UX spinner-on-every-expand (U6/U23) ✓ local.
 - **Next:** U16 (assess remaining test-gap coverage), then closeout (state docs + archive + final validate/build).
+
+---
+
+## U9 — outline row predicate hits the composite index (PERF-7) — DONE (local)
+- `workspace-repository.ts` `getEstimateTabTree`: the tab-scoped row-items read was
+  `.in("node_id", nodeIds).order("sort_order")` with **no** `estimate_id` filter, so it
+  could not use the leading column of `estimate_row_items(estimate_id, node_id, sort_order)`
+  (`estimate_row_items_estimate_node_sort_idx`, core schema :126). Added `.eq("estimate_id",
+  estimate.id)` ahead of the `.in`. **Result set is identical** — every node in `nodeIds`
+  comes from the nodes query already scoped `.eq("estimate_id", estimate.id)` — so this is a
+  pure index-path win, not a semantic change. The other three row-item reads (`:1684/:1971/:2014`)
+  already filter by `estimate_id`; this was the only gap.
+- Gate: type-check ✓; `workspace-repository-estimate-tree` + `reusable-sources-actions` 17/17 ✓.
+  `get_impact_radius` flagged the FILE HIGH (broad fan-out) — noted; the one-line additive,
+  result-set-identical predicate changes no consumer behavior. EXPLAIN-on-hosted is owner/manual.
+- RTM: PERF-7 (U9) ✓ local (index path); EXPLAIN proof → owner/manual.
+
+## U8 — scope insert-RPC validation to the subtree/tab (PERF-6) — DEFERRED (documented)
+- **Why deferred (not a silent skip):** the dominant validation cost is **not** the insert RPC's
+  explicit `perform validate_estimate_node_tree(target_estimate_id)` — it is the
+  `DEFERRABLE INITIALLY DEFERRED` constraint trigger `estimate_nodes_enforce_tree` (foundation
+  :316-320), which calls the same **whole-estimate** `validate_estimate_node_tree` on commit after
+  *every* node insert/update/delete. Scoping only the RPC's explicit call would leave the trigger's
+  O(estimate) pass intact → ~no net win.
+- A real win requires making the **trigger + validation function tab-scoped**, but that function
+  (5 integrity checks incl. a whole-estimate recursive cycle walk) guards **all** node-mutation
+  paths (atomic moves, reorder, create, delete, both insert RPCs). Re-scoping a safety-critical,
+  broadly-shared integrity guard is high correctness risk, is **owner-gated** (migrations unapplied),
+  and its only verification ("benchmark insert latency on a large fixture") is inherently
+  owner/manual. Per the "0 bugs > perf" priority this is parked rather than shipped — weakening a
+  proven safety net without a benchmark or adversarial DB proof would trade a real correctness
+  guarantee for an unmeasured perf gain. Mirrors the U7 deferral discipline.
+- **Owner runbook follow-up:** decide tab-scoped validation (new `validate_estimate_node_tree(
+  estimate_id, tab_id)` overload + scoped trigger), benchmark on a >3000-node fixture, prove via the
+  Postgres harness, then apply. Until then both insert RPCs keep the whole-estimate validation.
