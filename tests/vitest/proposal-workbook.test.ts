@@ -530,4 +530,17 @@ describe("proposal workbook generation", () => {
     const costTotal = bidForm?.getCell("G19").value as { formula: string };
     expect(costTotal.formula).toBe(`${col.material}19+${col.labor}19`);
   });
+
+  it("writes the Grand Total amount in words and an accounting peso format (P3-T4, F-28/F-34)", () => {
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const workbook = createProposalWorkbook(model);
+    const summary = workbook.getWorksheet("Summary");
+    const bidForm = workbook.getWorksheet("Bid Form");
+
+    // 1 section → totals start 17, Grand Total 20 (26,734.40), Cost/sqm 21, Duration 22, words 23.
+    expect(summary?.getCell("A23").value).toBe("Amount in words");
+    expect(summary?.getCell("B23").value).toBe("Twenty-Six Thousand Seven Hundred Thirty-Four Pesos and 40/100");
+    // Money cells use the accounting peso mask ([$₱-3409] locale token).
+    expect(bidForm?.getCell("E19").numFmt).toContain("[$₱-3409]");
+  });
 });
