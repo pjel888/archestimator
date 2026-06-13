@@ -51,9 +51,18 @@ describe("estimate tab repository compatibility wrappers", () => {
     const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
     expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
-    // U21: the resolver returns the tab list (parallel with the tree), so the page
-    // prefers it and falls back to a direct fetch only when it wasn't provided.
-    expect(routeSource).toContain("const estimateTabs = tabs ?? (tab ? await getEstimateTabs(project.id, estimate.id) : [])");
+    // U21: the resolver returns the tab list in parallel with the tree, so the
+    // page prefers it (`tabs ??`) and only falls back to a direct getEstimateTabs
+    // fetch when it wasn't provided.
+    expect(routeSource).toContain("tabs ?? (tab ? getEstimateTabs(project.id, estimate.id)");
+    // Add New Tabs U1: the edit-capability RPC resolves in parallel with that tabs
+    // read (one Promise.all, no new sequential first-paint hop) — it cannot live in
+    // the route's first Promise.all because `estimate.id` is only known after
+    // `resolveEstimateTabRouteContext` resolves.
+    expect(routeSource).toContain("await Promise.all([");
+    expect(routeSource).toContain("tab ? getEstimateTabs(project.id, estimate.id) : Promise.resolve");
+    expect(routeSource).toContain("resolveEstimateEditCapability(estimate.id)");
+    expect(routeSource).toContain("canEditEstimate={canEditEstimate}");
     expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
     expect(repositorySource).toContain("const defaultTab = await getDefaultEstimateTab(routeSegment)");
     expect(repositorySource).toContain("getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
