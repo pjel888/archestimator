@@ -12,7 +12,8 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
+import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, getCurrentWorkspaceComponentRowsLibrary, getCurrentWorkspaceEstimateTemplates, type ComponentLibraryDataset, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
   ensureDefaultWorkspace,
   listCurrentWorkspaceProjects,
@@ -371,6 +372,23 @@ export async function loadCurrentWorkspaceComponentLibrary(): Promise<ComponentL
 export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<ComponentLibraryDataset> {
   await requireCurrentUserContext();
   return getCurrentWorkspaceComponentLibraryLite();
+}
+
+// Library Optimization Plan P0 T3: client-callable loader for the Components
+// *management* tab. Returns ComponentRowsLibraryDataset (rows + tree + suppliers +
+// brands + folders, no templates). LibraryPageClient seeds a TanStack Query from the
+// server fetch via initialData and refetches through this on warm-cache expiry, so a
+// tab revisit renders from cache without re-suspending the route. Fail-closed for
+// anonymous callers, matching the page-load auth gate.
+export async function loadCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceComponentRowsLibrary();
+}
+
+// Library Optimization Plan P0 T3: client-callable loader for the Templates browse tab.
+export async function loadCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceEstimateTemplates();
 }
 
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {

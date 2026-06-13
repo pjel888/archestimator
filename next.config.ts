@@ -53,6 +53,18 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
+    // Library Optimization Plan P0 T3: let the client Router Cache reuse a
+    // recently-rendered dynamic segment on Link / back-forward navigation so a
+    // warm tab revisit does NOT re-suspend the server segment and re-fire its
+    // loading.tsx. Combined with the browse tabs' warm TanStack Query cache
+    // (LibraryPageClient / TemplatesBrowsePageClient), warm Library tab switches
+    // render instantly with no route-level skeleton. App-wide (documented in the
+    // plan's DECISIONS): single-user-per-workspace product, 5-min staleness is
+    // acceptable; mutations bust the relevant cache entries explicitly (T4).
+    staleTimes: {
+      dynamic: 60,
+      static: 180,
+    },
   },
   images: {
     remotePatterns: supabaseImageRemotePatterns,

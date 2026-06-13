@@ -7,15 +7,10 @@ import { getCurrentWorkspaceComponentRowsLibrary } from "@/lib/repositories/comp
  * /workshop/library/components sub-route.
  */
 export async function LibraryComponentsRoute() {
+  // The server fetch seeds the client TanStack Query cache via initialData so the
+  // first paint is still SSR'd; warm tab revisits then render from the client cache
+  // without re-suspending this route (Library Optimization Plan P0 T3).
   const componentLibrary = await getCurrentWorkspaceComponentRowsLibrary();
 
-  return (
-    <LibraryPageClient
-      categoryTree={componentLibrary.categoryTree}
-      suppliers={componentLibrary.suppliers}
-      brands={componentLibrary.brands}
-      libraryFolders={componentLibrary.libraryFolders}
-      libraryItems={componentLibrary.libraryItems}
-    />
-  );
+  return <LibraryPageClient initialLibrary={componentLibrary} />;
 }

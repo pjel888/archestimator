@@ -1,12 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { loadCurrentWorkspaceComponentRowsLibrary } from "@/lib/component-library/actions";
 import type { EstimateRowItem } from "./estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
-import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
+import type { ComponentLibraryBrand, ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 
 const ComponentLibraryManager = dynamic(() =>
@@ -45,6 +48,14 @@ function LibraryManagerFallback() {
 }
 
 type LibraryPageClientProps = {
+  // Library Optimization Plan P0 T3: the Components tab owns its dataset in a
+  // TanStack Query cache. The server route seeds it via initialData (preserving SSR
+  // cold first-paint); warm tab revisits render from the 5-min cache without
+  // re-suspending the route (combined with next.config staleTimes). Mutations patch
+  // this same cache entry (T4) instead of router.refresh().
+  initialLibrary?: ComponentRowsLibraryDataset;
+  // Legacy/test injection: callers may seed the cache by passing the dataset fields
+  // directly. `initialLibrary` takes precedence; these are assembled into the seed.
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
@@ -52,14 +63,58 @@ type LibraryPageClientProps = {
   libraryItems?: EstimateRowItem[];
 };
 
-export function LibraryPageClient({ categoryTree, suppliers, brands, libraryFolders, libraryItems }: LibraryPageClientProps = {}) {
+export function LibraryPageClient({
+  initialLibrary,
+  categoryTree,
+  suppliers,
+  brands,
+  libraryFolders,
+  libraryItems,
+}: LibraryPageClientProps = {}) {
+  const queryClient = useQueryClient();
+  const seed: ComponentRowsLibraryDataset | undefined =
+    initialLibrary ??
+    (categoryTree || suppliers || brands || libraryFolders || libraryItems
+      ? ({
+          categoryTree: categoryTree ?? [],
+          suppliers: suppliers ?? [],
+          brands: brands ?? [],
+          libraryFolders: libraryFolders ?? [],
+          libraryItems: libraryItems ?? [],
+        } as ComponentRowsLibraryDataset)
+      : undefined);
+  const { data } = useQuery({
+    queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+    queryFn: () => loadCurrentWorkspaceComponentRowsLibrary(),
+    initialData: seed,
+    staleTime: 5 * 60 * 1000,
+  });
+  const library = data ?? seed;
+
+  // T4: manager mutations patch this warm cache entry instead of router.refresh().
+  const onLibraryItemsMutated = (updater: (items: EstimateRowItem[]) => EstimateRowItem[]) => {
+    queryClient.setQueryData<ComponentRowsLibraryDataset>(
+      WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+      (prev) => (prev ? { ...prev, libraryItems: updater(prev.libraryItems) } : prev),
+    );
+  };
+  const onLibraryFoldersMutated = (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => {
+    queryClient.setQueryData<ComponentRowsLibraryDataset>(
+      WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+      (prev) =>
+        prev ? { ...prev, libraryFolders: updater(prev.libraryFolders as LibraryFolderRecord[]) } : prev,
+    );
+  };
+
   return (
     <ComponentLibraryManager
-      categoryTree={categoryTree}
-      suppliers={suppliers}
-      brands={brands}
-      libraryFolders={libraryFolders}
-      libraryItems={libraryItems}
+      categoryTree={library?.categoryTree}
+      suppliers={library?.suppliers}
+      brands={library?.brands}
+      libraryFolders={library?.libraryFolders}
+      libraryItems={library?.libraryItems}
+      onLibraryItemsMutated={onLibraryItemsMutated}
+      onLibraryFoldersMutated={onLibraryFoldersMutated}
     />
   );
 }
