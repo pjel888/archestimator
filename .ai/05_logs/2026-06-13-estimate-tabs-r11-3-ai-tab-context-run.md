@@ -27,3 +27,19 @@ label=diff-check-r11-3-ai-tab-context exit_code=0 command="git diff --check" res
 
 - This is local code/test evidence only.
 - No live AI provider request, linked Supabase audit-table insert, hosted browser proof, Vercel deploy, production deploy, or provider dashboard proof was performed.
+
+## Full-validation security-contract addendum
+
+A later full `bun run validate` run exposed one stale source-string assertion in
+`tests/vitest/ai-package-builder-security-contract.test.ts`: the security
+contract still expected activity-history reads to select no `estimate_tab_id` and
+to omit `estimate_tabs` from source-table summaries. The assertion was updated to
+match the R11.3 tab-aware read context while preserving the bounded-read and
+no-snapshot guarantees.
+
+### Additional gates run
+
+```text
+label=vitest-ai-package-builder-security-contract-tab-context exit_code=0 command="bun x vitest run tests/vitest/ai-package-builder-security-contract.test.ts --maxWorkers=1" result="1 file / 9 tests passed"
+label=validate-after-r1-7-r11-3-security-contract exit_code=0 command="bun run validate" result="type-check passed; ESLint 0 errors / 549 warnings; design-system passed; design lint passed; unit 9 passed; DOM Vitest 243 files passed / 1 skipped, 1808 tests passed / 3 skipped"
+```

@@ -2348,3 +2348,48 @@ label=diff-check-r11-3-ai-tab-context exit_code=0 command="git diff --check" res
 ### Remaining boundary
 
 - R11.3 is implemented/proven locally only. No live AI provider request, linked Supabase audit-table insert, hosted browser proof, Vercel deploy, production deploy, or provider dashboard proof was performed.
+
+## Phase 3 R1.7 cross-tab node-drop rejection boundary
+
+### Summary
+
+Closed the locally actionable D-7 UI boundary while preserving the deferred move-RPC decision. Estimate-tree node drops on a different tab strip button now reject with the documented workaround message instead of spring-loading the inactive tab. Template and project-source drags continue to spring-load tabs for normal insert/drop targeting.
+
+### Gates run
+
+```text
+label=vitest-r1-7-cross-tab-rejection exit_code=0 command="bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1" result="1 file / 9 tests passed"
+label=eslint-r1-7-cross-tab-rejection exit_code=0 command="bunx eslint src/components/workshop/estimate-sheet/EstimateTabStrip.tsx src/components/workshop/EstimateSheetTree.tsx src/components/workshop/estimate-sheet/drag-types.ts tests/vitest/estimate-tab-strip.test.tsx" result="0 errors / 0 warnings"
+label=vitest-r1-7-tree-reorder-regression exit_code=0 command="bun x vitest run tests/vitest/estimate-tab-strip.test.tsx tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/estimate-tabs-schema.test.ts --maxWorkers=1" result="5 files / 62 tests passed"
+label=type-check-r1-7-cross-tab-rejection exit_code=0 command="bun run type-check" result="tsc --noEmit passed"
+label=diff-check-r1-7-cross-tab-rejection exit_code=0 command="git diff --check" result="no whitespace errors"
+```
+
+### Remaining boundary
+
+- Cross-tab node movement remains deferred to D-7 and still requires a new move RPC plus DB/provider proof.
+- No linked Supabase apply/typegen, hosted browser proof, Vercel deploy, production deploy, or manual QA was performed.
+
+## Full validation repair after R1.7/R11.3 closeout
+
+### Summary
+
+A full `bun run validate` pass after the R1.7 tab-strip rejection change reached
+DOM Vitest and exposed one stale AI package-builder security contract from the
+R11.3 tab-context implementation. The contract now expects the bounded activity
+read to include `estimate_tab_id` and `estimate_tabs` source attribution while
+still forbidding old/new snapshots. The focused security contract and full
+validation are now green.
+
+### Gates run
+
+```text
+label=validate-pre-security-contract-repair exit_code=1 command="bun run validate" result="DOM Vitest failed 1 test: ai-package-builder-security-contract expected the pre-tab estimate_sheet_events select/source table list"
+label=vitest-ai-package-builder-security-contract-tab-context exit_code=0 command="bun x vitest run tests/vitest/ai-package-builder-security-contract.test.ts --maxWorkers=1" result="1 file / 9 tests passed"
+label=validate-after-r1-7-r11-3-security-contract exit_code=0 command="bun run validate" result="type-check passed; ESLint 0 errors / 549 warnings; design-system passed; design lint passed; unit 9 passed; DOM Vitest 243 files passed / 1 skipped, 1808 tests passed / 3 skipped"
+```
+
+### Remaining boundary
+
+- ESLint still reports pre-existing warnings only; zero errors.
+- Provider/hosted/manual proof remains open and was not inferred from local validation.

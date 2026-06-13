@@ -1,4 +1,25 @@
 # Current State
+**Estimate Tabs R1.7 Cross-Tab Node-Drop Boundary Implemented Locally (2026-06-13 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The D-7 decision remains intact: true cross-tab node moves still require a new
+move RPC, DB simulation, linked/provider proof, and follow-up product semantics.
+The locally actionable v1 boundary is now implemented: estimate-tree node drags
+use a shared MIME type, inactive estimate tabs no longer spring-load for tree-node
+drags, and dropping a tree node on another tab strip button rejects with the
+published workaround message (duplicate the tab or save the group as a template).
+Template and project-source drags still spring-load inactive tabs. Fresh local
+proof is in `.ai/05_logs/2026-06-13-estimate-tabs-r1-7-cross-tab-rejection-run.md`:
+`bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1`
+passed 1 file / 9 tests, the adjacent tab/tree/reorder/schema regression passed
+5 files / 62 tests, focused ESLint passed on the changed files, `bun run
+type-check` passed, and `git diff --check` passed. Full `bun run validate`
+initially found one stale R11.3 AI package-builder security assertion; after
+updating it for `estimate_tab_id`/`estimate_tabs` activity attribution, full
+validation passed: type-check passed, ESLint had 0 errors / 549 warnings,
+design-system passed, design lint passed, unit tests passed 9/9, and DOM Vitest
+passed 243 files / 1 skipped with 1808 tests passed / 3 skipped. No linked
+Supabase apply/typegen, hosted browser proof, Vercel deploy, production deploy,
+provider proof, or manual two-browser QA was performed.
+
 **Estimate Tabs Phase 5 Supabase Generated Types Boundary Confirmed (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 After commit `e2e7a6d1`, fresh focused validation confirms the remaining local
 failure is the generated Supabase type contract in

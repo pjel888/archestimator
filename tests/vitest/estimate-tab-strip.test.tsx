@@ -4,6 +4,7 @@ import { useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateTabStrip } from "@/components/workshop/estimate-sheet/EstimateTabStrip";
+import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/drag-types";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 
 const actionMocks = vi.hoisted(() => ({
@@ -111,6 +112,23 @@ describe("EstimateTabStrip", () => {
     act(() => vi.advanceTimersByTime(450));
 
     expect(onTabChange).not.toHaveBeenCalled();
+  });
+
+  it("rejects cross-tab tree-node drops instead of spring-loading another tab", () => {
+    vi.useFakeTimers();
+    const { onTabChange } = renderStrip();
+    const alternateTab = screen.getByRole("tab", { name: "Alternate" });
+    const dataTransfer = { dropEffect: "move", types: [ESTIMATE_TREE_DRAG_MIME_TYPE] };
+
+    fireEvent.dragOver(alternateTab, { dataTransfer });
+    act(() => vi.advanceTimersByTime(450));
+    expect(onTabChange).not.toHaveBeenCalled();
+    expect(dataTransfer.dropEffect).toBe("none");
+
+    fireEvent.drop(alternateTab, { dataTransfer });
+
+    expect(onTabChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Moving between tabs isn't supported yet — duplicate the tab or save the group as a template.");
   });
 
   it("renames the active tab only through the gated lifecycle path", async () => {

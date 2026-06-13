@@ -48,6 +48,7 @@ import {
   type InsertEstimateTemplateEventDetail,
 } from "./component-library/templates";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
+import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "./estimate-sheet/drag-types";
 import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, type RequestEstimateTreeNodeCreateEventDetail } from "./estimate-sheet/events";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
@@ -62,7 +63,6 @@ type EstimateSheetTreeProps = {
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
-const ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE = "application/x-archestimator-estimate-tree-item";
 const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Tabs" }] as const;
 
 type ReorderStatus =
@@ -1366,7 +1366,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                       railsPinned={contextMenuOpen}
                       draggable
                       selectable
-                      dragDataType={ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE}
+                      dragDataType={ESTIMATE_TREE_DRAG_MIME_TYPE}
                       canDrag={handleTreeCanDrag}
                       canDrop={handleTreeCanDrop}
                       onDrop={handleTreeDrop}
