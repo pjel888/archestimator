@@ -136,7 +136,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
       !verifyPublicationAccessCookieValue(cookieStore.get(createPublicationAccessCookieName(token))?.value, {
         token,
         publicationId: publicationAccess.publicationId,
-        snapshotVersion: publicationAccess.snapshotVersion,
+        credentialVersion: publicationAccess.credentialVersion,
       })
     ) {
       const requestHeaders = new Headers(await headers());
@@ -167,7 +167,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
       verifySharedLinkSessionCookieValue(sessionValue, {
         token,
         publicationId: publicationAccess.publicationId,
-        snapshotVersion: publicationAccess.snapshotVersion,
+        credentialVersion: publicationAccess.credentialVersion,
         recipientId: recipientIdFromCookie,
       })
     ) {

@@ -65,13 +65,15 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       publicationId: "publication-1",
       status: "published",
       passwordRequired: false,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "open",
     });
     mocks.resolveProjectPublicationSnapshotByToken.mockResolvedValue({
       publicationId: "publication-1",
       status: "published",
       passwordRequired: false,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "open",
       snapshot: {
         schemaVersion: 1,
         generatedAt: "2026-05-27T00:00:00.000Z",
@@ -208,7 +210,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     const sessionCookie = createSharedLinkSessionCookie({
       token: "client-token",
       publicationId: "publication-1",
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      credentialVersion: "open",
       recipientId: "recipient-1",
     });
     const sessionValue = encodeURIComponent(sessionCookie.split(";")[0]?.split("=").slice(1).join("=") ?? "");
@@ -236,7 +238,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   it("creates recipient session cookies through the route handler without rendering raw tokens", async () => {
     mocks.verifySharedLinkRecipientToken.mockResolvedValueOnce({
       publicationId: "publication-1",
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "open",
       recipientId: "recipient-1",
       recipientEmail: "recipient@example.com",
       recipientDisplayName: "Client Receiver",
@@ -304,7 +307,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       publicationId: "publication-1",
       status: "published",
       passwordRequired: true,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "cred-test",
     });
 
     render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
@@ -732,7 +736,8 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         publicationId: "publication-1",
         status: "published",
         passwordRequired: true,
-        snapshotVersion: "2026-05-27T00:00:00.000Z",
+        snapshotVersion: 7,
+        credentialVersion: "cred-test",
       });
       const pageMod = await import("@/app/share/[token]/page");
       const { generateMetadata } = pageMod;

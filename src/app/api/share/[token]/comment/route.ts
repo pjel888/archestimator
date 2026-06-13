@@ -148,7 +148,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     !hasPublicationAccessCookie(cookieHeader, {
       token,
       publicationId: access.publicationId,
-      snapshotVersion: access.snapshotVersion,
+      credentialVersion: access.credentialVersion,
     })
   ) {
     return Response.json({ error: "password_required" }, { status: 401, headers: noStoreHeaders });
@@ -164,7 +164,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     !verifySharedLinkSessionCookieValue(sessionValue, {
       token,
       publicationId: access.publicationId,
-      snapshotVersion: access.snapshotVersion,
+      credentialVersion: access.credentialVersion,
       recipientId,
     })
   ) {
@@ -226,7 +226,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const sessionOk = Boolean(recipientIdFromCookie) && verifySharedLinkSessionCookieValue(sessionValue, {
     token,
     publicationId: access.publicationId,
-    snapshotVersion: access.snapshotVersion,
+    credentialVersion: access.credentialVersion,
     recipientId: recipientIdFromCookie,
   });
   if (!sessionOk) {

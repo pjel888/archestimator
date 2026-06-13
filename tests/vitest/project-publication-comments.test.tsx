@@ -71,6 +71,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       status: "published",
       passwordRequired: false,
       snapshotVersion: 1,
+      credentialVersion: "open",
     });
   });
 
@@ -141,20 +142,26 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
     });
 
-    it("rejects stale recipient sessions against the current publication snapshot before inserting comments", async () => {
+    it("rejects sessions bound to a stale credential against the current publication before inserting comments", async () => {
+      // AC-MOD-01: the route now verifies the session against the publication's
+      // credentialVersion (password-derived), NOT snapshot_version. A content-only
+      // republish must NOT reject the session; only a credential change does. Here the
+      // current publication exposes credentialVersion "cred-v2" while the cookie was
+      // minted under "cred-v1", so verification fails and the comment is rejected.
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
         publicationId: "pub1",
         status: "published",
         passwordRequired: false,
         snapshotVersion: 2,
+        credentialVersion: "cred-v2",
       });
-      mocks.verifySharedLinkSessionCookieValue.mockImplementation((_value, context) => context.snapshotVersion === 1);
+      mocks.verifySharedLinkSessionCookieValue.mockImplementation((_value, context) => context.credentialVersion === "cred-v1");
       const staleSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
 
       const response = await POST(
         makeRequest(
-          { body: "comment after owner republished" },
+          { body: "comment after credential change" },
           {
             cookie: `shared_link_session_abc123=${encodeURIComponent(staleSession)}`,
             "x-archestimator-csrf": "csrf",
@@ -171,7 +178,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         expect.objectContaining({
           token: "client-pub-token-123",
           publicationId: "pub1",
-          snapshotVersion: 2,
+          credentialVersion: "cred-v2",
           recipientId: "recip-123",
         }),
       );

@@ -43,7 +43,9 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(latestSubmitClientResponse).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
     expect(latestSubmitClientResponse).toContain("p_decision, left(p_note, 2000), p_expected_snapshot_version");
     expect(decisionRoute).toContain("resolveProjectPublicationAccessByToken(token)");
-    expect(decisionRoute).toContain("snapshotVersion: access.snapshotVersion");
+    // AC-MOD-01: the cookie binding moved to credentialVersion, but the RPC optimistic
+    // lock MUST still bind to the real snapshot_version (the staleness guard).
+    expect(decisionRoute).toContain("expectedSnapshotVersion: access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
   });
@@ -57,7 +59,9 @@ describe("Codex publication and public-surface hardening contracts", () => {
     expect(latestInsertClientComment).toContain("p_expected_snapshot_version integer");
     expect(latestInsertClientComment).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
     expect(commentRoute).toContain("resolveProjectPublicationAccessByToken(token)");
-    expect(commentRoute).toContain("snapshotVersion: access.snapshotVersion");
+    // AC-MOD-01: the cookie binding moved to credentialVersion, but the RPC optimistic
+    // lock MUST still bind to the real snapshot_version (the staleness guard).
+    expect(commentRoute).toContain("expectedSnapshotVersion: access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
   });
