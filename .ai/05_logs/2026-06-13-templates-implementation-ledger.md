@@ -213,4 +213,41 @@ their **apply** is deferred to the owner runbook; app-layer guards ship immediat
 - type-check ✓; template-gallery + template-editor 23/23; estimate-sheet-tree dnd/dom + bulk-selection +
   context-menu 54/54 (shared-tree aria change is additive, no consumer regressed). Full validate running.
 - RTM: UX-4/UX-5 (U12) ✓, C5 window.prompt→modal ✓. **U12-U15 complete.**
-- **Next:** U5 (server-side search + migration), U7 (bound reads), U2 (insert path — headline), U16 (tests), closeout.
+- Committed U12 as `ba19b492`.
+
+---
+
+## U2 — project-source insert path (DEF-2, D-B=build) — DONE (local; RPC apply owner-gated)
+
+### RPC migration `20260613180000_insert_estimate_subtree_rpc.sql`
+- `insert_estimate_subtree_into_estimate` (inner, non-DEFINER) + `_with_history` (DEFINER wrapper),
+  mirroring the foundation template RPC pair but sourcing from a live estimate subtree.
+- **U2-1 (P0):** explicit `can_access_estimate(source_estimate_id)` gate INSIDE the chain — never RLS.
+- Check order: target workspace → source can_access → same workspace → target-parent-is-group → copy → validate.
+- Concurrency (U2-3): lock target-tab nodes + defer per-tab unique-sort + max-sibling-sort inside the lock.
+- Subtree via recursive CTE (whole tab when source_root_node_id null); parent remap (roots → target parent);
+  provenance `sourceProjectId/EstimateId/TabId/NodeId/RowId + sourceKind:'project'`; post-copy validate.
+- Wrapper: U4 gate (assert_can_edit_estimate_for_history) + idempotency + `project_source_inserted` event.
+- **Tab-aware → sequenced AFTER D-A** (references estimate_tab_id). Apply owner-gated (`ebxxqidacheyapmmzavr`).
+
+### Action `insertProjectSourceIntoEstimate` (reusable-sources/actions.ts)
+- requireCurrentUserContext + UUID-guard (fail closed); re-read-at-insert (DATA-4 / denial 7) under the
+  RLS user client; stable per-unit `correlation_id` (U2-2, sha256→v4-shaped UUID); RLS-scoped client only
+  (never admin); returns the refreshed tree. RPC call narrowly cast (types not regenerated yet).
+
+### UI wiring
+- `EstimateSheetContent`: `insertProjectSourceIntoSelectedGroup` (panel `onInsertProjectSource`) +
+  `insertProjectSourceIntoParentById` (non-optimistic; toast on failure) + a window listener for the drop event.
+- `EstimateSheetTree`: project-source drags drop onto GROUP targets → dispatch `INSERT_PROJECT_SOURCE_EVENT`.
+  `INSERT_PROJECT_SOURCE_EVENT` + detail type added to templates.ts.
+- **Scope note:** area-target WRAP for project sources (parity with templates) deferred — needs a wrap action;
+  the panel + drop gate to group targets, so a denied area selection shows "select a group". Documented follow-up.
+
+### Proofs (handoff: denials 4-7 before exposing)
+- `tests/vitest/project-source-insert-action.test.ts` (7): whole-tab vs node subtree, stable correlation_id,
+  UUID guard, re-read/denial-7, RPC error wrapping.
+- Extended `scripts/prove-estimate-tabs-postgres.mjs` (Postgres 17, no Docker): applies foundation + U2 RPC,
+  then **denial 4** (viewer denied), **denial 5** (P0 can_access gate denies unreadable source), happy path
+  + provenance + `project_source_inserted` event. EXIT=0. Denial 6 (cross-workspace) is blocked transitively
+  by the same can_access gate (fires before the workspace-equality check).
+- **Next:** U5 (server-side search + migration), U7 (bound reads), U16 (remaining test gaps + e2e), closeout.

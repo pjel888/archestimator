@@ -43,9 +43,13 @@ import {
   CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
   INSERT_ESTIMATE_TEMPLATE_EVENT,
+  INSERT_PROJECT_SOURCE_EVENT,
+  PROJECT_SOURCE_DRAG_MIME_TYPE,
   readEstimateTemplateDragPayload,
+  readProjectSourceDragPayload,
   type CreateEstimateTemplateFromNodeEventDetail,
   type InsertEstimateTemplateEventDetail,
+  type InsertProjectSourceEventDetail,
 } from "./component-library/templates";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "./estimate-sheet/drag-types";
@@ -589,30 +593,54 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   // area targets cannot take child nodes, so the sheet wraps the area and
   // the template in a new group occupying the area's slot.
   const treeExternalDrop = useMemo<TreeExternalDropOptions>(() => ({
-    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE],
+    types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE],
     canDrop: (types, targetId, position) => {
-      if (!types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return false;
       if (position !== "inside") return false;
       if (isOptimisticEstimateNodeId(targetId)) return false;
-      return Boolean(findEstimateNode(localNodes, targetId));
+      const targetNode = findEstimateNode(localNodes, targetId);
+      if (!targetNode) return false;
+      // Templates drop on groups (direct) or areas (wrap). Project sources insert
+      // under a GROUP only in this pass (area-wrap parity is a follow-up, U2).
+      if (types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return true;
+      if (types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE)) return isEstimateGroupNodeKind(targetNode.kind);
+      return false;
     },
     onDrop: (event, targetId) => {
-      const payload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
-      if (!payload) return;
       const targetNode = findEstimateNode(localNodes, targetId);
       if (!targetNode) return;
-      suppressPrimaryActionAfterDrag();
-      // The sheet owns template insertion (optimistic update + rollback);
-      // hand the drop over instead of duplicating that flow here.
       const isGroupTarget = isEstimateGroupNodeKind(targetNode.kind);
-      const detail: InsertEstimateTemplateEventDetail = payload.kind === "template-node"
-        ? isGroupTarget
-          ? { targetParentNodeId: targetId, templateId: payload.templateId, templateNodeId: payload.templateNodeId }
-          : { wrapAreaNodeId: targetId, templateId: payload.templateId, templateNodeId: payload.templateNodeId }
-        : isGroupTarget
-          ? { targetParentNodeId: targetId, templateIds: payload.templateIds }
-          : { wrapAreaNodeId: targetId, templateIds: payload.templateIds };
-      window.dispatchEvent(new CustomEvent<InsertEstimateTemplateEventDetail>(INSERT_ESTIMATE_TEMPLATE_EVENT, { detail }));
+
+      // The sheet owns insertion (tree update + action); hand the drop over via a
+      // window event instead of duplicating that flow here.
+      const templatePayload = readEstimateTemplateDragPayload(event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE));
+      if (templatePayload) {
+        suppressPrimaryActionAfterDrag();
+        const detail: InsertEstimateTemplateEventDetail = templatePayload.kind === "template-node"
+          ? isGroupTarget
+            ? { targetParentNodeId: targetId, templateId: templatePayload.templateId, templateNodeId: templatePayload.templateNodeId }
+            : { wrapAreaNodeId: targetId, templateId: templatePayload.templateId, templateNodeId: templatePayload.templateNodeId }
+          : isGroupTarget
+            ? { targetParentNodeId: targetId, templateIds: templatePayload.templateIds }
+            : { wrapAreaNodeId: targetId, templateIds: templatePayload.templateIds };
+        window.dispatchEvent(new CustomEvent<InsertEstimateTemplateEventDetail>(INSERT_ESTIMATE_TEMPLATE_EVENT, { detail }));
+        return;
+      }
+
+      const projectSourcePayload = readProjectSourceDragPayload(event.dataTransfer.getData(PROJECT_SOURCE_DRAG_MIME_TYPE));
+      if (projectSourcePayload && isGroupTarget) {
+        suppressPrimaryActionAfterDrag();
+        window.dispatchEvent(new CustomEvent<InsertProjectSourceEventDetail>(INSERT_PROJECT_SOURCE_EVENT, {
+          detail: {
+            targetParentNodeId: targetId,
+            source: {
+              projectId: projectSourcePayload.projectId,
+              estimateId: projectSourcePayload.estimateId,
+              tabId: projectSourcePayload.tabId,
+              nodeId: projectSourcePayload.kind === "project-node" ? projectSourcePayload.nodeId : null,
+            },
+          },
+        }));
+      }
     },
   }), [localNodes, suppressPrimaryActionAfterDrag]);
 

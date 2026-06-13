@@ -34,6 +34,14 @@ export type InsertEstimateTemplateEventDetail =
       templateNodeId: string;
     };
 
+// U2: a project-source drop/insert into a target group. `nodeId` null = whole tab.
+export const INSERT_PROJECT_SOURCE_EVENT = "archestimator:insert-project-source";
+
+export type InsertProjectSourceEventDetail = {
+  targetParentNodeId: string;
+  source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null };
+};
+
 /**
  * Window event for "Save as template" entry points outside the right
  * sidebar (e.g. the sheets tree context menu). The sidebar listens and

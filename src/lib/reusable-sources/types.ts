@@ -1,4 +1,5 @@
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
+import type { EstimateTreeNode } from "@/lib/estimates/types";
 
 export type CustomEstimateTemplateSource = {
   kind: "custom-template";
@@ -62,3 +63,16 @@ export type ProjectReusableEstimateSource =
 export type ReusableEstimateSource =
   | CustomEstimateTemplateSource
   | ProjectReusableEstimateSource;
+
+// U2: a normalized project-source insert request. `nodeId` null = whole tab.
+export type InsertProjectSourceIntoEstimateInput = {
+  targetProjectId: string;
+  targetEstimateId: string;
+  targetParentNodeId: string;
+  source: { projectId: string; estimateId: string; tabId: string; nodeId?: string | null };
+};
+
+export type InsertProjectSourceIntoEstimateResult = {
+  tree: EstimateTreeNode[];
+  insertedRootNodeIds: string[];
+};
