@@ -85,10 +85,15 @@ describe("project publication security helpers (Shared Link V2)", () => {
   });
 
   it("signs publication access cookies so unlocked state cannot be forged", () => {
+    // AC-MOD-01: cookies now bind to a password-derived credentialVersion, NOT snapshot_version.
+    // Security intents preserved here: forged "=unlocked", tampered signatures, and a CHANGED
+    // credential (password enable/disable/change) must all be rejected. A content-only snapshot
+    // republish — which no longer touches credentialVersion — is covered in the dedicated
+    // project-publication-cookie-credential-version.test.ts regression suite.
     const context = {
       token: "public-token",
       publicationId: "publication-1",
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      credentialVersion: "cred-v1",
     };
     const cookie = createPublicationAccessCookie(context, {
       now: Date.parse("2026-05-27T00:00:00.000Z"),
@@ -101,8 +106,9 @@ describe("project publication security helpers (Shared Link V2)", () => {
     expect(
       hasPublicationAccessCookie(`${createPublicationAccessCookieName("public-token")}=unlocked`, context),
     ).toBe(false);
+    // A credential change (e.g. password changed/disabled) MUST invalidate the cookie.
     expect(
-      hasPublicationAccessCookie(cookiePair, { ...context, snapshotVersion: "stale-version" }),
+      hasPublicationAccessCookie(cookiePair, { ...context, credentialVersion: "cred-v2" }),
     ).toBe(false);
   });
 

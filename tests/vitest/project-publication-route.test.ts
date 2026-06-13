@@ -97,13 +97,15 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       publicationId: "publication-1",
       status: "published",
       passwordRequired: false,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "open",
     });
     mocks.resolveProjectPublicationSnapshotByToken.mockResolvedValue({
       publicationId: "publication-1",
       status: "published",
       passwordRequired: false,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "open",
       snapshot,
     });
     mocks.recordProjectPublicationEvent.mockResolvedValue(undefined);
@@ -168,7 +170,8 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       publicationId: "publication-1",
       status: "published",
       passwordRequired: true,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "cred-test",
     });
 
     const lockedResponse = await GET(new Request("https://archestimator.test/api/share/client-token"), params());
@@ -190,7 +193,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     const signedCookie = createPublicationAccessCookie({
       token: "client-token",
       publicationId: "publication-1",
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      credentialVersion: "cred-test",
     });
     const unlockedResponse = await GET(
       new Request("https://archestimator.test/api/share/client-token", {
@@ -274,7 +277,8 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       publicationId: "publication-1",
       status: "published",
       passwordRequired: true,
-      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      snapshotVersion: 7,
+      credentialVersion: "cred-test",
     });
 
     const response = await POST_PASSWORD(

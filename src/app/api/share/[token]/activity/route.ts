@@ -4,6 +4,7 @@ import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActiv
 import {
   assertSameOrigin,
   createSharedLinkSessionCookieName,
+  deriveCredentialVersion,
   hasPublicationAccessCookie,
   verifySharedLinkSessionCookieValue,
   hashPublicationToken,
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     !hasPublicationAccessCookie(cookieHeader, {
       token,
       publicationId: pubId,
-      snapshotVersion: pub.snapshot_version,
+      credentialVersion: deriveCredentialVersion(pub.password_hash),
     })
   ) {
     return Response.json(
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     verifySharedLinkSessionCookieValue(sessionValue, {
       token,
       publicationId: pubId,
-      snapshotVersion: String(pub.snapshot_version),
+      credentialVersion: deriveCredentialVersion(pub.password_hash),
       recipientId,
     })
       ? recipientId

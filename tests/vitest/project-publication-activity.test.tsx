@@ -71,6 +71,7 @@ vi.mock("@supabase/supabase-js", () => ({
 
 // Modules under test (will fail to import or execute until P8 impl — intentionally red first)
 import { GET } from "@/app/api/share/[token]/activity/route";
+import { deriveCredentialVersion } from "@/lib/publication/security";
 import { loadSharedLinkActivity, maybeTriggerSharedLinkActivityDigest } from "@/lib/publication/actions";
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
 import { summarizeProjectPublicationAccessTelemetryMetrics } from "@/lib/publication/activity-helpers";
@@ -475,7 +476,8 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(mocks.hasPublicationAccessCookie).toHaveBeenCalledWith("", {
         token: "client-pub-token-123",
         publicationId: "pub1",
-        snapshotVersion: 7,
+        // AC-MOD-01: bound to the password-derived credentialVersion, not snapshot_version.
+        credentialVersion: deriveCredentialVersion("hashed-password"),
       });
     });
 

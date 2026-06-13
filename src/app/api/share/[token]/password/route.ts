@@ -102,7 +102,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       "Set-Cookie": createPublicationAccessCookie({
         token,
         publicationId: publicationAccess.publicationId,
-        snapshotVersion: publicationAccess.snapshotVersion,
+        credentialVersion: publicationAccess.credentialVersion,
       }),
     },
   });

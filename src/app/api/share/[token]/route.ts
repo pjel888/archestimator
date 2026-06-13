@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     !hasPublicationAccessCookie(request.headers.get("cookie") ?? "", {
       token,
       publicationId: publicationAccess.publicationId,
-      snapshotVersion: publicationAccess.snapshotVersion,
+      credentialVersion: publicationAccess.credentialVersion,
     })
   ) {
     return Response.json(

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
-import { getClientIp, hashPublicationToken, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
+import { deriveCredentialVersion, getClientIp, hashPublicationToken, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
 import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
@@ -20,6 +20,7 @@ export type ResolvedProjectPublicationAccess = {
   status: "published";
   passwordRequired: boolean;
   snapshotVersion: number;
+  credentialVersion: string;
 };
 
 export type ResolvedProjectPublicationSnapshot = ResolvedProjectPublicationAccess & {
@@ -466,6 +467,7 @@ function toResolvedAccess(data: PublicationLookupRow): ResolvedProjectPublicatio
     status: "published",
     passwordRequired: Boolean(data.password_hash),
     snapshotVersion: data.snapshot_version,
+    credentialVersion: deriveCredentialVersion(data.password_hash),
   };
 }
 
@@ -643,7 +645,7 @@ export async function recordProjectPublicationEvent({
 export async function verifySharedLinkRecipientToken(
   publicationToken: string,
   recipientToken: string,
-): Promise<({ publicationId: string; snapshotVersion: number } & ResolvedSharedLinkRecipientIdentity) | null> {
+): Promise<({ publicationId: string; snapshotVersion: number; credentialVersion: string } & ResolvedSharedLinkRecipientIdentity) | null> {
   if (!publicationToken.trim() || !recipientToken.trim()) return null;
 
   const supabase = createPublicationServiceClient();
@@ -651,7 +653,7 @@ export async function verifySharedLinkRecipientToken(
 
   const { data: pub, error: pubErr } = await supabase
     .from("project_publications")
-    .select("id, status, expires_at, revoked_at, snapshot_version")
+    .select("id, status, expires_at, revoked_at, snapshot_version, password_hash")
     .eq("token_hash", pubHash)
     .maybeSingle();
 
@@ -673,6 +675,7 @@ export async function verifySharedLinkRecipientToken(
   return {
     publicationId: pub.id,
     snapshotVersion: pub.snapshot_version,
+    credentialVersion: deriveCredentialVersion(pub.password_hash),
     recipientId: rec.id,
     recipientEmail: rec.email,
     recipientDisplayName: rec.display_name,

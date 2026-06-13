@@ -58,7 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     !hasPublicationAccessCookie(request.headers.get("cookie") ?? "", {
       token,
       publicationId: publicationAccess.publicationId,
-      snapshotVersion: publicationAccess.snapshotVersion,
+      credentialVersion: publicationAccess.credentialVersion,
     })
   ) {
     return NextResponse.json(
@@ -75,7 +75,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const parts = getSharedLinkSessionCookieParts({
     token,
     publicationId: verified.publicationId,
-    snapshotVersion: verified.snapshotVersion,
+    credentialVersion: verified.credentialVersion,
     recipientId: verified.recipientId,
   });
   const response = NextResponse.json({ ok: true }, { headers: noStoreHeaders });

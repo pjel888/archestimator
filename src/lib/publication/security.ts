@@ -13,7 +13,7 @@ type RandomBytes = (size: number) => Buffer;
 type PublicationAccessCookieContext = {
   token: string;
   publicationId: string;
-  snapshotVersion: string | number;
+  credentialVersion: string;
 };
 
 type PublicationAccessCookieOptions = {
@@ -25,7 +25,7 @@ type PublicationAccessCookieOptions = {
 type PublicationAccessCookiePayload = {
   expiresAt: number;
   publicationId: string;
-  snapshotVersion: string;
+  credentialVersion: string;
   tokenDigest: string;
 };
 
@@ -134,14 +134,24 @@ export function createPublicationAccessCookieName(token: string) {
   return `ae_publication_access_${suffix}`;
 }
 
+/**
+ * Stable per-credential token used to bind access/session cookies.
+ * Changes ONLY when the password credential changes (enable/disable/change),
+ * never on a content-only snapshot republish. Derived from existing data — no DB column.
+ */
+export function deriveCredentialVersion(passwordHash: string | null | undefined): string {
+  if (!passwordHash) return "open"; // no-password link — constant, so adding a password later changes it
+  return createHash("sha256").update(passwordHash).digest("base64url").slice(0, 22);
+}
+
 function createPublicationAccessCookiePayload(
-  { token, publicationId, snapshotVersion }: PublicationAccessCookieContext,
+  { token, publicationId, credentialVersion }: PublicationAccessCookieContext,
   expiresAt: number,
 ): PublicationAccessCookiePayload {
   return {
     expiresAt,
     publicationId,
-    snapshotVersion: String(snapshotVersion),
+    credentialVersion: String(credentialVersion),
     tokenDigest: createHash("sha256").update(token).digest("base64url"),
   };
 }
@@ -162,7 +172,7 @@ function parsePublicationAccessCookiePayload(value: string, secret: string) {
     if (
       typeof payload.expiresAt !== "number" ||
       typeof payload.publicationId !== "string" ||
-      typeof payload.snapshotVersion !== "string" ||
+      typeof payload.credentialVersion !== "string" ||
       typeof payload.tokenDigest !== "string"
     ) {
       return null;
@@ -193,7 +203,7 @@ export function verifyPublicationAccessCookieValue(
   const expectedPayload = createPublicationAccessCookiePayload(context, payload.expiresAt);
   return (
     payload.publicationId === expectedPayload.publicationId &&
-    payload.snapshotVersion === expectedPayload.snapshotVersion &&
+    payload.credentialVersion === expectedPayload.credentialVersion &&
     constantTimeEqual(Buffer.from(payload.tokenDigest), Buffer.from(expectedPayload.tokenDigest))
   );
 }
@@ -267,26 +277,26 @@ const sharedLinkSessionCookieMaxAgeSeconds = 86400;
 export type SharedLinkSessionContext = {
   token: string;
   publicationId: string;
-  snapshotVersion: string | number;
+  credentialVersion: string;
   recipientId?: string;
 };
 
 type SharedLinkSessionCookiePayload = {
   expiresAt: number;
   publicationId: string;
-  snapshotVersion: string;
+  credentialVersion: string;
   tokenDigest: string;
   recipientId?: string;
 };
 
 function createSharedLinkSessionCookiePayload(
-  { token, publicationId, snapshotVersion, recipientId }: SharedLinkSessionContext,
+  { token, publicationId, credentialVersion, recipientId }: SharedLinkSessionContext,
   expiresAt: number,
 ): SharedLinkSessionCookiePayload {
   return {
     expiresAt,
     publicationId,
-    snapshotVersion: String(snapshotVersion),
+    credentialVersion: String(credentialVersion),
     tokenDigest: createHash("sha256").update(token).digest("base64url"),
     recipientId,
   };
@@ -308,7 +318,7 @@ function parseSharedLinkSessionCookiePayload(value: string, secret: string) {
     if (
       typeof payload.expiresAt !== "number" ||
       typeof payload.publicationId !== "string" ||
-      typeof payload.snapshotVersion !== "string" ||
+      typeof payload.credentialVersion !== "string" ||
       typeof payload.tokenDigest !== "string"
     ) {
       return null;
@@ -336,7 +346,7 @@ export function verifySharedLinkSessionCookieValue(
   const expectedPayload = createSharedLinkSessionCookiePayload(context, payload.expiresAt);
   return (
     payload.publicationId === expectedPayload.publicationId &&
-    payload.snapshotVersion === expectedPayload.snapshotVersion &&
+    payload.credentialVersion === expectedPayload.credentialVersion &&
     constantTimeEqual(Buffer.from(payload.tokenDigest), Buffer.from(expectedPayload.tokenDigest)) &&
     (payload.recipientId === undefined || payload.recipientId === expectedPayload.recipientId)
   );

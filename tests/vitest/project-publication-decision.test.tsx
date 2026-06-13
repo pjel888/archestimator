@@ -63,6 +63,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       passwordRequired: false,
       status: "published",
       expiresAt: null,
+      credentialVersion: "open",
     });
     mocks.submitSharedLinkDecision.mockResolvedValue({ id: "decision-123" });
     mocks.checkSharedLinkDecisionRateLimit.mockResolvedValue({ allowed: true });
@@ -114,7 +115,12 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(json.error).toMatch(/already submitted|duplicate|decision/i);
     });
 
-    it("rejects stale recipient sessions that were issued for an older publication snapshot", async () => {
+    it("rejects sessions bound to a stale credential against the current publication", async () => {
+      // AC-MOD-01: the route verifies the session against the publication's
+      // credentialVersion (password-derived), NOT snapshot_version. A content-only
+      // republish must NOT reject the session; only a credential change does. Here the
+      // current publication exposes credentialVersion "cred-v2" while the cookie was
+      // minted under "cred-v1", so verification fails and the decision is rejected.
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
         publicationId: "pub1",
@@ -122,11 +128,12 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
         passwordRequired: false,
         status: "published",
         expiresAt: null,
+        credentialVersion: "cred-v2",
       });
-      mocks.verifySharedLinkSessionCookieValue.mockImplementation((_value, context) => context.snapshotVersion === 1);
+      mocks.verifySharedLinkSessionCookieValue.mockImplementation((_value, context) => context.credentialVersion === "cred-v1");
       const staleSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const req = makeRequest(
-        { decision: "accepted", note: "I approve the old version" },
+        { decision: "accepted", note: "I approve under the old credential" },
         { cookie: `shared_link_session_abc123=${encodeURIComponent(staleSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
       );
 
@@ -139,7 +146,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
         expect.objectContaining({
           token: "client-pub-token-123",
           publicationId: "pub1",
-          snapshotVersion: 2,
+          credentialVersion: "cred-v2",
           recipientId: "recip-123",
         }),
       );

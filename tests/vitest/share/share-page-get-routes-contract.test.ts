@@ -68,6 +68,7 @@ describe("share page comment and decision GET route contracts", () => {
       status: "published",
       passwordRequired: false,
       snapshotVersion: 1,
+      credentialVersion: "open",
     });
     mocks.loadSharedLinkPublicComments.mockResolvedValue([
       {
@@ -140,6 +141,7 @@ describe("share page comment and decision GET route contracts", () => {
       status: "published",
       passwordRequired: true,
       snapshotVersion: 1,
+      credentialVersion: "cred-test",
     });
     mocks.hasPublicationAccessCookie.mockReturnValueOnce(false);
 
