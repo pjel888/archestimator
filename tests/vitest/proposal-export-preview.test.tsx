@@ -190,6 +190,50 @@ describe("ProposalExportPreviewDialog", () => {
     expect(within(issues).getByText(/do not yet separate material and labor/i)).toBeInTheDocument();
   });
 
+  it("is keyboard accessible: initial focus, Esc-to-close, and overlay-click-to-close (P1-T3, F-06)", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    render(<ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={onClose} />);
+
+    const dialog = screen.getByRole("dialog", { name: "Excel export preview" });
+    await waitFor(() => expect(dialog).toHaveFocus());
+
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId("proposal-preview-overlay"));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns focus to the opener when the preview closes (P1-T3, F-06)", async () => {
+    const user = userEvent.setup();
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId="main-house"
+          nodes={nodes}
+          projectId="project-1"
+          estimateId="estimate-1"
+          proposalExportMetadata={metadata}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    const opener = screen.getByRole("button", { name: "Preview Excel Export" });
+    opener.focus();
+    await user.click(opener);
+
+    expect(screen.getByRole("dialog", { name: "Excel export preview" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close preview" }));
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
   it("wires the estimate sheet toolbar to a refreshable read-only proposal preview", async () => {
     const user = userEvent.setup();
 

@@ -726,6 +726,7 @@ export function EstimateSheetContent({
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
   const inspectorOpenerRef = useRef<HTMLElement | null>(null);
   const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
+  const proposalPreviewOpenerRef = useRef<HTMLElement | null>(null);
   const inspectorScopeRef = useRef("");
   const historyRequestGenerationRef = useRef(0);
   const activateHistoryScope = useCallback((scopeKey: string) => {
@@ -1096,9 +1097,17 @@ export function EstimateSheetContent({
     if (isProposalPreviewOpen) buildProposalPreview(scope);
   }, [buildProposalPreview, isProposalPreviewOpen]);
   const openProposalPreview = useCallback(() => {
+    // Capture the opener so focus returns to it when the dialog closes (F-06/P1-T3),
+    // mirroring inspectorOpenerRef / rowDetailsOpenerRef.
+    proposalPreviewOpenerRef.current = (typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null);
     const model = buildProposalPreview();
     if (model) setIsProposalPreviewOpen(true);
   }, [buildProposalPreview]);
+  const closeProposalPreview = useCallback(() => {
+    setIsProposalPreviewOpen(false);
+    setProposalDownloadError(null);
+    window.requestAnimationFrame(() => proposalPreviewOpenerRef.current?.focus());
+  }, []);
   const refreshProposalPreview = useCallback(() => {
     setProposalDownloadError(null);
     buildProposalPreview();
@@ -1708,10 +1717,7 @@ export function EstimateSheetContent({
         canDownload={Boolean(proposalDownloadHref) && !isProposalExportEmpty}
         scopeControls={proposalPreviewScopeControls}
         onRefresh={refreshProposalPreview}
-        onClose={() => {
-          setIsProposalPreviewOpen(false);
-          setProposalDownloadError(null);
-        }}
+        onClose={closeProposalPreview}
       />
       {inspector ? (
         <ActivityHistoryModal
