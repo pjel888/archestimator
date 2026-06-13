@@ -722,7 +722,12 @@ function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
   };
 }
 
-export async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
+// Library Optimization Plan P1 T6: request-deduped with React.cache() (same pattern
+// as getCurrentUserContext, session.ts:31). Many server actions/routes call this on
+// the same request; without cache() it re-ran its workspace/profile reads every time.
+// The auto-provision write is idempotent within a request — cache() runs the body once
+// per request, so provisioning still happens exactly once when a workspace is missing.
+export const ensureDefaultWorkspace = cache(async (): Promise<WorkspaceBootstrap> => {
   const context = await requireCurrentUserContext();
   const supabase = await createSupabaseServerClient();
 
@@ -781,7 +786,7 @@ export async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
   if (profileError) throw profileError;
 
   return { workspace, profile };
-}
+});
 
 export async function listCurrentWorkspaceProjects() {
   const { workspace, profile } = await ensureDefaultWorkspace();
