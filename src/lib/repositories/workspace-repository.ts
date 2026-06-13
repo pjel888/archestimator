@@ -549,6 +549,16 @@ export function readPublicationSnapshotStaleness({
   return value;
 }
 
+// AC-MOD-18 (MOD-SHEET-04 — documented scope, conservative): the stale-snapshot warning compares
+// the snapshot's generatedAt against the latest `updated_at` among ONLY the published subset
+// (`estimateIds` = publication.selected_estimate_ids). This deliberately does NOT consider estimates
+// outside the published subset — a brand-new sheet added after publish, or edits to an intentionally
+// excluded sheet, will not raise a "snapshot is N days behind" hint. Broadening this to all project
+// estimates was considered for MOD-SHEET-04 but rejected as the conservative choice: it would surface
+// false-positive staleness for sheets the owner deliberately left out of the curated publication, and
+// the summary query path is on the hot project-load route where a regression risks the working flow.
+// A separate "new sheets available" signal (distinct from the published-subset staleness) is the
+// preferred future enhancement if this needs to grow.
 async function readLatestEstimateUpdatedAt(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   projectId: string,
@@ -561,6 +571,8 @@ async function readLatestEstimateUpdatedAt(
     .order("updated_at", { ascending: false })
     .limit(1);
 
+  // estimateIds empty → "all project estimates"; non-empty → restrict to the published subset
+  // (the current, documented behavior; see the scope note above).
   if (estimateIds.length > 0) query = query.in("id", estimateIds);
 
   const { data, error } = await query.maybeSingle();

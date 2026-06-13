@@ -349,6 +349,50 @@ describe("ProjectPublicationHeader publication control", () => {
     });
   });
 
+  it("defaults the picker to the curated selection after revoke instead of widening to every sheet (AC-MOD-18 / MOD-SHEET-07)", async () => {
+    publicationActions.createProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared link ready.",
+      clientLinkPath: "/share/regenerated-token",
+    });
+    // A revoked link still carries its last curated selection (est-1 only). Re-publishing from this
+    // state must NOT broaden scope to every sheet — the picker defaults to the curated set ∩ available.
+    const revokedCuratedSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "revoked",
+      clientLinkPath: null,
+      tokenCopyAvailable: false,
+      passwordRequired: false,
+      selectedEstimateCount: 1,
+      selectedEstimateIds: ["est-1"],
+    };
+
+    const user = userEvent.setup();
+    render(
+      <ProjectPublicationHeader
+        summary={revokedCuratedSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    // The Estimates picker shows the curated subset selected (1 / 2), not all sheets.
+    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    expect(within(dialog).getByText("1 / 2 selected")).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: "S-100 — Foundation" })).toBeChecked();
+    expect(within(dialog).getByRole("checkbox", { name: "S-200 — Framing" })).not.toBeChecked();
+
+    // Re-publishing from the revoked state uses the curated subset, never all sheets.
+    await user.click(within(dialog).getByRole("button", { name: "Generate shared link" }));
+    expect(publicationActions.createProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1"],
+      password: undefined,
+      expiresAt: null,
+    });
+  });
+
   it("confirms before turning off a live shared link", async () => {
     publicationActions.revokeProjectPublication.mockResolvedValueOnce({
       ok: true,
