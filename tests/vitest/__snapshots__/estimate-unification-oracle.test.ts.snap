@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`oracle · O1 totals > ALL_AREA: per-node totals are frozen (byte-parity through P1–P7) 1`] = `
+"{
+  "ff": 16800,
+  "footings": 8450,
+  "gf": 4500,
+  "sub": 8450,
+  "super": 21300,
+  "t1": 29750
+}"
+`;

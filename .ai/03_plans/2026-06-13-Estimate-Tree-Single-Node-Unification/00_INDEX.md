@@ -9,6 +9,22 @@
 
 ---
 
+## Changelog — deepening pass (2026-06-13, live-repo ground-truthing)
+
+The route, sequencing, two-vs-one decision, naming, and adversarial findings are **unchanged** (all confirmed correct). The pass closed the implementation gaps by running the code, not just reading it. **What changed and why:**
+
+- **The migration is written, applied, and PROVEN.** [`08_unify_estimate_node_kinds.P5.sql`](08_unify_estimate_node_kinds.P5.sql) is complete DDL; [`scripts/prove-unify-estimate-node-kinds-postgres.mjs`](../../../scripts/prove-unify-estimate-node-kinds-postgres.mjs) applies it on the full 86-migration chain on local PG17 and proves: mixed content now persists; **cycle/cross-tab/missing-parent/orphan still reject (I1/I2/I3)**; the integrity block passes; the RPC write-freeze still blocks row writes. (Hosted-branch dry-run is now a formality; type regen is a verified no-op — relax-only changes no schema surface.) → [06 §C](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md), [08](08_MIGRATION_PROOF_AND_APPLY.md).
+- **The golden-master oracle exists and is green** (5 runnable assertions + scaffolded surfaces): [`tests/vitest/estimate-unification-oracle.test.ts`](../../../tests/vitest/estimate-unification-oracle.test.ts) + fixtures. → [07](07_GOLDEN_MASTER_ORACLE.md).
+- **3 plan corrections (would have caused bugs):** (1) 🆕 `insert_estimate_subtree_into_estimate` (`20260613134852:87`) carries a `kind='group'` guard, **postdates the research, and is missing from the migration list** — must relax or subtree-insert breaks. (2) `validate_estimate_template_tree` lives in the **component-library** migration, not the tabs migration as 02 §B implies. (3) **Relax the row-item triggers, don't drop them** (they are the only DB guard on a row write) and **keep the `kind` CHECK constraints** (they don't enforce the content split). → [06 §C/§E](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md).
+- **Sequencing refinement (flagged for owner):** relax validators/triggers in **P5**, the 3 RPC kind-guards in **P6** — this keeps row/template writes withheld *at the enforcement layer* (not just the UI), honoring "relax-only ≠ enable-writes" more faithfully. Not a P5/P6 merge — the opposite. → [09 §D5](09_P1_DESIGN_DECISIONS.md).
+- **All P1 design questions resolved** (activity-scope stored choice; snapshot-contingency formally deferred+tracked; by-space own-bucket rule; node-agnostic export consolidation; widen `kind` to required `string`). → [09](09_P1_DESIGN_DECISIONS.md).
+- **All P2 artifacts produced:** test-migration map [10](10_TEST_MIGRATION_MAP.md), layout+a11y spec [11](11_LAYOUT_AND_A11Y_SPEC.md), runbook/write-freeze/rollback [12](12_MIGRATION_RUNBOOK_WRITE_FREEZE_ROLLBACK.md), template-editor parity [13](13_TEMPLATE_EDITOR_PARITY.md), effort+PR sequence [14](14_EFFORT_AND_PR_SEQUENCE.md).
+- **Anchor drift corrected:** `EstimateSheetContent.tsx` gates moved (`:427→:435`, `:413→:421`, cache key `→:1025`); all other load-bearing anchors confirmed exact (incl. reorder hierarchy block `:427-451`). → [06 §A](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md).
+
+**Status after pass:** implementation-ready pending 3 owner decisions — node name (Q-1), the §D5 RPC-split, and maintenance-window timing (Q-3).
+
+---
+
 ## Decision
 
 **Collapse `group` + `area` into ONE node type.** Every node may hold both child nodes **and** cost line items (`estimate_row_items`). The user-facing name is **"Area"** (pending your confirmation — see Decisions). No more "Group", no auto-wrap, no nesting rules, no "select a group first", no premature type choice. AI surfaces are out of scope (dormant in beta).
@@ -54,6 +70,16 @@ flowchart LR
 | [`02_BLAST_RADIUS_AND_DESIGN.md`](02_BLAST_RADIUS_AND_DESIGN.md) | Verified file-by-file blast radius; the migration; the mixed-content layout (adversarial conditions baked in); naming |
 | [`03_IMPLEMENTATION_ROUTE.md`](03_IMPLEMENTATION_ROUTE.md) | **The sequenced route — Phases 0–7 as concrete PRs**, data-safety reasoning, rollback, verification gates, point of no return |
 | [`04_DIMENSIONS_RISKS_ROLLOUT.md`](04_DIMENSIONS_RISKS_ROLLOUT.md) | Full dimension sweep; the adversarial findings as risks; open questions; decisions to author; verification checklist |
+| **Deepening artifacts (2026-06-13)** | |
+| [`06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md`](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md) | P0.1 — corrected anchor table; authoritative SQL locations; plan corrections (§C/§E/§F); types reconciliation (§D) |
+| [`07_GOLDEN_MASTER_ORACLE.md`](07_GOLDEN_MASTER_ORACLE.md) | P0.2 — oracle design: fixtures, captured surfaces, byte-parity + monotonic-delta rules (+ test/fixtures under `tests/vitest/`) |
+| [`08_unify_estimate_node_kinds.P5.sql`](08_unify_estimate_node_kinds.P5.sql) + [`08_MIGRATION_PROOF_AND_APPLY.md`](08_MIGRATION_PROOF_AND_APPLY.md) | P0.3 — the complete relax-only DDL + proof results + hosted apply procedure |
+| [`09_P1_DESIGN_DECISIONS.md`](09_P1_DESIGN_DECISIONS.md) | P1 — activity-scope storage, snapshot-contingency deferral, by-space chart rule, export structure, P5/P6 split, types |
+| [`10_TEST_MIGRATION_MAP.md`](10_TEST_MIGRATION_MAP.md) | P2.9 — per-file breaking assertions + replacements; new test files |
+| [`11_LAYOUT_AND_A11Y_SPEC.md`](11_LAYOUT_AND_A11Y_SPEC.md) | P2.10/11 — rows-first reorder, sticky cascade, icon/caret, empty state, a11y |
+| [`12_MIGRATION_RUNBOOK_WRITE_FREEZE_ROLLBACK.md`](12_MIGRATION_RUNBOOK_WRITE_FREEZE_ROLLBACK.md) | P2.12/13 — write-freeze mechanism, pg_dump, rollback decision tree |
+| [`13_TEMPLATE_EDITOR_PARITY.md`](13_TEMPLATE_EDITOR_PARITY.md) | P2.14 — template-editor unification to estimate-side depth |
+| [`14_EFFORT_AND_PR_SEQUENCE.md`](14_EFFORT_AND_PR_SEQUENCE.md) | P2.15 — per-phase t-shirt sizing + PR sequence + reviewer notes |
 
 ---
 

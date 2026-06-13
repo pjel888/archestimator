@@ -96,7 +96,9 @@ Every dimension that matters for a change this size, with the adversarial findin
 | **Q-3** | Maintenance-window timing for P5/P6? | low-traffic window; cohort is small | P5 |
 | **Q-4** | Keep `kind` column vestigial, or schedule the drop? | keep vestigial; defer drop to a later optional migration | P7 |
 
-Execution-time unknowns (exact final SQL after touching real code, precise optimistic-cache shapes, final helper names) are intentionally deferred to implementation.
+**Deepening update (2026-06-13):** Q-2 (rows-first) and Q-4 (keep `kind` vestigial) are **resolved** as recommended. Q-1 (name) and Q-3 (window) remain owner calls, now joined by a third: the **§D5 P5/P6 RPC-guard split** (recommend relaxing validators/triggers in P5, the 3 RPC guards in P6) — see [`09_P1_DESIGN_DECISIONS.md`](09_P1_DESIGN_DECISIONS.md). The P1 design questions (activity-scope storage, snapshot-contingency, by-space chart, export structure, types) are all resolved there with concrete rationale and folded into the implementation docs.
+
+Execution-time unknowns (exact final SQL after touching real code — now written and proven in [`08`](08_unify_estimate_node_kinds.P5.sql); precise optimistic-cache shapes; final helper names) are otherwise deferred to implementation.
 
 ---
 
@@ -107,6 +109,9 @@ Execution-time unknowns (exact final SQL after touching real code, precise optim
 3. **Forward-only migration posture.** PITR off → fresh pre-migration logical dump is the rollback artifact; blocking prod integrity pre-flight; Supabase-branch dry-run.
 4. **Vocabulary → "Area"** (display-only; internal `kind` unchanged). Onboarding group-vs-area step deleted.
 5. **Template tree unifies in lockstep** with the estimate tree in the same migration + release.
+6. **(Deepening) DB relaxation splits P5/P6** — validators + row-triggers + reorder relax in P5 (schema permits mixed content, writes withheld at the RPC enforcement layer); the 3 RPC kind-guards (incl. the newly-found `insert_estimate_subtree_into_estimate`) relax in P6 with the create flow. Honors "relax-only ≠ enable-writes." See [`09 §D5`](09_P1_DESIGN_DECISIONS.md). *(Owner to confirm; alternative is the single-P5-migration form.)*
+
+> Risk-table coverage note: every adversarial finding (V1 share, V2 totals/merge/contingency, V3 scope-cache/sticky/own-rows, V4 throw-paths/build-breakers/save-as-template + the deepening's `insert_estimate_subtree` guard and the `aggregate-project-charts.ts:256` raw sum) is now mapped to a concrete artifact in [`06`](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md)–[`14`](14_EFFORT_AND_PR_SEQUENCE.md) and proven where executable (migration harness, oracle).
 
 ---
 
