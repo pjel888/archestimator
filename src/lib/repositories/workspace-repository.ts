@@ -1425,6 +1425,11 @@ export async function getProjectPublicationSummary(
   };
 }
 
+// Explicit safe columns for the list query: never ship metadata/created_by to the
+// client (over-fetch + data exposure, finding F9 / P2-2). Adding a UI field means
+// adding it here so the build fails loudly rather than silently re-exposing data.
+const ESTIMATE_LIST_COLUMNS = "id, project_id, name, sheet_code, currency_code, notes, project_budget, created_at, updated_at";
+
 export async function listProjectEstimates(projectId: string): Promise<ProjectEstimatesListResult> {
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) {
@@ -1440,7 +1445,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   const { data: estimates, error } = await traced("listProjectEstimates.estimates", async () =>
     supabase
       .from("estimates")
-      .select("*")
+      .select(ESTIMATE_LIST_COLUMNS)
       .eq("project_id", project.id)
       .order("updated_at", { ascending: false }),
   );
@@ -1458,42 +1463,33 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
     };
   }
 
-  const [nodesResult, rowsResult] = await Promise.all([
-    traced("listProjectEstimates.nodes", async () =>
+  // F8 / P2-1 (Path A): one aggregate RPC for node/row counts + total cost
+  // (replaces the all-rows JS fold — flat in row count), plus a narrow nodes
+  // query kept only for the depth-first/area-first firstNodeId oracle.
+  const [summariesResult, nodesResult] = await Promise.all([
+    traced("listProjectEstimates.summaries", async () =>
+      supabase.rpc("project_estimate_list_summaries", { target_project_id: project.id }),
+    ),
+    traced("listProjectEstimates.firstNodes", async () =>
       supabase
         .from("estimate_nodes")
         .select("id, estimate_id, kind, parent_id, sort_order")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
     ),
-    traced("listProjectEstimates.rowItems", async () =>
-      supabase
-        .from("estimate_row_items")
-        .select("estimate_id, quantity, unit_cost, contingency_percentage, misc_cost")
-        .in("estimate_id", estimateIds),
-    ),
   ]);
 
+  if (summariesResult.error) throw summariesResult.error;
   if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
 
   const firstNodeByEstimateId = selectFirstEstimateNodeIds(nodesResult.data ?? []);
   const nodeCountByEstimateId = new Map<string, number>();
-  for (const node of nodesResult.data ?? []) {
-    nodeCountByEstimateId.set(node.estimate_id, (nodeCountByEstimateId.get(node.estimate_id) ?? 0) + 1);
-  }
-
-  const totalCostByEstimateId = new Map<string, number>();
   const rowCountByEstimateId = new Map<string, number>();
-  for (const row of rowsResult.data ?? []) {
-    const quantity = Number(row.quantity);
-    const unitCost = Number(row.unit_cost);
-    const contingencyPercentage = Number(row.contingency_percentage ?? 0);
-    const miscCost = Number(row.misc_cost);
-    const subTotal = quantity * unitCost;
-    const rowTotal = subTotal + miscCost + (subTotal * contingencyPercentage) / 100;
-    rowCountByEstimateId.set(row.estimate_id, (rowCountByEstimateId.get(row.estimate_id) ?? 0) + 1);
-    totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + rowTotal);
+  const totalCostByEstimateId = new Map<string, number>();
+  for (const summary of summariesResult.data ?? []) {
+    nodeCountByEstimateId.set(summary.estimate_id, summary.node_count ?? 0);
+    rowCountByEstimateId.set(summary.estimate_id, summary.row_count ?? 0);
+    totalCostByEstimateId.set(summary.estimate_id, Number(summary.total_cost ?? 0));
   }
 
   return { workspace, project, estimates: normalizedEstimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };

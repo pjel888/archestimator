@@ -22,6 +22,8 @@
     "test:e2e:perf": "playwright test e2e/route-transition-performance.spec.ts",
     "prove:notification-rls": "node scripts/prove-notification-rls-postgres.mjs",
     "prove:estimate-tabs-rls": "node scripts/prove-estimate-tabs-postgres.mjs",
+    "prove:estimate-list-summaries": "node scripts/prove-estimate-list-summaries-postgres.mjs",
+    "prove:rls-initplan": "node scripts/prove-rls-initplan-postgres.mjs",
     "launch:verify-hosted-auth": "bun run scripts/verify-hosted-auth-routes.ts",
     "launch:verify-hosted-export": "bun run scripts/verify-hosted-export-route.ts",
     "launch:supabase-readiness": "supabase db query --linked --file scripts/sql/linked-supabase-launch-readiness.sql --output json",

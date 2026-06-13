@@ -2999,6 +2999,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      project_estimate_list_summaries: {
+        Args: { target_project_id: string }
+        Returns: {
+          estimate_id: string
+          node_count: number
+          row_count: number
+          total_cost: number
+          first_node_id: string | null
+        }[]
+      }
       check_closed_beta_access: {
         Args: { raw_email: string }
         Returns: {
