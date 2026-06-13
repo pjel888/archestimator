@@ -8,6 +8,7 @@ import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TablesInsert, TablesUpdate } from "@/lib/supabase/types";
+import { throwActionError } from "./action-errors";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -42,7 +43,7 @@ async function requireWorkspaceTemplate(supabase: SupabaseServerClient, workspac
     .eq("id", templateId)
     .eq("workspace_id", workspaceId)
     .maybeSingle();
-  if (error) throw new Error(`Could not load the template: ${error.message}`);
+  if (error) throwActionError("Could not load the template.", error);
   if (!template) throw new Error("Template not found in the current workspace.");
   return template;
 }
@@ -55,7 +56,7 @@ async function requireTemplateNode(supabase: SupabaseServerClient, templateId: s
     .eq("id", nodeId)
     .eq("template_id", templateId)
     .maybeSingle();
-  if (error) throw new Error(`Could not load the template node: ${error.message}`);
+  if (error) throwActionError("Could not load the template node.", error);
   if (!node) throw new Error("Template node not found.");
   return node;
 }
@@ -69,7 +70,7 @@ async function nextSiblingSortOrder(supabase: SupabaseServerClient, templateId: 
     .limit(1);
   query = parentId === null ? query.is("parent_id", null) : query.eq("parent_id", parentId);
   const { data, error } = await query;
-  if (error) throw new Error(`Could not read sibling order: ${error.message}`);
+  if (error) throwActionError("Could not read sibling order.", error);
   return (data?.[0]?.sort_order ?? -1) + 1;
 }
 
@@ -106,7 +107,7 @@ export async function createEstimateTemplateNode(input: {
     })
     .select("*")
     .single();
-  if (error || !node) throw new Error(`Could not add the ${input.kind}: ${error?.message ?? "no node returned"}`);
+  if (error || !node) throwActionError("Could not add the ${input.kind}.", error);
 
   revalidateTemplateEditorPaths(input.templateId);
   return { node };
@@ -127,7 +128,7 @@ export async function renameEstimateTemplateNode(input: { templateId: string; no
     .eq("template_id", input.templateId)
     .select("id, name")
     .maybeSingle();
-  if (error) throw new Error(`Could not rename the node: ${error.message}`);
+  if (error) throwActionError("Could not rename the node.", error);
   if (!node) throw new Error("Template node not found.");
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -144,7 +145,7 @@ export async function deleteEstimateTemplateNode(input: { templateId: string; no
     .from("estimate_template_nodes")
     .select("id, parent_id")
     .eq("template_id", input.templateId);
-  if (nodesError) throw new Error(`Could not load the template tree: ${nodesError.message}`);
+  if (nodesError) throwActionError("Could not load the template tree.", nodesError);
 
   const childrenByParent = new Map<string | null, string[]>();
   for (const node of allNodes ?? []) {
@@ -165,14 +166,14 @@ export async function deleteEstimateTemplateNode(input: { templateId: string; no
     .delete()
     .eq("template_id", input.templateId)
     .in("template_node_id", subtreeIds);
-  if (rowsError) throw new Error(`Could not delete the node rows: ${rowsError.message}`);
+  if (rowsError) throwActionError("Could not delete the node rows.", rowsError);
 
   const { error: nodeError } = await supabase
     .from("estimate_template_nodes")
     .delete()
     .eq("template_id", input.templateId)
     .in("id", subtreeIds);
-  if (nodeError) throw new Error(`Could not delete the node: ${nodeError.message}`);
+  if (nodeError) throwActionError("Could not delete the node.", nodeError);
 
   revalidateTemplateEditorPaths(input.templateId);
   return { deletedNodeIds: subtreeIds };
@@ -203,7 +204,7 @@ export async function moveEstimateTemplateNode(input: {
       .from("estimate_template_nodes")
       .select("id, parent_id")
       .eq("template_id", input.templateId);
-    if (nodesError) throw new Error(`Could not load the template tree: ${nodesError.message}`);
+    if (nodesError) throwActionError("Could not load the template tree.", nodesError);
     const parentById = new Map((allNodes ?? []).map((entry) => [entry.id, entry.parent_id]));
     let ancestor: string | null = input.parentId;
     while (ancestor) {
@@ -217,7 +218,7 @@ export async function moveEstimateTemplateNode(input: {
     .update({ parent_id: input.parentId })
     .eq("id", input.nodeId)
     .eq("template_id", input.templateId);
-  if (moveError) throw new Error(`Could not move the node: ${moveError.message}`);
+  if (moveError) throwActionError("Could not move the node.", moveError);
 
   for (const [index, siblingId] of input.orderedSiblingIds.entries()) {
     const { error: orderError } = await supabase
@@ -225,7 +226,7 @@ export async function moveEstimateTemplateNode(input: {
       .update({ sort_order: index })
       .eq("id", siblingId)
       .eq("template_id", input.templateId);
-    if (orderError) throw new Error(`Could not store the sibling order: ${orderError.message}`);
+    if (orderError) throwActionError("Could not store the sibling order.", orderError);
   }
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -280,7 +281,7 @@ export async function addEstimateTemplateRowItems(input: {
     .eq("template_node_id", input.nodeId)
     .order("sort_order", { ascending: false })
     .limit(1);
-  if (orderError) throw new Error(`Could not read the row order: ${orderError.message}`);
+  if (orderError) throwActionError("Could not read the row order.", orderError);
   const baseSortOrder = (lastRow?.[0]?.sort_order ?? -1) + 1;
 
   const inserts = input.libraryItems.map((libraryItem, index) =>
@@ -296,7 +297,7 @@ export async function addEstimateTemplateRowItems(input: {
     .from("estimate_template_row_items")
     .insert(inserts)
     .select("*");
-  if (error) throw new Error(`Could not add the rows: ${error.message}`);
+  if (error) throwActionError("Could not add the rows.", error);
 
   revalidateTemplateEditorPaths(input.templateId);
   return { rows: rows ?? [] };
@@ -322,7 +323,7 @@ export async function createEstimateTemplateAllowanceRow(input: {
     .eq("template_node_id", input.nodeId)
     .order("sort_order", { ascending: false })
     .limit(1);
-  if (orderError) throw new Error(`Could not read the row order: ${orderError.message}`);
+  if (orderError) throwActionError("Could not read the row order.", orderError);
 
   const { data: row, error } = await supabase
     .from("estimate_template_row_items")
@@ -349,7 +350,7 @@ export async function createEstimateTemplateAllowanceRow(input: {
     })
     .select("*")
     .single();
-  if (error || !row) throw new Error(`Could not add the allowance row: ${error?.message ?? "no row returned"}`);
+  if (error || !row) throwActionError("Could not add the allowance row.", error);
 
   revalidateTemplateEditorPaths(input.templateId);
   return { row };
@@ -404,7 +405,7 @@ export async function updateEstimateTemplateRowItem(input: {
     .eq("template_id", input.templateId)
     .select("*")
     .maybeSingle();
-  if (error) throw new Error(`Could not update the row: ${error.message}`);
+  if (error) throwActionError("Could not update the row.", error);
   if (!row) throw new Error("Template row not found.");
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -424,7 +425,7 @@ export async function removeEstimateTemplateRowItem(input: { templateId: string;
     .eq("template_id", input.templateId)
     .select("id")
     .maybeSingle();
-  if (error) throw new Error(`Could not remove the row: ${error.message}`);
+  if (error) throwActionError("Could not remove the row.", error);
   if (!row) throw new Error("Template row not found.");
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -447,7 +448,7 @@ export async function reorderEstimateTemplateRowItems(input: {
       .eq("id", rowId)
       .eq("template_id", input.templateId)
       .eq("template_node_id", input.nodeId);
-    if (error) throw new Error(`Could not store the row order: ${error.message}`);
+    if (error) throwActionError("Could not store the row order.", error);
   }
 
   revalidateTemplateEditorPaths(input.templateId);
@@ -490,8 +491,8 @@ export async function insertTemplateIntoTemplate(input: {
       .eq("template_id", input.sourceTemplateId)
       .order("sort_order", { ascending: true }),
   ]);
-  if (sourceNodesResult.error) throw new Error(`Could not load the source template: ${sourceNodesResult.error.message}`);
-  if (sourceRowsResult.error) throw new Error(`Could not load the source rows: ${sourceRowsResult.error.message}`);
+  if (sourceNodesResult.error) throwActionError("Could not load the source template.", sourceNodesResult.error);
+  if (sourceRowsResult.error) throwActionError("Could not load the source rows.", sourceRowsResult.error);
 
   let sourceNodes = sourceNodesResult.data ?? [];
   let sourceRows = sourceRowsResult.data ?? [];
@@ -531,7 +532,7 @@ export async function insertTemplateIntoTemplate(input: {
   }));
 
   const { error: nodeInsertError } = await supabase.from("estimate_template_nodes").insert(nodeInserts);
-  if (nodeInsertError) throw new Error(`Could not copy the structure: ${nodeInsertError.message}`);
+  if (nodeInsertError) throwActionError("Could not copy the structure.", nodeInsertError);
 
   const rowInserts = sourceRows.map((row) => ({
     template_id: input.targetTemplateId,
@@ -564,7 +565,7 @@ export async function insertTemplateIntoTemplate(input: {
         .delete()
         .eq("template_id", input.targetTemplateId)
         .in("id", Array.from(idMap.values()));
-      throw new Error(`Could not copy the rows: ${rowInsertError.message}`);
+      throwActionError("Could not copy the rows.", rowInsertError);
     }
   }
 
