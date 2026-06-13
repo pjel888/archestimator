@@ -338,4 +338,35 @@ describe("proposal workbook generation", () => {
     expect(joinedRemarks).not.toContain("Supplier:");
     expect(joinedRemarks).not.toContain("Confidence:");
   });
+
+  it("defangs CSV/formula injection by writing risky data cells as verbatim text (P1-T7, F-18)", async () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "g",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "a",
+            name: "Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [row({ id: "evil", material: '=HYPERLINK("http://evil","click")', description: "" })],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const buffer = await createProposalWorkbookBuffer(model);
+    const loaded = new ExcelJS.Workbook();
+    await loaded.xlsx.load(buffer);
+    const cell = loaded.getWorksheet("Bid Form")?.getCell("B19");
+
+    // Verbatim: the leading "=" is not stripped, the value is a string (never a formula object),
+    // and the cell is forced to text type so it cannot fire as a formula on open / re-export.
+    expect(cell?.value).toBe('=HYPERLINK("http://evil","click")');
+    expect(typeof cell?.value).toBe("string");
+    expect(cell?.numFmt).toBe("@");
+  });
 });
