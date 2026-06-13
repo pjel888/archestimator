@@ -12,8 +12,14 @@ import {
   getEstimateNodeNestingError,
   getEstimateWrapGroupName,
   normalizeEstimateTreeNodeKind,
+  selectFirstEstimateNodeIds,
   type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
+import {
+  buildProjectEstimateListRow,
+  projectEstimateListRowSource,
+} from "@/lib/estimates/project-estimate-list-row";
+import { sumEstimateRowLineTotals } from "@/lib/estimates/estimate-row-total";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
 import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { isUuid } from "@/lib/ids";
@@ -1116,7 +1122,9 @@ async function createEstimateWithDefaultTree({
   if (areaError) throw areaError;
   if (!areaNode?.id) throw new Error("Default estimate area was not created.");
 
-  return { estimate, areaNodeId: areaNode.id };
+  // project group + general groups + building group + level group + area
+  const nodeCount = 1 + generalNodeInserts.length + 1 + 1 + 1;
+  return { estimate, areaNodeId: areaNode.id, nodeCount };
 }
 
 function revalidateProjectEstimatePaths(projectId: string) {
@@ -1445,7 +1453,7 @@ export async function createEstimateSheetDraft(projectId: string) {
   const currentUser = await requireCurrentUserContext();
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
 
-  const { estimate, areaNodeId } = await createEstimateWithDefaultTree({
+  const { estimate, areaNodeId, nodeCount } = await createEstimateWithDefaultTree({
     supabase,
     project,
     name: `${sheetCode} Estimate`,
@@ -1454,7 +1462,15 @@ export async function createEstimateSheetDraft(projectId: string) {
   });
 
   revalidateProjectEstimatePaths(project.id);
-  return { estimateId: estimate.id, areaNodeId, sheetCode };
+  // Return the canonical list row so the client store can reconcile its
+  // optimistic placeholder without a full re-render (P-1.2 / P0-3).
+  const row = buildProjectEstimateListRow(estimate, {
+    firstNodeId: areaNodeId,
+    nodeCount,
+    rowItemCount: 0,
+    totalProjectCost: 0,
+  });
+  return { row, estimateId: estimate.id, areaNodeId, sheetCode };
 }
 
 export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput) {
@@ -1615,11 +1631,31 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
 
   revalidateProjectEstimatePaths(project.id);
 
-  return {
-    estimateId: duplicatedEstimate.id,
-    firstNodeId: duplicatedRows.length > 0 ? duplicatedRows[0]?.node_id ?? null : [...nodeIdBySourceId.values()][0] ?? null,
-    sheetCode,
-  };
+  // Map the source nodes (in sort_order) onto their duplicated ids so the
+  // landing node is chosen by the same depth-first, area-first oracle the list
+  // route uses — not a flat "first inserted row" heuristic (ADV-011 parity).
+  const duplicatedNodeRowsInOrder = (sourceNodes ?? []).flatMap((node) => {
+    const id = nodeIdBySourceId.get(node.id);
+    if (!id) return [];
+    return [{
+      id,
+      estimate_id: duplicatedEstimate.id,
+      kind: node.kind,
+      parent_id: node.parent_id ? nodeIdBySourceId.get(node.parent_id) ?? null : null,
+    }];
+  });
+  const firstNodeId = selectFirstEstimateNodeIds(duplicatedNodeRowsInOrder).get(duplicatedEstimate.id) ?? null;
+
+  // Canonical list row for optimistic reconciliation (P-1.2 / P0-5). The total
+  // mirrors the source estimate because the rows are copied verbatim.
+  const row = buildProjectEstimateListRow(duplicatedEstimate, {
+    firstNodeId,
+    nodeCount: nodeIdBySourceId.size,
+    rowItemCount: duplicatedRows.length,
+    totalProjectCost: sumEstimateRowLineTotals(duplicatedRows),
+  });
+
+  return { row, estimateId: duplicatedEstimate.id, firstNodeId, sheetCode };
 }
 
 export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateSheetsInput): Promise<BulkActionPreviewResult> {
@@ -1783,7 +1819,9 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
 
   const estimate = await getEstimateRecordAfterMutation(supabase, input.estimateId, project.id);
   revalidateProjectEstimatePaths(project.id);
-  return estimate;
+  // Scalar-only canonical reconciliation payload: the client patches these
+  // fields and keeps its existing summary (no sensitive columns shipped) — P-1.2.
+  return { estimate: projectEstimateListRowSource(estimate) };
 }
 
 export async function regenerateEstimateSheetCode(input: { projectId: string; estimateId: string }) {
@@ -1804,7 +1842,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
 
   const estimate = await getEstimateRecordAfterMutation(supabase, input.estimateId, project.id);
   revalidateProjectEstimatePaths(project.id);
-  return estimate;
+  return { estimate: projectEstimateListRowSource(estimate) };
 }
 
 function readEstimateTabMutationResult(value: unknown, fallbackTabId?: string): EstimateTabMutationResult {
