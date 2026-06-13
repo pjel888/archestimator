@@ -82,7 +82,7 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetDialog).getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("button", { name: "Add Group" })).toBeDisabled();
     expect(within(sheetDialog).getByRole("button", { name: "Add Node" })).toBeDisabled();
-    expect(within(sheetDialog).getByRole("tab", { name: "Tabs" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheetDialog).getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
     const scopeTree = within(sheetDialog).getByRole("tree", { name: "Activity scope tree" });
     expect(scopeTree).toBeInTheDocument();
     expect(scopeTree.querySelectorAll("[data-workshop-tree-row]").length).toBeGreaterThan(0);

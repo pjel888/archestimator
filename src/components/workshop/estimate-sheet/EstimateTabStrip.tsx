@@ -6,6 +6,7 @@ import { CopySimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dis
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
+import { tabStripTabClassName } from "@/components/ui/tab-strip";
 import {
   createEstimateTab,
   deleteEstimateTab,
@@ -606,33 +607,39 @@ export function EstimateTabStrip({
         return (
           <div key={tab.id} className="flex h-7 shrink-0 items-end">
             {isEditing ? (
-              <input
-                ref={attachRenameInputRef}
-                className="h-7 w-32 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink outline-none focus:ring-2 focus:ring-focus"
-                aria-label={`Rename ${tab.name} tab`}
-                value={editingName}
-                disabled={pendingAction === "rename"}
-                onChange={(event) => setEditingName(event.target.value)}
-                onBlur={() => {
-                  // Ignore the transient blur from the menu-close focus return on an
-                  // unchanged name so it does not commit prematurely (see U2 contract).
-                  if (ignoreRenameBlurDuringContextMenuCloseRef.current && editingName === tab.name) return;
-                  void commitRename();
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
+              // Rename keeps the file-folder tab shape (active styling) and embeds a
+              // borderless input where the label sits, so editing reads as "this tab,
+              // being renamed" rather than a detached box. Width tracks the text.
+              <div className={cn(tabStripTabClassName(true), "max-w-44 ring-1 ring-inset ring-focus")} data-estimate-tab-id={tab.id}>
+                <input
+                  ref={attachRenameInputRef}
+                  size={Math.max(editingName.length, 3)}
+                  className="min-w-0 max-w-[150px] bg-transparent text-[10px] font-medium leading-none text-ink outline-none"
+                  aria-label={`Rename ${tab.name} tab`}
+                  value={editingName}
+                  disabled={pendingAction === "rename"}
+                  onChange={(event) => setEditingName(event.target.value)}
+                  onBlur={() => {
+                    // Ignore the transient blur from the menu-close focus return on an
+                    // unchanged name so it does not commit prematurely (see U2 contract).
+                    if (ignoreRenameBlurDuringContextMenuCloseRef.current && editingName === tab.name) return;
                     void commitRename();
-                  }
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    suppressContextMenuCloseAutoFocusRef.current = false;
-                    ignoreRenameBlurDuringContextMenuCloseRef.current = false;
-                    setEditingTabId(null);
-                    setError("");
-                  }
-                }}
-              />
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void commitRename();
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      suppressContextMenuCloseAutoFocusRef.current = false;
+                      ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+                      setEditingTabId(null);
+                      setError("");
+                    }
+                  }}
+                />
+              </div>
             ) : (
               <button
                 ref={(element) => {
@@ -644,10 +651,8 @@ export function EstimateTabStrip({
                 tabIndex={isActive ? 0 : -1}
                 data-estimate-tab-id={tab.id}
                 className={cn(
-                  "relative inline-flex h-7 max-w-44 items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none tracking-normal transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                  isActive
-                    ? "z-10 -mb-px border-hairline bg-white text-ink"
-                    : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
+                  tabStripTabClassName(isActive),
+                  "max-w-44",
                   isEntering && "animate-in fade-in-0 slide-in-from-bottom-1 duration-150",
                 )}
                 onClick={() => onTabChange(tab.id)}
