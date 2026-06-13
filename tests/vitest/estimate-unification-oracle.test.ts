@@ -125,10 +125,45 @@ describe("oracle · O2 share reconstruct (P1 firewall)", () => {
     expect(stableStringify(tree)).toMatchSnapshot();
   });
 
-  // MIXED forward-proof (a non-area node that OWNS rows) is wired at P1, when the
-  // reconstruct-share-tree.ts:297 firewall is relaxed. Today the kind gate drops those
-  // rows by design, so this assertion is intentionally deferred to the P1 commit.
-  it.todo("MIXED: rows survive on a non-area node, rollup = 200 (wired at P1)");
+  // MIXED forward-proof (P1 firewall): a kind:"group" node that OWNS rows is the exact
+  // case the :297 gate dropped. Pre-P1 this was RED (R_a vanished, rollup 100); post-P1
+  // the row survives and the client-facing total is whole.
+  it("MIXED: rows survive on a non-area node, rollup = 200", () => {
+    const nodes = [
+      {
+        id: "bldgA",
+        name: "Building A",
+        kind: "group", // non-area container that now owns rows
+        children: [
+          {
+            id: "level2",
+            name: "Level 2",
+            kind: "area",
+            children: [{ id: "room201", name: "Room 201", kind: "area", children: [] }],
+          },
+          { id: "level3", name: "Level 3", kind: "area", children: [] },
+        ],
+      },
+    ] as unknown as PublicationSnapshotTreeNode[];
+    const rows = [
+      { id: "R_a", nodeId: "bldgA", designation: "Building A", rowTotal: 100 },
+      { id: "R_b", nodeId: "level2", designation: "Level 2", rowTotal: 50 },
+      { id: "R_c", nodeId: "room201", designation: "Room 201", rowTotal: 30 },
+      { id: "R_d", nodeId: "level3", designation: "Level 3", rowTotal: 20 },
+      { id: "R_orphan", nodeId: "ghost", designation: "Ghost", rowTotal: 0 },
+    ] as unknown as PublicationSnapshotRow[];
+
+    const tree = buildShareTreeFromSnapshotNodes(nodes, rows);
+    const root = tree.find((n) => n.label === "Building A");
+    expect(root).toBeDefined();
+    // THE FIREWALL: a row owned by the kind:"group" node must not be dropped.
+    expect(root!.rows.map((r) => (r as { id: string }).id)).toContain("R_a");
+    expect(root!.total).toBe(MIXED_EXPECTED.grandTotal); // 100 + (50+30) + 20 = 200
+    expect(root!.rowCount).toBe(4);
+    // A row whose owning node is absent still lands in "Unassigned" (unchanged).
+    const unassigned = tree.find((n) => n.label === "Unassigned");
+    expect(unassigned?.rows.map((r) => (r as { id: string }).id)).toContain("R_orphan");
+  });
 });
 
 describe("oracle · O3 proposal export model (P2)", () => {
