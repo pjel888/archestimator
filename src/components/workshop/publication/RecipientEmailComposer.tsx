@@ -51,6 +51,12 @@ function readSelfInviteBlockedMessage() {
   return "You cannot invite your own sign-in email to this shared link.";
 }
 
+// AC-MOD-13 (MOD-REC-06): only an already-engaged recipient (opened/responded) loses something
+// when their token rotates on resend, so only those require a confirm. pending/sent resend directly.
+function resendNeedsConfirm(rec: LocalRecipient) {
+  return rec.delivery_status === "opened" || rec.delivery_status === "responded";
+}
+
 export function RecipientEmailComposer({ publicationId, baseClientLink, currentUserEmail, projectName, onMessage }: RecipientEmailComposerProps) {
   const [input, setInput] = useState("");
   const [chips, setChips] = useState<LocalRecipient[]>([]);
@@ -59,6 +65,10 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   const [localMessage, setLocalMessage] = useState<string | null>(null);
   const [resendingRecipientId, setResendingRecipientId] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<LocalRecipient | null>(null);
+  // AC-MOD-13 (MOD-REC-06): a recipient who has already opened/responded keeps their live token;
+  // resending rotates it and downgrades their status. Gate those resends behind a confirm so the
+  // owner doesn't silently invalidate an engaged recipient's link. pending/sent resend directly.
+  const [pendingResend, setPendingResend] = useState<LocalRecipient | null>(null);
   const [emailDeliveryConfigured, setEmailDeliveryConfigured] = useState<boolean | null>(null);
   const [emailDeliveryMessage, setEmailDeliveryMessage] = useState<string | null>(null);
   const projectLabel = projectName?.trim() || "this project";
@@ -272,7 +282,14 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                   size="sm"
                   aria-label={`Resend ${chip.email}`}
                   className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-ink"
-                  onClick={() => void handleResend(chip)}
+                  onClick={() => {
+                    // AC-MOD-13 (MOD-REC-06): opened/responded recipients confirm first; the rest resend now.
+                    if (resendNeedsConfirm(chip)) {
+                      setPendingResend(chip);
+                    } else {
+                      void handleResend(chip);
+                    }
+                  }}
                   disabled={emailDisabled || isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}
                 >
                   <ArrowClockwise size={10} aria-hidden="true" />
@@ -312,8 +329,10 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               parseAndAddEmails(e.currentTarget.value);
             }
             if (e.key === "Backspace" && !input && chips.length > 0) {
-              // remove last
-              setChips((p) => p.slice(0, -1));
+              // AC-MOD-13 (MOD-RECIP-BACKSPACE-01): Backspace removes the last chip only when it is
+              // local-only (no id). Persisted recipients must go through the confirm flow — dropping
+              // them here only hides them from view, so the owner thinks an active recipient is gone.
+              setChips((p) => (p[p.length - 1]?.id ? p : p.slice(0, -1)));
             }
           }}
           onBlur={() => { if (input.trim()) parseAndAddEmails(input); }}
@@ -336,8 +355,15 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => { setChips([]); setInput(""); setLocalMessage(null); }}
-          disabled={isSending || chips.length === 0}
+          onClick={() => {
+            // AC-MOD-13 (MOD-ACT-05): "Clear" only discards local-only (unsent) chips. Persisted
+            // recipients stay — they're removed only via the per-chip confirm flow, never bulk-cleared
+            // (a bulk clear would just hide them until reopen and read as a silent removal).
+            setChips((prev) => prev.filter((c) => c.id));
+            setInput("");
+            setLocalMessage(null);
+          }}
+          disabled={isSending || chips.every((c) => Boolean(c.id))}
           className="min-h-6 px-1.5 py-0 text-[9px]"
         >
           Clear
@@ -397,6 +423,50 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
               }}
             >
               Remove recipient
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* AC-MOD-13 (MOD-REC-06): confirm before resending an opened/responded recipient, since
+          the resend rotates their token and downgrades their status. */}
+      <Modal
+        open={pendingResend !== null}
+        title="Resend a new link?"
+        onOpenChange={(next) => {
+          if (!next) setPendingResend(null);
+        }}
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-secondary">
+            <strong className="font-medium">{pendingResend?.email}</strong> has already opened this shared
+            page. Resending replaces their current link — their existing link will stop working and their
+            status resets.
+          </p>
+          <div className="flex justify-end gap-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              onClick={() => setPendingResend(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              aria-label="Resend new link"
+              onClick={() => {
+                const target = pendingResend;
+                setPendingResend(null);
+                if (target) void handleResend(target);
+              }}
+            >
+              Resend new link
             </Button>
           </div>
         </div>
