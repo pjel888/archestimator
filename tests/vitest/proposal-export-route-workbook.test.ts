@@ -152,7 +152,9 @@ describe("proposal xlsx export route workbook integration", () => {
     ]);
     expect(workbook.getWorksheet("Bid Form")?.getCell("A1").value).toBe("BID FORM / BILL OF QUANTITIES");
     expect(workbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual(expect.objectContaining({ formula: expect.any(String) }));
-    expect(workbook.getWorksheet("Summary")?.getCell("B30").value).toEqual(expect.objectContaining({ formula: "B27+B28+B29" }));
+    // P1-T6: dynamic Summary totals. makeTree(60) → 2 sections (rows 15-16) → totals start
+    // at row 18, Grand Total at row 21.
+    expect(workbook.getWorksheet("Summary")?.getCell("B21").value).toEqual(expect.objectContaining({ formula: "B18+B19+B20" }));
   });
 
   it("round-trips a multi-tab export through the route workbook builder", async () => {
