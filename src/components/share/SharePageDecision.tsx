@@ -124,8 +124,26 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
     window.setTimeout(() => previouslyFocusedRef.current?.focus(), 0);
   }, []);
 
+  // AC-UX-07: anonymous (no recipient session) visitors must see a clear, friendly
+  // read-only explanation of how to respond — never a silently empty decision area.
+  // Security-reviewed copy: no bypass implication; directs the visitor to their own link.
   if (!isValid) {
-    return null;
+    return (
+      <section
+        data-share-decision-bar="true"
+        data-testid="decision-anonymous-state"
+        role="note"
+        aria-label="How to respond to this proposal"
+        className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-ink"
+      >
+        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Your response</div>
+        <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">
+          You are viewing this proposal in read-only mode. To accept, decline, or request a revision — and to join
+          the discussion — open the personalized review link sent to your email. Each recipient receives their own
+          secure link.
+        </p>
+      </section>
+    );
   }
 
   const openConfirm = (decision: DecisionType) => {
