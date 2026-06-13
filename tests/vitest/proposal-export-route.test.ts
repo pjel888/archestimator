@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getEstimateTabTree: vi.fn(),
   createProposalWorkbookBuffer: vi.fn(),
   getCurrentUserContext: vi.fn(),
+  checkProposalExportRateLimit: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
@@ -24,6 +25,10 @@ vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: mocks.getCurrentUserContext,
+}));
+
+vi.mock("@/lib/publication/public-repository", () => ({
+  checkProposalExportRateLimit: mocks.checkProposalExportRateLimit,
 }));
 
 const authedContext = {
@@ -79,6 +84,7 @@ describe("proposal xlsx export route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentUserContext.mockResolvedValue(authedContext);
+    mocks.checkProposalExportRateLimit.mockResolvedValue({ allowed: true });
     mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
@@ -169,6 +175,26 @@ describe("proposal xlsx export route", () => {
     expect(await response.json()).toEqual({ error: "Unauthorized" });
     expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
     expect(mocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
+  it("returns a clean 429 JSON when the per-user export rate limit is exceeded", async () => {
+    mocks.checkProposalExportRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    expect(await response.json()).toEqual({
+      error: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 

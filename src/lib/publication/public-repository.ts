@@ -168,6 +168,7 @@ type RateLimitScope =
   | "project_publication_event"
   | "project_publication_password"
   | "project_publication_snapshot"
+  | "proposal_export"
   | "shared_link_comment"
   | "shared_link_comment_read"
   | "shared_link_decision_read"
@@ -310,6 +311,28 @@ export async function checkProjectPublicationSnapshotRateLimit({
     keyParts: publicationRequestRateLimitKey(token, request),
     metadata: { route: "snapshot" },
     windows: [{ seconds: 60, limit: 60, message: genericRateLimitMessage }],
+  });
+}
+
+// P1-T10 (security MEDIUM): the proposal XLSX export is the heaviest endpoint in this
+// surface (per-tab DB fan-out + ExcelJS workbook build) and had no rate limiting. Per-user
+// (+ client IP) durable limit reusing the same checkRecordedRateLimit machinery as the
+// publication limiters — not a new limiter shape.
+export async function checkProposalExportRateLimit({
+  userId,
+  request,
+}: {
+  userId: string;
+  request: Request;
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "proposal_export",
+    keyParts: [userId, getClientIp(request)],
+    metadata: { route: "proposal_export" },
+    windows: [
+      { seconds: 60, limit: 12, message: genericRateLimitMessage },
+      { seconds: 60 * 60, limit: 120, message: genericRateLimitMessage },
+    ],
   });
 }
 

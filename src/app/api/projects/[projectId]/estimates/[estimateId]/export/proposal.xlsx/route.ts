@@ -4,6 +4,7 @@ import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/p
 import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-proposal-workbook";
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
 import { getEstimateTabs, getEstimateTabTree, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -273,6 +274,15 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
   const userContext = await getCurrentUserContext();
   if (!userContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // P1-T10: per-user (+ client IP) rate limit on the heaviest endpoint in this surface.
+  const rateLimit = await checkProposalExportRateLimit({ userId: userContext.userId, request });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.message, retryAfter: rateLimit.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
+    );
   }
 
   const startedAt = Date.now();
