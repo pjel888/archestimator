@@ -511,6 +511,15 @@ export async function createProjectPublication({
   const latest = await readLatestProjectPublication(context);
   const previousClientLinkPath = latest ? readClientLinkPath(latest) : null;
   const snapshot = await buildSnapshotForProject(context, estimateIds);
+  // MOD-SHEET-06: persist the RESOLVED ids — the estimates that actually made it into the snapshot
+  // (deleted/filtered sheets are dropped) — so the stored count can never drift past the snapshot.
+  const resolvedEstimateIds = (snapshot.estimates ?? []).map((estimate) => estimate.id);
+  // MOD-SHEET-05: consistent degenerate-case handling. If nothing resolved into the snapshot,
+  // do not revoke the existing link or write an empty/inconsistent publication — surface a clear
+  // error. ([] input still means "all" via buildSnapshotForProject; this only guards zero result.)
+  if (resolvedEstimateIds.length === 0) {
+    return { ok: false, message: "Select at least one estimate to publish." };
+  }
   const token = createPublicationToken();
   const clientLinkPath = `/share/${token}`;
 
@@ -531,7 +540,7 @@ export async function createProjectPublication({
     encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
     password_hash: password ? await hashPublicationPassword(password) : null,
     snapshot_json: snapshot,
-    selected_estimate_ids: estimateIds,
+    selected_estimate_ids: resolvedEstimateIds,
     snapshot_version: (latest?.snapshot_version ?? 0) + 1,
     published_by: context.currentUserId,
     expires_at: expiresAt ?? null,
@@ -578,6 +587,13 @@ export async function republishProjectPublication({
 
   const idsToUse = estimateIds.length ? estimateIds : latest.selected_estimate_ids;
   const snapshot = await buildSnapshotForProject(context, idsToUse);
+  // MOD-SHEET-06: persist the RESOLVED ids actually present in the snapshot (drops deleted sheets)
+  // so selectedEstimateCount can never exceed the snapshot's estimate count.
+  const resolvedEstimateIds = (snapshot.estimates ?? []).map((estimate) => estimate.id);
+  // MOD-SHEET-05: same degenerate-case guard as create — never republish into an empty snapshot.
+  if (resolvedEstimateIds.length === 0) {
+    return { ok: false, message: "Select at least one estimate to publish." };
+  }
   const clientLinkPath = readClientLinkPath(latest);
   const passwordUpdate =
     clearPassword
@@ -593,7 +609,7 @@ export async function republishProjectPublication({
     .from("project_publications")
     .update({
       snapshot_json: snapshot,
-      selected_estimate_ids: idsToUse,
+      selected_estimate_ids: resolvedEstimateIds,
       snapshot_version: latest.snapshot_version + 1,
       published_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -628,6 +644,10 @@ export async function rotateProjectPublicationLink({
   if (!latest) return createProjectPublication({ projectId, password });
 
   const snapshot = await buildSnapshotForProject(context, latest.selected_estimate_ids);
+  // MOD-SHEET-06: re-persist the RESOLVED ids present in the freshly rebuilt snapshot so a sheet
+  // deleted since the last publish no longer inflates the stored count. Rotation re-publishes the
+  // existing selection (no new picker input), so no zero-resolution guard is needed here.
+  const resolvedEstimateIds = (snapshot.estimates ?? []).map((estimate) => estimate.id);
   const previousClientLinkPath = readClientLinkPath(latest);
   const token = createPublicationToken();
   const clientLinkPath = `/share/${token}`;
@@ -649,10 +669,12 @@ export async function rotateProjectPublicationLink({
       encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
       password_hash: passwordHash,
       snapshot_json: snapshot,
+      // MOD-SHEET-06: keep the stored selection in lockstep with the rebuilt snapshot's resolved ids.
+      selected_estimate_ids: resolvedEstimateIds,
       snapshot_version: latest.snapshot_version + 1,
       published_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      // status stays 'published'; expires_at and selected_estimate_ids unchanged on this row.
+      // status stays 'published'; expires_at unchanged on this row.
     })
     .eq("id", latest.id);
 

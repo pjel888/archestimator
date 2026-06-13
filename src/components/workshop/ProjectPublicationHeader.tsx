@@ -271,12 +271,17 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const summarySelectedEstimateIds = summary?.selectedEstimateIds ?? EMPTY_ESTIMATE_IDS;
   const defaultSelectedEstimateIds = useMemo(() => {
     const allEstimateIds = projectEstimateSheets.map((estimate) => estimate.id);
-    if (summary?.status === "published" && summarySelectedEstimateIds.length > 0) {
-      const availableEstimateIds = new Set(allEstimateIds);
-      return summarySelectedEstimateIds.filter((estimateId) => availableEstimateIds.has(estimateId));
-    }
+    const availableEstimateIds = new Set(allEstimateIds);
+    // AC-MOD-18 (MOD-SHEET-07): prefer the last curated selection (∩ available sheets) regardless of
+    // status. After revoke the summary still carries the curated `selectedEstimateIds`; falling
+    // through to ALL sheets here would silently broaden a re-publish to every sheet. Only default to
+    // "all" when there is no prior curated selection (or none of it survives in the current sheets).
+    const curatedAvailableIds = summarySelectedEstimateIds.filter((estimateId) =>
+      availableEstimateIds.has(estimateId),
+    );
+    if (curatedAvailableIds.length > 0) return curatedAvailableIds;
     return allEstimateIds;
-  }, [projectEstimateSheets, summary?.status, summarySelectedEstimateIds]);
+  }, [projectEstimateSheets, summarySelectedEstimateIds]);
   const [selectedEstimateOverride, setSelectedEstimateOverride] = useState<{
     ids: string[];
     summaryKey: string;

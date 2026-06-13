@@ -136,7 +136,13 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
     }));
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
     vi.doMock("@/lib/publication/snapshot", () => ({
-      buildProjectPublicationSnapshot: vi.fn(() => ({ generatedAt: "2026-06-13T00:00:00.000Z" })),
+      // AC-MOD-18 (MOD-SHEET-06): the snapshot must carry the resolved estimates the action now reads
+      // back into selected_estimate_ids — mirror the mocked selection (["est-1"]) so create/republish
+      // reach the persist path instead of the new zero-resolution guard.
+      buildProjectPublicationSnapshot: vi.fn(() => ({
+        generatedAt: "2026-06-13T00:00:00.000Z",
+        estimates: [{ id: "est-1" }],
+      })),
     }));
 
     vi.doMock("@supabase/supabase-js", () => ({
@@ -252,7 +258,13 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
     }));
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
     vi.doMock("@/lib/publication/snapshot", () => ({
-      buildProjectPublicationSnapshot: vi.fn(() => ({ generatedAt: "2026-06-13T00:00:00.000Z" })),
+      // AC-MOD-18 (MOD-SHEET-06): the snapshot must carry the resolved estimates the action now reads
+      // back into selected_estimate_ids — mirror the mocked selection (["est-1"]) so create/republish
+      // reach the persist path instead of the new zero-resolution guard.
+      buildProjectPublicationSnapshot: vi.fn(() => ({
+        generatedAt: "2026-06-13T00:00:00.000Z",
+        estimates: [{ id: "est-1" }],
+      })),
     }));
 
     vi.doMock("@supabase/supabase-js", () => ({
@@ -409,7 +421,13 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
     }));
     vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
     vi.doMock("@/lib/publication/snapshot", () => ({
-      buildProjectPublicationSnapshot: vi.fn(() => ({ generatedAt: "2026-06-13T00:00:00.000Z" })),
+      // AC-MOD-18 (MOD-SHEET-06): the snapshot must carry the resolved estimates the action now reads
+      // back into selected_estimate_ids — mirror the mocked selection (["est-1"]) so create/republish
+      // reach the persist path instead of the new zero-resolution guard.
+      buildProjectPublicationSnapshot: vi.fn(() => ({
+        generatedAt: "2026-06-13T00:00:00.000Z",
+        estimates: [{ id: "est-1" }],
+      })),
     }));
     vi.doMock("@/lib/publication/security", async () => {
       const actual = await vi.importActual<typeof import("@/lib/publication/security")>(
