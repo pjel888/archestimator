@@ -296,25 +296,6 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
   return { sources };
 }
 
-// U2: the project-source -> estimate insert path. The RPC is not yet in the
-// generated types (its apply is owner-gated + sequenced after D-A), so the call
-// is narrowly typed here; remove this cast after `gen types` includes it.
-type SubtreeInsertRpcClient = {
-  rpc: (
-    name: "insert_estimate_subtree_into_estimate_with_history",
-    args: {
-      target_project_id: string;
-      target_estimate_id: string;
-      target_parent_node_id: string;
-      source_estimate_id: string;
-      source_root_node_id: string | null;
-      source_tab_id: string;
-      acting_user_id: string;
-      correlation_id: string;
-    },
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-};
-
 function readInsertedRootNodeIds(result: unknown): string[] {
   if (!result || typeof result !== "object") return [];
   const ids = (result as { inserted_root_node_ids?: unknown }).inserted_root_node_ids;
@@ -381,15 +362,16 @@ export async function insertProjectSourceIntoEstimate(
 
   // RLS-scoped user client only (never an admin/service-role client) — matches the
   // reusable-source discipline; the RPC re-checks can_edit (target) + can_access (source).
-  const insertClient = supabase as unknown as SubtreeInsertRpcClient;
-  const { data: copyResult, error: copyError } = await insertClient.rpc(
+  const { data: copyResult, error: copyError } = await supabase.rpc(
     "insert_estimate_subtree_into_estimate_with_history",
     {
       target_project_id: input.targetProjectId,
       target_estimate_id: input.targetEstimateId,
       target_parent_node_id: input.targetParentNodeId,
       source_estimate_id: input.source.estimateId,
-      source_root_node_id: input.source.nodeId ?? null,
+      // Whole-tab insert passes null; the SQL param is nullable, but generated types
+      // widen a no-default uuid param to a required `string`, so cast just this arg.
+      source_root_node_id: (input.source.nodeId ?? null) as unknown as string,
       source_tab_id: input.source.tabId,
       acting_user_id: currentUser.userId,
       correlation_id: projectSourceInsertCorrelationId(input),

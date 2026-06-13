@@ -331,4 +331,14 @@ begin
 end;
 $$;
 
+-- Grants mirror the foundation's template-insert RPC pair
+-- (20260612094734_estimate_tabs_foundation.sql): the inner copy is only RLS-exempt
+-- when reached through the SECURITY DEFINER wrapper, so it is revoked from every app
+-- role (no direct call path that skips the can_edit gate); the wrapper is the single
+-- `authenticated` entry point and is revoked from anon/public. Without this, both
+-- functions inherit the default PUBLIC execute grant.
+revoke execute on function public.insert_estimate_subtree_into_estimate(uuid, uuid, uuid, uuid, uuid, uuid) from public, anon, authenticated;
+revoke execute on function public.insert_estimate_subtree_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid) from public, anon;
+grant execute on function public.insert_estimate_subtree_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid) to authenticated;
+
 commit;
