@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/ui/cn";
 import {
   createProjectPublication,
+  refreshProjectPublicationSummary,
   republishProjectPublication,
   revokeProjectPublication,
   rotateProjectPublicationLink,
@@ -110,8 +111,13 @@ function readActivitySeenStorageKey(summary: ProjectPublicationSummary | null, s
   return `${SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX}:${summary?.publicationId ?? summaryKey}`;
 }
 
-function readLatestPublicationActivityAt(summary: ProjectPublicationSummary | null) {
-  const timestamps = [summary?.latestOpenedAt, summary?.latestRecipientOpen?.openedAt]
+// MOD-MET / AC-MOD-07: the "unseen activity" side of the dot. Includes latestActivityAt
+// (max of comments/decisions/opens from the summary) so a new comment or decision lights
+// the dot, not just an open. Accepts the loose metadata shape used by the live-refetch path.
+function readLatestPublicationActivityAt(
+  metadata: Pick<ProjectPublicationSummary, "latestOpenedAt" | "latestActivityAt" | "latestRecipientOpen"> | null,
+) {
+  const timestamps = [metadata?.latestActivityAt, metadata?.latestOpenedAt, metadata?.latestRecipientOpen?.openedAt]
     .filter((value): value is string => Boolean(value))
     .sort((a, b) => Date.parse(b) - Date.parse(a));
   return timestamps[0] ?? null;
@@ -188,6 +194,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     value: readStoredActivitySeenAt(activitySeenStorageKey),
   }));
   const [localResult, setLocalResult] = useState<PublicationLocalResult | null>(null);
+  // MOD-ACT-03: live metadata refetch. Holds ONLY the activity/metadata fields (never
+  // status/clientLinkPath/lifecycle) so the open-count, "last opened", and activity dot can
+  // update while the modal is mounted without touching the optimistic lifecycle reconcile.
+  const [refreshedMetadata, setRefreshedMetadata] = useState<
+    Pick<ProjectPublicationSummary, "openCount" | "latestOpenedAt" | "latestActivityAt" | "latestRecipientOpen"> | null
+  >(null);
   const [destructiveAction, setDestructiveAction] = useState<DestructivePublicationAction | null>(null);
   const [passwordDraft, setPasswordDraft] = useState<PasswordDraft>(() => ({
     password: "",
@@ -231,12 +243,24 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const effectiveStatus = hasLocalResult ? localResult?.status ?? "unpublished" : summary?.status ?? "unpublished";
   const effectivePasswordRequired = hasLocalResult ? localResult?.passwordRequired ?? false : summary?.passwordRequired ?? false;
   const hasLiveClientLink = effectiveStatus === "published";
-  const latestActivityAt = readLatestPublicationActivityAt(summary);
+  // MOD-ACT-03: the live-refetched metadata supersedes the prop summary ONLY for the
+  // activity/metadata displays + dot. Status, clientLinkPath, and the optimistic lifecycle
+  // reconcile above keep using `summary`/`localResult`, so this stays isolated from AC-MOD-05.
+  const metadataSource = refreshedMetadata ?? summary;
+  const latestActivityAt = readLatestPublicationActivityAt(metadataSource);
   const activitySeenAt = activitySeenState.storageKey === activitySeenStorageKey
     ? activitySeenState.value
     : readStoredActivitySeenAt(activitySeenStorageKey);
   const hasHeaderActivity = hasLiveClientLink && isPublicationActivityUnseen(latestActivityAt, activitySeenAt);
-  const latestRecipientOpen = canManagePublication ? summary?.latestRecipientOpen ?? null : null;
+  const latestRecipientOpen = canManagePublication ? metadataSource?.latestRecipientOpen ?? null : null;
+  const latestAnonymousOpenedAt = metadataSource?.latestOpenedAt ?? null;
+  // MOD-MET-02: "last opened" must reflect the genuinely most-recent open. When an anonymous
+  // open is newer than the latest recipient-scoped open, show a generic "Last opened" without
+  // attribution; otherwise keep the recipient attribution.
+  const recipientOpenIsLatest =
+    latestRecipientOpen != null &&
+    (latestAnonymousOpenedAt == null ||
+      Date.parse(latestRecipientOpen.openedAt) >= Date.parse(latestAnonymousOpenedAt));
   const statusLabel = readPublicationStatusLabel(effectiveStatus);
   const absoluteClientLink = clientLinkPath && browserOrigin ? `${browserOrigin}${clientLinkPath}` : clientLinkPath;
   const passwordStateLabel = requirePassword ? "Password on" : "Open access";
@@ -252,6 +276,44 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     setActiveTab(tab);
     if (tab === "activity") markSharedLinkActivitySeen();
   }
+
+  // MOD-ACT-03: best-effort live refetch of the activity/metadata fields when the modal
+  // opens and whenever the Activity tab is (re)selected. Stores ONLY the metadata slice;
+  // failures are swallowed (the prop summary remains the source of truth). A monotonically
+  // increasing token discards stale responses if the modal closed or the summary changed.
+  const metadataRefreshTokenRef = useRef(0);
+  const projectId = summary?.projectId ?? null;
+  const shouldRefreshMetadata = open && canManagePublication && Boolean(projectId);
+  useEffect(() => {
+    if (!shouldRefreshMetadata || !projectId) return;
+    const token = ++metadataRefreshTokenRef.current;
+    void (async () => {
+      try {
+        const next = await refreshProjectPublicationSummary(projectId);
+        // Ignore if a newer request superseded this one or the modal/summary moved on.
+        if (token !== metadataRefreshTokenRef.current) return;
+        if (!next || next.projectId !== projectId) return;
+        setRefreshedMetadata({
+          openCount: next.openCount,
+          latestOpenedAt: next.latestOpenedAt,
+          latestActivityAt: next.latestActivityAt,
+          latestRecipientOpen: next.latestRecipientOpen ?? null,
+        });
+      } catch {
+        // Best-effort; keep the prop summary on failure.
+      }
+    })();
+    // Re-run on modal open and on Activity-tab selection (activeTab) for this project.
+  }, [shouldRefreshMetadata, projectId, activeTab]);
+
+  // Drop any refetched metadata once the modal closes or the project changes so the next
+  // open starts from the fresh prop summary (and never shows another project's metadata).
+  useEffect(() => {
+    if (!open) {
+      metadataRefreshTokenRef.current += 1;
+      setRefreshedMetadata(null);
+    }
+  }, [open, projectId]);
 
   async function copyClientLink() {
     if (!clientLinkPath) {
@@ -407,10 +469,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                 <div>
                   <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Opened</p>
                   <p className="mt-0.5 text-[10px] leading-3 text-secondary">
-                    <span className="font-medium text-ink">{summary?.openCount ?? 0}</span> times
+                    <span className="font-medium text-ink">{metadataSource?.openCount ?? 0}</span> times
                   </p>
                 </div>
-                {latestRecipientOpen ? (
+                {latestRecipientOpen && recipientOpenIsLatest ? (
                   <div>
                     <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Last opened by</p>
                     <p className="mt-0.5 text-[10px] leading-3 text-secondary">
@@ -421,8 +483,8 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   </div>
                 ) : (
                   <div>
-                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Latest open</p>
-                    <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.latestOpenedAt ?? null)}</p>
+                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Last opened</p>
+                    <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(latestAnonymousOpenedAt)}</p>
                   </div>
                 )}
                 <div>

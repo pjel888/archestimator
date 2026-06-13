@@ -23,6 +23,14 @@ export type ProjectPublicationSummary = {
   snapshotVersion: number;
   openCount: number;
   latestOpenedAt: string | null;
+  /**
+   * Most-recent manager-relevant activity across comments, decisions, and opens
+   * (max of shared_link_comments.created_at, shared_link_responses.created_at,
+   * latest_opened_at). Manager-only; null for viewers or when nothing has happened.
+   * Drives the header "unseen activity" dot so it lights on new comments/decisions,
+   * not just opens (AC-MOD-07).
+   */
+  latestActivityAt: string | null;
   latestRecipientOpen?: {
     email: string;
     displayName: string | null;

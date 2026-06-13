@@ -18,6 +18,7 @@ const publicationActions = vi.hoisted(() => ({
   createProjectPublication: vi.fn(),
   listSharedLinkRecipients: vi.fn(),
   readSharedLinkEmailDeliveryReadiness: vi.fn(),
+  refreshProjectPublicationSummary: vi.fn(),
   removeSharedLinkRecipient: vi.fn(),
   republishProjectPublication: vi.fn(),
   resendSharedLinkRecipientEmail: vi.fn(),
@@ -47,6 +48,7 @@ const publicationSummary: ProjectPublicationSummary = {
   snapshotVersion: 3,
   openCount: 4,
   latestOpenedAt: "2026-05-27T01:00:00.000Z",
+  latestActivityAt: null,
 };
 
 const sampleEstimateSheets: ProjectEstimateSheet[] = [
@@ -61,6 +63,7 @@ describe("ProjectPublicationHeader publication control", () => {
     publicationActions.createProjectPublication.mockReset();
     publicationActions.listSharedLinkRecipients.mockReset();
     publicationActions.readSharedLinkEmailDeliveryReadiness.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockReset();
     publicationActions.removeSharedLinkRecipient.mockReset();
     publicationActions.republishProjectPublication.mockReset();
     publicationActions.resendSharedLinkRecipientEmail.mockReset();
@@ -70,6 +73,8 @@ describe("ProjectPublicationHeader publication control", () => {
       configured: true,
       message: "Email delivery is configured.",
     });
+    // Default: live refetch returns nothing new so the prop summary stays the source of truth.
+    publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
 
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -168,6 +173,60 @@ describe("ProjectPublicationHeader publication control", () => {
     );
 
     expect(container.querySelector('[data-shared-link-activity-dot="true"]')).not.toBeInTheDocument();
+  });
+
+  // AC-MOD-07 — the dot must light on a new comment/decision (latestActivityAt), not just opens.
+  // Non-vacuous: every OPEN timestamp here is OLDER than the seen marker, so the dot can only
+  // appear because latestActivityAt is newer. This fails if the dot still ignores latestActivityAt.
+  it("lights the activity dot when latestActivityAt is newer than the seen time, even with no new opens", () => {
+    // Seen marker sits between the (older) opens and the (newer) comment/decision activity.
+    window.localStorage.setItem("archestimator_shared_link_last_seen:publication-1", "2026-05-27T03:00:00.000Z");
+
+    const activitySummary = {
+      ...publicationSummary,
+      latestOpenedAt: "2026-05-27T01:00:00.000Z", // older than seen
+      latestRecipientOpen: {
+        email: "client@example.com",
+        displayName: "Client Receiver",
+        openedAt: "2026-05-27T02:00:00.000Z", // older than seen
+      },
+      latestActivityAt: "2026-05-27T04:00:00.000Z", // a new comment/decision — newer than seen
+    } as ProjectPublicationSummary;
+
+    const { container } = render(
+      <ProjectPublicationHeader summary={activitySummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
+  });
+
+  // MOD-ACT-03 (AC-MOD-03): the modal refetches the activity/metadata fields on open so the
+  // open count / last opened / dot update live without a navigation. The refetch must NOT touch
+  // status / clientLinkPath (those stay on the prop summary + optimistic reconcile).
+  it("refetches metadata on modal open and reflects a newer open count + dot, without changing status", async () => {
+    publicationActions.refreshProjectPublicationSummary.mockResolvedValue({
+      ...publicationSummary,
+      openCount: 11, // server moved on while the modal was mounted
+      latestActivityAt: "2030-01-01T00:00:00.000Z", // newer than any stored "seen" → dot lights
+    });
+
+    const user = userEvent.setup();
+    const { container } = render(
+      <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    expect(publicationActions.refreshProjectPublicationSummary).toHaveBeenCalledWith("project-1");
+    // Open count reflects the refetched value, not the prop summary's 4.
+    expect(await within(dialog).findByText("11")).toBeInTheDocument();
+    // Dot lights from the refetched latestActivityAt.
+    await waitFor(() =>
+      expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument(),
+    );
+    // Status display still comes from the prop summary (published → "Link live").
+    expect(within(dialog).getByText("Link live")).toBeInTheDocument();
   });
 
   it("generates a public view-only link with an optional password and shows it immediately", async () => {
@@ -414,6 +473,48 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(screen.getByText(/client@example.com/)).toBeInTheDocument();
   });
 
+  // MOD-MET-02 (AC-MOD-09): "last opened" must reflect the genuinely most-recent open.
+  it("attributes 'last opened' to the recipient when their open is the most recent", async () => {
+    const user = userEvent.setup();
+    const recipientNewerSummary = {
+      ...publicationSummary,
+      latestOpenedAt: "2026-05-27T01:00:00.000Z", // anonymous open, older
+      latestRecipientOpen: {
+        email: "client@example.com",
+        displayName: "Client Receiver",
+        openedAt: "2026-05-27T05:00:00.000Z", // recipient open, newer
+      },
+    } as ProjectPublicationSummary;
+
+    render(<ProjectPublicationHeader summary={recipientNewerSummary} projectEstimateSheets={sampleEstimateSheets} />);
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+
+    expect(screen.getByText("Last opened by")).toBeInTheDocument();
+    expect(screen.getByText(/Client Receiver/)).toBeInTheDocument();
+  });
+
+  it("shows a generic 'last opened' (no recipient attribution) when an anonymous open is newer", async () => {
+    const user = userEvent.setup();
+    const anonymousNewerSummary = {
+      ...publicationSummary,
+      latestOpenedAt: "2026-05-27T09:00:00.000Z", // anonymous open, newer
+      latestRecipientOpen: {
+        email: "client@example.com",
+        displayName: "Client Receiver",
+        openedAt: "2026-05-27T01:00:00.000Z", // recipient open, older
+      },
+    } as ProjectPublicationSummary;
+
+    render(<ProjectPublicationHeader summary={anonymousNewerSummary} projectEstimateSheets={sampleEstimateSheets} />);
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+
+    // The newer anonymous open wins: generic label, no recipient attribution.
+    expect(screen.getByText("Last opened")).toBeInTheDocument();
+    expect(screen.queryByText("Last opened by")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Client Receiver/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/client@example.com/)).not.toBeInTheDocument();
+  });
+
   it("hides latest recipient open email from project viewers", async () => {
     const user = userEvent.setup();
     const viewerSummary = {
@@ -430,7 +531,7 @@ describe("ProjectPublicationHeader publication control", () => {
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
 
-    expect(screen.getByText("Latest open")).toBeInTheDocument();
+    expect(screen.getByText("Last opened")).toBeInTheDocument();
     expect(screen.queryByText("Last opened by")).not.toBeInTheDocument();
     expect(screen.queryByText(/Client Receiver/)).not.toBeInTheDocument();
     expect(screen.queryByText(/client@example.com/)).not.toBeInTheDocument();
@@ -550,6 +651,7 @@ describe("optimistic publication-result reconciliation (AC-MOD-05)", () => {
     snapshotVersion: 3,
     openCount: 4,
     latestOpenedAt: "2026-05-27T01:00:00.000Z",
+    latestActivityAt: null,
   };
 
   it("readPublicationServerSignature returns a stable signature and 'none' for null", () => {
