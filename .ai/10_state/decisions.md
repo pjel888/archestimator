@@ -1,5 +1,57 @@
 # Decisions
 
+## 2026-06-13 — D-15 lifted: estimate tab creation exposed (Add New Tabs)
+
+**Decision:** Lift release gate D-15 and expose user-visible estimate tab
+management in the workshop editor. The model is the owner's chosen browser shape:
+a single persistent "+" (New tab), double-click / F2 inline rename, and a
+right-click context menu (Rename · Duplicate · Delete) acting on the
+right-clicked tab. The persistent Duplicate/Rename-pencil/Archive/Delete toolbar
+buttons are removed. Every affordance is permission-gated on a server-resolved
+`can_edit_estimate` capability threaded page → workspace client → content →
+strip (default false / fail-closed); viewers get a read-only tab switcher.
+
+**Rationale:** D-15 only deferred user-visible tab creation until tab-aware XLSX
+export shipped (so work split across tabs could not be silently dropped by the
+proposal export). The estimate-tabs completion audit
+(`.ai/05_logs/2026-06-12-estimate-tabs-implementation-completion-audit.md`)
+records export parity (`?tab=`, all-tabs worksheets, preview scope chips) landed,
+so the precondition is met — a deliberate product decision, not a silent flag
+flip. No DB/RPC/RLS/generated-type change was made: the table, RPCs, and policies
+already shipped in `20260612094734_estimate_tabs_foundation.sql`; the client gate
+is UX only and the server (RLS + `assert_can_edit_estimate_for_history`) stays
+authoritative. Downstream consumers were verified (read-only audit; evidence in
+`.ai/05_logs/2026-06-13-add-new-tabs-downstream-verification.md`): XLSX export,
+activity feed, publication snapshot, AI read-context, and the cross-tab drag
+rejection (D-7) all already tolerate new/empty user-created tabs. Cross-tab node
+move (D-7) stays rejected — not built.
+
+**Deploy prerequisite — probe BOTH the table AND the create RPC (fail-open
+edge):** before relying on the "+" in any deployed environment, confirm BOTH the
+`estimate_tabs` table AND the `create_estimate_tab_with_history` RPC exist there.
+The schema-missing fallback (`isEstimateTabsSchemaMissing`) only catches a missing
+table (42P01 / PGRST205) or column (42703 / PGRST204) — it does NOT catch a
+missing/older create RPC. Partial drift (table present, RPC absent) fails *open*:
+the strip and "+" render and create errors only on click. So the checklist must
+probe the RPC, not just the table:
+- `select to_regclass('public.estimate_tabs');` → table present.
+- `select 1 from pg_proc where proname = 'create_estimate_tab_with_history';` → RPC present.
+If either is missing, do not enable the gate in that environment.
+
+**Rollback:** the gate lift is a compile-time prop, not a runtime flag. Primary
+fast path = Vercel instant rollback to the last green deployment. Code path =
+`git revert` the isolated single-file U3 commit (the EstimateSheetContent mount
+props); the empty-state gating (U1) and the strip refactor (U2) remain and stay
+green. A runtime feature flag was judged overkill for a one-file, fail-mostly-
+closed change with instant rollback available.
+
+**Follow-up (out of scope, non-blocking):** optional optimistic temp-tab append
+on create (R10's optional clause — deferred; create already issues a single
+round-trip via `setQueryData`); pruning stale per-tab Zustand entries on
+delete/archive; Archive in the context menu (OQ2, fast-follow); a non-conflicting
+global "new tab" shortcut (OQ3). Plan pack:
+`.ai/03_plans/2026-06-13-Add-New-Tabs/`.
+
 ## 2026-06-13 - Global improve install replaces repo-local duplicate
 
 **Decision:** Remove the repo-local `.agents/skills/improve/` copy because the
