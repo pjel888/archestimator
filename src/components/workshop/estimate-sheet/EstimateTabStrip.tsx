@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type
 import { CopySimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
   archiveEstimateTab,
   createEstimateTab,
@@ -26,15 +28,15 @@ export type EstimateTabStripProps = {
   onTabChange: (tabId: string) => void;
   onTabsChange?: (tabs: EstimateTabSummary[]) => void;
   /**
-   * Release gate D-15: lifecycle controls stay hidden in the editor until the
-   * tab-aware export phase ships in the same release train. Tests can opt in
-   * to exercise the internal path without exposing it in beta UI.
+   * When true, the strip exposes editor affordances: double-click / F2 rename
+   * and the right-click context menu (Rename / Duplicate / Delete). The mount
+   * gates this on `canEditEstimate` — release gate D-15 was lifted once tab-aware
+   * export shipped (see .ai/03_plans/2026-06-13-Add-New-Tabs). Tests opt in
+   * directly. When false the strip is a read-only tab switcher (no menu).
    */
   enableLifecycleActions?: boolean;
+  /** When true (with `enableLifecycleActions`), renders the "+" create button. */
   canCreateTabs?: boolean;
-  canDuplicateTabs?: boolean;
-  canArchiveTabs?: boolean;
-  canDeleteTabs?: boolean;
   className?: string;
 };
 
@@ -77,9 +79,6 @@ export function EstimateTabStrip({
   onTabsChange,
   enableLifecycleActions = false,
   canCreateTabs = false,
-  canDuplicateTabs = false,
-  canArchiveTabs = false,
-  canDeleteTabs = false,
   className,
 }: EstimateTabStripProps) {
   const { toast } = useToast();
@@ -91,13 +90,25 @@ export function EstimateTabStrip({
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const springLoadTimerRef = useRef<number | null>(null);
   const springLoadTargetRef = useRef<string | null>(null);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+  // After a context-menu action that changes the active tab (delete/duplicate),
+  // focus the resulting tab once the new list renders — deterministically,
+  // instead of racing the Radix close-auto-focus return-to-trigger.
+  const pendingFocusTabIdRef = useRef<string | null>(null);
+  const manageMenuCloseFocusRef = useRef(false);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
+  const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
   const lastAnnouncedTabIdRef = useRef<string | null>(null);
   const suppressNextSelectionAnnouncementRef = useRef(false);
+  // Mirrors EstimateSheetTree: a menu-triggered rename must survive the Radix
+  // close-auto-focus, which would otherwise return focus to the trigger and fire
+  // the rename input's onBlur → a premature/empty commit.
+  const suppressContextMenuCloseAutoFocusRef = useRef(false);
+  const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
   const lifecycleActionsReady = enableLifecycleActions && Boolean(projectId && estimateId);
 
   const focusTab = useCallback((index: number) => {
@@ -128,6 +139,79 @@ export function EstimateTabStrip({
     }
     lastAnnouncedTabIdRef.current = activeTab.id;
   }, [activeIndex, orderedTabs]);
+
+  // Focus the inline rename input across the menu-close dance. The ref callback
+  // skips focusing for menu-triggered renames (the close handler does it instead)
+  // so the menu's focus return cannot win and blur the just-mounted editor.
+  const attachRenameInputRef = useCallback((input: HTMLInputElement | null) => {
+    renameInputRef.current = input;
+    if (!input || document.activeElement === input) return;
+    if (suppressContextMenuCloseAutoFocusRef.current || ignoreRenameBlurDuringContextMenuCloseRef.current) return;
+    input.focus();
+    input.select();
+  }, []);
+
+  const armContextMenuRenameHandoff = useCallback(() => {
+    suppressContextMenuCloseAutoFocusRef.current = true;
+    ignoreRenameBlurDuringContextMenuCloseRef.current = true;
+  }, []);
+
+  const handleContextMenuCloseAutoFocus = useCallback((event: Event) => {
+    if (suppressContextMenuCloseAutoFocusRef.current) {
+      // Rename: keep focus off the trigger so it can move to the inline input.
+      event.preventDefault();
+      window.setTimeout(() => {
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+        suppressContextMenuCloseAutoFocusRef.current = false;
+        ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+      }, 0);
+      return;
+    }
+    // Delete/duplicate: a tab-focus effect places focus on the resulting tab once
+    // the updated list renders; stop Radix from yanking focus back to the trigger.
+    if (manageMenuCloseFocusRef.current) event.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    if (!editingTabId) {
+      suppressContextMenuCloseAutoFocusRef.current = false;
+      ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+      return undefined;
+    }
+    let focusAnimationFrame: number | null = null;
+    let focusTimeout: number | null = null;
+    const focusRenameInput = () => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    };
+    const menuCloseAnimationFrame = window.requestAnimationFrame(() => {
+      focusAnimationFrame = window.requestAnimationFrame(() => {
+        focusRenameInput();
+        focusTimeout = window.setTimeout(() => {
+          focusRenameInput();
+          ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+        }, 0);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(menuCloseAnimationFrame);
+      if (focusAnimationFrame !== null) window.cancelAnimationFrame(focusAnimationFrame);
+      if (focusTimeout !== null) window.clearTimeout(focusTimeout);
+      suppressContextMenuCloseAutoFocusRef.current = false;
+      ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+    };
+  }, [editingTabId]);
+
+  useEffect(() => {
+    const targetTabId = pendingFocusTabIdRef.current;
+    if (!targetTabId) return;
+    const index = orderedTabs.findIndex((tab) => tab.id === targetTabId);
+    if (index < 0) return;
+    pendingFocusTabIdRef.current = null;
+    manageMenuCloseFocusRef.current = false;
+    tabRefs.current[index]?.focus();
+  }, [orderedTabs]);
 
   const scheduleSpringLoadedTabTarget = useCallback((event: DragEvent<HTMLButtonElement>, tabId: string) => {
     if (isEstimateTreeNodeDrag(event)) {
@@ -181,13 +265,16 @@ export function EstimateTabStrip({
 
   const beginRename = useCallback((tab: EstimateTabSummary) => {
     if (!lifecycleActionsReady) return;
+    armContextMenuRenameHandoff();
     setError("");
     setEditingTabId(tab.id);
     setEditingName(tab.name);
-  }, [lifecycleActionsReady]);
+  }, [armContextMenuRenameHandoff, lifecycleActionsReady]);
 
   const commitRename = useCallback(async () => {
     if (!projectId || !estimateId || !editingTabId) return;
+    suppressContextMenuCloseAutoFocusRef.current = false;
+    ignoreRenameBlurDuringContextMenuCloseRef.current = false;
     const nextName = editingName.trim();
     if (!nextName) {
       setError("Tab name is required.");
@@ -235,23 +322,26 @@ export function EstimateTabStrip({
     }
   }, [beginRename, canCreateTabs, estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId]);
 
-  const duplicateActiveTab = useCallback(async () => {
-    if (!projectId || !estimateId || !lifecycleActionsReady || !canDuplicateTabs) return;
+  const duplicateTab = useCallback(async (tabId: string) => {
+    if (!projectId || !estimateId || !lifecycleActionsReady) return;
+    manageMenuCloseFocusRef.current = true;
     setPendingAction("duplicate");
     setError("");
     try {
-      const result = await duplicateEstimateTab({ projectId, estimateId, tabId: resolvedActiveTabId });
+      const result = await duplicateEstimateTab({ projectId, estimateId, tabId });
       if (result.tabs) onTabsChange?.(result.tabs);
       suppressNextSelectionAnnouncementRef.current = true;
       onTabChange(result.estimateTabId);
+      pendingFocusTabIdRef.current = result.estimateTabId;
       const nextTab = result.tabs?.find((tab) => tab.id === result.estimateTabId);
       setAnnouncement(`Duplicated ${nextTab?.name ?? "tab"}.`);
     } catch (duplicateError) {
+      manageMenuCloseFocusRef.current = false;
       setError(duplicateError instanceof Error ? duplicateError.message : "Could not duplicate tab.");
     } finally {
       setPendingAction(null);
     }
-  }, [canDuplicateTabs, estimateId, lifecycleActionsReady, onTabChange, onTabsChange, projectId, resolvedActiveTabId]);
+  }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, projectId]);
 
   const moveActiveTab = useCallback(async (direction: -1 | 1) => {
     if (!projectId || !estimateId || !lifecycleActionsReady || orderedTabs.length < 2) return;
@@ -281,33 +371,92 @@ export function EstimateTabStrip({
     }
   }, [estimateId, focusTab, lifecycleActionsReady, onTabsChange, orderedTabs, projectId, resolvedActiveTabId]);
 
-  const archiveOrDeleteActiveTab = useCallback(async (action: "archive" | "delete") => {
+  const archiveOrDeleteTab = useCallback(async (action: "archive" | "delete", tabId: string) => {
     if (!projectId || !estimateId || !lifecycleActionsReady || orderedTabs.length < 2) return;
-    const activeTab = orderedTabs[activeIndex];
-    if (!activeTab) return;
+    const targetTab = orderedTabs.find((tab) => tab.id === tabId);
+    if (!targetTab) return;
+    const targetIndex = orderedTabs.findIndex((tab) => tab.id === tabId);
+    const targetWasActive = tabId === resolvedActiveTabId;
+    if (targetWasActive) manageMenuCloseFocusRef.current = true;
 
     setPendingAction(action);
     setError("");
     try {
       const result = action === "archive"
-        ? await archiveEstimateTab({ projectId, estimateId, tabId: activeTab.id })
-        : await deleteEstimateTab({ projectId, estimateId, tabId: activeTab.id });
-      const nextTabs = result.tabs ?? orderedTabs.filter((tab) => tab.id !== activeTab.id);
-      const replacementTabId = result.replacementTabId ?? nextTabs[Math.min(activeIndex, Math.max(0, nextTabs.length - 1))]?.id ?? null;
+        ? await archiveEstimateTab({ projectId, estimateId, tabId })
+        : await deleteEstimateTab({ projectId, estimateId, tabId });
+      const nextTabs = result.tabs ?? orderedTabs.filter((tab) => tab.id !== tabId);
       if (result.tabs) onTabsChange?.(result.tabs);
-      if (replacementTabId) {
-        suppressNextSelectionAnnouncementRef.current = true;
-        onTabChange(replacementTabId);
+      // Browser semantics: removing a background tab leaves the active tab as-is;
+      // only switch when the removed tab was the active one. Focus moves to the
+      // replacement via the pending-focus effect (deterministic vs. the menu-close
+      // focus return).
+      if (targetWasActive) {
+        const replacementTabId = result.replacementTabId ?? nextTabs[Math.min(targetIndex, Math.max(0, nextTabs.length - 1))]?.id ?? null;
+        if (replacementTabId) {
+          suppressNextSelectionAnnouncementRef.current = true;
+          onTabChange(replacementTabId);
+          pendingFocusTabIdRef.current = replacementTabId;
+        } else {
+          manageMenuCloseFocusRef.current = false;
+        }
       }
-      setAnnouncement(`${activeTab.name} tab ${action === "archive" ? "archived" : "deleted"}.`);
-      const nextIndex = Math.max(0, nextTabs.findIndex((tab) => tab.id === replacementTabId));
-      window.requestAnimationFrame(() => focusTab(nextIndex));
+      setAnnouncement(`${targetTab.name} tab ${action === "archive" ? "archived" : "deleted"}.`);
     } catch (actionError) {
+      manageMenuCloseFocusRef.current = false;
       setError(actionError instanceof Error ? actionError.message : `Could not ${action} tab.`);
     } finally {
       setPendingAction(null);
     }
-  }, [activeIndex, estimateId, focusTab, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId]);
+  }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId, resolvedActiveTabId]);
+
+  const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
+    const targetTab = orderedTabs.find((tab) => tab.id === contextMenuTabId);
+    if (!targetTab) return [];
+    const actionPending = Boolean(pendingAction);
+    const isLastTab = orderedTabs.length <= 1;
+    return [
+      {
+        id: "tab-actions",
+        items: [
+          {
+            id: "rename",
+            label: "Rename",
+            icon: <PencilSimple size={12} weight="regular" aria-hidden="true" />,
+            disabled: actionPending,
+            disabledReason: actionPending ? "Finish the current tab action first." : undefined,
+            onSelect: () => beginRename(targetTab),
+          },
+          {
+            id: "duplicate",
+            label: "Duplicate",
+            icon: <CopySimple size={12} weight="regular" aria-hidden="true" />,
+            disabled: actionPending,
+            disabledReason: actionPending ? "Finish the current tab action first." : undefined,
+            onSelect: () => void duplicateTab(targetTab.id),
+          },
+        ],
+      },
+      {
+        id: "tab-danger",
+        items: [
+          {
+            id: "delete",
+            label: "Delete",
+            icon: <Trash size={12} weight="regular" aria-hidden="true" />,
+            tone: "destructive" as const,
+            disabled: actionPending || isLastTab,
+            disabledReason: isLastTab
+              ? "An estimate needs at least one tab."
+              : actionPending
+                ? "Finish the current tab action first."
+                : undefined,
+            onSelect: () => void archiveOrDeleteTab("delete", targetTab.id),
+          },
+        ],
+      },
+    ];
+  }, [archiveOrDeleteTab, beginRename, contextMenuTabId, duplicateTab, orderedTabs, pendingAction]);
 
   const handleTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const moveFocus = (nextIndex: number) => {
@@ -349,134 +498,115 @@ export function EstimateTabStrip({
     }
   }, [beginRename, focusTab, moveActiveTab, onTabChange, orderedTabs]);
 
+  const tabListRegion = (
+    <div
+      className="flex min-h-8 items-end gap-1 overflow-x-auto px-2 pt-1"
+      role="tablist"
+      aria-label="Estimate tabs"
+      onContextMenu={(event) => {
+        // Only a tab opens the menu; right-clicks on the "+" or empty strip
+        // space keep it closed (mirrors EstimateSheetTree).
+        if (!(event.target instanceof Element) || !event.target.closest("[data-estimate-tab-id]")) {
+          event.preventDefault();
+        }
+      }}
+    >
+      {orderedTabs.map((tab, index) => {
+        const isActive = tab.id === resolvedActiveTabId;
+        const isEditing = editingTabId === tab.id;
+        return (
+          <div key={tab.id} className="flex h-7 shrink-0 items-end">
+            {isEditing ? (
+              <input
+                ref={attachRenameInputRef}
+                className="h-7 w-32 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink outline-none focus:ring-2 focus:ring-focus"
+                aria-label={`Rename ${tab.name} tab`}
+                value={editingName}
+                disabled={pendingAction === "rename"}
+                onChange={(event) => setEditingName(event.target.value)}
+                onBlur={() => {
+                  // Ignore the transient blur from the menu-close focus return on an
+                  // unchanged name so it does not commit prematurely (see U2 contract).
+                  if (ignoreRenameBlurDuringContextMenuCloseRef.current && editingName === tab.name) return;
+                  void commitRename();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void commitRename();
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    suppressContextMenuCloseAutoFocusRef.current = false;
+                    ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+                    setEditingTabId(null);
+                    setError("");
+                  }
+                }}
+              />
+            ) : (
+              <button
+                ref={(element) => {
+                  tabRefs.current[index] = element;
+                }}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                data-estimate-tab-id={tab.id}
+                className={cn(
+                  "relative inline-flex h-7 max-w-44 items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none tracking-normal transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                  isActive
+                    ? "z-10 -mb-px border-hairline bg-white text-ink"
+                    : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
+                )}
+                onClick={() => onTabChange(tab.id)}
+                onDoubleClick={() => beginRename(tab)}
+                onContextMenu={() => setContextMenuTabId(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+                onDragOver={(event) => scheduleSpringLoadedTabTarget(event, tab.id)}
+                onDragLeave={clearSpringLoadedTabTarget}
+                onDrop={(event) => handleTabDrop(event, tab.id)}
+              >
+                <span className="truncate">{tab.name}</span>
+                {tab.isDefault ? <span className="text-[8px] font-normal leading-none text-tertiary">Default</span> : null}
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {lifecycleActionsReady && canCreateTabs ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="mb-0.5 size-6 shrink-0 rounded-xs text-tertiary"
+          aria-label="Create tab"
+          disabled={Boolean(pendingAction)}
+          onClick={() => void createTab()}
+        >
+          <Plus size={12} weight="regular" aria-hidden="true" />
+        </Button>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className={cn("shrink-0 border-b border-hairline bg-surfaceMuted", className)} data-estimate-tab-strip>
-      <div className="flex min-h-8 items-end gap-1 overflow-x-auto px-2 pt-1" role="tablist" aria-label="Estimate tabs">
-        {orderedTabs.map((tab, index) => {
-          const isActive = tab.id === resolvedActiveTabId;
-          const isEditing = editingTabId === tab.id;
-          return (
-            <div key={tab.id} className="flex h-7 shrink-0 items-end">
-              {isEditing ? (
-                <input
-                  className="h-7 w-32 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink outline-none focus:ring-2 focus:ring-focus"
-                  aria-label={`Rename ${tab.name} tab`}
-                  value={editingName}
-                  autoFocus
-                  disabled={pendingAction === "rename"}
-                  onChange={(event) => setEditingName(event.target.value)}
-                  onBlur={() => void commitRename()}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      void commitRename();
-                    }
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      setEditingTabId(null);
-                      setError("");
-                    }
-                  }}
-                />
-              ) : (
-                <button
-                  ref={(element) => {
-                    tabRefs.current[index] = element;
-                  }}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  tabIndex={isActive ? 0 : -1}
-                  data-estimate-tab-id={tab.id}
-                  className={cn(
-                    "relative inline-flex h-7 max-w-44 items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none tracking-normal transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-                    isActive
-                      ? "z-10 -mb-px border-hairline bg-white text-ink"
-                      : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
-                  )}
-                  onClick={() => onTabChange(tab.id)}
-                  onDoubleClick={() => beginRename(tab)}
-                  onKeyDown={(event) => handleTabKeyDown(event, index)}
-                  onDragOver={(event) => scheduleSpringLoadedTabTarget(event, tab.id)}
-                  onDragLeave={clearSpringLoadedTabTarget}
-                  onDrop={(event) => handleTabDrop(event, tab.id)}
-                >
-                  <span className="truncate">{tab.name}</span>
-                  {tab.isDefault ? <span className="text-[8px] font-normal leading-none text-tertiary">Default</span> : null}
-                </button>
-              )}
-            </div>
-          );
-        })}
-        {lifecycleActionsReady && canCreateTabs ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="mb-0.5 size-6 shrink-0 rounded-xs text-tertiary"
-            aria-label="Create tab"
-            disabled={Boolean(pendingAction)}
-            onClick={() => void createTab()}
+      {lifecycleActionsReady ? (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>{tabListRegion}</ContextMenuTrigger>
+          <ContextMenuContent
+            data-estimate-tab-context-menu="true"
+            alignOffset={4}
+            onCloseAutoFocus={handleContextMenuCloseAutoFocus}
           >
-            <Plus size={12} weight="regular" aria-hidden="true" />
-          </Button>
-        ) : null}
-        {lifecycleActionsReady && canDuplicateTabs ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="mb-0.5 size-6 shrink-0 rounded-xs text-tertiary"
-            aria-label="Duplicate tab"
-            disabled={Boolean(pendingAction)}
-            onClick={() => void duplicateActiveTab()}
-          >
-            <CopySimple size={12} weight="regular" aria-hidden="true" />
-          </Button>
-        ) : null}
-        {lifecycleActionsReady ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="mb-0.5 size-6 shrink-0 rounded-xs text-tertiary"
-            aria-label="Rename active tab"
-            disabled={Boolean(pendingAction)}
-            onClick={() => {
-              const activeTab = orderedTabs[activeIndex];
-              if (activeTab) beginRename(activeTab);
-            }}
-          >
-            <PencilSimple size={12} weight="regular" aria-hidden="true" />
-          </Button>
-        ) : null}
-        {lifecycleActionsReady && canArchiveTabs && orderedTabs.length > 1 ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            className="mb-0.5 h-6 min-h-0 min-w-0 shrink-0 rounded-xs px-2 text-[9px] text-tertiary"
-            aria-label="Archive active tab"
-            disabled={Boolean(pendingAction)}
-            onClick={() => void archiveOrDeleteActiveTab("archive")}
-          >
-            Archive
-          </Button>
-        ) : null}
-        {lifecycleActionsReady && canDeleteTabs && orderedTabs.length > 1 ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="mb-0.5 size-6 shrink-0 rounded-xs text-danger"
-            aria-label="Delete active tab"
-            disabled={Boolean(pendingAction)}
-            onClick={() => void archiveOrDeleteActiveTab("delete")}
-          >
-            <Trash size={12} weight="regular" aria-hidden="true" />
-          </Button>
-        ) : null}
-      </div>
+            <ContextActionMenuContent groups={contextMenuGroups} />
+          </ContextMenuContent>
+        </ContextMenu>
+      ) : (
+        tabListRegion
+      )}
       {error ? <p role="alert" className="px-2 pb-1 text-[10px] leading-4 text-danger">{error}</p> : null}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {announcement}
