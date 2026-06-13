@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { CopySimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import {
   archiveEstimateTab,
   createEstimateTab,
@@ -111,6 +111,19 @@ export function EstimateTabStrip({
   const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
   const lifecycleActionsReady = enableLifecycleActions && Boolean(projectId && estimateId);
 
+  // Browser-grade polish (U5): pinned "+", scroll-into-view, overflow fade, and
+  // restrained enter motion — all respecting prefers-reduced-motion.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const previousTabIdsRef = useRef<Set<string>>(new Set(orderedTabs.map((tab) => tab.id)));
+  const [edgeFade, setEdgeFade] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
+  const [enteringTabIds, setEnteringTabIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
   const focusTab = useCallback((index: number) => {
     const tab = orderedTabs[index];
     if (!tab) return;
@@ -212,6 +225,63 @@ export function EstimateTabStrip({
     manageMenuCloseFocusRef.current = false;
     tabRefs.current[index]?.focus();
   }, [orderedTabs]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => setPrefersReducedMotion(media.matches);
+    handleChange();
+    media.addEventListener?.("change", handleChange);
+    return () => media.removeEventListener?.("change", handleChange);
+  }, []);
+
+  const updateEdgeFade = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+    setEdgeFade({ left: container.scrollLeft > 1, right: container.scrollLeft < maxScrollLeft - 1 });
+  }, []);
+
+  // Recompute the overflow fade on tab-list changes and container resize.
+  useEffect(() => {
+    updateEdgeFade();
+    const container = scrollContainerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => updateEdgeFade());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [orderedTabs, updateEdgeFade]);
+
+  const scrollTabIntoView = useCallback((tabId: string) => {
+    const index = orderedTabs.findIndex((tab) => tab.id === tabId);
+    if (index < 0) return;
+    tabRefs.current[index]?.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  }, [orderedTabs, prefersReducedMotion]);
+
+  // Keep the active tab in view (covers activate + create switching to the new tab).
+  useEffect(() => {
+    scrollTabIntoView(resolvedActiveTabId);
+  }, [resolvedActiveTabId, scrollTabIntoView]);
+
+  // Scroll the rename target into view even when it is a background/overflowed tab.
+  useEffect(() => {
+    if (!editingTabId) return;
+    const fallbackButton = tabRefs.current[orderedTabs.findIndex((tab) => tab.id === editingTabId)];
+    const target = renameInputRef.current ?? fallbackButton;
+    target?.scrollIntoView?.({ inline: "nearest", block: "nearest", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  }, [editingTabId, orderedTabs, prefersReducedMotion]);
+
+  // Briefly mark newly added tabs so they animate in (skipped under reduced motion).
+  useEffect(() => {
+    const currentIds = orderedTabs.map((tab) => tab.id);
+    const previousIds = previousTabIdsRef.current;
+    const addedIds = currentIds.filter((id) => !previousIds.has(id));
+    previousTabIdsRef.current = new Set(currentIds);
+    if (addedIds.length === 0 || prefersReducedMotion) return undefined;
+    setEnteringTabIds(new Set(addedIds));
+    const timer = window.setTimeout(() => setEnteringTabIds(new Set()), 200);
+    return () => window.clearTimeout(timer);
+  }, [orderedTabs, prefersReducedMotion]);
 
   const scheduleSpringLoadedTabTarget = useCallback((event: DragEvent<HTMLButtonElement>, tabId: string) => {
     if (isEstimateTreeNodeDrag(event)) {
@@ -498,11 +568,13 @@ export function EstimateTabStrip({
     }
   }, [beginRename, focusTab, moveActiveTab, onTabChange, orderedTabs]);
 
-  const tabListRegion = (
+  const tabList = (
     <div
-      className="flex min-h-8 items-end gap-1 overflow-x-auto px-2 pt-1"
+      ref={scrollContainerRef}
+      className="flex items-end gap-1 overflow-x-auto"
       role="tablist"
       aria-label="Estimate tabs"
+      onScroll={updateEdgeFade}
       onContextMenu={(event) => {
         // Only a tab opens the menu; right-clicks on the "+" or empty strip
         // space keep it closed (mirrors EstimateSheetTree).
@@ -514,6 +586,7 @@ export function EstimateTabStrip({
       {orderedTabs.map((tab, index) => {
         const isActive = tab.id === resolvedActiveTabId;
         const isEditing = editingTabId === tab.id;
+        const isEntering = enteringTabIds.has(tab.id);
         return (
           <div key={tab.id} className="flex h-7 shrink-0 items-end">
             {isEditing ? (
@@ -559,6 +632,7 @@ export function EstimateTabStrip({
                   isActive
                     ? "z-10 -mb-px border-hairline bg-white text-ink"
                     : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
+                  isEntering && "animate-in fade-in-0 slide-in-from-bottom-1 duration-150",
                 )}
                 onClick={() => onTabChange(tab.id)}
                 onDoubleClick={() => beginRename(tab)}
@@ -575,38 +649,49 @@ export function EstimateTabStrip({
           </div>
         );
       })}
-      {lifecycleActionsReady && canCreateTabs ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="mb-0.5 size-6 shrink-0 rounded-xs text-tertiary"
-          aria-label="Create tab"
-          disabled={Boolean(pendingAction)}
-          onClick={() => void createTab()}
-        >
-          <Plus size={12} weight="regular" aria-hidden="true" />
-        </Button>
-      ) : null}
     </div>
   );
 
   return (
     <div className={cn("shrink-0 border-b border-hairline bg-surfaceMuted", className)} data-estimate-tab-strip>
-      {lifecycleActionsReady ? (
-        <ContextMenu>
-          <ContextMenuTrigger asChild>{tabListRegion}</ContextMenuTrigger>
-          <ContextMenuContent
-            data-estimate-tab-context-menu="true"
-            alignOffset={4}
-            onCloseAutoFocus={handleContextMenuCloseAutoFocus}
-          >
-            <ContextActionMenuContent groups={contextMenuGroups} />
-          </ContextMenuContent>
-        </ContextMenu>
-      ) : (
-        tabListRegion
-      )}
+      <div className="flex min-h-8 items-end gap-1 px-2 pt-1">
+        {/* Scrollable tab region with overflow fades; the "+" is pinned outside it. */}
+        <div className="relative flex min-w-0 flex-1 items-end">
+          {lifecycleActionsReady ? (
+            <ContextMenu>
+              <ContextMenuTrigger asChild>{tabList}</ContextMenuTrigger>
+              <ContextMenuContent
+                data-estimate-tab-context-menu="true"
+                alignOffset={4}
+                onCloseAutoFocus={handleContextMenuCloseAutoFocus}
+              >
+                <ContextActionMenuContent groups={contextMenuGroups} />
+              </ContextMenuContent>
+            </ContextMenu>
+          ) : (
+            tabList
+          )}
+          {edgeFade.left ? (
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-surfaceMuted to-transparent" />
+          ) : null}
+          {edgeFade.right ? (
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-surfaceMuted to-transparent" />
+          ) : null}
+        </div>
+        {lifecycleActionsReady && canCreateTabs ? (
+          <span className="shrink-0">
+            <ToolbarIconButton
+              type="button"
+              label="New tab"
+              className="mb-0.5"
+              disabled={Boolean(pendingAction)}
+              onClick={() => void createTab()}
+            >
+              <Plus size={12} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+          </span>
+        ) : null}
+      </div>
       {error ? <p role="alert" className="px-2 pb-1 text-[10px] leading-4 text-danger">{error}</p> : null}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {announcement}

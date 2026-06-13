@@ -68,6 +68,11 @@ beforeAll(() => {
       disconnect() {}
     };
   }
+  // jsdom does not implement scrollIntoView; stub it so the strip's scroll-into-view
+  // calls are no-ops here (and spy-able in the U5 tests).
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = function scrollIntoView() {};
+  }
 });
 
 describe("EstimateTabStrip", () => {
@@ -112,7 +117,7 @@ describe("EstimateTabStrip", () => {
     renderStrip({ enableLifecycleActions: false, canCreateTabs: true });
 
     // No persistent controls — the strip is a pure read-only tab switcher.
-    expect(screen.queryByRole("button", { name: "Create tab" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
 
     // No context menu attaches: right-click opens nothing.
     fireEvent.contextMenu(tabButton("tab-alt"), { clientX: 24, clientY: 24 });
@@ -134,7 +139,7 @@ describe("EstimateTabStrip", () => {
     expect(screen.queryByRole("button", { name: "Archive active tab" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete active tab" })).not.toBeInTheDocument();
     // The "+" remains the only persistent control.
-    expect(screen.getByRole("button", { name: "Create tab" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New tab" })).toBeInTheDocument();
   });
 
   it("creates a tab through the +, updates the list from the returned array, switches to it, and arms inline rename", async () => {
@@ -163,7 +168,7 @@ describe("EstimateTabStrip", () => {
     }
     render(<CreateHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Create tab" }));
+    fireEvent.click(screen.getByRole("button", { name: "New tab" }));
 
     await waitFor(() => {
       // Auto-named from the returned list; the action is the single round-trip.
@@ -410,5 +415,105 @@ describe("EstimateTabStrip", () => {
     const alternateTab = await screen.findByRole("tab", { name: "Alternate" });
     await waitFor(() => expect(document.activeElement).toBe(alternateTab));
     expect(screen.getByRole("status")).toHaveTextContent("Main tab deleted.");
+  });
+
+  it("pins the New tab control outside the scrollable tab list so it never scrolls away", () => {
+    const manyTabs = Array.from({ length: 12 }, (_, index) => ({
+      id: `tab-${index}`,
+      name: `Tab ${index + 1}`,
+      sortOrder: index,
+      isDefault: index === 0,
+    }));
+    render(
+      <EstimateTabStrip
+        tabs={manyTabs}
+        activeTabId="tab-0"
+        projectId="project-1"
+        estimateId="estimate-1"
+        enableLifecycleActions
+        canCreateTabs
+        onTabChange={vi.fn()}
+        onTabsChange={vi.fn()}
+      />,
+    );
+    const createButton = screen.getByRole("button", { name: "New tab" });
+    const tablist = screen.getByRole("tablist", { name: "Estimate tabs" });
+    expect(createButton).toBeInTheDocument();
+    // Pinned: the "+" is a sibling of (not inside) the overflow-x-auto tablist.
+    expect(tablist.contains(createButton)).toBe(false);
+  });
+
+  it("scrolls the active tab into view (smoothly) when the active tab changes", async () => {
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    try {
+      function ActivateHarness() {
+        const [activeTabId, setActiveTabId] = useState("tab-main");
+        return (
+          <EstimateTabStrip
+            tabs={fixtureTabs()}
+            activeTabId={activeTabId}
+            projectId="project-1"
+            estimateId="estimate-1"
+            enableLifecycleActions
+            onTabChange={setActiveTabId}
+            onTabsChange={vi.fn()}
+          />
+        );
+      }
+      render(<ActivateHarness />);
+      spy.mockClear();
+      fireEvent.click(screen.getByRole("tab", { name: "Alternate" }));
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      const usedSmooth = spy.mock.calls.some(([options]) => (options as { behavior?: string } | undefined)?.behavior === "smooth");
+      expect(usedSmooth).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("uses instant (non-smooth) scroll when prefers-reduced-motion is set", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("reduce"),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    try {
+      function ReducedHarness() {
+        const [activeTabId, setActiveTabId] = useState("tab-main");
+        return (
+          <EstimateTabStrip
+            tabs={fixtureTabs()}
+            activeTabId={activeTabId}
+            projectId="project-1"
+            estimateId="estimate-1"
+            enableLifecycleActions
+            onTabChange={setActiveTabId}
+            onTabsChange={vi.fn()}
+          />
+        );
+      }
+      render(<ReducedHarness />);
+      spy.mockClear();
+      fireEvent.click(screen.getByRole("tab", { name: "Alternate" }));
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      const everyInstant = spy.mock.calls.every(([options]) => (options as { behavior?: string } | undefined)?.behavior === "auto");
+      expect(everyInstant).toBe(true);
+    } finally {
+      window.matchMedia = originalMatchMedia;
+      spy.mockRestore();
+    }
+  });
+
+  it("shows an accessible \"New tab\" tooltip on the create control", async () => {
+    renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+    fireEvent.focus(screen.getByRole("button", { name: "New tab" }));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("New tab");
   });
 });
