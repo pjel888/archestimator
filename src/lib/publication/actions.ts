@@ -23,6 +23,8 @@ import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
 import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
 import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
+import { getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
+import type { ProjectPublicationSummary } from "@/lib/publication/types";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -642,6 +644,17 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath);
   return { ok: true, message: "Shared link turned off.", clientLinkPath: null };
+}
+
+// MOD-ACT-03: live metadata refetch for the open publication modal. The RSC layout fetches
+// the summary once per navigation, so the activity dot / open count / "last opened" go stale
+// while the modal stays mounted. This action simply re-reads the summary; getProjectPublicationSummary
+// already enforces workspace membership + manage permission, so it is safe to call from the client
+// (it returns null for non-managers / unknown projects) and weakens no authorization.
+export async function refreshProjectPublicationSummary(
+  projectId: string,
+): Promise<ProjectPublicationSummary | null> {
+  return getProjectPublicationSummary(projectId);
 }
 
 // ============================================================================

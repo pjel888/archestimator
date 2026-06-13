@@ -606,10 +606,17 @@ export async function recordProjectPublicationEvent({
   if (eventError) throw eventError;
 
   if (eventType === "open") {
-    const { error: incrementError } = await supabase.rpc("increment_project_publication_open", {
-      target_publication_id: publication.id,
-    });
-    if (incrementError) throw incrementError;
+    // MOD-MET-01: gate the public "Opened N times" counter on real visitors only.
+    // Crawlers, link-preview unfurlers, and bot reloads otherwise inflate the count on
+    // every fetch. The raw project_publication_events audit row above and the recipient
+    // bookkeeping below stay unconditional (the latter only fires for known recipients).
+    const isBot = readDeviceType(request.headers.get("user-agent") ?? "") === "bot";
+    if (!isBot) {
+      const { error: incrementError } = await supabase.rpc("increment_project_publication_open", {
+        target_publication_id: publication.id,
+      });
+      if (incrementError) throw incrementError;
+    }
 
     if (recipientId) {
       const openedAt = new Date().toISOString();

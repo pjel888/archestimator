@@ -219,6 +219,75 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     expect(tableCalls).not.toContain("shared_link_recipients");
   });
 
+  // MOD-MET-01 (AC-MOD-09): the public "Opened N times" counter must only count real visitors.
+  // Bots/crawlers/link-preview unfurlers still write the raw audit event but must NOT increment.
+  async function runRecordOpenWithUserAgent(userAgent: string) {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
+    vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
+
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: "publication-1", status: "published", password_hash: null, expires_at: null, revoked_at: null, snapshot_version: 1 },
+        error: null,
+      }),
+    };
+    const eventInsert = vi.fn().mockResolvedValue({ error: null });
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const tableCalls: string[] = [];
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          tableCalls.push(table);
+          if (table === "project_publications") return publicationQuery;
+          if (table === "project_publication_events") return { insert: eventInsert };
+          throw new Error(`Unexpected table: ${table}`);
+        }),
+        rpc,
+      })),
+    }));
+
+    const { recordProjectPublicationEvent } = await import("@/lib/publication/public-repository");
+    await recordProjectPublicationEvent({
+      token: "client-token",
+      eventType: "open",
+      request: new Request("https://archestimator.test/share/client-token", {
+        headers: {
+          "x-forwarded-for": "203.0.113.44",
+          "user-agent": userAgent,
+        },
+      }),
+    });
+
+    return { eventInsert, rpc, tableCalls };
+  }
+
+  it("counts a normal-browser open: writes the audit event AND increments the open counter", async () => {
+    const { eventInsert, rpc } = await runRecordOpenWithUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 Chrome/125.0.6422.0 Safari/537.36",
+    );
+
+    expect(eventInsert).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("increment_project_publication_open", { target_publication_id: "publication-1" });
+  });
+
+  it("does NOT increment the open counter for a bot/crawler user agent (still writes the audit event)", async () => {
+    const { eventInsert, rpc, tableCalls } = await runRecordOpenWithUserAgent(
+      "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+    );
+
+    // Raw audit event still recorded (useful even for bots), but the public counter is untouched.
+    expect(eventInsert).toHaveBeenCalledTimes(1);
+    expect(rpc).not.toHaveBeenCalled();
+    // No recipient bookkeeping for an anonymous open.
+    expect(tableCalls).not.toContain("shared_link_recipients");
+    expect(tableCalls).not.toContain("shared_link_events");
+  });
+
   it("keeps access telemetry disabled by default in production unless explicitly truth-locked", async () => {
     vi.resetModules();
     const { isProjectPublicationAccessTelemetryEnabled } = await import("@/lib/publication/public-repository");

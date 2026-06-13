@@ -596,6 +596,70 @@ async function readLatestSharedLinkRecipientOpen(
   };
 }
 
+async function readLatestSharedLinkCommentAt(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  publicationId: string | null | undefined,
+): Promise<string | null> {
+  if (!publicationId) return null;
+
+  const { data, error } = await supabase
+    .from("shared_link_comments")
+    .select("created_at")
+    .eq("publication_id", publicationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingOptionalCollaborationTable(error)) return null;
+    throw error;
+  }
+  return data?.created_at ?? null;
+}
+
+async function readLatestSharedLinkResponseAt(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  publicationId: string | null | undefined,
+): Promise<string | null> {
+  if (!publicationId) return null;
+
+  const { data, error } = await supabase
+    .from("shared_link_responses")
+    .select("created_at")
+    .eq("publication_id", publicationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingOptionalCollaborationTable(error)) return null;
+    throw error;
+  }
+  return data?.created_at ?? null;
+}
+
+/**
+ * Most-recent non-null ISO timestamp among the candidates (comments, decisions,
+ * opens). Pure so it can be unit-tested without a Supabase round-trip. Returns
+ * null when every candidate is null/undefined or unparseable.
+ */
+export function readLatestPublicationActivityTimestamp(
+  candidates: Array<string | null | undefined>,
+): string | null {
+  let latest: string | null = null;
+  let latestTime = Number.NEGATIVE_INFINITY;
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const time = Date.parse(candidate);
+    if (!Number.isFinite(time)) continue;
+    if (time > latestTime) {
+      latestTime = time;
+      latest = candidate;
+    }
+  }
+  return latest;
+}
+
 async function readCollaborationProfiles(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userIds: string[],
@@ -1280,12 +1344,19 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
   const canManagePublication = profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(currentUserRole);
   const publicationStatus = readPublicationStatus(publication);
   const clientLinkPath = publicationStatus === "published" ? readPublicationClientLinkPath(publication) : null;
-  const [latestEstimateUpdatedAt, latestRecipientOpen] = publication
+  const [latestEstimateUpdatedAt, latestRecipientOpen, latestCommentAt, latestResponseAt] = publication
     ? await Promise.all([
         readLatestEstimateUpdatedAt(supabase, project.id, publication.selected_estimate_ids ?? []),
         canManagePublication ? readLatestSharedLinkRecipientOpen(supabase, publication.id) : Promise.resolve(null),
+        canManagePublication ? readLatestSharedLinkCommentAt(supabase, publication.id) : Promise.resolve(null),
+        canManagePublication ? readLatestSharedLinkResponseAt(supabase, publication.id) : Promise.resolve(null),
       ])
-    : [null, null];
+    : [null, null, null, null];
+  // MOD-MET / AC-MOD-07: surface the freshest manager-relevant moment so the
+  // header dot lights on new comments/decisions, not just opens.
+  const latestActivityAt = canManagePublication
+    ? readLatestPublicationActivityTimestamp([latestCommentAt, latestResponseAt, publication?.latest_opened_at ?? null])
+    : null;
   const staleSnapshotWarning = readPublicationSnapshotStaleness({
     latestEstimateUpdatedAt,
     snapshotGeneratedAt: readSnapshotGeneratedAt(publication?.snapshot_json),
@@ -1307,6 +1378,7 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
     snapshotVersion: publication?.snapshot_version ?? 0,
     openCount: publication?.open_count ?? 0,
     latestOpenedAt: publication?.latest_opened_at ?? null,
+    latestActivityAt,
     latestRecipientOpen,
     staleSnapshotWarning,
   };
