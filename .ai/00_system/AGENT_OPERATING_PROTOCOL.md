@@ -48,12 +48,14 @@ Advisor-style planning tools, including `shadcn/improve`, must write durable
 Archestimator plans under `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/`. They must
 not create root `plans/` or a parallel advisor backlog for this repo.
 
-Improve-generated plans must follow the project-local adapter at
-`.agents/skills/improve/SKILL.md` when available, use `.ai/03_plans/README.md`
-as the plan-folder contract, and update `.ai/10_state/*` or the narrowest
-canonical `.ai` doc when plan work changes project truth. If an external skill
-or tool says to use another folder, treat that as an adapter default overridden
-by Archestimator's `.ai` source-of-truth policy.
+Improve is installed globally for this machine. Do not add a duplicate
+repo-local `.agents/skills/improve/` copy unless the global skill cannot be
+made to respect the repo policy. Improve-generated plans must use
+`.ai/03_plans/README.md` as the plan-folder contract and update
+`.ai/10_state/*` or the narrowest canonical `.ai` doc when plan work changes
+project truth. If an external skill or tool says to use another folder, treat
+that as an adapter default overridden by Archestimator's `.ai` source-of-truth
+policy.
 
 ## Self-diagnostic trigger
 

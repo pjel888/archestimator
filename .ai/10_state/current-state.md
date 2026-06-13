@@ -690,9 +690,10 @@ A response-economy overlay is now part of
 diffs, concise progress, compact final reports, and batched safe edits, but the
 overlay is advisory only and never overrides autonomy, verification, provider
 approval gates, routing hierarchy, or `.ai` source-of-truth rules.
-Advisor-style planning tools, including `shadcn/improve`, are now routed through
-the project-local `.agents/skills/improve/SKILL.md` adapter and must write plan
-packs to `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/` rather than root `plans/`.
+Advisor-style planning tools, including globally installed `shadcn/improve`,
+must write plan packs to `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/` rather than
+root `plans/`. Do not keep a duplicate repo-local `.agents/skills/improve/`
+copy unless the global skill cannot honor the repo policy.
 
 **Multi-agent loop orchestration mandate added (2026-06-12 local, branch `main`):**
 The lean mandate now explicitly prefers multi-agent orchestration whenever work
