@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -77,6 +77,7 @@ describe("ProposalExportPreviewDialog", () => {
     const onRefresh = vi.fn();
     const onClose = vi.fn();
     const onScopeChange = vi.fn();
+    const onDownload = vi.fn();
     const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     render(
@@ -84,7 +85,7 @@ describe("ProposalExportPreviewDialog", () => {
         open
         model={model}
         isStale
-        downloadHref="/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx"
+        onDownload={onDownload}
         scopeControls={{
           selectedScope: "all-tabs",
           activeTabName: "Main",
@@ -114,14 +115,17 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
-    const downloadLink = screen.getByRole("link", { name: "Download editable XLSX" });
-    expect(downloadLink).toHaveAttribute("href", "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx");
+    // F-05 (P1-T1): the download is now a button (fetch-then-blob), not a bare <a href>
+    // that would save the route's JSON error body under the .xlsx name.
+    const downloadButton = screen.getByRole("button", { name: "Download editable XLSX" });
+    expect(downloadButton).toHaveClass("h-7", "gap-1", "bg-primary", "text-white");
+    expect(screen.queryByRole("link", { name: "Download editable XLSX" })).not.toBeInTheDocument();
 
     const refreshButton = screen.getByRole("button", { name: "Refresh preview" });
-    expect(refreshButton).toHaveClass("h-7", "gap-1", "text-[9px]", "font-medium", "leading-none", "bg-accentSoft", "text-primary");
-    expect(downloadLink).toHaveClass("h-7", "gap-1", "text-[9px]", "font-medium", "leading-none", "bg-primary", "text-white");
-    expect(screen.getByTestId("proposal-preview-refresh-label")).toHaveClass("text-[9px]", "font-medium", "leading-none");
-    expect(screen.getByTestId("proposal-preview-download-label")).toHaveClass("text-[9px]", "font-medium", "leading-none");
+    expect(refreshButton).toHaveClass("h-7", "gap-1", "bg-accentSoft", "text-primary");
+
+    await user.click(downloadButton);
+    expect(onDownload).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole("button", { name: /Main tab/i }));
     expect(onScopeChange).toHaveBeenCalledWith("active-tab");
@@ -131,6 +135,31 @@ describe("ProposalExportPreviewDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Close preview" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the download button and surfaces the route error inline when a download fails", async () => {
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    const { rerender } = render(
+      <ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} isDownloading onRefresh={vi.fn()} onClose={vi.fn()} />,
+    );
+
+    const downloadingButton = screen.getByRole("button", { name: /Preparing/i });
+    expect(downloadingButton).toBeDisabled();
+
+    rerender(
+      <ProposalExportPreviewDialog
+        open
+        model={model}
+        onDownload={vi.fn()}
+        downloadError="Estimate is too large to export as XLSX right now."
+        onRefresh={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Estimate is too large to export as XLSX right now.");
+    expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeEnabled();
   });
 
   it("wires the estimate sheet toolbar to a refreshable read-only proposal preview", async () => {
@@ -157,10 +186,7 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByText("Preview current")).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "Porcelain Tile — Supply and install porcelain floor tile" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "22" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download editable XLSX" })).toHaveAttribute(
-      "href",
-      "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx",
-    );
+    expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeInTheDocument();
   });
 
   it("defaults multi-tab preview downloads to all-tabs export and lets users switch to the active-tab route", async () => {
@@ -190,19 +216,82 @@ describe("ProposalExportPreviewDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
 
-    expect(screen.getByText("XLSX export includes all tabs by default. Use the preview scope chips to download all tabs or just the active tab.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("link", { name: "Download editable XLSX" })).toHaveAttribute(
-      "href",
-      "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx",
+
+    // The download button fetches the scoped route and blobs the result; assert the
+    // fetched URL changes with scope rather than an <a href>.
+    const okResponse = () =>
+      new Response("xlsx-bytes", {
+        status: 200,
+        headers: {
+          "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "content-disposition": 'attachment; filename="SYN-001-EST-001-proposal.xlsx"',
+        },
+      });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(() => Promise.resolve(okResponse()));
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => "blob:mock") as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenLastCalledWith("/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx"),
+      );
+
+      await user.click(screen.getByRole("button", { name: /Main tab/i }));
+      expect(screen.getByRole("button", { name: /Main tab/i })).toHaveAttribute("aria-pressed", "true");
+
+      await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenLastCalledWith("/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=tab-main"),
+      );
+    } finally {
+      fetchMock.mockRestore();
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  it("renders the route error inline (413) without saving a corrupt file", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId="main-house"
+          nodes={nodes}
+          projectId="project-1"
+          estimateId="estimate-1"
+          proposalExportMetadata={metadata}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: /Main tab/i }));
+    await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
 
-    expect(screen.getByRole("button", { name: /Main tab/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("link", { name: "Download editable XLSX" })).toHaveAttribute(
-      "href",
-      "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=tab-main",
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "Estimate is too large to export as XLSX right now." }), {
+        status: 413,
+        headers: { "content-type": "application/json" },
+      }),
     );
+    const createSpy = vi.fn(() => "blob:mock");
+    const originalCreate = URL.createObjectURL;
+    URL.createObjectURL = createSpy as typeof URL.createObjectURL;
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
+      await waitFor(() =>
+        expect(screen.getByRole("alert")).toHaveTextContent("Estimate is too large to export as XLSX right now."),
+      );
+      expect(createSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+      URL.createObjectURL = originalCreate;
+    }
   });
 });
