@@ -432,3 +432,38 @@ remained was the **first/cold expand UX**: inline "Loading…" banners that push
 green (`validate` + `build` + Postgres harness EXIT 0); U7/U8/U20 are deferred with documented
 rationale; the migration applies, type regen, hosted verify, EXPLAIN/benchmark, and e2e un-skip are
 owner-gated and explicitly NOT performed. No false completion claim is made for the owner-gated items.
+
+---
+
+## Owner-gated DB resolution (2026-06-13, owner-authorized) — DONE
+
+Branch `claude/2026-06-13-templates-owner-gated-resolution` → merged to `main`.
+The `estimate_tabs` foundation (`20260612094734`) was found **already applied** to prod
+`ebxxqidacheyapmmzavr` (the earlier "estimate_tabs unapplied" note was stale), so the work
+was done against the live schema:
+
+- **Pre-apply live verification** (read-only, MCP `execute_sql`): foundation present; deps
+  `assert_can_edit_estimate_for_history`, `can_access_estimate`, `validate_estimate_node_tree`,
+  `estimate_sheet_event_result` all exist; the template RPC pair's grants captured to mirror
+  (inner `{postgres,service_role}`; wrapper `+authenticated`); `estimate_nodes` INSERT RLS is
+  `with_check = can_edit_estimate` (so the missing-revoke gap was defense-in-depth, not a hole);
+  live `insert_estimate_template_into_estimate_with_history` confirmed `is_tab_aware=true` +
+  `has_canedit_gate=true`.
+- **U4 `20260613170000`: DELETED (obsolete).** Foundation already supersedes it; applying it
+  post-foundation regresses the tab-aware RPC to no-tab. Prove script comment + line updated.
+- **U2 `20260613180000` → renamed `20260613134852` + hardened.** Added the grant/revoke block
+  (the file shipped none → default PUBLIC). Applied via MCP `apply_migration` (recorded prod
+  version `20260613134852`; file renamed to match → no `db push` re-apply drift). Post-apply
+  prod acl verified IDENTICAL to the template pattern; `get_advisors` security = 0 ERROR.
+- **gen types + cast drop:** subtree fns added to `types.ts`; blanket cast in
+  `reusable-sources/actions.ts` → typed `supabase.rpc(...)` (localized cast only on the nullable
+  `source_root_node_id`). Did NOT wholesale-regen types.ts (broadly stale vs live → separate effort).
+- **U9 EXPLAIN proof (prod):** `Index Scan using estimate_row_items_estimate_node_sort_idx`
+  on `(estimate_id, node_id)` — composite index confirmed, no seq scan.
+- Gates: type-check ✓, `next build` ✓, eslint ✓, `prove-estimate-tabs-postgres.mjs` EXIT 0 with
+  the hardened/renamed migration, project-source-insert + reusable-sources tests 14/14 ✓,
+  component-library-ui 63/63 ✓ (after integrating concurrent main commits).
+
+**Still genuinely open (NOT done, honest):** an end-to-end authenticated insert smoke against prod
+(best by the owner in the app — no synthetic prod-data insert performed); U7/U8 (large-fixture
+benchmark + design); `e2e/estimate-tabs.spec.ts` un-skip with seeded fixtures; full `types.ts` regen.

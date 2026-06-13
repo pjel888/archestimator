@@ -1,5 +1,40 @@
 # Decisions
 
+## 2026-06-13 — Templates owner-gated DB items applied to prod (owner-authorized)
+
+**Decision:** With owner authorization, resolve the Templates Audit owner-gated DB
+work against the LIVE schema (the `estimate_tabs` foundation `20260612094734` is now
+applied to prod `ebxxqidacheyapmmzavr`).
+
+- **Applied** the U2 project-source subtree-insert RPC pair
+  (`insert_estimate_subtree_into_estimate` + `_with_history`) to prod via the Supabase
+  MCP `apply_migration` (recorded version `20260613134852`; the repo file was renamed
+  `20260613180000` → `20260613134852` to match). Before applying, the migration was
+  **hardened** with the foundation's grant/revoke pattern (the original file shipped no
+  grants → functions would default to PUBLIC execute). Verified on prod: inner acl
+  `{postgres, service_role}`, wrapper acl `{postgres, authenticated, service_role}` —
+  identical to the template RPC pair. Security advisors: 0 ERROR (the wrapper's
+  authenticated-executable SECURITY DEFINER WARN is by-design, shared by 75 peer RPCs).
+- **Deleted** the standalone U4 migration `20260613170000` as obsolete. It was written
+  for the pre-foundation no-tab window to swap one gate line; the live foundation RPC
+  `insert_estimate_template_into_estimate_with_history` is already tab-aware AND gated on
+  `assert_can_edit_estimate_for_history` (verified live: `is_tab_aware=true`,
+  `has_canedit_gate=true`). Applying it post-foundation would regress the RPC to no-tab —
+  a `supabase db push` footgun — so removing it is the correct, safe state.
+- `gen types`: added the subtree fns to `src/lib/supabase/types.ts` and replaced the
+  blanket `as unknown as SubtreeInsertRpcClient` cast with the typed `supabase.rpc(...)`
+  (only `source_root_node_id` keeps a localized cast — a no-default nullable uuid param
+  can't be expressed in Supabase-generated types).
+- U9 EXPLAIN proven on prod: `Index Scan using estimate_row_items_estimate_node_sort_idx`.
+
+**Rationale:** apply against the schema as it actually is, never the schema the migration
+was authored against. Re-verified each dependency + the live RPC body before applying;
+hardened grants to match the established pattern rather than ship the default-PUBLIC gap.
+
+**Still open:** end-to-end authenticated insert smoke on prod (owner, via the app — no
+synthetic prod-data insert was performed); U7/U8 benchmark+design; e2e un-skip; full
+types.ts regen (broadly stale vs live — separate effort).
+
 ## 2026-06-13 — Templates Audit & Improvement Plan implemented (in-estimate panel)
 
 **Decision:** Implement the Templates Audit & Improvement Plan
