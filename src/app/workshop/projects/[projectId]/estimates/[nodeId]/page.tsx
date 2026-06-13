@@ -67,7 +67,9 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
   // boolean only gates edit affordances in the UI (see plan U1).
   const [estimateTabs, canEditEstimate] = await Promise.all([
     tab ? getEstimateTabs(project.id, estimate.id) : Promise.resolve<EstimateTabSummary[]>([]),
-    resolveEstimateEditCapability(estimate.id),
+    // Only resolve edit capability on the tab path — on the legacy/no-tab path the
+    // strip and tab affordances never render, so the boolean would go unused.
+    tab ? resolveEstimateEditCapability(estimate.id) : Promise.resolve(false),
   ]);
 
   return (

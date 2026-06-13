@@ -7,7 +7,6 @@ import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import {
-  archiveEstimateTab,
   createEstimateTab,
   deleteEstimateTab,
   duplicateEstimateTab,
@@ -40,7 +39,7 @@ export type EstimateTabStripProps = {
   className?: string;
 };
 
-type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "archive" | "delete" | null;
+type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "delete" | null;
 
 const SPRING_LOADED_TAB_DELAY_MS = 450;
 const CROSS_TAB_NODE_MOVE_TOAST_ID = "estimate-tab-cross-tab-node-move";
@@ -345,6 +344,10 @@ export function EstimateTabStrip({
     if (!projectId || !estimateId || !editingTabId) return;
     suppressContextMenuCloseAutoFocusRef.current = false;
     ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+    const renamedTabId = editingTabId;
+    // Return focus to the tab that was renamed (it may be a background tab), not
+    // assume the active tab. Rename does not reorder, so its index is stable.
+    const focusRenamedTab = () => focusTab(orderedTabs.findIndex((tab) => tab.id === renamedTabId));
     const nextName = editingName.trim();
     if (!nextName) {
       setError("Tab name is required.");
@@ -354,7 +357,7 @@ export function EstimateTabStrip({
     if (currentTab?.name === nextName) {
       setEditingTabId(null);
       setError("");
-      window.requestAnimationFrame(() => focusTab(activeIndex));
+      window.requestAnimationFrame(focusRenamedTab);
       return;
     }
 
@@ -365,13 +368,13 @@ export function EstimateTabStrip({
       if (result.tabs) onTabsChange?.(result.tabs);
       setEditingTabId(null);
       setAnnouncement(`Renamed tab to ${nextName}.`);
-      window.requestAnimationFrame(() => focusTab(activeIndex));
+      window.requestAnimationFrame(focusRenamedTab);
     } catch (renameError) {
       setError(renameError instanceof Error ? renameError.message : "Could not rename tab.");
     } finally {
       setPendingAction(null);
     }
-  }, [activeIndex, editingName, editingTabId, estimateId, focusTab, onTabsChange, orderedTabs, projectId]);
+  }, [editingName, editingTabId, estimateId, focusTab, onTabsChange, orderedTabs, projectId]);
 
   const createTab = useCallback(async () => {
     if (!projectId || !estimateId || !lifecycleActionsReady || !canCreateTabs) return;
@@ -392,6 +395,13 @@ export function EstimateTabStrip({
     }
   }, [beginRename, canCreateTabs, estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId]);
 
+  const releaseMenuCloseFocusToActiveTab = useCallback(() => {
+    if (!manageMenuCloseFocusRef.current) return;
+    manageMenuCloseFocusRef.current = false;
+    pendingFocusTabIdRef.current = null;
+    window.requestAnimationFrame(() => focusTab(activeIndex));
+  }, [activeIndex, focusTab]);
+
   const duplicateTab = useCallback(async (tabId: string) => {
     if (!projectId || !estimateId || !lifecycleActionsReady) return;
     manageMenuCloseFocusRef.current = true;
@@ -399,19 +409,25 @@ export function EstimateTabStrip({
     setError("");
     try {
       const result = await duplicateEstimateTab({ projectId, estimateId, tabId });
-      if (result.tabs) onTabsChange?.(result.tabs);
-      suppressNextSelectionAnnouncementRef.current = true;
-      onTabChange(result.estimateTabId);
-      pendingFocusTabIdRef.current = result.estimateTabId;
-      const nextTab = result.tabs?.find((tab) => tab.id === result.estimateTabId);
-      setAnnouncement(`Duplicated ${nextTab?.name ?? "tab"}.`);
+      // Only arm the pending-focus handoff when a canonical list comes back; the
+      // new tab can only enter the rendered list (and clear the focus refs) via it.
+      if (result.tabs) {
+        onTabsChange?.(result.tabs);
+        suppressNextSelectionAnnouncementRef.current = true;
+        onTabChange(result.estimateTabId);
+        pendingFocusTabIdRef.current = result.estimateTabId;
+        const nextTab = result.tabs.find((tab) => tab.id === result.estimateTabId);
+        setAnnouncement(`Duplicated ${nextTab?.name ?? "tab"}.`);
+      } else {
+        releaseMenuCloseFocusToActiveTab();
+      }
     } catch (duplicateError) {
-      manageMenuCloseFocusRef.current = false;
+      releaseMenuCloseFocusToActiveTab();
       setError(duplicateError instanceof Error ? duplicateError.message : "Could not duplicate tab.");
     } finally {
       setPendingAction(null);
     }
-  }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, projectId]);
+  }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, projectId, releaseMenuCloseFocusToActiveTab]);
 
   const moveActiveTab = useCallback(async (direction: -1 | 1) => {
     if (!projectId || !estimateId || !lifecycleActionsReady || orderedTabs.length < 2) return;
@@ -441,7 +457,7 @@ export function EstimateTabStrip({
     }
   }, [estimateId, focusTab, lifecycleActionsReady, onTabsChange, orderedTabs, projectId, resolvedActiveTabId]);
 
-  const archiveOrDeleteTab = useCallback(async (action: "archive" | "delete", tabId: string) => {
+  const deleteTab = useCallback(async (tabId: string) => {
     if (!projectId || !estimateId || !lifecycleActionsReady || orderedTabs.length < 2) return;
     const targetTab = orderedTabs.find((tab) => tab.id === tabId);
     if (!targetTab) return;
@@ -449,12 +465,10 @@ export function EstimateTabStrip({
     const targetWasActive = tabId === resolvedActiveTabId;
     if (targetWasActive) manageMenuCloseFocusRef.current = true;
 
-    setPendingAction(action);
+    setPendingAction("delete");
     setError("");
     try {
-      const result = action === "archive"
-        ? await archiveEstimateTab({ projectId, estimateId, tabId })
-        : await deleteEstimateTab({ projectId, estimateId, tabId });
+      const result = await deleteEstimateTab({ projectId, estimateId, tabId });
       const nextTabs = result.tabs ?? orderedTabs.filter((tab) => tab.id !== tabId);
       if (result.tabs) onTabsChange?.(result.tabs);
       // Browser semantics: removing a background tab leaves the active tab as-is;
@@ -471,14 +485,16 @@ export function EstimateTabStrip({
           manageMenuCloseFocusRef.current = false;
         }
       }
-      setAnnouncement(`${targetTab.name} tab ${action === "archive" ? "archived" : "deleted"}.`);
-    } catch (actionError) {
-      manageMenuCloseFocusRef.current = false;
-      setError(actionError instanceof Error ? actionError.message : `Could not ${action} tab.`);
+      setAnnouncement(`${targetTab.name} tab deleted.`);
+    } catch (deleteError) {
+      // The menu already closed with focus held off the trigger; hand focus back
+      // to the active tab so keyboard users keep their place after a failed delete.
+      releaseMenuCloseFocusToActiveTab();
+      setError(deleteError instanceof Error ? deleteError.message : "Could not delete tab.");
     } finally {
       setPendingAction(null);
     }
-  }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId, resolvedActiveTabId]);
+  }, [estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId, releaseMenuCloseFocusToActiveTab, resolvedActiveTabId]);
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     const targetTab = orderedTabs.find((tab) => tab.id === contextMenuTabId);
@@ -521,12 +537,12 @@ export function EstimateTabStrip({
               : actionPending
                 ? "Finish the current tab action first."
                 : undefined,
-            onSelect: () => void archiveOrDeleteTab("delete", targetTab.id),
+            onSelect: () => void deleteTab(targetTab.id),
           },
         ],
       },
     ];
-  }, [archiveOrDeleteTab, beginRename, contextMenuTabId, duplicateTab, orderedTabs, pendingAction]);
+  }, [beginRename, contextMenuTabId, deleteTab, duplicateTab, orderedTabs, pendingAction]);
 
   const handleTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const moveFocus = (nextIndex: number) => {
