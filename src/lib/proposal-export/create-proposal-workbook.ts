@@ -13,6 +13,12 @@ export type ProposalWorkbookColumn = {
 
 const PHP_FORMAT = '₱ #,##0.00;[Red]-₱ #,##0.00';
 const QUANTITY_FORMAT = '#,##0.####';
+// F-18 (P1-T7): force text type on every data string column so a cell whose text begins
+// with =, +, -, @ (CSV/formula-injection vectors) is written and read as literal text, never
+// a formula. Q5-compliant: the value is shown verbatim (no leading char stripped, no visible
+// quote-prefix corruption). ExcelJS lacks the invisible Excel quotePrefix attribute, so a
+// text numFmt is the non-corrupting defense; the workbook's string cells are never formulas.
+const TEXT_FORMAT = "@";
 const DETAIL_HEADER_ROW = 17;
 const SUMMARY_HEADER_ROW = 14;
 
@@ -22,32 +28,32 @@ const LABOR_DISCLAIMER_NOTE =
   "NOTE: LABOR is not yet captured in the source estimate — figures reflect MATERIAL-ONLY pricing. Capture labor before issuing this bid.";
 
 export const BID_FORM_COLUMNS = [
-  { key: "item", header: "ITEM", width: 9 },
-  { key: "particulars", header: "PARTICULARS", width: 42 },
-  { key: "unit", header: "UNIT", width: 10 },
+  { key: "item", header: "ITEM", width: 9, style: { numFmt: TEXT_FORMAT } },
+  { key: "particulars", header: "PARTICULARS", width: 42, style: { numFmt: TEXT_FORMAT } },
+  { key: "unit", header: "UNIT", width: 10, style: { numFmt: TEXT_FORMAT } },
   { key: "quantity", header: "QTY", width: 12, style: { numFmt: QUANTITY_FORMAT } },
   { key: "material", header: "MATERIAL", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "labor", header: "LABOR", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "costTotal", header: "COST TOTAL", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "lineTotal", header: "LINE TOTAL", width: 16, style: { numFmt: PHP_FORMAT } },
-  { key: "scope", header: "SCOPE", width: 16 },
-  { key: "remarks", header: "NOTES / REMARKS", width: 42 },
+  { key: "scope", header: "SCOPE", width: 16, style: { numFmt: TEXT_FORMAT } },
+  { key: "remarks", header: "NOTES / REMARKS", width: 42, style: { numFmt: TEXT_FORMAT } },
 ] as const satisfies ProposalWorkbookColumn[];
 
 const SUMMARY_COLUMNS = [
-  { key: "sectionLabel", header: "SECTION", width: 34 },
+  { key: "sectionLabel", header: "SECTION", width: 34, style: { numFmt: TEXT_FORMAT } },
   { key: "rowCount", header: "ROWS", width: 10 },
   { key: "amount", header: "AMOUNT", width: 18, style: { numFmt: PHP_FORMAT } },
 ] as const satisfies ProposalWorkbookColumn[];
 
 const BREAKDOWN_COLUMNS = [
-  { key: "proposalRowNumber", header: "PROPOSAL NO.", width: 14 },
-  { key: "sourceRowId", header: "SOURCE ROW ID", width: 26 },
-  { key: "sourceNodeName", header: "AREA", width: 22 },
-  { key: "areaPathLabel", header: "AREA PATH", width: 42 },
-  { key: "particulars", header: "PARTICULARS", width: 48 },
+  { key: "proposalRowNumber", header: "PROPOSAL NO.", width: 14, style: { numFmt: TEXT_FORMAT } },
+  { key: "sourceRowId", header: "SOURCE ROW ID", width: 26, style: { numFmt: TEXT_FORMAT } },
+  { key: "sourceNodeName", header: "AREA", width: 22, style: { numFmt: TEXT_FORMAT } },
+  { key: "areaPathLabel", header: "AREA PATH", width: 42, style: { numFmt: TEXT_FORMAT } },
+  { key: "particulars", header: "PARTICULARS", width: 48, style: { numFmt: TEXT_FORMAT } },
   { key: "quantity", header: "QTY", width: 12, style: { numFmt: QUANTITY_FORMAT } },
-  { key: "unit", header: "UNIT", width: 10 },
+  { key: "unit", header: "UNIT", width: 10, style: { numFmt: TEXT_FORMAT } },
   { key: "materialUnitCost", header: "MATERIAL UNIT COST", width: 18, style: { numFmt: PHP_FORMAT } },
   { key: "laborUnitCost", header: "LABOR UNIT COST", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "materialSubtotal", header: "MATERIAL SUBTOTAL", width: 18, style: { numFmt: PHP_FORMAT } },
@@ -58,7 +64,7 @@ const BREAKDOWN_COLUMNS = [
 ] as const satisfies ProposalWorkbookColumn[];
 
 const BREAKDOWN_COLUMNS_WITH_TAB = [
-  { key: "tab", header: "TAB", width: 22 },
+  { key: "tab", header: "TAB", width: 22, style: { numFmt: TEXT_FORMAT } },
   ...BREAKDOWN_COLUMNS,
 ] as const satisfies ProposalWorkbookColumn[];
 
@@ -348,7 +354,7 @@ function createCommercialTermsWorksheet(workbook: ExcelJS.Workbook) {
   const worksheet = workbook.addWorksheet("Commercial Terms", {
     views: [{ state: "frozen", ySplit: 1 }],
   });
-  worksheet.columns = [{ width: 30 }, { width: 72 }];
+  worksheet.columns = [{ width: 30, style: { numFmt: TEXT_FORMAT } }, { width: 72, style: { numFmt: TEXT_FORMAT } }];
   addTitleRow(worksheet, "COMMERCIAL TERMS", 2);
   worksheet.addRow([]);
   [
