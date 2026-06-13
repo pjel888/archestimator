@@ -76,7 +76,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
   const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
-  const canReceiveRows = node.kind === "area";
+  const canReceiveRows = true;
   const isGroup = node.kind === "group";
   const hasMixedChildKinds = childAreas.some((child) => child.kind === "group") && childAreas.some((child) => child.kind === "area");
   const leftIndent = Math.min(depth * 32, 192);

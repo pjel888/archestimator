@@ -173,26 +173,15 @@ function resolveBucket(input: ProjectChartsAggregationBase, lookups: BucketLooku
 }
 
 function resolveSpaceBucket(nodeById: Map<string, ProjectChartNodeFact>, row: ProjectChartRowFact) {
-  let current = row.nodeId ? nodeById.get(row.nodeId) : undefined;
-  let highestArea: ProjectChartNodeFact | undefined;
-
-  while (current) {
-    if (current.kind === "Area") {
-      highestArea = current;
-    }
-
-    if (!current.parentId) {
-      break;
-    }
-
-    current = nodeById.get(current.parentId);
-  }
-
-  const label = highestArea?.name ?? "Unassigned space";
-
+  // Kind-agnostic OWN-node bucketing: attribute the row to the node that
+  // directly owns it, not to the highest "Area" ancestor. On real all-area
+  // data (rows live only on area leaves) the owning node IS the highest-area
+  // ancestor, so this is a byte-for-byte no-op; it only differs for a row on a
+  // non-area (Group) node, which cannot exist in production until a later phase.
+  const own = row.nodeId ? nodeById.get(row.nodeId) : undefined;
   return {
-    id: highestArea ? normalizeBucketId("space", label) : "unassigned-space",
-    label,
+    id: own ? normalizeBucketId("space", own.name) : "unassigned-space",
+    label: own?.name ?? "Unassigned space",
   };
 }
 
@@ -203,10 +192,9 @@ function buildSpaceTableRows(
   seriesTotal: number,
 ): ProjectChartTableRow[] {
   const estimateNodes = input.nodes.filter((node) => node.estimateId === estimateId);
-  const nodeById = new Map(estimateNodes.map((node) => [node.id, node]));
   const childrenByParentId = new Map<string, ProjectChartNodeFact[]>();
-  const areaTotals = new Map<string, SpaceNodeAccumulator>();
-  const groupTotals = new Map<string, SpaceNodeAccumulator>();
+  // OWN totals: only the rows a node directly owns (row.nodeId === node.id).
+  const ownTotals = new Map<string, SpaceNodeAccumulator>();
   const bucketById = new Map(buckets.map((bucket) => [bucket.id, bucket]));
 
   for (const node of estimateNodes) {
@@ -220,70 +208,107 @@ function buildSpaceTableRows(
     siblings.sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
   }
 
+  // Kind-agnostic OWN-row attribution: bucket each row onto the node that
+  // directly owns it (never the highest-Area ancestor, never skipped when the
+  // node exists). A row whose node is missing / null is dropped here exactly as
+  // before — it surfaces in the "Unassigned space" donut bucket, not the tree.
+  const ownNodeById = new Map(estimateNodes.map((node) => [node.id, node]));
   for (const row of input.rows) {
     if (row.estimateId !== estimateId) continue;
 
-    const areaNode = resolveSpaceAreaNode(nodeById, row);
-    if (!areaNode) continue;
+    const ownNode = row.nodeId ? ownNodeById.get(row.nodeId) : undefined;
+    if (!ownNode) continue;
 
     const total = calculateProjectChartRowTotal(row);
-    const areaAccumulator = areaTotals.get(areaNode.id) ?? { node: areaNode, total: 0, rowCount: 0 };
-    areaAccumulator.total += total;
-    areaAccumulator.rowCount += 1;
-    areaTotals.set(areaNode.id, areaAccumulator);
-
-    let current = areaNode.parentId ? nodeById.get(areaNode.parentId) : undefined;
-    while (current) {
-      if (current.kind === "Group") {
-        const groupAccumulator = groupTotals.get(current.id) ?? { node: current, total: 0, rowCount: 0 };
-        groupAccumulator.total += total;
-        groupAccumulator.rowCount += 1;
-        groupTotals.set(current.id, groupAccumulator);
-      }
-
-      current = current.parentId ? nodeById.get(current.parentId) : undefined;
-    }
+    const accumulator = ownTotals.get(ownNode.id) ?? { node: ownNode, total: 0, rowCount: 0 };
+    accumulator.total += total;
+    accumulator.rowCount += 1;
+    ownTotals.set(ownNode.id, accumulator);
   }
 
+  function colorForSpaceNode(name: string): string {
+    const spaceBucketId = normalizeBucketId("space", name);
+    return bucketById.get(spaceBucketId)?.color ?? colorForBucket(spaceBucketId);
+  }
+
+  // Render every node by whether it HAS CHILDREN, not by kind. A node may have
+  // BOTH directly-owned rows AND children. Each rendered LEAF line (a childless
+  // node, or an explicit "Own items" line) carries real money exactly once; a
+  // container ("group") line is a rollup whose total is the sum of its rendered
+  // leaf lines — so summing the leaves alone (never the container) reconstructs
+  // the container total with no double-count and no drop.
   function walk(parentId: string | null, depth: number): ProjectChartTableRow[] {
     const rows: ProjectChartTableRow[] = [];
     const children = childrenByParentId.get(parentId ?? "__root__") ?? [];
 
     for (const child of children) {
-      if (child.kind === "Group") {
-        const accumulator = groupTotals.get(child.id);
-        const nestedRows = walk(child.id, depth + 1);
-        if (!accumulator && nestedRows.length === 0) continue;
+      const own = ownTotals.get(child.id);
+      const hasChildren = (childrenByParentId.get(child.id)?.length ?? 0) > 0;
 
+      if (!hasChildren) {
+        // Leaf node: a single line for its directly-owned rows. Skip nodes with
+        // no money so empty structural nodes don't litter the table.
+        if (!own) continue;
         rows.push({
-          id: `group:${child.id}`,
+          id: `area:${child.id}`,
           label: child.name,
-          total: accumulator?.total ?? nestedRows.reduce((sum, row) => sum + (row.kind === "area" ? row.total : 0), 0),
-          share: getShare(accumulator?.total ?? 0, seriesTotal),
-          rowCount: accumulator?.rowCount ?? 0,
-          color: null,
+          total: own.total,
+          share: getShare(own.total, seriesTotal),
+          rowCount: own.rowCount,
+          color: colorForSpaceNode(child.name),
           depth,
-          kind: "group",
+          kind: "area",
         });
-        rows.push(...nestedRows);
         continue;
       }
 
-      const accumulator = areaTotals.get(child.id);
-      if (!accumulator) continue;
+      // Container node: recurse first so we can roll its descendants up.
+      const nestedRows = walk(child.id, depth + 1);
 
-      const spaceBucketId = normalizeBucketId("space", child.name);
-      const bucket = bucketById.get(spaceBucketId);
+      // Leaf lines rendered directly beneath this container (its own "Own items"
+      // line is added below; its child subtrees' leaves are inside nestedRows).
+      // We sum ONLY "area" leaf lines — never nested "group" rollup lines — so
+      // the container total equals the sum of money-bearing leaves exactly once.
+      const ownLeafTotal = own?.total ?? 0;
+      const descendantLeafTotal = nestedRows.reduce(
+        (sum, row) => sum + (row.kind === "area" ? row.total : 0),
+        0,
+      );
+      const rollupTotal = ownLeafTotal + descendantLeafTotal;
+      const rollupRowCount =
+        (own?.rowCount ?? 0) + nestedRows.reduce((sum, row) => sum + (row.kind === "area" ? row.rowCount : 0), 0);
+
+      // Drop a structural container that ends up entirely empty (no own rows and
+      // no money-bearing descendants) so it doesn't litter the table.
+      if (!own && nestedRows.length === 0) continue;
+
       rows.push({
-        id: `area:${child.id}`,
+        id: `group:${child.id}`,
         label: child.name,
-        total: accumulator.total,
-        share: getShare(accumulator.total, seriesTotal),
-        rowCount: accumulator.rowCount,
-        color: bucket?.color ?? colorForBucket(spaceBucketId),
+        total: rollupTotal,
+        share: getShare(rollupTotal, seriesTotal),
+        rowCount: rollupRowCount,
+        color: null,
         depth,
-        kind: "area",
+        kind: "group",
       });
+
+      // A container that ALSO directly owns rows gets an explicit "Own items"
+      // leaf so its own money is visible and counted, not merged into a child.
+      if (own) {
+        rows.push({
+          id: `area:${child.id}:own`,
+          label: "Own items",
+          total: own.total,
+          share: getShare(own.total, seriesTotal),
+          rowCount: own.rowCount,
+          color: colorForSpaceNode(child.name),
+          depth: depth + 1,
+          kind: "area",
+        });
+      }
+
+      rows.push(...nestedRows);
     }
 
     return rows;
@@ -302,28 +327,6 @@ function buildSpaceTableRows(
     depth: 0,
     kind: "area",
   }));
-}
-
-function resolveSpaceAreaNode(
-  nodeById: Map<string, ProjectChartNodeFact>,
-  row: ProjectChartRowFact,
-): ProjectChartNodeFact | undefined {
-  let current = row.nodeId ? nodeById.get(row.nodeId) : undefined;
-  let highestArea: ProjectChartNodeFact | undefined;
-
-  while (current) {
-    if (current.kind === "Area") {
-      highestArea = current;
-    }
-
-    if (!current.parentId) {
-      break;
-    }
-
-    current = nodeById.get(current.parentId);
-  }
-
-  return highestArea;
 }
 
 function resolveCategoryBucket(nodeById: Map<string, ProjectChartCategoryNodeFact>, row: ProjectChartRowFact) {

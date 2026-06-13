@@ -84,7 +84,7 @@ describe("project chart aggregation", () => {
     ).toBe(120);
   });
 
-  it("groups rows by highest space area, top category, and supplier label precedence", () => {
+  it("groups rows by their OWN owning node, top category, and supplier label precedence", () => {
     const rows: ProjectChartRowFact[] = [
       row("estimate-a", "row-a", "group-1", "subcategory-1", "supplier-1", 2, 100, 25),
       row("estimate-b", "row-b", "group-2", "subcategory-1", null, 3, 100, 0, {
@@ -92,6 +92,9 @@ describe("project chart aggregation", () => {
       }),
     ];
 
+    // OWN-node bucketing: a row on group-1 ("Finishes") buckets to that node,
+    // NOT to its area ancestor "Ground Floor". On real all-area data the owning
+    // node IS the highest area, so this is a no-op there.
     expect(
       buildProjectChartComparison({
         estimates,
@@ -103,7 +106,7 @@ describe("project chart aggregation", () => {
         leftEstimateId: "estimate-a",
         rightEstimateId: "estimate-b",
       }).left.allBuckets[0],
-    ).toMatchObject({ id: "space:ground-floor", label: "Ground Floor", total: 225 });
+    ).toMatchObject({ id: "space:finishes", label: "Finishes", total: 225 });
 
     expect(
       buildProjectChartComparison({
@@ -167,10 +170,12 @@ describe("project chart aggregation", () => {
       rightEstimateId: "estimate-b",
     });
 
+    // OWN-node bucketing: both rows live on their "FFE" group, so they align by
+    // that node's name across the duplicated trees (not the "Living Room" area).
     expect(comparison.rows).toHaveLength(1);
     expect(comparison.rows[0]).toMatchObject({
-      id: "space:living-room",
-      label: "Living Room",
+      id: "space:ffe",
+      label: "FFE",
       leftTotal: 100,
       rightTotal: 150,
       delta: 50,
@@ -198,6 +203,60 @@ describe("project chart aggregation", () => {
       expect.objectContaining({ id: "group:group-floor", label: "Ground Floor", depth: 1, kind: "group", total: 200 }),
       expect.objectContaining({ id: "area:area-a", label: "Living Room", depth: 2, kind: "area", total: 200 }),
     ]);
+  });
+
+  it("renders a mixed node's own rows as an 'Own items' leaf without dropping or double-counting", () => {
+    // group-mix directly owns rows (total 90) AND has two area children that each
+    // own rows (60 + 40). Under highest-area semantics the own rows would be
+    // dropped; under OWN-node semantics they must surface as an "Own items" leaf,
+    // counted exactly once, and the container total must equal the sum of leaves.
+    const series = buildProjectChartComparison({
+      estimates,
+      rows: [
+        // 3 rows directly on the mixed group: 30 + 30 + 30 = 90
+        row("estimate-a", "row-own-1", "group-mix", "subcategory-1", null, 1, 30, 0),
+        row("estimate-a", "row-own-2", "group-mix", "subcategory-1", null, 1, 30, 0),
+        row("estimate-a", "row-own-3", "group-mix", "subcategory-1", null, 1, 30, 0),
+        // child area "Kitchen": 60
+        row("estimate-a", "row-kitchen", "area-kitchen", "subcategory-1", null, 1, 60, 0),
+        // child area "Bath": 40
+        row("estimate-a", "row-bath", "area-bath", "subcategory-1", null, 1, 40, 0),
+      ],
+      nodes: [
+        { id: "group-mix", estimateId: "estimate-a", parentId: null, kind: "Group", name: "Wet Areas", sortOrder: 1 },
+        { id: "area-kitchen", estimateId: "estimate-a", parentId: "group-mix", kind: "Area", name: "Kitchen", sortOrder: 1 },
+        { id: "area-bath", estimateId: "estimate-a", parentId: "group-mix", kind: "Area", name: "Bath", sortOrder: 2 },
+      ],
+      categoryNodes,
+      suppliers,
+      groupingMode: "space",
+      leftEstimateId: "estimate-a",
+      rightEstimateId: "estimate-b",
+    }).left;
+
+    const seriesTotal = series.total;
+    expect(seriesTotal).toBe(190);
+
+    const tableRows = series.tableRows;
+    // Container + its rendered leaf lines: Own items (90), Kitchen (60), Bath (40).
+    expect(tableRows).toEqual([
+      expect.objectContaining({ id: "group:group-mix", label: "Wet Areas", depth: 0, kind: "group", total: 190, rowCount: 5 }),
+      expect.objectContaining({ id: "area:group-mix:own", label: "Own items", depth: 1, kind: "area", total: 90, rowCount: 3 }),
+      expect.objectContaining({ id: "area:area-kitchen", label: "Kitchen", depth: 1, kind: "area", total: 60, rowCount: 1 }),
+      expect.objectContaining({ id: "area:area-bath", label: "Bath", depth: 1, kind: "area", total: 40, rowCount: 1 }),
+    ]);
+
+    // INVARIANT: container total == sum of its rendered leaf lines == series total,
+    // and every fact row is counted exactly once (no drop, no double-count).
+    const container = tableRows.find((r) => r.id === "group:group-mix");
+    const leafLines = tableRows.filter((r) => r.kind === "area");
+    const sumOfLeaves = leafLines.reduce((sum, r) => sum + r.total, 0);
+    const leafRowCount = leafLines.reduce((sum, r) => sum + r.rowCount, 0);
+    expect(container?.total).toBe(sumOfLeaves);
+    expect(sumOfLeaves).toBe(seriesTotal);
+    expect(leafRowCount).toBe(5);
+    // The own rows are NOT dropped and NOT merged into a child area.
+    expect(tableRows.some((r) => r.id === "area:group-mix:own" && r.total === 90)).toBe(true);
   });
 
   it("collapses visual chart buckets after the top eight while table rows keep all buckets", () => {
