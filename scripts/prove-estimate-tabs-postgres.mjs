@@ -291,6 +291,12 @@ try {
 
   applySqlFile(join(migrationDir, targetMigration));
 
+  // U2: the project-source subtree insert RPC is sequenced AFTER the foundation
+  // (it is tab-aware + reuses the foundation's hardened gate). The U4 migration is
+  // intentionally NOT applied here — it rewrites the LIVE (no-tab) template RPC for
+  // the pre-foundation schema; the foundation body already carries the hardened gate.
+  applySqlFile(join(migrationDir, "20260613180000_insert_estimate_subtree_rpc.sql"));
+
   assertScalar("select count(*) from public.estimates e join public.estimate_tabs t on t.estimate_id = e.id and t.is_default where e.id in ('" + ids.inheritedEstimate + "', '" + ids.restrictedEstimate + "')", "2", "P1 harness default tabs");
   assertScalar("select count(*) from public.estimate_nodes where estimate_tab_id is null", "0", "P2 harness attached nodes");
   assertScalar("select count(*) from public.estimate_nodes n join public.estimate_tabs t on t.id = n.estimate_tab_id where t.estimate_id <> n.estimate_id", "0", "P3 harness tab boundaries");
@@ -311,6 +317,57 @@ try {
   assertScalar(ownerCreateSql, "t", "owner can create estimate tab");
 
   assertScalar("select count(*) from public.estimate_sheet_events where event_type = 'tab_created' and estimate_tab_id is not null", "1", "tab-created event is tab-scoped");
+
+  // ---- U2: project-source subtree insert denial matrix + happy path ----
+  const inheritedTabId = runPsql(
+    `select id from public.estimate_tabs where estimate_id = ${quote(ids.inheritedEstimate)} and is_default limit 1;`,
+  ).stdout.trim();
+  if (!inheritedTabId) throw new Error("U2 setup: inherited estimate default tab not found.");
+
+  // Denial 4 (SEC-1): a workspace-member viewer cannot insert a project subtree —
+  // the wrapper's assert_can_edit_estimate_for_history gate denies before any write.
+  assertFailure(
+    asUserSql(ids.userViewer, `
+      select public.insert_estimate_subtree_into_estimate_with_history(
+        ${quote(ids.project)}, ${quote(ids.inheritedEstimate)}, ${quote(ids.rootNode)},
+        ${quote(ids.inheritedEstimate)}, null, ${quote(inheritedTabId)}, ${quote(ids.userViewer)}, gen_random_uuid());
+    `),
+    "U2 denial 4: viewer-on-target cannot insert a project subtree",
+  );
+
+  // Denial 5 (P0, U2-1): an editor supplying an UNREADABLE source is rejected by the
+  // EXPLICIT can_access_estimate gate inside the DEFINER chain — never RLS reliance.
+  // A bogus/inaccessible source id is not can_access-able, so the inner copy raises.
+  assertFailure(
+    asUserSql(ids.userOwner, `
+      select public.insert_estimate_subtree_into_estimate_with_history(
+        ${quote(ids.project)}, ${quote(ids.inheritedEstimate)}, ${quote(ids.rootNode)},
+        '00000000-0000-4000-8000-0000000000ff', null, ${quote(inheritedTabId)}, ${quote(ids.userOwner)}, gen_random_uuid());
+    `),
+    "U2 denial 5: unreadable source rejected by the explicit can_access gate",
+  );
+
+  // Happy path: the owner (can edit target + can access source) self-inserts the tab's
+  // subtree under a group; the copy lands and carries project provenance.
+  assertScalar(
+    asUserSql(ids.userOwner, `
+      select (public.insert_estimate_subtree_into_estimate_with_history(
+        ${quote(ids.project)}, ${quote(ids.inheritedEstimate)}, ${quote(ids.rootNode)},
+        ${quote(ids.inheritedEstimate)}, null, ${quote(inheritedTabId)}, ${quote(ids.userOwner)}, gen_random_uuid())->>'inserted_node_count')::int > 0;
+    `),
+    "t",
+    "U2 happy path: owner inserts an accessible project subtree",
+  );
+  assertScalar(
+    `select count(*) > 0 from public.estimate_nodes where estimate_id = ${quote(ids.inheritedEstimate)} and metadata->>'sourceKind' = 'project';`,
+    "t",
+    "U2 provenance: inserted nodes are stamped sourceKind=project",
+  );
+  assertScalar(
+    "select count(*) from public.estimate_sheet_events where event_type = 'project_source_inserted'",
+    "1",
+    "U2 event: project_source_inserted recorded once",
+  );
 
   console.log("estimate-tabs local Postgres proof passed");
 } finally {
