@@ -328,7 +328,15 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
         formulaAmountSuffix(proposalRow.miscSubtotal),
       ].join("") || "+0";
       const scopeRef = `${col.scope}${rowNumber}`;
-      const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE"),0,${col.quantity}${rowNumber}*${col.costTotal}${rowNumber}${directCostAdjustments})`;
+      // F-? (recalc parity): the model pins costAmount = round(materialUnit*qty) +
+      // round(laborUnit*qty) + contingency + misc — each product rounded to 2dp SEPARATELY
+      // before summing (build-proposal-export-model.ts normalizeSourceRow). The live LINE
+      // TOTAL formula must reproduce that exactly, else a fractional quantity makes the
+      // recalculated value (and the SUM subtotals / Grand Total / amount-in-words derived
+      // from it) drift a centavo from the pinned figures on open. So round each product in
+      // the formula too rather than computing qty*(material+labor) in one multiplication.
+      const lineCostFormula = `ROUND(${col.quantity}${rowNumber}*${col.material}${rowNumber},2)+ROUND(${col.quantity}${rowNumber}*${col.labor}${rowNumber},2)${directCostAdjustments}`;
+      const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE"),0,${lineCostFormula})`;
       const remarks = [
         proposalRow.contingencySubtotal ? `Contingency: ${formatPeso(proposalRow.contingencySubtotal)}` : null,
         proposalRow.miscSubtotal ? `Misc / other: ${formatPeso(proposalRow.miscSubtotal)}` : null,

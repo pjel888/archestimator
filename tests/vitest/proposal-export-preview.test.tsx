@@ -1,10 +1,10 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
-import { ProposalExportPreviewDialog } from "@/components/workshop/ProposalExportPreviewDialog";
+import { ProposalExportPreviewDialog, clampRate } from "@/components/workshop/ProposalExportPreviewDialog";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
@@ -352,10 +352,19 @@ describe("ProposalExportPreviewDialog", () => {
     await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
     await user.click(screen.getByText("Export settings")); // open the settings panel
 
-    const vatInput = screen.getByRole("spinbutton", { name: "VAT rate percent" });
-    await user.clear(vatInput);
-    await user.type(vatInput, "8");
+    // fireEvent.change sets the field and fires onChange once, synchronously — deterministic
+    // for a controlled input (avoids userEvent's per-keystroke append/flush race with the draft
+    // state). Real-browser clear-then-type is verified by the clampRate unit tests below.
+    const vatInput = screen.getByRole("textbox", { name: "VAT rate percent" });
+    fireEvent.change(vatInput, { target: { value: "8" } });
     await user.click(screen.getByRole("checkbox", { name: /Include internal Source Breakdown/i }));
+
+    // RV-3: the contents summary must reflect the requested internal breakdown — once the box
+    // is checked the file WILL contain Source Breakdown, so it flips from "Not in this export"
+    // to "Internal only" instead of always misreporting it as omitted.
+    const sourceBreakdownItem = screen.getByText("Source Breakdown").closest("li") as HTMLElement;
+    expect(within(sourceBreakdownItem).getByText("Internal only")).toBeInTheDocument();
+    expect(within(sourceBreakdownItem).queryByText("Not in this export")).not.toBeInTheDocument();
 
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(() =>
       Promise.resolve(
@@ -426,5 +435,22 @@ describe("ProposalExportPreviewDialog", () => {
       fetchMock.mockRestore();
       URL.createObjectURL = originalCreate;
     }
+  });
+});
+
+describe("clampRate (RV-4)", () => {
+  it("keeps the prior rate when the field is cleared instead of coercing to 0%", () => {
+    // Number("") === 0 is finite, so a cleared field used to silently commit 0% and make the
+    // fallback unreachable. Empty/whitespace input must fall back to the current rate.
+    expect(clampRate("", 12)).toBe(12);
+    expect(clampRate("   ", 10)).toBe(10);
+  });
+
+  it("falls back on non-numeric input and clamps numeric input into 0–100", () => {
+    expect(clampRate("abc", 12)).toBe(12);
+    expect(clampRate("8", 12)).toBe(8);
+    expect(clampRate("12.5", 10)).toBe(12.5);
+    expect(clampRate("150", 12)).toBe(100);
+    expect(clampRate("-5", 12)).toBe(0);
   });
 });

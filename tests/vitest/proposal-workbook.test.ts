@@ -141,7 +141,7 @@ describe("proposal workbook generation", () => {
       950,
       0,
       { formula: "E19+F19", result: 950 },
-      { formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,D19*G19+800)', result: 21_700 },
+      { formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+800)', result: 21_700 },
       "INCLUDED",
       expect.stringContaining("Misc / other: ₱800.00"),
     ]);
@@ -183,11 +183,51 @@ describe("proposal workbook generation", () => {
     expect(model.proposalRows[0].contingencySubtotal).toBe(200);
     expect(bidForm?.getCell("H19").value).toEqual({
       formula:
-        'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,D19*G19+200+100)',
+        'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+200+100)',
       result: 2_300,
     });
     expect(bidForm?.getCell("J19").value).toContain("Contingency: ₱200.00");
     expect(bidForm?.getCell("J19").value).toContain("Misc / other: ₱100.00");
+  });
+
+  it("LINE TOTAL recalculates to the pinned costAmount for fractional quantities (recalc parity)", () => {
+    // qty 2.5 × unit 10.01 = 25.025, which rounds to 25.02. The model pins costAmount from
+    // round(unit*qty); the old `qty * COST TOTAL` formula would recalc to 25.025 in Excel and
+    // drift from the pinned figure. Round-then-sum in the formula keeps recalc == pinned.
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "main-house",
+        name: "Main House",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "bedroom-a",
+            name: "Bedroom A",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [row({ id: "frac-tile", quantity: 2.5, itemCost: 10.01 })],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const pr = model.proposalRows[0];
+    const roundMoney = (value: number) => Math.round(value * 100) / 100;
+
+    // What the live ROUND-then-sum formula evaluates to, recomputed on the same float inputs.
+    const formulaValue =
+      roundMoney(pr.quantity * pr.materialUnitCost) + roundMoney(pr.quantity * pr.laborUnitCost) + pr.contingencySubtotal + pr.miscSubtotal;
+    // What the old single-multiplication formula (qty * COST TOTAL) would have evaluated to.
+    const naiveValue = pr.quantity * (pr.materialUnitCost + pr.laborUnitCost) + pr.contingencySubtotal + pr.miscSubtotal;
+
+    expect(formulaValue).toBe(pr.costAmount); // recalc matches the pinned result
+    expect(naiveValue).not.toBe(pr.costAmount); // the fixture genuinely exercises the divergence
+
+    const bidForm = createProposalWorkbook(model).getWorksheet("Bid Form");
+    const lineTotal = bidForm?.getCell("H19").value as { formula: string; result: number };
+    expect(lineTotal.result).toBe(pr.costAmount);
+    expect(lineTotal.formula).toContain("ROUND(D19*E19,2)+ROUND(D19*F19,2)");
   });
 
   it("writes formula-backed summary, commercial terms, and source breakdown traceability sheets", () => {
@@ -239,7 +279,7 @@ describe("proposal workbook generation", () => {
 
     expect(buffer.byteLength).toBeGreaterThan(4_000);
     expect(loadedWorkbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual({
-      formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,D19*G19+800)',
+      formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,ROUND(D19*E19,2)+ROUND(D19*F19,2)+800)',
       result: 21_700,
     });
   });
@@ -526,7 +566,9 @@ describe("proposal workbook generation", () => {
     const col = BID_FORM_COLUMN_LETTERS;
 
     const lineTotal = bidForm?.getCell("H19").value as { formula: string };
-    expect(lineTotal.formula).toContain(`${col.quantity}19*${col.costTotal}19`);
+    // Recalc-parity (round-then-sum): each product rounded to 2dp separately, mirroring the
+    // model's costAmount; columns derived from BID_FORM_COLUMNS so a reorder can't misalign.
+    expect(lineTotal.formula).toContain(`ROUND(${col.quantity}19*${col.material}19,2)+ROUND(${col.quantity}19*${col.labor}19,2)`);
     expect(lineTotal.formula).toContain(`${col.scope}19="EXCLUDED"`);
 
     const costTotal = bidForm?.getCell("G19").value as { formula: string };

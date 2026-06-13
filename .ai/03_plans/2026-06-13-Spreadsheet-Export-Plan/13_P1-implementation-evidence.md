@@ -56,10 +56,26 @@ These are disclosed limitations, not defects. They must be checked before broad/
 2. **Manual cross-app recalc QA gate ([11 §A](11_qa-and-decision-addendum.md#a-cross-app-recalc-qa-checklist)) — release blocker.** Open a single-tab (≥12 sections) and a multi-tab (≥3 tabs) generated file in **Excel + Google Sheets + LibreOffice** and check Q1–Q6 (Grand Total recalcs, VAT/Contingency display without `#REF!`, cross-sheet refs resolve, accounting numFmt aligns, the `=HYPERLINK(...)` injection cell shows literal text and is not a live formula, EXCLUDED zeroes its line). The workshop dev-auth bypass is disabled — produce the files via the owner's Chrome session.
 3. **Browser UX (owner's Chrome).** Contrast of the gray tokens, jank on a large estimate, and the inline error-state rendering (413/500/429) of the new fetch-then-blob download.
 
+## Pre-merge adversarial review (round 2) — 4 findings fixed
+
+Before merging to `main`, the full `main…HEAD` diff was run through a multi-dimension adversarial
+review (6 finder lenses → independent verify → synthesis). It surfaced **4 confirmed MEDIUM**
+defects (0 critical/high) — all now fixed with regression tests:
+
+| # | File | Defect | Fix |
+|---|---|---|---|
+| RV-1 | `build-proposal-export-model.ts` | `renumberProposalRows` counted excluded rows, so a section mixing included + excluded scope showed gaps (ITEM 1, 3) in the Bid Form, which renders only included rows | Number included rows per-section; excluded rows get an independent flat sequence matching the EXCLUSIONS block. Test: included/excluded interleave stays contiguous |
+| RV-2 | `create-proposal-workbook.ts` | LINE TOTAL live formula `qty*COST_TOTAL` diverged from the pinned `costAmount` (round-then-sum) for fractional quantities → recalc drift in Excel/Sheets | Formula now `ROUND(qty*MATERIAL,2)+ROUND(qty*LABOR,2)+adj`, mirroring the model exactly. Test: fractional-qty parity (recalc == pinned; old form would diverge) |
+| RV-3 | `ProposalExportPreviewDialog.tsx` | Contents summary always reported Source Breakdown "omitted", even when a member checked "Include internal Source Breakdown" and the download URL carried `audience=internal` | `buildExportContents` driven by the requested `includeInternalBreakdown` (members-only note). Test: flag flips to "Internal only" |
+| RV-4 | `ProposalExportPreviewDialog.tsx` | `clampRate` used `Number("")===0`, so clearing a rate field silently committed 0%; decimals were also hard to type in the controlled number input | Empty/whitespace → keep prior rate (exported + unit-tested); rate inputs switched to `type=text inputMode=decimal` with a local draft so clearing/decimals work |
+
+All 8 proposal-* files now hold **78 tests** (was 74). Full suite **1850 passed / 3 skipped**,
+type-check + lint (0 errors) + `next build` clean, verified 3× deterministically.
+
 ## How to verify locally
 
 ```bash
-bun run test:dom        # all vitest dom tests incl. the 7 proposal-* files (Node >= 20.12)
+bun run test:dom        # all vitest dom tests incl. the 8 proposal-* files (Node >= 20.12)
 bun run type-check      # tsc --noEmit
 bun run lint            # eslint (0 errors expected)
 bun run build           # next build full compile

@@ -240,12 +240,22 @@ function applyCanonicalDivisionOrder(rows: ProposalExportRow[]): ProposalExportR
 }
 
 function renumberProposalRows(rows: ProposalExportRow[]): ProposalExportRow[] {
-  // P2-T5/F-09: hierarchical numbering — line numbers restart at 1 within each section
-  // (in proposalRows order, which is exactly the per-section filter order the Bid Form uses
-  // to lay rows out). The division letter (A/B/C…) is emitted on the section header row by
-  // the workbook builder, derived from the section's position in model.summaryRows.
+  // P2-T5/F-09: hierarchical numbering — each row is numbered within the context it is
+  // actually rendered in. The Bid Form's priced sections show only includedInTotal rows,
+  // so those restart at 1 per section. Excluded rows are pulled out into the flat
+  // EXCLUSIONS block (create-proposal-workbook.ts), so they get their own independent
+  // 1..n sequence — matching that block's String(index + 1). Numbering excluded rows off
+  // the per-section counter would consume a priced-section line number and leave a visible
+  // gap (e.g. ITEM 1, 3) in the Bid Form when a section mixes included and excluded scope.
+  // The division letter (A/B/C…) is emitted on the section header row by the workbook
+  // builder, derived from the section's position in model.summaryRows.
   const sectionCounters = new Map<string, number>();
+  let excludedCounter = 0;
   return rows.map((row) => {
+    if (!row.includedInTotal) {
+      excludedCounter += 1;
+      return { ...row, rowNumber: String(excludedCounter) };
+    }
     const next = (sectionCounters.get(row.sectionKey) ?? 0) + 1;
     sectionCounters.set(row.sectionKey, next);
     return { ...row, rowNumber: String(next) };

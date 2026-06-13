@@ -309,6 +309,41 @@ describe("proposal export model", () => {
     ]);
   });
 
+  it("keeps Bid Form line numbers contiguous when a section mixes included and excluded scope (F-09)", () => {
+    // An excluded row interleaved between two included rows of the same section must NOT
+    // consume a priced-section line number — the Bid Form renders only the included rows, so
+    // the ITEM column would otherwise read 1, 3 (a visible gap). Excluded rows are numbered on
+    // their own flat sequence, matching the EXCLUSIONS block.
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "concrete",
+            name: "Concrete Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "c1", material: "Footing", category: "Concrete" }),
+              row({ id: "c2", material: "Owner Rebar", category: "Concrete", scopeStatus: "by_others" }),
+              row({ id: "c3", material: "Slab", category: "Concrete" }),
+            ],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    const includedNumbers = model.proposalRows.filter((proposalRow) => proposalRow.includedInTotal).map((proposalRow) => proposalRow.rowNumber);
+    const excludedNumbers = model.proposalRows.filter((proposalRow) => !proposalRow.includedInTotal).map((proposalRow) => proposalRow.rowNumber);
+
+    expect(includedNumbers).toEqual(["1", "2"]); // contiguous — no skipped ITEM number
+    expect(excludedNumbers).toEqual(["1"]); // excluded row numbered independently
+  });
+
   it("orders sections by the canonical division taxonomy, not encounter order (P3-T3, F-27)", () => {
     const nodes: EstimateTreeNode[] = [
       {
