@@ -822,3 +822,179 @@ describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral dupli
     expect(result.message).toMatch(/No new recipients added/i);
   });
 });
+
+// AC-MOD-20 (MOD-REC-08) — neither resend nor add may email a dead `/share/<uuid>` link. When the
+// encrypted token can't be decrypted (clientLinkPath null) and no usable baseClientLink is passed,
+// the old `|| \`/share/${publicationId}\`` fallback emailed a 404 URL. Both actions must now abort
+// with a clear ok:false BEFORE sending or inserting.
+describe("AC-MOD-20 dead-link abort: never email an unresolvable /share/<uuid> link", () => {
+  // decryptPublicationToken throws → getPublicationProjectId swallows it → pubCtx.clientLinkPath is null.
+  function mockSharedEnv(recorded: RecordedQuery[], sendEmail: ReturnType<typeof vi.fn>) {
+    vi.doMock("@/lib/auth/session", () => ({
+      requireCurrentUserContext: vi.fn().mockResolvedValue({
+        userId: "user-1",
+        role: "ceo",
+        email: "owner@example.com",
+        displayName: "Owner One",
+      }),
+    }));
+    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn().mockResolvedValue({ get: () => "203.0.113.1" }),
+    }));
+    vi.doMock("@/lib/email/resend-client", () => ({
+      sendEmail,
+      readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
+    }));
+    vi.doMock("@/lib/publication/security", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/publication/security")>(
+        "@/lib/publication/security",
+      );
+      return {
+        ...actual,
+        // Simulate a secret rotation: the stored encrypted_token can no longer be decrypted.
+        decryptPublicationToken: vi.fn(() => {
+          throw new Error("decrypt failed (rotated secret)");
+        }),
+      };
+    });
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() =>
+        makeAdminClient({
+          recorded,
+          resolveResult: (query) => {
+            if (query.table === "project_publications" && query.operation === "select") {
+              return {
+                data: {
+                  id: PUBLICATION_ID,
+                  project_id: PROJECT_ID,
+                  workspace_id: WORKSPACE_ID,
+                  encrypted_token: "encrypted-cannot-decrypt",
+                },
+                error: null,
+              };
+            }
+            if (query.table === "projects") {
+              return {
+                data: {
+                  id: PROJECT_ID,
+                  workspace_id: WORKSPACE_ID,
+                  name: "Demo Project",
+                  project_code: "P-1",
+                  client_name: "Client",
+                  location: "Site",
+                  currency_code: "USD",
+                  metadata: {},
+                },
+                error: null,
+              };
+            }
+            if (query.table === "security_rate_limit_events") {
+              if (query.operation === "select") return { data: null, error: null, count: 1 };
+              return { data: null, error: null };
+            }
+            if (query.table === "shared_link_recipients" && query.operation === "select") {
+              return {
+                data: {
+                  id: RECIPIENT_ID,
+                  email: "client@example.com",
+                  display_name: null,
+                  email_unsubscribed_at: null,
+                },
+                error: null,
+              };
+            }
+            return { data: null, error: null };
+          },
+        }),
+      ),
+    }));
+  }
+
+  it("resendSharedLinkRecipientEmail returns ok:false, sends nothing, and writes no recipient row", async () => {
+    const recorded: RecordedQuery[] = [];
+    const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "should-never-send" });
+    mockSharedEnv(recorded, sendEmail);
+
+    const { resendSharedLinkRecipientEmail } = await import("@/lib/publication/actions");
+    // No baseClientLink passed → must fall back to clientLinkPath, which is null (decrypt threw).
+    const result = await resendSharedLinkRecipientEmail({
+      publicationId: PUBLICATION_ID,
+      recipientId: RECIPIENT_ID,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Could not resolve the shared link/i);
+    // The dead link is never built and never sent.
+    expect(sendEmail).not.toHaveBeenCalled();
+    // No recipient write happened → the prior token/status are untouched.
+    const recipientUpdates = recorded.filter(
+      (q) => q.table === "shared_link_recipients" && q.operation === "update",
+    );
+    expect(recipientUpdates).toHaveLength(0);
+  });
+
+  it("rejects a bare-UUID baseClientLink (a stale /share/<uuid>) without sending", async () => {
+    const recorded: RecordedQuery[] = [];
+    const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "should-never-send" });
+    mockSharedEnv(recorded, sendEmail);
+
+    const { resendSharedLinkRecipientEmail } = await import("@/lib/publication/actions");
+    const result = await resendSharedLinkRecipientEmail({
+      publicationId: PUBLICATION_ID,
+      recipientId: RECIPIENT_ID,
+      // A path whose share token is a bare UUID can never resolve (it is not a token_hash).
+      baseClientLink: `/share/${PUBLICATION_ID}`,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("addSharedLinkRecipients aborts the batch: no inserts, no sends, ok:false", async () => {
+    const recorded: RecordedQuery[] = [];
+    const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "should-never-send" });
+    mockSharedEnv(recorded, sendEmail);
+
+    const { addSharedLinkRecipients } = await import("@/lib/publication/actions");
+    const result = await addSharedLinkRecipients({
+      publicationId: PUBLICATION_ID,
+      recipients: [{ email: "fresh@example.com" }],
+      // no baseClientLink; clientLinkPath is null → unresolvable
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.added).toBe(0);
+    expect(result.message).toMatch(/Could not resolve the shared link/i);
+    // No recipient rows inserted against a dead link.
+    const recipientInserts = recorded.filter(
+      (q) => q.table === "shared_link_recipients" && q.operation === "insert",
+    );
+    expect(recipientInserts).toHaveLength(0);
+    // No email sent.
+    expect(sendEmail).not.toHaveBeenCalled();
+    // The affected recipient is surfaced as a failure.
+    const entry = result.emailResults.find((r) => r.email === "fresh@example.com");
+    expect(entry).toBeDefined();
+    expect(entry?.ok).toBe(false);
+    expect(entry?.status).toBe("failed");
+    expect(result.failedEmails).toContain("fresh@example.com");
+  });
+
+  it("still sends when a usable baseClientLink is provided (guards the abort tests)", async () => {
+    const recorded: RecordedQuery[] = [];
+    const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "resend-message-1" });
+    mockSharedEnv(recorded, sendEmail);
+
+    const { resendSharedLinkRecipientEmail } = await import("@/lib/publication/actions");
+    const result = await resendSharedLinkRecipientEmail({
+      publicationId: PUBLICATION_ID,
+      recipientId: RECIPIENT_ID,
+      // A real (non-UUID) share token resolves fine → the abort must NOT fire.
+      baseClientLink: "/share/real-client-token",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+  });
+});

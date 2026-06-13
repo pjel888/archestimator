@@ -34,7 +34,7 @@ type ResendRecipientDeliveryUpdate = {
 
 type SharedLinkRecipientDeliveryRow = Pick<
   Database["public"]["Tables"]["shared_link_recipients"]["Row"],
-  "id" | "resend_last_event_at"
+  "id" | "resend_last_event_at" | "resend_email_id"
 >;
 
 const resend = new Resend("re_webhook_verifier");
@@ -154,7 +154,7 @@ async function findRecipientForResendUpdate(
 ): Promise<SharedLinkRecipientDeliveryRow | null> {
   const { data: byEmailId, error: byEmailIdError } = await admin
     .from("shared_link_recipients")
-    .select("id, resend_last_event_at")
+    .select("id, resend_last_event_at, resend_email_id")
     .eq("resend_email_id", update.emailId)
     .maybeSingle();
 
@@ -164,11 +164,21 @@ async function findRecipientForResendUpdate(
 
   const { data: byRecipientId, error: byRecipientIdError } = await admin
     .from("shared_link_recipients")
-    .select("id, resend_last_event_at")
+    .select("id, resend_last_event_at, resend_email_id")
     .eq("id", update.recipientId)
     .maybeSingle();
 
   if (byRecipientIdError) throw byRecipientIdError;
+  if (!byRecipientId) return null;
+
+  // AC-MOD-20 (MOD-REC-07): the recipient-id tag alone is not enough to attribute an event.
+  // A recipient can be resent, so the row's resend_email_id moves to a newer value; a stale
+  // webhook for the SUPERSEDED email still carries the old recipient-id tag and would otherwise
+  // overwrite the active email's delivery status. Only attribute when it is safe: the row has no
+  // bound email yet (null/empty — a legitimate first webhook) OR its resend_email_id matches this
+  // event's email_id. A different non-null value is a stale/foreign event — do not attribute.
+  const boundEmailId = byRecipientId.resend_email_id?.trim();
+  if (boundEmailId && boundEmailId !== update.emailId) return null;
   return byRecipientId;
 }
 
