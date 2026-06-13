@@ -593,7 +593,37 @@ function filterEstimateSheetNode(node: EstimateTreeNode, query: string): Estimat
 }
 
 function getRemoteCursorLabel(cursor: RemoteEstimateCursor) {
+  // Identity (userId) is cryptographically verified upstream (T1.2); the name is
+  // the verified sender's self-reported label, rendered as escaped React text.
   return cursor.displayName ?? `User ${cursor.userId.slice(0, 8)}`;
+}
+
+// Selector-safe ids only, so a wire-supplied rowId/columnId can never inject a
+// CSS selector during denormalization.
+const SAFE_ANCHOR_ID = /^[A-Za-z0-9_-]+$/;
+
+type CursorTarget = { x: number; y: number };
+
+// Resolve a remote cursor to surface-relative coords. Row/cell anchoring (T5.1 /
+// R-6) keeps cursors on the same logical cell regardless of who has which rows
+// expanded; falls back to the absolute scroll-adjusted coords for gutter/header.
+function resolveCursorTarget(cursor: RemoteEstimateCursor, surface: HTMLElement): CursorTarget {
+  if (cursor.rowId && SAFE_ANCHOR_ID.test(cursor.rowId)) {
+    const rowEl = surface.querySelector<HTMLElement>(`[data-estimate-row-id="${cursor.rowId}"]`);
+    let anchor: HTMLElement | null = rowEl;
+    if (rowEl && cursor.columnId && SAFE_ANCHOR_ID.test(cursor.columnId)) {
+      anchor = rowEl.querySelector<HTMLElement>(`[data-estimate-cell-index="${cursor.columnId}"]`) ?? rowEl;
+    }
+    if (anchor) {
+      const surfaceBounds = surface.getBoundingClientRect();
+      const anchorBounds = anchor.getBoundingClientRect();
+      return {
+        x: anchorBounds.left - surfaceBounds.left + surface.scrollLeft + (cursor.fracX ?? 0.5) * anchorBounds.width,
+        y: anchorBounds.top - surfaceBounds.top + surface.scrollTop + (cursor.fracY ?? 0.5) * anchorBounds.height,
+      };
+    }
+  }
+  return { x: cursor.x, y: cursor.y };
 }
 
 // Isolates collaboration cursor traffic: the realtime hook lives here so
@@ -629,9 +659,21 @@ function EstimateSheetCursorLayer({
       const bounds = surface.getBoundingClientRect();
       const rowElement = event.target.closest<HTMLElement>("[data-estimate-row-id]");
       const cellElement = event.target.closest<HTMLElement>("[data-estimate-cell-index]");
+      // Fraction within the resolved cell/row so receivers can re-anchor without
+      // pixel drift across differing expansion/viewport (T5.1 / R-6).
+      const anchorElement = cellElement ?? rowElement;
+      let fracX: number | null = null;
+      let fracY: number | null = null;
+      if (anchorElement) {
+        const anchorBounds = anchorElement.getBoundingClientRect();
+        fracX = anchorBounds.width ? (event.clientX - anchorBounds.left) / anchorBounds.width : 0;
+        fracY = anchorBounds.height ? (event.clientY - anchorBounds.top) / anchorBounds.height : 0;
+      }
       broadcastCursor({
         x: Math.round(event.clientX - bounds.left + surface.scrollLeft),
         y: Math.round(event.clientY - bounds.top + surface.scrollTop),
+        fracX,
+        fracY,
         rowId: rowElement?.dataset.estimateRowId ?? null,
         columnId: cellElement?.dataset.estimateCellIndex ?? null,
       });
@@ -656,27 +698,96 @@ function EstimateSheetCursorLayer({
 }
 
 function RemoteEstimateCursorsOverlay({ cursors }: { cursors: RemoteEstimateCursor[] }) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const markerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const positionsRef = useRef<Map<string, CursorTarget>>(new Map());
+  const cursorsRef = useRef<RemoteEstimateCursor[]>(cursors);
+  // Keep the rAF loop reading the latest cursors without re-subscribing it
+  // (synced in an effect, not during render, per react-hooks rules).
+  useEffect(() => {
+    cursorsRef.current = cursors;
+  });
+
+  // rAF interpolation loop: eases each marker toward its (re-resolved) anchor
+  // every frame, decoupled from the network loop. Reduced-motion → snap.
+  useEffect(() => {
+    if (cursors.length === 0) return;
+    const overlay = overlayRef.current;
+    const surface = overlay?.closest<HTMLElement>("[data-estimate-pointer-surface]");
+    if (!surface) return;
+
+    const reduceMotion =
+      typeof window !== "undefined" && window.matchMedia
+        ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        : false;
+
+    let raf = 0;
+    const positions = positionsRef.current;
+    function frame() {
+      for (const cursor of cursorsRef.current) {
+        const element = markerRefs.current.get(cursor.userId);
+        if (!element || !surface) continue;
+        const target = resolveCursorTarget(cursor, surface);
+        const previous = positions.get(cursor.userId) ?? target;
+        const nextX = reduceMotion ? target.x : previous.x + (target.x - previous.x) * 0.25;
+        const nextY = reduceMotion ? target.y : previous.y + (target.y - previous.y) * 0.25;
+        positions.set(cursor.userId, { x: nextX, y: nextY });
+        element.style.transform = `translate3d(${Math.round(nextX)}px, ${Math.round(nextY)}px, 0)`;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [cursors.length]);
+
   if (cursors.length === 0) return null;
 
+  // Screen-reader equivalent for the aria-hidden visual layer (T5.1 / G11):
+  // who is editing which row, derived from anchor ids (changes rarely, no spam).
+  const editingAnnouncement = cursors
+    .filter((cursor) => cursor.rowId)
+    .map((cursor) => `${getRemoteCursorLabel(cursor)} is editing a row`)
+    .join(". ");
+
   return (
-    <div
-      className="pointer-events-none absolute left-0 top-0 z-30 min-h-full min-w-full"
-      aria-hidden="true"
-      data-estimate-cursor-layer
-    >
-      {cursors.map((cursor) => (
-        <RemoteEstimateCursorMarker key={cursor.userId} cursor={cursor} />
-      ))}
-    </div>
+    <>
+      <div
+        ref={overlayRef}
+        className="pointer-events-none absolute left-0 top-0 z-30 min-h-full min-w-full"
+        aria-hidden="true"
+        data-estimate-cursor-layer
+      >
+        {cursors.map((cursor) => (
+          <RemoteEstimateCursorMarker
+            key={cursor.userId}
+            cursor={cursor}
+            registerRef={(element) => {
+              if (element) markerRefs.current.set(cursor.userId, element);
+              else markerRefs.current.delete(cursor.userId);
+            }}
+          />
+        ))}
+      </div>
+      <div className="sr-only" role="status" aria-live="polite" data-estimate-cursor-sr>
+        {editingAnnouncement}
+      </div>
+    </>
   );
 }
 
-function RemoteEstimateCursorMarker({ cursor }: { cursor: RemoteEstimateCursor }) {
+function RemoteEstimateCursorMarker({
+  cursor,
+  registerRef,
+}: {
+  cursor: RemoteEstimateCursor;
+  registerRef: (element: HTMLDivElement | null) => void;
+}) {
   const color = getCollaborationColorForUser(cursor.userId);
 
   return (
     <div
-      className="absolute left-0 top-0 flex items-start gap-1"
+      ref={registerRef}
+      className="absolute left-0 top-0 flex items-start gap-1 will-change-transform"
       style={{ transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)` }}
       data-estimate-remote-cursor={cursor.userId}
       data-estimate-remote-cursor-color={color.name}

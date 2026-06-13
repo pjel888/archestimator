@@ -1,3 +1,4 @@
+import { OTHER_BUCKET_ID, colorForBucket } from "./bucket-color";
 import type {
   ProjectChartBucket,
   ProjectChartCategoryNodeFact,
@@ -12,22 +13,26 @@ import type {
   ProjectChartSupplierFact,
 } from "./types";
 
-const OTHER_BUCKET_ID = "__other__";
+/**
+ * Lookup maps for bucket resolution, built ONCE per series instead of once per
+ * row. The old code rebuilt `new Map(nodes.map(...))` inside `resolveSpaceBucket`
+ * on every row — O(rows × nodes) (`01` PERF-3). These are identical every
+ * iteration (they depend only on the fact arrays, never on the row), so they are
+ * hoisted out of the hot loop here.
+ */
+type BucketLookups = {
+  nodeById: Map<string, ProjectChartNodeFact>;
+  categoryById: Map<string, ProjectChartCategoryNodeFact>;
+  supplierById: Map<string, ProjectChartSupplierFact>;
+};
 
-const PROJECT_CHART_COLORS = [
-  "#2f5d50",
-  "#d98b3a",
-  "#4c6f9f",
-  "#b84a62",
-  "#7a5aa6",
-  "#2f8f9d",
-  "#c9a227",
-  "#5f6b3d",
-  "#8a8f98",
-  "#8f5c38",
-  "#4d7c63",
-  "#6b7280",
-];
+function createBucketLookups(input: ProjectChartsAggregationBase): BucketLookups {
+  return {
+    nodeById: new Map(input.nodes.map((node) => [node.id, node])),
+    categoryById: new Map(input.categoryNodes.map((node) => [node.id, node])),
+    supplierById: new Map(input.suppliers.map((supplier) => [supplier.id, supplier])),
+  };
+}
 
 type ProjectChartsAggregationBase = {
   estimates: ProjectChartEstimateOption[];
@@ -107,13 +112,14 @@ function buildSeries(
 ): ProjectChartSeries {
   const estimate = input.estimates.find((candidate) => candidate.id === estimateId);
   const rawBuckets = new Map<string, BucketAccumulator>();
+  const lookups = createBucketLookups(input);
 
   for (const row of input.rows) {
     if (row.estimateId !== estimateId) {
       continue;
     }
 
-    const bucket = resolveBucket(input, row);
+    const bucket = resolveBucket(input, lookups, row);
     const total = calculateProjectChartRowTotal(row);
     const existing = rawBuckets.get(bucket.id) ?? {
       id: bucket.id,
@@ -129,7 +135,7 @@ function buildSeries(
 
   const allBuckets = [...rawBuckets.values()]
     .sort((left, right) => right.total - left.total || left.label.localeCompare(right.label))
-    .map((bucket, index) => toBucket(bucket, getBucketShare(bucket.total, rawBuckets), index));
+    .map((bucket) => toBucket(bucket, getBucketShare(bucket.total, rawBuckets)));
   const total = allBuckets.reduce((sum, bucket) => sum + bucket.total, 0);
 
   return {
@@ -154,20 +160,19 @@ function buildSeries(
   };
 }
 
-function resolveBucket(input: ProjectChartsAggregationBase, row: ProjectChartRowFact) {
+function resolveBucket(input: ProjectChartsAggregationBase, lookups: BucketLookups, row: ProjectChartRowFact) {
   if (input.groupingMode === "space") {
-    return resolveSpaceBucket(input.nodes, row);
+    return resolveSpaceBucket(lookups.nodeById, row);
   }
 
   if (input.groupingMode === "category") {
-    return resolveCategoryBucket(input.categoryNodes, row);
+    return resolveCategoryBucket(lookups.categoryById, row);
   }
 
-  return resolveSupplierBucket(input.suppliers, row);
+  return resolveSupplierBucket(lookups.supplierById, row);
 }
 
-function resolveSpaceBucket(nodes: ProjectChartNodeFact[], row: ProjectChartRowFact) {
-  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+function resolveSpaceBucket(nodeById: Map<string, ProjectChartNodeFact>, row: ProjectChartRowFact) {
   let current = row.nodeId ? nodeById.get(row.nodeId) : undefined;
   let highestArea: ProjectChartNodeFact | undefined;
 
@@ -267,14 +272,15 @@ function buildSpaceTableRows(
       const accumulator = areaTotals.get(child.id);
       if (!accumulator) continue;
 
-      const bucket = bucketById.get(normalizeBucketId("space", child.name));
+      const spaceBucketId = normalizeBucketId("space", child.name);
+      const bucket = bucketById.get(spaceBucketId);
       rows.push({
         id: `area:${child.id}`,
         label: child.name,
         total: accumulator.total,
         share: getShare(accumulator.total, seriesTotal),
         rowCount: accumulator.rowCount,
-        color: bucket?.color ?? PROJECT_CHART_COLORS[0],
+        color: bucket?.color ?? colorForBucket(spaceBucketId),
         depth,
         kind: "area",
       });
@@ -320,8 +326,7 @@ function resolveSpaceAreaNode(
   return highestArea;
 }
 
-function resolveCategoryBucket(categoryNodes: ProjectChartCategoryNodeFact[], row: ProjectChartRowFact) {
-  const nodeById = new Map(categoryNodes.map((node) => [node.id, node]));
+function resolveCategoryBucket(nodeById: Map<string, ProjectChartCategoryNodeFact>, row: ProjectChartRowFact) {
   let current = row.categoryNodeId ? nodeById.get(row.categoryNodeId) : undefined;
   let topCategory: ProjectChartCategoryNodeFact | undefined;
 
@@ -343,8 +348,7 @@ function resolveCategoryBucket(categoryNodes: ProjectChartCategoryNodeFact[], ro
   };
 }
 
-function resolveSupplierBucket(suppliers: ProjectChartSupplierFact[], row: ProjectChartRowFact) {
-  const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
+function resolveSupplierBucket(supplierById: Map<string, ProjectChartSupplierFact>, row: ProjectChartRowFact) {
   const supplier =
     (row.supplierId ? supplierById.get(row.supplierId) : undefined) ??
     (row.sourceSupplierId ? supplierById.get(row.sourceSupplierId) : undefined);
@@ -384,6 +388,14 @@ function buildComparisonRows(
     .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta) || left.label.localeCompare(right.label));
 }
 
+/** Public top-N + "Other" collapse, used client-side for the donut share view. */
+export function collapseProjectChartBuckets(
+  buckets: ProjectChartBucket[],
+  topBucketLimit = 8,
+): ProjectChartBucket[] {
+  return collapseTopBuckets(buckets, topBucketLimit);
+}
+
 function collapseTopBuckets(buckets: ProjectChartBucket[], topBucketLimit: number): ProjectChartBucket[] {
   if (buckets.length <= topBucketLimit) {
     return buckets;
@@ -403,17 +415,20 @@ function collapseTopBuckets(buckets: ProjectChartBucket[], topBucketLimit: numbe
       total: otherTotal,
       share: seriesTotal > 0 ? otherTotal / seriesTotal : 0,
       rowCount: otherRows,
-      color: PROJECT_CHART_COLORS[PROJECT_CHART_COLORS.length - 1],
+      color: colorForBucket(OTHER_BUCKET_ID),
       isOther: true,
     },
   ];
 }
 
-function toBucket(bucket: BucketAccumulator, share: number, index: number): ProjectChartBucket {
+function toBucket(bucket: BucketAccumulator, share: number): ProjectChartBucket {
   return {
     ...bucket,
     share,
-    color: PROJECT_CHART_COLORS[index % PROJECT_CHART_COLORS.length],
+    // Stable, CVD-safe color keyed by bucket id — the same category is the same
+    // color in every estimate column (`03` UX-7, `06` A11Y-6). Replaces the old
+    // per-series rank-index color that lied across columns.
+    color: colorForBucket(bucket.id),
   };
 }
 

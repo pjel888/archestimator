@@ -334,7 +334,7 @@ export function CostDonutChart({
               fill={datum.data.color}
               stroke="#fff"
               strokeWidth={1.5}
-              className="cursor-pointer transition-opacity"
+              className="cursor-pointer transition-opacity motion-reduce:transition-none"
               style={{ opacity: activeId && activeId !== datum.data.id ? 0.4 : 1 }}
               onMouseEnter={() => setActiveId(datum.data.id)}
               onFocus={() => setActiveId(datum.data.id)}
@@ -364,7 +364,10 @@ export function CostDonutChart({
         <g>
           {callouts.map((c) => (
             <g key={c.id} data-testid="donut-callout">
-              <path d={c.connector} fill="none" stroke="#E5E5E5" strokeWidth={1} />
+              {/* Callout connector — the only link between slice and label, so it
+                  is a "graphical object" under WCAG 1.4.11. Darkened from #E5E5E5
+                  (~1.3:1) to #8f8f8f (~3.2:1) to clear the 3:1 floor (`06` A11Y-4). */}
+              <path d={c.connector} fill="none" stroke="#8f8f8f" strokeWidth={1} />
               <circle cx={formatSvgNumber(c.x)} cy={formatSvgNumber(c.y)} r={formatSvgNumber(3)} fill={c.color} />
               <text
                 x={formatSvgNumber(c.x + (c.anchor === "start" ? 8 : -8))}

@@ -1276,6 +1276,14 @@ describe("AI Ask read context", () => {
     expect(JSON.stringify(result.providerContext)).not.toContain(chartSupabase.estimateId);
     expect(JSON.stringify(result.providerContext)).not.toContain("supplier-bedroom");
     expect(JSON.stringify(result.providerContext)).not.toContain("cat-furniture");
+    // P2.9 / D-12: AI Ask gets compact read-only buckets, NEVER raw row/node/category/
+    // supplier fact arrays or per-row cost fields, after the buckets-only cutover.
+    {
+      const providerJson = JSON.stringify(result.providerContext);
+      for (const leak of ["rowFacts", "nodeFacts", "categoryNodeFacts", "supplierFacts", "unitCost", "quantity", "miscCost", "contingencyPercentage", "sourceSupplierId", "node_id", "source_snapshot"]) {
+        expect(providerJson).not.toContain(leak);
+      }
+    }
     expect(result.auditEvents).toEqual([
       expect.objectContaining({
         eventName: "ask_read_project_chart_summary",
