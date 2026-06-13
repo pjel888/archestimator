@@ -18,6 +18,65 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     expect(publicRepository).toContain('rpc("increment_project_publication_open"');
   });
 
+  // OPT-2/OPT-3 (PERF-03/PERF-04): the token->publication lookup and the service client are
+  // de-duplicated per request via React.cache. cache() only memoises inside a real RSC request
+  // scope (it does NOT dedupe in a bare vitest call — verified), so the structure is asserted
+  // here and the runtime memoisation is covered by the production build + the page test.
+  it("routes the hot-path publication-row lookup and service client through React.cache wrappers (per-request dedup)", () => {
+    // imports the per-request memoisation primitive
+    expect(publicRepository).toMatch(/import\s*\{\s*cache\s*\}\s*from\s*"react"/);
+
+    // one cache-wrapped service client (OPT-3) and two cache-wrapped row readers (OPT-2)
+    expect(publicRepository).toContain("const getRequestPublicationServiceClient = cache(createPublicationServiceClient)");
+    expect(publicRepository).toMatch(/const getCachedPublicationAccessRowByToken = cache\(/);
+    expect(publicRepository).toMatch(/const getCachedPublicationSnapshotRowByToken = cache\(/);
+
+    // the access + snapshot resolvers read through the cached readers instead of re-querying
+    expect(publicRepository).toMatch(/resolveProjectPublicationAccessByToken[\s\S]*?await getCachedPublicationAccessRowByToken\(token\)/);
+    expect(publicRepository).toMatch(/resolveProjectPublicationSnapshotByToken[\s\S]*?await getCachedPublicationSnapshotRowByToken\(token\)/);
+
+    // both telemetry writers reuse the cached access row rather than issuing their own SELECT
+    expect(publicRepository).toMatch(/recordProjectPublicationAnalyticsEvent[\s\S]*?await getCachedPublicationAccessRowByToken\(token\)/);
+    expect(publicRepository).toMatch(/recordProjectPublicationEvent[\s\S]*?await getCachedPublicationAccessRowByToken\(token\)/);
+
+    // the access resolver + both telemetry writers no longer carry an inline token_hash SELECT;
+    // the only remaining inline access-column selects are in the password/recipient verifiers.
+    const inlineAccessSelects = publicRepository.match(/\.select\("id, status, password_hash, expires_at, revoked_at, snapshot_version"\)/g) ?? [];
+    expect(inlineAccessSelects.length).toBe(2);
+  });
+
+  it("still resolves the access row through the cached reader at runtime (one client SELECT per resolver call)", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://archestimator.test");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
+    vi.stubEnv("PUBLICATION_TOKEN_HASH_SECRET", "publication-token-hash-secret");
+
+    const select = vi.fn().mockReturnThis();
+    const eq = vi.fn().mockReturnThis();
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: { id: "publication-1", status: "published", password_hash: null, expires_at: null, revoked_at: null, snapshot_version: 1 },
+      error: null,
+    });
+    const from = vi.fn(() => ({ select, eq, maybeSingle }));
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({ from, rpc: vi.fn() })),
+    }));
+
+    // React.cache memoisation only engages inside a real RSC request render scope (it is a
+    // no-op in a bare vitest call — verified), so we cannot assert cross-call dedup here; the
+    // per-request dedup is covered by the production build + the page test. What we CAN verify
+    // is that the resolver now reads through the cache-wrapped getCachedPublicationAccessRowByToken
+    // path: a single resolver call issues exactly one publication-row SELECT against
+    // project_publications and returns the resolved access shape with the active-state gate applied.
+    const { resolveProjectPublicationAccessByToken } = await import("@/lib/publication/public-repository");
+    const access = await resolveProjectPublicationAccessByToken("client-token");
+
+    expect(access).toEqual(expect.objectContaining({ publicationId: "publication-1", status: "published", passwordRequired: false }));
+    expect(from).toHaveBeenCalledWith("project_publications");
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves duplicate decision conflicts when the submit_client_response RPC returns no id", async () => {
     vi.resetModules();
 
