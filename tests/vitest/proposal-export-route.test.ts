@@ -248,6 +248,81 @@ describe("proposal xlsx export route", () => {
     expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
   });
 
+  it("returns a logged JSON 500 (not a stack page) when workbook generation throws", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.createProposalWorkbookBuffer.mockRejectedValueOnce(new Error("ExcelJS exploded"));
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(typeof body.error).toBe("string");
+    expect(body.error).not.toContain("ExcelJS exploded");
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ route: "proposal_export", outcome: "error" }),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it("skips a tab archived mid-request (allSettled) instead of failing the whole export", async () => {
+    mocks.getEstimateTabs.mockResolvedValueOnce([
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-gone", name: "Gone", sortOrder: 10, isDefault: false },
+    ]);
+    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => {
+      const base = {
+        workspace: { id: "workspace-1" },
+        project: { id: "project-1", name: "Synthetic Hotel Fit-Out Study", project_code: "SYN-001", location: "Metro City", currency_code: "PHP" },
+        estimate: { id: "estimate-1", name: "Interior Fit-Out Estimate", sheet_code: "EST-001", currency_code: "PHP", metadata: { versionNumber: 3 } },
+        selectedNodeId: "area-1",
+        loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 1, fetchedRowItemCount: 1, didExceedNodeLimit: false, didExceedRowItemLimit: false },
+      };
+      if (tabId === "tab-gone") return Promise.resolve({ ...base, tab: null, tree: [] });
+      return Promise.resolve({ ...base, tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }, tree });
+    });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({ tabs: [expect.objectContaining({ tabId: "tab-main", tabName: "Main" })] }),
+    );
+  });
+
+  it("skips a tab whose fetch rejects (allSettled) instead of failing the whole export", async () => {
+    mocks.getEstimateTabs.mockResolvedValueOnce([
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-boom", name: "Boom", sortOrder: 10, isDefault: false },
+    ]);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => {
+      if (tabId === "tab-boom") return Promise.reject(new Error("tab fetch failed"));
+      return Promise.resolve({
+        workspace: { id: "workspace-1" },
+        project: { id: "project-1", name: "Synthetic Hotel Fit-Out Study", project_code: "SYN-001", location: "Metro City", currency_code: "PHP" },
+        estimate: { id: "estimate-1", name: "Interior Fit-Out Estimate", sheet_code: "EST-001", currency_code: "PHP", metadata: { versionNumber: 3 } },
+        tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+        selectedNodeId: "area-1",
+        tree,
+        loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 1, fetchedRowItemCount: 1, didExceedNodeLimit: false, didExceedRowItemLimit: false },
+      });
+    });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({ tabs: [expect.objectContaining({ tabId: "tab-main" })] }),
+    );
+    errorSpy.mockRestore();
+  });
+
   it("returns 404 when an explicit tab is unknown or archived", async () => {
     mocks.getEstimateTabTree.mockResolvedValueOnce({
       workspace: { id: "workspace-1" },
