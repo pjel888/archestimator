@@ -8,6 +8,16 @@ Artifacts:
 - Fixtures + builders → [`tests/vitest/estimate-unification-oracle.fixtures.ts`](../../../tests/vitest/estimate-unification-oracle.fixtures.ts)
 - Snapshots → vitest `__snapshots__/estimate-unification-oracle.test.ts.snap` (committed; the golden master)
 
+## Current executable status (second audit correction)
+
+Do **not** treat the oracle as fully green yet. Live inspection shows:
+
+- runnable today: O1 totals, O3b/O4a canonical formula + row-sum, and O5 cache-key format;
+- still `it.todo`: O2 share reconstruct, O3 proposal export, O4 chart series, and O-DIV-1 snapshot RPC divergence;
+- committed snapshot coverage: only the O1 all-area totals snapshot currently exists.
+
+**Blocking PR0 gate:** P0 is not complete until O2/O3/O4/O-DIV todos are executable assertions and all-area snapshots exist for each surface. Until then, any claim that "the golden-master oracle is green" must be read as "the oracle skeleton's currently wired assertions are green."
+
 ---
 
 ## The two fixtures
@@ -37,13 +47,23 @@ GRAND TOTAL = 100 + 50 + 30 + 20 = 200   (each row exactly once)
 ```
 This tree is **invalid under today's DB** but valid post-P5. The oracle builds it as an in-memory fixture (no DB) so the read surfaces can be exercised against it now.
 
+### Fixture additions required before P1
+
+Add these before PR1 so the oracle can catch the real edge cases the plan depends on:
+
+- multi-root all-area fixture, to prove root ordering and rollups stay stable;
+- empty node fixture, to cover unified empty state and no-row/no-child serialization;
+- same material/code on a container-owned row and a leaf-owned row, to catch export consolidation bugs;
+- deep mixed node with 20+ rows and children, to reuse for sticky/a11y/browser checks;
+- absent-node row fixture, to keep the existing "Unassigned" fallback from becoming a silent drop.
+
 ---
 
 ## Captured outputs (per fixture)
 
 | # | Surface | Entry point (verified) | Oracle assertion |
 |---|---|---|---|
-| O1 | **Totals** (in-app node totals + grand total) | `computeNodeTotal(node, {})` (`editable-row-model.ts:115`) | all-area: snapshot. mixed: BuildingA=180 (own100+L2's50+Room30), grand=200 |
+| O1 | **Totals** (in-app node totals + grand total) | `computeNodeTotal(node, {})` (`editable-row-model.ts:115`) | all-area: snapshot. mixed: BuildingA=200 (own100 + Level2 80 + direct sibling 20), Level2=80, grand=200 |
 | O2 | **Share reconstruct** | `buildShareTreeFromSnapshotNodes(...)` (`reconstruct-share-tree.ts:267`, the `:297` area gate) | all-area: snapshot of the ShareTreeNode[] + rollup. mixed: every row present in `directRows` of its owning node; rollup total=200 |
 | O3 | **Proposal export model** | `buildProposalExportModel({nodes})` (`build-proposal-export-model.ts:463`) | all-area: snapshot of `{summaryRows, proposalRows, totals}`. mixed: grand total=200, every source row appears once, **no `non_area_rows_skipped` warning**, no cross-provenance merge |
 | O3b| **Export per-row formula** | derived in `normalizeSourceRow` (`:88-94`) | each row's `costAmount` = `qty×unitCost + misc + qty×unitCost×cont%/100` (canonical) |

@@ -48,10 +48,15 @@ The template tree must unify **in lockstep** with the estimate tree in the same 
 ## G. Sidebar prop
 - `TemplateEditorClient.tsx:243-244` `selectedNodeKind` will always be "area"; confirm `EstimateRightSidebar` no longer branches on it, then drop the prop.
 
+## G2. Template editor form alignment
+
+Any new inline rename/create/add controls introduced for template parity follow the same form-alignment rule as the estimate surface: use shared control primitives, reserve helper/error slots for paired fields, align label baselines and input heights, and give dropdown/clear affordances enough inset padding. Do not solve drift with one-off margins in the template editor.
+
 ## H. Phase placement & risk
 - All editor changes ship in **P5** (template DB + UI lockstep, R7) so editor and the relaxed `validate_estimate_template_tree` never disagree. (The estimate-side layout/vocab ships P4; the template editor is lower-traffic and is fine landing with the template DB relax in P5.)
 - **Risk:** the four creation surfaces (A) must change together or the UI offers inconsistent affordances. The single hard "select a group first" guard is `areaTargetGroup` (`Sheet:537-544` → `disabled` at `:589`); the structure tree enforces the same rule structurally by only showing add-items on groups (`:189-207`).
 - **Test:** `estimate-template-unification.test.tsx` (one Add path, rows on any template node, drop zones on any node, no auto-wrap) + the save-as-template lockstep regression (a subtree with a former-group-with-rows templates successfully against the relaxed `validate_estimate_template_tree`) — see [10](10_TEST_MIGRATION_MAP.md).
+- **Dedicated save-as-template proof:** create a source estimate subtree with a mixed node, save it as a template, then assert both `estimate_template_nodes` and `estimate_template_row_items` contain the mixed shape and the editor renders rows plus children for the same template node. The existing template-insert smoke is not enough because it inserts a reusable template into a group; it does not prove a former group with rows can be templated after relax.
 
 ## I. Cosmetic-survives — the templates BROWSE tree (V4 #7, easily missed)
 `src/components/workshop/component-library/tree/TemplatesTree.tsx` is a **separate** consumer of estimate node kind in the browse surface: `:928` `nodeKind === "group" ? "Group" : "Area"` (meta label) and `:274,:277` (`node.nodeKind` → aria-label + `NodeKindIcon`). Non-breaking (display only), but it is a "roots-are-groups / leaves-are-areas" display assumption that drifts once the model collapses. **Sweep it in P4/P5** (single icon + drop the kind word) so the browse tree matches the editor. Also `TemplatePreviewDock.tsx:18,32` (`NodeKindIcon kind={node.kind}`) — same one-icon change.

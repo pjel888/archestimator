@@ -72,14 +72,14 @@ Hierarchical table:
 
 ---
 
-## D5. P5-vs-P6 RPC-guard split (sequencing refinement) → **FLAGGED FOR OWNER; recommend the split**
+## D5. P5-vs-P6 RPC-guard split (sequencing refinement) → **ADOPTED PLAN CONTRACT**
 
 Full rationale in [06 §F](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md#f-p5-vs-p6-split-correction-the-key-sequencing-refinement-). Summary:
 
-- **Finding:** `create_estimate_node_with_history` has no kind guard, so relaxing the validators (P5) already permits area-with-children at the RPC layer. The three RPC kind-guards (`insert_estimate_row_item_with_history:349`, `insert_estimate_template_into_estimate:824`, 🆕 `insert_estimate_subtree_into_estimate:87`) are what actually keep **row/template** writes withheld. Putting their relaxation in P5 (as 02 §B currently states) makes "P5 ships zero write capability" only UI-deep — partially violating non-negotiable #2.
-- **Recommendation (harness-proven):** P5 migration = validators + row-triggers + reorder only ([`08…P5.sql`](08_unify_estimate_node_kinds.P5.sql)); the three RPC `kind` clauses relax in **P6 with the create-flow UI**. This makes "relax-only" and "enable-writes" genuinely separate *at the enforcement layer*, co-locates the RPC relaxation with the write enablement it serves, keeps the P5 migration small and reviewable, and aligns the point-of-no-return (first mixed write) with the P6 RPC relaxation. Neither DDL step is itself irreversible (all `create or replace`).
+- **Finding:** `create_estimate_node_with_history` has no kind guard, so relaxing the validators (P5) already permits area-with-children at the RPC layer. The three RPC kind-guards (`insert_estimate_row_item_with_history:349`, `insert_estimate_template_into_estimate:824`, 🆕 `insert_estimate_subtree_into_estimate:87`) are what actually keep **row/template** writes withheld. Putting their relaxation in P5 makes "P5 ships zero write capability" only UI-deep — partially violating non-negotiable #2.
+- **Decision (harness-proven):** P5 migration = validators + row-triggers + reorder only ([`08…P5.sql`](08_unify_estimate_node_kinds.P5.sql)); the three RPC `kind` clauses relax in **P6 with the create-flow UI**. This makes "relax-only" and "enable-writes" genuinely separate *at the enforcement layer*, co-locates the RPC relaxation with the write enablement it serves, keeps the P5 migration small and reviewable, and aligns the point-of-no-return (first mixed write) with the P6 RPC relaxation. Neither DDL step is itself irreversible (all `create or replace`).
 - **Either way, add the missing 🆕 `insert_estimate_subtree_into_estimate` (20260613134852:87) to the relaxation list** — it postdates the research and is absent from the plan; without it, project-subtree insert breaks the instant a relaxed estimate is the source/target. This is non-optional regardless of the P5/P6 choice.
-- **Owner decision:** accept the split (recommended) **or** keep one P5 migration (append the `08…P5.sql` §F block to the P5 file). The prove harness validates both states.
+- **Rejected:** keep one P5 migration by appending the `08…P5.sql` §F block to P5. The prove harness can validate that state, but it merges write enablement into the relax-only phase and is not the active plan.
 
 ---
 

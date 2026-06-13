@@ -42,7 +42,7 @@ The earlier attempt to keep two types and *hide* the distinction (deferred picke
 | **R3** | Activity-scope `includeDescendants` is a **stable stored user choice**, never derived from child count; the `node:{id}:{desc|direct}` cache key stays stable. | P3 |
 | **R4** | A node with both own rows and children renders **rows-first**, one icon, conditional caret, unified empty state, with sticky-offset cascade and an own-rows-vs-child-rows visual distinction. | P4 |
 | **R5** | Vocabulary is unified to **"Area"**; "Group"/"Node" removed from user-facing copy; the onboarding group-vs-area step is deleted. | P4 |
-| **R6** | The DB migration drops the two-kind constraints/triggers on **both** `estimate_nodes` and `estimate_template_nodes`, keeping only cycle/cross-tab/missing-parent; it is relax-only and ships zero write capability. | P5 |
+| **R6** | The P5 DB migration relaxes the validators, row-item triggers, and reorder hierarchy guard on **both** `estimate_nodes` and `estimate_template_nodes`, keeping cycle/cross-tab/missing-parent/orphan guards and leaving the RPC kind guards in place; it ships zero row/template/subtree write capability. | P5 |
 | **R7** | Template tree (DB triggers + editor UI) unifies **in the same release** as the estimate side, so `save-as-template` never hits a stricter template trigger. | P5 |
 | **R8** | The create/write flow (single "Add Area", drop all guards + wrap) ships **after** the migration, as the isolated point of no return. | P6 |
 | **R9** | Totals are correct across **all five** surfaces (in-app, share, export, charts, snapshot) with no double-count and no dropped rows; consolidation never silently merges a container row with a leaf row. | P1–P6 (oracle) |
@@ -72,4 +72,4 @@ The earlier attempt to keep two types and *hide* the distinction (deferred picke
 | Only `area` holds row items. | `enforce_estimate_row_item_area_node` trigger; `insert_estimate_row_item_with_history` area guard; `canNodeReceiveRows` ([`domain/estimate-tree.ts:51`](../../../src/lib/domain/estimate-tree.ts)) | Any node holds rows. |
 | `area` cannot have children (→ auto-wrap on template drop). | `wrapEstimateAreaAndInsertTemplate` ([`actions.ts:2389`](../../../src/lib/estimates/actions.ts)); `getEstimateWrapGroupName` | Deleted entirely — templates insert as children directly. |
 | Two creation paths + "select a group first". | `EstimateSheetTree.tsx:623`, two toolbar buttons | Single "Add Area"; no blocking error. |
-| Template tree mirrors all of the above. | `validate_estimate_template_tree`, `enforce_estimate_template_row_item_area_node`, two insert group-target guards | Relaxed in lockstep (R7). |
+| Template tree mirrors all of the above. | `validate_estimate_template_tree`, `enforce_estimate_template_row_item_area_node`, template-editor write paths, insert group-target guards | Validators/triggers relax in P5; RPC/application write guards relax in P6 with the write-enable flow. |

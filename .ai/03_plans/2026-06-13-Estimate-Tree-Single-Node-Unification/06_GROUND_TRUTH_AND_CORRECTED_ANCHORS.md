@@ -80,13 +80,13 @@ Grant/revoke posture (latest authoritative, for I5 replay) is captured verbatim 
 
 **Finding.** `create_estimate_node_with_history` (`20260612094734:603`) has **no kind guard** — it inserts whatever `node_kind` it's given and relies on the validator. So the moment P5 relaxes the validators, *node-nesting under any node* is already permitted at the RPC layer. What still blocks **row/template writes onto former-group / former-area nodes** is the three RPC kind-guards (`insert_estimate_row_item_with_history:349`, `insert_estimate_template_into_estimate:824`, `insert_estimate_subtree_into_estimate:87`).
 
-**Consequence.** If P5 relaxes those RPCs (as 02 §B steps 5-7 and 03 P5 currently state), then after P5 a direct/forged RPC call *could create a mixed node* — so "P5 ships zero write capability" is only true at the UI layer, partially **merging enable-writes into the relax-only step** (against non-negotiable #2).
+**Consequence.** If P5 relaxes those RPCs (as the older single-P5 wording did), then after P5 a direct/forged RPC call *could create a mixed node* — so "P5 ships zero write capability" is only true at the UI layer, partially **merging enable-writes into the relax-only step** (against non-negotiable #2).
 
 **Refinement (recommended, harness-proven).** Split the DB relaxation:
 - **P5 migration** = validators + row-triggers + reorder only (this file, [`08…P5.sql`](08_unify_estimate_node_kinds.P5.sql)). Schema *permits* mixed content; the three RPC guards stay → **row/template writes are withheld at the enforcement layer**, not just the UI. The harness proves this: `insert_estimate_row_item_with_history` onto a group node is **still rejected** post-P5.
 - **P6 migration** = drop the three RPC `kind` clauses, shipped *with* the create-flow UI (the enable-writes PR). The first mixed write — the point of no return — now coincides exactly with the P6 RPC relaxation.
 
-**This is not "merging P5/P6" — it is the opposite:** it sharpens the boundary so "relax-only" and "enable-writes" are separated *at the enforcement layer*. It also keeps the irreversible-data trapdoor (first mixed write) gated by P6. Neither step's DDL is itself irreversible (all `create or replace`). **Both DDL changes are reversible until the first mixed row exists.** This is presented as a flagged decision in [`09_P1_DESIGN_DECISIONS.md §D5`](09_P1_DESIGN_DECISIONS.md); if the owner prefers the plan's single-P5-migration, append the §F block of `08…P5.sql` to the P5 file (the harness proves that state too — just move the RPC asserts).
+**This is not "merging P5/P6" — it is the opposite:** it sharpens the boundary so "relax-only" and "enable-writes" are separated *at the enforcement layer*. It also keeps the irreversible-data trapdoor (first mixed write) gated by P6. Neither step's DDL is itself irreversible (all `create or replace`). **Both DDL changes are reversible until the first mixed row exists.** This is now the canonical plan contract; the older single-P5 alternative is retained only as historical context and must not be implemented without a new explicit decision.
 
 ---
 

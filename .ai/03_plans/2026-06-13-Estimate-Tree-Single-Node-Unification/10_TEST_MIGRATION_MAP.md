@@ -81,6 +81,25 @@ No hard kind-dependent assertions. Fixtures use `kind:"area"/"group"` and two la
 
 ## New test files
 
+## Must-exist acceptance files before implementation
+
+These filenames are referenced by the plan but are not present yet. PR0 creates the oracle/source-sweep tests; each later phase creates its phase-owned acceptance test before the production change lands.
+
+| File | Command | Expected RED/GREEN phase |
+|---|---|---|
+| `tests/vitest/estimate-unification-oracle.test.ts` | `bun x vitest run tests/vitest/estimate-unification-oracle.test.ts --maxWorkers=1` | PR0: all O1/O2/O3/O4/O5/O-DIV assertions executable; P1/P2 turn mixed forward-proof assertions green as behavior lands |
+| `tests/vitest/estimate-unification-source-sweep.test.ts` | `bun x vitest run tests/vitest/estimate-unification-source-sweep.test.ts --maxWorkers=1` | PR0: allow-list established; P1-P7 shrink allow-list |
+| `tests/vitest/estimate-mixed-content.test.tsx` | `bun x vitest run tests/vitest/estimate-mixed-content.test.tsx --maxWorkers=1` | PR4 RED before layout change, GREEN after P4 |
+| `tests/vitest/estimate-rows-at-any-depth-parity.test.ts` | `bun x vitest run tests/vitest/estimate-rows-at-any-depth-parity.test.ts --maxWorkers=1` | P1/P2 RED before read fixes, GREEN as share/export/charts land |
+| `tests/vitest/estimate-single-add.test.tsx` | `bun x vitest run tests/vitest/estimate-single-add.test.tsx --maxWorkers=1` | P6 RED before write/create enablement, GREEN after P6 |
+| `tests/vitest/estimate-template-unification.test.tsx` | `bun x vitest run tests/vitest/estimate-template-unification.test.tsx --maxWorkers=1` | P5 RED before template parity, GREEN after P5 |
+
+### `estimate-unification-source-sweep.test.ts` — phase **P0**, then updated per phase
+- Reads the source-sweep allow-list from the P0 artifact described in [15](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md).
+- Fails on any unclassified live match of `kind === "area"`, `kind !== "area"`, `kind === "group"`, `kind !== "group"`, `canNestEstimateNodeKind`, `canNodeReceiveRows`, or `getEstimateNodeDisplayKind` outside historical migrations and documented dormant write-only AI internals.
+- Phase updates remove allow-list entries as implementation deletes them. By P7, only historical migrations, vestigial DB display labels, and explicitly documented dormant surfaces may remain.
+- This is a false-green prevention test, not a replacement for behavioral tests.
+
 ### `estimate-unification-oracle.test.ts` — **DONE (P0)** ([07](07_GOLDEN_MASTER_ORACLE.md))
 5 green at P0 (totals, formula, row-sum, cache-keys, all-area snapshot); 7 `it.todo` enabled per phase (share P1, export/charts P2, snapshot-divergence tracked).
 
@@ -91,6 +110,14 @@ No hard kind-dependent assertions. Fixtures use `kind:"area"/"group"` and two la
 - unified empty state on an empty node (one line offering row + sub-area).
 - sticky-offset cascade: a 20+-row node followed by children — child header does not collide with the row `thead` on deep scroll (assert computed `top` offsets differ).
 - "Own items" affordance distinguishes a node's own rows from the first child's rows.
+- no focusable caret on leaves; reserved caret spacer is non-focusable and `aria-hidden`.
+- contextual table labels and select-all labels include the owning node name.
+- row-cell arrow/Enter behavior remains inside the row table for a mixed node.
+- adjustment dropdown remains keyboard-accessible and closes predictably on Escape.
+- valid/invalid drag-over states exist for library, template, and tree drags.
+- add/move/error operations emit polite status or alert messages as specified in [11](11_LAYOUT_AND_A11Y_SPEC.md).
+- responsive overflow/min-width classes prevent nested scroll traps.
+- design-system constraints: 3px radius, <=12px app type, semantic colors, Phosphor icons, no one-off buttons/dropdowns.
 
 ### `estimate-rows-at-any-depth-parity.test.ts` — phase **P1/P2**
 - Drives the oracle MIXED fixture through share/export/charts; asserts grand total 200, every row once, no `non_area_rows_skipped`, no double-count, BuildingA own-row not orphaned. (These are the oracle O2/O3/O4 mixed `it.todo`s, promoted to acceptance tests.)
@@ -100,6 +127,8 @@ No hard kind-dependent assertions. Fixtures use `kind:"area"/"group"` and two la
 - context menu: one unconditional "Add Area inside" on every node.
 - drag a row onto a node that has children → no throw (`moveEstimateRowItem`).
 - add a row to a node that has children → succeeds.
+- project-source subtree insert into a mixed-capable target succeeds without wrapping or group-target fallback.
+- template subtree insert into a mixed-capable target succeeds without wrapping or group-target fallback.
 
 ### `unify-migration-integrity` — **DONE (P0)** = [`scripts/prove-unify-estimate-node-kinds-postgres.mjs`](../../../scripts/prove-unify-estimate-node-kinds-postgres.mjs)
 Doubles as the **cycle + cross-tab + missing-parent + orphan regression test** (plan 04 checklist). Already green. Wire as `prove:unify-kinds` in package.json at P5.
