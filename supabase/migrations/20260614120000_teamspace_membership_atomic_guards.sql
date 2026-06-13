@@ -118,3 +118,10 @@ drop trigger if exists project_members_enforce_manager_floor on public.project_m
 create trigger project_members_enforce_manager_floor
   before delete or update on public.project_members
   for each row execute function public.enforce_project_manager_floor();
+
+-- These are trigger-only functions; the trigger invokes them as the function
+-- owner regardless of EXECUTE grants, so no role needs direct EXECUTE. Revoking
+-- it is defense-in-depth and clears the security_definer_function_executable
+-- advisory for these two functions.
+revoke execute on function public.enforce_workspace_owner_floor() from public, anon, authenticated;
+revoke execute on function public.enforce_project_manager_floor() from public, anon, authenticated;
