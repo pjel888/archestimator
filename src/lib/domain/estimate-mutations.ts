@@ -1,4 +1,4 @@
-import { canNodeReceiveRows, getNodeById, type EstimateTree } from "./estimate-tree";
+import { getNodeById, type EstimateTree } from "./estimate-tree";
 
 export type MoveEstimateRowItemInput = {
   rowId: string;
@@ -9,7 +9,10 @@ export type MoveEstimateRowItemInput = {
 export function moveEstimateRowItem(tree: EstimateTree, input: MoveEstimateRowItemInput): EstimateTree {
   const targetNode = getNodeById(tree.nodes, input.targetNodeId);
   if (!targetNode) throw new Error("Target estimate node not found.");
-  if (!canNodeReceiveRows(targetNode.kind)) throw new Error("Only Area Nodes may receive estimate row items.");
+  // Unification: any node may receive rows. Previously this threw "Only Area Nodes may
+  // receive estimate row items", which crashed the optimistic row-drag onMutate when a
+  // row was dropped on a non-area node — a worse failure than a miscount. Pre-migration
+  // the DB still rejects such writes server-side, so this only removes the client crash.
 
   return {
     ...tree,

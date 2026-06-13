@@ -406,9 +406,8 @@ export function validateEstimateTreeHierarchy(nodes: EstimateTreeNode[]) {
 
   function visit(node: EstimateTreeNode, path: string[]) {
     const nodePath = [...path, node.name];
-    if (node.kind !== "area" && node.estimateRowItems?.length) {
-      errors.push(`${nodePath.join(" > ")} is a Group Node but contains estimate row items`);
-    }
+    // Unification: any node may own rows, so rows-on-non-area is no longer a hierarchy
+    // error. (Cross-tab / cycle / missing-parent invariants remain enforced in the DB.)
     node.children?.forEach((child) => visit(child, nodePath));
   }
 

@@ -82,4 +82,20 @@ describe("estimate tree hierarchy", () => {
   it("keeps estimate row items only on area nodes", () => {
     expect(validateEstimateTreeHierarchy(sampleEstimateTree)).toEqual([]);
   });
+
+  it("does not flag rows on a non-area node (P3 unification: any node may own rows)", () => {
+    // Pre-unification this returned ["Container is a Group Node but contains estimate row items"].
+    const mixed = [
+      {
+        id: "g1",
+        name: "Container",
+        kind: "group",
+        estimateRowItems: [{ id: "r1" }],
+        children: [
+          { id: "a1", name: "Leaf", kind: "area", estimateRowItems: [{ id: "r2" }], children: [] },
+        ],
+      },
+    ] as unknown as EstimateTreeNode[];
+    expect(validateEstimateTreeHierarchy(mixed)).toEqual([]);
+  });
 });
