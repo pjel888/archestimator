@@ -154,7 +154,8 @@ describe("project estimates table inline editing", () => {
       estimateId: "estimate-1",
       name: "Updated Estimate",
     });
-    expect(routerMock.refresh).toHaveBeenCalledTimes(1);
+    // P0: inline edits reconcile optimistically — no full-screen overlay refresh.
+    expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
   it("cancels an inline estimate name edit with Escape without saving on blur", async () => {
@@ -188,7 +189,8 @@ describe("project estimates table inline editing", () => {
       estimateId: "estimate-1",
       projectBudget: 6500,
     });
-    expect(routerMock.refresh).toHaveBeenCalledTimes(1);
+    // P0: inline edits reconcile optimistically — no full-screen overlay refresh.
+    expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
   it("saves an inline notes edit per estimate sheet", async () => {
@@ -208,7 +210,8 @@ describe("project estimates table inline editing", () => {
       estimateId: "estimate-1",
       notes: "Client requested alternate finish",
     });
-    expect(routerMock.refresh).toHaveBeenCalledTimes(1);
+    // P0: inline edits reconcile optimistically — no full-screen overlay refresh.
+    expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
   it("does not crash when persisted column width storage is blocked", () => {
@@ -238,7 +241,7 @@ describe("project estimates table inline editing", () => {
   });
 
   it("duplicates an estimate sheet from the row actions once and refreshes the table", async () => {
-    let resolveDuplicate: ((value: { estimateId: string; firstNodeId: string | null; sheetCode: string }) => void) | undefined;
+    let resolveDuplicate: ((value: { row: ProjectEstimateTableRow }) => void) | undefined;
     actionMocks.duplicateEstimateSheet.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -259,7 +262,9 @@ describe("project estimates table inline editing", () => {
     });
     await waitFor(() => expect(duplicateButton).toBeDisabled());
 
-    resolveDuplicate?.({ estimateId: "estimate-2", firstNodeId: "node-2", sheetCode: "ES-002" });
-    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
+    resolveDuplicate?.({ row: makeEstimate({ id: "estimate-2", name: "Original Estimate Copy", sheet_code: "ES-002", firstNodeId: "node-2" }) });
+    // P0: duplicate reconciles its optimistic placeholder — no overlay refresh.
+    await waitFor(() => expect(duplicateButton).not.toBeDisabled());
+    expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 });
