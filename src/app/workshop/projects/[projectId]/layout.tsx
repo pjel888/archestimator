@@ -7,6 +7,7 @@ import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteC
 import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { traced } from "@/lib/perf/server-timing";
 import {
   getCurrentWorkspaceProject,
   getProjectCollaborationSummary,
@@ -23,11 +24,13 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
   const { projectId } = await params;
   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
   const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
-    ? await Promise.all([
-        getProjectCollaborationSummary(projectId),
-        getProjectPublicationSummary(projectId),
-        listProjectEstimateSheets(projectId),
-      ])
+    ? await traced("ProjectLayout.summaries", async () =>
+        Promise.all([
+          getProjectCollaborationSummary(projectId),
+          getProjectPublicationSummary(projectId),
+          listProjectEstimateSheets(projectId),
+        ]),
+      )
     : [null, null, []];
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
   const project = liveProject ?? sampleProject;
