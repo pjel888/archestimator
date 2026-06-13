@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildProjectChartComparison } from "@/lib/project-charts/aggregate-project-charts";
 import { buildInsightSentence, formatDeltaPercent } from "@/lib/project-charts/build-insight-sentence";
-import { buildProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
+import { buildProjectChartComparisonViewFromFacts } from "@/lib/project-charts/project-comparison-view";
 import { colorForBucket } from "@/lib/project-charts/bucket-color";
 import type {
   ProjectChartCategoryNodeFact,
@@ -78,7 +78,7 @@ describe("buildProjectChartComparisonView (P-1.1 contract)", () => {
       leftEstimateId: "estimate-a",
       rightEstimateId: "estimate-b",
     });
-    const view = buildProjectChartComparisonView({
+    const view = buildProjectChartComparisonViewFromFacts({
       ...baseInput,
       rows,
       estimateIds: ["estimate-a", "estimate-b"],
@@ -104,25 +104,25 @@ describe("buildProjectChartComparisonView (P-1.1 contract)", () => {
       row("estimate-b", "b1", "area-struct-b", 6, 100), //  600  -> Δ -400 (biggest)
       row("estimate-b", "b2", "area-mep-b", 6, 100), //     600  -> Δ +100
     ];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     expect(view.buckets[0].label).toBe("Structural");
     expect(Math.abs(view.buckets[0].delta)).toBeGreaterThanOrEqual(Math.abs(view.buckets[1].delta));
   });
 
   it("assigns each bucket a stable color via colorForBucket", () => {
     const rows = [row("estimate-a", "a1", "area-struct-a", 1, 100), row("estimate-b", "b1", "area-struct-b", 1, 200)];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     const structural = view.buckets.find((b) => b.label === "Structural")!;
     expect(structural.color).toBe(colorForBucket(structural.id));
   });
 
   it("P-1.7 baseline defaults to the first estimate id (newest-first repo order) and is overridable", () => {
     const rows = [row("estimate-a", "a1", "area-struct-a", 1, 100), row("estimate-b", "b1", "area-struct-b", 1, 200)];
-    const defaultView = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const defaultView = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     expect(defaultView.baselineEstimateId).toBe("estimate-a");
     expect(defaultView.comparandEstimateId).toBe("estimate-b");
 
-    const overridden = buildProjectChartComparisonView({
+    const overridden = buildProjectChartComparisonViewFromFacts({
       ...baseInput,
       rows,
       estimateIds: ["estimate-a", "estimate-b"],
@@ -142,7 +142,7 @@ describe("buildProjectChartComparisonView (P-1.1 contract)", () => {
       row("estimate-b", "b1", "area-struct-b", 6, 100), //  600
       row("estimate-c", "c1", "area-struct-c", 8, 100), //  800
     ];
-    const view = buildProjectChartComparisonView({
+    const view = buildProjectChartComparisonViewFromFacts({
       ...baseInput,
       rows,
       estimateIds: ["estimate-a", "estimate-b", "estimate-c"],
@@ -157,7 +157,7 @@ describe("buildProjectChartComparisonView (P-1.1 contract)", () => {
 
   it("returns a null insight for a single estimate (comparison controls hide)", () => {
     const rows = [row("estimate-a", "a1", "area-struct-a", 1, 100)];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a"] });
     expect(view.insight).toBeNull();
     expect(view.comparandEstimateId).toBeNull();
   });
@@ -169,7 +169,7 @@ describe("buildInsightSentence (P-1.3)", () => {
       row("estimate-a", "a1", "area-struct-a", 10, 100), // 1000
       row("estimate-b", "b1", "area-struct-b", 6, 100), //  600 -> Tender lower by 400 (-40%)
     ];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     const insight = buildInsightSentence(view.insight)!;
     expect(insight.direction).toBe("lower");
     expect(insight.sentence).toContain("Tender is");
@@ -185,7 +185,7 @@ describe("buildInsightSentence (P-1.3)", () => {
       row("estimate-b", "b1", "area-struct-b", 4, 100), //  400 (Δ -600)
       row("estimate-b", "b2", "area-mep-b", 3, 100), //     300 (Δ -500)
     ];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     const insight = buildInsightSentence(view.insight)!;
     expect(insight.sentence).toMatch(/driven mostly by .* and .*/);
     expect(insight.sentence).toContain("Structural");
@@ -197,7 +197,7 @@ describe("buildInsightSentence (P-1.3)", () => {
       row("estimate-a", "a1", "area-struct-a", 10, 100), // 1000
       row("estimate-b", "b1", "area-struct-b", 10, 100), // 1000
     ];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     const insight = buildInsightSentence(view.insight)!;
     expect(insight.direction).toBe("equal");
     expect(insight.sentence).toContain("about the same");
@@ -216,7 +216,7 @@ describe("buildInsightSentence (P-1.3)", () => {
       row("estimate-a", "a1", "area-struct-a", 10, 100), // 1000 Structural only in A
       row("estimate-b", "b1", "area-mep-b", 5, 100), //     500 MEP only in B
     ];
-    const view = buildProjectChartComparisonView({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
+    const view = buildProjectChartComparisonViewFromFacts({ ...baseInput, rows, estimateIds: ["estimate-a", "estimate-b"] });
     const structural = view.buckets.find((b) => b.label === "Structural")!;
     const mep = view.buckets.find((b) => b.label === "MEP")!;
     expect(structural.comparandTotal).toBe(0);

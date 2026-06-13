@@ -3,7 +3,25 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { ProjectChartsClient } from "@/components/workshop/project-charts/ProjectChartsClient";
-import type { ProjectChartsData } from "@/lib/project-charts/types";
+import { buildSeriesByEstimate } from "@/lib/project-charts/project-comparison-view";
+import type {
+  ProjectChartCategoryNodeFact,
+  ProjectChartEstimateOption,
+  ProjectChartNodeFact,
+  ProjectChartRowFact,
+  ProjectChartSupplierFact,
+  ProjectChartsData,
+} from "@/lib/project-charts/types";
+
+type RawFacts = {
+  estimateOptions?: ProjectChartEstimateOption[];
+  rowFacts?: ProjectChartRowFact[];
+  nodeFacts?: ProjectChartNodeFact[];
+  categoryNodeFacts?: ProjectChartCategoryNodeFact[];
+  supplierFacts?: ProjectChartSupplierFact[];
+  requiresSelectedPair?: boolean;
+  didTruncate?: boolean;
+};
 
 // These tests were inverted in the charts redesign (`09` P-1.5/P-1.6). The old
 // assertions (one independent donut, no combined deltas, a bubble toggle) are
@@ -116,8 +134,12 @@ describe("ProjectChartsClient — cost comparison", () => {
     render(
       <ProjectChartsClient
         data={chartData({
-          estimateOptions: [chartData().estimateOptions[0]],
-          rowFacts: chartData().rowFacts.filter((row) => row.estimateId === "estimate-a"),
+          estimateOptions: [
+            { id: "estimate-a", name: "Baseline", sheetCode: "EST-001", currencyCode: "PHP", updatedAt: null, rowCount: 1, totalCost: 225 },
+          ],
+          rowFacts: [
+            { id: "row-a", estimateId: "estimate-a", nodeId: "area-1", categoryNodeId: "subcategory-1", supplierId: "supplier-1", supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 2, unitCost: 100, miscCost: 25 },
+          ],
         })}
         initialGroupingMode="space"
         initialLeftEstimateId="estimate-a"
@@ -132,7 +154,7 @@ describe("ProjectChartsClient — cost comparison", () => {
   });
 });
 
-function chartData(overrides: Partial<ProjectChartsData> = {}): ProjectChartsData {
+function chartData(overrides: RawFacts = {}): ProjectChartsData {
   return baseData({
     estimateOptions: [
       { id: "estimate-a", name: "Baseline", sheetCode: "EST-001", currencyCode: "PHP", updatedAt: null, rowCount: 1, totalCost: 225 },
@@ -155,19 +177,29 @@ function chartData(overrides: Partial<ProjectChartsData> = {}): ProjectChartsDat
   });
 }
 
-function baseData(overrides: Partial<ProjectChartsData>): ProjectChartsData {
+// Build the new pre-bucketed payload from authored raw facts (mirrors what the
+// repository now does server-side).
+function baseData(raw: RawFacts): ProjectChartsData {
+  const estimateOptions = raw.estimateOptions ?? [];
+  const seriesByEstimateId = buildSeriesByEstimate(
+    {
+      estimates: estimateOptions,
+      rows: raw.rowFacts ?? [],
+      nodes: raw.nodeFacts ?? [],
+      categoryNodes: raw.categoryNodeFacts ?? [],
+      suppliers: raw.supplierFacts ?? [],
+    },
+    estimateOptions.map((estimate) => estimate.id),
+  );
   return {
     projectId: "project-1",
     projectName: "Lewis Residence",
-    estimateOptions: [],
-    rowFacts: [],
-    nodeFacts: [],
-    categoryNodeFacts: [],
-    supplierFacts: [],
+    estimateOptions,
+    seriesByEstimateId,
     loadMode: "all-estimates",
-    requiresSelectedPair: false,
+    requiresSelectedPair: raw.requiresSelectedPair ?? false,
+    didTruncate: raw.didTruncate ?? false,
     rowLimit: 5000,
     estimateLimit: 20,
-    ...overrides,
   };
 }

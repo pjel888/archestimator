@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildProjectChartSeries } from "@/lib/project-charts/aggregate-project-charts";
-import { buildProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
+import { buildProjectChartComparisonViewFromFacts } from "@/lib/project-charts/project-comparison-view";
 import {
   GOLDEN_AGGREGATION_INPUT,
   GOLDEN_EXPECTED,
@@ -30,7 +30,7 @@ describe("project-charts golden master (P-1.4 — RPC equivalence baseline)", ()
   }
 
   it("locks the comparison deltas and the null-deltaPercent 'new' bucket", () => {
-    const view = buildProjectChartComparisonView({
+    const view = buildProjectChartComparisonViewFromFacts({
       ...GOLDEN_AGGREGATION_INPUT,
       groupingMode: "space",
       estimateIds: ["estimate-a", "estimate-b"],
