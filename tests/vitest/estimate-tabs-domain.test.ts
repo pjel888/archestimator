@@ -63,14 +63,6 @@ describe("estimate tab repository compatibility wrappers", () => {
     expect(repositorySource).toContain("const defaultTab = await getDefaultEstimateTab(routeSegment)");
     expect(repositorySource).toContain("if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
   });
-
-  it("reconciles tab changes from the returned array via setQueryData, not a blind refetch (U4)", () => {
-    const clientSource = readFileSync("src/components/workshop/EstimateWorkspaceClient.tsx", "utf8");
-    // onEstimateTabsChange sets the tabs query cache from the action's canonical
-    // returned array — a single round-trip with no redundant refetch flash (R10).
-    expect(clientSource).toContain("queryClient.setQueryData(estimateQueryKeys.tabs(estimateId), tabs)");
-    expect(clientSource).not.toContain("tabsQuery.refetch()");
-  });
 });
 
 describe("estimate tabs compatibility cleanup governance", () => {

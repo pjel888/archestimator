@@ -266,19 +266,28 @@ describe("EstimateTabStrip", () => {
     });
   });
 
-  it("menu → Rename keeps the input focused with the existing name and does not commit on the menu-close focus event", async () => {
+  it("menu → Rename ignores the transient menu-close blur and never commits prematurely", async () => {
     renderStrip({ enableLifecycleActions: true });
 
     await chooseTabMenuItem("tab-main", "Rename");
-    const input = await screen.findByRole("textbox", { name: "Rename Main tab" });
-
-    // The Radix menu-close focus return must NOT fire an empty/early onBlur commit.
+    const input = screen.getByRole("textbox", { name: "Rename Main tab" });
     expect(input).toHaveValue("Main");
-    await waitFor(() => expect(input).toHaveFocus());
+
+    // Mutation-killing assertion: we are inside the suppression window (the rename
+    // guard refs are armed and the menu-close focus timeouts have not fired yet).
+    // A transient blur on the UNCHANGED name must be swallowed by the onBlur guard
+    // so the editor stays mounted and nothing commits. Removing the guard unmounts
+    // the editor here (commitRename's unchanged-name early return clears editing).
+    fireEvent.blur(input);
+    expect(screen.getByRole("textbox", { name: "Rename Main tab" })).toBeInTheDocument();
+    expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
+
+    // Focus settles back on the input after the menu-close dance; still no commit.
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Rename Main tab" })).toHaveFocus());
     expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
 
     // Esc cancels cleanly without committing.
-    fireEvent.keyDown(input, { key: "Escape" });
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Rename Main tab" }), { key: "Escape" });
     expect(screen.queryByRole("textbox", { name: "Rename Main tab" })).not.toBeInTheDocument();
     expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
   });
@@ -379,7 +388,8 @@ describe("EstimateTabStrip", () => {
     expect(document.activeElement).toBe(mainTab);
   });
 
-  it("focuses the nearest remaining tab after deleting the active tab via the context menu", async () => {
+  it("switches to and focuses the replacement tab after deleting the active tab via the context menu", async () => {
+    const switchedTo: string[] = [];
     function Harness() {
       const [tabs, setTabs] = useState(fixtureTabs());
       const [activeTabId, setActiveTabId] = useState("tab-main");
@@ -390,7 +400,7 @@ describe("EstimateTabStrip", () => {
           projectId="project-1"
           estimateId="estimate-1"
           enableLifecycleActions
-          onTabChange={setActiveTabId}
+          onTabChange={(id) => { switchedTo.push(id); setActiveTabId(id); }}
           onTabsChange={setTabs}
         />
       );
@@ -412,6 +422,9 @@ describe("EstimateTabStrip", () => {
         tabId: "tab-main",
       });
     });
+    // Active selection moves to the replacement (the load-bearing browser semantic)…
+    await waitFor(() => expect(switchedTo).toContain("tab-alt"));
+    // …and focus follows it.
     const alternateTab = await screen.findByRole("tab", { name: "Alternate" });
     await waitFor(() => expect(document.activeElement).toBe(alternateTab));
     expect(screen.getByRole("status")).toHaveTextContent("Main tab deleted.");
