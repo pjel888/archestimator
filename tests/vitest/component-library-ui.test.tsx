@@ -225,7 +225,7 @@ describe("component library UI", () => {
 
   it("matches the component library route navigation contract", () => {
     renderSidebar();
-    const tabs = screen.getByRole("tablist", { name: "Library tree views" });
+    const tabs = screen.getByRole("tablist", { name: "Library sections" });
     expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components", "Templates"]);
     expect(within(tabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("tab", { name: "Categories" })).not.toBeInTheDocument();
