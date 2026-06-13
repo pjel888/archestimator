@@ -203,3 +203,59 @@ describe("hasPublicationAccessCookie — header-level decoupling (AC-MOD-01)", (
     ).toBe(false);
   });
 });
+
+// Explicit coverage of the open<->password credential transitions (the open-link session
+// is the case where there is no access cookie at all, so the session cookie is the only
+// thing protecting the "Reviewing as" identity).
+describe("verifySharedLinkSessionCookieValue — open<->password transitions (AC-MOD-01)", () => {
+  const token = "open-session-token";
+  const publicationId = "pub-open";
+  const recipientId = "33333333-3333-3333-3333-333333333333";
+
+  function sessionValueFor(credentialVersion: string) {
+    const cookie = createSharedLinkSessionCookie(
+      { token, publicationId, credentialVersion, recipientId },
+      { now: Date.parse("2026-06-13T00:00:00.000Z"), secret: ACCESS_SECRET },
+    );
+    const name = createSharedLinkSessionCookieName(token);
+    return cookie.split(";")[0].slice(name.length + 1);
+  }
+
+  const openSession = sessionValueFor(deriveCredentialVersion(null)); // session established while OPEN
+
+  it("KEEPS an open-link session across a content-only republish (still open)", () => {
+    expect(
+      verifySharedLinkSessionCookieValue(
+        openSession,
+        { token, publicationId, credentialVersion: deriveCredentialVersion(null), recipientId },
+        { now: Date.parse("2026-06-13T02:00:00.000Z"), secret: ACCESS_SECRET },
+      ),
+    ).toBe(true);
+  });
+
+  it("INVALIDATES an open-link session once the owner ADDS a password (open -> hash)", () => {
+    expect(
+      verifySharedLinkSessionCookieValue(
+        openSession,
+        {
+          token,
+          publicationId,
+          credentialVersion: deriveCredentialVersion("scrypt-sha256-v1:salt:newly-added"),
+          recipientId,
+        },
+        { now: Date.parse("2026-06-13T02:00:00.000Z"), secret: ACCESS_SECRET },
+      ),
+    ).toBe(false);
+  });
+
+  it("INVALIDATES a password-link session once the owner REMOVES the password (hash -> open)", () => {
+    const passwordSession = sessionValueFor(deriveCredentialVersion("scrypt-sha256-v1:salt:existing"));
+    expect(
+      verifySharedLinkSessionCookieValue(
+        passwordSession,
+        { token, publicationId, credentialVersion: deriveCredentialVersion(null), recipientId },
+        { now: Date.parse("2026-06-13T02:00:00.000Z"), secret: ACCESS_SECRET },
+      ),
+    ).toBe(false);
+  });
+});
