@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -103,17 +103,23 @@ describe("ProposalExportPreviewDialog", () => {
       "h-[min(900px,94vh)]",
       "w-[min(1360px,98vw)]",
     );
-    expect(screen.getByText("Read-only Excel preview")).toBeInTheDocument();
-    expect(screen.getByText("This preview consolidates identical items across rooms/areas within each tab.")).toBeInTheDocument();
+    // D7=B: the modal is a contents summary naming the sheets, not a fake table.
+    expect(screen.getByRole("heading", { name: "Export contents" })).toBeInTheDocument();
+    expect(screen.getByText("This file will contain")).toBeInTheDocument();
+    expect(screen.getByText(/Bid Form .* 2 tabs/)).toBeInTheDocument();
+    expect(screen.getByText("Section subtotals, Direct Cost, VAT, and Grand Total.")).toBeInTheDocument();
+    expect(screen.getByText("Commercial Terms")).toBeInTheDocument();
+    expect(screen.getByText("Review before sending")).toBeInTheDocument(); // F-35
+    // Default audience is client → Source Breakdown is named but flagged as omitted.
+    expect(screen.getByText("Source Breakdown")).toBeInTheDocument();
+    expect(screen.getByText("Not in this export")).toBeInTheDocument();
+    // D8=a: a multi-tab all-tabs export hides the single-tab number, which would be wrong.
+    expect(screen.getByText(/All 2 tabs — total is in the downloaded Summary/i)).toBeInTheDocument();
+    expect(screen.queryByText("₱ 21,700.00")).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "PARTICULARS" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Main tab/i })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Preview is stale. Refresh to rebuild from current sheet rows.")).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "PARTICULARS" })).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "Porcelain Tile — Supply and install porcelain floor tile" })).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "22" })).toBeInTheDocument();
-    expect(screen.getAllByRole("cell", { name: "₱ 21,700.00" }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
     // F-05 (P1-T1): the download is now a button (fetch-then-blob), not a bare <a href>
     // that would save the route's JSON error body under the .xlsx name.
@@ -162,6 +168,28 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeEnabled();
   });
 
+  it("surfaces export validation notes in the contents summary (P1-T2, F-20)", () => {
+    const issueNodes: EstimateTreeNode[] = [
+      {
+        id: "group-with-rows",
+        name: "Group With Rows",
+        kind: "group",
+        total: "₱0.00",
+        estimateRowItems: [row({ id: "skipped-on-group" })],
+        children: [
+          { id: "area", name: "Area", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "kept", quantity: 5 })] },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes: issueNodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    render(<ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={vi.fn()} />);
+
+    const issues = screen.getByTestId("proposal-validation-issues");
+    expect(within(issues).getByText(/Rows on group node/i)).toBeInTheDocument();
+    expect(within(issues).getByText(/do not yet separate material and labor/i)).toBeInTheDocument();
+  });
+
   it("wires the estimate sheet toolbar to a refreshable read-only proposal preview", async () => {
     const user = userEvent.setup();
 
@@ -184,8 +212,11 @@ describe("ProposalExportPreviewDialog", () => {
 
     expect(screen.getByRole("dialog", { name: "Excel export preview" })).toBeInTheDocument();
     expect(screen.getByText("Preview current")).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "Porcelain Tile — Supply and install porcelain floor tile" })).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "22" })).toBeInTheDocument();
+    expect(screen.getByText("This file will contain")).toBeInTheDocument();
+    expect(screen.getByText("Bid Form")).toBeInTheDocument();
+    expect(screen.getByText("Commercial Terms")).toBeInTheDocument();
+    // Single tab → the grand total number is shown (it is correct for the only tab).
+    expect(screen.getByText("₱ 21,700.00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeInTheDocument();
   });
 
@@ -217,6 +248,8 @@ describe("ProposalExportPreviewDialog", () => {
     await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
 
     expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
+    // D8=a: the all-tabs default hides the active-tab number and points to the Summary sheet.
+    expect(screen.getByText(/All 2 tabs — total is in the downloaded Summary/i)).toBeInTheDocument();
 
     // The download button fetches the scoped route and blobs the result; assert the
     // fetched URL changes with scope rather than an <a href>.

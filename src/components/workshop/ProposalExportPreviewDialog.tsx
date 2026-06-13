@@ -38,8 +38,26 @@ function formatMoney(value: number) {
   return previewPesoFormatter.format(value).replace("₱", "₱ ");
 }
 
-function formatQuantity(value: number) {
-  return Number.isInteger(value) ? String(value) : String(value);
+type ExportContentSheet = { name: string; description: string; flag?: "review" | "internal" | "omitted" };
+
+// D7=B (P1-T2): the modal names the sheets the downloaded file will actually contain
+// instead of rendering a table that never matched the file. Commercial Terms is flagged as
+// boilerplate to review (F-35); Source Breakdown is listed as internal — and noted as omitted
+// when the (server-derived) audience redacts it.
+function buildExportContents(model: ProposalExportModel, isAllTabs: boolean, tabCount: number): ExportContentSheet[] {
+  const includeSourceBreakdown = model.settings.includeSourceBreakdownSheet;
+  return [
+    { name: isAllTabs ? `Bid Form × ${tabCount} tabs` : "Bid Form", description: "Itemized bill of quantities with live formulas." },
+    { name: "Summary", description: "Section subtotals, Direct Cost, VAT, and Grand Total." },
+    { name: "Commercial Terms", description: "Boilerplate terms and a signature block.", flag: "review" },
+    {
+      name: "Source Breakdown",
+      description: includeSourceBreakdown
+        ? "Internal supplier and source-row traceability."
+        : "Internal supplier traceability — omitted from this client export.",
+      flag: includeSourceBreakdown ? "internal" : "omitted",
+    },
+  ];
 }
 
 const previewActionButtonClass =
@@ -67,7 +85,11 @@ export function ProposalExportPreviewDialog({
   const activeTabName = scopeControls?.activeTabName.trim() || "Current";
   const activeTabLabel = `${activeTabName} tab`;
   const scopeButtonClass =
-    "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[9px] font-medium leading-none transition";
+    "inline-flex h-6 items-center justify-center rounded-xs border px-2 text-[11px] font-medium leading-none transition";
+  // D8=a: for a multi-tab all-tabs export the modal's grand total would be the active tab's
+  // number only — hide it and point to the downloaded Summary instead of misquoting.
+  const isMultiTabAllTabs = Boolean(scopeControls && scopeControls.selectedScope === "all-tabs");
+  const contentSheets = model ? buildExportContents(model, isMultiTabAllTabs, scopeControls?.tabCount ?? 1) : [];
 
   const dialog = (
     <div
@@ -83,11 +105,11 @@ export function ProposalExportPreviewDialog({
       >
         <header className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
           <div className="min-w-0">
-            <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
-            <h2 className="mt-0.5 text-[10px] font-medium tracking-normal text-ink">Read-only Excel preview</h2>
-            <p className="mt-1 max-w-2xl text-[10px] leading-4 text-secondary">
-              <span>This preview consolidates identical items across rooms/areas within each tab.</span>{" "}
-              <span>The workbook becomes editable only after XLSX download.</span>
+            <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
+            <h2 className="mt-0.5 text-[13px] font-semibold tracking-normal text-ink">Export contents</h2>
+            <p className="mt-1 max-w-2xl text-[12px] leading-5 text-secondary">
+              <span>A summary of the sheets the downloaded workbook will contain.</span>{" "}
+              <span>It opens editable in Excel, Google Sheets, or LibreOffice.</span>
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -194,96 +216,93 @@ export function ProposalExportPreviewDialog({
                 </span>
               </div>
             ) : null}
-            <div className="grid grid-cols-4 border-b border-hairline bg-surfaceMuted/40 text-[10px]">
-              <div className="border-r border-hairline px-3 py-2">
-                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Project</p>
+            <div className="grid grid-cols-3 border-b border-hairline bg-surfaceMuted/40 text-[12px]">
+              <div className="border-r border-hairline px-3 py-2.5">
+                <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Project</p>
                 <p className="mt-0.5 truncate font-medium text-ink">{model.metadata.projectName}</p>
               </div>
-              <div className="border-r border-hairline px-3 py-2">
-                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Estimate</p>
+              <div className="border-r border-hairline px-3 py-2.5">
+                <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate</p>
                 <p className="mt-0.5 truncate font-medium text-ink">{model.metadata.estimateSheetCode} · {model.metadata.estimateName}</p>
               </div>
-              <div className="border-r border-hairline px-3 py-2">
-                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Rows</p>
-                <p className="mt-0.5 font-medium tabular-nums text-ink">{model.proposalRows.length} consolidated BOQ rows</p>
-              </div>
-              <div className="px-3 py-2">
-                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Grand total</p>
-                <p className="mt-0.5 font-medium tabular-nums text-ink">{formatMoney(model.totals.grandTotal)}</p>
+              <div className="px-3 py-2.5">
+                <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Grand total</p>
+                {isMultiTabAllTabs ? (
+                  <p className="mt-0.5 text-[12px] font-medium leading-4 text-ink">
+                    All {scopeControls?.tabCount} tabs — total is in the downloaded Summary sheet
+                  </p>
+                ) : (
+                  <p className="mt-0.5 font-semibold tabular-nums text-ink">{formatMoney(model.totals.grandTotal)}</p>
+                )}
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto">
-              <table className="min-w-[1080px] w-full border-collapse text-[10px] text-ink">
-                <thead className="sticky top-0 z-10 bg-ink text-white">
-                  <tr>
-                    {[
-                      "NO.",
-                      "TAG",
-                      "PARTICULARS",
-                      "QTY",
-                      "UNIT",
-                      "MATERIAL UNIT COST",
-                      "LABOR UNIT COST",
-                      "MATERIAL SUBTOTAL",
-                      "LABOR SUBTOTAL",
-                      "MISC / OTHER",
-                      "COST AMOUNT",
-                      "REMARKS",
-                    ].map((header) => (
-                      <th key={header} scope="col" className="border-r border-white/20 px-2 py-2 text-left text-[9px] font-medium uppercase tracking-normal">
-                        {header}
-                      </th>
+            <div className="min-h-0 flex-1 overflow-auto px-3 py-3">
+              <h3 className="text-[11px] font-semibold uppercase tracking-normal text-tertiary">This file will contain</h3>
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {contentSheets.map((sheet) => (
+                  <li key={sheet.name} className="flex items-start gap-3 border border-hairline bg-white px-3 py-2">
+                    <FileXls size={16} weight="regular" aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[12px] font-semibold text-ink">{sheet.name}</span>
+                        {sheet.flag === "review" ? (
+                          <span className="inline-flex items-center rounded-xs bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            Review before sending
+                          </span>
+                        ) : null}
+                        {sheet.flag === "internal" ? (
+                          <span className="inline-flex items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[10px] font-medium text-secondary">
+                            Internal only
+                          </span>
+                        ) : null}
+                        {sheet.flag === "omitted" ? (
+                          <span className="inline-flex items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[10px] font-medium text-tertiary">
+                            Not in this export
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-[12px] leading-5 text-secondary">{sheet.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-3 text-[12px] leading-5 text-tertiary">
+                {model.proposalRows.length} consolidated BOQ rows · {model.summaryRows.length}{" "}
+                {model.summaryRows.length === 1 ? "section" : "sections"}
+                {scopeControls && scopeControls.selectedScope === "all-tabs"
+                  ? ` (counts shown are for the ${activeTabLabel}; the download covers all ${scopeControls.tabCount} tabs)`
+                  : ""}
+                .
+              </p>
+
+              {model.validationIssues.length > 0 ? (
+                <details className="mt-3 border-t border-hairline pt-2" open data-testid="proposal-validation-issues">
+                  <summary className="cursor-pointer text-[12px] font-medium text-amber-700">
+                    {model.validationIssues.length} export {model.validationIssues.length === 1 ? "note" : "notes"} to review
+                  </summary>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {model.validationIssues.map((issue, index) => (
+                      <li key={`${issue.code}-${index}`} className="flex items-start gap-2 text-[12px] leading-5 text-secondary">
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-block size-1.5 shrink-0 rounded-full",
+                            issue.severity === "error" ? "bg-rose-500" : issue.severity === "warning" ? "bg-amber-500" : "bg-sky-500",
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span>{issue.message}</span>
+                      </li>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {model.proposalRows.length > 0 ? (
-                    model.proposalRows.map((row) => (
-                      <tr key={row.exportRowId} className="border-b border-hairline">
-                        <td className="px-2 py-1.5 tabular-nums">{row.rowNumber}</td>
-                        <td className="px-2 py-1.5 font-medium">{row.tag}</td>
-                        <td className="max-w-[340px] px-2 py-1.5">{row.particulars}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatQuantity(row.quantity)}</td>
-                        <td className="px-2 py-1.5">{row.unit}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.materialUnitCost)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.laborUnitCost)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.materialSubtotal)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.laborSubtotal)}</td>
-                        <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.miscSubtotal)}</td>
-                        <td className="px-2 py-1.5 text-right font-medium tabular-nums">{formatMoney(row.costAmount)}</td>
-                        <td className="max-w-[280px] px-2 py-1.5 text-tertiary">{row.remarks}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={12} className="px-3 py-8 text-center text-[10px] text-tertiary">
-                        No Area Node rows are available for proposal export.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-                <tfoot className="bg-surfaceMuted font-medium">
-                  <tr>
-                    <td colSpan={7} className="px-2 py-2 text-right uppercase tracking-normal text-secondary">Grand total</td>
-                    <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.materialSubtotal)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.laborSubtotal)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.miscSubtotal)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.grandTotal)}</td>
-                    <td className="px-2 py-2" />
-                  </tr>
-                </tfoot>
-              </table>
+                  </ul>
+                </details>
+              ) : null}
             </div>
-
-            <footer className="flex items-center justify-between gap-3 border-t border-hairline px-3 py-2 text-[9px] text-tertiary">
-              <span>{model.summaryRows.length} section summaries · {model.sourceBreakdownRows.length} source rows retained for area traceability.</span>
-              <span className={cn(model.validationIssues.length > 0 && "text-amber-700")}>{model.validationIssues.length} export notes</span>
-            </footer>
           </div>
         ) : (
-          <div className="flex min-h-[320px] items-center justify-center px-3 py-8 text-center text-[10px] text-tertiary">
-            Build a preview to see the consolidated workbook rows.
+          <div className="flex min-h-[320px] items-center justify-center px-3 py-8 text-center text-[12px] text-tertiary">
+            Build a preview to see what the export will contain.
           </div>
         )}
       </section>
