@@ -186,3 +186,31 @@ their **apply** is deferred to the owner runbook; app-layer guards ship immediat
   UX-7/8/9/10 (U14) ✓, UX-11 (U15) ✓.
 - **Next:** U12 (a11y: shared tree aria-grabbed/dropeffect + editor keyboard reorder + window.prompt→modal),
   then U5/U7, U2, U16, closeout.
+- Committed coherence+polish as `012ac54d`.
+
+---
+
+## U12 — a11y (UX-4/UX-5/C5) — DONE (local)
+
+### Part 1 — shared tree aria (highest-leverage, doc 17 B4/F)
+- `ui/tree.tsx`: every row now exposes `aria-grabbed` (true on the dragged source row, false on other
+  draggable rows) and `aria-dropeffect` on the row under the drag — "move" for an intra-tree reorder
+  (drag source present) or "copy" for an external insert. Added the two attrs to `TreeRowDomProps` +
+  `buildRowProps` (deps: dragSourceId, dropTarget). Serves BOTH templates surfaces at once.
+
+### Part 2 — editor keyboard reorder + live region (UX-4/UX-5)
+- `TemplateStructureTree.tsx`: keyboard-reachable "Move up"/"Move down" context-menu items reorder a
+  node among its siblings via the existing `onMoveNode`; a polite `role="status"` live region announces
+  "Moved {name} up/down." Disabled at the ends + for temp nodes.
+
+### Part 3 — replace window.prompt with an in-DS modal (C5)
+- `TemplatesBrowseManager.tsx`: the 3 native `window.prompt` flows (rename template, move-to-group,
+  rename group) now use a reusable in-DS prompt built on `ConfirmDialog` + `ControlInput` (SF Pro,
+  tokens, focus management, Enter-to-submit). Refactored the handlers into apply-fns + prompt-openers.
+- Tests: `template-gallery.test.tsx` rename/move cases rewritten to drive the modal (were mocking window.prompt).
+
+### Gates
+- type-check ✓; template-gallery + template-editor 23/23; estimate-sheet-tree dnd/dom + bulk-selection +
+  context-menu 54/54 (shared-tree aria change is additive, no consumer regressed). Full validate running.
+- RTM: UX-4/UX-5 (U12) ✓, C5 window.prompt→modal ✓. **U12-U15 complete.**
+- **Next:** U5 (server-side search + migration), U7 (bound reads), U2 (insert path — headline), U16 (tests), closeout.
