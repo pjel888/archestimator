@@ -1,5 +1,47 @@
 # Decisions
 
+## 2026-06-13 — Templates Audit & Improvement Plan implemented (in-estimate panel)
+
+**Decision:** Implement the Templates Audit & Improvement Plan
+(`.ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan/`) locally on branch
+`claude/2026-06-13-Templates-Audit-And-Improvement-Plan` (worktree
+`goofy-dubinsky-6a8080`). Shipped units: U1/U1b, U2, U3, U4, U5, U6+U23, U9, U10/U11,
+U12–U15, U16, U17, U18/U19/U21, U22. (Unit summaries in `current-state.md`.)
+
+**Key sub-decisions:**
+- **U2/U4 security (P0):** the insert RPCs gate on **explicit** `can_access_estimate`
+  (source) + `assert_can_edit_estimate_for_history` (target) inside the DEFINER chain —
+  never RLS reliance, because the inner non-DEFINER function runs RLS-exempt as `postgres`.
+  Proven by the Postgres harness (denials 4, 5; 6 transitive; 7 re-read).
+- **Migration sequencing (D-A):** the U2 subtree RPC + U4 hardening migrations are
+  **tab-aware** and authored to apply **after** the foundation
+  (`20260612094734_estimate_tabs_foundation.sql`). Their apply is **owner-gated** (provider
+  mutation against project `ebxxqidacheyapmmzavr` only); the app-layer guards
+  (`assertCanEditEstimate`) ship immediately and stand alone.
+- **U18 cost fidelity:** the lite in-estimate library loader still loads price-options +
+  current cost-entries (the cost-determining queries) and skips only audit/attachment graphs,
+  so the panel cost is byte-identical to the full loader — chosen over trusting a possibly-lagging
+  denormalized `cost_library_items.unit_cost`.
+- **U6/U23 — shared `ui/tree.tsx` left untouched:** `get_impact_radius` flagged it HIGH
+  (23 files). Prefetch rides the row label `onMouseEnter` and skeletons ride node injection,
+  both inside the templates feature, so the broadly-shared tree primitive needed no edit.
+- **U7 and U8 DEFERRED (documented, not skipped):** U7 (bounded reads) would silently truncate
+  a user's own projects/nodes mid-edit absent a pagination/limit-state UX the plan doesn't specify
+  — a correctness regression, not a perf win. U8 (scope insert-RPC validation) targets the wrong
+  cost center: the dominant validation is the `DEFERRABLE` constraint trigger that re-validates
+  the whole estimate on commit after every node mutation; a real win means re-scoping a
+  safety-critical, broadly-shared integrity guard — owner-gated, benchmark-gated, correctness-risky.
+  Both parked per the "0 bugs > perf" priority.
+
+**Proof:** `bun run validate` + `bun run build` green (Node v25.8.0; the repo PATH `node` v14 is
+too old). Postgres RLS/denial harness `scripts/prove-estimate-tabs-postgres.mjs` EXIT 0. Full
+per-phase evidence in `.ai/05_logs/2026-06-13-templates-implementation-ledger.md`.
+
+**Owner-gated remainder (NOT executed):** apply `20260613170000_harden_template_insert_can_edit.sql`
++ `20260613180000_insert_estimate_subtree_rpc.sql` (after D-A foundation) to `ebxxqidacheyapmmzavr`,
+`gen types`, hosted verify; EXPLAIN proof for U9; large-fixture benchmark + design for U7/U8; e2e
+un-skip with seeded fixtures. Not pushed; no PR opened (owner-gated).
+
 ## 2026-06-13 - Global improve install replaces repo-local duplicate
 
 **Decision:** Remove the repo-local `.agents/skills/improve/` copy because the
