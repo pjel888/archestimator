@@ -14,12 +14,19 @@ vi.mock("@/stores/navigation-ui-store", () => ({
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 
 describe("useNavigationRouter", () => {
-  it("refresh() shows the overlay", () => {
+  it("push() shows the overlay (real navigation)", () => {
+    show.mockClear();
+    const { result } = renderHook(() => useNavigationRouter());
+    result.current.push("/somewhere");
+    expect(show).toHaveBeenCalledWith("/somewhere");
+  });
+
+  it("refresh() does NOT show the overlay (mutations are optimistic; Library T1)", () => {
     show.mockClear();
     refresh.mockClear();
     const { result } = renderHook(() => useNavigationRouter());
     result.current.refresh();
-    expect(show).toHaveBeenCalledWith("refresh");
+    expect(show).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalled();
   });
 

@@ -723,9 +723,11 @@ function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
   };
 }
 
-// Memoized per request (React cache) so the workspace lookup runs once even
+// Memoized per request (React.cache) so the workspace lookup runs once even
 // though the layout fan-out (collaboration + publication + sheets summaries) and
-// the page each resolve it — previously 3× per render (finding F6). Mirrors the
+// the page each resolve it — previously 3× per render. Two plans landed this same
+// fix (Estimates-List F6 / P1-1 and Library Optimization P1 T6). The auto-provision
+// write is idempotent within a request (cache() runs the body once). Mirrors the
 // getCurrentWorkspaceProject memoization below.
 export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
   const context = await requireCurrentUserContext();

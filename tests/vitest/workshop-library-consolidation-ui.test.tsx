@@ -2,12 +2,21 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 import type { DraggingPosition, TreeItem, TreeItemIndex, TreeViewState } from "react-complex-tree";
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+
+// LibraryPageClient now owns a TanStack Query cache (P0 T3); each render gets a fresh
+// provider so the seeded fixtures behave like an isolated warm cache.
+function renderLibraryShell(element: ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+}
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -326,7 +335,7 @@ describe("workshop library consolidation UI", () => {
   });
 
   it("renders the components scope as a context strip without manager tablists and with direct folder scoped rows", async () => {
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -376,7 +385,7 @@ describe("workshop library consolidation UI", () => {
     });
     const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Supplier Review Folder");
 
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -415,7 +424,7 @@ describe("workshop library consolidation UI", () => {
     });
     const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Root First");
 
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -448,7 +457,7 @@ describe("workshop library consolidation UI", () => {
       versionNumber: 1,
     });
 
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -795,7 +804,7 @@ describe("workshop library consolidation UI", () => {
   });
 
   it("renders versioned components as ecommerce-style catalogue cards without lifecycle or history chrome", async () => {
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -837,7 +846,7 @@ describe("workshop library consolidation UI", () => {
   });
 
   it("keeps supplier organization inside Components and scopes the sheet directly to suppliers", async () => {
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[
@@ -866,7 +875,7 @@ describe("workshop library consolidation UI", () => {
   });
 
   it("uses the shared drag/drop tree environment for editable library folders", async () => {
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -912,7 +921,7 @@ describe("workshop library consolidation UI", () => {
   });
 
   it("lets component rows move to another library folder from the tree", async () => {
-    render(
+    renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
         suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
@@ -947,6 +956,9 @@ describe("workshop library consolidation UI", () => {
         libraryFolderId: "folder-details",
       }),
     );
-    expect(navigationMocks.refresh).toHaveBeenCalled();
+    // Library Optimization Plan P0 T4: the move now patches the warm TanStack Query
+    // cache instead of calling router.refresh() (which re-ran the whole server
+    // segment). The optimistic local update + cache patch keep the UI consistent.
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
   });
 });

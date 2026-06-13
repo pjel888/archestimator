@@ -207,7 +207,7 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
       title="Build your component library"
       description="Add your first component, or import from a price list."
       action={
-        <Button type="button" variant="primary" size="xs" onClick={() => router.push("/workshop/library/components")}>
+        <Button type="button" variant="primary" size="xs" onClick={() => router.push("/workshop/library/components?add=component")}>
           Add component
         </Button>
       }
@@ -237,10 +237,10 @@ export function LibraryOverview({ overview }: LibraryOverviewProps) {
               <Plus size={12} weight="regular" aria-hidden="true" />
               New template
             </Button>
-            {/* Opening the add-component modal cross-route is not wired yet
-                (v1 simplification): the primary action lands on the
-                Components tab, where Add component lives in the toolbar. */}
-            <Button type="button" variant="primary" size="xs" onClick={() => router.push("/workshop/library/components")}>
+            {/* Library Optimization Plan P1 T8 (F23): land on the Components tab AND
+                open the Add Component modal via ?add=component (handled in
+                ComponentLibraryManager), instead of just navigating to the tab. */}
+            <Button type="button" variant="primary" size="xs" onClick={() => router.push("/workshop/library/components?add=component")}>
               <Plus size={12} weight="regular" aria-hidden="true" />
               Add component
             </Button>
