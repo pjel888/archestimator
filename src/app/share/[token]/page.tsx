@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import { ShareContainer } from "@/components/share/ShareContainer";
@@ -144,13 +145,22 @@ export default async function SharePage({ params, searchParams }: SharePageProps
         credentialVersion: publicationAccess.credentialVersion,
       })
     ) {
-      const requestHeaders = new Headers(await headers());
-      await recordProjectPublicationAnalyticsEvent({
-        token,
-        eventType: "open",
-        accessStage: "password_gate_viewed",
-        recipientKnown: false,
-        request: createPublicationEventRequest(token, requestHeaders),
+      // OPT-1 (PERF-02): defer the password-gate telemetry write off the response path.
+      // The request context is captured synchronously here so the closure stays valid after
+      // the response streams; the write is best-effort and must never block or crash the gate.
+      const passwordGateEventRequest = createPublicationEventRequest(token, new Headers(await headers()));
+      after(async () => {
+        try {
+          await recordProjectPublicationAnalyticsEvent({
+            token,
+            eventType: "open",
+            accessStage: "password_gate_viewed",
+            recipientKnown: false,
+            request: passwordGateEventRequest,
+          });
+        } catch (error) {
+          console.error("[share] deferred password-gate analytics write failed", error);
+        }
       });
       return <ProjectPublicationPasswordGate token={token} />;
     }
@@ -162,9 +172,10 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   // - Session route sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod) per spec
   // - Enables useSharedLinkSession hook + future interactive blocking (P6+)
   let recipientIdForOpenEvent: string | undefined;
-  let recipientEmailForBanner: string | null = null;
   if (!recipientToken) {
-    // Subsequent load: validate existing session cookie (additive to password cookie)
+    // Subsequent load: validate existing session cookie (additive to password cookie).
+    // Only the cookie verification gates whether a recipient is "known"; the identity
+    // SELECT itself is independent of the snapshot read and is parallelized below (OPT-4).
     const cookieStore = await cookies();
     const sessionValue = decodeCookieValue(cookieStore.get(createSharedLinkSessionCookieName(token))?.value);
     const recipientIdFromCookie = readSharedLinkSessionCookieRecipientId(sessionValue);
@@ -177,33 +188,58 @@ export default async function SharePage({ params, searchParams }: SharePageProps
       })
     ) {
       recipientIdForOpenEvent = recipientIdFromCookie;
-      const recipientIdentity = await resolveSharedLinkRecipientIdentity({
-        publicationId: publicationAccess.publicationId,
-        recipientId: recipientIdFromCookie,
-      });
-      recipientEmailForBanner = recipientIdentity?.recipientEmail ?? null;
     }
   }
 
-  const publication = await resolveProjectPublicationSnapshotByToken(token);
+  // OPT-4 (PERF-02/03 tail): the snapshot read and the (conditional) recipient-identity
+  // read are independent once access is known, so run them together rather than serially.
+  // The recipient read only fires when a valid session cookie set recipientIdForOpenEvent —
+  // otherwise it resolves to null without a DB round-trip, preserving control-flow correctness.
+  const [publication, recipientIdentity] = await Promise.all([
+    resolveProjectPublicationSnapshotByToken(token),
+    recipientIdForOpenEvent
+      ? resolveSharedLinkRecipientIdentity({
+          publicationId: publicationAccess.publicationId,
+          recipientId: recipientIdForOpenEvent,
+        })
+      : Promise.resolve(null),
+  ]);
   if (!publication) notFound();
+  const recipientEmailForBanner = recipientIdentity?.recipientEmail ?? null;
 
+  // OPT-1 (PERF-02): move both telemetry writes off the response path with after(). The
+  // request context is captured synchronously here so the closures stay valid once the
+  // response has streamed. Each write is best-effort: a telemetry failure inside after()
+  // must never crash the request (it can no longer affect what was already rendered), so it
+  // is wrapped in try/catch and logged — mirroring the existing best-effort behaviour.
   const requestHeaders = new Headers(await headers());
   const publicationEventRequest = createPublicationEventRequest(token, requestHeaders);
-  await recordProjectPublicationAnalyticsEvent({
-    token,
-    eventType: "open",
-    accessStage: "page_visit",
-    recipientKnown: Boolean(recipientIdForOpenEvent),
-    request: publicationEventRequest,
-    recipientId: recipientIdForOpenEvent,
+  after(async () => {
+    try {
+      await recordProjectPublicationAnalyticsEvent({
+        token,
+        eventType: "open",
+        accessStage: "page_visit",
+        recipientKnown: Boolean(recipientIdForOpenEvent),
+        request: publicationEventRequest,
+        recipientId: recipientIdForOpenEvent,
+      });
+    } catch (error) {
+      console.error("[share] deferred page-visit analytics write failed", error);
+    }
   });
-  await recordProjectPublicationEvent({
-    token,
-    eventType: "open",
-    request: publicationEventRequest,
-    metadata: recipientIdForOpenEvent ? { recipient_id: recipientIdForOpenEvent } : {},
-    recipientId: recipientIdForOpenEvent,
+  after(async () => {
+    try {
+      await recordProjectPublicationEvent({
+        token,
+        eventType: "open",
+        request: publicationEventRequest,
+        metadata: recipientIdForOpenEvent ? { recipient_id: recipientIdForOpenEvent } : {},
+        recipientId: recipientIdForOpenEvent,
+      });
+    } catch (error) {
+      console.error("[share] deferred open-event write failed", error);
+    }
   });
 
   return (

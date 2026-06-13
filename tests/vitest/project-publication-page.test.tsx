@@ -34,6 +34,23 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+// OPT-1: the page now defers both telemetry writes via after() from next/server. Outside a
+// real request scope (this unit test calls SharePage() directly) the real after() throws, so
+// we partial-mock the module to run the scheduled callback synchronously while keeping the
+// real NextResponse (used by the session route handlers exercised in this file). Because each
+// callback awaits the (mocked) telemetry function, that function is still invoked
+// synchronously on the first tick — keeping the existing "was called with …" assertions valid
+// while proving the write is scheduled through after() rather than awaited before return.
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return {
+    ...actual,
+    after: vi.fn((callback: () => unknown) => {
+      void callback();
+    }),
+  };
+});
+
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ get: mocks.cookieGet, set: mocks.cookieSet })),
   headers: vi.fn(async () => new Headers({ host: "archestimator.test", "user-agent": "vitest" })),
@@ -48,6 +65,7 @@ import { createSharedLinkSessionCookie } from "@/lib/publication/security";
 
 const passwordFormSource = readFileSync("src/components/share/ProjectPublicationPasswordForm.tsx", "utf8");
 const sharePageSource = readFileSync("src/app/share/[token]/page.tsx", "utf8");
+const heroSource = readFileSync("src/components/share/SharePageHero.tsx", "utf8");
 const shareSessionBannerSource = readFileSync("src/components/share/SharePageSessionBanner.tsx", "utf8");
 const shareSessionRouteSource = existsSync("src/app/api/share/[token]/session/route.ts") ? readFileSync("src/app/api/share/[token]/session/route.ts", "utf8") : "";
 const sharePrintSource = existsSync("src/app/share/print.css") ? readFileSync("src/app/share/print.css", "utf8") : "";
@@ -765,9 +783,9 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
   // ========================================================================
   // P9 RED TESTS — Visual Polish, Images & Hero (written FIRST per Master Prompt + subagent-driven dev)
-  // - SharePageHero: cover from snapshot project (projects.metadata at publish time), Next/Image + loading="lazy"
+  // - SharePageHero: cover from snapshot project (projects.metadata at publish time), Next/Image + priority (OPT-9 LCP)
   // - 32px thumbnails in estimate table rows (from row source_snapshot.imageUrl when present)
-  // - loading="lazy" on all receiver images
+  // - loading="lazy" on receiver row thumbnails (hero uses priority for LCP — see OPT-9)
   // - Responsive: horizontal swipe (tabs already), sticky decision bar, safe-area-inset-bottom
   // - Design system: rounded-xs, ≤12px SF Pro text-[*], proposalPaper etc (lint enforced)
   // These will fail (red) until hero created + data + renders + responsive + lazy added.
@@ -808,14 +826,21 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       rows: [rowWithThumb],
     };
 
-    it("SharePageHero renders Next/Image (as img) for cover with loading=lazy, alt from project, design tokens (rounded-xs, hairline, proposal surface)", async () => {
+    it("SharePageHero renders Next/Image (as img) for cover with priority (LCP, OPT-9), alt from project, design tokens (rounded-xs, hairline, proposal surface)", async () => {
       const mod = await import("@/components/share/SharePageHero");
       const SharePageHero = mod.default;
       const { container } = render(<SharePageHero project={heroProject} />);
 
       const img = container.querySelector("img");
       expect(img).toBeInTheDocument();
-      expect(img).toHaveAttribute("loading", "lazy");
+      // OPT-9 (PERF-11): the hero is the above-the-fold LCP element, so it is prioritized
+      // rather than lazy-loaded. The aspect-ratio wrapper still protects CLS. (next/image is
+      // mocked to a passthrough <img> here, which drops the non-standard `priority` boolean
+      // attribute, so the eager-load intent is asserted on the rendered element via the
+      // absence of loading="lazy" and confirmed against the component source for `priority`.)
+      expect(img).not.toHaveAttribute("loading", "lazy");
+      expect(heroSource).toContain("priority");
+      expect(heroSource).not.toContain('loading="lazy"');
       expect(img?.getAttribute("alt")).toMatch(/Valencia Residence|cover/i);
       // design-system: wrapper (not img) carries rounded-xs + border-hairline; img carries object-cover (fill)
       expect(container.innerHTML).toMatch(/rounded-xs|border-hairline/);

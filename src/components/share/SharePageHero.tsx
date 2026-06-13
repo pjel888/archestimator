@@ -13,7 +13,9 @@ interface SharePageHeroProps {
 
 /**
  * P9 SharePageHero: renders cover image from projects.metadata (captured into snapshot.project at publish time).
- * - Next.js <Image> with loading="lazy" (never eager on public receiver)
+ * - Next.js <Image> with `priority` — the cover is the above-the-fold hero and is frequently the
+ *   LCP element, so it is fetched eagerly with high priority (OPT-9 / PERF-11). The explicit
+ *   aspect-ratio wrapper below reserves layout to protect CLS while it loads.
  * - Design-system strict: rounded-xs (3px), hairline border, proposal/surface tokens, ≤12px / 9px labels, SF Pro stack
  * - Responsive: full-bleed in container, graceful no-image (null) for old snapshots / no cover
  * - Additive, backwards compatible (old snapshot_json without coverImageUrl render nothing extra)
@@ -34,7 +36,7 @@ export default function SharePageHero({ project }: SharePageHeroProps) {
           fill
           className="object-cover"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 768px, (max-width: 1280px) 1120px, 1280px"
-          loading="lazy"
+          priority
         />
       </div>
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/35 to-transparent p-2 sm:p-2.5">

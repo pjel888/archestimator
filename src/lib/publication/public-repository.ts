@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 import { deriveCredentialVersion, getClientIp, hashPublicationToken, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
@@ -74,6 +75,50 @@ export function createPublicationServiceClient() {
     },
   });
 }
+
+// OPT-3 (PERF-04): one service-role client per request. `React.cache` memoises the
+// factory for the duration of a single request render (page + generateMetadata),
+// collapsing the ≥5 per-call client allocations into one. The service-role config is
+// fully static (no per-request header mutation) so reuse is safe; `persistSession:false`
+// keeps it stateless. Outside a request scope (route handlers / tests) `cache` is a
+// transparent passthrough — every call simply re-constructs, preserving prior behaviour.
+const getRequestPublicationServiceClient = cache(createPublicationServiceClient);
+
+// OPT-2 (PERF-03): de-duplicate the publication-row lookup. The same `token_hash` row is
+// otherwise SELECT-ed up to 4× on the render path (access + analytics + event) plus again
+// in generateMetadata. `React.cache` memoises per request (and across the page render AND
+// generateMetadata), so repeated calls with the same token collapse to one round-trip.
+// Two distinct cached readers keep the AC-PERF-03 target of "1 access read + 1 snapshot
+// read": the access reader pulls only the lightweight active-state columns; the snapshot
+// reader additionally pulls the heavy `snapshot_json` blob and is only used by the snapshot
+// resolver. Both are per-request memoised — never cached across requests — so the
+// active-state gate (revoked/expired) is re-evaluated on every visit.
+const ACCESS_LOOKUP_COLUMNS = "id, status, password_hash, expires_at, revoked_at, snapshot_version";
+const SNAPSHOT_LOOKUP_COLUMNS = "id, status, password_hash, snapshot_json, expires_at, revoked_at, snapshot_version";
+
+const getCachedPublicationAccessRowByToken = cache(async (token: string): Promise<PublicationLookupRow | null> => {
+  const supabase = getRequestPublicationServiceClient();
+  const { data, error } = await supabase
+    .from("project_publications")
+    .select(ACCESS_LOOKUP_COLUMNS)
+    .eq("token_hash", readTokenHash(token))
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+});
+
+const getCachedPublicationSnapshotRowByToken = cache(async (token: string): Promise<PublicationSnapshotLookupRow | null> => {
+  const supabase = getRequestPublicationServiceClient();
+  const { data, error } = await supabase
+    .from("project_publications")
+    .select(SNAPSHOT_LOOKUP_COLUMNS)
+    .eq("token_hash", readTokenHash(token))
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as PublicationSnapshotLookupRow | null) ?? null;
+});
 
 function isActivePublication(row: PublicationLookupRow) {
   if (row.status !== "published") return false;
@@ -474,14 +519,9 @@ function toResolvedAccess(data: PublicationLookupRow): ResolvedProjectPublicatio
 export async function resolveProjectPublicationAccessByToken(token: string): Promise<ResolvedProjectPublicationAccess | null> {
   if (!token.trim()) return null;
 
-  const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", readTokenHash(token))
-    .maybeSingle();
-
-  if (error) throw error;
+  // OPT-2: shared per-request memoised access-row read. The active-state gate
+  // (isActivePublication) runs on every call so revoked/expired still resolve to null.
+  const data = await getCachedPublicationAccessRowByToken(token);
   if (!data || !isActivePublication(data)) return null;
 
   return toResolvedAccess(data);
@@ -490,15 +530,12 @@ export async function resolveProjectPublicationAccessByToken(token: string): Pro
 export async function resolveProjectPublicationSnapshotByToken(token: string): Promise<ResolvedProjectPublicationSnapshot | null> {
   if (!token.trim()) return null;
 
-  const supabase = createPublicationServiceClient();
-  const { data, error } = await supabase
-    .from("project_publications")
-    .select("id, status, password_hash, snapshot_json, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", readTokenHash(token))
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data || !isActivePublication(data as PublicationSnapshotLookupRow)) return null;
+  // OPT-2: dedicated per-request memoised snapshot read (includes snapshot_json). Distinct
+  // from the access reader so a happy-path visit performs exactly one snapshot SELECT
+  // (shared by page render + generateMetadata) without ever pulling the blob on the
+  // access-only / password-gate paths.
+  const data = await getCachedPublicationSnapshotRowByToken(token);
+  if (!data || !isActivePublication(data)) return null;
 
   return {
     ...toResolvedAccess(data),
@@ -542,14 +579,11 @@ export async function recordProjectPublicationAnalyticsEvent({
 }): Promise<{ recorded: boolean; reason?: "disabled" | "inactive" }> {
   if (!isProjectPublicationAccessTelemetryEnabled()) return { recorded: false, reason: "disabled" };
 
-  const supabase = createPublicationServiceClient();
-  const { data: publication, error: publicationError } = await supabase
-    .from("project_publications")
-    .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", readTokenHash(token))
-    .maybeSingle();
-
-  if (publicationError) throw publicationError;
+  const supabase = getRequestPublicationServiceClient();
+  // OPT-2: reuse the per-request memoised access row instead of re-SELECTing it. The
+  // active-state gate still runs here, so telemetry is never written for an inactive
+  // publication.
+  const publication = await getCachedPublicationAccessRowByToken(token);
   if (!publication || !isActivePublication(publication)) return { recorded: false, reason: "inactive" };
 
   const ipHash = hashRequestValue(request.headers.get("x-forwarded-for") ?? getClientIp(request));
@@ -582,14 +616,11 @@ export async function recordProjectPublicationEvent({
   metadata?: Record<string, unknown>;
   recipientId?: string;
 }) {
-  const supabase = createPublicationServiceClient();
-  const { data: publication, error: publicationError } = await supabase
-    .from("project_publications")
-    .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
-    .eq("token_hash", readTokenHash(token))
-    .maybeSingle();
-
-  if (publicationError) throw publicationError;
+  const supabase = getRequestPublicationServiceClient();
+  // OPT-2: reuse the per-request memoised access row instead of re-SELECTing it. The
+  // active-state gate still runs here, so the open counter / recipient bookkeeping is never
+  // written for a revoked or expired publication.
+  const publication = await getCachedPublicationAccessRowByToken(token);
   if (!publication || !isActivePublication(publication)) return;
 
   const eventMetadata = recipientId ? { ...metadata, recipient_id: recipientId } : metadata;
