@@ -18,6 +18,13 @@ export type ProposalExportMetadata = {
   versionLabel: string;
   currency: "PHP" | string;
   sourceNodeId?: string | null;
+  // Title-block fields (P2-T4). clientName is DB-free (projects.client_name); contractorName
+  // is the D4 interim (workspace name) until a contractor profile lands; subject is derived.
+  clientName?: string | null;
+  contractorName?: string | null;
+  subject?: string | null;
+  // P2-T6 (D3): gross floor area read from estimate/project metadata JSONB; Cost/SQM = Grand Total / GFA.
+  grossFloorArea?: number | null;
 };
 
 export type ProposalExportSettings = {

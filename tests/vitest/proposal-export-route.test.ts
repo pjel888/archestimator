@@ -88,13 +88,14 @@ describe("proposal xlsx export route", () => {
     mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
-      workspace: { id: "workspace-1" },
+      workspace: { id: "workspace-1", name: "BuildCo Workspace" },
       project: {
         id: "project-1",
         name: "Synthetic Hotel Fit-Out Study",
         project_code: "SYN-001",
         location: "Metro City",
         currency_code: "PHP",
+        client_name: "Acme Developers Inc.",
       },
       estimate: {
         id: "estimate-1",
@@ -153,6 +154,10 @@ describe("proposal xlsx export route", () => {
           estimateSheetCode: "EST-001",
           versionLabel: "V3",
           currency: "PHP",
+          // P2-T4: Owner/Client (DB-free) + contractor interim (workspace name) + subject.
+          clientName: "Acme Developers Inc.",
+          contractorName: "BuildCo Workspace",
+          subject: "BID FORM — Interior Fit-Out Estimate",
         }),
         totals: expect.objectContaining({ grandTotal: 11_900 }),
       }),
