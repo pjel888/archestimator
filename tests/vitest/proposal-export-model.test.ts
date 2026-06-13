@@ -387,4 +387,39 @@ describe("proposal export model", () => {
     // Labor is present → the material-only disclaimer is suppressed.
     expect(model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode")).toBe(false);
   });
+
+  it("unification (P2): rows on a non-area (group) node are exported, not skipped", () => {
+    // The pre-unification export dropped rows owned by a "group" container, understating
+    // the proposal total — the same silent-drop class as the share firewall (P1). After the
+    // relax, a mixed node's own rows are exported and counted, with no stale skip warning.
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "main-house",
+        name: "Main House",
+        kind: "group",
+        total: "₱0.00",
+        // rows OWNED by the group container (not just its area children):
+        estimateRowItems: [row({ id: "own-row", material: "Site Preparation", quantity: 1, itemCost: 1_000 })],
+        children: [
+          {
+            id: "bedroom-a",
+            name: "Bedroom A",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [row({ id: "child-row", material: "Porcelain Tile", quantity: 1, itemCost: 500 })],
+          },
+        ],
+      },
+    ];
+
+    // flattenEstimateTree now emits the group node's own row alongside the child area row.
+    const flat = flattenEstimateTree(nodes);
+    expect(flat.map((flatRow) => flatRow.sourceRowId).sort()).toEqual(["child-row", "own-row"]);
+
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    // Both rows count toward the grand total (1,000 + 500) — neither is silently dropped.
+    expect(model.totals.grandTotal).toBe(1_500);
+    // The obsolete "rows skipped because export only reads area rows" warning must not fire.
+    expect(model.validationIssues.some((issue) => issue.code === "non_area_rows_skipped")).toBe(false);
+  });
 });

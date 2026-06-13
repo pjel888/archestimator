@@ -352,25 +352,6 @@ function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExport
   return { ...base, ...resolveProjectCharges(base.grandTotal, settings) };
 }
 
-function collectNonAreaRows(nodes: EstimateTreeNode[]) {
-  const issues: ProposalExportValidationIssue[] = [];
-
-  function visit(node: EstimateTreeNode) {
-    if (node.kind !== "area" && (node.estimateRowItems?.length ?? 0) > 0) {
-      issues.push({
-        severity: "warning",
-        code: "non_area_rows_skipped",
-        message: `Rows on group node “${node.name}” were skipped because proposal export only reads area rows.`,
-        sourceNodeId: node.id,
-      });
-    }
-    node.children?.forEach(visit);
-  }
-
-  nodes.forEach(visit);
-  return issues;
-}
-
 export function flattenEstimateTree(nodes: EstimateTreeNode[]): ProposalFlatSourceRow<EstimateRowItem>[] {
   const rows: ProposalFlatSourceRow<EstimateRowItem>[] = [];
   let sortIndex = 0;
@@ -379,20 +360,22 @@ export function flattenEstimateTree(nodes: EstimateTreeNode[]): ProposalFlatSour
     const nextPath = [...path, node.name];
     const nextPathIds = [...pathIds, node.id];
 
-    if (node.kind === "area") {
-      for (const sourceRow of node.estimateRowItems ?? []) {
-        rows.push({
-          sourceRow,
-          sourceRowId: sourceRow.id,
-          sourceNodeId: node.id,
-          sourceNodeName: node.name,
-          areaPath: nextPath,
-          areaPathIds: nextPathIds,
-          areaPathLabel: nextPath.join(" / "),
-          sortIndex,
-        });
-        sortIndex += 1;
-      }
+    // Unification (single node type): any node may own rows, not only "area".
+    // Pre-migration the DB still keeps rows off non-area nodes, so this is byte-identical
+    // on real data; once writes are enabled, a mixed node's rows are no longer dropped
+    // from the proposal export (which would understate the client-facing total).
+    for (const sourceRow of node.estimateRowItems ?? []) {
+      rows.push({
+        sourceRow,
+        sourceRowId: sourceRow.id,
+        sourceNodeId: node.id,
+        sourceNodeName: node.name,
+        areaPath: nextPath,
+        areaPathIds: nextPathIds,
+        areaPathLabel: nextPath.join(" / "),
+        sortIndex,
+      });
+      sortIndex += 1;
     }
 
     node.children?.forEach((child) => visit(child, nextPath, nextPathIds));
@@ -466,7 +449,10 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
   // P3-T3: reorder sections canonically, then renumber so line numbers/division letters follow
   // the canonical order rather than data-encounter order.
   const proposalRows = renumberProposalRows(applyCanonicalDivisionOrder(consolidateProposalRows(flatRows, settings)));
-  const validationIssues: ProposalExportValidationIssue[] = [...collectNonAreaRows(input.nodes)];
+  // Unification: rows on any node are now exported (flattenEstimateTree above), so the
+  // "non_area_rows_skipped" warning is obsolete and would fire falsely. The collector is
+  // removed in the P7 dead-code pass; here we simply stop emitting the stale warning.
+  const validationIssues: ProposalExportValidationIssue[] = [];
 
   if (flatRows.length === 0) {
     validationIssues.push({
