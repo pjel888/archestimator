@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 
-import type { ProposalExportModel, ProposalExportSettings, ProposalExportTotals, ProposalExportWorkbookTab, ProposalTabbedWorkbookModel } from "./types";
+import type { ProposalExportMetadata, ProposalExportModel, ProposalExportSettings, ProposalExportTotals, ProposalExportWorkbookTab, ProposalSourceBreakdownRow, ProposalTabbedWorkbookModel } from "./types";
 import { applyAudiencePolicy, resolveProjectCharges } from "./build-proposal-export-model";
 import { quoteWorksheetCellReference } from "./worksheet-name";
 
@@ -65,6 +65,13 @@ export const BID_FORM_COLUMNS = [
   { key: "scope", header: "SCOPE", width: 16, style: { numFmt: TEXT_FORMAT } },
   { key: "remarks", header: "NOTES / REMARKS", width: 42, style: { numFmt: TEXT_FORMAT } },
 ] as const satisfies ProposalWorkbookColumn[];
+
+// F-21 (P2-T8): derive the Excel column letter for each Bid Form column from its position so
+// the recalc formulas (COST TOTAL, LINE TOTAL, subtotals, Summary cross-refs) follow a column
+// reorder instead of silently pointing at the wrong cell. Guarded by a workbook test.
+export const BID_FORM_COLUMN_LETTERS = Object.fromEntries(
+  BID_FORM_COLUMNS.map((column, index) => [column.key, String.fromCharCode(65 + index)]),
+) as Record<(typeof BID_FORM_COLUMNS)[number]["key"], string>;
 
 const SUMMARY_COLUMNS = [
   { key: "sectionLabel", header: "SECTION", width: 34, style: { numFmt: TEXT_FORMAT } },
@@ -268,13 +275,15 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
     worksheet.mergeCells(sectionRow.number, 1, sectionRow.number, BID_FORM_COLUMNS.length);
 
     const firstDetailRow = sectionRow.number + 1;
+    const col = BID_FORM_COLUMN_LETTERS;
     for (const proposalRow of sectionRows) {
       const rowNumber = worksheet.rowCount + 1;
       const directCostAdjustments = [
         formulaAmountSuffix(proposalRow.contingencySubtotal),
         formulaAmountSuffix(proposalRow.miscSubtotal),
       ].join("") || "+0";
-      const lineFormula = `IF(OR(I${rowNumber}="EXCLUDED",I${rowNumber}="BY OTHERS",I${rowNumber}="OWNER SUPPLIED",I${rowNumber}="OSM",I${rowNumber}="OFCI",I${rowNumber}="OSCI",I${rowNumber}="OMITTED",I${rowNumber}="NOT APPLICABLE"),0,D${rowNumber}*G${rowNumber}${directCostAdjustments})`;
+      const scopeRef = `${col.scope}${rowNumber}`;
+      const lineFormula = `IF(OR(${scopeRef}="EXCLUDED",${scopeRef}="BY OTHERS",${scopeRef}="OWNER SUPPLIED",${scopeRef}="OSM",${scopeRef}="OFCI",${scopeRef}="OSCI",${scopeRef}="OMITTED",${scopeRef}="NOT APPLICABLE"),0,${col.quantity}${rowNumber}*${col.costTotal}${rowNumber}${directCostAdjustments})`;
       const remarks = [
         proposalRow.contingencySubtotal ? `Contingency: ${formatPeso(proposalRow.contingencySubtotal)}` : null,
         proposalRow.miscSubtotal ? `Misc / other: ${formatPeso(proposalRow.miscSubtotal)}` : null,
@@ -289,7 +298,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
         proposalRow.quantity,
         proposalRow.materialUnitCost,
         proposalRow.laborUnitCost,
-        formulaCell(includeFormulas, `E${rowNumber}+F${rowNumber}`, proposalRow.materialUnitCost + proposalRow.laborUnitCost),
+        formulaCell(includeFormulas, `${col.material}${rowNumber}+${col.labor}${rowNumber}`, proposalRow.materialUnitCost + proposalRow.laborUnitCost),
         formulaCell(includeFormulas, lineFormula, proposalRow.includedInTotal ? proposalRow.costAmount : 0),
         scopeLabel(proposalRow.scopeStatus),
         remarks,
@@ -306,7 +315,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
       "",
       "",
       "",
-      formulaCell(includeFormulas, `SUM(H${firstDetailRow}:H${lastDetailRow})`, summaryRow.costAmount),
+      formulaCell(includeFormulas, `SUM(${col.lineTotal}${firstDetailRow}:${col.lineTotal}${lastDetailRow})`, summaryRow.costAmount),
       "",
       "",
     ]);
@@ -416,7 +425,7 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
     const row = worksheet.addRow([
       sectionRange.sectionLabel,
       sectionRange.rowCount,
-      formulaCell(model.settings.includeFormulas, quoteWorksheetCellReference(bidWorksheetName, `H${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
+      formulaCell(model.settings.includeFormulas, quoteWorksheetCellReference(bidWorksheetName, `${BID_FORM_COLUMN_LETTERS.lineTotal}${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
     ]);
     styleBodyRow(row);
     amountRows.push(row.number);
@@ -493,7 +502,7 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
       const row = worksheet.addRow([
         sectionRange.sectionLabel,
         sectionRange.rowCount,
-        formulaCell(input.settings.includeFormulas, quoteWorksheetCellReference(tab.worksheetName, `H${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
+        formulaCell(input.settings.includeFormulas, quoteWorksheetCellReference(tab.worksheetName, `${BID_FORM_COLUMN_LETTERS.lineTotal}${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
       ]);
       styleBodyRow(row);
       amountRows.push(row.number);
@@ -509,75 +518,51 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
   return worksheet;
 }
 
-function createSourceBreakdownWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel) {
-  const worksheet = workbook.addWorksheet("Source Breakdown", {
-    views: [{ state: "frozen", ySplit: 6 }],
-  });
-  applyColumnDefinitions(worksheet, BREAKDOWN_COLUMNS);
-  addTitleRow(worksheet, "Source Breakdown", BREAKDOWN_COLUMNS.length);
-  addHeaderField(worksheet, "Project", model.metadata.projectName);
-  addHeaderField(worksheet, "Estimate", model.metadata.estimateName);
-  addHeaderField(worksheet, "Generated", model.generatedAt);
-  worksheet.addRow([]);
-  const headerRow = worksheet.addRow(BREAKDOWN_COLUMNS.map((column) => column.header));
-  styleHeaderRow(headerRow);
-
-  model.sourceBreakdownRows.forEach((breakdownRow) => {
-    const row = worksheet.addRow([
-      breakdownRow.proposalRowNumber,
-      breakdownRow.sourceRowId,
-      breakdownRow.sourceNodeName,
-      breakdownRow.areaPathLabel,
-      breakdownRow.particulars,
-      breakdownRow.quantity,
-      breakdownRow.unit,
-      breakdownRow.materialUnitCost,
-      breakdownRow.laborUnitCost,
-      breakdownRow.materialSubtotal,
-      breakdownRow.laborSubtotal,
-      breakdownRow.contingencySubtotal,
-      breakdownRow.miscSubtotal,
-      breakdownRow.costAmount,
-    ]);
-    styleBodyRow(row);
-  });
-
-  setPrintLayout(worksheet);
-  return worksheet;
+function breakdownRowValues(breakdownRow: ProposalSourceBreakdownRow, tabName: string | undefined) {
+  const values: Array<string | number> = [
+    breakdownRow.proposalRowNumber,
+    breakdownRow.sourceRowId,
+    breakdownRow.sourceNodeName,
+    breakdownRow.areaPathLabel,
+    breakdownRow.particulars,
+    breakdownRow.quantity,
+    breakdownRow.unit,
+    breakdownRow.materialUnitCost,
+    breakdownRow.laborUnitCost,
+    breakdownRow.materialSubtotal,
+    breakdownRow.laborSubtotal,
+    breakdownRow.contingencySubtotal,
+    breakdownRow.miscSubtotal,
+    breakdownRow.costAmount,
+  ];
+  return tabName === undefined ? values : [tabName, ...values];
 }
 
-function createTabbedSourceBreakdownWorksheet(workbook: ExcelJS.Workbook, input: ProposalTabbedWorkbookModel) {
+// F-32 (P2-T8): one Source Breakdown builder for both the single and tabbed workbooks; the
+// TAB column is added only when tab groups are present, so the geometry stays in one place.
+function createSourceBreakdownWorksheet(
+  workbook: ExcelJS.Workbook,
+  metadata: ProposalExportMetadata,
+  generatedAt: string,
+  groups: Array<{ tabName?: string; rows: ProposalSourceBreakdownRow[] }>,
+  withTab: boolean,
+) {
+  const columns = withTab ? BREAKDOWN_COLUMNS_WITH_TAB : BREAKDOWN_COLUMNS;
   const worksheet = workbook.addWorksheet("Source Breakdown", {
     views: [{ state: "frozen", ySplit: 6 }],
   });
-  applyColumnDefinitions(worksheet, BREAKDOWN_COLUMNS_WITH_TAB);
-  addTitleRow(worksheet, "Source Breakdown", BREAKDOWN_COLUMNS_WITH_TAB.length);
-  addHeaderField(worksheet, "Project", input.metadata.projectName);
-  addHeaderField(worksheet, "Estimate", input.metadata.estimateName);
-  addHeaderField(worksheet, "Generated", input.generatedAt);
+  applyColumnDefinitions(worksheet, columns);
+  addTitleRow(worksheet, "Source Breakdown", columns.length);
+  addHeaderField(worksheet, "Project", metadata.projectName);
+  addHeaderField(worksheet, "Estimate", metadata.estimateName);
+  addHeaderField(worksheet, "Generated", generatedAt);
   worksheet.addRow([]);
-  const headerRow = worksheet.addRow(BREAKDOWN_COLUMNS_WITH_TAB.map((column) => column.header));
+  const headerRow = worksheet.addRow(columns.map((column) => column.header));
   styleHeaderRow(headerRow);
 
-  input.tabs.forEach((tab) => {
-    tab.model.sourceBreakdownRows.forEach((breakdownRow) => {
-      const row = worksheet.addRow([
-        tab.tabName,
-        breakdownRow.proposalRowNumber,
-        breakdownRow.sourceRowId,
-        breakdownRow.sourceNodeName,
-        breakdownRow.areaPathLabel,
-        breakdownRow.particulars,
-        breakdownRow.quantity,
-        breakdownRow.unit,
-        breakdownRow.materialUnitCost,
-        breakdownRow.laborUnitCost,
-        breakdownRow.materialSubtotal,
-        breakdownRow.laborSubtotal,
-        breakdownRow.contingencySubtotal,
-        breakdownRow.miscSubtotal,
-        breakdownRow.costAmount,
-      ]);
+  groups.forEach((group) => {
+    group.rows.forEach((breakdownRow) => {
+      const row = worksheet.addRow(breakdownRowValues(breakdownRow, withTab ? group.tabName ?? "" : undefined));
       styleBodyRow(row);
     });
   });
@@ -621,7 +606,13 @@ export function createProposalWorkbook(input: ProposalExportModel | ProposalTabb
     populateTabbedSummaryWorksheet(summaryWorksheet, input, tabRanges);
     createCommercialTermsWorksheet(workbook);
     if (settings.includeSourceBreakdownSheet) {
-      createTabbedSourceBreakdownWorksheet(workbook, input);
+      createSourceBreakdownWorksheet(
+        workbook,
+        input.metadata,
+        input.generatedAt,
+        input.tabs.map((tab) => ({ tabName: tab.tabName, rows: tab.model.sourceBreakdownRows })),
+        true,
+      );
     }
     return workbook;
   }
@@ -630,7 +621,7 @@ export function createProposalWorkbook(input: ProposalExportModel | ProposalTabb
   createSummaryWorksheet(workbook, input, sectionRanges);
   createCommercialTermsWorksheet(workbook);
   if (settings.includeSourceBreakdownSheet) {
-    createSourceBreakdownWorksheet(workbook, input);
+    createSourceBreakdownWorksheet(workbook, input.metadata, input.generatedAt, [{ rows: input.sourceBreakdownRows }], false);
   }
 
   return workbook;
