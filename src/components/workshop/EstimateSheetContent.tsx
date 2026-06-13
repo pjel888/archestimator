@@ -1716,6 +1716,15 @@ export function EstimateSheetContent({
         data-estimate-center-column="sheet"
         aria-label="Estimate tab content"
       >
+        <EstimateSheetHeader
+          onExpandAll={expandAll}
+          onCollapseAll={collapseAll}
+          onPreviewProposalExport={openProposalPreview}
+          canPreviewProposalExport={canPreviewCurrentExport}
+          onOpenSheetActivity={openActivityHistory}
+          searchQuery={sheetSearchQuery}
+          onSearchQueryChange={setSheetSearchQuery}
+        />
         {estimateTabs.length > 0 ? (
           <EstimateTabStrip
             tabs={estimateTabs}
@@ -1733,15 +1742,6 @@ export function EstimateSheetContent({
         ) : null}
         {isActiveTabTreeLoading ? (
           <>
-            <EstimateSheetHeader
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-              onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={canPreviewCurrentExport}
-              onOpenSheetActivity={openActivityHistory}
-              searchQuery={sheetSearchQuery}
-              onSearchQueryChange={setSheetSearchQuery}
-            />
             <div role="status" aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
               {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="h-7 w-full" />)}
               <span className="sr-only">Loading estimate tab</span>
@@ -1749,15 +1749,6 @@ export function EstimateSheetContent({
           </>
         ) : selectedNode ? (
           <>
-            <EstimateSheetHeader
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-              onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={canPreviewCurrentExport}
-              onOpenSheetActivity={openActivityHistory}
-              searchQuery={sheetSearchQuery}
-              onSearchQueryChange={setSheetSearchQuery}
-            />
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 className={cn("relative min-h-0 flex-1 overflow-auto px-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
@@ -1815,15 +1806,6 @@ export function EstimateSheetContent({
           </>
         ) : (
           <>
-            <EstimateSheetHeader
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-              onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={canPreviewCurrentExport}
-              onOpenSheetActivity={openActivityHistory}
-              searchQuery={sheetSearchQuery}
-              onSearchQueryChange={setSheetSearchQuery}
-            />
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" data-estimate-pointer-surface>
               <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
               <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
