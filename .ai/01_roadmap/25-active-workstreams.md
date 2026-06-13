@@ -1,6 +1,6 @@
 # Active Workstreams
 
-**Last updated:** 2026-06-04
+**Last updated:** 2026-06-13
 **Purpose:** Organizes the implementation roadmap into 8 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
 
 ## Current MVP Launch Handoff
@@ -10,6 +10,36 @@ Status: repo-local launch implementation is frozen at `6ab5b38`; the broad MVP l
 Active next workstream for the MVP launch pack: proof collection against `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`.
 
 Do not schedule more local launch implementation unless a new repo-local defect is found. The remaining work is Vercel/Supabase/Resend provider proof, hosted auth/manual E2E, spreadsheet-app proof, legal/owner signoff, support/alert ownership, rollback, and demo rehearsal evidence.
+
+---
+
+## 2026-06-13 — New planning & audit workstreams (planning only, no code changed)
+
+Four new plan packs were created on 2026-06-13, all planning/audit only (no code, schema, or data changed):
+
+### Templates Feature Audit & Improvement Plan
+- **Package:** `.ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan/` (18 docs)
+- **Status:** AUDIT COMPLETE — planning only. Owner decisions D-A/D-B/D-C required.
+- **Summary:** Custom templates solid; project-source capability browse-only live (estimate_tabs not applied to live DB, insert path never built, live outline 500s). Privilege gap: live insert RPC auths on workspace membership.
+- **Owner decisions needed:** Apply estimate_tabs migration? Build insert path or scope to browse-only?
+
+### Shared Link Improvement Plan
+- **Package:** `.ai/03_plans/2026-06-13-Shared-Link-Improvement-Plan/` (15 docs, 2 adversarial passes)
+- **Status:** PLANNING COMPLETE — ready for owner sign-off.
+- **Summary:** Full-browser layout overhaul for `/share/[token]` (currently max-w-[960px] with 8-12px type). 42 bugs found in owner modal (7 high-severity). UI-only / zero-DB / LOW blast radius.
+- **Owner decision needed:** Approve "Client Portal" type-scale exception (requires design-system enforcer change).
+
+### Spreadsheet / XLSX Export Audit & Improvement Plan
+- **Package:** `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/` (12 docs, 2nd-pass adversarial)
+- **Status:** AUDIT COMPLETE — planning only. 9 owner decisions (D0–D8).
+- **Summary:** 34 findings (6 CRITICAL, 9 HIGH). Export is safe but over-promises: preview≠download, missing Material/Labor split, VAT/contingency, incomplete title block. Dead config surface. Tabs already export to separate worksheets.
+- **Owner decisions needed:** Primary audience, preview approach, multi-tab total display, labor data source, VAT/contingency policy, etc.
+
+### Add New Tabs Plan
+- **Package:** `.ai/03_plans/2026-06-13-Add-New-Tabs/` (10 docs + mockups)
+- **Status:** PLANNING COMPLETE — feature already built behind D-15 gate.
+- **Summary:** The "+" button for new estimate tabs exists in code already, behind a release gate whose precondition (tab-aware export) has since shipped. Plan covers lifting the gate, permission-gating on `canEditEstimate`, replacing toolbar row with right-click context menu, and browser-grade polish. No DB/RPC/RLS/type change required.
+- **Implementation ready:** U1–U7 units defined, test/QA plan in place.
 
 ---
 

@@ -1,6 +1,6 @@
 # Archestimator Production-Readiness Command Center
 
-**Last updated:** 2026-06-06
+**Last updated:** 2026-06-13
 **Status:** Pre-launch MVP — repo-local launch implementation remains controlled; external/provider/manual proof lane remains open.
 
 ## 2026-06-06 UI Component Library + Storybook plan
@@ -40,6 +40,37 @@
 - Scope: versioned Terms, acceptance evidence, Supabase/RLS, re-acceptance, auth/protected-route UX, legal/support evidence, billing edge-case planning.
 - No code, migration, dependency, provider, runtime, or billing implementation has been performed.
 - Do not claim absolute zero liability; implement strongest commercially reasonable legal-reviewable SaaS protection only.
+
+## 2026-06-13 Templates Feature Audit & Improvement Plan
+
+- Plan package: `.ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan/`.
+- Status: `AUDIT COMPLETE — planning only, no code/schema/data changed.` 18 documents with 2nd-pass adversarial review. Owner decisions D-A, D-B, D-C required to proceed.
+- Scope: Full end-to-end audit of the Templates feature including the "Projects Auto-Added To Templates" capability. Covers custom templates, project-derived sources, estimate-tab strip, tab-aware XLSX export, and the library browse route. Multi-perspective audit across architecture, UX/UI, performance, data/state, database/RLS/security, blast radius, functional defects, and strategy.
+- Headline findings: Custom templates are solid; the project-source capability is browse-only live (estimate_tabs foundation not applied to live DB, insert path never built, live outline 500s with raw error leak). Live insert RPC authorizes on workspace membership only (viewer can insert — privilege gap). Recommended first slice: outline fallback fix + safe error surface + insert RPC gate hardening + outline caching.
+- No application code, migration, type, test, config, or provider state was modified by this planning pass.
+
+## 2026-06-13 Shared Link Improvement Plan
+
+- Plan package: `.ai/03_plans/2026-06-13-Shared-Link-Improvement-Plan/`.
+- Status: `PLANNING COMPLETE — 15 documents, hardened by 2 independent adversarial passes. Ready for owner sign-off.`
+- Scope: Comprehensive multi-perspective audit of the shared link `/share/[token]` feature and improvement plan covering UX/UI, performance, database, security, blast radius, and owner-modal functional audit. 6 audit perspectives + 2nd-pass receiver hardening red-team + owner-modal functional bug audit.
+- Headline finding: the public page is capped at `max-w-[960px]` centered with 8–12px type — the "wasted space" complaint. The fix is a full-browser layout overhaul. The 2nd pass found 42 distinct bugs in the owner modal (7 high-severity including silent recipient eviction and rotate-orphan 404ing emailed links). Already-verified-fixed-on-main: CSRF, activity 403, CostDonutChart hydration, durable rate limiting.
+- No code, schema, or data was changed by this planning pass.
+
+## 2026-06-13 Spreadsheet / XLSX Export Audit & Improvement Plan
+
+- Plan package: `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/`.
+- Status: `AUDIT COMPLETE — planning only, no code changed. 12 documents after 2nd-pass adversarial review. 9 owner decisions needed (D0–D8).`
+- Scope: End-to-end audit of the XLSX proposal export feature — UX/UI (modal, preview-vs-file truth), BOQ format benchmark (10 real industry files parsed), performance benchmarks, security/blast radius, tabs→multi-worksheet behavior, data-model/migration design, and target format cell-level spec.
+- Headline findings: 34 total findings (6 CRITICAL, 9 HIGH). The export is architecturally sound and safe, but over-promises: preview does not match downloaded file; file omits Material/Labor split, VAT/contingency, complete title block; dead configuration surface (`audience`, `mode`, `consolidationMode`, `includeFormulas` all wired to nothing).
+- No code, migration, dependency, or provider state changed by this planning pass.
+
+## 2026-06-13 Add New Tabs Plan
+
+- Plan package: `.ai/03_plans/2026-06-13-Add-New-Tabs/`.
+- Status: `PLANNING COMPLETE — feature already built behind D-15 gate; planning covers lifting the gate, permission-gating, and browser-grade polish.`
+- Scope: The "Add New Tab" "+" button already exists in code — built and unit-tested, hidden behind a deliberate release gate (D-15) whose precondition (tab-aware export) has since shipped. This plan covers: lift D-15, thread `canEditEstimate` permission check, replace persistent toolbar row with right-click context menu, double-click rename, browser-grade polish, verify downstream consumers. No DB/RPC/RLS/type change required — the only production dependency is applying the existing migration to the hosted DB.
+- No code, schema, or data was changed by this planning pass.
 
 ## Current MVP Launch Handoff
 
