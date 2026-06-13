@@ -13,6 +13,16 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 
 ---
 
+## 2026-06-14 — Estimate-Tree Single-Node Unification: reversible corridor IMPLEMENTED; irreversible migration STAGED
+
+Plan `.ai/03_plans/2026-06-13-Estimate-Tree-Single-Node-Unification/` (**NOT archived** — work intentionally incomplete). Branch `2026-06-13-Estimate-Tree-Single-Node-Unification` (worktree retained). Ledger: `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md`.
+- **Landed on `main`** (`b0dec7fc`→`1eb7195f`, ff-push): P0 (`prove:unify-kinds` + O2 share oracle), P1 (public **share firewall** — rows survive on any node), P2-export (proposal export keeps rows on any node), P3-crash-safety (row-move throw + hierarchy-validator error removed). All monotonic, production no-ops; 5 touched suites 54 passed/5 todo, type-check 0 errors.
+- **STAGED (owner-gated / browser-gated / risk-gated):** P2-charts re-bucketing (charts sibling merge added two `kind` value-spaces — wire O4b oracle first); P3 activity-scope decoupling (brittle-test-entangled; urgency conditional on deferred P6); P4 vocab+layout (layout browser-gated); **P5 relax-only migration apply + P6 enable-writes — owner-supervised maintenance window ONLY** (P6 is the irreversible point of no return; PITR off; manual-dump-only rollback); P7 dead-code.
+- **Owner decisions:** Q-1 node name **adopted "Area"**; **Q-3 maintenance-window timing PENDING** (gates P5/P6).
+- **No hosted-prod action performed.** P5 SQL kept out of `supabase/migrations/`.
+
+---
+
 ## 2026-06-14 — Library Optimization IMPLEMENTED (merged to main)
 
 The `/workshop/library` optimization plan (`.ai/09_archive/store/2026-06-14-Library-Optimization-Plan/`, now archived)
