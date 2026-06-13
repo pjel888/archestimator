@@ -122,8 +122,8 @@ describe("AI package-builder security contract", () => {
     expect(readContextSource).toContain("ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT");
     expect(readContextSource).toContain(".limit(ASK_READ_CONTEXT_ACTIVITY_EVENT_LIMIT)");
     expect(readContextSource).toContain('.from("estimate_sheet_events")');
-    expect(readContextSource).toContain('.select("event_type, event_source, created_at, actor_user_id, row_context, changed_fields, total_delta, payload")');
-    expect(readContextSource).toContain('["projects", "estimates", "estimate_sheet_events", "profiles"]');
+    expect(readContextSource).toContain('.select("event_type, event_source, created_at, actor_user_id, estimate_tab_id, row_context, changed_fields, total_delta, payload")');
+    expect(readContextSource).toContain('["projects", "estimates", "estimate_tabs", "estimate_sheet_events", "profiles"]');
     expect(readContextSource).not.toContain("old_snapshot, new_snapshot");
     expect(readContextSource).not.toContain("metadata, created_at");
     expect(readContextSource).toContain('.eq("workspace_id", workspaceId)');

@@ -14,7 +14,7 @@
 | D-4 | **Route shape unchanged** (`/estimates/[nodeId]` node-or-estimate); tab derived from node; no `/tabs/[tabId]` route in v1 | preserves every old URL, link builder, and the Ask Flip regex ([02](02_TARGET_ARCHITECTURE.md) §13) |
 | D-5 | **Tab-level access deferred**; tabs inherit estimate access | no surface wants sub-estimate ACLs; additive later ([08](08_ACCESS_SECURITY_RLS_PLAN.md) §2) |
 | D-6 | New tab/insert RPCs use **`can_edit_estimate`** (strict posture), not the older family's workspace-only check; ride-along hardening of touched RPCs flagged for owner visibility | closes — and never widens — the documented asymmetry ([08](08_ACCESS_SECURITY_RLS_PLAN.md) §1, §4) |
-| D-7 | **Cross-tab node drag/drop not supported in v1** (toast + workarounds: duplicate tab, save-as-template) | needs new move RPC + ambiguous sort semantics; deferred to follow-up ([05](05_ESTIMATE_TABS_UI_UX_PLAN.md) §6) |
+| D-7 | **Cross-tab node drag/drop not supported in v1** (toast + workarounds: duplicate tab, save-as-template) | needs new move RPC + ambiguous sort semantics; deferred to follow-up ([05](05_ESTIMATE_TABS_UI_UX_PLAN.md) §6). Local v1 rejection is implemented/proven; the move RPC remains out-of-scope. |
 | D-8 | Project-derived sources **hidden in the template editor** in v1 (compose via save-as-template) | keeps editor template-only; existing composition path suffices ([06](06_TEMPLATES_PANEL_UNIFICATION_PLAN.md) §12) |
 | D-9 | **No rewrite of persisted names** containing "Sheet" (`${sheetCode} Estimate Sheet` records) or stored `sheet_*` event types | data migrations for copy are all risk, no value; labels map in UI (01 §16–17) |
 | D-10 | Export default = **all tabs** (Option C shape); `?tab=` for active-tab; single-tab estimates byte-shape-identical | least disruptive safe design after workbook inspection ([07](07_XLSX_EXPORT_TABS_PLAN.md) §2–3) |
@@ -49,7 +49,7 @@
 
 - Future `/tabs/[tabId]` deep-link route (D-4 revisit trigger: a concrete share-an-empty-tab need).
 - Tab-level membership (D-5 revisit trigger: explicit customer demand).
-- Cross-tab drag/move RPC (D-7 follow-up).
+- Cross-tab drag/move RPC (D-7 follow-up); the v1 tab-strip rejection/drop-message boundary is implemented locally.
 - ExcelJS streaming writer (only if multi-tab benchmark regresses — [07](07_XLSX_EXPORT_TABS_PLAN.md) §8).
 - Internal `EstimateSheet*` → `EstimateTab*` renames (Phase 8 only, with contract-test batches).
 - AI read-context tab grouping + `ai_data_access_events` tab attribution was implemented locally on 2026-06-13; provider/live audit-table proof remains external.

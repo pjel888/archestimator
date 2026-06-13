@@ -14,6 +14,9 @@ import {
 } from "@/lib/estimates/actions";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import { useToast } from "@/components/ui/toast";
+import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE } from "../component-library/templates";
+import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "./drag-types";
 
 export type EstimateTabStripProps = {
   tabs: readonly EstimateTabSummary[];
@@ -38,6 +41,21 @@ export type EstimateTabStripProps = {
 type PendingAction = "create" | "duplicate" | "rename" | "reorder" | "archive" | "delete" | null;
 
 const SPRING_LOADED_TAB_DELAY_MS = 450;
+const CROSS_TAB_NODE_MOVE_TOAST_ID = "estimate-tab-cross-tab-node-move";
+const CROSS_TAB_NODE_MOVE_MESSAGE = "Moving between tabs isn't supported yet — duplicate the tab or save the group as a template.";
+
+function getDragTypes(event: DragEvent<HTMLElement>) {
+  return Array.from(event.dataTransfer?.types ?? []);
+}
+
+function isEstimateTreeNodeDrag(event: DragEvent<HTMLElement>) {
+  return getDragTypes(event).includes(ESTIMATE_TREE_DRAG_MIME_TYPE);
+}
+
+function canSpringLoadTabDrag(event: DragEvent<HTMLElement>) {
+  const types = getDragTypes(event);
+  return types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE) || types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE);
+}
 
 function getNextTabName(tabs: readonly EstimateTabSummary[]) {
   const usedNames = new Set(tabs.map((tab) => tab.name.toLowerCase()));
@@ -64,6 +82,7 @@ export function EstimateTabStrip({
   canDeleteTabs = false,
   className,
 }: EstimateTabStripProps) {
+  const { toast } = useToast();
   const orderedTabs = useMemo(() => sortTabs(tabs), [tabs]);
   const resolvedActiveTabId = orderedTabs.some((tab) => tab.id === activeTabId)
     ? activeTabId
@@ -111,9 +130,20 @@ export function EstimateTabStrip({
   }, [activeIndex, orderedTabs]);
 
   const scheduleSpringLoadedTabTarget = useCallback((event: DragEvent<HTMLButtonElement>, tabId: string) => {
-    // Spring-load tab switching during external/tree drags so a user can hover
-    // another tab, reveal its tree, then finish the drop against that tab's
-    // normal drop zones. The tab itself is only a temporary target.
+    if (isEstimateTreeNodeDrag(event)) {
+      clearSpringLoadedTabTarget();
+      if (tabId !== resolvedActiveTabId) {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = "none";
+      }
+      return;
+    }
+
+    if (!canSpringLoadTabDrag(event)) {
+      clearSpringLoadedTabTarget();
+      return;
+    }
+
     if (tabId === resolvedActiveTabId || editingTabId === tabId) {
       clearSpringLoadedTabTarget();
       return;
@@ -134,6 +164,20 @@ export function EstimateTabStrip({
       onTabChange(tabId);
     }, SPRING_LOADED_TAB_DELAY_MS);
   }, [clearSpringLoadedTabTarget, editingTabId, onTabChange, resolvedActiveTabId]);
+
+  const handleTabDrop = useCallback((event: DragEvent<HTMLButtonElement>, tabId: string) => {
+    clearSpringLoadedTabTarget();
+    if (!isEstimateTreeNodeDrag(event) || tabId === resolvedActiveTabId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "none";
+    toast({
+      id: CROSS_TAB_NODE_MOVE_TOAST_ID,
+      message: CROSS_TAB_NODE_MOVE_MESSAGE,
+      tone: "error",
+    });
+    setAnnouncement(CROSS_TAB_NODE_MOVE_MESSAGE);
+  }, [clearSpringLoadedTabTarget, resolvedActiveTabId, toast]);
 
   const beginRename = useCallback((tab: EstimateTabSummary) => {
     if (!lifecycleActionsReady) return;
@@ -355,7 +399,7 @@ export function EstimateTabStrip({
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                   onDragOver={(event) => scheduleSpringLoadedTabTarget(event, tab.id)}
                   onDragLeave={clearSpringLoadedTabTarget}
-                  onDrop={clearSpringLoadedTabTarget}
+                  onDrop={(event) => handleTabDrop(event, tab.id)}
                 >
                   <span className="truncate">{tab.name}</span>
                   {tab.isDefault ? <span className="text-[8px] font-normal leading-none text-tertiary">Default</span> : null}
