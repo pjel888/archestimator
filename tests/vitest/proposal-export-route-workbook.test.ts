@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
   getCurrentUserContext: vi.fn(),
+  checkProposalExportRateLimit: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
@@ -18,6 +19,10 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: mocks.getCurrentUserContext,
+}));
+
+vi.mock("@/lib/publication/public-repository", () => ({
+  checkProposalExportRateLimit: mocks.checkProposalExportRateLimit,
 }));
 
 import { GET } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
@@ -93,6 +98,7 @@ describe("proposal xlsx export route workbook integration", () => {
       displayName: "Owner",
       avatarUrl: null,
     });
+    mocks.checkProposalExportRateLimit.mockResolvedValue({ allowed: true });
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       workspace: { id: "workspace-1" },
