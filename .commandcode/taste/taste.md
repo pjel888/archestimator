@@ -9,6 +9,8 @@ See [workflow/taste.md](workflow/taste.md)
 
 # ui
 See [ui/taste.md](ui/taste.md)
+- When implementing reusable UI components from Storybook, actually import and use the Storybook component code directly — do not just mimic its appearance with inline styles. The goal is component reuse, not visual imitation. Confidence: 0.85
+
 # architecture
 - Use optimistic local updates with shared React Query cache write/rollback for drag-and-drop reordering. Confidence: 0.70
 - All estimate tree interactions (clicking nodes, expanding, nesting) must use optimistic local state updates before syncing to Supabase; never block UI on server response. Confidence: 0.75
@@ -29,7 +31,16 @@ See [ui/taste.md](ui/taste.md)
 # planning-audits
 - Structure feature audits as four documents: 01-current-inventory (code-level catalog), 02-feature-gap-analysis (ranked gaps with severity), 03-ux-paths-and-happy-paths (user journeys with cross-surface maps), 04-prioritized-improvement-roadmap (phased P0–P4 with concrete code snippets and file paths). Apply the UX paths pattern to bug-triage docs as well. Confidence: 0.75
 - For collaboration/sharing UX path studies, cover three perspectives: the inviter's view (status signifiers for pending/unaccepted invites, role management), the invitee's view (all acceptance flow branches), and the projects-list view (how shared projects are designated, removal risk, ownership indicators). Confidence: 0.70
+- Score all plan documents from 1-100% on strategy, implementation readiness, quality, truth, and integrity. Iterate with 2nd and 3rd passes until all documents reach 100% before declaring the plan complete. Confidence: 0.80
+- After completing a plan pack, add an implementation handoff prompt markdown file in the same plan folder so another AI agent can implement it autonomously. Confidence: 0.85
 
 # estimate-tree
 - When group nodes and area nodes are siblings, group nodes must always be sorted before area nodes. Confidence: 0.70
 - Inline rename fields must stay active until explicitly committed (Enter/check button), explicitly cancelled (Escape/reset button), or blurred with valid changed value; use orange border + subtle orange background to indicate editing state, and show right-aligned check and reset icon buttons. Confidence: 0.80
+
+# branding
+- The brand name "archestimator" is always all lowercase, never capitalized. Confidence: 0.85
+
+# landing-page
+- Landing page design references: Amigo.ai (https://www.amigo.ai/) and Intercom (https://www.intercom.com/). The landing page should feel like a hybrid of these two sites. Confidence: 0.85
+- When doing rapid visual/landing page work, skip all tests to maximize iteration speed. Confidence: 0.80
