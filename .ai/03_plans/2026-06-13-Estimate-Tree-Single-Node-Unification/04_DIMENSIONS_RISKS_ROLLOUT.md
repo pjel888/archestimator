@@ -84,6 +84,14 @@ Every dimension that matters for a change this size, with the adversarial findin
 | Sticky header collision on deep mixed nodes | Medium | V3 B3 | Sticky-offset cascade (P4) |
 | Own-rows mistaken for first child's rows | Low–Med | V3 C1 | Distinct "own items" affordance (P4) |
 | "Area" reads oddly for trade/phase-organized trees | Low | research 05 | Owner picks "Section" instead if applicable (open Q-1) |
+| False green from unclassified two-kind matches in adjacent surfaces | High | second audit pass | Mandatory source-sweep classification gate in [15](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md); every match changed, tested, feature-gated, or quarantined |
+| Passive AI/copilot read/display surfaces keep stale "Group/Area" semantics while package-builder writes are called dormant | Medium | second audit pass | Treat visible/Ask-read surfaces separately from dormant write/apply internals; update or prove feature-gated |
+| Historical migrations trigger brittle static tests even though they are not active definitions | Medium | second audit pass | Allow-list historical migrations; assert latest active definitions and phase migration bodies instead |
+| Row-edit regression in mixed nodes | High | design/test audit | L2b row-editing preservation; mixed-node row editing tests for blur/Enter/arrow/dropdown/actions |
+| Pointer-only drag/drop blocks keyboard users | Medium | design audit | L6c keyboard-accessible move alternative; e2e keyboard/a11y smoke |
+| Duplicate or generic table labels confuse screen readers | Medium | design audit | L7 contextual table/select-all labels tied to node names |
+| Responsive nested tables clip or create nested scroll traps | Medium | design audit | L8 minimum width, overflow ownership, 375px smoke |
+| Paired-control alignment drifts in new activity/template controls | Low-Med | memory/design audit | L9 and 13 G2 shared control primitives plus reserved helper/error slots |
 
 ---
 
@@ -96,7 +104,7 @@ Every dimension that matters for a change this size, with the adversarial findin
 | **Q-3** | Maintenance-window timing for P5/P6? | low-traffic window; cohort is small | P5 |
 | **Q-4** | Keep `kind` column vestigial, or schedule the drop? | keep vestigial; defer drop to a later optional migration | P7 |
 
-**Deepening update (2026-06-13):** Q-2 (rows-first) and Q-4 (keep `kind` vestigial) are **resolved** as recommended. Q-1 (name) and Q-3 (window) remain owner calls, now joined by a third: the **§D5 P5/P6 RPC-guard split** (recommend relaxing validators/triggers in P5, the 3 RPC guards in P6) — see [`09_P1_DESIGN_DECISIONS.md`](09_P1_DESIGN_DECISIONS.md). The P1 design questions (activity-scope storage, snapshot-contingency, by-space chart, export structure, types) are all resolved there with concrete rationale and folded into the implementation docs.
+**Deepening update (2026-06-13):** Q-2 (rows-first), Q-4 (keep `kind` vestigial), and the **§D5 P5/P6 RPC-guard split** are **resolved** as recommended: validators/triggers/reorder relax in P5; the 3 RPC guards relax in P6 — see [`09_P1_DESIGN_DECISIONS.md`](09_P1_DESIGN_DECISIONS.md). Q-1 (name) and Q-3 (window) remain owner calls. The P1 design questions (activity-scope storage, snapshot-contingency, by-space chart, export structure, types) are all resolved there with concrete rationale and folded into the implementation docs.
 
 Execution-time unknowns (exact final SQL after touching real code — now written and proven in [`08`](08_unify_estimate_node_kinds.P5.sql); precise optimistic-cache shapes; final helper names) are otherwise deferred to implementation.
 
@@ -109,7 +117,7 @@ Execution-time unknowns (exact final SQL after touching real code — now writte
 3. **Forward-only migration posture.** PITR off → fresh pre-migration logical dump is the rollback artifact; blocking prod integrity pre-flight; Supabase-branch dry-run.
 4. **Vocabulary → "Area"** (display-only; internal `kind` unchanged). Onboarding group-vs-area step deleted.
 5. **Template tree unifies in lockstep** with the estimate tree in the same migration + release.
-6. **(Deepening) DB relaxation splits P5/P6** — validators + row-triggers + reorder relax in P5 (schema permits mixed content, writes withheld at the RPC enforcement layer); the 3 RPC kind-guards (incl. the newly-found `insert_estimate_subtree_into_estimate`) relax in P6 with the create flow. Honors "relax-only ≠ enable-writes." See [`09 §D5`](09_P1_DESIGN_DECISIONS.md). *(Owner to confirm; alternative is the single-P5-migration form.)*
+6. **(Deepening) DB relaxation splits P5/P6** — validators + row-triggers + reorder relax in P5 (schema permits mixed content, writes withheld at the RPC enforcement layer); the 3 RPC kind-guards (incl. the newly-found `insert_estimate_subtree_into_estimate`) relax in P6 with the create flow. Honors "relax-only ≠ enable-writes." See [`09 §D5`](09_P1_DESIGN_DECISIONS.md). The single-P5-migration form is rejected for this plan unless a future explicit decision reopens it.
 
 > Risk-table coverage note: every adversarial finding (V1 share, V2 totals/merge/contingency, V3 scope-cache/sticky/own-rows, V4 throw-paths/build-breakers/save-as-template + the deepening's `insert_estimate_subtree` guard and the `aggregate-project-charts.ts:256` raw sum) is now mapped to a concrete artifact in [`06`](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md)–[`14`](14_EFFORT_AND_PR_SEQUENCE.md) and proven where executable (migration harness, oracle).
 
@@ -118,6 +126,7 @@ Execution-time unknowns (exact final SQL after touching real code — now writte
 ## Consolidated verification checklist (gate before each irreversible step)
 
 **Proof spine**
+- [ ] Source-sweep classification artifact exists and every two-kind match is changed, tested, feature-gated, quarantined, or historical-allow-listed ([15](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md)).
 - [ ] Golden-master oracle established (P0); every read phase reproduces it byte-for-byte on all-area data.
 - [ ] Synthetic mixed-content fixtures prove rows survive in share, export, charts, totals, activity.
 
@@ -144,7 +153,13 @@ Execution-time unknowns (exact final SQL after touching real code — now writte
 
 **Cross-cutting**
 - [ ] a11y: single Add `aria-label`, one icon, `aria-current`, empty state announced once, no stale "select a group first" message.
+- [ ] row editing in a mixed node preserves blur/Enter/arrow/dropdown/selection/details/delete/replace/move behavior.
+- [ ] keyboard alternatives exist for pointer drag/drop; sidebar tree keyboard behavior remains separate from sheet table navigation.
+- [ ] unique table/select-all labels and live-region status messages are verified.
+- [ ] responsive overflow/min-width behavior verified at desktop and 375px width.
+- [ ] new paired controls follow shared form-alignment rules with reserved helper/error space.
 - [ ] Vocabulary applied across estimate tree **and** template editor; no "Group"/"Node" in rendered copy.
+- [ ] Passive AI/copilot, template browse, reusable-source, publication, and New Template modal display surfaces either reconciled or explicitly feature-gated/quarantined.
 - [ ] Telemetry: time-to-first-row query validated; `/workshop` Vercel redaction confirmed.
 - [ ] design-lint: 3px radius, ≤12px type, Phosphor icons, no orange.
 

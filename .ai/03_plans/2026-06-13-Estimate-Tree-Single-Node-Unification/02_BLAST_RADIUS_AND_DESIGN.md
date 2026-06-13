@@ -46,26 +46,31 @@ These are the load-bearing ones; missing any one drops rows or throws:
 [`component-library/actions.ts` save-as-template (`:768`)](../../../src/lib/component-library/actions.ts) copies an estimate subtree into `estimate_template_nodes` with its rows. Once estimates allow rows-on-(former-group) nodes, saving such a subtree hits the **still-enforced** template triggers and **rejects** — unless the template DB relaxes in the same release (→ R7, Phase 5 lockstep).
 
 ### Out of scope but DB-coupled (flag only)
-AI package-builder (`src/lib/ai/package-builder/*`, `src/app/api/ai/**`) encodes the same removed rules in TS + the `ai_package_builder_apply_rpc` (`node_kind <> 'area'`). It is dormant and already broken post-tabs (inserts nodes with no `estimate_tab_id`). It inherits the relaxed RPC contracts automatically; no AI app change is planned.
+AI package-builder write/apply surfaces (`src/lib/ai/package-builder/*`, `src/app/api/ai/**`) encode the same removed rules in TS + the `ai_package_builder_apply_rpc` (`node_kind <> 'area'`). They are dormant and already broken post-tabs (inserts nodes with no `estimate_tab_id`). No package-builder write/apply change is planned. **Caveat from the second audit:** passive Ask/copilot read/display surfaces are not automatically dormant; if they remain visible in beta, classify and reconcile them under [15 §C1](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md#c1-passive-aicopilot-surfaces-are-not-fully-dormant) instead of hiding behind the package-builder exclusion.
 
 ---
 
 ## B. The migration (relax-only, both trees, one file) — full DDL in [research 01](../../13_research/single-node-type-sheet-tree-2026-06-13/implementation-research/01-migration-and-data-safety.md)
 
-**Authoritative function definitions live in the estimate-tabs migration** ([`20260612094734`](../../../supabase/migrations/20260612094734_estimate_tabs_foundation.sql)), *not* the older `20260520222038` — confirmed. One new migration, single transaction:
+**Authoritative function definitions live in the estimate-tabs migration** ([`20260612094734`](../../../supabase/migrations/20260612094734_estimate_tabs_foundation.sql)) for the estimate-side validator/reorder RPC, and in the component-library templates migration ([`20260522091621`](../../../supabase/migrations/20260522091621_component_library_templates.sql)) for the template-side validator. One P5 migration, single transaction:
 
-1. Drop `enforce_estimate_row_item_area_node` trigger + function.
-2. Drop `estimate_nodes_active_kind_check`; `set default 'group'` (the column is `NOT NULL` with no default — this default is *required* so future callers omitting `kind` still write).
-3. `create or replace validate_estimate_node_tree` keeping **only** missing-parent + cross-tab + cycle (remove hierarchy + rows-must-be-area blocks).
+1. Keep the `kind in ('group','area')` CHECK constraints; they do not enforce the content split.
+2. Keep `enforce_estimate_row_item_area_node` and its template twin, but relax them to existence/orphan checks by removing only the `kind='area'` clause.
+3. `create or replace validate_estimate_node_tree` keeping missing-parent + cross-tab + cycle and relaxing rows-must-be-area to orphan-only.
 4. `create or replace reorder_estimate_nodes` minus the inline hierarchy block (`:427-451`).
-5. Relax `insert_estimate_row_item_with_history` (drop the `kind='area'` existence guard → plain in-estimate existence check).
-6. Relax `insert_estimate_template_into_estimate` (drop the `kind='group'` target requirement).
-7. **Template tree, same migration:** drop `estimate_template_nodes_active_kind_check`; rewrite `validate_estimate_template_tree` identically; drop `enforce_estimate_template_row_item_area_node`; relax **both** template-insert group-target guards (`20260524050746:902-910` and `20260612094734:819-828`).
-8. Replay each function's exact revoke/grant lines (`SECURITY DEFINER` invariant I5).
-9. End with a transactional **integrity assertion block** (cross-tab/orphan-row/missing-parent counts must be 0) — converts "should be fine" into a hard gate.
+5. **Template tree, same P5 migration:** rewrite `validate_estimate_template_tree` to remove hierarchy and relax rows to orphan-only; relax `enforce_estimate_template_row_item_area_node` to existence/orphan only.
+6. Replay each function's exact revoke/grant lines (`SECURITY DEFINER` invariant I5).
+7. End with a transactional **integrity assertion block** (cross-tab/orphan-row/missing-parent/mixed-node counts must be 0 before apply) — converts "should be fine" into a hard gate.
+
+**P6, not P5:** relax the three RPC kind guards with the write-enable PR:
+- `insert_estimate_row_item_with_history` (`kind='area'`);
+- `insert_estimate_template_into_estimate` (`kind='group'`);
+- `insert_estimate_subtree_into_estimate` (`kind='group'`, added after the original research).
+
+This is the canonical P5/P6 contract. Any older wording that says P5 relaxes the row/template/subtree RPC guards is superseded by [06 §F](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md#f-p5-vs-p6-split-correction-the-key-sequencing-refinement-), [09 §D5](09_P1_DESIGN_DECISIONS.md#d5-p5-vs-p6-rpc-guard-split-sequencing-refinement--adopted-plan-contract), and the P5 SQL file.
 
 **Decisions, settled by research:**
-- **`kind` column → keep vestigial, unconstrained, default `'group'`.** Dropping it forces a type regen + RPC-signature changes + coordinated deploy for zero functional gain. Keep it as an informational label; optional later cleanup can drop it.
+- **`kind` column → keep vestigial, constrained to existing active labels.** Dropping it forces a type regen + RPC-signature changes + coordinated deploy for zero functional gain. Keep it as an informational label with the existing `kind in ('group','area')` active-row CHECK constraints; P5 does not change the default unless a future decision explicitly adds one.
 - **Enum → frozen, untouched.** Postgres can't drop enum values in place; the extra legacy values (`lot/structure/level/assembly/general`) are harmless once unconstrained.
 - **Existing data → zero movement.** The new rule set ⊂ the old, so the valid-tree set only grows; every existing row stays valid. Snapshots read `kind` as opaque passthrough.
 - **Dormant stacks → do not touch.** The snapshot/version-control v2 stack and the AI RPC pre-date tabs and are frozen; re-defining them risks awakening them.

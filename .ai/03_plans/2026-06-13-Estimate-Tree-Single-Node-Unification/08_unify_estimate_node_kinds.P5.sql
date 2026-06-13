@@ -16,14 +16,14 @@
 -- IMPLEMENTATION NOTE: At P5 time, run `supabase migration new unify_estimate_node_kinds`
 -- and paste this body into the generated file (do NOT hand-pick a timestamp).
 --
--- SCOPE DECISION (see 09_P1_DESIGN_DECISIONS §D5-RPC-SPLIT — flagged for owner):
+-- SCOPE DECISION (see 09_P1_DESIGN_DECISIONS §D5-RPC-SPLIT — adopted plan contract):
 --   This file relaxes the VALIDATORS + ROW TRIGGERS + REORDER only. The three
 --   RPC kind-guards (insert_estimate_row_item_with_history :349,
 --   insert_estimate_template_into_estimate :824, insert_estimate_subtree_into_estimate :87)
 --   are deliberately LEFT IN PLACE here so they keep ROW/TEMPLATE writes withheld
 --   until Phase 6 (enable-writes). The exact P6 edits are at the bottom of this file.
---   If the owner prefers the plan's original "single DB migration in P5", append
---   the P6 block to this file — the prove harness proves both states.
+--   The original "single DB migration in P5" alternative would append the P6
+--   block to this file, but that is not the active plan.
 --
 -- `create or replace function` PRESERVES existing privileges, so the trigger
 -- wiring and grants do not need to be dropped/recreated; we replay grants at the

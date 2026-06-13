@@ -8,7 +8,7 @@ Operational runbook for the irreversible step. The migration's own transactional
 
 ## §1 · Pre-flight (BLOCKING) — run against current prod, both must return 0
 
-`scripts/sql/unify-preflight.sql` (author at P5; identical predicate to the in-migration block):
+`scripts/sql/unify-preflight.sql` must be committed before PR5 (identical predicate to the in-migration block). It does not exist yet; PR0 may add a stub, but PR5 cannot start without the executable file:
 ```sql
 -- mixed estimate nodes (children AND own rows) — voids reversibility if > 0
 select count(*) from public.estimate_nodes n
@@ -20,10 +20,18 @@ where exists (select 1 from public.estimate_template_nodes c where c.parent_id =
   and exists (select 1 from public.estimate_template_row_items r where r.template_node_id = n.id);
 -- orphan rows / cross-tab / missing-parent (the preserved invariants) — all 0
 ```
-Run: `supabase db query --linked --file scripts/sql/unify-preflight.sql --output json`. **Any non-zero ⇒ ABORT** (the migration's `do`-block would abort anyway; this just fails fast before the window).
+Run: `supabase db query --linked --file scripts/sql/unify-preflight.sql --output json`. **Any non-zero ⇒ ABORT** (the migration's `do`-block would abort anyway; this just fails fast before the window). Store the JSON output in the P5 run log.
 
 ## §2 · Branch dry-run (final gate)
 The local PG harness already proves DDL + integrity + invariants ([08 proof](08_MIGRATION_PROOF_AND_APPLY.md)). On a Supabase branch, additionally: create branch → `apply_migration(08…P5.sql)` → confirm the `Integrity assertions passed` NOTICE → run the oracle against branch data → drop branch. Confirm `supabase gen types --linked` diff is empty (no-op).
+
+Required restore-drill evidence:
+
+- `pg_restore --list pre-unify-<timestamp>.dump` output captured and checked for affected tables/functions;
+- before/after row-count JSON for `estimate_nodes`, `estimate_row_items`, `estimate_template_nodes`, `estimate_template_row_items`;
+- restore command transcript against a branch/scratch database;
+- oracle and `prove:unify-kinds` outputs after restore;
+- branch cleanup receipt.
 
 ## §3 · Write-freeze mechanism (the P5 maintenance window) — **DECISION**
 
@@ -48,7 +56,9 @@ No runtime feature-flag infra exists for non-AILES, and a flag can't gate a `val
 > If the §D5 split is adopted (RPC guards relax in P6), the freeze is even safer: in P5 the row/template RPCs still reject mixed writes regardless, so the freeze only needs to cover the brief apply.
 
 ## §4 · Apply sequence (owner-run)
-1. §1 pre-flight = 0/0. 2. §3 freeze on. 3. **Fresh dump** (§5). 4. Apply: `supabase migration new unify_estimate_node_kinds` (paste 08…P5.sql) → `supabase db push --linked`; confirm the integrity NOTICE. 4.5. **Re-grant** the RPCs revoked in §3 (or apply the P6 RPC migration). 5. Freeze off. 6. `supabase gen types --linked` → confirm empty diff. 7. Run the oracle + `prove:unify-kinds` against the post-apply state.
+1. §1 pre-flight = 0/0. 2. §3 freeze on. 3. **Fresh dump** (§5). 4. Apply: `supabase migration new unify_estimate_node_kinds` (paste 08…P5.sql) → `supabase db push --linked`; confirm the integrity NOTICE. 4.5. **Re-grant only** the RPCs revoked in §3; do not apply the P6 RPC relaxation in this P5 sequence. 5. Freeze off. 6. `supabase gen types --linked` → confirm empty diff. 7. Run the oracle + `prove:unify-kinds` against the post-apply state.
+
+**P6-only apply:** the three RPC kind-guard relaxations (`insert_estimate_row_item_with_history`, `insert_estimate_template_into_estimate`, `insert_estimate_subtree_into_estimate`) are applied only with the P6 write-enable PR and its create-flow verification. P5 rollback evidence cannot count as P6 proof.
 
 ## §5 · The pre-migration dump (the ONLY rollback artifact)
 Take immediately before apply, against frozen writes:
@@ -93,3 +103,14 @@ After P6, a REAL mixed node now exists (point of no return crossed):
 ```
 
 **Key safety property (proven):** because every read path is kind-agnostic from P1–P3, **a mid-P6 rollback loses no data** — any already-created mixed node renders, totals, exports, shares, and charts correctly under the reverted (read-only-for-mixed) code. The only thing rollback removes is the *ability to create more*.
+
+## §7 · Forward-fix rollback simulation
+
+Before P6, run a branch-only simulation for one mixed node:
+
+1. create a node with both own rows and a child;
+2. apply the forward-fix rollback sketch: create a child area, move own rows to it, then re-apply two-kind constraints;
+3. prove totals/share/export/chart outputs are byte-identical before and after the row re-parent;
+4. capture SQL transcript and row-count JSON.
+
+This is not the default rollback path. It is proof that the "must restore two-kind model" emergency path is executable if product direction reverses after the point of no return.

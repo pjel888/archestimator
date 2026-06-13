@@ -43,6 +43,21 @@ With rows-first + nesting, a child branch header (z-20) and an ancestor's row `t
 
 **Test:** `estimate-mixed-content.test.tsx` asserts a 20+-row node followed by children — the child header's computed `top` ≥ parent header `top` + 40, and headers don't overlap on deep scroll (the e2e smoke screenshots this per plan P4 gate).
 
+## L2b · Row-editing preservation
+
+Rows-first must not change spreadsheet editing behavior. For a mixed node, all current row-table interactions must remain identical to a leaf-area row table:
+
+- quantity, adjustment percentage, misc cost, and adjustment-mode dropdown editing;
+- blur-to-save and Enter commit behavior;
+- arrow-key navigation inside the cell grid;
+- row selection and select-all;
+- row details and activity actions;
+- row delete;
+- component replace;
+- component move between rows.
+
+The row table owns these interactions today, so the implementation should pass the owning node's context into labels/status messages without forking cell behavior. Any change to `row-table.tsx` or `cells.tsx` for mixed nodes must include a regression test that edits a row inside a node with children.
+
 ---
 
 ## L3 · One icon, conditional caret (C2)
@@ -82,6 +97,40 @@ Recommended: the "Own items" eyebrow (cheapest, screen-reader-friendly — doubl
 
 **Discoverability (V3 C2) — accepted, mitigated.** One unified glyph removes the at-rest "what does this node accept" signal that folder-vs-pin gave. This is an intentional trade (every node accepts both, so there is nothing to signal). Two in-sheet discovery paths remain so child-creation is **not** tree-only-and-hidden: the disclosure **caret** (present iff the node has children) and the right-click **"Add area inside"** on every node. Document this as the deliberate model — droppability is uniform, so it no longer needs a per-node icon.
 
+## L6b · Visual-state matrix
+
+Implement and test these states across node headers, caret buttons, `QuietAddRowButton`, empty/drop zones, row-table cells, row action buttons, and sidebar tree rows:
+
+| State | Requirement |
+|---|---|
+| default | compact neutral UI, 3px radius, <=12px app type |
+| hover | neutral surface/hairline change only, no decorative color |
+| focus-visible | clear focus ring using the design-system focus token |
+| active/pressed | visible pressed state without layout shift |
+| selected/current | matches sidebar/tree selection conventions and does not use blue/orange custom tints |
+| collapsed | caret absent on leaves, caret state accurate on parents |
+| disabled/pending | non-interactive controls cannot receive invalid drops or duplicate submits |
+| saving/saved/error | status visible and announced; errors use semantic danger only |
+| drag-over-valid | target label and dropEffect match the operation |
+| drag-over-invalid | explicit invalid state; no silent no-op |
+| loading/skeleton | stable dimensions while async tree mutation is pending |
+
+The existing product design baseline in `DESIGN.md` governs this matrix: neutral selected/focus treatment, semantic colors only, 3px radius, <=12px app type, compact spreadsheet cells, and shared primitives.
+
+## L6c · Drag/drop interaction contract
+
+Cover each drag type separately:
+
+| Drag type | Required contract |
+|---|---|
+| tree-node reorder | accepted MIME, move semantics, valid/invalid visual state, focus restored to moved node, status message |
+| external template insert | copy semantics, target label names destination node, cancellation cleans drag state |
+| library item insert into a node | copy semantics, add-row/drop strip accepts every node after P6 |
+| library item replace in a row | replace semantics stay row-scoped; target row remains focused |
+| component move between rows | move semantics, source row cleanup, destination status |
+
+Also add a keyboard-accessible alternative for pointer-only drag/drop, such as context-menu move actions or an explicit "Move into..." command. `aria-grabbed` metadata alone is not a keyboard interaction.
+
 ---
 
 ## L7 · a11y spec for the mixed node (P2.11)
@@ -101,3 +150,34 @@ Recommended: the "Own items" eyebrow (cheapest, screen-reader-friendly — doubl
 7. **Preserve** the sidebar's `aria-current="page"` on the active node (`ui/tree.tsx:1045`) and `aria-selected` — unchanged.
 
 **Test (`estimate-mixed-content.test.tsx`):** assert the header `aria-label` contains both "rows" and "sub-areas" counts for a mixed node; `aria-expanded` absent on a leaf; the single Add control's `aria-label`; no rendered "Group"/"Node" copy; no stale "select a group first" message.
+
+### Keyboard contract
+
+- Sidebar tree remains the ARIA tree with roving focus: Arrow/Home/End/Enter/Space behavior stays owned by `ui/tree.tsx`.
+- Sheet body remains document/table structured. It must not become a second ARIA tree.
+- Leaf nodes do not render a focusable disclosure button. The reserved caret spacer is non-focusable and `aria-hidden`.
+- Row cell arrow navigation stays inside the table and must not hijack sidebar tree navigation.
+- Escape closes inline edits/dropdowns/context menus where applicable without collapsing unrelated tree branches.
+- Tab order follows visual order: node header, own rows, add-row/drop strip, child areas.
+
+### Screen-reader and live-region additions
+
+- Each own-row table gets a unique label tied to the visible "Own items" label and node name.
+- Generic select-all labels become contextual, e.g. "Select all rows in Building A."
+- Add polite status announcements for add row, add area, move/reorder, template insert, row moved/replaced, save success, and non-destructive no-op.
+- Use `role="alert"` only for failed mutations.
+- Do not announce every focus movement or numeric keystroke.
+
+## L8 · Density and responsive constraints
+
+- Define a stable minimum table width; the mixed node must not squeeze row columns until labels or amounts clip.
+- Horizontal overflow belongs to the estimate work surface, not nested row-table traps.
+- Sticky headers must remain coherent at constrained laptop widths.
+- Cap effective indentation so deep mixed nodes do not consume the row grid.
+- Preserve current row/header heights unless a test proves a change is required.
+- On tablet/mobile widths, dense editing should degrade to review/simplified flow or horizontal work-surface scroll, not a compressed table.
+- Browser proof must include desktop and a 375px-width smoke for a deep mixed node.
+
+## L9 · Form alignment
+
+Any new inline rename/create/add controls, row-edit controls, activity-scope toggles, or template-editor parity forms must use shared control primitives and reserve helper/error space where fields share a row. Paired controls must align label baselines, input tops/heights, helper/error rows, dropdown affordance padding, and clear/action buttons. Fix row-level structure as a unit; do not patch individual controls with local nudges.

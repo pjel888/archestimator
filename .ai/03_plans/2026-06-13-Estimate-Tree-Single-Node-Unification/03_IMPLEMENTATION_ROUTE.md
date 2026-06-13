@@ -11,6 +11,8 @@ Each phase is its own PR (or small PR set). Phases 0–5 are a **clean-rollback 
 ## Phase 0 — Oracle + brittle-test demolition + prod probe
 **Ships:** test infra only. No product behavior. **User value:** none (safety capital).
 
+- **Run the mandatory source-sweep gate** from [15](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md) and save the classification artifact in `.ai/05_logs/`. Every `kind === "area"`, `kind !== "area"`, `kind === "group"`, `kind !== "group"`, `canNestEstimateNodeKind`, `canNodeReceiveRows`, and `getEstimateNodeDisplayKind` match must be classified as load-bearing, display-only, template/editor parity, AI passive/read, dormant write-only, historical migration, or explicitly out of scope. This is the anti-false-green gate for the whole route.
+- **Refresh anchors before editing.** `EstimateSheetContent.tsx` line numbers have already drifted since [06](06_GROUND_TRUTH_AND_CORRECTED_ANCHORS.md); use fresh `rg`/`nl -ba` output in each PR evidence note rather than trusting any dated line number blindly.
 - **Neutralize the two brittle source-string tests** so later phases don't re-churn them: [`tests/vitest/live-estimate-node-route.test.ts`](../../../tests/vitest/live-estimate-node-route.test.ts) (138 source-string asserts) and [`tests/vitest/supabase-performance-migrations.test.ts`](../../../tests/vitest/supabase-performance-migrations.test.ts). Replace two-kind *string* asserts with behavioral assertions deferred to the oracle.
 - **Stand up the golden-master numeric oracle:** for a representative all-area tree, snapshot totals + share-reconstruct output + proposal-export model + chart aggregates + activity-scope cache keys. Every later phase reproduces these **byte-for-byte** (reads) or with documented monotonic deltas (post-migration). *This is the proof mechanism that no row or dollar is lost.*
 - **Prod integrity probe (read-only early warning):** `SELECT count(*) FROM estimate_nodes n WHERE n.kind <> 'area' AND EXISTS (SELECT 1 FROM estimate_row_items r WHERE r.node_id = n.id)` and the `estimate_template_nodes` equivalent — must be 0. (Re-run as a *blocking gate* in P5.)
@@ -40,11 +42,12 @@ Each phase is its own PR (or small PR set). Phases 0–5 are a **clean-rollback 
 - [`proposal-export/build-proposal-export-model.ts:265`](../../../src/lib/proposal-export/build-proposal-export-model.ts) — emit rows on any node; delete the obsolete `collectNonAreaRows` warning path. **Do not** let consolidation silently merge a container-owned row with a descendant-owned row (V2 CE2) — add `sourceNodeId`/leaf-marker to the consolidation key or forbid cross-provenance merges.
 - [`project-charts/aggregate-project-charts.ts:175,256,309`](../../../src/lib/project-charts/aggregate-project-charts.ts) + [`project-charts-repository.ts:213`](../../../src/lib/repositories/project-charts-repository.ts) — switch leaf detection to **leaf-or-has-rows**; `:256` uses a **raw** `row.kind==="area"` sum that must move too (V4). Header roll-up and any "own" sibling must not both be summed in a column a consumer totals (V2 CE1) — header carries direct-only counts, or the "own" sibling is omitted.
 - [`estimate-sheet/rows/branch.tsx:79`](../../../src/components/workshop/estimate-sheet/rows/branch.tsx) — `canReceiveRows` → always true (the row table already renders unconditionally).
+- Passive Ask/read surfaces must be included if enabled: `src/lib/ai/read-context.ts` builds chart node facts and current-estimate row provenance from `node.kind`. Either update it to the same own-bucket/provenance semantics or prove the surface is feature-gated. See [15 §C1](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md#c1-passive-aicopilot-surfaces-are-not-fully-dormant).
 
 **Data-safety / rollback:** same no-op logic; monotonic; clean revert.
 **Gate:** oracle export model + chart aggregates byte-identical on all-area; mixed-node fixtures prove parity and **no double-count**; `bun run validate`.
 
-**Test scenarios:** mixed tree `BuildingA(ownRow 100) → Level2(ownRow 50) → Room201(row 30)` → export grand total 180 (no double-count), chart series total 180, every row appears exactly once with correct provenance label; consolidation does not merge a container row into a leaf row.
+**Test scenarios:** canonical mixed tree `BuildingA(ownRow 100) → Level2(ownRow 50) → Room201(row 30)` plus BuildingA's direct sibling row 20 → BuildingA total 200, Level2 total 80, export grand total 200, chart series total 200, every row appears exactly once with correct provenance label; consolidation does not merge a container row into a leaf row.
 
 ---
 
@@ -67,6 +70,7 @@ Each phase is its own PR (or small PR set). Phases 0–5 are a **clean-rollback 
 
 - **Layout** ([`branch.tsx`](../../../src/components/workshop/estimate-sheet/rows/branch.tsx), `node-visuals.tsx`, `row-table.tsx`, `drop-zones.tsx`): rows-first ordering, one icon, conditional caret, unified empty state, **sticky-offset cascade** (V3 B3), **own-rows-vs-child-rows distinction** (V3 C1).
 - **Vocabulary** → "Area" everywhere; drop "Group"/"Node"; the ~40-string table in [research 05](../../13_research/single-node-type-sheet-tree-2026-06-13/implementation-research/05-naming-and-create-flow.md); delete the onboarding group-vs-area tour step; build-breaker fix (`activity-history.tsx`, `node-visuals.tsx` lose `getEstimateNodeDisplayKind`).
+- **Adjacent display/read sweep** from [15 §C](15_PREIMPLEMENTATION_AUDIT_AND_ACCEPTANCE_GATE.md#c-additional-surfaces-that-must-be-classified): copilot preview copy, New Template modal summary/copy, template browse tree, reusable-source metadata, and publication snapshot display must be changed or explicitly quarantined. Do not leave visible "Group Node" / "Area Node" copy behind because it was not in the original ~40-string list.
 
 **Promise-gap mitigation:** hold suggestive empty-state copy (e.g. "Add a row or a sub-area") until P6 enables creating mixed content — don't show an affordance that doesn't work yet.
 **Data-safety:** pure presentation + copy; zero data semantics, zero schema. **Rollback:** clean revert.
@@ -86,7 +90,7 @@ Each phase is its own PR (or small PR set). Phases 0–5 are a **clean-rollback 
 4. **Take the fresh manual logical dump** immediately pre-apply (the ONLY rollback artifact; PITR off).
 5. **Apply to prod.**
 
-**The DDL** (full text in [research 01](../../13_research/single-node-type-sheet-tree-2026-06-13/implementation-research/01-migration-and-data-safety.md); see [02 §B](02_BLAST_RADIUS_AND_DESIGN.md)): drop active-kind checks + area-row triggers on **both** `estimate_nodes` and `estimate_template_nodes`; rewrite both validators to cycle/cross-tab/missing-parent only; relax the row-insert + both template-insert group-target guards + the reorder hierarchy block; replay grants; end with the integrity assertion block.
+**The DDL** (complete P5 text in [08_unify_estimate_node_kinds.P5.sql](08_unify_estimate_node_kinds.P5.sql); canonical corrections in [02 §B](02_BLAST_RADIUS_AND_DESIGN.md)): keep active-kind CHECK constraints, relax row-item triggers instead of dropping them, rewrite estimate/template validators, remove the reorder hierarchy block, replay grants, and end with the integrity assertion block. **Do not relax the row/template/subtree RPC kind guards in P5.** They belong to P6 with the write-enable flow.
 
 **Template MUST move in this same migration** (R7): `save-as-template` ([`component-library/actions.ts:768`](../../../src/lib/component-library/actions.ts)) copies estimate subtrees into template tables and calls `validate_estimate_template_tree`. If the estimate side allowed rows-on-(former-group) while template triggers still rejected, save-as-template would break the instant a relaxed estimate is templated. **Template-editor UI parity (f) ships in this same release** so editor and schema never disagree.
 
@@ -103,6 +107,11 @@ Also here: rewrite the two brittle migration-contract tests to their final **one
 
 - Remove `canNestEstimateNodeKind`, the "select a group first" guard, the area-row write guards.
 - Single **"Add Area"** flow; delete the wrap-template machinery and now-dead helpers (`canNodeReceiveRows`, `getEstimateWrapGroupName`, …).
+- Relax the three RPC kind guards in the same PR/release as the UI write enablement:
+  - `insert_estimate_row_item_with_history` no longer requires target `kind='area'`;
+  - `insert_estimate_template_into_estimate` no longer requires target `kind='group'`;
+  - `insert_estimate_subtree_into_estimate` no longer requires target `kind='group'`.
+- Make project-source insertion first-class: the live UI still has group-target gating in `EstimateSheetTree.tsx` and `EstimateSheetContent.tsx`, and the source path uses the subtree-copy RPC. P6 must update the project-source drop/insert path alongside template insertion, or explicitly fence project-source insertion off until the RPC/UI path is reconciled.
 
 **Point of no return:** the **first production save of a mixed-content node** (possible only after P5 **and** P6 are live). From that instant the old constraints fail to re-apply on real data and the dump goes stale — recovery becomes forward-fix only.
 **Why this is the safest possible moment to cross it:** every read is already kind-agnostic and oracle-proven (P1–P3); the layout/vocab is shipped and validated (P4); the schema is relaxed and integrity-checked in isolation (P5); templates are in lockstep; the cohort is tiny. A failure here is attributable to the **write flow alone**.

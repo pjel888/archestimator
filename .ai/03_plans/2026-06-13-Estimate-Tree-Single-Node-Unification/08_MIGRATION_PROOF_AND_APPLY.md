@@ -88,3 +88,27 @@ diff src/lib/supabase/types.ts /tmp/types.next.ts     # expect: no diff
 
 Add it next to the existing prove scripts in `package.json` at P5:
 `"prove:unify-kinds": "node scripts/prove-unify-estimate-node-kinds-postgres.mjs"`.
+
+## Additional RLS/RPC proof required
+
+The current proof harness proves DDL, integrity assertions, preserved tree invariants, orphan-row rejection, and one P5 row-RPC guard. It does **not** yet prove the full access/RPC risk being changed.
+
+Add a second harness/script and package command:
+
+```json
+"prove:unify-kinds-rls-rpc": "node scripts/prove-unify-estimate-node-kinds-rls-rpc.mjs"
+```
+
+Required assertions:
+
+- anon/public cannot execute mutation RPCs after grant replay;
+- viewer/member without edit rights is denied for create/reorder/row/template/subtree mutation paths;
+- owner/editor happy path still works for the unchanged P5-safe operations;
+- P5 still blocks all three mixed write guards at the RPC layer:
+  - `insert_estimate_row_item_with_history` onto a former group;
+  - `insert_estimate_template_into_estimate_with_history` into a former area/mixed target;
+  - `insert_estimate_subtree_into_estimate_with_history` into a former area/mixed target;
+- P6 permits those mixed writes only for authorized editors and still rejects anon/viewer calls;
+- grant/revoke ACLs match the established estimate-tabs harness pattern in `scripts/prove-estimate-tabs-postgres.mjs`.
+
+PR0 should add the package command and a skipped/placeholder harness only if the P6 assertions cannot run yet; PR5 cannot pass without executable P5 RLS/RPC assertions, and PR6 cannot pass without executable authorized mixed-write assertions.
