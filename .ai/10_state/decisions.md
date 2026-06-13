@@ -1,5 +1,134 @@
 # Decisions
 
+## 2026-06-13 — Templates owner-gated DB items applied to prod (owner-authorized)
+
+**Decision:** With owner authorization, resolve the Templates Audit owner-gated DB
+work against the LIVE schema (the `estimate_tabs` foundation `20260612094734` is now
+applied to prod `ebxxqidacheyapmmzavr`).
+
+- **Applied** the U2 project-source subtree-insert RPC pair
+  (`insert_estimate_subtree_into_estimate` + `_with_history`) to prod via the Supabase
+  MCP `apply_migration` (recorded version `20260613134852`; the repo file was renamed
+  `20260613180000` → `20260613134852` to match). Before applying, the migration was
+  **hardened** with the foundation's grant/revoke pattern (the original file shipped no
+  grants → functions would default to PUBLIC execute). Verified on prod: inner acl
+  `{postgres, service_role}`, wrapper acl `{postgres, authenticated, service_role}` —
+  identical to the template RPC pair. Security advisors: 0 ERROR (the wrapper's
+  authenticated-executable SECURITY DEFINER WARN is by-design, shared by 75 peer RPCs).
+- **Deleted** the standalone U4 migration `20260613170000` as obsolete. It was written
+  for the pre-foundation no-tab window to swap one gate line; the live foundation RPC
+  `insert_estimate_template_into_estimate_with_history` is already tab-aware AND gated on
+  `assert_can_edit_estimate_for_history` (verified live: `is_tab_aware=true`,
+  `has_canedit_gate=true`). Applying it post-foundation would regress the RPC to no-tab —
+  a `supabase db push` footgun — so removing it is the correct, safe state.
+- `gen types`: added the subtree fns to `src/lib/supabase/types.ts` and replaced the
+  blanket `as unknown as SubtreeInsertRpcClient` cast with the typed `supabase.rpc(...)`
+  (only `source_root_node_id` keeps a localized cast — a no-default nullable uuid param
+  can't be expressed in Supabase-generated types).
+- U9 EXPLAIN proven on prod: `Index Scan using estimate_row_items_estimate_node_sort_idx`.
+
+**Rationale:** apply against the schema as it actually is, never the schema the migration
+was authored against. Re-verified each dependency + the live RPC body before applying;
+hardened grants to match the established pattern rather than ship the default-PUBLIC gap.
+
+**Still open:** end-to-end authenticated insert smoke on prod (owner, via the app — no
+synthetic prod-data insert was performed); U7/U8 benchmark+design; e2e un-skip; full
+types.ts regen (broadly stale vs live — separate effort).
+
+## 2026-06-13 — Templates Audit & Improvement Plan implemented (in-estimate panel)
+
+**Decision:** Implement the Templates Audit & Improvement Plan
+(`.ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan/`) locally on branch
+`claude/2026-06-13-Templates-Audit-And-Improvement-Plan` (worktree
+`goofy-dubinsky-6a8080`). Shipped units: U1/U1b, U2, U3, U4, U5, U6+U23, U9, U10/U11,
+U12–U15, U16, U17, U18/U19/U21, U22. (Unit summaries in `current-state.md`.)
+
+**Key sub-decisions:**
+- **U2/U4 security (P0):** the insert RPCs gate on **explicit** `can_access_estimate`
+  (source) + `assert_can_edit_estimate_for_history` (target) inside the DEFINER chain —
+  never RLS reliance, because the inner non-DEFINER function runs RLS-exempt as `postgres`.
+  Proven by the Postgres harness (denials 4, 5; 6 transitive; 7 re-read).
+- **Migration sequencing (D-A):** the U2 subtree RPC + U4 hardening migrations are
+  **tab-aware** and authored to apply **after** the foundation
+  (`20260612094734_estimate_tabs_foundation.sql`). Their apply is **owner-gated** (provider
+  mutation against project `ebxxqidacheyapmmzavr` only); the app-layer guards
+  (`assertCanEditEstimate`) ship immediately and stand alone.
+- **U18 cost fidelity:** the lite in-estimate library loader still loads price-options +
+  current cost-entries (the cost-determining queries) and skips only audit/attachment graphs,
+  so the panel cost is byte-identical to the full loader — chosen over trusting a possibly-lagging
+  denormalized `cost_library_items.unit_cost`.
+- **U6/U23 — shared `ui/tree.tsx` left untouched:** `get_impact_radius` flagged it HIGH
+  (23 files). Prefetch rides the row label `onMouseEnter` and skeletons ride node injection,
+  both inside the templates feature, so the broadly-shared tree primitive needed no edit.
+- **U7 and U8 DEFERRED (documented, not skipped):** U7 (bounded reads) would silently truncate
+  a user's own projects/nodes mid-edit absent a pagination/limit-state UX the plan doesn't specify
+  — a correctness regression, not a perf win. U8 (scope insert-RPC validation) targets the wrong
+  cost center: the dominant validation is the `DEFERRABLE` constraint trigger that re-validates
+  the whole estimate on commit after every node mutation; a real win means re-scoping a
+  safety-critical, broadly-shared integrity guard — owner-gated, benchmark-gated, correctness-risky.
+  Both parked per the "0 bugs > perf" priority.
+
+**Proof:** `bun run validate` + `bun run build` green (Node v25.8.0; the repo PATH `node` v14 is
+too old). Postgres RLS/denial harness `scripts/prove-estimate-tabs-postgres.mjs` EXIT 0. Full
+per-phase evidence in `.ai/05_logs/2026-06-13-templates-implementation-ledger.md`.
+
+**Owner-gated remainder (NOT executed):** apply `20260613170000_harden_template_insert_can_edit.sql`
++ `20260613180000_insert_estimate_subtree_rpc.sql` (after D-A foundation) to `ebxxqidacheyapmmzavr`,
+`gen types`, hosted verify; EXPLAIN proof for U9; large-fixture benchmark + design for U7/U8; e2e
+un-skip with seeded fixtures. Not pushed; no PR opened (owner-gated).
+
+## 2026-06-13 — D-15 lifted: estimate tab creation exposed (Add New Tabs)
+
+**Decision:** Lift release gate D-15 and expose user-visible estimate tab
+management in the workshop editor. The model is the owner's chosen browser shape:
+a single persistent "+" (New tab), double-click / F2 inline rename, and a
+right-click context menu (Rename · Duplicate · Delete) acting on the
+right-clicked tab. The persistent Duplicate/Rename-pencil/Archive/Delete toolbar
+buttons are removed. Every affordance is permission-gated on a server-resolved
+`can_edit_estimate` capability threaded page → workspace client → content →
+strip (default false / fail-closed); viewers get a read-only tab switcher.
+
+**Rationale:** D-15 only deferred user-visible tab creation until tab-aware XLSX
+export shipped (so work split across tabs could not be silently dropped by the
+proposal export). The estimate-tabs completion audit
+(`.ai/05_logs/2026-06-12-estimate-tabs-implementation-completion-audit.md`)
+records export parity (`?tab=`, all-tabs worksheets, preview scope chips) landed,
+so the precondition is met — a deliberate product decision, not a silent flag
+flip. No DB/RPC/RLS/generated-type change was made: the table, RPCs, and policies
+already shipped in `20260612094734_estimate_tabs_foundation.sql`; the client gate
+is UX only and the server (RLS + `assert_can_edit_estimate_for_history`) stays
+authoritative. Downstream consumers were verified (read-only audit; evidence in
+`.ai/05_logs/2026-06-13-add-new-tabs-downstream-verification.md`): XLSX export,
+activity feed, publication snapshot, AI read-context, and the cross-tab drag
+rejection (D-7) all already tolerate new/empty user-created tabs. Cross-tab node
+move (D-7) stays rejected — not built.
+
+**Deploy prerequisite — probe BOTH the table AND the create RPC (fail-open
+edge):** before relying on the "+" in any deployed environment, confirm BOTH the
+`estimate_tabs` table AND the `create_estimate_tab_with_history` RPC exist there.
+The schema-missing fallback (`isEstimateTabsSchemaMissing`) only catches a missing
+table (42P01 / PGRST205) or column (42703 / PGRST204) — it does NOT catch a
+missing/older create RPC. Partial drift (table present, RPC absent) fails *open*:
+the strip and "+" render and create errors only on click. So the checklist must
+probe the RPC, not just the table:
+- `select to_regclass('public.estimate_tabs');` → table present.
+- `select 1 from pg_proc where proname = 'create_estimate_tab_with_history';` → RPC present.
+If either is missing, do not enable the gate in that environment.
+
+**Rollback:** the gate lift is a compile-time prop, not a runtime flag. Primary
+fast path = Vercel instant rollback to the last green deployment. Code path =
+`git revert` the isolated single-file U3 commit (the EstimateSheetContent mount
+props); the empty-state gating (U1) and the strip refactor (U2) remain and stay
+green. A runtime feature flag was judged overkill for a one-file, fail-mostly-
+closed change with instant rollback available.
+
+**Follow-up (out of scope, non-blocking):** optional optimistic temp-tab append
+on create (R10's optional clause — deferred; create already issues a single
+round-trip via `setQueryData`); pruning stale per-tab Zustand entries on
+delete/archive; Archive in the context menu (OQ2, fast-follow); a non-conflicting
+global "new tab" shortcut (OQ3). Plan pack:
+`.ai/03_plans/2026-06-13-Add-New-Tabs/`.
+
 ## 2026-06-13 - Global improve install replaces repo-local duplicate
 
 **Decision:** Remove the repo-local `.agents/skills/improve/` copy because the
@@ -655,3 +784,19 @@ Rejected: wrap-case-only fix (insert template before area) | the snap-back and t
 Confidence: high
 Scope-risk: moderate
 Directive: Never reintroduce kind-based sibling sorting in any layer (display, reorder math, repository projection, or SQL RPCs); new ordering features must read and write sort_order only. Apply the 20260611031500 migration before relying on slot-preserving inserts.
+
+## 2026-06-13 — Spreadsheet / XLSX Export Plan: owner decisions confirmed (D0/D7/D8) + JSONB-now read paths
+
+Branch/worktree: `claude/2026-06-13-Spreadsheet-Export-Plan`. Implements `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/` (P1→P3). Owner (Philip) confirmed the three second-pass product decisions on 2026-06-13 via in-session prompt:
+
+Decision D7 (preview approach) = **Option B "Contents summary"**: the export preview modal no longer renders a fake 12-column table; it names the sheets the file will contain (Bid Form ×N tabs · Summary · Commercial Terms — flagged "boilerplate, review before sending" · Source Breakdown — internal only) plus validation issues. No modal↔builder pixel-sync obligation; removes F-03 dishonesty without the F-22 jank tax.
+Decision D0 (primary audience) = **Option A "client/architect bid document is primary"**: the default download is the contractor→client bid doc; Source Breakdown sheet + supplier/confidence/source-IDs become opt-in `audience=internal`. `audience` is **server-derived from role, never read from query/body**. Makes the safe behavior the default and drives P1-T9 minimal redaction + P2-T3 enforcement.
+Decision D8 (multi-tab modal total) = **Option (a) hide the single-tab number**: show "All N tabs — total in the downloaded Summary" for all-tabs scope; no new totals endpoint/infra; cannot misquote a client.
+Decisions D1–D6 proceed on the [08 §Decision gate] recommended defaults with the [10] JSONB-now resolution: D2 VAT 12% + contingency 10% (both with INCLUDED mode), D3 GFA via `estimates`/`projects` `.metadata.grossFloorArea`, D5 scope via `estimate_row_items.metadata.scopeStatus`, D6 ordered canonical division list (code-only), D1 labor interim via `estimate_row_items.metadata.laborUnitCost` (fallback 0 + visible disclaimer).
+
+Constraint: No DB channel for agents this run (Docker absent + hosted Supabase SQL denied by classifier). All typed-column promotions (D1/D5), the optional D3 typed column, and the **D4 `workspace_profiles`** contractor-identity table are DESIGNED in [10] but **application is deferred**. Read-side ships now via existing `metadata: Json` columns. P1 is fully DB-free. Title-block contractor identity (D4) falls back to project/workspace name (never the beta placeholder); Owner/Client ships DB-free via `projects.client_name`. F-17/P1-T8 live-RLS verification is a release-gate ops item, not closeable by agents.
+Rejected: D7=A render-the-real-Bid-Form | permanent modal↔builder sync debt + worsens synchronous main-thread jank; only pick if pixel-fidelity preview becomes a hard requirement.
+Rejected: D8=(b) server totals endpoint / (c) disclaimer-beside-wrong-number | (b) is net-new server surface for a display-only value (defer to P2/P3); (c) keeps a wrong number on the highest-trust line — the exact pattern being fixed.
+Confidence: high
+Scope-risk: low (narrow blast radius — route + preview + proposal-export lib only; three shared repository fn signatures untouched, new additive fns added instead; model fields additive-only; 7 existing proposal tests kept green).
+Directive: Never read `audience` from the wire (server-derive from role); validate `vatRate`/`contingencyRate` as finite 0–100 → 400 (no silent clamp); ship P2-T2 expose + P2-T3 enforce as one atomic unit; do NOT change `getEstimateTabs`/`getEstimateTabTree`/`getProjectEstimateTreeByEstimate` signatures (add new fns); keep model fields additive; close the [11 §A] manual cross-app recalc QA gate before calling P1 client-ready.

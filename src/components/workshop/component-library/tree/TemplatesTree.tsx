@@ -49,7 +49,55 @@ export type TemplatesTreeDatum =
   | { type: "project"; source: ProjectReusableSource }
   | { type: "project-estimate"; source: ProjectEstimateReusableSource }
   | { type: "project-tab"; source: ProjectTabReusableSource }
-  | { type: "project-node"; source: ProjectNodeReusableSource };
+  | { type: "project-node"; source: ProjectNodeReusableSource }
+  // U23: a placeholder child rendered in-place under a project/estimate folder
+  // whose next level is still loading — a skeleton row, never a spinner.
+  | { type: "skeleton" };
+
+/** Stable empty default so optional id-list props don't re-trigger memoization. */
+const EMPTY_ID_LIST: readonly string[] = [];
+
+/** Skeleton rows shown under a cold-expanded project/estimate while it loads. */
+const SKELETON_CHILD_COUNT = 3;
+
+function buildSkeletonChildNodes(parentId: string): UiTreeNode[] {
+  return Array.from({ length: SKELETON_CHILD_COUNT }, (_unused, index) => ({
+    id: `${parentId}__loading-${index}`,
+    label: "Loading…",
+    ariaLabel: "Loading reusable source",
+    isLeaf: true,
+    selectable: false,
+    draggable: false,
+    data: { templatesNode: { type: "skeleton" } satisfies TemplatesTreeDatum },
+  } satisfies UiTreeNode));
+}
+
+/**
+ * Injects in-place skeleton child rows under any project/estimate folder that
+ * is currently loading its next level and has no resident children yet. Once
+ * real children arrive (or loading stops), the condition no longer holds and
+ * the skeletons fall away — so the rows swap to content with zero layout shift.
+ */
+function injectProjectSourceSkeletons(
+  nodes: UiTreeNode[],
+  loadingProjectIds: ReadonlySet<string>,
+  loadingEstimateIds: ReadonlySet<string>,
+): UiTreeNode[] {
+  if (loadingProjectIds.size === 0 && loadingEstimateIds.size === 0) return nodes;
+  function visit(node: UiTreeNode): UiTreeNode {
+    const mappedChildren = node.children?.map(visit);
+    const datum = getTemplatesTreeDatum(node);
+    const hasChildren = (mappedChildren?.length ?? 0) > 0;
+    if (!hasChildren && datum?.type === "project" && loadingProjectIds.has(datum.source.projectId)) {
+      return { ...node, children: buildSkeletonChildNodes(node.id) };
+    }
+    if (!hasChildren && datum?.type === "project-estimate" && loadingEstimateIds.has(datum.source.estimateId)) {
+      return { ...node, children: buildSkeletonChildNodes(node.id) };
+    }
+    return mappedChildren ? { ...node, children: mappedChildren } : node;
+  }
+  return nodes.map(visit);
+}
 
 export function templatesTreeSectionId(section: "custom-templates" | "projects") {
   return `templates-tree-section-${section}`;
@@ -566,6 +614,18 @@ export type TemplatesTreeProps = {
   searchQuery: string;
   expandedNodeIds: string[];
   onToggle: (nodeId: string) => void;
+  /**
+   * Project ids whose estimate list is loading (past the skeleton-reveal delay);
+   * each shows in-place skeleton rows instead of a spinner (U6/U23).
+   */
+  loadingProjectIds?: string[];
+  /** Estimate ids whose outline is loading (past the skeleton-reveal delay). */
+  loadingEstimateIds?: string[];
+  /**
+   * Warms the next level when a project/estimate row is hovered, so the common
+   * expand path is already resident and shows no loading state at all (U23).
+   */
+  onPrefetchNode?: (nodeId: string) => void;
   /** Whether the workspace currently has a valid group target for templates. */
   canInsertTemplate: boolean;
   templateTargetName: string;
@@ -604,6 +664,9 @@ export function TemplatesTree({
   searchQuery,
   expandedNodeIds,
   onToggle,
+  loadingProjectIds = EMPTY_ID_LIST as string[],
+  loadingEstimateIds = EMPTY_ID_LIST as string[],
+  onPrefetchNode,
   canInsertTemplate,
   templateTargetName,
   onAddTemplate,
@@ -639,9 +702,15 @@ export function TemplatesTree({
     () => filterProjectSourcesByQuery(projectSources, searchQuery),
     [projectSources, searchQuery],
   );
+  const loadingProjectIdSet = useMemo(() => new Set(loadingProjectIds), [loadingProjectIds]);
+  const loadingEstimateIdSet = useMemo(() => new Set(loadingEstimateIds), [loadingEstimateIds]);
   const uiNodes = useMemo(
-    () => buildTemplatesTreeNodes(filteredTemplates, filteredProjectSources),
-    [filteredProjectSources, filteredTemplates],
+    () => injectProjectSourceSkeletons(
+      buildTemplatesTreeNodes(filteredTemplates, filteredProjectSources),
+      loadingProjectIdSet,
+      loadingEstimateIdSet,
+    ),
+    [filteredProjectSources, filteredTemplates, loadingProjectIdSet, loadingEstimateIdSet],
   );
   const nodeById = useMemo(() => {
     const map = new Map<string, UiTreeNode>();
@@ -667,7 +736,10 @@ export function TemplatesTree({
 
   const handleCanDrag = useCallback((node: UiTreeNode) => {
     const datum = getTemplatesTreeDatum(node);
-    return datum?.type !== "section" && datum?.type !== "project" && datum?.type !== "project-estimate";
+    return datum?.type !== "section"
+      && datum?.type !== "project"
+      && datum?.type !== "project-estimate"
+      && datum?.type !== "skeleton";
   }, []);
 
   const handleNodeDragStart = useCallback(
@@ -685,6 +757,8 @@ export function TemplatesTree({
   const handleRowClick = useCallback(
     (nodeId: string, node: UiTreeNode) => {
       const datum = getTemplatesTreeDatum(node);
+      // Skeleton placeholders are inert: no preview, no toggle, no selection.
+      if (datum?.type === "skeleton") return;
       if (
         datum?.type === "project" ||
         datum?.type === "project-estimate" ||
@@ -892,6 +966,13 @@ export function TemplatesTree({
   const renderTemplatesRowLabel = useCallback(
     (treeNode: UiTreeNode) => {
       const datum = getTemplatesTreeDatum(treeNode);
+      if (datum?.type === "skeleton") {
+        return (
+          <span className="flex min-w-0 flex-1 items-center py-0.5" aria-hidden="true">
+            <span className="h-2.5 w-full max-w-[120px] animate-pulse rounded-xs bg-surfaceMuted" />
+          </span>
+        );
+      }
       if (datum?.type === "category") {
         return (
           <TemplateNodeRowContent
@@ -916,10 +997,27 @@ export function TemplatesTree({
         return <SourceFolderRowContent label={treeNode.label} />;
       }
       if (datum?.type === "project") {
-        return <SourceFolderRowContent label={datum.source.name} />;
+        // Hovering warms the project's estimate list so a subsequent expand is
+        // resident and shows no loading state at all (U23).
+        return (
+          <span
+            className="flex min-w-0 flex-1"
+            onMouseEnter={onPrefetchNode ? () => onPrefetchNode(treeNode.id) : undefined}
+          >
+            <SourceFolderRowContent label={datum.source.name} />
+          </span>
+        );
       }
       if (datum?.type === "project-estimate") {
-        return <SourceFolderRowContent label={datum.source.name} meta={datum.source.sheetCode} />;
+        // Hovering warms this estimate's outline ahead of expand (U23).
+        return (
+          <span
+            className="flex min-w-0 flex-1"
+            onMouseEnter={onPrefetchNode ? () => onPrefetchNode(treeNode.id) : undefined}
+          >
+            <SourceFolderRowContent label={datum.source.name} meta={datum.source.sheetCode} />
+          </span>
+        );
       }
       if (datum?.type === "project-tab") {
         return <SourceFolderRowContent label={datum.source.name} meta="Whole tab" />;
@@ -929,7 +1027,7 @@ export function TemplatesTree({
       }
       return <span className="min-w-0 flex-1 truncate">{treeNode.label}</span>;
     },
-    [templatesByCategory],
+    [onPrefetchNode, templatesByCategory],
   );
 
   if (templates.length === 0 && projectSources.length === 0) {

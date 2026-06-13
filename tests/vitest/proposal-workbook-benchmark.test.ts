@@ -58,6 +58,16 @@ describe("proposal workbook benchmark fixture", () => {
     expect(run.bufferMiB).toBe(toMiB(run.bufferBytes));
   });
 
+  it("stays within a generous performance budget at a realistic row count (P3-T5, F-34 regression gate)", async () => {
+    const run = await runBenchmark(200);
+
+    expect(run.rowCount).toBe(200);
+    // Generous guard (not a tight benchmark) — catches catastrophic slowdowns or size bloat
+    // without flaking on CI timing variance. Measured local builds are well under these.
+    expect(run.durationMs).toBeLessThan(5_000);
+    expect(run.bufferMiB).toBeLessThan(5);
+  });
+
   it("builds a self-consistent tabbed benchmark fixture", async () => {
     const model = makeTabbedBenchmarkModel(2, 3);
 

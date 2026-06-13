@@ -7,20 +7,43 @@ const authMocks = vi.hoisted(() => ({
 const repositoryMocks = vi.hoisted(() => ({
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
+  getProjectEstimateTreeByEstimate: vi.fn(),
   listCurrentWorkspaceProjects: vi.fn(),
   listProjectEstimateSheets: vi.fn(),
 }));
+
+const supabaseServerMocks = vi.hoisted(() => ({ createSupabaseServerClient: vi.fn() }));
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext: authMocks.requireCurrentUserContext,
 }));
 
+vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabs: repositoryMocks.getEstimateTabs,
   getEstimateTabTree: repositoryMocks.getEstimateTabTree,
+  getProjectEstimateTreeByEstimate: repositoryMocks.getProjectEstimateTreeByEstimate,
   listCurrentWorkspaceProjects: repositoryMocks.listCurrentWorkspaceProjects,
   listProjectEstimateSheets: repositoryMocks.listProjectEstimateSheets,
 }));
+
+// U5: the server-side search pre-filters matching estimates via two bounded
+// ILIKE queries (estimate_nodes + estimate_tabs) before materializing trees. This
+// chainable stub resolves each `.from(table)...` chain to the configured result.
+function mockSearchPrefilter(resultByTable: Record<string, { data: unknown; error: unknown }>) {
+  const makeBuilder = (table: string) => {
+    const result = resultByTable[table] ?? { data: [], error: null };
+    const builder: Record<string, unknown> = {};
+    for (const method of ["select", "in", "ilike", "is", "eq", "order"]) {
+      builder[method] = () => builder;
+    }
+    builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
+    builder.maybeSingle = async () => result;
+    return builder;
+  };
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from: (table: string) => makeBuilder(table) });
+}
 
 const projectAId = "11111111-1111-4111-8111-111111111111";
 const projectBId = "22222222-2222-4222-8222-222222222222";
@@ -31,8 +54,12 @@ beforeEach(() => {
   authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1" });
   repositoryMocks.getEstimateTabs.mockReset();
   repositoryMocks.getEstimateTabTree.mockReset();
+  repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
   repositoryMocks.listCurrentWorkspaceProjects.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockReset();
+  supabaseServerMocks.createSupabaseServerClient.mockReset();
+  // Default: no estimate matches the pre-filter (the search test sets the match).
+  mockSearchPrefilter({});
 });
 
 describe("reusable project source actions", () => {
@@ -170,8 +197,8 @@ describe("reusable project source actions", () => {
     const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
     const result = await getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId });
 
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId);
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId);
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId, { allowLegacyFallback: true });
     expect(result.sources).toEqual([
       {
         kind: "project-tab",
@@ -221,6 +248,21 @@ describe("reusable project source actions", () => {
     ]);
   });
 
+  it("fails closed when the estimate outline is not accessible (U16 denial)", async () => {
+    // RLS / can_access denials surface as a non-schema-missing read error.
+    // allowLegacyFallback only swallows the schema-missing case, so the action
+    // must PROPAGATE this — never return a partial/empty outline for an estimate
+    // the caller cannot read.
+    const accessError = new Error("permission denied for table estimate_nodes");
+    repositoryMocks.getEstimateTabs.mockRejectedValue(accessError);
+
+    const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
+    await expect(
+      getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId }),
+    ).rejects.toThrow(accessError);
+    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+  });
+
   it("searches readable project source outlines without returning pending invites", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
@@ -248,13 +290,16 @@ describe("reusable project source actions", () => {
       ],
     });
 
+    // U5: the node pre-filter resolves the matching estimate, so only it is materialized.
+    mockSearchPrefilter({ estimate_nodes: { data: [{ estimate_id: estimateAId }], error: null } });
+
     const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "amenity" });
 
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId);
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId);
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId);
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId, { allowLegacyFallback: true });
     expect(result.sources).toEqual([
       {
         kind: "project",
@@ -310,6 +355,67 @@ describe("reusable project source actions", () => {
           updatedAt: "2026-06-12T08:45:00.000Z",
           rowCount: 1,
           totalCost: 125000,
+        },
+      },
+    ]);
+  });
+
+  it("assembles a single synthetic 'Main' tab outline under the missing-schema fallback (U1)", async () => {
+    // Simulates the read-only legacy fallback: estimate_tabs is unapplied, so
+    // getEstimateTabs returns the synthetic Main tab and getEstimateTabTree
+    // returns the whole-estimate legacy tree as that tab. The outline must
+    // still assemble — no throw, no 500 (DEF-1).
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: "legacy-main", name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T09:00:00.000Z" },
+      tab: { id: "legacy-main", name: "Main", sortOrder: 0, isDefault: true },
+      tree: [
+        {
+          id: "group-1",
+          name: "Site Works",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [{ totalItemCosts: 5000 }],
+        },
+      ],
+    });
+
+    const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
+    const result = await getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId });
+
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, "legacy-main", { allowLegacyFallback: true });
+    expect(result.sources).toEqual([
+      {
+        kind: "project-tab",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        tabId: "legacy-main",
+        name: "Main",
+        metadata: {
+          tabName: "Main",
+          updatedAt: "2026-06-12T09:00:00.000Z",
+          rowCount: 1,
+          totalCost: 5000,
+        },
+      },
+      {
+        kind: "project-node",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        tabId: "legacy-main",
+        nodeId: "group-1",
+        nodeKind: "group",
+        name: "Site Works",
+        metadata: {
+          tabName: "Main",
+          nodePath: ["Main", "Site Works"],
+          updatedAt: "2026-06-12T09:00:00.000Z",
+          rowCount: 1,
+          totalCost: 5000,
         },
       },
     ]);

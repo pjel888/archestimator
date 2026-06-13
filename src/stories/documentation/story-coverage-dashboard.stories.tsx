@@ -81,7 +81,7 @@ function ActualStandaloneCoverageContent() {
       <StorySection title="Implementation evidence">
         <StoryPanel className="space-y-1">
           <div className="flex items-start gap-2 text-[10px] leading-4 text-ink">
-            <Badge tone="info" size="xs">VERIFY</Badge>
+            <Badge tone="accent" size="xs">VERIFY</Badge>
             <span>Actual standalone component entries are checked by `bun run storybook:check-components`, not by this matrix row count.</span>
           </div>
           {storybookImplementationEvidence.map((item) => (

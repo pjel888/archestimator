@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { createProposalWorkbookBuffer } from "../src/lib/proposal-export/create-proposal-workbook";
+import { defaultProposalExportSettings, resolveProjectCharges } from "../src/lib/proposal-export/build-proposal-export-model";
 import { buildUniqueWorksheetNames } from "../src/lib/proposal-export/worksheet-name";
 import type { ProposalExportModel, ProposalExportRow, ProposalSourceBreakdownRow, ProposalSummaryRow, ProposalTabbedWorkbookModel } from "../src/lib/proposal-export/types";
 
@@ -176,16 +177,7 @@ export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
       versionLabel: "Local benchmark",
       currency: "PHP",
     },
-    settings: {
-      audience: "internal",
-      mode: "detailed-boq",
-      consolidationMode: "industry-standard",
-      includeSourceBreakdownSheet: true,
-      includeFormulas: true,
-      includeZeroRows: true,
-      includeExcludedRows: true,
-      showSupplierInRemarks: true,
-    },
+    settings: { ...defaultProposalExportSettings, audience: "internal", includeZeroRows: true },
     summaryRows,
     proposalRows,
     sourceBreakdownRows,
@@ -202,6 +194,10 @@ export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
       contingencySubtotal: proposalRows.reduce((sum, row) => sum + row.contingencySubtotal, 0),
       miscSubtotal: proposalRows.reduce((sum, row) => sum + row.miscSubtotal, 0),
       grandTotal: proposalRows.reduce((sum, row) => sum + row.costAmount, 0),
+      ...resolveProjectCharges(
+        proposalRows.reduce((sum, row) => sum + row.costAmount, 0),
+        defaultProposalExportSettings,
+      ),
     },
     generatedAt: new Date().toISOString(),
   };

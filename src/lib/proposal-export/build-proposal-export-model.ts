@@ -30,7 +30,24 @@ export const defaultProposalExportSettings: ProposalExportSettings = {
   includeZeroRows: false,
   includeExcludedRows: true,
   showSupplierInRemarks: true,
+  contingencyRate: 10, // D2: default 10% project contingency
+  contingencyMode: "percentage",
+  vatRate: 12, // D2: Philippine VAT 12%
+  vatMode: "percentage",
 };
+
+// F-19 / D0=A (P1-T9 minimal redaction): the default workbook is the contractor → client
+// bid document, so internal-only artifacts are dropped for a client audience until the full
+// P2-T3 settings gate lands. `audience` is server-derived (never read off the wire), so this
+// gate cannot be flipped by a client-supplied parameter. Idempotent.
+export function applyAudiencePolicy(settings: ProposalExportSettings): ProposalExportSettings {
+  if (settings.audience !== "client") return settings;
+  return {
+    ...settings,
+    includeSourceBreakdownSheet: false,
+    showSupplierInRemarks: false,
+  };
+}
 
 function normalizeWhitespace(value: string | null | undefined) {
   return (value ?? "").replace(/\s+/g, " ").trim();
@@ -73,27 +90,46 @@ function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
   const confidence = normalizeWhitespace(row.confidence);
   const notes = normalizeWhitespace(row.notes);
 
-  if (settings.showSupplierInRemarks && supplier) remarks.push(`Supplier: ${supplier}`);
-  if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
-  if (pricingDate) remarks.push(`As of ${pricingDate}`);
-  if (confidence) remarks.push(`Confidence: ${confidence}`);
+  // `showSupplierInRemarks` gates all internal pricing intelligence (supplier, pricing
+  // source/date, confidence) together — applyAudiencePolicy forces it off for a client
+  // audience so none of it leaks into a client-facing bid (F-19). Free-form notes are
+  // client-relevant and always kept.
+  if (settings.showSupplierInRemarks) {
+    if (supplier) remarks.push(`Supplier: ${supplier}`);
+    if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
+    if (pricingDate) remarks.push(`As of ${pricingDate}`);
+    if (confidence) remarks.push(`Confidence: ${confidence}`);
+  }
   if (notes) remarks.push(notes);
 
   return remarks.join(" | ");
+}
+
+const SCOPE_VOCABULARY = new Set<ProposalScopeStatus>([
+  "included", "excluded", "by_others", "by_owner", "owner_supplied", "ofci", "osci", "osm", "omitted", "not_applicable", "alternate",
+]);
+
+// P3-T2: normalize a metadata scope string (e.g. "EXCLUDED", "by others") to a recognized
+// canonical status; anything unrecognized is treated as included (safe default).
+function normalizeScope(value: string | null | undefined): ProposalScopeStatus {
+  const key = keyText(value ?? "").replace(/[\s-]+/g, "_");
+  return SCOPE_VOCABULARY.has(key as ProposalScopeStatus) ? (key as ProposalScopeStatus) : "included";
 }
 
 function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, settings: ProposalExportSettings): ProposalNormalizedSourceRow {
   const sourceRow = flatRow.sourceRow;
   const quantity = roundQuantity(sourceRow.quantity);
   const materialUnitCost = roundMoney(sourceRow.itemCost);
-  const laborUnitCost = 0;
+  // P3-T1: interim labor rate from row metadata (else 0, with a visible disclaimer).
+  const laborUnitCost = roundMoney(sourceRow.laborUnitCost ?? 0);
   const materialSubtotal = roundMoney(materialUnitCost * quantity);
   const laborSubtotal = roundMoney(laborUnitCost * quantity);
   const contingencySubtotal = roundMoney((materialSubtotal * (sourceRow.contingencyPercentage ?? 0)) / 100);
   const miscSubtotal = roundMoney(sourceRow.miscCost);
   const costAmount = roundMoney(materialSubtotal + laborSubtotal + contingencySubtotal + miscSubtotal);
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
-  const scopeStatus: ProposalScopeStatus = "included";
+  // P3-T2: per-row scope from row metadata (else included).
+  const scopeStatus: ProposalScopeStatus = normalizeScope(sourceRow.scopeStatus);
 
   return {
     sourceRowId: flatRow.sourceRowId,
@@ -154,11 +190,76 @@ function createSourceReference(row: ProposalNormalizedSourceRow): ProposalExport
   };
 }
 
+// P3-T3/D6 (F-27): an ordered canonical division taxonomy. Each entry's keywords are matched
+// against the free-text section label (category/discipline); the first match wins. Sections that
+// match nothing sort last (Misc), preserving their relative encounter order.
+const DIVISION_TAXONOMY: ReadonlyArray<{ keywords: readonly string[] }> = [
+  { keywords: ["preliminar", "general requirement", "mobiliz", "general condition"] },
+  { keywords: ["site", "earth", "excavat", "grading", "demolition"] },
+  { keywords: ["civil", "concrete", "structur", "foundation", "rebar", "formwork"] },
+  { keywords: ["architectur", "masonry", "wall", "partition", "roofing"] },
+  { keywords: ["finish", "tile", "paint", "flooring", "ceiling", "plaster"] },
+  { keywords: ["glass", "glazing", "curtain wall", "window"] },
+  { keywords: ["door"] },
+  { keywords: ["joinery", "millwork", "cabinet", "carpentry", "casework"] },
+  { keywords: ["mechanical", "electrical", "plumbing", "mep", "hvac", "fire", "sanitary", "power", "lighting"] },
+  { keywords: ["ffe", "furnitur", "fixture", "equipment", "appliance"] },
+];
+const MISC_DIVISION_RANK = DIVISION_TAXONOMY.length;
+
+function divisionRank(label: string): number {
+  const text = keyText(label);
+  for (let index = 0; index < DIVISION_TAXONOMY.length; index += 1) {
+    if (DIVISION_TAXONOMY[index].keywords.some((keyword) => text.includes(keyword))) return index;
+  }
+  return MISC_DIVISION_RANK;
+}
+
+// Reorder consolidated rows so sections follow the canonical division order, keeping each
+// section's rows contiguous and the relative order of equal-rank sections stable.
+function applyCanonicalDivisionOrder(rows: ProposalExportRow[]): ProposalExportRow[] {
+  const sectionsInOrder: string[] = [];
+  const rowsBySection = new Map<string, ProposalExportRow[]>();
+  for (const row of rows) {
+    let bucket = rowsBySection.get(row.sectionKey);
+    if (!bucket) {
+      bucket = [];
+      rowsBySection.set(row.sectionKey, bucket);
+      sectionsInOrder.push(row.sectionKey);
+    }
+    bucket.push(row);
+  }
+  const sortedSections = sectionsInOrder
+    .map((sectionKey, appearance) => ({
+      sectionKey,
+      appearance,
+      rank: divisionRank(rowsBySection.get(sectionKey)?.[0]?.sectionLabel ?? sectionKey),
+    }))
+    .sort((a, b) => a.rank - b.rank || a.appearance - b.appearance);
+  return sortedSections.flatMap((section) => rowsBySection.get(section.sectionKey) ?? []);
+}
+
 function renumberProposalRows(rows: ProposalExportRow[]): ProposalExportRow[] {
-  return rows.map((row, index) => ({
-    ...row,
-    rowNumber: String(index + 1),
-  }));
+  // P2-T5/F-09: hierarchical numbering — each row is numbered within the context it is
+  // actually rendered in. The Bid Form's priced sections show only includedInTotal rows,
+  // so those restart at 1 per section. Excluded rows are pulled out into the flat
+  // EXCLUSIONS block (create-proposal-workbook.ts), so they get their own independent
+  // 1..n sequence — matching that block's String(index + 1). Numbering excluded rows off
+  // the per-section counter would consume a priced-section line number and leave a visible
+  // gap (e.g. ITEM 1, 3) in the Bid Form when a section mixes included and excluded scope.
+  // The division letter (A/B/C…) is emitted on the section header row by the workbook
+  // builder, derived from the section's position in model.summaryRows.
+  const sectionCounters = new Map<string, number>();
+  let excludedCounter = 0;
+  return rows.map((row) => {
+    if (!row.includedInTotal) {
+      excludedCounter += 1;
+      return { ...row, rowNumber: String(excludedCounter) };
+    }
+    const next = (sectionCounters.get(row.sectionKey) ?? 0) + 1;
+    sectionCounters.set(row.sectionKey, next);
+    return { ...row, rowNumber: String(next) };
+  });
 }
 
 function buildSourceBreakdownRows(proposalRows: ProposalExportRow[]): ProposalSourceBreakdownRow[] {
@@ -188,6 +289,9 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
   const sections = new Map<string, ProposalSummaryRow>();
 
   for (const row of proposalRows) {
+    // P3-T2: excluded rows are summarized in the EXCLUSIONS block, not the priced section
+    // totals — so section amounts match the Grand Total and the Bid Form subtotal SUMs.
+    if (!row.includedInTotal) continue;
     const current = sections.get(row.sectionKey) ?? {
       sectionKey: row.sectionKey,
       sectionLabel: row.sectionLabel,
@@ -213,8 +317,20 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
   return Array.from(sections.values());
 }
 
-function buildTotals(proposalRows: ProposalExportRow[]): ProposalExportTotals {
-  return proposalRows.reduce<ProposalExportTotals>(
+// F-02/D2: project-level contingency then VAT, computed round-then-sum so the workbook's
+// stored results match these values to the cent (09 §5 parity). Exported so the tabbed
+// Summary applies the identical math to the summed per-tab Direct Costs. Rates are 0–100.
+export function resolveProjectCharges(directCost: number, settings: ProposalExportSettings) {
+  const projectContingencyAmount =
+    settings.contingencyMode === "included" ? 0 : roundMoney((directCost * settings.contingencyRate) / 100);
+  const vatBase = roundMoney(directCost + projectContingencyAmount);
+  const vatAmount = settings.vatMode === "included" ? 0 : roundMoney((vatBase * settings.vatRate) / 100);
+  const grandTotalWithTaxes = roundMoney(directCost + projectContingencyAmount + vatAmount);
+  return { projectContingencyAmount, vatAmount, grandTotalWithTaxes };
+}
+
+function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExportSettings): ProposalExportTotals {
+  const base = proposalRows.reduce(
     (totals, row) => {
       if (!row.includedInTotal) return totals;
       return {
@@ -233,6 +349,7 @@ function buildTotals(proposalRows: ProposalExportRow[]): ProposalExportTotals {
       grandTotal: 0,
     },
   );
+  return { ...base, ...resolveProjectCharges(base.grandTotal, settings) };
 }
 
 function collectNonAreaRows(nodes: EstimateTreeNode[]) {
@@ -344,9 +461,11 @@ export function consolidateProposalRows(
 }
 
 export function buildProposalExportModel(input: BuildProposalExportModelInput): ProposalExportModel {
-  const settings = { ...defaultProposalExportSettings, ...input.settings };
+  const settings = applyAudiencePolicy({ ...defaultProposalExportSettings, ...input.settings });
   const flatRows = flattenEstimateTree(input.nodes);
-  const proposalRows = consolidateProposalRows(flatRows, settings);
+  // P3-T3: reorder sections canonically, then renumber so line numbers/division letters follow
+  // the canonical order rather than data-encounter order.
+  const proposalRows = renumberProposalRows(applyCanonicalDivisionOrder(consolidateProposalRows(flatRows, settings)));
   const validationIssues: ProposalExportValidationIssue[] = [...collectNonAreaRows(input.nodes)];
 
   if (flatRows.length === 0) {
@@ -357,7 +476,10 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
     });
   }
 
-  if (proposalRows.length > 0) {
+  // P3-T1: only flag the material-only compatibility mode (which drives the visible LABOR
+  // disclaimer) when no row actually carries a labor rate — so the caveat auto-clears once
+  // real labor data lands via metadata.
+  if (proposalRows.length > 0 && proposalRows.every((row) => row.laborUnitCost === 0)) {
     validationIssues.push({
       severity: "info",
       code: "cost_split_compatibility_mode",
@@ -373,7 +495,7 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
     proposalRows,
     sourceBreakdownRows: buildSourceBreakdownRows(proposalRows),
     validationIssues,
-    totals: buildTotals(proposalRows),
+    totals: buildTotals(proposalRows, settings),
     generatedAt: input.generatedAt ?? new Date().toISOString(),
   };
 }

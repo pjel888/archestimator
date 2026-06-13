@@ -28,6 +28,11 @@ function Field({ label, children, required }: { label: string; children: ReactNo
 
 const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent";
 
+// U14: count line should read "1 group", not "1 groups".
+function pluralize(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
 function summarizeSourceNode(node: EstimateTreeNode) {
   const summary = { groupCount: 0, areaCount: 0, rowCount: 0 };
   function visit(current: EstimateTreeNode) {
@@ -174,7 +179,7 @@ export function NewTemplateModal({
             <div className="min-w-0 flex-1">
               <p className="truncate text-[10px] font-medium text-ink">{sourceNode.name}</p>
               <p className="text-[9px] leading-3 text-tertiary">
-                {tabMode ? "Tab source" : sourceNode.kind === "group" ? "Group node" : "Area node"} · {summary.groupCount} groups · {summary.areaCount} areas · {summary.rowCount} rows
+                {tabMode ? "Tab source" : sourceNode.kind === "group" ? "Group node" : "Area node"} · {pluralize(summary.groupCount, "group")} · {pluralize(summary.areaCount, "area")} · {pluralize(summary.rowCount, "row")}
               </p>
             </div>
           </div>
@@ -197,9 +202,9 @@ export function NewTemplateModal({
             autoFocus
           />
         </Field>
-        <Field label="Group">
+        <Field label="Category">
           <ControlInput
-            aria-label="Template group"
+            aria-label="Template category"
             className={inputClass}
             value={category}
             placeholder="General"
