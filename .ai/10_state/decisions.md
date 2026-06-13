@@ -655,3 +655,19 @@ Rejected: wrap-case-only fix (insert template before area) | the snap-back and t
 Confidence: high
 Scope-risk: moderate
 Directive: Never reintroduce kind-based sibling sorting in any layer (display, reorder math, repository projection, or SQL RPCs); new ordering features must read and write sort_order only. Apply the 20260611031500 migration before relying on slot-preserving inserts.
+
+## 2026-06-13 — Spreadsheet / XLSX Export Plan: owner decisions confirmed (D0/D7/D8) + JSONB-now read paths
+
+Branch/worktree: `claude/2026-06-13-Spreadsheet-Export-Plan`. Implements `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/` (P1→P3). Owner (Philip) confirmed the three second-pass product decisions on 2026-06-13 via in-session prompt:
+
+Decision D7 (preview approach) = **Option B "Contents summary"**: the export preview modal no longer renders a fake 12-column table; it names the sheets the file will contain (Bid Form ×N tabs · Summary · Commercial Terms — flagged "boilerplate, review before sending" · Source Breakdown — internal only) plus validation issues. No modal↔builder pixel-sync obligation; removes F-03 dishonesty without the F-22 jank tax.
+Decision D0 (primary audience) = **Option A "client/architect bid document is primary"**: the default download is the contractor→client bid doc; Source Breakdown sheet + supplier/confidence/source-IDs become opt-in `audience=internal`. `audience` is **server-derived from role, never read from query/body**. Makes the safe behavior the default and drives P1-T9 minimal redaction + P2-T3 enforcement.
+Decision D8 (multi-tab modal total) = **Option (a) hide the single-tab number**: show "All N tabs — total in the downloaded Summary" for all-tabs scope; no new totals endpoint/infra; cannot misquote a client.
+Decisions D1–D6 proceed on the [08 §Decision gate] recommended defaults with the [10] JSONB-now resolution: D2 VAT 12% + contingency 10% (both with INCLUDED mode), D3 GFA via `estimates`/`projects` `.metadata.grossFloorArea`, D5 scope via `estimate_row_items.metadata.scopeStatus`, D6 ordered canonical division list (code-only), D1 labor interim via `estimate_row_items.metadata.laborUnitCost` (fallback 0 + visible disclaimer).
+
+Constraint: No DB channel for agents this run (Docker absent + hosted Supabase SQL denied by classifier). All typed-column promotions (D1/D5), the optional D3 typed column, and the **D4 `workspace_profiles`** contractor-identity table are DESIGNED in [10] but **application is deferred**. Read-side ships now via existing `metadata: Json` columns. P1 is fully DB-free. Title-block contractor identity (D4) falls back to project/workspace name (never the beta placeholder); Owner/Client ships DB-free via `projects.client_name`. F-17/P1-T8 live-RLS verification is a release-gate ops item, not closeable by agents.
+Rejected: D7=A render-the-real-Bid-Form | permanent modal↔builder sync debt + worsens synchronous main-thread jank; only pick if pixel-fidelity preview becomes a hard requirement.
+Rejected: D8=(b) server totals endpoint / (c) disclaimer-beside-wrong-number | (b) is net-new server surface for a display-only value (defer to P2/P3); (c) keeps a wrong number on the highest-trust line — the exact pattern being fixed.
+Confidence: high
+Scope-risk: low (narrow blast radius — route + preview + proposal-export lib only; three shared repository fn signatures untouched, new additive fns added instead; model fields additive-only; 7 existing proposal tests kept green).
+Directive: Never read `audience` from the wire (server-derive from role); validate `vatRate`/`contingencyRate` as finite 0–100 → 400 (no silent clamp); ship P2-T2 expose + P2-T3 enforce as one atomic unit; do NOT change `getEstimateTabs`/`getEstimateTabTree`/`getProjectEstimateTreeByEstimate` signatures (add new fns); keep model fields additive; close the [11 §A] manual cross-app recalc QA gate before calling P1 client-ready.
