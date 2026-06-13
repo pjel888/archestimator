@@ -75,7 +75,23 @@ const nextConfig: NextConfig = {
       ],
     }));
 
-    // P11: /share/:path* now enforced CSP (upgrade from Report-Only)
+    // Shared hardening headers applied to BOTH the share page and the share API:
+    // - SEC-01: Referrer-Policy: no-referrer so the `?recipient=` token in the URL is never
+    //   leaked via the Referer header to outbound links / subresources.
+    // - SEC-05: HSTS (force HTTPS) + X-Robots-Tag: noindex,nofollow (keep confidential client
+    //   proposals out of search indexes). nosniff + frame-clickjacking protection.
+    // NOTE: CSP `script-src`/`style-src` still allow 'unsafe-inline'/'unsafe-eval' (the SEC-05
+    // CSP-tightening to a per-request nonce is deferred — see 06_SECURITY_AUDIT.md / the T3
+    // deferral note — because removing them needs a nonce pipeline verified in a live browser).
+    const shareHardeningHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
+
+    // P11: /share/:path* now enforced CSP (upgrade from Report-Only) + the shared hardening headers.
     const sharePageEnforced = [
       {
         source: sharePageSource,
@@ -84,19 +100,16 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: landingReportOnlyCsp,
           },
+          ...shareHardeningHeaders,
         ],
       },
     ];
 
-    // P11: share API routes get the 3 required headers (additive to per-route no-store etc.)
+    // Share API routes get the shared hardening headers (additive to per-route no-store etc.)
     const shareApiSecurityHeaders = [
       {
         source: shareApiSource,
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
-        ],
+        headers: [...shareHardeningHeaders],
       },
     ];
 

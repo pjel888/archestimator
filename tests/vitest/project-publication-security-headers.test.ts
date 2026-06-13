@@ -17,13 +17,22 @@ describe("project publication security headers (Shared Link V2)", () => {
     expect(csp).not.toContain("img-src *");
     expect(csp).not.toContain("img-src https:");
 
+    // SEC-01/SEC-05: hardening headers on BOTH the share page and the share API.
+    const expectedHardening = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "no-referrer" }, // SEC-01: no Referer leak of ?recipient=
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }, // SEC-05 HSTS
+      { key: "X-Robots-Tag", value: "noindex, nofollow" }, // SEC-05 noindex
+    ];
+
+    expect(shareHeaders?.headers).toEqual(expect.arrayContaining(expectedHardening));
+
     const shareApiHeaders = headers?.find((entry) => entry.source === "/api/share/:path*");
-    expect(shareApiHeaders?.headers).toEqual(
-      expect.arrayContaining([
-        { key: "X-Content-Type-Options", value: "nosniff" },
-        { key: "X-Frame-Options", value: "DENY" },
-        { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
-      ]),
-    );
+    expect(shareApiHeaders?.headers).toEqual(expect.arrayContaining(expectedHardening));
+
+    // SEC-01: the recipient token must never leak via Referer.
+    expect(shareHeaders?.headers).not.toContainEqual({ key: "Referrer-Policy", value: "no-referrer-when-downgrade" });
+    expect(shareApiHeaders?.headers).not.toContainEqual({ key: "Referrer-Policy", value: "no-referrer-when-downgrade" });
   });
 });
