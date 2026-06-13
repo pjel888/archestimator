@@ -8,6 +8,7 @@ type EstimateUiState = {
   focusedCell: { rowId: string; field: string } | null;
   selectedRowIds: string[];
   expandedNodeIds: string[];
+  activityScopeDirectOnly: Record<string, boolean>;
   dragState: {
     type: EstimateDragType | null;
     id: string | null;
@@ -18,6 +19,7 @@ type EstimateUiState = {
   setFocusedCell: (focusedCell: EstimateUiState["focusedCell"]) => void;
   setSelectedRowIds: (rowIds: string[]) => void;
   setExpandedNodeIds: (nodeIds: string[]) => void;
+  setActivityScopeDirectOnly: (nodeId: string, directOnly: boolean) => void;
   setDragState: (dragState: EstimateUiState["dragState"]) => void;
   clearDragState: () => void;
 };
@@ -34,11 +36,16 @@ export const useEstimateUiStore = create<EstimateUiState>((set) => ({
   focusedCell: null,
   selectedRowIds: [],
   expandedNodeIds: [],
+  activityScopeDirectOnly: {},
   dragState: emptyDragState,
   setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId }),
   setFocusedCell: (focusedCell) => set({ focusedCell }),
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds }),
   setExpandedNodeIds: (expandedNodeIds) => set({ expandedNodeIds }),
+  setActivityScopeDirectOnly: (nodeId, directOnly) =>
+    set((s) => ({
+      activityScopeDirectOnly: { ...s.activityScopeDirectOnly, [nodeId]: directOnly },
+    })),
   setDragState: (dragState) => set({ dragState }),
   clearDragState: () => set({ dragState: emptyDragState }),
 }));

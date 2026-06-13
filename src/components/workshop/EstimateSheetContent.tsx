@@ -17,6 +17,7 @@ import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+import { useEstimateUiStore } from "@/stores/estimate-ui-store";
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { getEstimateWrapGroupName } from "@/lib/estimates/tree-hierarchy";
@@ -440,12 +441,18 @@ function buildActivityScopeTreeItems({
   editableRows,
   metadata,
   projectTotal,
+  activityScopeDirectOnly,
 }: {
   nodes: EstimateTreeNode[];
   rows: FlattenedEstimateRow[];
   editableRows: Record<string, EditableRowValue>;
   metadata: ProposalExportMetadata | null;
   projectTotal: number;
+  // Unification P3-activity: scope is a STORED, STABLE per-node choice — never
+  // derived from kind/children. An empty map yields includeDescendants:true for
+  // every node, byte-identical to the legacy leaf behavior (a leaf's descendant
+  // set is itself) while keeping the cache key invariant when a child is added.
+  activityScopeDirectOnly: Record<string, boolean>;
 }) {
   const rowById = new Map(rows.map((row) => [row.item.id, row]));
   const items: ActivityScopeTreeItem[] = [
@@ -466,7 +473,9 @@ function buildActivityScopeTreeItems({
     const pathLabel = [...ancestorNames, node.name].join(" / ");
     items.push({
       id: `node:${node.id}`,
-      scope: { mode: "node", nodeId: node.id, includeDescendants: isGroup },
+      // P3-activity: STORED stable choice, kind-agnostic. Default (absent) → true,
+      // so the cache key `node:{id}:desc` does not change when children are added.
+      scope: { mode: "node", nodeId: node.id, includeDescendants: !(activityScopeDirectOnly[node.id] ?? false) },
       depth,
       kind: isGroup ? "group" : "area",
       label: node.name,
@@ -480,8 +489,9 @@ function buildActivityScopeTreeItems({
       visit(child, depth + 1, getNodeCode(nodeCode, childIndex), [...ancestorNames, node.name]);
     });
 
-    if (node.kind !== "area") return;
-
+    // P3-activity: emit row-scope items for EVERY node, not just kind==="area".
+    // Pre-relax this is a provable no-op (no non-area node carries rows today);
+    // post-unification a former-group node's own rows must surface here.
     node.estimateRowItems?.forEach((rowItem, rowIndex) => {
       const row = rowById.get(rowItem.id) ?? null;
       const label = isBlankEstimateRowItem(rowItem) ? BLANK_ESTIMATE_ROW_AUDIT_LABEL : rowItem.material;
@@ -869,6 +879,10 @@ export function EstimateSheetContent({
   const [proposalDownloadError, setProposalDownloadError] = useState<string | null>(null);
   const [proposalExportSettings, setProposalExportSettings] = useState<ProposalExportUserSettings>(DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS);
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
+  // P3-activity: per-node stored activity scope (direct-only vs descendants).
+  // Stable identity (selector returns the same default {} until a flip), so the
+  // activity cache key never becomes time-varying when a child is added.
+  const activityScopeDirectOnly = useEstimateUiStore((s) => s.activityScopeDirectOnly);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
   const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
@@ -1090,8 +1104,9 @@ export function EstimateSheetContent({
       editableRows,
       metadata: resolvedProposalExportMetadata,
       projectTotal,
+      activityScopeDirectOnly,
     }),
-    [currentRows, editableRows, estimateTree, projectTotal, resolvedProposalExportMetadata],
+    [activityScopeDirectOnly, currentRows, editableRows, estimateTree, projectTotal, resolvedProposalExportMetadata],
   );
   const selectedActivityScopeItem = useMemo(
     () => activityScopeItems.find((item) => getActivityScopeKey(item.scope) === inspectorScopeKey) ?? activityScopeItems[0] ?? null,
