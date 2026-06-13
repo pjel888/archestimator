@@ -372,6 +372,41 @@ Target text rhythm:
 - App meta/eyebrow/helper labels: `8-9px`; these must be visually smaller than paired inputs, controls, values, and body text.
 - Estimate cells: normally `10px` with strong contrast, tabular numbers, and enough row height for scanning.
 
+## Data visualization
+
+Charts (cost comparison, distribution, variance) follow the compact scale but carry
+a small, deliberate amendment because SVG `<text>` does **not** reflow on browser
+zoom — it only scales with the viewBox, so a sub-minimum chart label defeats resize
+(WCAG 1.4.4/1.4.10).
+
+- **SVG chart text floor: `11px`.** Axis ticks, dot/bar labels, and any value drawn
+  inside an `<svg>` render at `≥ 11px`. Numeric `fontSize` attributes (not Tailwind
+  classes) are used for SVG text so the value is explicit.
+- **HTML control/value floor: `10px`** (unchanged). Chart controls, legends, and
+  data-table cells stay within the standard `10px` body / `8–9px` label scale.
+- **The data table is the zoom-safe text alternative.** Every chart renders an
+  associated data table carrying the same figures and points at it via
+  `aria-describedby`. The table — not the SVG — is the keyboard/screen-reader
+  surface and the resize/zoom compliance path. Charts may be `role="img"`.
+- **Hero figures** (a totals number, a donut center) may use `12px / 500`.
+
+### Data-viz categorical palette exception (named app exception)
+
+Categorical chart series use the **Okabe–Ito 8-color CVD-safe palette** (7 hues +
+a neutral "Other" grey), assigned by a stable bucket key so the same category is
+the same color in every series. Okabe–Ito includes orange; this is the named
+exception to the "orange is landing/brand only" rule (`Colors`):
+
+- Okabe–Ito hues may appear **only** in chart marks, legends, and data-table
+  swatches.
+- They must **never** appear in controls, chrome, navigation, buttons, headers, or
+  any non-chart surface, and are applied as inline `fill` / `backgroundColor` values
+  from `src/lib/project-charts/bucket-color.ts`, never as Tailwind utility classes,
+  so they cannot leak into the app design system.
+- Direction (cheaper/more expensive) uses semantic `success` / `danger` and is
+  always reinforced by a non-color cue (bar direction, arrow, sign) so meaning is
+  never carried by color alone (WCAG 1.4.1).
+
 ## Component reuse contract
 
 All app/workshop UI must be built from shared primitives and reusable product components. Before adding local markup, agents must check `src/components/ui/` and the relevant `src/components/workshop/` shared components, then reuse or extend them.

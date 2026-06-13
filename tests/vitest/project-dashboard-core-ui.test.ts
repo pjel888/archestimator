@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   projectDashboardPage,
   projectDashboardLayout,
+  projectChromeAsync,
   projectDashboardClient,
   projectMiniSidebar,
 } from "./project-dashboard-ui-fixtures";
@@ -28,10 +29,12 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardLayout).toContain('contentClassName="pt-0 pb-0 pr-2 pl-0"');
     expect(projectDashboardLayout).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
     expect(projectDashboardLayout).toContain("actions={");
-    expect(projectDashboardLayout).toContain("<ProjectPublicationHeader");
-    expect(projectDashboardLayout).toContain("<ProjectTeamspaceHeader");
-    expect(projectDashboardLayout).toContain("summary={publicationSummary}");
-    expect(projectDashboardLayout).toContain("summary={collaborationSummary}");
+    // P1-2: the publication/teamspace header chrome is streamed via ProjectChromeAsync
+    // (in the layout's actions slot behind Suspense), not rendered inline in the layout.
+    expect(projectChromeAsync).toContain("<ProjectPublicationHeader");
+    expect(projectChromeAsync).toContain("<ProjectTeamspaceHeader");
+    expect(projectChromeAsync).toContain("summary={publicationSummary}");
+    expect(projectChromeAsync).toContain("summary={collaborationSummary}");
   });
 
   it("removes the project mini-sidebar only inside estimate sheet detail routes", () => {

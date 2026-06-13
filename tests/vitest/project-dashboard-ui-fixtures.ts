@@ -6,6 +6,7 @@ function readOptional(path: string): string {
 
 export const projectDashboardPage = readFileSync("src/app/workshop/projects/[projectId]/page.tsx", "utf8");
 export const projectDashboardLayout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8");
+export const projectChromeAsync = readFileSync("src/components/workshop/ProjectChromeAsync.tsx", "utf8");
 export const projectDashboardClient = readFileSync("src/components/workshop/ProjectDashboardClient.tsx", "utf8");
 export const projectTotalHeader = readFileSync("src/components/workshop/ProjectTotalHeader.tsx", "utf8");
 export const projectMiniSidebar = readFileSync("src/components/workshop/ProjectMiniSidebar.tsx", "utf8");
@@ -29,7 +30,11 @@ export const projectChartsPage = readFileSync("src/app/workshop/projects/[projec
 export const projectChartsClient = readFileSync("src/components/workshop/project-charts/ProjectChartsClient.tsx", "utf8");
 export const projectCostDonutChart = readFileSync("src/components/workshop/project-charts/ProjectCostDonutChart.tsx", "utf8");
 export const sharedCostDonutChart = readFileSync("src/components/charts/CostDonutChart.tsx", "utf8");
-export const projectCostBubbleChart = readFileSync("src/components/workshop/project-charts/ProjectCostBubbleChart.tsx", "utf8");
+// ProjectCostBubbleChart was deleted in the charts redesign (`03` UX-2 / `01` PERF-5);
+// `readOptional` keeps the fixtures importable and lets tests assert its absence.
+export const projectCostBubbleChart = readOptional("src/components/workshop/project-charts/ProjectCostBubbleChart.tsx");
+export const projectVarianceSpine = readFileSync("src/components/workshop/project-charts/ProjectVarianceSpine.tsx", "utf8");
+export const projectComparisonTable = readFileSync("src/components/workshop/project-charts/ProjectComparisonTable.tsx", "utf8");
 export const globalsCss = readFileSync("src/app/globals.css", "utf8");
 export const projectEstimatesLoading = readOptional("src/app/workshop/projects/[projectId]/estimates/loading.tsx");
 export const estimateWorkspaceClient = readOptional("src/components/workshop/EstimateWorkspaceClient.tsx");

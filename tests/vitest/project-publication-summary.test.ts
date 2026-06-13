@@ -13,7 +13,7 @@ describe("project publication integration contract (Shared Link V2)", () => {
   it("keeps publication separate from private Teamspaces membership", () => {
     // P1-2: the publication fan-out + header moved into the streamed ProjectChromeAsync.
     expect(layout).toContain("<ProjectChromeAsync");
-    expect(projectChrome).toContain("getProjectPublicationSummary(projectId, liveProject)");
+    expect(projectChrome).toContain("getProjectPublicationSummary(projectId)");
     expect(projectChrome).toContain("<ProjectPublicationHeader");
     expect(projectChrome).toContain("summary={publicationSummary}");
     expect(projectChrome).toContain("currentUserEmail={currentUserEmail}");

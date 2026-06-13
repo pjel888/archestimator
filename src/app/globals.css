@@ -18,6 +18,11 @@
   --hairline: #f2f2f2;
   --divider: #f2f2f2;
   --muted: #7f7f7f;
+  /* Deterministic muted foreground for secondary text. Previously undefined, so
+     `text-muted-foreground` resolved non-deterministically (`06` A11Y-2/16).
+     #6b6b6b ≈ 5.3:1 on white — clears WCAG 1.4.3 (4.5:1) for body text, while the
+     design-system-pinned --tertiary (#7f7f7f) stays untouched. */
+  --muted-foreground: #6b6b6b;
   --accent: #3D3D3D;
   --brand-orange: rgb(170,65,42);
   --brand-orange-dark: rgb(140,54,35);
@@ -53,6 +58,7 @@
   --color-hairline: var(--hairline);
   --color-divider: var(--divider);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-brand-orange: var(--brand-orange);
   --color-brand-orange-dark: var(--brand-orange-dark);

@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { BfcacheHandler } from "@/components/bfcache-handler";
 import { NavigationListener } from "@/components/navigation-listener";
 import { PerformanceMonitor } from "@/components/performance-monitor";
+import { RealtimeAuthBridge } from "@/components/realtime-auth-bridge";
 import { RouteLoadingOverlay } from "@/components/ui/route-loading-overlay";
 import { ToastProvider } from "@/components/ui/toast";
 import { NotificationProvider } from "@/features/notifications/components/NotificationProvider";
@@ -36,6 +37,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <BfcacheHandler />
           <PerformanceMonitor />
           <NavigationListener />
+          <RealtimeAuthBridge />
           {children}
           <RouteLoadingOverlay />
         </NotificationProvider>

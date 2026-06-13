@@ -184,7 +184,11 @@ function makeEstimateSupabase({
     queryResult({ data: estimate, error: null }),
   ];
   const supabase = {
-    rpc: vi.fn(async () => ({ data: rpcData, error: null })),
+    rpc: vi.fn(async (fn: string) => {
+      // P3-3: updateEstimateDetails/regenerate now assert edit access first.
+      if (fn === "can_edit_estimate") return { data: true, error: null };
+      return { data: rpcData, error: null };
+    }),
     from: vi.fn((table: string) => {
       if (table === "estimates") return estimateQueries.shift() ?? queryResult({ data: estimate, error: null });
       throw new Error(`Unexpected table ${table}`);
