@@ -140,3 +140,49 @@ their **apply** is deferred to the owner runbook; app-layer guards ship immediat
 - RTM rows: PERF-9 (U18/U19) ✓ local; PERF-10 (U21) ✓ local; DEF-3/UX-1/UX-2 (U3, D-C) ✓; S-1/2/3 (U22) decision doc ✓.
 - **Next:** commit Perf+Library+U22; then index.tsx-touching units (U6/U23, U10, U13/U14) sequentially,
   U5/U7, U12 (a11y), U2 (insert path), U16 (tests), closeout.
+- Committed Perf+Library+U22 as `c9637c02`.
+
+---
+
+## Coherence + Polish (U10, U11, U13, U14, U15) — DONE (local)
+
+### U10 — sync in-estimate templateList to its prop (DATA-1)
+- `component-library/index.tsx`: render-time reconciliation absorbs `templates` prop changes
+  (rename/delete/create on other surfaces) while preserving local optimistic appends.
+- **Bug found+fixed by the gate:** the optional `templates` prop used a bare `= []` default → a fresh
+  array each render → the reconciliation guard fired every render → "Too many re-renders" (28 failures
+  in component-library-ui). Fixed by a stable `EMPTY_TEMPLATE_PROP` module constant default.
+
+### U11 — broaden template-mutation invalidation (DATA-2/DATA-3)
+- `component-library/actions.ts`: module-local `revalidateTemplateSurfaces()` (revalidates the library
+  browse route + the library overview) replaces 8 scattered `revalidatePath("/workshop/library/templates")`
+  calls. Client cross-surface coherence already holds via the shared `["workspace-component-library"]`
+  key (U18/U19) + `onLibraryDataChanged` on every mutation (incl. save-as-template).
+
+### U13 — design-system fixes (doc 17 A2/B/C)
+- Deleted the broken `info` Badge tone (no `--info` token) from `ui/badge.tsx` + fixed the 2 Badge stories.
+- In-estimate panel: "Live source"/"Read-through" → neutral chips (success dot is `rounded-xs` per DS;
+  `rounded-full` is banned); accent-soft preview well → `bg-surfaceMuted`; `text-secondary/70` → `text-tertiary`;
+  dropped `uppercase tracking-normal` on the "Source outline" label.
+- `TemplateGallery` `⋯` → Phosphor `DotsThree`; `TemplatePreviewDock` `×` → Phosphor `X`.
+- Left the shared Badge `min-w-[96px]` intact (app-wide; the panel chips no longer use Badge so it's moot).
+
+### U14 — cleanups
+- Dropped the misleading `CaretDown` on the two "Insert into estimate" buttons (modal pickers, not popovers).
+- `NewTemplateModal`: pluralize the group/area/row counts ("1 group" not "1 groups"); relabel the
+  "Group" field → "Category". Deleted the dead `buildTemplateNavigationTree`/`getTemplatesForTreeNode`
+  (+ now-unused `toTemplateCategoryId` + `LibraryTreeNode` import) from `templates.ts`.
+
+### U15 — insert-picker pre-validation (UX-11)
+- `InsertIntoEstimatePicker`: pre-checks group availability on estimate selection (surfaces a hint +
+  disables Insert when the estimate has no group), instead of failing only at submit. State transitions
+  set in the dropdown handlers (events); the effect resolves only in async callbacks (no
+  set-state-in-effect — caught by eslint, restructured).
+
+### Gates
+- type-check ✓; lint:design-system ✓ (caught `rounded-full`, fixed); lint:design ✓; eslint clean
+  (caught react-hooks/set-state-in-effect, fixed). component-library-ui + new-template-modal 65/65 after
+  the infinite-loop fix + U14 test updates. RTM: DATA-1 (U10) ✓, DATA-2/3 (U11) ✓, UX DS (U13) ✓,
+  UX-7/8/9/10 (U14) ✓, UX-11 (U15) ✓.
+- **Next:** U12 (a11y: shared tree aria-grabbed/dropeffect + editor keyboard reorder + window.prompt→modal),
+  then U5/U7, U2, U16, closeout.

@@ -29,6 +29,15 @@ import {
 } from "./library-folder-reorder";
 import { readComponentSourceUrlInput } from "./source-url";
 
+// U11 (DATA-2/DATA-3): one place to revalidate every server-rendered surface that
+// shows templates — the library browse route AND the library overview (counts) —
+// so a template mutation on any surface refreshes them all. Module-local (this is
+// a "use server" file: only async exports may be server actions).
+function revalidateTemplateSurfaces() {
+  revalidatePath("/workshop/library");
+  revalidateTemplateSurfaces();
+}
+
 export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
 
 export type ComponentPriceOptionInput = {
@@ -817,7 +826,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
       insertedRowItems = data ?? [];
     }
 
-    revalidatePath("/workshop/library/templates");
+    revalidateTemplateSurfaces();
 
     const [template] = buildEstimateTemplatesFromRows({
       templates: [insertedTemplate],
@@ -1004,7 +1013,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
       insertedRowItems = data ?? [];
     }
 
-    revalidatePath("/workshop/library/templates");
+    revalidateTemplateSurfaces();
 
     const [template] = buildEstimateTemplatesFromRows({
       templates: [insertedTemplate],
@@ -1037,7 +1046,7 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
 
   if (error) throw new Error(`Could not rename template: ${error.message}`);
   if (!template) throw new Error("Template not found in the current workspace.");
-  revalidatePath("/workshop/library/templates");
+  revalidateTemplateSurfaces();
   return { templateId: template.id, name: template.name };
 }
 
@@ -1057,7 +1066,7 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
 
   if (error) throw new Error(`Could not delete template: ${error.message}`);
   if (!template) throw new Error("Template not found in the current workspace.");
-  revalidatePath("/workshop/library/templates");
+  revalidateTemplateSurfaces();
   return { templateId: template.id };
 }
 
@@ -1100,7 +1109,7 @@ export async function createEstimateTemplate(input: { name: string; category?: s
     throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
   }
 
-  revalidatePath("/workshop/library/templates");
+  revalidateTemplateSurfaces();
 
   const [template] = buildEstimateTemplatesFromRows({
     templates: [insertedTemplate],
@@ -1229,7 +1238,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
       insertedRowItems = data ?? [];
     }
 
-    revalidatePath("/workshop/library/templates");
+    revalidateTemplateSurfaces();
 
     const [template] = buildEstimateTemplatesFromRows({
       templates: [insertedTemplate],
@@ -1269,7 +1278,7 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
 
   if (error) throw new Error(`Could not move template: ${error.message}`);
   if (!template) throw new Error("Template not found in the current workspace.");
-  revalidatePath("/workshop/library/templates");
+  revalidateTemplateSurfaces();
   return { templateId: template.id, category: template.category, sortOrder: template.sort_order };
 }
 
@@ -1291,7 +1300,7 @@ export async function renameTemplateCategory(input: { from: string; to: string }
     .select("id");
 
   if (error) throw new Error(`Could not rename group: ${error.message}`);
-  revalidatePath("/workshop/library/templates");
+  revalidateTemplateSurfaces();
   return { category: to, updatedCount: data?.length ?? 0 };
 }
 

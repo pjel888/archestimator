@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CaretDown, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { DotsThree, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
@@ -125,7 +125,6 @@ function TemplateGalleryRow({
             onClick={() => onInsert(template)}
           >
             Insert into estimate
-            <CaretDown size={10} weight="regular" aria-hidden="true" className="ml-1" />
           </Button>
           <DropdownMenu
             trigger={
@@ -135,7 +134,7 @@ function TemplateGalleryRow({
                 className="size-6 rounded-xs p-0 text-tertiary"
                 aria-label={`${template.name} actions`}
               >
-                <span aria-hidden="true">⋯</span>
+                <DotsThree size={12} weight="regular" aria-hidden="true" />
               </Button>
             }
             align="end"

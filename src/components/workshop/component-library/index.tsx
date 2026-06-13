@@ -92,6 +92,11 @@ function toUserSourceError(scope: SourceErrorScope): string {
   }
 }
 
+// Stable default for the optional `templates` prop. A bare `= []` default mints a
+// fresh array each render, which would make the U10 prop-reconciliation guard
+// (`syncedTemplatesProp !== templates`) fire every render → infinite re-render.
+const EMPTY_TEMPLATE_PROP: EstimateTemplate[] = [];
+
 // The single create-component modal, shared with the Components page: the
 // estimate sidebar must not grow its own variant of this form.
 const AddComponentModal = dynamic(() =>
@@ -211,7 +216,7 @@ function PreviewPanel({
         </div>
       </div>
       <div className="px-2 pb-2">
-        <p className="line-clamp-3 text-[9px] leading-4 text-secondary/70">{item.description || "No description."}</p>
+        <p className="line-clamp-3 text-[9px] leading-4 text-tertiary">{item.description || "No description."}</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
           <Badge size="xs">
             {getComponentDiscipline(item)}
@@ -433,7 +438,7 @@ function ProjectSourcePreviewPanel({
   return (
     <div className="shrink-0 border-t border-hairline bg-white" role="region" aria-label="Project source preview">
       <div className="flex items-start gap-2 p-2">
-        <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-accent-soft text-accent">
+        <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-surfaceMuted text-tertiary">
           <StackSimple size={18} weight="regular" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
@@ -454,8 +459,16 @@ function ProjectSourcePreviewPanel({
             </Button>
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
-            <Badge size="xs" tone="info">Live source</Badge>
-            <Badge size="xs">Read-through source</Badge>
+            {/* U13/A3: neutral chips (no off-palette `info` tone); the live dot is
+                the only functional-color signal. Content-sized, so they don't
+                stretch in the 360px panel. */}
+            <span className="inline-flex items-center gap-1 rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-px text-[8px] font-medium leading-4 text-secondary">
+              <span className="size-1.5 rounded-xs bg-success" aria-hidden="true" />
+              Live source
+            </span>
+            <span className="inline-flex items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-px text-[8px] font-medium leading-4 text-secondary">
+              Read-through source
+            </span>
           </div>
         </div>
       </div>
@@ -476,7 +489,7 @@ function ProjectSourcePreviewPanel({
         )}
         {outlineRows.length ? (
           <div className="mt-2 border border-hairline bg-surfaceMuted/20 p-2">
-            <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Source outline</p>
+            <p className="text-[9px] font-medium text-tertiary">Source outline</p>
             <ul className="mt-1 grid gap-1">
               {outlineRows.map((row) => (
                 <li key={row.id} className="flex min-w-0 items-center justify-between gap-2 text-[9px] leading-4">
@@ -686,7 +699,7 @@ export function EstimateRightSidebar({
   canInsertTemplate: canInsertTemplateProp,
   nodes,
   initialLibraryItems = estimateLibraryItems,
-  templates = [],
+  templates = EMPTY_TEMPLATE_PROP,
   projectSources = EMPTY_REUSABLE_PROJECT_SOURCES,
   onInsertProjectSource,
   categoryTree = componentCategoryTree,
@@ -722,6 +735,19 @@ export function EstimateRightSidebar({
   // Like libraryItems, the template list seeds from the server prop once and
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
+  // U10 (DATA-1): reconcile to the prop when it changes (a rename/delete/create
+  // on another surface refreshes it via cache invalidation) WHILE preserving any
+  // local optimistic appends not yet reflected in the prop — so an open panel
+  // never shows stale templates and never drops an in-flight optimistic add.
+  const [syncedTemplatesProp, setSyncedTemplatesProp] = useState(templates);
+  if (syncedTemplatesProp !== templates) {
+    setSyncedTemplatesProp(templates);
+    setTemplateList((current) => {
+      const propIds = new Set(templates.map((template) => template.id));
+      const optimisticOnly = current.filter((template) => !propIds.has(template.id));
+      return optimisticOnly.length > 0 ? [...templates, ...optimisticOnly] : templates;
+    });
+  }
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
   const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
   const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
