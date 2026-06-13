@@ -1836,9 +1836,14 @@ export async function getEstimateTabTree(
     const nodeIds = limitedNodes.rows.map((node) => node.id);
     let rawRows: EstimateTreeRowItemQueryRow[] = [];
     if (nodeIds.length > 0) {
+      // U9 (PERF-7): lead with estimate_id so this hits the composite index
+      // estimate_row_items(estimate_id, node_id, sort_order). The result set is
+      // identical — every node in nodeIds belongs to estimate.id (the nodes
+      // query above is scoped to it) — so this only improves the index path.
       const rowsQuery = supabase
         .from("estimate_row_items")
         .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
+        .eq("estimate_id", estimate.id)
         .in("node_id", nodeIds)
         .order("sort_order", { ascending: true });
       const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
