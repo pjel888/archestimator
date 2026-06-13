@@ -1,0 +1,9 @@
+$ bunx vitest run tests/vitest/perf --maxWorkers=1
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  4 passed (4)
+      Tests  14 passed (14)
+   Start at  08:24:50
+   Duration  6.31s (transform 549ms, setup 110ms, import 2.68s, tests 2.04s, environment 1.16s)

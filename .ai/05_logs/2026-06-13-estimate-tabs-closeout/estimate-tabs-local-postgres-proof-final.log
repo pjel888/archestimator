@@ -1,0 +1,2 @@
+$ POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs
+estimate-tabs local Postgres proof passed

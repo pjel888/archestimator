@@ -1,4 +1,8 @@
 # Current State
+**Estimate Tabs / Project Sources / XLSX Tabs Local Implementation Complete and Archived (2026-06-13 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The implementation prompt `.ai/08_prompts/IMPLEMENT-2026-06-12-Projects-Auto-Added-To-Templates.md` is now satisfied for repo-local merge readiness. The branch ships first-class estimate tabs, tab-scoped estimate trees, user-facing sheet→estimate/tab copy, unified custom-template + virtual project-source browsing, tab-aware XLSX export, tab-aware activity/presence/publication/AI context, local RLS/backfill proof, and release-boundary documentation. Final evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-implementation-completion-audit.md` plus `.ai/05_logs/2026-06-13-estimate-tabs-closeout/`: `bun run validate` passed (ESLint 0 errors / 549 warnings; unit 9 passed; DOM Vitest 243 files passed / 1 skipped, 1808 tests passed / 3 skipped), `bun run build` passed, `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed, `bunx vitest run tests/vitest/perf --maxWorkers=1` passed 4 files / 14 tests, export regression passed 4 files / 22 tests, and the targeted Playwright specs were present/discovered but skipped by provider-env gates without mutation. The plan pack is archived at `.ai/09_archive/store/2026-06-12-Projects-Auto-Added-To-Templates/`.
+Provider/manual proof remains separate and unclaimed: linked Supabase apply/typegen/advisor, hosted export/Vercel deploy, spreadsheet-app workbook inspection, two-browser collaboration QA, 375px responsive/browser pass, old-bookmark export, and hosted invite/share/publication smoke are still `provider-proof-open` / `manual-proof-pending`.
+
 **Estimate Tabs R1.7 Cross-Tab Node-Drop Boundary Implemented Locally (2026-06-13 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
 The D-7 decision remains intact: true cross-tab node moves still require a new
 move RPC, DB simulation, linked/provider proof, and follow-up product semantics.
@@ -650,7 +654,7 @@ deploy, production/manual proof, or browser visual proof was performed.
 
 **Estimate Tabs Phase 0-3 Local Implementation Complete Through Editor UI (2026-06-12 local, branch `feat/estimate-tabs-phase3-editor-ui`):**
 The canonical estimate-tabs plan pack
-`.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/` has local implementation
+`.ai/09_archive/store/2026-06-12-Projects-Auto-Added-To-Templates/` has local implementation
 through Phase 3 on the stacked branch family. Phase 0 recorded the rerun baseline
 and known failures; Phase 1 added the local database foundation/migration harness;
 Phase 2 added tab-aware repository/domain/actions/query/state compatibility

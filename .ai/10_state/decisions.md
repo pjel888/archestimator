@@ -1,5 +1,14 @@
 # Decisions
 
+## 2026-06-13 - Estimate tabs local implementation archived for merge readiness
+
+**Decision:** Treat the estimate-tabs implementation as complete for local merge readiness after the final audit and archive move. The shipped local contract is: one default `estimate_tabs` row per estimate, `estimate_nodes.estimate_tab_id` as the tab boundary, tab-scoped loaders/actions/query keys, user-facing estimate/tab copy, virtual read-through project sources in the templates panel, all-tabs/default and `?tab=` XLSX export, and additive tab metadata for activity, presence, publication snapshots, and AI read/audit context.
+
+**Rationale:** The final closeout gates passed locally: `bun run validate`, `bun run build`, local Homebrew Postgres estimate-tabs proof, perf suites, export regressions, env-gated Playwright discovery, RTM flip audit, and UltraQA closeout. The branch preserves the plan's compatibility boundaries: legacy `estimate_sheet_*` tables/RPC names, `sheet_code`, stored `sheet_*` event values, Excel/worksheet vocabulary, and template-table persistence rules remain intact until separately approved cleanup/migration work.
+
+**Follow-up:** Do not claim linked/provider/hosted/manual proof from this merge. Linked Supabase apply/typegen/advisor, hosted export/Vercel deploy, spreadsheet-app workbook inspection, two-browser collaboration QA, 375px responsive/browser pass, old-bookmark export, and hosted invite/share/publication smoke remain separate owner-authorized proof gates. Future modifiers should use the archived plan at `.ai/09_archive/store/2026-06-12-Projects-Auto-Added-To-Templates/` and the completion audit at `.ai/05_logs/2026-06-12-estimate-tabs-implementation-completion-audit.md`.
+
+
 
 ## 2026-06-12 - Phase 4 rebrands visible sheets while preserving internal sheet contracts
 
