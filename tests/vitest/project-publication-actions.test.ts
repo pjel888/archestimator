@@ -149,7 +149,9 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(migrationText).toContain("email_unsubscribed_at timestamptz");
     expect(types).toContain("email_unsubscribed_at: string | null");
     expect(unsubscribeRoute).toContain("unsubscribeSharedLinkRecipientByToken");
-    expect(unsubscribeRoute).toContain("searchParams.get(\"recipient\")");
+    expect(unsubscribeRoute).toContain("get(\"recipient\")");
+    // SEC-14: mutation is gated behind an explicit POST; GET is read-only.
+    expect(unsubscribeRoute).toContain("export async function POST");
     expect(unsubscribeRoute).toContain("Cache-Control");
     expect(publicRepository).toContain("unsubscribeSharedLinkRecipientByToken");
     expect(publicRepository).toContain("email_unsubscribed_at");

@@ -301,21 +301,37 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(setCookieHeader).not.toContain("client-token");
   });
 
-  it("lets recipient email unsubscribe links suppress follow-up recipient emails", async () => {
+  it("lets recipient email unsubscribe links suppress follow-up recipient emails (SEC-14: read-only GET + POST)", async () => {
     mocks.unsubscribeSharedLinkRecipientByToken.mockResolvedValueOnce({
       recipientId: "recipient-1",
       recipientEmail: "recipient@example.com",
       recipientDisplayName: "Client Receiver",
     });
-    const { GET } = await import("@/app/api/share/[token]/unsubscribe/route");
+    const { GET, POST } = await import("@/app/api/share/[token]/unsubscribe/route");
+    const routeParams = { params: Promise.resolve({ token: "client-token" }) };
 
-    const response = await GET(new Request("https://archestimator.test/api/share/client-token/unsubscribe?recipient=raw-recipient-token"), {
-      params: Promise.resolve({ token: "client-token" }),
-    });
-    const body = await response.text();
+    // SEC-14: GET is read-only — it renders a confirmation interstitial and never mutates,
+    // so an email-client prefetch / scanner can't silently unsubscribe.
+    const getResponse = await GET(
+      new Request("https://archestimator.test/api/share/client-token/unsubscribe?recipient=raw-recipient-token"),
+      routeParams,
+    );
+    expect(getResponse.status).toBe(200);
+    expect(await getResponse.text()).toContain("Confirm unsubscribe");
+    expect(mocks.unsubscribeSharedLinkRecipientByToken).not.toHaveBeenCalled();
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("no-store");
+    // The explicit same-origin POST performs the suppression.
+    const postResponse = await POST(
+      new Request("https://archestimator.test/api/share/client-token/unsubscribe", {
+        method: "POST",
+        headers: { origin: "https://archestimator.test", "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ recipient: "raw-recipient-token" }).toString(),
+      }),
+      routeParams,
+    );
+    const body = await postResponse.text();
+    expect(postResponse.status).toBe(200);
+    expect(postResponse.headers.get("cache-control")).toBe("no-store");
     expect(body).toContain("unsubscribed");
     expect(mocks.unsubscribeSharedLinkRecipientByToken).toHaveBeenCalledWith("client-token", "raw-recipient-token");
   });
