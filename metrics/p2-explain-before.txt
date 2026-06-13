@@ -1,0 +1,25 @@
+P2 estimates-list aggregation change — BEFORE (old all-rows path)
+=================================================================
+
+Seeded volume: 5000 estimate_row_items under one estimate (one project, one estimate).
+Query captured (the all-rows fetch the old listProjectEstimates shipped to the server):
+
+  EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+  select estimate_id, quantity, unit_cost, contingency_percentage, misc_cost
+  from public.estimate_row_items where estimate_id = 'c0000000-0000-4000-8000-000000000001';
+
+SUMMARY: output rows = 5000 (≈5000, scales O(estimate_row_items) — every row item is scanned AND shipped back to the client for a JS fold). Root-node execution shared buffers: hit=132 read=0 (the root Buffers line is the cumulative whole-query figure; the Planning Buffers line is excluded as cache-warmth noise, not data reads).
+Run as the postgres superuser (RLS bypassed) so the plan reflects the raw read.
+
+----- EXPLAIN (ANALYZE, BUFFERS, VERBOSE) -----
+                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
+ Seq Scan on public.estimate_row_items  (cost=0.00..194.50 rows=5000 width=36) (actual time=0.005..0.782 rows=5000 loops=1)
+   Output: estimate_id, quantity, unit_cost, contingency_percentage, misc_cost
+   Filter: (estimate_row_items.estimate_id = 'c0000000-0000-4000-8000-000000000001'::uuid)
+   Buffers: shared hit=132
+ Planning:
+   Buffers: shared hit=161
+ Planning Time: 0.341 ms
+ Execution Time: 0.903 ms
+(8 rows)

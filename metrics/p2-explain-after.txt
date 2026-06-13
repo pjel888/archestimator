@@ -1,0 +1,88 @@
+P2 estimates-list aggregation change — AFTER (new aggregation RPC)
+=================================================================
+
+Seeded volume: 5000 estimate_row_items under one estimate (one project, one estimate).
+The new path is public.project_estimate_list_summaries(uuid), which aggregates
+node/row counts and total cost server-side and returns ONE row per estimate.
+
+We capture it two ways (see scripts/explain-estimate-list-summaries.mjs):
+  1) The function CALL the app actually issues:
+       EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+       select * from public.project_estimate_list_summaries('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+     A bare SQL Function Scan is opaque — EXPLAIN does not expose the inner
+     aggregation scans, so its buffer total is not directly comparable to BEFORE.
+  2) The INLINED function body (the exact CTE the RPC runs), so EXPLAIN exposes
+     the real aggregation scans and their per-node execution buffers. The buffer
+     SUMMARY below is taken from this inlined plan — the true data-read comparison.
+
+SUMMARY: output rows = 1 (= 1 row per estimate, FLAT regardless of row-item volume — the 5000 rows are aggregated server-side and NEVER shipped to the client; this is the O(estimates) win). Root-node execution shared buffers (inlined body): hit=134 read=0 — essentially the same data read as BEFORE (the row_items still get one seq scan to aggregate), and it stays flat per estimate. The change does not reduce DB-side buffer reads for a single estimate; it collapses the RESULT-SET size (and the network/JS-fold cost) from O(row_items) to O(estimates). Function-call form returned 1 row(s).
+Run as the postgres superuser (RLS bypassed) so the plan reflects the raw read.
+
+===== (1) FUNCTION CALL — EXPLAIN (ANALYZE, BUFFERS, VERBOSE) =====
+(opaque Function Scan; shown for completeness — not the buffer figure cited above)
+
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on public.project_estimate_list_summaries  (cost=0.25..10.25 rows=1000 width=72) (actual time=3.816..3.816 rows=1 loops=1)
+   Output: estimate_id, node_count, row_count, total_cost, first_node_id
+   Function Call: project_estimate_list_summaries('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid)
+   Buffers: shared hit=974
+ Planning Time: 0.034 ms
+ Execution Time: 3.833 ms
+(6 rows)
+
+===== (2) INLINED RPC BODY — EXPLAIN (ANALYZE, BUFFERS, VERBOSE) =====
+(the aggregation the RPC runs, inlined so per-node data-read buffers are visible)
+                                                                                                                                                              QUERY PLAN                                                                                                                                                              
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=359.11..359.20 rows=1 width=72) (actual time=2.676..2.679 rows=1 loops=1)
+   Output: est.id, (COALESCE((count(*)), '0'::bigint))::integer, (COALESCE((count(*)), '0'::bigint))::integer, COALESCE((COALESCE(sum((((r.quantity * r.unit_cost) + r.misc_cost) + (((r.quantity * r.unit_cost) * COALESCE(r.contingency_percentage, '0'::numeric)) / '100'::numeric))), '0'::numeric)), '0'::numeric), (NULL::uuid)
+   Inner Unique: true
+   Join Filter: (r.estimate_id = est.id)
+   Buffers: shared hit=134
+   CTE est
+     ->  Seq Scan on public.estimates e  (cost=0.00..1.01 rows=1 width=16) (actual time=0.004..0.004 rows=1 loops=1)
+           Output: e.id
+           Filter: (e.project_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid)
+           Buffers: shared hit=1
+   ->  Nested Loop Left Join  (cost=1.07..1.13 rows=1 width=40) (actual time=0.012..0.013 rows=1 loops=1)
+         Output: est.id, (count(*)), (NULL::uuid)
+         Inner Unique: true
+         Join Filter: (n.estimate_id = est.id)
+         Buffers: shared hit=2
+         ->  CTE Scan on est  (cost=0.00..0.02 rows=1 width=16) (actual time=0.005..0.005 rows=1 loops=1)
+               Output: est.id
+               Buffers: shared hit=1
+         ->  HashAggregate  (cost=1.07..1.08 rows=1 width=40) (actual time=0.007..0.007 rows=1 loops=1)
+               Output: n.estimate_id, count(*), NULL::uuid
+               Group Key: n.estimate_id
+               Batches: 1  Memory Usage: 24kB
+               Buffers: shared hit=1
+               ->  Nested Loop  (cost=0.00..1.06 rows=2 width=16) (actual time=0.003..0.003 rows=2 loops=1)
+                     Output: n.estimate_id
+                     Join Filter: (n.estimate_id = est_1.id)
+                     Buffers: shared hit=1
+                     ->  CTE Scan on est est_1  (cost=0.00..0.02 rows=1 width=16) (actual time=0.000..0.000 rows=1 loops=1)
+                           Output: est_1.id
+                     ->  Seq Scan on public.estimate_nodes n  (cost=0.00..1.02 rows=2 width=16) (actual time=0.002..0.002 rows=2 loops=1)
+                           Output: n.id, n.estimate_id, n.parent_id, n.kind, n.name, n.sort_order, n.metadata, n.created_at, n.updated_at, n.estimate_tab_id
+                           Buffers: shared hit=1
+   ->  HashAggregate  (cost=357.02..357.03 rows=1 width=56) (actual time=2.662..2.662 rows=1 loops=1)
+         Output: r.estimate_id, count(*), COALESCE(sum((((r.quantity * r.unit_cost) + r.misc_cost) + (((r.quantity * r.unit_cost) * COALESCE(r.contingency_percentage, '0'::numeric)) / '100'::numeric))), '0'::numeric)
+         Group Key: r.estimate_id
+         Batches: 1  Memory Usage: 24kB
+         Buffers: shared hit=132
+         ->  Nested Loop  (cost=0.00..244.52 rows=5000 width=36) (actual time=0.004..1.042 rows=5000 loops=1)
+               Output: r.estimate_id, r.quantity, r.unit_cost, r.misc_cost, r.contingency_percentage
+               Join Filter: (r.estimate_id = est_2.id)
+               Buffers: shared hit=132
+               ->  CTE Scan on est est_2  (cost=0.00..0.02 rows=1 width=16) (actual time=0.000..0.001 rows=1 loops=1)
+                     Output: est_2.id
+               ->  Seq Scan on public.estimate_row_items r  (cost=0.00..182.00 rows=5000 width=36) (actual time=0.003..0.785 rows=5000 loops=1)
+                     Output: r.estimate_id, r.quantity, r.unit_cost, r.misc_cost, r.contingency_percentage
+                     Buffers: shared hit=132
+ Planning:
+   Buffers: shared hit=383
+ Planning Time: 0.931 ms
+ Execution Time: 2.732 ms
+(50 rows)
