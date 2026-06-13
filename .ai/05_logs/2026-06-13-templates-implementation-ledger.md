@@ -289,3 +289,56 @@ their **apply** is deferred to the owner runbook; app-layer guards ship immediat
   **exit 0** — 244 files / 1819 tests passed, 3 skipped, 0 failed.
 - RTM: PERF (U5 search) ✓ local. U7 → DEFERRED (rationale above).
 - **Next:** U16 (assess remaining test-gap coverage), then closeout (state docs + archive + final validate/build).
+
+---
+
+## U6 + U23 — no-spinner project-source exploration (PERF-3 / Loading UX) — DONE (local)
+
+**Pre-existing baseline:** re-expand was *already* 0-refetch — loaded estimates/outlines persist in
+`loadedProjectSources` and the `hasReusableProjectEstimates`/`hasReusableEstimateOutline`/
+`projectEstimateLoadedProjectIds` guards short-circuit a re-expand (U6's core goal held). What
+remained was the **first/cold expand UX**: inline "Loading…" banners that pushed the tree down.
+
+### `TemplatesTree.tsx` — skeleton-in-place + hover prefetch
+- New `{ type: "skeleton" }` datum + `injectProjectSourceSkeletons(nodes, loadingProjectIds,
+  loadingEstimateIds)`: under any project/estimate folder that is loading **and has no resident
+  children yet**, inject 3 leaf skeleton rows (`animate-pulse` shimmer, `bg-surfaceMuted`,
+  `rounded-xs`, `aria-label="Loading reusable source"`). The moment real children arrive (or loading
+  stops) the condition fails and the skeletons fall away → content swaps in with **zero layout shift**.
+- Skeleton rows are inert: excluded from `handleCanDrag`, `handleRowClick` returns early, not
+  selectable; they never enter the selection model (bulk-select node sets are built without them).
+- New props `loadingProjectIds`/`loadingEstimateIds` (stable `EMPTY_ID_LIST` default — avoids the
+  fresh-array-default re-render trap from U10) and `onPrefetchNode`. Hovering a project/estimate row
+  calls `onPrefetchNode(nodeId)` via an `onMouseEnter` wrapper on the row's label content.
+
+### `index.tsx` — shared loaders, 150ms gate, banner removal
+- Extracted `ensureProjectEstimatesLoaded(projectId)` + `ensureEstimateOutlineLoaded(source)` from
+  `handleTemplatesToggle`; both are idempotent (resident/in-flight short-circuit) so a hover then an
+  expand never double-fetches. `handleTemplatesPrefetch(nodeId)` resolves a hovered row to its
+  source and warms the next level; `handleTemplatesToggle` now toggles + delegates to the same fns.
+- `useDelayedIdSet(activeIds, 150)`: gates loading ids behind a 150ms reveal so a warm/prefetched
+  expand (resolves well under 150ms) shows **nothing transient**; only a genuinely cold expand
+  reveals skeletons. State writes happen only inside the timer callback (never synchronously in the
+  effect → clean under the React-compiler `set-state-in-effect` rule); settled-but-finished ids are
+  filtered out at read time, so removal needs no in-effect write and no loading id outlives its load.
+- Removed the expand-time `templatesProjectSourceStatus` banner (the layout-shifting "Loading N
+  project estimate lists…" text); converted the initial-dataset `projectSourcesLoading` empty-state
+  to fixed-height skeleton rows (`role="status"`). Errors still surface via toast (U1b).
+- **Shared `ui/tree.tsx` deliberately untouched:** `get_impact_radius` flagged it **HIGH** (23 files,
+  142 nodes). Prefetch is delivered via the label-content `onMouseEnter` and skeletons via node
+  injection — both inside the feature — so the high-blast-radius shared component needed no edit.
+  Keyboard expand already triggers the load through `onToggle`, so the no-spinner invariant holds for
+  keyboard users too (skeleton-in-place on cold expand; no banner, no shift).
+
+### Tests
+- `component-library-ui.test.tsx` +3: (1) hover prefetches a project's estimate list and the
+  subsequent expand does **not** refetch (`toHaveBeenCalledTimes(1)`); (2) a cold expand (deferred
+  promise) shows in-place skeleton rows past the 150ms gate with **no** "project estimate lists…"
+  banner, then swaps to the real estimate and clears the skeletons on resolve; (3) a warm
+  (prop-resident) expand shows the estimate immediately with **no** skeleton and no fetch. 63/63 green.
+- Targeted: lazy-load + template-gallery + drop-zones + reusable-drag 30/30 green.
+
+### Gates
+- type-check ✓ · eslint (both files) ✓ · lint:design-system ✓. Full `bun run validate` re-run pending.
+- RTM: PERF-3 (U6) ✓ local; Loading-UX spinner-on-every-expand (U6/U23) ✓ local.
+- **Next:** U16 (assess remaining test-gap coverage), then closeout (state docs + archive + final validate/build).

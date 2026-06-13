@@ -248,6 +248,21 @@ describe("reusable project source actions", () => {
     ]);
   });
 
+  it("fails closed when the estimate outline is not accessible (U16 denial)", async () => {
+    // RLS / can_access denials surface as a non-schema-missing read error.
+    // allowLegacyFallback only swallows the schema-missing case, so the action
+    // must PROPAGATE this — never return a partial/empty outline for an estimate
+    // the caller cannot read.
+    const accessError = new Error("permission denied for table estimate_nodes");
+    repositoryMocks.getEstimateTabs.mockRejectedValue(accessError);
+
+    const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
+    await expect(
+      getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId }),
+    ).rejects.toThrow(accessError);
+    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+  });
+
   it("searches readable project source outlines without returning pending invites", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [

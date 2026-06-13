@@ -960,6 +960,81 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
   });
 
+  // Fires a hover on the content area of a tree row (where the prefetch handler
+  // lives), located as the row child that holds the visible label text.
+  function hoverProjectSourceRow(accessibleName: string, visibleText: string) {
+    const row = screen.getByRole("treeitem", { name: accessibleName });
+    const textEl = within(row).getByText(visibleText);
+    const wrapper = Array.from(row.children).find((child) => child.contains(textEl)) ?? textEl;
+    fireEvent.mouseEnter(wrapper as Element);
+  }
+
+  it("prefetches a project's estimate list on hover, so the expand never refetches (U6/U23)", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project-estimate"),
+    });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    await screen.findByRole("treeitem", { name: "Renovation Project project source" });
+    // Hovering — without any click — warms the next level.
+    hoverProjectSourceRow("Renovation Project project source", "Renovation Project");
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-2" }),
+    );
+
+    // Expanding now serves the already-resident estimate with no second fetch.
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    expect(await screen.findByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows in-place skeleton rows (never a loading banner) while a cold expand loads (U23)", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    let resolveEstimates: ((value: { sources: ReusableEstimateSource[] }) => void) | undefined;
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockReturnValue(
+      new Promise<{ sources: ReusableEstimateSource[] }>((resolve) => {
+        resolveEstimates = resolve;
+      }),
+    );
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    // Cold expand: no prefetch, the estimate load is still in flight.
+    fireEvent.click(await screen.findByRole("treeitem", { name: "Renovation Project project source" }));
+
+    // After the reveal delay, in-place skeleton rows appear — not a spinner and
+    // not the old layout-shifting "Loading … project estimate lists…" banner.
+    const skeletons = await screen.findAllByRole("treeitem", { name: "Loading reusable source" });
+    expect(skeletons.length).toBeGreaterThan(0);
+    expect(screen.queryByText(/project estimate lists?/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Loading project estimates/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveEstimates?.({ sources: projectSources.filter((source) => source.kind === "project-estimate") });
+    });
+
+    expect(await screen.findByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("treeitem", { name: "Loading reusable source" })).toHaveLength(0);
+  });
+
+  it("shows no skeleton when expanding a warm (prop-resident) project source (U23)", () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({ sources: [] });
+
+    openTemplatesTab({ projectSources, projectId: "project-1", estimateId: "estimate-1" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    // The estimate is already resident, so it shows immediately with no skeleton.
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Loading reusable source" })).not.toBeInTheDocument();
+    expect(reusableSourceActionMocks.listReusableProjectEstimateSources).not.toHaveBeenCalled();
+  });
+
   it("uses prop-supplied project sources without refetching on Templates tab open", () => {
     reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({ sources: [] });
 
