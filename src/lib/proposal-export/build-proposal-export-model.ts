@@ -30,6 +30,10 @@ export const defaultProposalExportSettings: ProposalExportSettings = {
   includeZeroRows: false,
   includeExcludedRows: true,
   showSupplierInRemarks: true,
+  contingencyRate: 10, // D2: default 10% project contingency
+  contingencyMode: "percentage",
+  vatRate: 12, // D2: Philippine VAT 12%
+  vatMode: "percentage",
 };
 
 // F-19 / D0=A (P1-T9 minimal redaction): the default workbook is the contractor → client
@@ -232,8 +236,20 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
   return Array.from(sections.values());
 }
 
-function buildTotals(proposalRows: ProposalExportRow[]): ProposalExportTotals {
-  return proposalRows.reduce<ProposalExportTotals>(
+// F-02/D2: project-level contingency then VAT, computed round-then-sum so the workbook's
+// stored results match these values to the cent (09 §5 parity). Exported so the tabbed
+// Summary applies the identical math to the summed per-tab Direct Costs. Rates are 0–100.
+export function resolveProjectCharges(directCost: number, settings: ProposalExportSettings) {
+  const projectContingencyAmount =
+    settings.contingencyMode === "included" ? 0 : roundMoney((directCost * settings.contingencyRate) / 100);
+  const vatBase = roundMoney(directCost + projectContingencyAmount);
+  const vatAmount = settings.vatMode === "included" ? 0 : roundMoney((vatBase * settings.vatRate) / 100);
+  const grandTotalWithTaxes = roundMoney(directCost + projectContingencyAmount + vatAmount);
+  return { projectContingencyAmount, vatAmount, grandTotalWithTaxes };
+}
+
+function buildTotals(proposalRows: ProposalExportRow[], settings: ProposalExportSettings): ProposalExportTotals {
+  const base = proposalRows.reduce(
     (totals, row) => {
       if (!row.includedInTotal) return totals;
       return {
@@ -252,6 +268,7 @@ function buildTotals(proposalRows: ProposalExportRow[]): ProposalExportTotals {
       grandTotal: 0,
     },
   );
+  return { ...base, ...resolveProjectCharges(base.grandTotal, settings) };
 }
 
 function collectNonAreaRows(nodes: EstimateTreeNode[]) {
@@ -392,7 +409,7 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
     proposalRows,
     sourceBreakdownRows: buildSourceBreakdownRows(proposalRows),
     validationIssues,
-    totals: buildTotals(proposalRows),
+    totals: buildTotals(proposalRows, settings),
     generatedAt: input.generatedAt ?? new Date().toISOString(),
   };
 }

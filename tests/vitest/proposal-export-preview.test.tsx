@@ -259,8 +259,9 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByText("This file will contain")).toBeInTheDocument();
     expect(screen.getByText("Bid Form")).toBeInTheDocument();
     expect(screen.getByText("Commercial Terms")).toBeInTheDocument();
-    // Single tab → the grand total number is shown (it is correct for the only tab).
-    expect(screen.getByText("₱ 21,700.00")).toBeInTheDocument();
+    // Single tab → the (VAT/contingency-inclusive) grand total number is shown; it matches
+    // the file's Summary Grand Total: 21,700 Direct + 2,170 contingency + 2,864.40 VAT.
+    expect(screen.getByText("₱ 26,734.40")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeInTheDocument();
   });
 

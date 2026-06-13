@@ -1,8 +1,17 @@
 import ExcelJS from "exceljs";
 
-import type { ProposalExportModel, ProposalExportWorkbookTab, ProposalTabbedWorkbookModel } from "./types";
-import { applyAudiencePolicy } from "./build-proposal-export-model";
+import type { ProposalExportModel, ProposalExportSettings, ProposalExportTotals, ProposalExportWorkbookTab, ProposalTabbedWorkbookModel } from "./types";
+import { applyAudiencePolicy, resolveProjectCharges } from "./build-proposal-export-model";
 import { quoteWorksheetCellReference } from "./worksheet-name";
+
+function roundMoney(value: number) {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
+}
+
+// A percent rate (0–100) as the decimal multiplier used in the cell formula, e.g. 12 → "0.12".
+function rateDecimal(rate: number) {
+  return String(rate / 100);
+}
 
 export type ProposalWorkbookColumn = {
   key: string;
@@ -296,6 +305,58 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   return { worksheet, sectionRanges };
 }
 
+// F-02 (P2-T1): the totals block (Direct Cost → Contingency → VAT → Grand Total → Cost/sqm →
+// Duration), shared by the single-tab and tabbed Summary so the geometry stays identical
+// (09 §2). Charge rows are formula-driven so they recalc on open; `result` values come from
+// the round-then-sum model totals so the pinned result == the live formula (09 §5 parity).
+function writeSummaryTotalsBlock(
+  worksheet: ExcelJS.Worksheet,
+  totalsStartRow: number,
+  directCostFormula: string,
+  totals: Pick<ProposalExportTotals, "grandTotal" | "projectContingencyAmount" | "vatAmount" | "grandTotalWithTaxes">,
+  settings: ProposalExportSettings,
+) {
+  const contingencyRow = totalsStartRow + 1;
+  const vatRow = totalsStartRow + 2;
+  const grandTotalRow = totalsStartRow + 3;
+
+  worksheet.getCell(`A${totalsStartRow}`).value = "Direct Cost";
+  worksheet.getCell(`B${totalsStartRow}`).value = { formula: directCostFormula, result: totals.grandTotal };
+
+  const contingencyIncluded = settings.contingencyMode === "included";
+  worksheet.getCell(`A${contingencyRow}`).value = contingencyIncluded
+    ? "Contingency (INCLUDED)"
+    : `Contingency (${settings.contingencyRate}%)`;
+  worksheet.getCell(`B${contingencyRow}`).value = contingencyIncluded
+    ? { formula: "0", result: 0 }
+    : { formula: `B${totalsStartRow}*${rateDecimal(settings.contingencyRate)}`, result: totals.projectContingencyAmount };
+
+  const vatIncluded = settings.vatMode === "included";
+  worksheet.getCell(`A${vatRow}`).value = vatIncluded ? "VAT (INCLUDED)" : `VAT (${settings.vatRate}%)`;
+  worksheet.getCell(`B${vatRow}`).value = vatIncluded
+    ? { formula: "0", result: 0 }
+    : { formula: `(B${totalsStartRow}+B${contingencyRow})*${rateDecimal(settings.vatRate)}`, result: totals.vatAmount };
+
+  worksheet.getCell(`A${grandTotalRow}`).value = "Grand Total";
+  worksheet.getCell(`B${grandTotalRow}`).value = {
+    formula: `B${totalsStartRow}+B${contingencyRow}+B${vatRow}`,
+    result: totals.grandTotalWithTaxes,
+  };
+
+  worksheet.getCell(`A${totalsStartRow + 4}`).value = "Cost per sqm";
+  worksheet.getCell(`B${totalsStartRow + 4}`).value = "N/A";
+  worksheet.getCell(`A${totalsStartRow + 5}`).value = "Estimated duration";
+  worksheet.getCell(`B${totalsStartRow + 5}`).value = "To be confirmed";
+
+  [totalsStartRow, contingencyRow, vatRow, grandTotalRow].forEach((rowNumber) => {
+    const row = worksheet.getRow(rowNumber);
+    row.getCell(1).font = { bold: rowNumber === grandTotalRow, size: 10, color: { argb: "FF111827" } };
+    row.getCell(2).numFmt = PHP_FORMAT;
+    row.getCell(2).font = { bold: rowNumber === grandTotalRow, size: rowNumber === grandTotalRow ? 12 : 10, color: { argb: "FF111827" } };
+  });
+  styleTotalRow(worksheet.getRow(grandTotalRow));
+}
+
 function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExportModel, sectionRanges: BidSectionRange[], bidWorksheetName = "Bid Form") {
   const worksheet = workbook.addWorksheet("Summary", {
     views: [{ state: "frozen", ySplit: SUMMARY_HEADER_ROW }],
@@ -330,29 +391,7 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   // tab carries more than ~11 sections (the old fixed A27–B32 block corrupted past that).
   const totalsStartRow = worksheet.rowCount + 2;
   const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
-  worksheet.getCell(`A${totalsStartRow}`).value = "Direct Cost";
-  worksheet.getCell(`B${totalsStartRow}`).value = { formula: directCostFormula, result: model.totals.grandTotal };
-  worksheet.getCell(`A${totalsStartRow + 1}`).value = "Contingency";
-  worksheet.getCell(`B${totalsStartRow + 1}`).value = { formula: "0", result: 0 };
-  worksheet.getCell(`A${totalsStartRow + 2}`).value = "VAT";
-  worksheet.getCell(`B${totalsStartRow + 2}`).value = { formula: "0", result: 0 };
-  worksheet.getCell(`A${totalsStartRow + 3}`).value = "Grand Total";
-  worksheet.getCell(`B${totalsStartRow + 3}`).value = {
-    formula: `B${totalsStartRow}+B${totalsStartRow + 1}+B${totalsStartRow + 2}`,
-    result: model.totals.grandTotal,
-  };
-  worksheet.getCell(`A${totalsStartRow + 4}`).value = "Cost per sqm";
-  worksheet.getCell(`B${totalsStartRow + 4}`).value = "N/A";
-  worksheet.getCell(`A${totalsStartRow + 5}`).value = "Estimated duration";
-  worksheet.getCell(`B${totalsStartRow + 5}`).value = "To be confirmed";
-
-  [totalsStartRow, totalsStartRow + 1, totalsStartRow + 2, totalsStartRow + 3].forEach((rowNumber) => {
-    const row = worksheet.getRow(rowNumber);
-    row.getCell(1).font = { bold: rowNumber === totalsStartRow + 3, size: 10, color: { argb: "FF111827" } };
-    row.getCell(2).numFmt = PHP_FORMAT;
-    row.getCell(2).font = { bold: rowNumber === totalsStartRow + 3, size: rowNumber === totalsStartRow + 3 ? 12 : 10, color: { argb: "FF111827" } };
-  });
-  styleTotalRow(worksheet.getRow(totalsStartRow + 3));
+  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, model.totals, model.settings);
   setPrintLayout(worksheet);
   return worksheet;
 }
@@ -430,30 +469,9 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
 
   const totalsStartRow = worksheet.rowCount + 2;
   const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
-  const grandTotal = tabRanges.reduce((total, { tab }) => total + tab.model.totals.grandTotal, 0);
-  worksheet.getCell(`A${totalsStartRow}`).value = "Direct Cost";
-  worksheet.getCell(`B${totalsStartRow}`).value = { formula: directCostFormula, result: grandTotal };
-  worksheet.getCell(`A${totalsStartRow + 1}`).value = "Contingency";
-  worksheet.getCell(`B${totalsStartRow + 1}`).value = { formula: "0", result: 0 };
-  worksheet.getCell(`A${totalsStartRow + 2}`).value = "VAT";
-  worksheet.getCell(`B${totalsStartRow + 2}`).value = { formula: "0", result: 0 };
-  worksheet.getCell(`A${totalsStartRow + 3}`).value = "Grand Total";
-  worksheet.getCell(`B${totalsStartRow + 3}`).value = {
-    formula: `B${totalsStartRow}+B${totalsStartRow + 1}+B${totalsStartRow + 2}`,
-    result: grandTotal,
-  };
-  worksheet.getCell(`A${totalsStartRow + 4}`).value = "Cost per sqm";
-  worksheet.getCell(`B${totalsStartRow + 4}`).value = "N/A";
-  worksheet.getCell(`A${totalsStartRow + 5}`).value = "Estimated duration";
-  worksheet.getCell(`B${totalsStartRow + 5}`).value = "To be confirmed";
-
-  [totalsStartRow, totalsStartRow + 1, totalsStartRow + 2, totalsStartRow + 3].forEach((rowNumber) => {
-    const row = worksheet.getRow(rowNumber);
-    row.getCell(1).font = { bold: rowNumber === totalsStartRow + 3, size: 10, color: { argb: "FF111827" } };
-    row.getCell(2).numFmt = PHP_FORMAT;
-    row.getCell(2).font = { bold: rowNumber === totalsStartRow + 3, size: rowNumber === totalsStartRow + 3 ? 12 : 10, color: { argb: "FF111827" } };
-  });
-  styleTotalRow(worksheet.getRow(totalsStartRow + 3));
+  const directCost = roundMoney(tabRanges.reduce((total, { tab }) => total + tab.model.totals.grandTotal, 0));
+  const tabbedTotals = { grandTotal: directCost, ...resolveProjectCharges(directCost, input.settings) };
+  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings);
   setPrintLayout(worksheet);
   return worksheet;
 }
