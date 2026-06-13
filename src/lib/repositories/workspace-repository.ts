@@ -1714,6 +1714,21 @@ export async function getEstimateTabs(projectId: string, estimateId: string): Pr
   return (data ?? []).map(toEstimateTabSummary);
 }
 
+/**
+ * Resolves whether the current user can edit this estimate using the same
+ * `can_edit_estimate` RPC that RLS and `assertCanEditEstimate` rely on, so the
+ * client-side edit gate can never diverge from server enforcement. This is UX
+ * gating only — the server (RLS + `assert_can_edit_estimate_for_history`) stays
+ * authoritative. Fails closed (returns `false`) on any error so a transient
+ * failure hides edit affordances rather than exposing ones that error on use.
+ */
+export async function resolveEstimateEditCapability(estimateId: string): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  if (error) return false;
+  return data === true;
+}
+
 export async function getDefaultEstimateTab(estimateId: string): Promise<EstimateTabSummary | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await asEstimateTabsReadClient(supabase)
