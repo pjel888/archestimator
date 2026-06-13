@@ -397,6 +397,127 @@ describe("AC-MOD-10 republishProjectPublication writes expires_at conditionally"
   });
 });
 
+describe("AC-MOD-15 setting a too-short password is rejected and never persisted", () => {
+  function mockManagerEnv(recorded: RecordedQuery[], { hasLatest }: { hasLatest: boolean }) {
+    vi.doMock("@/lib/auth/session", () => ({
+      requireCurrentUserContext: vi.fn().mockResolvedValue({
+        userId: "user-1",
+        role: "ceo",
+        email: "owner@example.com",
+        displayName: "Owner One",
+      }),
+    }));
+    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
+    vi.doMock("@/lib/publication/snapshot", () => ({
+      buildProjectPublicationSnapshot: vi.fn(() => ({ generatedAt: "2026-06-13T00:00:00.000Z" })),
+    }));
+    vi.doMock("@/lib/publication/security", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/publication/security")>(
+        "@/lib/publication/security",
+      );
+      return {
+        ...actual,
+        decryptPublicationToken: vi.fn(() => "existing-token"),
+      };
+    });
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() =>
+        makeAdminClient({
+          recorded,
+          resolveResult: (query) => {
+            if (query.table === "projects") {
+              return {
+                data: {
+                  id: PROJECT_ID,
+                  workspace_id: WORKSPACE_ID,
+                  name: "Demo Project",
+                  project_code: "P-1",
+                  client_name: "Client",
+                  location: "Site",
+                  currency_code: "USD",
+                  metadata: {},
+                },
+                error: null,
+              };
+            }
+            if (query.table === "project_publications" && query.operation === "select") {
+              return {
+                data: hasLatest
+                  ? {
+                      id: PUBLICATION_ID,
+                      encrypted_token: "encrypted-existing",
+                      expires_at: null,
+                      password_hash: "existing-password-hash",
+                      selected_estimate_ids: ["est-1"],
+                      snapshot_version: 7,
+                    }
+                  : null,
+                error: null,
+              };
+            }
+            return { data: [], error: null };
+          },
+        }),
+      ),
+    }));
+  }
+
+  it("createProjectPublication returns { ok:false } and writes no publication row for a 1-char password", async () => {
+    const recorded: RecordedQuery[] = [];
+    mockManagerEnv(recorded, { hasLatest: false });
+
+    const { createProjectPublication } = await import("@/lib/publication/actions");
+    const result = await createProjectPublication({ projectId: PROJECT_ID, password: "a" });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toBe("Password must be at least 4 characters.");
+
+    // Nothing was hashed or persisted: no INSERT of a publication row at all.
+    const publicationWrites = recorded.filter(
+      (query) =>
+        query.table === "project_publications" &&
+        (query.operation === "insert" || query.operation === "update"),
+    );
+    expect(publicationWrites).toHaveLength(0);
+  });
+
+  it("republishProjectPublication returns { ok:false } and writes no update for a 3-char password", async () => {
+    const recorded: RecordedQuery[] = [];
+    mockManagerEnv(recorded, { hasLatest: true });
+
+    const { republishProjectPublication } = await import("@/lib/publication/actions");
+    const result = await republishProjectPublication({ projectId: PROJECT_ID, password: "abc" });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toBe("Password must be at least 4 characters.");
+
+    const publicationWrites = recorded.filter(
+      (query) =>
+        query.table === "project_publications" &&
+        (query.operation === "insert" || query.operation === "update"),
+    );
+    expect(publicationWrites).toHaveLength(0);
+  });
+
+  it("createProjectPublication accepts a >= 4-char password and DOES persist (guards the reject tests)", async () => {
+    const recorded: RecordedQuery[] = [];
+    mockManagerEnv(recorded, { hasLatest: false });
+
+    const { createProjectPublication } = await import("@/lib/publication/actions");
+    const result = await createProjectPublication({ projectId: PROJECT_ID, password: "abcd" });
+
+    expect(result.ok).toBe(true);
+    // A valid password persists exactly one INSERT carrying a non-null password_hash.
+    const inserts = recorded.filter(
+      (query) => query.table === "project_publications" && query.operation === "insert",
+    );
+    expect(inserts).toHaveLength(1);
+    const payload = inserts[0].payload as Record<string, unknown>;
+    expect(typeof payload.password_hash).toBe("string");
+    expect(payload.password_hash).not.toBeNull();
+  });
+});
+
 describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () => {
   async function setupResend({ sendOk }: { sendOk: boolean }) {
     const recorded: RecordedQuery[] = [];

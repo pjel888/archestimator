@@ -15,6 +15,7 @@ import {
   hashPublicationToken,
   readPublicationTokenEncryptionSecret,
   readPublicationTokenHashSecret,
+  validatePublicationPassword,
 } from "@/lib/publication/security";
 import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
@@ -500,6 +501,12 @@ export async function createProjectPublication({
   expiresAt?: string | null;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
+  // AC-MOD-15 (MOD-PW-05): reject a too-short password before any DB write — never hash or persist
+  // an invalid password, and never revoke the existing link for one. Validate only when SETTING.
+  if (password) {
+    const passwordCheck = validatePublicationPassword(password);
+    if (!passwordCheck.ok) return { ok: false, message: passwordCheck.message };
+  }
   const estimateIds = normalizeSelectedEstimateIds(selectedEstimateIds);
   const latest = await readLatestProjectPublication(context);
   const previousClientLinkPath = latest ? readClientLinkPath(latest) : null;
@@ -551,6 +558,12 @@ export async function republishProjectPublication({
   expiresAt?: string | null;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
+  // AC-MOD-15 (MOD-PW-05): a NEW password being set (provided and not clearing) must pass the
+  // minimum-length check before any DB write. Clearing has no password; the verify path is elsewhere.
+  if (password && !clearPassword) {
+    const passwordCheck = validatePublicationPassword(password);
+    if (!passwordCheck.ok) return { ok: false, message: passwordCheck.message };
+  }
   const latest = await readLatestProjectPublication(context);
   const estimateIds = normalizeSelectedEstimateIds(selectedEstimateIds);
 
@@ -604,6 +617,13 @@ export async function rotateProjectPublicationLink({
   clearPassword?: boolean;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
+  // AC-MOD-15 (MOD-PW-05): the live UI rotates with only { projectId } (the existing password_hash
+  // is carried forward), but the action still accepts a password for internal callers. Guard the SET
+  // case so a too-short password is rejected before any DB write rather than hashed and stored.
+  if (password && !clearPassword) {
+    const passwordCheck = validatePublicationPassword(password);
+    if (!passwordCheck.ok) return { ok: false, message: passwordCheck.message };
+  }
   const latest = await readLatestProjectPublication(context);
   if (!latest) return createProjectPublication({ projectId, password });
 
