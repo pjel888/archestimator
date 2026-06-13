@@ -199,3 +199,19 @@ Current scores are estimates. All must be validated through usability testing.
 ### The Rule
 
 > The UX matrix identifies surface quality. The journey matrix proves whether users can complete meaningful work.
+
+---
+
+### Status updates
+
+- **2026-06-14 — Project Charts → Cost Comparison (DONE, merged to `main`).** The
+  `/workshop/projects/[id]/charts` page (previously rated 22/100 — N independent
+  donuts, comparison engine dead, primary data at 8–9px, color lying across
+  columns) was rebuilt as a variance-first cost-comparison surface: header +
+  auto insight sentence, dumbbell variance spine, composition bars, comparison
+  detail table as the keyboard/SR alternative, stable CVD-safe color, server-side
+  buckets-only payload, and a DESIGN.md data-viz a11y amendment. Bubble chart
+  deleted; donut demoted to a dynamic Share view. WCAG 2.2 AA hardening applied;
+  browser-rendered screenshot/SR/INP proof remains a CI/deploy step. Plan archived
+  at `.ai/09_archive/store/2026-06-14-Project-Charts-Page-Improvement-Plan/`;
+  evidence in `.ai/05_logs/2026-06-14-project-charts-implementation/`.

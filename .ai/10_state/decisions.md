@@ -29,6 +29,43 @@ changed behavior. Run broad validation, builds, full regression, or manual QA
 only when the change touches shared logic, auth/security, RLS, data integrity,
 release readiness, or another high-blast-radius surface.
 
+## 2026-06-14 — Project Charts page is a cost-comparison surface (implemented)
+
+**Decision:** `/workshop/projects/[id]/charts` is a **cost comparison** surface, not
+a distribution-donut gallery. Durable consequences future agents must respect:
+
+- **Comparison view-model is the single source.** UI is driven by
+  `ProjectChartComparisonView` (built from pre-bucketed series); never re-derive
+  comparison logic in components.
+- **Color is stable + CVD-safe.** `src/lib/project-charts/bucket-color.ts`
+  (`colorForBucket`, Okabe–Ito) keys color by bucket id, not per-series rank. This
+  is a **named data-viz palette exception** in DESIGN.md → "Data visualization":
+  Okabe–Ito hues may appear ONLY in chart marks/legends/data-table swatches, never
+  in controls, chrome, nav, buttons, or headers (applied as inline fills, never
+  Tailwind classes).
+- **Charts payload is buckets-only.** `getProjectChartsData` ships
+  `seriesByEstimateId` (pre-aggregated server-side), NOT raw `estimate_row_items`/
+  nodes/categories/suppliers — closes the SEC-1 data-minimization finding. Do not
+  reintroduce raw-fact arrays into the charts payload.
+- **The data table is the a11y backbone.** Each chart is `role="img"` +
+  `aria-describedby` → the comparison detail table, which is the keyboard/SR
+  surface. SVG chart text ≥ 11px; HTML controls/values ≥ 10px.
+- **`get_project_chart_buckets` RPC is a ready, unused future push-down**
+  (`20260614021500…`). The repository uses the proven server-side JS reduce; a
+  future RPC cutover must pass the golden-master oracle and be probed on deploy
+  (fail-open on partial drift), per the add-new-tab deploy lesson.
+- **Bubble chart deleted; donut demoted** to a dynamic single-estimate Share view.
+  Any donut change must keep the `/share/[token]` compact path pixel/deterministic
+  -stable.
+
+**Cross-cutting (referenced, NOT owned here):** the `(select auth.uid())` RLS
+InitPlan wrap for `is_workspace_member` + 5 sibling helpers is a coordinate-once
+repo-wide change (shared with the estimates/library plans) — apply once, not three
+times. `/workshop/*` security headers remain a shared cross-cutting ticket.
+
+Full record: `.ai/05_logs/2026-06-14-project-charts-implementation/IMPLEMENTATION_REPORT.md`;
+archived plan `.ai/09_archive/store/2026-06-14-Project-Charts-Page-Improvement-Plan/`.
+
 ## 2026-06-13 — Templates owner-gated DB items applied to prod (owner-authorized)
 
 **Decision:** With owner authorization, resolve the Templates Audit owner-gated DB
