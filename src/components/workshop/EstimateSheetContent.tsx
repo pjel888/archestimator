@@ -231,8 +231,24 @@ function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows:
   return parts.join("\n");
 }
 
+const PROPOSAL_XLSX_CONTENT_TYPE = "spreadsheetml";
 
+function readContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null;
+  const match = /filename\*?=(?:UTF-8''|")?([^";]+)"?/i.exec(header);
+  return match?.[1] ? decodeURIComponent(match[1].replace(/"+$/g, "")) : null;
+}
 
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
 
 
 
@@ -697,6 +713,8 @@ export function EstimateSheetContent({
   const [proposalPreviewScope, setProposalPreviewScope] = useState<ProposalExportPreviewScope>("all-tabs");
   const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
+  const [isDownloadingProposal, setIsDownloadingProposal] = useState(false);
+  const [proposalDownloadError, setProposalDownloadError] = useState<string | null>(null);
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
@@ -1074,6 +1092,7 @@ export function EstimateSheetContent({
   }, [editableRows, estimateTree, getProposalPreviewSignature, proposalPreviewScope, resolvedProposalExportMetadata]);
   const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
     setProposalPreviewScope(scope);
+    setProposalDownloadError(null);
     if (isProposalPreviewOpen) buildProposalPreview(scope);
   }, [buildProposalPreview, isProposalPreviewOpen]);
   const openProposalPreview = useCallback(() => {
@@ -1081,8 +1100,40 @@ export function EstimateSheetContent({
     if (model) setIsProposalPreviewOpen(true);
   }, [buildProposalPreview]);
   const refreshProposalPreview = useCallback(() => {
+    setProposalDownloadError(null);
     buildProposalPreview();
   }, [buildProposalPreview]);
+  // F-05 (P1-T1): fetch-then-blob download. A bare <a href> saved the route's JSON
+  // error body (413/404/500/429/401) to disk under the .xlsx name; here we inspect
+  // response.ok + content-type, blob only on success, and surface the route's {error}
+  // inline instead of handing the user a corrupt file.
+  const downloadProposalExport = useCallback(async () => {
+    if (!proposalDownloadHref) return;
+    setIsDownloadingProposal(true);
+    setProposalDownloadError(null);
+    try {
+      const response = await fetch(proposalDownloadHref);
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!response.ok || !contentType.includes(PROPOSAL_XLSX_CONTENT_TYPE)) {
+        let message = "We couldn't generate the spreadsheet. Please try again.";
+        try {
+          const body = await response.json();
+          if (body && typeof body.error === "string" && body.error.trim()) message = body.error;
+        } catch {
+          /* non-JSON error body — keep the friendly default */
+        }
+        setProposalDownloadError(message);
+        return;
+      }
+      const blob = await response.blob();
+      const filename = readContentDispositionFilename(response.headers.get("content-disposition")) ?? "proposal.xlsx";
+      triggerBlobDownload(blob, filename);
+    } catch {
+      setProposalDownloadError("We couldn't reach the export service. Check your connection and try again.");
+    } finally {
+      setIsDownloadingProposal(false);
+    }
+  }, [proposalDownloadHref]);
   const proposalPreviewScopeControls = hasMultiplePersistedTabs
     ? {
         selectedScope: proposalPreviewScope,
@@ -1092,6 +1143,12 @@ export function EstimateSheetContent({
       }
     : undefined;
   const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
+  // Disable download for a genuinely empty export. For multi-tab all-tabs scope the
+  // preview is built from the active tab only, so other tabs may still carry rows —
+  // keep that case enabled and let the route decide.
+  const isProposalExportEmpty =
+    (proposalPreviewModel?.proposalRows.length ?? 0) === 0 &&
+    !(hasMultiplePersistedTabs && proposalPreviewScope === "all-tabs");
   useEffect(() => {
     if (!inspectorScopeKey) return;
 
@@ -1645,10 +1702,16 @@ export function EstimateSheetContent({
         open={isProposalPreviewOpen}
         model={proposalPreviewModel}
         isStale={isProposalPreviewStale}
-        downloadHref={proposalDownloadHref}
+        onDownload={downloadProposalExport}
+        isDownloading={isDownloadingProposal}
+        downloadError={proposalDownloadError}
+        canDownload={Boolean(proposalDownloadHref) && !isProposalExportEmpty}
         scopeControls={proposalPreviewScopeControls}
         onRefresh={refreshProposalPreview}
-        onClose={() => setIsProposalPreviewOpen(false)}
+        onClose={() => {
+          setIsProposalPreviewOpen(false);
+          setProposalDownloadError(null);
+        }}
       />
       {inspector ? (
         <ActivityHistoryModal

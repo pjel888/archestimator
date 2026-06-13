@@ -19,7 +19,10 @@ type ProposalExportPreviewDialogProps = {
   open: boolean;
   model: ProposalExportModel | null;
   isStale?: boolean;
-  downloadHref?: string | null;
+  onDownload?: () => void;
+  isDownloading?: boolean;
+  downloadError?: string | null;
+  canDownload?: boolean;
   scopeControls?: ProposalExportPreviewScopeControls;
   onRefresh: () => void;
   onClose: () => void;
@@ -51,7 +54,10 @@ export function ProposalExportPreviewDialog({
   open,
   model,
   isStale = false,
-  downloadHref,
+  onDownload,
+  isDownloading = false,
+  downloadError = null,
+  canDownload = true,
   scopeControls,
   onRefresh,
   onClose,
@@ -105,16 +111,26 @@ export function ProposalExportPreviewDialog({
                 Refresh preview
               </span>
             </button>
-            {downloadHref ? (
-              <a
-                className={cn(previewActionButtonClass, "bg-primary text-white hover:bg-accentDark")}
-                href={downloadHref}
+            {onDownload ? (
+              <button
+                type="button"
+                className={cn(
+                  previewActionButtonClass,
+                  "bg-primary text-white hover:bg-accentDark disabled:cursor-not-allowed disabled:opacity-60",
+                )}
+                onClick={onDownload}
+                disabled={isDownloading || !canDownload}
+                aria-busy={isDownloading}
               >
-                <FileXls size={11} weight="regular" aria-hidden="true" />
+                {isDownloading ? (
+                  <ArrowClockwise size={11} weight="regular" aria-hidden="true" className="animate-spin" />
+                ) : (
+                  <FileXls size={11} weight="regular" aria-hidden="true" />
+                )}
                 <span className={previewActionTextClass} data-testid="proposal-preview-download-label">
-                  Download editable XLSX
+                  {isDownloading ? "Preparing…" : "Download editable XLSX"}
                 </span>
-              </a>
+              </button>
             ) : null}
             <button
               type="button"
@@ -126,6 +142,16 @@ export function ProposalExportPreviewDialog({
             </button>
           </div>
         </header>
+
+        {downloadError ? (
+          <div
+            role="alert"
+            data-testid="proposal-download-error"
+            className="border-b border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700"
+          >
+            {downloadError}
+          </div>
+        ) : null}
 
         {model ? (
           <div className="flex min-h-0 flex-1 flex-col">
