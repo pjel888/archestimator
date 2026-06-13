@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 import React from "react";
 
 // Hoisted mocks for route, repo, security, hook, Realtime, email, component deps (P8 red tests written FIRST per Master Prompt + subagent TDD red-first rule + full graph impact completed before any symbol touch)
@@ -68,6 +68,15 @@ vi.mock("@/lib/email/resend-client", () => ({
 vi.mock("@supabase/supabase-js", () => ({
   createClient: mocks.createClient,
 }));
+
+vi.mock("@/lib/publication/actions", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/publication/actions")>("@/lib/publication/actions");
+  return {
+    ...actual,
+    loadSharedLinkActivity: vi.fn(actual.loadSharedLinkActivity),
+    maybeTriggerSharedLinkActivityDigest: vi.fn(actual.maybeTriggerSharedLinkActivityDigest),
+  };
+});
 
 // Modules under test (will fail to import or execute until P8 impl — intentionally red first)
 import { GET } from "@/app/api/share/[token]/activity/route";
@@ -733,33 +742,99 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(article.textContent).not.toContain("user_agent_hash");
     });
 
-    it("scopes owner Realtime subscriptions to the active publication id", async () => {
+    it("does NOT set up a Supabase Realtime subscription (subscription was non-functional, removed in AC-MOD-08)", async () => {
       render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
 
-      await waitFor(() => expect(mocks.channel).toHaveBeenCalled());
-      const channelApi = mocks.channel.mock.results.at(-1)?.value;
-      const filterArgs = channelApi.on.mock.calls.map((call: unknown[]) => call[1]);
-
-      expect(filterArgs).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ table: "shared_link_comments", filter: "publication_id=eq.pub1" }),
-          expect.objectContaining({ table: "shared_link_responses", filter: "publication_id=eq.pub1" }),
-          expect.objectContaining({ table: "shared_link_events", filter: "publication_id=eq.pub1" }),
-        ]),
-      );
+      await waitFor(() => expect(screen.getByTestId("activity-feed")).toBeInTheDocument());
+      // The dead Realtime subscription has been removed — mocks.channel should never be called
+      expect(mocks.channel).not.toHaveBeenCalled();
     });
 
+    it("footer shows honest refresh copy and does not claim live Realtime updates (AC-MOD-08)", async () => {
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={true} />);
+      await waitFor(() => expect(screen.getByTestId("activity-feed")).toBeInTheDocument());
 
-    it("announces Realtime activity refreshes with a polite new-activity banner", async () => {
-      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
+      const footer = screen.getByText(/Activity refreshes when you reopen this tab/i);
+      expect(footer).toBeInTheDocument();
+      expect(footer.textContent).toContain("Use Refresh for the latest");
+      // No false Realtime claim
+      expect(screen.queryByText(/Live updates via Realtime/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Realtime/)).not.toBeInTheDocument();
+    });
 
-      await waitFor(() => expect(mocks.channel).toHaveBeenCalled());
-      const channelApi = mocks.channel.mock.results.at(-1)?.value;
-      const insertHandler = channelApi.on.mock.calls[0]?.[2] as (() => void) | undefined;
-      expect(insertHandler).toBeDefined();
-      insertHandler?.();
+    it("refetches activity when window gains focus (AC-MOD-08 poll-on-focus)", async () => {
+      const loadMock = vi.mocked(loadSharedLinkActivity);
+      loadMock.mockClear();
 
-      await waitFor(() => expect(screen.getByText("New activity loaded.")).toBeInTheDocument());
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={true} />);
+      await waitFor(() => expect(screen.getByTestId("activity-feed")).toBeInTheDocument());
+
+      const callsAfterMount = loadMock.mock.calls.length;
+      expect(callsAfterMount).toBeGreaterThanOrEqual(1);
+
+      // Simulate the window gaining focus
+      await act(async () => {
+        fireEvent(window, new Event("focus"));
+      });
+
+      await waitFor(() => {
+        expect(loadMock.mock.calls.length).toBeGreaterThan(callsAfterMount);
+      });
+    });
+
+    it("refetches activity when tab becomes visible via visibilitychange (AC-MOD-08 poll-on-visible)", async () => {
+      const loadMock = vi.mocked(loadSharedLinkActivity);
+      loadMock.mockClear();
+
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={true} />);
+      await waitFor(() => expect(screen.getByTestId("activity-feed")).toBeInTheDocument());
+
+      const callsAfterMount = loadMock.mock.calls.length;
+      expect(callsAfterMount).toBeGreaterThanOrEqual(1);
+
+      // Simulate the tab becoming visible
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible",
+      });
+      await act(async () => {
+        fireEvent(document, new Event("visibilitychange"));
+      });
+
+      await waitFor(() => {
+        expect(loadMock.mock.calls.length).toBeGreaterThan(callsAfterMount);
+      });
+    });
+
+    it("announces focus-triggered activity refreshes with a polite new-activity banner when newer items arrive", async () => {
+      let callCount = 0;
+      vi.mocked(loadSharedLinkActivity).mockImplementation(async () => {
+        callCount++;
+        // Second call returns a new item that wasn't in the first response
+        if (callCount === 1) {
+          return {
+            activities: [{ id: "act_old", source: "share", action: "viewed", visibility: "public" as const, occurredAt: "2026-05-28T11:00:00Z", title: "Old activity." }],
+            hasMore: false,
+            nextCursor: null,
+          };
+        }
+        return {
+          activities: [{ id: "act_new", source: "share", action: "viewed", visibility: "public" as const, occurredAt: "2026-05-28T12:00:00Z", title: "New activity." }],
+          hasMore: false,
+          nextCursor: null,
+        };
+      });
+
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={true} />);
+      await waitFor(() => expect(screen.getByText("Old activity.")).toBeInTheDocument());
+
+      // Trigger a focus refetch that brings a new item
+      await act(async () => {
+        fireEvent(window, new Event("focus"));
+      });
+
+      await waitFor(() => expect(screen.getByText("New activity.")).toBeInTheDocument());
+      expect(screen.getByText("New activity loaded.")).toBeInTheDocument();
       expect(screen.getByText("New shared link activity loaded.")).toBeInTheDocument();
     });
 
