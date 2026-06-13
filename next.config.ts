@@ -125,7 +125,23 @@ const nextConfig: NextConfig = {
       },
     ];
 
-    return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders];
+    // Library Optimization Plan P3 T18 (F20): /workshop had NO security headers.
+    // Ship the three zero-risk hardening headers immediately + a Report-Only CSP
+    // (reusing the landing shape) so we can monitor violations before enforcing
+    // (the per-request nonce pipeline is deferred, as for /share). D7.
+    const workshopHeaders = [
+      {
+        source: "/workshop/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "Content-Security-Policy-Report-Only", value: landingReportOnlyCsp },
+        ],
+      },
+    ];
+
+    return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders, ...workshopHeaders];
   },
 };
 
