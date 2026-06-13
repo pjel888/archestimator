@@ -24,7 +24,10 @@ describe("estimate bootstrap UI governance", () => {
     expect(projectEstimatesClient).toContain("Search Estimates");
     expect(estimatesPage).not.toContain("NewEstimateForm");
     expect(estimatesPage).not.toContain("EstimateListCard");
-    expect(projectEstimatesTable).toContain('type ProjectEstimateTableRow = Tables<"estimates"> &');
+    // P-1.1: the client list row is the sensitive-column-free DTO, no longer the
+    // full Supabase estimates row (finding F9).
+    expect(projectEstimatesTable).toContain("export type ProjectEstimateTableRow = ProjectEstimateListRow");
+    expect(projectEstimatesTable).not.toContain('Tables<"estimates">');
     expect(projectEstimatesTable).toContain("function getEstimateHref");
     expect(projectEstimatesTable).not.toContain('header: "Scope"');
     expect(projectEstimatesTable).not.toContain("ProjectEstimateScopeCell");

@@ -451,8 +451,10 @@ describe("estimate sheet version control server actions", () => {
       estimate_patch: { name: "Renamed estimate", sheetCode: "ES-009" },
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     }));
-    expect(result.name).toBe("Renamed estimate");
-    expect(result.sheet_code).toBe("ES-009");
+    // P-1.2: updateEstimateDetails returns a scalar-only canonical reconciliation
+    // payload ({ estimate }), not the full estimate record.
+    expect(result.estimate.name).toBe("Renamed estimate");
+    expect(result.estimate.sheet_code).toBe("ES-009");
   });
 
   it("does not expose named sheet version RPC helpers from estimate actions", async () => {
