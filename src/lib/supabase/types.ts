@@ -3203,6 +3203,30 @@ export type Database = {
         }
         Returns: Json
       }
+      insert_estimate_subtree_into_estimate: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_parent_node_id: string
+          source_estimate_id: string
+          source_root_node_id: string
+          source_tab_id: string
+        }
+        Returns: Json
+      }
+      insert_estimate_subtree_into_estimate_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_parent_node_id: string
+          source_estimate_id: string
+          source_root_node_id: string
+          source_tab_id: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
       insert_estimate_template_into_estimate_with_history: {
         Args: {
           target_project_id: string

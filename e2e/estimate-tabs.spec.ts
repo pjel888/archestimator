@@ -141,7 +141,10 @@ test.describe("estimate tabs smoke", () => {
       await openFixtureEstimate(page, fixture);
 
       const tablist = page.getByRole("tablist", { name: "Estimate tabs" });
-      await expect(tablist.getByRole("tab", { name: "Base Bid" })).toHaveAttribute("aria-selected", "true");
+      await expect(tablist.getByRole("tab", { name: "Page 001" })).toHaveAttribute("aria-selected", "true");
+      await expect(tablist.getByRole("tab", { name: "Base Bid" })).toHaveCount(0);
+      await expect(page.getByText("Default")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "New tab" })).toBeVisible();
       await expect(page.locator(`[data-estimate-tree-node-id="${fixture.defaultNodeId}"]`).first()).toBeVisible();
       await expect(page.locator(`[data-estimate-tree-node-id="${fixture.alternateNodeId}"]`)).toHaveCount(0);
 

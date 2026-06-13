@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/ui/cn";
 
-type BadgeTone = "neutral" | "accent" | "success" | "warning" | "danger" | "info";
+type BadgeTone = "neutral" | "accent" | "success" | "warning" | "danger";
 type BadgeSize = "xs" | "sm";
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
@@ -16,7 +16,6 @@ const toneClasses: Record<BadgeTone, string> = {
   success: "border-success/20 bg-success/10 text-success",
   warning: "border-warning/25 bg-warning/10 text-warning",
   danger: "border-dangerSoft bg-dangerSoft text-danger",
-  info: "border-info/20 bg-info/10 text-info",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {

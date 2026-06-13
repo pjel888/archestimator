@@ -17,7 +17,7 @@ export function getNodeCode(parentCode: string, siblingIndex: number): string {
 
 export function nodeHeaderClasses(kind: EstimateTreeNode["kind"]) {
   if (kind === "group") {
-    return "border border-hairline bg-surfaceMuted border-l-2 border-l-divider hover:bg-[#EAEEF3]";
+    return "border border-hairline bg-neutral-50 border-l-2 border-l-divider hover:bg-[#EAEEF3]";
   }
   return "hover:bg-surfaceMuted/40";
 }

@@ -12,7 +12,6 @@ function BadgePreview() {
         <Badge tone="success">Approved</Badge>
         <Badge tone="warning">Needs review</Badge>
         <Badge tone="danger">Blocked</Badge>
-        <Badge tone="info">Info</Badge>
       </div>
       <Note>Status is never color-only: every indicator includes visible text.</Note>
     </StoryPanel>

@@ -41,7 +41,10 @@ vi.mock("@/lib/estimates/actions", () => estimateActionMocks);
 
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
+  // U18: the in-estimate panel now loads the lite library; mock both so the
+  // intercept holds regardless of which variant the component calls.
   loadCurrentWorkspaceComponentLibrary: loadLibraryMock,
+  loadCurrentWorkspaceComponentLibraryLite: loadLibraryMock,
 }));
 
 const sampleDataset = {
@@ -163,7 +166,9 @@ describe("component library lazy load (U4)", () => {
     // Wiring contract: server-confirmed sidebar mutations must mark the
     // lazy dataset stale, or remounts re-seed from pre-mutation cache.
     const sheetSource = readFileSync(path.join(process.cwd(), "src/components/workshop/EstimateSheetContent.tsx"), "utf8");
-    expect(sheetSource).toContain('queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] })');
+    // U18/U19: invalidation now uses the shared key constant (non-exact, so it
+    // covers both the lite panel key and the full editor key).
+    expect(sheetSource).toContain("queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY })");
     expect(sheetSource).toContain("onLibraryDataChanged={handleLibraryDataChanged}");
 
     const sidebarSource = readFileSync(path.join(process.cwd(), "src/components/workshop/component-library/index.tsx"), "utf8");
