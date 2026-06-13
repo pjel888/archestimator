@@ -197,9 +197,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   // MOD-ACT-03: live metadata refetch. Holds ONLY the activity/metadata fields (never
   // status/clientLinkPath/lifecycle) so the open-count, "last opened", and activity dot can
   // update while the modal is mounted without touching the optimistic lifecycle reconcile.
-  const [refreshedMetadata, setRefreshedMetadata] = useState<
-    Pick<ProjectPublicationSummary, "openCount" | "latestOpenedAt" | "latestActivityAt" | "latestRecipientOpen"> | null
-  >(null);
+  const [refreshedMetadata, setRefreshedMetadata] = useState<{
+    projectId: string;
+    data: Pick<ProjectPublicationSummary, "openCount" | "latestOpenedAt" | "latestActivityAt" | "latestRecipientOpen">;
+  } | null>(null);
   const [destructiveAction, setDestructiveAction] = useState<DestructivePublicationAction | null>(null);
   const [passwordDraft, setPasswordDraft] = useState<PasswordDraft>(() => ({
     password: "",
@@ -246,7 +247,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   // MOD-ACT-03: the live-refetched metadata supersedes the prop summary ONLY for the
   // activity/metadata displays + dot. Status, clientLinkPath, and the optimistic lifecycle
   // reconcile above keep using `summary`/`localResult`, so this stays isolated from AC-MOD-05.
-  const metadataSource = refreshedMetadata ?? summary;
+  // Use refetched metadata only while the modal is open and it belongs to the current project,
+  // so stale or cross-project metadata is never shown (no reset-on-close effect needed).
+  const metadataSource =
+    (open && refreshedMetadata && refreshedMetadata.projectId === summary?.projectId
+      ? refreshedMetadata.data
+      : null) ?? summary;
   const latestActivityAt = readLatestPublicationActivityAt(metadataSource);
   const activitySeenAt = activitySeenState.storageKey === activitySeenStorageKey
     ? activitySeenState.value
@@ -294,10 +300,13 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         if (token !== metadataRefreshTokenRef.current) return;
         if (!next || next.projectId !== projectId) return;
         setRefreshedMetadata({
-          openCount: next.openCount,
-          latestOpenedAt: next.latestOpenedAt,
-          latestActivityAt: next.latestActivityAt,
-          latestRecipientOpen: next.latestRecipientOpen ?? null,
+          projectId,
+          data: {
+            openCount: next.openCount,
+            latestOpenedAt: next.latestOpenedAt,
+            latestActivityAt: next.latestActivityAt,
+            latestRecipientOpen: next.latestRecipientOpen ?? null,
+          },
         });
       } catch {
         // Best-effort; keep the prop summary on failure.
@@ -305,15 +314,6 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     })();
     // Re-run on modal open and on Activity-tab selection (activeTab) for this project.
   }, [shouldRefreshMetadata, projectId, activeTab]);
-
-  // Drop any refetched metadata once the modal closes or the project changes so the next
-  // open starts from the fresh prop summary (and never shows another project's metadata).
-  useEffect(() => {
-    if (!open) {
-      metadataRefreshTokenRef.current += 1;
-      setRefreshedMetadata(null);
-    }
-  }, [open, projectId]);
 
   async function copyClientLink() {
     if (!clientLinkPath) {
