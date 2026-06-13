@@ -711,6 +711,23 @@ the next action, and stop only on a proven pass, explicit blocker, or owner
 decision. This applies across Codex, Claude, OpenCode, CommandCode, Kimi,
 DeepSeek, Antigravity, Cursor where approved, and future payloads.
 
+**Loop-engineered product-development mandate updated (2026-06-13 local, branch `main`):**
+The agent/product workflow is now explicitly loop-engineered for non-trivial
+product work. The canonical loop is: audit current repo/provider truth, create
+or update a dated `.ai/03_plans` plan pack, research uncertain claims into
+`.ai/13_research`, execute through the narrowest adequate loop surface, verify
+with maker/checker separation and real-surface proof, persist state outside
+chat, and iterate until a proven stop condition. `ultrawork`, `ultragoal`,
+`omo:ulw-loop`, `autopilot`, `omo:ultraresearch`, `ultraqa`, and
+`vercel:agent-browser` are named routing surfaces for that loop. The mandate is
+agent-neutral: Claude, Codex, OpenCode, CommandCode, Antigravity, Kimi,
+DeepSeek, Cursor where approved, Gemini only if explicitly reapproved, and
+future agents all inherit the same `.ai/00_system` contract. Canonical
+docs/governance plan pack:
+`.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/`. Companion
+research note:
+`.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+
 **Library Unification Implemented (2026-06-11 local, branch `claude/unification-plan-components-templates`):**
 The 2026-06-11 unification plan pack (`.ai/03_plans/2026-06-11-Unification-Plan-For-Components-And-Templates/`)
 was implemented end to end. `/workshop/library` is now the single reusable-content home

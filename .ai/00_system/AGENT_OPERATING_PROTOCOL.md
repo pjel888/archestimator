@@ -3,7 +3,10 @@
 ## Goal
 
 Make Archestimator fast and safe for AI-assisted work without turning every
-task into a heavyweight workflow.
+task into a heavyweight workflow. For non-trivial product development, make the
+repeatable work loop-engineered: the system should discover, plan, research,
+execute, verify, remember, and choose the next step instead of relying on a
+human to re-prompt every phase.
 
 ## Default workflow
 
@@ -22,6 +25,43 @@ truth docs, package/runtime facts, and graph/index evidence when it is useful.
 
 For agent-framework, payload, harness, multi-agent, evidence, provider-proof,
 or run-log work, also follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
+
+## Loop-engineered product development
+
+The normal Archestimator product-development loop is:
+
+1. Discover and audit current reality from source, tests, provider boundaries,
+   and current `.ai` truth.
+2. Write or update a dated plan pack under `.ai/03_plans/<YYYY-MM-DD>-<slug>/`.
+3. Research uncertain implementation, product, dependency, policy, or UX claims
+   and store durable source-backed notes in `.ai/13_research/`.
+4. Execute through the smallest loop surface that preserves quality.
+5. Drive the result through its real matching surface: code tests, HTTP, browser,
+   provider dashboard, CLI transcript, database diff, or manual proof packet.
+6. Record what passed, what failed, cleanup receipts, and the next decision in
+   `.ai`, `.omx`, `.omo`, an issue tracker, or another approved durable state.
+
+Loop surface routing:
+
+- Use direct execution for small, reversible, tightly coupled work.
+- Use `ultrawork` for in-session parallel lanes with lightweight evidence.
+- Use `ultragoal` when the work needs durable goal state, checkpoints, or resume
+  across stories.
+- Use `omo:ulw-loop` when success criteria need criterion-by-criterion real
+  surface evidence and cleanup receipts.
+- Use `autopilot` when the full clarify -> plan -> durable execution -> review
+  -> adversarial QA lifecycle is desired.
+- Use `omo:ultraresearch` when the research itself must be exhaustive,
+  source-cited, and expansion-driven.
+- Use `ultraqa` when user-facing, CLI/runtime, integration, or safety-sensitive
+  behavior could otherwise report a false green.
+- Use `vercel:agent-browser` or an equivalent browser-driving surface when the
+  claim depends on real web behavior.
+
+A loop is complete only when the stop condition is proven by evidence outside
+the chat. A green unit test, worker self-report, or plan document can support the
+claim, but it does not replace the matching real-surface proof when the behavior
+is user-facing or provider-facing.
 
 ## Response economy overlay
 
@@ -86,6 +126,13 @@ highest-capability active agent/model for the session. The lead decides:
 - when to use a loop workflow (`ultrawork`, `ultragoal`, `team`,
   `autopilot`, `ultraqa`, Browser/manual proof, or a direct local loop);
 - when the extra token/context cost is not worth delegation.
+
+The routing contract is agent-neutral. Claude, Codex, OpenCode, CommandCode,
+Antigravity CLI (`agy`), Kimi, DeepSeek, Cursor, Gemini if explicitly
+reapproved, Hermes if approved, and future agents all inherit the same loop
+contract from `.ai/00_system`. Tool-specific payloads, prompts, skills, and
+connectors may expose capabilities, but they do not choose the lead, override
+scope, fork the mandate, or bypass the completion evidence contract.
 
 Default routing posture:
 

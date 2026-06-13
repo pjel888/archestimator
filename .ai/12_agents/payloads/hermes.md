@@ -13,6 +13,10 @@ Fail-safe: fail closed because this lane is unapproved unless explicitly activat
 
 Hermes is listed historically but is not active until Philip approves this lane.
 Shared rules live in `.ai/00_system`.
+If Hermes is explicitly approved, loop-engineered product work follows the
+shared `.ai/00_system` sequence: discover/audit, `.ai/03_plans` plan pack,
+`.ai/13_research` research, loop execution, maker/checker verification,
+real-surface proof, durable memory, and next decision.
 
 ## Reading Chain
 

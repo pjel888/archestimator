@@ -35,3 +35,20 @@ override any generic upstream default that points at root `plans/`.
 - `agent-compliance-dry-run.md`
 - `provider-proof-packet.md`
 - `bug-plan-creation.md`
+
+## Loop-engineering playbooks
+
+Loop-engineered product work should use the canonical protocol in
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md` and the plan pack at
+`.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/`.
+Research grounding lives at
+`.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+
+Use reusable skill payloads only as adapters. They must not fork the
+agent-neutral loop routing: direct execution for narrow work, `ultrawork` for
+in-session parallel lanes, `ultragoal` for durable goal state, `omo:ulw-loop`
+for criterion-led real-surface proof, `autopilot` for the full lifecycle,
+`omo:ultraresearch` for exhaustive research, `ultraqa` for adversarial QA, and
+`vercel:agent-browser` for browser-facing proof. Agent-specific equivalents in
+Claude, Codex, OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Cursor, or
+future tools must still preserve the same `.ai/00_system` contract.

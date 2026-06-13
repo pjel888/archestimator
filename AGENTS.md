@@ -58,14 +58,26 @@ The highest-capability agent in the session is the lead orchestrator. It owns
 scope, routing, model/effort selection, integration, validation, and the final
 claim. Other agents are bounded workers, reviewers, or evidence lanes.
 
+- Loop-engineered product development is the default shape for non-trivial
+  feature work. The loop is: discover or audit current reality, write or update
+  the dated `.ai/03_plans/` plan pack, research uncertain claims, execute
+  through a durable or in-session loop, drive the result through the matching
+  surface, record evidence, then decide the next iteration.
 - Prefer multi-agent orchestration when there are independent slices: repo exploration, external research, implementation by disjoint file scope, test/regression mapping, review, QA, or documentation cleanup.
 - Keep coupled critical-path work local to the lead until it is safe to split.
 - Use lower-cost/lower-effort lanes for simple lookup, grep, inventory, formatting, and bounded evidence gathering. Use stronger/higher-effort lanes for architecture, security, data integrity, complex implementation, adversarial review, and final judgment.
 - Use loop engineering for repeatable or multi-step delivery: define the goal, run the loop, observe evidence, persist state, decide the next action, and stop only on a real pass/blocker condition.
-- Preferred loop vocabulary: `ultrawork` for in-session parallel lanes, `ultragoal` for durable goal/ledger execution, `team` for coordinated worker lifecycles, `autopilot` for the full clarify-plan-execute-review-QA loop, `ultraqa` for adversarial QA, and Browser for browser-facing proof.
+- Preferred loop vocabulary: `ultrawork` for in-session parallel lanes, `ultragoal` for durable goal/ledger execution, `omo:ulw-loop` when success criteria need criterion-by-criterion real-surface evidence, `team` for coordinated worker lifecycles, `autopilot` for the full clarify-plan-execute-review-QA loop, `omo:ultraresearch` for exhaustive cited research, `ultraqa` for adversarial QA, and `vercel:agent-browser` for browser-facing proof.
 - Loops must carry durable memory in repo/state artifacts (`.ai`, `.omx`, issue trackers, or other approved state), not just chat context.
 - Maker/checker separation is expected for non-trivial work: the agent or lane that verifies should be distinct from the one that made the change when practical.
 - Token cost is an engineering constraint. Do not spawn agents just to look busy; spawn them when the expected time, quality, or coverage gain is worth the extra context and review cost.
+
+The mandate is agent-neutral. Claude, Codex, OpenCode, CommandCode,
+Antigravity, Kimi, DeepSeek, Cursor, Gemini if explicitly reapproved, and future
+agents all follow the same `.ai/00_system` loop contract; their tool-specific
+payloads are adapters, not separate policy sources. Direct solo execution
+remains correct for narrow, reversible work where a loop would add ceremony
+without improving correctness.
 
 ## Tooling Guidance
 

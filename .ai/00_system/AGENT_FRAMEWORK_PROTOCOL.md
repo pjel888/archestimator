@@ -14,6 +14,38 @@ approved, Cursor if approved, Gemini, Ollama, and any future agent or harness.
 source files, tests, package scripts, and provider evidence remain the
 authoritative surfaces. Tool-specific files are adapters only.
 
+## Loop Engineering Contract
+
+Archestimator treats loop engineering as the product-development control system
+for non-trivial work. A loop states the goal, splits work into bounded lanes,
+runs or delegates the lanes, observes evidence, persists state outside chat,
+decides the next action, and stops only on a proven pass, explicit blocker, or
+owner decision.
+
+The repo-local loop spine is:
+
+- `.ai/03_plans/` for dated audit and implementation plan packs.
+- `.ai/13_research/` for source-backed research notes and research syntheses.
+- `.ai/05_logs/` for run evidence, proof boundaries, and handoffs.
+- `.omx/` or `.omo/` ledgers for runtime loop state when those tools are active.
+- Issue trackers or provider dashboards only when explicitly authorized and
+  linked back to repo truth.
+
+This contract is agent-neutral. Codex, Claude, OpenCode, CommandCode,
+Antigravity CLI (`agy`), Kimi, DeepSeek, Cursor, Gemini if explicitly
+reapproved, Hermes if approved, and future agents/harnesses use the same loop
+spine and proof boundary. Tool-specific files are adapters: they may translate
+commands, expose connector capabilities, or declare a default lane, but they
+must not fork policy, bypass `.ai/00_system`, or claim completion without the
+same evidence.
+
+Use `ultrawork` for parallelism, `ultragoal` for durable goal execution,
+`omo:ulw-loop` for criterion-led real-surface proof, `autopilot` for the full
+clarify-plan-execute-review-QA lifecycle, `omo:ultraresearch` for exhaustive
+research, `ultraqa` for adversarial behavior proof, and `vercel:agent-browser`
+for browser-facing proof. Direct solo execution remains valid for narrow work
+where a loop would add ceremony without improving correctness.
+
 ## Agent Receipt
 
 Use this internal receipt for broad, risky, provider-facing, or durable
@@ -32,6 +64,9 @@ orchestrator=<lead agent/tool owning scope, routing, integration, final claim>
 loop_phase=<none|plan|execute|review|qa|cleanup|complete>
 lead_lane=<agent/tool lane and model/effort tier>
 worker_lanes=<parallel lanes with agent/tool, model/effort tier, scope>
+loop_memory=<.ai plan/research/log path plus .omx/.omo/issue ledger paths>
+research_boundary=<none|local-only|external-cited|ultraresearch>
+manual_qa_channel=<none|http|browser|tmux|computer-use|provider|db|cli>
 ```
 
 The receipt is optional for small fixes. It is a discipline aid, not a new chat
