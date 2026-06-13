@@ -77,6 +77,10 @@ Read first before planning new work:
 
 ## Rules for new plans
 
+Advisor-generated plans, including `shadcn/improve` output, must be written as
+dated plan packs under `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/`. Do not create
+root `plans/` or parallel advisor backlogs for Archestimator.
+
 A new plan must state:
 
 - exact user job;
