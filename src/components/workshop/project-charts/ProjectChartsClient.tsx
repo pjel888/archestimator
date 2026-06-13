@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/chip";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { buildProjectChartSeries, getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
+import { collapseProjectChartBuckets, getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
 import { buildProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
 import type { ProjectChartGroupingMode, ProjectChartsData } from "@/lib/project-charts/types";
 
@@ -63,15 +63,17 @@ export function ProjectChartsClient({
   initialGroupingMode,
 }: ProjectChartsClientProps) {
   const defaultPair = getProjectChartDefaultPair(data.estimateOptions);
-  const existingIds = useMemo(() => new Set(data.estimateOptions.map((estimate) => estimate.id)), [data.estimateOptions]);
+  // Only estimates the server actually aggregated have series to chart.
+  const loadedEstimateIds = useMemo(() => new Set(Object.keys(data.seriesByEstimateId)), [data.seriesByEstimateId]);
 
   const [groupingMode, setGroupingMode] = useState<ProjectChartGroupingMode>(initialGroupingMode);
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<string[]>(() => {
     const seed = [
       initialLeftEstimateId ?? defaultPair.leftEstimateId,
       initialRightEstimateId ?? defaultPair.rightEstimateId,
-    ].filter((id): id is string => Boolean(id) && existingIds.has(id as string));
-    return [...new Set(seed)].slice(0, MAX_CHART_COLUMNS);
+    ].filter((id): id is string => Boolean(id) && loadedEstimateIds.has(id as string));
+    const fallback = seed.length > 0 ? seed : [...loadedEstimateIds].slice(0, 2);
+    return [...new Set(fallback)].slice(0, MAX_CHART_COLUMNS);
   });
   const [baselineEstimateId, setBaselineEstimateId] = useState<string | null>(
     () => selectedEstimateIds[0] ?? null,
@@ -94,10 +96,7 @@ export function ProjectChartsClient({
     () =>
       buildProjectChartComparisonView({
         estimates: data.estimateOptions,
-        rows: data.rowFacts,
-        nodes: data.nodeFacts,
-        categoryNodes: data.categoryNodeFacts,
-        suppliers: data.supplierFacts,
+        seriesByEstimateId: data.seriesByEstimateId,
         groupingMode,
         estimateIds: selectedEstimateIds,
         baselineEstimateId,
@@ -110,26 +109,24 @@ export function ProjectChartsClient({
   const activeBucketId = pinnedBucketId ?? hoverBucketId;
 
   const shareEstimateId = baselineEstimateId ?? selectedEstimateIds[0] ?? null;
-  const shareSeries = useMemo(
-    () =>
-      effectiveViewMode === "share" && shareEstimateId
-        ? buildProjectChartSeries({
-            estimates: data.estimateOptions,
-            rows: data.rowFacts,
-            nodes: data.nodeFacts,
-            categoryNodes: data.categoryNodeFacts,
-            suppliers: data.supplierFacts,
-            groupingMode,
-            estimateId: shareEstimateId,
-          })
-        : null,
-    [effectiveViewMode, shareEstimateId, data, groupingMode],
-  );
+  const shareSeries = useMemo(() => {
+    if (effectiveViewMode !== "share" || !shareEstimateId) return null;
+    const modeSeries = data.seriesByEstimateId[shareEstimateId]?.[groupingMode];
+    if (!modeSeries) return null;
+    return {
+      estimateName: data.estimateOptions.find((estimate) => estimate.id === shareEstimateId)?.name ?? "Estimate",
+      total: modeSeries.total,
+      buckets: collapseProjectChartBuckets(modeSeries.allBuckets, 8),
+    };
+  }, [effectiveViewMode, shareEstimateId, data, groupingMode]);
 
-  const canAddEstimate = selectedEstimateIds.length < Math.min(MAX_CHART_COLUMNS, data.estimateOptions.length);
+  const addableEstimates = data.estimateOptions.filter(
+    (estimate) => loadedEstimateIds.has(estimate.id) && !selectedEstimateIds.includes(estimate.id),
+  );
+  const canAddEstimate = selectedEstimateIds.length < MAX_CHART_COLUMNS && addableEstimates.length > 0;
 
   function addEstimate() {
-    const next = data.estimateOptions.find((estimate) => !selectedEstimateIds.includes(estimate.id));
+    const next = addableEstimates[0];
     if (!next) return;
     setSelectedEstimateIds((current) => [...current, next.id].slice(0, MAX_CHART_COLUMNS));
   }
@@ -239,9 +236,15 @@ export function ProjectChartsClient({
           />
         ) : (
           <>
-            {data.requiresSelectedPair ? (
+            {data.didTruncate ? (
               <Banner
                 tone="warning"
+                title="Totals may be incomplete"
+                description="An estimate exceeded the row limit, so these figures are based on a partial set."
+              />
+            ) : data.requiresSelectedPair ? (
+              <Banner
+                tone="info"
                 title="Showing only the estimates you picked"
                 description="This project is large, so totals are limited to the estimates selected above."
               />

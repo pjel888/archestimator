@@ -51,16 +51,33 @@ export type ProjectChartSupplierFact = {
 
 export type ProjectChartsDataLoadMode = "all-estimates" | "selected-pair";
 
+/** Pre-aggregated buckets for one estimate in one grouping mode. */
+export type ProjectChartModeSeries = {
+  total: number;
+  allBuckets: ProjectChartBucket[];
+};
+
+/** Pre-aggregated buckets for one estimate across all grouping modes. */
+export type ProjectChartEstimateSeries = Record<ProjectChartGroupingMode, ProjectChartModeSeries>;
+
+/**
+ * The charts data contract. Aggregation now runs server-side (`02` DB-4 /
+ * `01` PERF-2): the repository ships pre-bucketed series per loaded estimate, NOT
+ * the raw `estimate_row_items` / `estimate_nodes` / `component_category_nodes` /
+ * `component_suppliers` facts. This closes the data-minimization finding
+ * (`05` SEC-1 / M5) — qty / unit cost / supplier ids never cross the wire — and
+ * collapses the payload from ~MB of rows to ~KB of buckets.
+ */
 export type ProjectChartsData = {
   projectId: string;
   projectName: string;
   estimateOptions: ProjectChartEstimateOption[];
-  rowFacts: ProjectChartRowFact[];
-  nodeFacts: ProjectChartNodeFact[];
-  categoryNodeFacts: ProjectChartCategoryNodeFact[];
-  supplierFacts: ProjectChartSupplierFact[];
+  /** Pre-aggregated buckets, keyed by the estimates that were loaded. */
+  seriesByEstimateId: Record<string, ProjectChartEstimateSeries>;
   loadMode: ProjectChartsDataLoadMode;
   requiresSelectedPair: boolean;
+  /** True when row/node loads were truncated → totals may be incomplete. */
+  didTruncate: boolean;
   rowLimit: number;
   estimateLimit: number;
 };

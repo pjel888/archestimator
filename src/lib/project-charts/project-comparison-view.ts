@@ -16,6 +16,7 @@ import { colorForBucket } from "./bucket-color";
 import type {
   ProjectChartBucket,
   ProjectChartEstimateOption,
+  ProjectChartEstimateSeries,
   ProjectChartGroupingMode,
   ProjectChartCategoryNodeFact,
   ProjectChartNodeFact,
@@ -23,19 +24,61 @@ import type {
   ProjectChartSupplierFact,
 } from "./types";
 
+const GROUPING_MODES: ProjectChartGroupingMode[] = ["space", "category", "supplier"];
+
 export type ProjectChartComparisonViewInput = {
   estimates: ProjectChartEstimateOption[];
-  rows: ProjectChartRowFact[];
-  nodes: ProjectChartNodeFact[];
-  categoryNodes: ProjectChartCategoryNodeFact[];
-  suppliers: ProjectChartSupplierFact[];
+  /** Pre-aggregated buckets per loaded estimate (the server payload). */
+  seriesByEstimateId: Record<string, ProjectChartEstimateSeries>;
   groupingMode: ProjectChartGroupingMode;
   /** Estimate ids to compare, in display order. The first is the default baseline. */
   estimateIds: string[];
   /** Override baseline; defaults to estimateIds[0]. */
   baselineEstimateId?: string | null;
+};
+
+type RawFactsInput = {
+  estimates: ProjectChartEstimateOption[];
+  rows: ProjectChartRowFact[];
+  nodes: ProjectChartNodeFact[];
+  categoryNodes: ProjectChartCategoryNodeFact[];
+  suppliers: ProjectChartSupplierFact[];
   topBucketLimit?: number;
 };
+
+/**
+ * Aggregate one estimate into pre-bucketed series for every grouping mode. Runs
+ * server-side in the repository so raw facts never reach the client (`02` DB-4).
+ */
+export function buildEstimateSeries(input: RawFactsInput, estimateId: string): ProjectChartEstimateSeries {
+  const partial = {} as ProjectChartEstimateSeries;
+  for (const groupingMode of GROUPING_MODES) {
+    const series = buildProjectChartSeries({
+      estimates: input.estimates,
+      rows: input.rows,
+      nodes: input.nodes,
+      categoryNodes: input.categoryNodes,
+      suppliers: input.suppliers,
+      groupingMode,
+      estimateId,
+      topBucketLimit: input.topBucketLimit,
+    });
+    partial[groupingMode] = { total: series.total, allBuckets: series.allBuckets };
+  }
+  return partial;
+}
+
+/** Aggregate every requested estimate into the server payload's series map. */
+export function buildSeriesByEstimate(
+  input: RawFactsInput,
+  estimateIds: string[],
+): Record<string, ProjectChartEstimateSeries> {
+  const out: Record<string, ProjectChartEstimateSeries> = {};
+  for (const estimateId of [...new Set(estimateIds)]) {
+    out[estimateId] = buildEstimateSeries(input, estimateId);
+  }
+  return out;
+}
 
 export type ProjectChartComparisonViewEstimate = {
   id: string;
@@ -91,8 +134,9 @@ const EQUAL_THRESHOLD = 0.005;
 export function buildProjectChartComparisonView(
   input: ProjectChartComparisonViewInput,
 ): ProjectChartComparisonView {
-  const topBucketLimit = input.topBucketLimit ?? 8;
-  const orderedIds = input.estimateIds.filter((id, index) => input.estimateIds.indexOf(id) === index);
+  const orderedIds = input.estimateIds.filter(
+    (id, index) => input.estimateIds.indexOf(id) === index && Boolean(input.seriesByEstimateId[id]),
+  );
 
   const baselineEstimateId =
     (input.baselineEstimateId && orderedIds.includes(input.baselineEstimateId)
@@ -105,32 +149,16 @@ export function buildProjectChartComparisonView(
     input.estimates.find((estimate) => estimate.id === comparandEstimateId)?.currencyCode ??
     "PHP";
 
-  // Build one series per estimate (re-uses the engine's bucket resolution).
-  const seriesByEstimateId = new Map(
-    orderedIds.map((estimateId) => [
-      estimateId,
-      buildProjectChartSeries({
-        estimates: input.estimates,
-        rows: input.rows,
-        nodes: input.nodes,
-        categoryNodes: input.categoryNodes,
-        suppliers: input.suppliers,
-        groupingMode: input.groupingMode,
-        estimateId,
-        topBucketLimit,
-      }),
-    ]),
+  const modeSeriesById = new Map(
+    orderedIds.map((estimateId) => [estimateId, input.seriesByEstimateId[estimateId]?.[input.groupingMode] ?? null]),
   );
 
-  const estimates: ProjectChartComparisonViewEstimate[] = orderedIds.map((id) => {
-    const series = seriesByEstimateId.get(id);
-    return {
-      id,
-      name: series?.estimateName ?? input.estimates.find((estimate) => estimate.id === id)?.name ?? "Estimate",
-      total: series?.total ?? 0,
-      isBaseline: id === baselineEstimateId,
-    };
-  });
+  const estimates: ProjectChartComparisonViewEstimate[] = orderedIds.map((id) => ({
+    id,
+    name: input.estimates.find((estimate) => estimate.id === id)?.name ?? "Estimate",
+    total: modeSeriesById.get(id)?.total ?? 0,
+    isBaseline: id === baselineEstimateId,
+  }));
 
   const totalsByEstimateId: Record<string, number> = {};
   for (const estimate of estimates) {
@@ -141,7 +169,7 @@ export function buildProjectChartComparisonView(
   const bucketLabelById = new Map<string, string>();
   const bucketIds: string[] = [];
   for (const estimateId of orderedIds) {
-    for (const bucket of seriesByEstimateId.get(estimateId)?.allBuckets ?? []) {
+    for (const bucket of modeSeriesById.get(estimateId)?.allBuckets ?? []) {
       if (!bucketLabelById.has(bucket.id)) {
         bucketLabelById.set(bucket.id, bucket.label);
         bucketIds.push(bucket.id);
@@ -149,11 +177,12 @@ export function buildProjectChartComparisonView(
     }
   }
 
-  const bucketAccessor = (estimateId: string | null) => {
-    if (!estimateId) return new Map<string, ProjectChartBucket>();
-    return new Map((seriesByEstimateId.get(estimateId)?.allBuckets ?? []).map((bucket) => [bucket.id, bucket]));
-  };
-  const accessorByEstimateId = new Map(orderedIds.map((id) => [id, bucketAccessor(id)]));
+  const accessorByEstimateId = new Map(
+    orderedIds.map((id) => [
+      id,
+      new Map<string, ProjectChartBucket>((modeSeriesById.get(id)?.allBuckets ?? []).map((bucket) => [bucket.id, bucket])),
+    ]),
+  );
 
   const buckets: ProjectChartComparisonViewBucket[] = bucketIds.map((bucketId) => {
     const perEstimateTotals: Record<string, number> = {};
@@ -204,6 +233,28 @@ export function buildProjectChartComparisonView(
     buckets,
     insight,
   };
+}
+
+/**
+ * Convenience adapter: build the comparison view directly from raw facts by first
+ * aggregating server-side. Used by tests and any caller that still holds raw facts
+ * (the client always uses the pre-bucketed `buildProjectChartComparisonView`).
+ */
+export function buildProjectChartComparisonViewFromFacts(
+  input: RawFactsInput & {
+    groupingMode: ProjectChartGroupingMode;
+    estimateIds: string[];
+    baselineEstimateId?: string | null;
+  },
+): ProjectChartComparisonView {
+  const seriesByEstimateId = buildSeriesByEstimate(input, input.estimateIds);
+  return buildProjectChartComparisonView({
+    estimates: input.estimates,
+    seriesByEstimateId,
+    groupingMode: input.groupingMode,
+    estimateIds: input.estimateIds,
+    baselineEstimateId: input.baselineEstimateId,
+  });
 }
 
 function buildInsightInput({

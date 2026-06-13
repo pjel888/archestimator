@@ -388,6 +388,14 @@ function buildComparisonRows(
     .sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta) || left.label.localeCompare(right.label));
 }
 
+/** Public top-N + "Other" collapse, used client-side for the donut share view. */
+export function collapseProjectChartBuckets(
+  buckets: ProjectChartBucket[],
+  topBucketLimit = 8,
+): ProjectChartBucket[] {
+  return collapseTopBuckets(buckets, topBucketLimit);
+}
+
 function collapseTopBuckets(buckets: ProjectChartBucket[], topBucketLimit: number): ProjectChartBucket[] {
   if (buckets.length <= topBucketLimit) {
     return buckets;
