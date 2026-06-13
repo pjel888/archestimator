@@ -60,10 +60,10 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
           disabled={isSubmitting || isLocked}
         />
       </label>
-      {status === "invalid" ? <p className="text-[13px] leading-[18px] tracking-normal text-red-700">Password is invalid.</p> : null}
-      {status === "error" ? <p className="text-[13px] leading-[18px] tracking-normal text-red-700">Unable to unlock publication.</p> : null}
+      {status === "invalid" ? <p className="text-[13px] leading-[18px] tracking-normal text-danger">Password is invalid.</p> : null}
+      {status === "error" ? <p className="text-[13px] leading-[18px] tracking-normal text-danger">Unable to unlock publication.</p> : null}
       {isLocked ? (
-        <p className="text-[13px] leading-[18px] tracking-normal text-red-700">Too many attempts. Please try again later.</p>
+        <p className="text-[13px] leading-[18px] tracking-normal text-danger">Too many attempts. Please try again later.</p>
       ) : null}
       <button
         className="h-9 bg-ink px-3 text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
