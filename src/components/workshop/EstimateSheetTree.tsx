@@ -63,7 +63,7 @@ type EstimateSheetTreeProps = {
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
-const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Tabs" }] as const;
+const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheets" }] as const;
 
 type ReorderStatus =
   | { state: "idle" }
@@ -1326,7 +1326,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           ]}
           tabs={ESTIMATE_TREE_TABS}
           activeTab="sheets"
-          tabsAriaLabel="Estimate tree views"
+          tabVariant="tabs"
+          tabsAriaLabel="Estimate sheets"
         />
 
         <div className="relative flex min-h-0 flex-1 flex-col">

@@ -1938,7 +1938,8 @@ export function EstimateRightSidebar({
           ]}
           tabs={LIBRARY_TREE_TABS}
           activeTab={activeTab}
-          tabsAriaLabel="Library tree views"
+          tabVariant="tabs"
+          tabsAriaLabel="Library sections"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
         >
           {activeTab === "components" && viewModeMenuOpen ? (
