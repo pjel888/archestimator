@@ -377,3 +377,58 @@ remained was the **first/cold expand UX**: inline "Loading…" banners that push
 - **Owner runbook follow-up:** decide tab-scoped validation (new `validate_estimate_node_tree(
   estimate_id, tab_id)` overload + scoped trigger), benchmark on a >3000-node fixture, prove via the
   Postgres harness, then apply. Until then both insert RPCs keep the whole-estimate validation.
+
+---
+
+## Closeout (2026-06-13)
+
+### Final gate — `bun run validate` + `bun run build` (Node v25.8.0)
+- **EXIT 0.** type-check ✓ · ESLint **0 errors / 8 pre-existing warnings** · lint:design-system ✓ ·
+  lint:design ✓ · bun unit ✓ · DOM Vitest **1823 passed / 3 skipped across 245 files** (244 files
+  passed, 1 skipped) · `next build` **compiled successfully + 35 static pages**.
+- Postgres harness `scripts/prove-estimate-tabs-postgres.mjs` EXIT 0 (denials 4–7 + happy path +
+  provenance + `project_source_inserted` event), run earlier in the U2 phase and unchanged since.
+
+### Unit status (final)
+| Unit | Status |
+|------|--------|
+| U1, U1b | DONE (local) |
+| U2 (+RPC) | DONE local; **RPC apply owner-gated** |
+| U3 | DONE (local) |
+| U4 (+RPC) | DONE local; **RPC apply owner-gated** |
+| U5 | DONE (local) |
+| U6 + U23 | DONE (local) |
+| U7 | **DEFERRED** (silent-truncation risk; needs pagination/limit-state UX) |
+| U8 | **DEFERRED** (dominant cost is the deferred constraint trigger; owner/benchmark/correctness-gated) |
+| U9 | DONE (local); EXPLAIN proof owner/manual |
+| U10, U11 | DONE (local) |
+| U12, U13, U14, U15 | DONE (local) |
+| U16 | DONE — denials 4–7 (Postgres harness) + insert-action + outline fail-closed tests; **e2e un-skip owner/env-gated** |
+| U17 | DONE — `build_or_update_graph` re-index (37 files, FTS rebuilt) |
+| U18, U19, U21 | DONE (local) |
+| U20 | DEFERRED (doc marks Optional; lite loader + prefetch already hit the warm-cache bar) |
+| U22 | DONE (decision doc) |
+
+### Closeout actions done
+- `.ai/10_state/current-state.md` + `.ai/10_state/decisions.md` updated with shipped reality (on the
+  worktree branch — note: an initial edit landed in the main checkout by mistake; reverted there and
+  re-applied to the worktree, which is the branch that will merge).
+- Plan folder archived: `git mv .ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan →
+  .ai/09_archive/store/2026-06-13-Templates-Audit-And-Improvement-Plan` (history preserved; the
+  owner runbook doc 14 travels with the pack).
+
+### Owner-gated remainder (NOT executed — provider boundary)
+1. Apply (after the D-A foundation `20260612094734_estimate_tabs_foundation.sql`, in order):
+   `20260613170000_harden_template_insert_can_edit.sql`, then
+   `20260613180000_insert_estimate_subtree_rpc.sql` — against project `ebxxqidacheyapmmzavr` only.
+2. `supabase gen types` and drop the narrow RPC casts in `reusable-sources/actions.ts`.
+3. Hosted verification: insert a project source into an estimate; confirm the `project_source_inserted`
+   activity event + provenance; XLSX export over a multi-tab estimate.
+4. EXPLAIN proof for U9 (composite-index use); large-fixture benchmark + tab-scoped-validation design
+   for U7/U8; un-skip `e2e/estimate-tabs.spec.ts` with seeded fixtures.
+5. Open PR from `claude/2026-06-13-Templates-Audit-And-Improvement-Plan` (not pushed by this agent).
+
+**Honest completion statement:** all in-scope, locally-actionable units are implemented and proven
+green (`validate` + `build` + Postgres harness EXIT 0); U7/U8/U20 are deferred with documented
+rationale; the migration applies, type regen, hosted verify, EXPLAIN/benchmark, and e2e un-skip are
+owner-gated and explicitly NOT performed. No false completion claim is made for the owner-gated items.
