@@ -8,11 +8,18 @@ const mocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
+  getEstimateTreesForTabs: vi.fn(),
   createProposalWorkbookBuffer: vi.fn(),
   getCurrentUserContext: vi.fn(),
   checkProposalExportRateLimit: vi.fn(),
   createSupabaseServerClient: vi.fn(),
 }));
+
+const baseProjectEstimate = {
+  workspace: { id: "workspace-1", name: "BuildCo Workspace" },
+  project: { id: "project-1", name: "Synthetic Hotel Fit-Out Study", project_code: "SYN-001", location: "Metro City", currency_code: "PHP", client_name: "Acme Developers Inc." },
+  estimate: { id: "estimate-1", name: "Interior Fit-Out Estimate", sheet_code: "EST-001", currency_code: "PHP", metadata: { versionNumber: 3 } },
+};
 
 // Chainable Supabase mock for the workspace_members membership lookup (audience gate).
 function membershipClient(role: string | null) {
@@ -28,6 +35,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   getProjectEstimateTreeByEstimate: mocks.getProjectEstimateTreeByEstimate,
   getEstimateTabs: mocks.getEstimateTabs,
   getEstimateTabTree: mocks.getEstimateTabTree,
+  getEstimateTreesForTabs: mocks.getEstimateTreesForTabs,
 }));
 
 vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
@@ -294,44 +302,27 @@ describe("proposal xlsx export route", () => {
     expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-Main-proposal.xlsx");
   });
 
-  it("exports all active tabs by default when an estimate has multiple tabs", async () => {
+  it("exports all active tabs by default via the batched de-dup fetch (P2-T7)", async () => {
     mocks.getEstimateTabs.mockResolvedValueOnce([
       { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
       { id: "tab-alt", name: "Alt / Scope", sortOrder: 10, isDefault: false },
     ]);
-    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => Promise.resolve({
-      workspace: { id: "workspace-1" },
-      project: {
-        id: "project-1",
-        name: "Synthetic Hotel Fit-Out Study",
-        project_code: "SYN-001",
-        location: "Metro City",
-        currency_code: "PHP",
-      },
-      estimate: {
-        id: "estimate-1",
-        name: "Interior Fit-Out Estimate",
-        sheet_code: "EST-001",
-        currency_code: "PHP",
-        metadata: { versionNumber: 3 },
-      },
-      tab: { id: tabId, name: tabId === "tab-alt" ? "Alt / Scope" : "Main", sortOrder: tabId === "tab-alt" ? 10 : 0, isDefault: tabId === "tab-main" },
-      selectedNodeId: "area-1",
-      tree,
-      loadLimitState: {
-        maxNodeCount: 1200,
-        maxRowItemCount: 3000,
-        fetchedNodeCount: 1,
-        fetchedRowItemCount: 1,
-        didExceedNodeLimit: false,
-        didExceedRowItemLimit: false,
-      },
-    }));
+    mocks.getEstimateTreesForTabs.mockResolvedValueOnce({
+      ...baseProjectEstimate,
+      tabs: [
+        { tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }, tree },
+        { tab: { id: "tab-alt", name: "Alt / Scope", sortOrder: 10, isDefault: false }, tree },
+      ],
+      loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 2, fetchedRowItemCount: 2, didExceedNodeLimit: false, didExceedRowItemLimit: false },
+    });
 
     const response = await GET(request(), {
       params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
     });
 
+    // One batched fetch instead of a per-tab fan-out.
+    expect(mocks.getEstimateTreesForTabs).toHaveBeenCalledTimes(1);
+    expect(mocks.getEstimateTabTree).not.toHaveBeenCalled();
     expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
     expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -343,6 +334,25 @@ describe("proposal xlsx export route", () => {
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
+  });
+
+  it("rejects an oversized all-tabs export early via the batched over-fetch guard (P2-T7, F-24)", async () => {
+    mocks.getEstimateTabs.mockResolvedValueOnce([
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-alt", name: "Alt / Scope", sortOrder: 10, isDefault: false },
+    ]);
+    mocks.getEstimateTreesForTabs.mockResolvedValueOnce({
+      ...baseProjectEstimate,
+      tabs: [{ tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }, tree }],
+      loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 1201, fetchedRowItemCount: 3001, didExceedNodeLimit: true, didExceedRowItemLimit: true },
+    });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(413);
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
   it("returns a logged JSON 500 (not a stack page) when workbook generation throws", async () => {
@@ -363,21 +373,18 @@ describe("proposal xlsx export route", () => {
     errorSpy.mockRestore();
   });
 
-  it("skips a tab archived mid-request (allSettled) instead of failing the whole export", async () => {
+  it("includes a tab with no exportable rows in the all-tabs export (P2-T7)", async () => {
     mocks.getEstimateTabs.mockResolvedValueOnce([
       { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
-      { id: "tab-gone", name: "Gone", sortOrder: 10, isDefault: false },
+      { id: "tab-empty", name: "Empty", sortOrder: 10, isDefault: false },
     ]);
-    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => {
-      const base = {
-        workspace: { id: "workspace-1" },
-        project: { id: "project-1", name: "Synthetic Hotel Fit-Out Study", project_code: "SYN-001", location: "Metro City", currency_code: "PHP" },
-        estimate: { id: "estimate-1", name: "Interior Fit-Out Estimate", sheet_code: "EST-001", currency_code: "PHP", metadata: { versionNumber: 3 } },
-        selectedNodeId: "area-1",
-        loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 1, fetchedRowItemCount: 1, didExceedNodeLimit: false, didExceedRowItemLimit: false },
-      };
-      if (tabId === "tab-gone") return Promise.resolve({ ...base, tab: null, tree: [] });
-      return Promise.resolve({ ...base, tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }, tree });
+    mocks.getEstimateTreesForTabs.mockResolvedValueOnce({
+      ...baseProjectEstimate,
+      tabs: [
+        { tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }, tree },
+        { tab: { id: "tab-empty", name: "Empty", sortOrder: 10, isDefault: false }, tree: [] },
+      ],
+      loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 1, fetchedRowItemCount: 1, didExceedNodeLimit: false, didExceedRowItemLimit: false },
     });
 
     const response = await GET(request(), {
@@ -386,37 +393,26 @@ describe("proposal xlsx export route", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
-      expect.objectContaining({ tabs: [expect.objectContaining({ tabId: "tab-main", tabName: "Main" })] }),
+      expect.objectContaining({
+        tabs: [expect.objectContaining({ tabId: "tab-main" }), expect.objectContaining({ tabId: "tab-empty" })],
+      }),
     );
   });
 
-  it("skips a tab whose fetch rejects (allSettled) instead of failing the whole export", async () => {
+  it("returns a logged JSON 500 when the batched all-tabs fetch fails (P2-T7)", async () => {
     mocks.getEstimateTabs.mockResolvedValueOnce([
       { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
-      { id: "tab-boom", name: "Boom", sortOrder: 10, isDefault: false },
+      { id: "tab-alt", name: "Alt", sortOrder: 10, isDefault: false },
     ]);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => {
-      if (tabId === "tab-boom") return Promise.reject(new Error("tab fetch failed"));
-      return Promise.resolve({
-        workspace: { id: "workspace-1" },
-        project: { id: "project-1", name: "Synthetic Hotel Fit-Out Study", project_code: "SYN-001", location: "Metro City", currency_code: "PHP" },
-        estimate: { id: "estimate-1", name: "Interior Fit-Out Estimate", sheet_code: "EST-001", currency_code: "PHP", metadata: { versionNumber: 3 } },
-        tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
-        selectedNodeId: "area-1",
-        tree,
-        loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 1, fetchedRowItemCount: 1, didExceedNodeLimit: false, didExceedRowItemLimit: false },
-      });
-    });
+    mocks.getEstimateTreesForTabs.mockRejectedValueOnce(new Error("batched fetch failed"));
 
     const response = await GET(request(), {
       params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
     });
 
-    expect(response.status).toBe(200);
-    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
-      expect.objectContaining({ tabs: [expect.objectContaining({ tabId: "tab-main" })] }),
-    );
+    expect(response.status).toBe(500);
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
     errorSpy.mockRestore();
   });
 

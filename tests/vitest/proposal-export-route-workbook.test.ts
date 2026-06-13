@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
+  getEstimateTreesForTabs: vi.fn(),
   getCurrentUserContext: vi.fn(),
   checkProposalExportRateLimit: vi.fn(),
 }));
@@ -15,6 +16,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   getProjectEstimateTreeByEstimate: mocks.getProjectEstimateTreeByEstimate,
   getEstimateTabs: mocks.getEstimateTabs,
   getEstimateTabTree: mocks.getEstimateTabTree,
+  getEstimateTreesForTabs: mocks.getEstimateTreesForTabs,
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -162,34 +164,16 @@ describe("proposal xlsx export route workbook integration", () => {
       { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
       { id: "tab-alt", name: "Alt / Scope", sortOrder: 10, isDefault: false },
     ]);
-    mocks.getEstimateTabTree.mockImplementation((_projectId: string, _estimateId: string, tabId: string) => Promise.resolve({
-      workspace: { id: "workspace-1" },
-      project: {
-        id: "project-1",
-        name: "Route Proof Residence",
-        project_code: "RTE-001",
-        location: "Makati City",
-        currency_code: "PHP",
-      },
-      estimate: {
-        id: "estimate-1",
-        name: "Route Proof Estimate",
-        sheet_code: "RTE-EST",
-        currency_code: "PHP",
-        metadata: { versionNumber: 4 },
-      },
-      tab: { id: tabId, name: tabId === "tab-alt" ? "Alt / Scope" : "Main", sortOrder: tabId === "tab-alt" ? 10 : 0, isDefault: tabId === "tab-main" },
-      selectedNodeId: "route-proof-area-a",
-      tree: makeTree(4),
-      loadLimitState: {
-        maxNodeCount: 1200,
-        maxRowItemCount: 3000,
-        fetchedNodeCount: 3,
-        fetchedRowItemCount: 4,
-        didExceedNodeLimit: false,
-        didExceedRowItemLimit: false,
-      },
-    }));
+    mocks.getEstimateTreesForTabs.mockResolvedValueOnce({
+      workspace: { id: "workspace-1", name: "Route Proof Co" },
+      project: { id: "project-1", name: "Route Proof Residence", project_code: "RTE-001", location: "Makati City", currency_code: "PHP" },
+      estimate: { id: "estimate-1", name: "Route Proof Estimate", sheet_code: "RTE-EST", currency_code: "PHP", metadata: { versionNumber: 4 } },
+      tabs: [
+        { tab: { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }, tree: makeTree(4) },
+        { tab: { id: "tab-alt", name: "Alt / Scope", sortOrder: 10, isDefault: false }, tree: makeTree(4) },
+      ],
+      loadLimitState: { maxNodeCount: 1200, maxRowItemCount: 3000, fetchedNodeCount: 6, fetchedRowItemCount: 8, didExceedNodeLimit: false, didExceedRowItemLimit: false },
+    });
 
     const response = await GET(request(), {
       params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),

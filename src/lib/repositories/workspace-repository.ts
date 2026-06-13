@@ -1803,6 +1803,122 @@ export async function getEstimateTabTree(
   return { workspace, project, estimate: normalizedEstimate, tab: toEstimateTabSummary(tab), selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
 }
 
+export type LiveEstimateTabTree = { tab: EstimateTabSummary; tree: EstimateTreeNode[] };
+export type LiveEstimateTreesForTabsResult = {
+  workspace: Tables<"workspaces">;
+  project: Tables<"projects"> | null;
+  estimate: Tables<"estimates"> | null;
+  tabs: LiveEstimateTabTree[];
+  loadLimitState?: LiveEstimateTreeLoadLimitState;
+};
+
+const ESTIMATE_TREE_NODE_COLUMNS_WITH_TAB = `${ESTIMATE_TREE_NODE_COLUMNS}, estimate_tab_id`;
+
+// F-14 (P2-T7): pure grouping of a single batched nodes+rows fetch into per-tab trees, exported
+// so the partition logic is unit-tested without a DB. Nodes carry estimate_tab_id; rows are
+// attached to their tab via their node. Tab order follows the passed `tabs`.
+export function groupEstimateTabTrees(
+  tabs: EstimateTabSummary[],
+  nodes: Array<EstimateTreeNodeQueryRow & { estimate_tab_id?: string | null }>,
+  rows: EstimateTreeRowItemQueryRow[],
+): LiveEstimateTabTree[] {
+  const nodesByTab = new Map<string, EstimateTreeNodeQueryRow[]>();
+  const nodeIdToTab = new Map<string, string>();
+  for (const node of nodes) {
+    const tabId = node.estimate_tab_id;
+    if (!tabId) continue;
+    nodeIdToTab.set(node.id, tabId);
+    const list = nodesByTab.get(tabId) ?? [];
+    list.push(node);
+    nodesByTab.set(tabId, list);
+  }
+  const rowsByTab = new Map<string, EstimateTreeRowItemQueryRow[]>();
+  for (const row of rows) {
+    const tabId = nodeIdToTab.get(row.node_id);
+    if (!tabId) continue;
+    const list = rowsByTab.get(tabId) ?? [];
+    list.push(row);
+    rowsByTab.set(tabId, list);
+  }
+  return tabs.map((tab) => ({
+    tab,
+    tree: buildEstimateTree(nodesByTab.get(tab.id) ?? [], rowsByTab.get(tab.id) ?? []),
+  }));
+}
+
+// F-14/F-24 (P2-T7): NEW additive function (no existing signature changes). Replaces the per-tab
+// getEstimateTabTree fan-out for the all-tabs export with one estimate lookup + one batched
+// nodes query + one batched rows query, preserving the LIMIT max+1 over-fetch guard so the
+// total (not per-tab) count is capped and the 413 fires early. Takes the already-resolved tab
+// summaries so it does not re-query estimate_tabs.
+export async function getEstimateTreesForTabs(
+  projectId: string,
+  estimateId: string,
+  tabs: EstimateTabSummary[],
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<LiveEstimateTreesForTabsResult> {
+  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return { workspace, project: null, estimate: null, tabs: [] };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("*")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+  if (estimateError) throw estimateError;
+  if (!estimate) return { workspace, project, estimate: null, tabs: [] };
+
+  const tabIds = tabs.map((tab) => tab.id);
+  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
+  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+
+  const nodesQuery = supabase
+    .from("estimate_nodes")
+    .select(ESTIMATE_TREE_NODE_COLUMNS_WITH_TAB)
+    .eq("estimate_id", estimate.id)
+    .in("estimate_tab_id", tabIds)
+    .order("sort_order", { ascending: true });
+  const nodesResult = maxNodeCount ? await nodesQuery.limit(maxNodeCount + 1) : await nodesQuery;
+  if (nodesResult.error) throw nodesResult.error;
+  const rawNodes = (nodesResult.data ?? []) as Array<EstimateTreeNodeQueryRow & { estimate_tab_id: string | null }>;
+  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
+  const nodeIds = limitedNodes.rows.map((node) => node.id);
+
+  let rawRows: EstimateTreeRowItemQueryRow[] = [];
+  if (nodeIds.length > 0) {
+    const rowsQuery = supabase
+      .from("estimate_row_items")
+      .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
+      .in("node_id", nodeIds)
+      .order("sort_order", { ascending: true });
+    const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
+    if (rowsResult.error) throw rowsResult.error;
+    rawRows = rowsResult.data ?? [];
+  }
+  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
+
+  const loadLimitState = maxNodeCount || maxRowItemCount
+    ? {
+      maxNodeCount,
+      maxRowItemCount,
+      fetchedNodeCount: rawNodes.length,
+      fetchedRowItemCount: rawRows.length,
+      didExceedNodeLimit: limitedNodes.didExceedLimit,
+      didExceedRowItemLimit: limitedRows.didExceedLimit,
+    }
+    : undefined;
+
+  return {
+    workspace,
+    project,
+    estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy),
+    tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows),
+    loadLimitState,
+  };
+}
+
 export async function getProjectEstimateTreeByEstimate(
   projectId: string,
   estimateId: string,
