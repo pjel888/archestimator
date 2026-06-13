@@ -269,6 +269,8 @@ describe("ProjectPublicationHeader publication control", () => {
       projectId: "project-1",
       selectedEstimateIds: ["est-1", "est-2"],
       password: "client-pass-1",
+      // AC-MOD-10: Generate threads the owner expiry; this summary has no expiry so it stays null.
+      expiresAt: null,
     });
     // Switch back to Link tab to see the populated input (generate works from any tab)
     await user.click(within(dialog).getByRole("tab", { name: "Link" }));
@@ -338,6 +340,8 @@ describe("ProjectPublicationHeader publication control", () => {
       selectedEstimateIds: ["est-1"],
       password: undefined,
       clearPassword: false,
+      // AC-MOD-10: Update now threads the owner expiry; this summary has no expiry so it stays null.
+      expiresAt: null,
     });
   });
 
@@ -401,6 +405,139 @@ describe("ProjectPublicationHeader publication control", () => {
       password: undefined,
       clearPassword: true,
     });
+  });
+
+  // AC-MOD-10 — expired links reactivate in place (same token + password), no protected→open downgrade.
+  it("reactivates an expired link in place (republish with expiresAt: null), keeping the token", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+
+    const user = userEvent.setup();
+    const expiredSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "expired",
+      expiresAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    render(
+      <ProjectPublicationHeader summary={expiredSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // The primary control in the expired state is a safe in-place reactivate (no confirm).
+    const reactivateButton = within(dialog).getByRole("button", { name: "Reactivate link" });
+    expect(reactivateButton).toBeEnabled();
+    await user.click(reactivateButton);
+
+    expect(publicationActions.republishProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1", "est-2"],
+      expiresAt: null,
+    });
+    // Reactivation never mints a new token via the create path.
+    expect(publicationActions.createProjectPublication).not.toHaveBeenCalled();
+    expect(publicationActions.rotateProjectPublicationLink).not.toHaveBeenCalled();
+  });
+
+  it("gates the fresh-token 'Create new link instead' path behind a confirm in the expired state", async () => {
+    publicationActions.createProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared link ready.",
+      clientLinkPath: "/share/brand-new-token",
+    });
+
+    const user = userEvent.setup();
+    // A non-password-protected expired link so the deliberate fresh-token path is unambiguous.
+    const expiredSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "expired",
+      passwordRequired: false,
+      expiresAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    render(
+      <ProjectPublicationHeader summary={expiredSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Create new link instead" }));
+    // Confirm required before minting a new token — create must not fire yet.
+    expect(publicationActions.createProjectPublication).not.toHaveBeenCalled();
+    const confirmDialog = screen.getByRole("dialog", { name: "Create a brand-new shared link?" });
+    expect(within(confirmDialog).getAllByText(/recipient links will stop working/i).length).toBeGreaterThan(0);
+    await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
+
+    expect(publicationActions.createProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1", "est-2"],
+      password: undefined,
+      expiresAt: null,
+    });
+  });
+
+  it("flows the owner expiry input value into the Update action (republish)", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+
+    const expiryInput = within(dialog).getByLabelText("Link expiry");
+    // datetime-local value (local wall-clock) → component converts to an ISO string.
+    await user.clear(expiryInput);
+    await user.type(expiryInput, "2027-08-15T12:30");
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+
+    expect(publicationActions.republishProjectPublication).toHaveBeenCalledTimes(1);
+    const call = publicationActions.republishProjectPublication.mock.calls[0][0];
+    expect(call.projectId).toBe("project-1");
+    expect(typeof call.expiresAt).toBe("string");
+    // Round-trips to the same wall-clock instant the owner picked.
+    expect(new Date(call.expiresAt).getTime()).toBe(new Date("2027-08-15T12:30").getTime());
+  });
+
+  it("passes expiresAt: null into the Update action when the expiry input is cleared", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+
+    const user = userEvent.setup();
+    const expiringSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      expiresAt: "2027-01-01T00:00:00.000Z",
+    };
+    render(
+      <ProjectPublicationHeader summary={expiringSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+
+    const expiryInput = within(dialog).getByLabelText("Link expiry");
+    await user.clear(expiryInput);
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+
+    const call = publicationActions.republishProjectPublication.mock.calls[0][0];
+    expect(call.expiresAt).toBeNull();
   });
 
   it("disables generate when 0 estimates selected (sheet filter validation)", async () => {

@@ -540,18 +540,27 @@ export async function republishProjectPublication({
   selectedEstimateIds,
   password,
   clearPassword = false,
+  expiresAt,
 }: {
   projectId: string;
   selectedEstimateIds?: string[];
   password?: string;
   clearPassword?: boolean;
+  // AC-MOD-10: undefined = leave the stored expiry unchanged; null = clear expiry
+  // (reactivate an expired link in place); a string = set/extend expiry.
+  expiresAt?: string | null;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
   const latest = await readLatestProjectPublication(context);
   const estimateIds = normalizeSelectedEstimateIds(selectedEstimateIds);
 
   if (!latest) {
-    return createProjectPublication({ projectId, selectedEstimateIds: estimateIds.length ? estimateIds : undefined, password });
+    return createProjectPublication({
+      projectId,
+      selectedEstimateIds: estimateIds.length ? estimateIds : undefined,
+      password,
+      expiresAt,
+    });
   }
 
   const idsToUse = estimateIds.length ? estimateIds : latest.selected_estimate_ids;
@@ -563,6 +572,10 @@ export async function republishProjectPublication({
       : password
         ? { password_hash: await hashPublicationPassword(password) }
         : {};
+  // AC-MOD-10: only touch expires_at when the caller explicitly passes it. Spreading {}
+  // when expiresAt === undefined keeps the stored expiry intact (e.g. plain "Update shared
+  // page"); null clears it (reactivation); a string sets it.
+  const expiresUpdate = expiresAt === undefined ? {} : { expires_at: expiresAt };
   const { error } = await context.admin
     .from("project_publications")
     .update({
@@ -572,6 +585,7 @@ export async function republishProjectPublication({
       published_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...passwordUpdate,
+      ...expiresUpdate,
     })
     .eq("id", latest.id);
 
