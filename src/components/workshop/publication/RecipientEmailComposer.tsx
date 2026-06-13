@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import {
   addSharedLinkRecipients,
   listSharedLinkRecipients,
@@ -57,6 +58,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
   const [resendingRecipientId, setResendingRecipientId] = useState<string | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<LocalRecipient | null>(null);
   const [emailDeliveryConfigured, setEmailDeliveryConfigured] = useState<boolean | null>(null);
   const [emailDeliveryMessage, setEmailDeliveryMessage] = useState<string | null>(null);
   const projectLabel = projectName?.trim() || "this project";
@@ -282,7 +284,16 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
                 size="sm"
                 aria-label={`Remove ${chip.email}`}
                 className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-danger"
-                onClick={() => void handleRemove(chip)}
+                onClick={() => {
+                  // Persisted chips can destroy a recorded decision (cascade
+                  // DELETE on shared_link_responses) — gate behind a confirm.
+                  // Local-only chips have nothing persisted, so remove inline.
+                  if (chip.id) {
+                    setPendingRemoval(chip);
+                  } else {
+                    removeChip(chip.email);
+                  }
+                }}
                 disabled={isSending}
               >
                 ×
@@ -341,6 +352,55 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       {chips.length === 0 && !isLoadingList && (
         <p className="mt-1 text-[9px] text-tertiary">No recipients yet. Add emails above and send.</p>
       )}
+
+      <Modal
+        open={pendingRemoval !== null}
+        title="Remove recipient?"
+        tone={pendingRemoval?.delivery_status === "responded" ? "destructive" : "default"}
+        onOpenChange={(next) => {
+          if (!next) setPendingRemoval(null);
+        }}
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          {pendingRemoval?.delivery_status === "responded" ? (
+            <p className="rounded-xs border border-dangerSoft bg-dangerSoft px-2 py-1.5 text-[10px] leading-4 text-danger" role="alert">
+              <strong className="font-medium">{pendingRemoval?.email}</strong> has submitted a decision on this
+              shared page. Removing them will <strong className="font-medium">permanently delete their recorded
+              decision</strong> — this cannot be undone.
+            </p>
+          ) : (
+            <p className="text-[10px] leading-4 text-secondary">
+              Remove <strong className="font-medium">{pendingRemoval?.email}</strong>? Their personal link will stop
+              working and they&apos;ll lose access to this shared page.
+            </p>
+          )}
+          <div className="flex justify-end gap-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              onClick={() => setPendingRemoval(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              aria-label="Remove recipient"
+              onClick={() => {
+                if (pendingRemoval) void handleRemove(pendingRemoval);
+                setPendingRemoval(null);
+              }}
+            >
+              Remove recipient
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
