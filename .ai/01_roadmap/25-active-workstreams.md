@@ -13,6 +13,23 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 
 ---
 
+## 2026-06-14 — Library Optimization IMPLEMENTED (merged to main)
+
+The `/workshop/library` optimization plan (`.ai/09_archive/store/2026-06-14-Library-Optimization-Plan/`, now archived)
+moved from planning to implemented on branch `2026-06-14-Library-Optimization-Plan` (merged to main).
+- **Shipped:** P0 felt-latency (delay-before-show overlay, no blur on refresh, Overview skeleton reshape,
+  browse-tab TanStack Query cache + `staleTimes` for warm-revisit no-skeleton, cache-patch mutations);
+  P1 (`ensureDefaultWorkspace` `cache()`-dedupe, single-resolve insert, DS dialogs); P3 (app-layer
+  editor-write guards, `/workshop` hardening headers + Report-Only CSP, creation quota, action-error
+  sanitization, tab/panel ARIA). All TDD + type-check + design-lint + full DOM suite green.
+- **P2 DB scaling-cliff** authored as ready, owner-gated migrations (`migrations/`) — NOT applied to
+  hosted per plan 08 Q4; all additive/relax-only (zero data loss). Apply needs owner approval + the
+  PG17 prove-harness (see `migrations/00_P2_MIGRATIONS_README.md`).
+- **Residual gates (owner):** wall-clock browser standard-session (dev-auth disabled) + hosted P2 apply.
+- Plan archived to `.ai/09_archive/store/2026-06-14-Library-Optimization-Plan/`.
+
+---
+
 ## 2026-06-13 — New planning & audit workstreams (planning only, no code changed)
 
 Four new plan packs were created on 2026-06-13, all planning/audit only (no code, schema, or data changed):

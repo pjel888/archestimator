@@ -53,6 +53,18 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
+    // Library Optimization Plan P0 T3: let the client Router Cache reuse a
+    // recently-rendered dynamic segment on Link / back-forward navigation so a
+    // warm tab revisit does NOT re-suspend the server segment and re-fire its
+    // loading.tsx. Combined with the browse tabs' warm TanStack Query cache
+    // (LibraryPageClient / TemplatesBrowsePageClient), warm Library tab switches
+    // render instantly with no route-level skeleton. App-wide (documented in the
+    // plan's DECISIONS): single-user-per-workspace product, 5-min staleness is
+    // acceptable; mutations bust the relevant cache entries explicitly (T4).
+    staleTimes: {
+      dynamic: 60,
+      static: 180,
+    },
   },
   images: {
     remotePatterns: supabaseImageRemotePatterns,
@@ -114,9 +126,10 @@ const nextConfig: NextConfig = {
     ];
 
     // ── Teamspace Improvement Plan · T1.5 (security finding F8 / gap G4) ───────────
-    // Also satisfies Estimates-List F14 / P3-2 (workshop frame + sniff + Report-Only
-    // CSP): this /workshop/:path* block supersedes the standalone workshop headers
-    // from that plan — same intent, broader coverage (adds /invite + HSTS).
+    // This /workshop/:path* block is the single canonical workshop hardening: it
+    // supersedes BOTH the Library Optimization (T18/F20) and Estimates-List (F14/P3-2)
+    // standalone workshop-headers work — same intent, broader coverage (covers
+    // /workshop AND /invite with no-referrer + HSTS + Report-Only CSP).
     // Authenticated app routes /workshop/* and invite routes /invite/* previously had
     // ZERO security headers (clickjacking + Referer-token-leak risk). We now apply the
     // four hardening headers IMMEDIATELY (reusing `shareHardeningHeaders`):

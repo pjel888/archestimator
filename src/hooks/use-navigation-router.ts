@@ -24,7 +24,9 @@ export function useNavigationRouter() {
         : router.replace(href, options);
     },
     refresh: () => {
-      show("refresh");
+      // No overlay on refresh: mutations are optimistic and the cache refetch is
+      // silent. Blurring the whole app on every mutation made the app feel like
+      // it was doing a full page reload. (Library Optimization Plan, P0 T1.)
       return router.refresh();
     },
     // Overlay-free refresh for reconciliation that needs fresh server data

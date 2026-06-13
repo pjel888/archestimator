@@ -266,11 +266,13 @@ describe("LibraryOverview", () => {
     expect(screen.queryByRole("listbox", { name: "Library search results" })).not.toBeInTheDocument();
   });
 
-  it("routes Add component to the Components tab and opens the scratch template modal", async () => {
+  it("routes Add component to the Components tab (opening the add modal) and opens the scratch template modal", async () => {
     render(<LibraryOverview overview={baseOverview} />);
 
+    // P1 T8 (F23): the CTA now lands on Components AND opens the Add Component modal
+    // via ?add=component (handled in ComponentLibraryManager), instead of just navigating.
     fireEvent.click(screen.getByRole("button", { name: "Add component" }));
-    expect(navigationMocks.push).toHaveBeenCalledWith("/workshop/library/components");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/workshop/library/components?add=component");
 
     fireEvent.click(screen.getByRole("button", { name: "New template" }));
     const dialog = await screen.findByRole("dialog");

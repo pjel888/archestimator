@@ -12,7 +12,8 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
+import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, getCurrentWorkspaceComponentRowsLibrary, getCurrentWorkspaceEstimateTemplates, type ComponentLibraryDataset, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
   ensureDefaultWorkspace,
   listCurrentWorkspaceProjects,
@@ -28,6 +29,7 @@ import {
   type LibraryFolderCreatePlacement,
 } from "./library-folder-reorder";
 import { readComponentSourceUrlInput } from "./source-url";
+import { throwActionError } from "./action-errors";
 
 // U11 (DATA-2/DATA-3): one place to revalidate every server-rendered surface that
 // shows templates — the library browse route AND the library overview (counts) —
@@ -177,8 +179,44 @@ async function assertCanManageLibraryFolders(
   workspaceId: string,
 ) {
   const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
-  if (error) throw new Error(`Could not verify library folder access: ${error.message}`);
+  if (error) throwActionError("Could not verify library folder access.", error);
   if (data !== true) throw new Error("Only workspace editors/admins can manage library folders.");
+}
+
+// Library Optimization Plan P3 T17 (F19/D8): app-layer fail-fast guard mirroring
+// assertCanManageLibraryFolders, applied to every mutating component/template action so
+// a workspace viewer is denied at the app boundary (defense-in-depth on top of the RLS
+// editor-write split). The is_workspace_editor RPC returns true for editors/admins.
+async function assertCanManageLibrary(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+) {
+  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
+  if (error) throwActionError("Could not verify library access.", error);
+  if (data !== true) throw new Error("Only workspace editors/admins can manage the library.");
+}
+
+// Library Optimization Plan P3 T19 (F24): a generous per-workspace creation quota so a
+// runaway client / abuse cannot create unbounded library rows. Enforced at the app layer
+// (a head count, no migration). The caps are far above any legitimate workspace today.
+const LIBRARY_COMPONENT_CAP = 10_000;
+const LIBRARY_TEMPLATE_CAP = 2_000;
+
+async function assertWithinLibraryQuota(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  table: "cost_library_items" | "estimate_templates",
+  workspaceId: string,
+  cap: number,
+  label: string,
+) {
+  const { count, error } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId);
+  if (error) throwActionError(`Could not verify the ${label} limit.`, error);
+  if ((count ?? 0) >= cap) {
+    throw new Error(`This workspace has reached its ${label} limit (${cap}). Archive or delete some first.`);
+  }
 }
 
 function readRequiredComponentText(value: string | undefined | null, label: string) {
@@ -373,6 +411,23 @@ export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<Compon
   return getCurrentWorkspaceComponentLibraryLite();
 }
 
+// Library Optimization Plan P0 T3: client-callable loader for the Components
+// *management* tab. Returns ComponentRowsLibraryDataset (rows + tree + suppliers +
+// brands + folders, no templates). LibraryPageClient seeds a TanStack Query from the
+// server fetch via initialData and refetches through this on warm-cache expiry, so a
+// tab revisit renders from cache without re-suspending the route. Fail-closed for
+// anonymous callers, matching the page-load auth gate.
+export async function loadCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceComponentRowsLibrary();
+}
+
+// Library Optimization Plan P0 T3: client-callable loader for the Templates browse tab.
+export async function loadCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceEstimateTemplates();
+}
+
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   validatePriceOptions(input.priceOptions);
@@ -388,13 +443,15 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     },
   });
   const priceOptions = input.priceOptions.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
+  await assertCanManageLibrary(supabase, workspace.id);
+  await assertWithinLibraryQuota(supabase, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
   const { data, error } = await supabase.rpc("create_cost_library_component", {
     target_workspace_id: workspace.id,
     component: { ...component, createdBy: currentUser.userId } as Json,
     price_options: priceOptions as Json,
   });
 
-  if (error) throw new Error(`Could not create component: ${error.message}`);
+  if (error) throwActionError("Could not create component.", error);
   revalidateLibraryRoutes();
   return {
     itemId: getRpcString(data, "itemId"),
@@ -407,13 +464,14 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
 export async function updateCostLibraryComponent(itemId: string, input: CostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("update_cost_library_component", {
     target_workspace_id: workspace.id,
     target_item_id: itemId,
     component: { ...normalizeComponentInput(input), updatedBy: currentUser.userId } as Json,
   });
 
-  if (error) throw new Error(`Could not update component: ${error.message}`);
+  if (error) throwActionError("Could not update component.", error);
   revalidateLibraryRoutes();
   return {
     itemId: getRpcString(data, "itemId"),
@@ -424,13 +482,14 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
 export async function upsertCostLibraryComponentPriceOption(itemId: string, input: ComponentPriceOptionInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("upsert_cost_library_component_price_option", {
     target_workspace_id: workspace.id,
     target_item_id: itemId,
     price_option: { ...normalizePriceOptionInput(input), updatedBy: currentUser.userId } as Json,
   });
 
-  if (error) throw new Error(`Could not save price option: ${error.message}`);
+  if (error) throwActionError("Could not save price option.", error);
   revalidateLibraryRoutes();
   return {
     itemId: getRpcString(data, "itemId"),
@@ -447,6 +506,7 @@ export async function changeCostLibraryComponentLifecycleState(input: {
 }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("set_cost_library_component_lifecycle_state", {
     target_workspace_id: workspace.id,
     target_item_id: input.itemId,
@@ -456,7 +516,7 @@ export async function changeCostLibraryComponentLifecycleState(input: {
     acting_user_id: currentUser.userId,
   });
 
-  if (error) throw new Error(`Could not change component state: ${error.message}`);
+  if (error) throwActionError("Could not change component state.", error);
   revalidateLibraryRoutes();
   return {
     itemId: getRpcString(data, "itemId"),
@@ -503,6 +563,7 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
     requireCurrentUserContext(),
   ]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("execute_bulk_archive_library_components", {
     target_workspace_id: workspace.id,
     target_item_ids: ids,
@@ -599,7 +660,7 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
     target_workspace_id: workspace.id,
     target_folder_id: folderId,
   });
-  if (error) throw new Error(`Could not delete library folder: ${error.message}`);
+  if (error) throwActionError("Could not delete library folder.", error);
 
   revalidateLibraryRoutes();
 }
@@ -620,7 +681,7 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
     folder_updates: folderUpdates,
   });
 
-  if (error) throw new Error(`Could not reorder library folders: ${error.message}`);
+  if (error) throwActionError("Could not reorder library folders.", error);
   revalidateLibraryRoutes();
 }
 
@@ -657,7 +718,7 @@ export async function moveCostLibraryComponentToFolder(input: MoveCostLibraryCom
     .select("id")
     .maybeSingle();
 
-  if (error) throw new Error(`Could not move component: ${error.message}`);
+  if (error) throwActionError("Could not move component.", error);
   if (!component) throw new Error("Component not found in the current workspace.");
   revalidateLibraryRoutes();
 }
@@ -689,6 +750,7 @@ type EstimateNodeSubtreeRow = {
 export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -705,7 +767,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     .eq("project_id", input.projectId)
     .eq("projects.workspace_id", workspace.id)
     .maybeSingle();
-  if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
+  if (estimateError) throwActionError("Could not load the estimate.", estimateError);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
 
   const { data: nodeRows, error: nodesError } = await supabase
@@ -713,7 +775,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     .select("id, parent_id, kind, name, sort_order")
     .eq("estimate_id", input.estimateId)
     .order("sort_order", { ascending: true });
-  if (nodesError) throw new Error(`Could not load the estimate tree: ${nodesError.message}`);
+  if (nodesError) throwActionError("Could not load the estimate tree.", nodesError);
 
   const allNodes = (nodeRows ?? []) as EstimateNodeSubtreeRow[];
   const sourceNode = allNodes.find((node) => node.id === input.sourceNodeId);
@@ -743,7 +805,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     .eq("estimate_id", input.estimateId)
     .in("node_id", subtreeNodeIds)
     .order("sort_order", { ascending: true });
-  if (rowItemsError) throw new Error(`Could not load the estimate rows: ${rowItemsError.message}`);
+  if (rowItemsError) throwActionError("Could not load the estimate rows.", rowItemsError);
 
   const { data: siblingTemplates, error: sortError } = await supabase
     .from("estimate_templates")
@@ -751,7 +813,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     .eq("workspace_id", workspace.id)
     .order("sort_order", { ascending: false })
     .limit(1);
-  if (sortError) throw new Error(`Could not create the template: ${sortError.message}`);
+  if (sortError) throwActionError("Could not create the template.", sortError);
   const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
 
   const { data: insertedTemplate, error: templateError } = await supabase
@@ -772,7 +834,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     .select("*")
     .single();
   if (templateError || !insertedTemplate) {
-    throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
+    throwActionError("Could not create the template.", templateError);
   }
 
   try {
@@ -792,7 +854,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
       .from("estimate_template_nodes")
       .insert(templateNodeInserts)
       .select("*");
-    if (nodeInsertError) throw new Error(`Could not copy the node structure: ${nodeInsertError.message}`);
+    if (nodeInsertError) throwActionError("Could not copy the node structure.", nodeInsertError);
 
     const rowInserts = (rowItemRows ?? []).map((row) => ({
       template_id: insertedTemplate.id,
@@ -822,7 +884,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
         .from("estimate_template_row_items")
         .insert(rowInserts)
         .select("*");
-      if (rowInsertError) throw new Error(`Could not copy the estimate rows: ${rowInsertError.message}`);
+      if (rowInsertError) throwActionError("Could not copy the estimate rows.", rowInsertError);
       insertedRowItems = data ?? [];
     }
 
@@ -860,6 +922,7 @@ type EstimateTabTemplateNodeRow = EstimateNodeSubtreeRow & {
 export async function createEstimateTemplateFromEstimateTab(input: CreateEstimateTemplateFromTabInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -877,7 +940,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .eq("project_id", input.projectId)
     .eq("projects.workspace_id", workspace.id)
     .maybeSingle();
-  if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
+  if (estimateError) throwActionError("Could not load the estimate.", estimateError);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
 
   const { data: nodeRows, error: nodesError } = await supabase
@@ -886,7 +949,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .eq("estimate_id", input.estimateId)
     .filter("estimate_tab_id", "eq", input.tabId)
     .order("sort_order", { ascending: true });
-  if (nodesError) throw new Error(`Could not load the estimate tab tree: ${nodesError.message}`);
+  if (nodesError) throwActionError("Could not load the estimate tab tree.", nodesError);
 
   const sourceNodes: EstimateTabTemplateNodeRow[] = [];
   for (const node of nodeRows ?? []) {
@@ -905,7 +968,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .eq("estimate_id", input.estimateId)
     .in("node_id", sourceNodeIds)
     .order("sort_order", { ascending: true });
-  if (rowItemsError) throw new Error(`Could not load the estimate rows: ${rowItemsError.message}`);
+  if (rowItemsError) throwActionError("Could not load the estimate rows.", rowItemsError);
 
   const { data: siblingTemplates, error: sortError } = await supabase
     .from("estimate_templates")
@@ -913,7 +976,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .eq("workspace_id", workspace.id)
     .order("sort_order", { ascending: false })
     .limit(1);
-  if (sortError) throw new Error(`Could not create the template: ${sortError.message}`);
+  if (sortError) throwActionError("Could not create the template.", sortError);
   const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
 
   const { data: insertedTemplate, error: templateError } = await supabase
@@ -935,7 +998,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .select("*")
     .single();
   if (templateError || !insertedTemplate) {
-    throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
+    throwActionError("Could not create the template.", templateError);
   }
 
   try {
@@ -975,7 +1038,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
       .from("estimate_template_nodes")
       .insert(templateNodeInserts)
       .select("*");
-    if (nodeInsertError) throw new Error(`Could not copy the tab structure: ${nodeInsertError.message}`);
+    if (nodeInsertError) throwActionError("Could not copy the tab structure.", nodeInsertError);
 
     const rowInserts = (rowItemRows ?? []).map((row) => {
       const templateNodeId = templateNodeIdBySourceId.get(row.node_id);
@@ -1009,7 +1072,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
         .from("estimate_template_row_items")
         .insert(rowInserts)
         .select("*");
-      if (rowInsertError) throw new Error(`Could not copy the estimate rows: ${rowInsertError.message}`);
+      if (rowInsertError) throwActionError("Could not copy the estimate rows.", rowInsertError);
       insertedRowItems = data ?? [];
     }
 
@@ -1036,6 +1099,7 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .update({ name: templateName })
@@ -1044,7 +1108,7 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
     .select("id, name")
     .maybeSingle();
 
-  if (error) throw new Error(`Could not rename template: ${error.message}`);
+  if (error) throwActionError("Could not rename template.", error);
   if (!template) throw new Error("Template not found in the current workspace.");
   revalidateTemplateSurfaces();
   return { templateId: template.id, name: template.name };
@@ -1056,6 +1120,7 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .delete()
@@ -1064,7 +1129,7 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
     .select("id")
     .maybeSingle();
 
-  if (error) throw new Error(`Could not delete template: ${error.message}`);
+  if (error) throwActionError("Could not delete template.", error);
   if (!template) throw new Error("Template not found in the current workspace.");
   revalidateTemplateSurfaces();
   return { templateId: template.id };
@@ -1083,13 +1148,15 @@ export async function createEstimateTemplate(input: { name: string; category?: s
   const templateDescription = (input.description ?? "").trim();
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
+  await assertWithinLibraryQuota(supabase, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
   const { data: siblingTemplates, error: sortError } = await supabase
     .from("estimate_templates")
     .select("sort_order")
     .eq("workspace_id", workspace.id)
     .order("sort_order", { ascending: false })
     .limit(1);
-  if (sortError) throw new Error(`Could not create the template: ${sortError.message}`);
+  if (sortError) throwActionError("Could not create the template.", sortError);
   const nextSortOrder = (siblingTemplates?.[0]?.sort_order ?? -1) + 1;
 
   const { data: insertedTemplate, error: templateError } = await supabase
@@ -1106,7 +1173,7 @@ export async function createEstimateTemplate(input: { name: string; category?: s
     .select("*")
     .single();
   if (templateError || !insertedTemplate) {
-    throw new Error(`Could not create the template: ${templateError?.message ?? "no template row returned"}`);
+    throwActionError("Could not create the template.", templateError);
   }
 
   revalidateTemplateSurfaces();
@@ -1130,13 +1197,15 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
+  await assertWithinLibraryQuota(supabase, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
   const { data: sourceTemplate, error: sourceError } = await supabase
     .from("estimate_templates")
     .select("*")
     .eq("id", input.templateId)
     .eq("workspace_id", workspace.id)
     .maybeSingle();
-  if (sourceError) throw new Error(`Could not duplicate template: ${sourceError.message}`);
+  if (sourceError) throwActionError("Could not duplicate template.", sourceError);
   if (!sourceTemplate) throw new Error("Template not found in the current workspace.");
 
   const [nodesResult, rowItemsResult, siblingResult] = await Promise.all([
@@ -1158,9 +1227,9 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
       .order("sort_order", { ascending: false })
       .limit(1),
   ]);
-  if (nodesResult.error) throw new Error(`Could not duplicate template: ${nodesResult.error.message}`);
-  if (rowItemsResult.error) throw new Error(`Could not duplicate template: ${rowItemsResult.error.message}`);
-  if (siblingResult.error) throw new Error(`Could not duplicate template: ${siblingResult.error.message}`);
+  if (nodesResult.error) throwActionError("Could not duplicate template.", nodesResult.error);
+  if (rowItemsResult.error) throwActionError("Could not duplicate template.", rowItemsResult.error);
+  if (siblingResult.error) throwActionError("Could not duplicate template.", siblingResult.error);
   const nextSortOrder = (siblingResult.data?.[0]?.sort_order ?? -1) + 1;
 
   const { data: insertedTemplate, error: templateError } = await supabase
@@ -1180,7 +1249,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
     .select("*")
     .single();
   if (templateError || !insertedTemplate) {
-    throw new Error(`Could not duplicate template: ${templateError?.message ?? "no template row returned"}`);
+    throwActionError("Could not duplicate template.", templateError);
   }
 
   try {
@@ -1202,7 +1271,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
         .from("estimate_template_nodes")
         .insert(nodeInserts)
         .select("*");
-      if (nodeInsertError) throw new Error(`Could not copy the node structure: ${nodeInsertError.message}`);
+      if (nodeInsertError) throwActionError("Could not copy the node structure.", nodeInsertError);
       insertedNodes = data ?? [];
     }
 
@@ -1234,7 +1303,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
         .from("estimate_template_row_items")
         .insert(rowInserts)
         .select("*");
-      if (rowInsertError) throw new Error(`Could not copy the template rows: ${rowInsertError.message}`);
+      if (rowInsertError) throwActionError("Could not copy the template rows.", rowInsertError);
       insertedRowItems = data ?? [];
     }
 
@@ -1266,6 +1335,7 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
   }
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const patch: { category: string; sort_order?: number } = { category };
   if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
   const { data: template, error } = await supabase
@@ -1276,7 +1346,7 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
     .select("id, category, sort_order")
     .maybeSingle();
 
-  if (error) throw new Error(`Could not move template: ${error.message}`);
+  if (error) throwActionError("Could not move template.", error);
   if (!template) throw new Error("Template not found in the current workspace.");
   revalidateTemplateSurfaces();
   return { templateId: template.id, category: template.category, sortOrder: template.sort_order };
@@ -1292,6 +1362,7 @@ export async function renameTemplateCategory(input: { from: string; to: string }
   if (from === to) return { category: to, updatedCount: 0 };
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase
     .from("estimate_templates")
     .update({ category: to })
@@ -1299,7 +1370,7 @@ export async function renameTemplateCategory(input: { from: string; to: string }
     .eq("category", from)
     .select("id");
 
-  if (error) throw new Error(`Could not rename group: ${error.message}`);
+  if (error) throwActionError("Could not rename group.", error);
   revalidateTemplateSurfaces();
   return { category: to, updatedCount: data?.length ?? 0 };
 }
@@ -1359,7 +1430,7 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
     .eq("project_id", input.projectId)
     .eq("projects.workspace_id", workspace.id)
     .maybeSingle();
-  if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
+  if (estimateError) throwActionError("Could not load the estimate.", estimateError);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
 
   const { data: nodeRows, error: nodesError } = await supabase
@@ -1367,7 +1438,7 @@ export async function resolveEstimateTemplateInsertTarget(input: { projectId: st
     .select("id, parent_id, kind")
     .eq("estimate_id", input.estimateId)
     .order("sort_order", { ascending: true });
-  if (nodesError) throw new Error(`Could not load the estimate tree: ${nodesError.message}`);
+  if (nodesError) throwActionError("Could not load the estimate tree.", nodesError);
 
   const nodes = (nodeRows ?? []) as EstimateInsertTargetNodeRow[];
   const kindById = new Map<string, "group" | "area">();
@@ -1405,8 +1476,8 @@ export async function getCostLibraryComponentUsage(input: { itemId: string }) {
       .eq("source_library_item_id", input.itemId),
   ]);
 
-  if (templateRows.error) throw new Error(`Could not count template usage: ${templateRows.error.message}`);
-  if (estimateRows.error) throw new Error(`Could not count estimate usage: ${estimateRows.error.message}`);
+  if (templateRows.error) throwActionError("Could not count template usage.", templateRows.error);
+  if (estimateRows.error) throwActionError("Could not count estimate usage.", estimateRows.error);
 
   return {
     templateRowCount: templateRows.count ?? 0,
@@ -1465,9 +1536,9 @@ export async function searchLibraryOverview(input: { query: string }): Promise<L
       .limit(3),
   ]);
 
-  if (componentsResult.error) throw new Error(`Could not search components: ${componentsResult.error.message}`);
+  if (componentsResult.error) throwActionError("Could not search components.", componentsResult.error);
   if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) {
-    throw new Error(`Could not search templates: ${templatesResult.error.message}`);
+    throwActionError("Could not search templates.", templatesResult.error);
   }
 
   return {

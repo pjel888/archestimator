@@ -6,6 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretLeft, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { useLibraryEditorChrome } from "@/hooks/use-library-editor-chrome";
@@ -57,6 +59,27 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
   const [expandedIds, setExpandedIds] = useState<string[]>(() => getTemplateStructureAllNodeIds(serverTemplate));
   const treeSearchInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Library Optimization Plan P1 T8 (F22): replace native window.prompt/confirm with
+  // the in-DS dialog pattern (mirrors TemplatesBrowseManager). One reusable text prompt
+  // for add/rename; a destructive ConfirmDialog for delete.
+  const [textPrompt, setTextPrompt] = useState<
+    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
+    | null
+  >(null);
+  const [textPromptValue, setTextPromptValue] = useState("");
+  const [deleteNodeTarget, setDeleteNodeTarget] = useState<EstimateTreeNode | null>(null);
+  const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
+    setTextPrompt(next);
+    setTextPromptValue(next.initialValue);
+  }, []);
+  const submitTextPrompt = useCallback(() => {
+    if (!textPrompt) return;
+    const value = textPromptValue.trim();
+    const handler = textPrompt.onSubmit;
+    setTextPrompt(null);
+    if (value) handler(value);
+  }, [textPrompt, textPromptValue]);
+
   useEffect(() => {
     setBreadcrumb({ templateId: template.id, templateName: template.name, category: template.category });
     return () => clearBreadcrumb(template.id);
@@ -87,34 +110,49 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
 
   const addNode = useCallback(
     (parentId: string | null, kind: "group" | "area") => {
-      const name = window.prompt(kind === "group" ? "Group name" : "Area name");
-      if (!name?.trim()) return;
-      void editor.addNode(parentId, kind, name);
-      if (parentId) {
-        setExpandedIds((current) => (current.includes(parentId) ? current : [...current, parentId]));
-      }
+      openTextPrompt({
+        title: kind === "group" ? "Add group" : "Add area",
+        label: kind === "group" ? "Group name" : "Area name",
+        confirmLabel: "Add",
+        initialValue: "",
+        onSubmit: (name) => {
+          void editor.addNode(parentId, kind, name);
+          if (parentId) {
+            setExpandedIds((current) => (current.includes(parentId) ? current : [...current, parentId]));
+          }
+        },
+      });
     },
-    [editor],
+    [editor, openTextPrompt],
   );
 
   const renameNode = useCallback(
     (node: EstimateTreeNode) => {
-      const name = window.prompt(`${node.kind === "group" ? "Group" : "Area"} name`, node.name);
-      if (!name?.trim() || name.trim() === node.name) return;
-      void editor.renameNode(node.id, name);
+      openTextPrompt({
+        title: node.kind === "group" ? "Rename group" : "Rename area",
+        label: node.kind === "group" ? "Group name" : "Area name",
+        confirmLabel: "Rename",
+        initialValue: node.name,
+        onSubmit: (name) => {
+          if (name === node.name) return;
+          void editor.renameNode(node.id, name);
+        },
+      });
     },
-    [editor],
+    [editor, openTextPrompt],
   );
 
-  const deleteNode = useCallback(
-    (node: EstimateTreeNode) => {
-      const noun = node.kind === "group" ? "group" : "area";
-      if (!window.confirm(`Delete the ${noun} "${node.name}"? Its rows and child nodes are removed from this template.`)) return;
-      void editor.deleteNode(node.id);
-      setSelectedNodeId((current) => (current === node.id ? null : current));
-    },
-    [editor],
-  );
+  const deleteNode = useCallback((node: EstimateTreeNode) => {
+    setDeleteNodeTarget(node);
+  }, []);
+
+  const confirmDeleteNode = useCallback(() => {
+    const node = deleteNodeTarget;
+    if (!node) return;
+    void editor.deleteNode(node.id);
+    setSelectedNodeId((current) => (current === node.id ? null : current));
+    setDeleteNodeTarget(null);
+  }, [deleteNodeTarget, editor]);
 
   // Dock dataset: same lazy query + cache key as the estimate workspace, so
   // switching between the two surfaces reuses one fetch.
@@ -260,6 +298,49 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
       ) : (
         <TemplateEditorDockFallback />
       )}
+
+      {deleteNodeTarget ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setDeleteNodeTarget(null);
+          }}
+          title={`Delete ${deleteNodeTarget.kind === "group" ? "group" : "area"}?`}
+          description={`"${deleteNodeTarget.name}" and its rows and child nodes are removed from this template.`}
+          tone="destructive"
+          confirmLabel="Delete"
+          onConfirm={confirmDeleteNode}
+        />
+      ) : null}
+
+      {textPrompt ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setTextPrompt(null);
+          }}
+          title={textPrompt.title}
+          description="Enter a name and confirm to apply."
+          confirmLabel={textPrompt.confirmLabel}
+          onConfirm={submitTextPrompt}
+        >
+          <label className="grid gap-1">
+            <span className="text-[9px] font-medium text-tertiary">{textPrompt.label}</span>
+            <ControlInput
+              aria-label={textPrompt.label}
+              autoFocus
+              value={textPromptValue}
+              onChange={(event) => setTextPromptValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitTextPrompt();
+                }
+              }}
+            />
+          </label>
+        </ConfirmDialog>
+      ) : null}
     </div>
   );
 }
