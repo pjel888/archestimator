@@ -231,11 +231,16 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
   });
 
   describe("SharePageDecision component (Accept/Decline/Request Revision buttons + confirmation modal + read-only lock + 409 handling + post-decision comments allowed)", () => {
-    it("renders nothing or disabled state when no valid session (P5 hook)", () => {
+    it("renders an informational read-only state (no interactive buttons) when no valid session (P5 hook)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
       const { container } = render(<SharePageDecision token="t1" />);
-      // Should not show interactive decision buttons (gated)
-      expect(container.textContent || "").not.toMatch(/Accept|Decline|Revision/i);
+      // AC-UX-07: the no-session state is a read-only explanation (which legitimately
+      // mentions how to accept/decline/request a revision), but it must NOT render any
+      // interactive decision controls.
+      expect(container.querySelector('[data-testid="decision-anonymous-state"]')).not.toBeNull();
+      expect(container.querySelector('[aria-label="Accept proposal"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Decline proposal"]')).toBeNull();
+      expect(container.querySelector('[aria-label="Request revision"]')).toBeNull();
     });
 
     it("renders the three decision buttons when session valid and undecided", () => {
