@@ -83,7 +83,9 @@ function modelTree(): EstimateTreeNode[] {
 
 describe("proposal workbook generation", () => {
   it("creates a professional bid workbook with bid form, summary, commercial terms, and source sheets", () => {
-    const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
+    // audience=internal exercises the full workbook incl. the internal Source Breakdown sheet
+    // (the default client audience redacts it — see the dedicated redaction test below).
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const workbook = createProposalWorkbook(model);
 
@@ -181,7 +183,7 @@ describe("proposal workbook generation", () => {
   });
 
   it("writes formula-backed summary, commercial terms, and source breakdown traceability sheets", () => {
-    const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const workbook = createProposalWorkbook(model);
     const summary = workbook.getWorksheet("Summary");
@@ -231,7 +233,7 @@ describe("proposal workbook generation", () => {
 
   it("creates a tab-aware workbook with global summary and source traceability", () => {
     const generatedAt = "2026-05-23T00:00:00.000Z";
-    const mainModel = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt });
+    const mainModel = buildProposalExportModel({ metadata, nodes: modelTree(), settings: { audience: "internal" }, generatedAt });
     const ownerModel = buildProposalExportModel({
       metadata,
       nodes: [
@@ -243,6 +245,7 @@ describe("proposal workbook generation", () => {
           estimateRowItems: [row({ id: "owner-paint", material: "Owner Paint", quantity: 3, itemCost: 500, miscCost: 0 })],
         },
       ],
+      settings: { audience: "internal" },
       generatedAt,
     });
 
@@ -296,5 +299,43 @@ describe("proposal workbook generation", () => {
     ]);
     expect(breakdown?.getCell("A7").value).toBe("Main");
     expect(breakdown?.getCell("A9").value).toBe("Owner's / Scope");
+  });
+
+  it("omits the beta placeholder bidder and carries a visible LABOR material-only disclaimer (P1-T9)", () => {
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
+    const workbook = createProposalWorkbook(model);
+    const bidForm = workbook.getWorksheet("Bid Form");
+
+    expect(bidForm?.getCell("A5").value).toBe("Bidder / Contractor");
+    expect(String(bidForm?.getCell("B5").value ?? "")).not.toContain("Archestimator beta workbook");
+
+    const allCellText: string[] = [];
+    workbook.eachSheet((sheet) =>
+      sheet.eachRow((row) =>
+        row.eachCell((cell) => {
+          if (typeof cell.value === "string") allCellText.push(cell.value);
+        }),
+      ),
+    );
+    expect(allCellText.join("\n")).not.toContain("Archestimator beta workbook");
+    expect(allCellText.some((text) => text.includes("MATERIAL-ONLY pricing"))).toBe(true);
+  });
+
+  it("redacts the Source Breakdown sheet and supplier remarks for the default client audience (P1-T9)", () => {
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
+    expect(model.settings.audience).toBe("client");
+
+    const workbook = createProposalWorkbook(model);
+    expect(workbook.worksheets.map((sheet) => sheet.name)).not.toContain("Source Breakdown");
+
+    const bidForm = workbook.getWorksheet("Bid Form");
+    const remarkCells: string[] = [];
+    bidForm?.eachRow((row) => {
+      const value = row.getCell(10).value;
+      if (typeof value === "string") remarkCells.push(value);
+    });
+    const joinedRemarks = remarkCells.join("\n");
+    expect(joinedRemarks).not.toContain("Supplier:");
+    expect(joinedRemarks).not.toContain("Confidence:");
   });
 });

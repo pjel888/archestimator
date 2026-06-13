@@ -144,11 +144,11 @@ describe("proposal xlsx export route workbook integration", () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
 
+    // Default audience is client (D0=A) → the internal Source Breakdown sheet is redacted out.
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
       "Bid Form",
       "Summary",
       "Commercial Terms",
-      "Source Breakdown",
     ]);
     expect(workbook.getWorksheet("Bid Form")?.getCell("A1").value).toBe("BID FORM / BILL OF QUANTITIES");
     expect(workbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual(expect.objectContaining({ formula: expect.any(String) }));
@@ -197,16 +197,15 @@ describe("proposal xlsx export route workbook integration", () => {
     await workbook.xlsx.load(buffer);
 
     expect(response.status).toBe(200);
+    // Default audience is client (D0=A) → no internal Source Breakdown sheet.
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
       "Summary",
       "Main",
       "Alt Scope",
       "Commercial Terms",
-      "Source Breakdown",
     ]);
     expect(workbook.getWorksheet("Summary")?.getCell("C16").value).toEqual(expect.objectContaining({ formula: expect.stringMatching(/^'Main'!H/) }));
     expect(workbook.getWorksheet("Summary")?.getCell("C19").value).toEqual(expect.objectContaining({ formula: expect.stringMatching(/^'Alt Scope'!H/) }));
-    expect(workbook.getWorksheet("Source Breakdown")?.getRow(6).values).toContain("TAB");
-    expect(workbook.getWorksheet("Source Breakdown")?.getCell("A7").value).toBe("Main");
+    expect(workbook.getWorksheet("Source Breakdown")).toBeUndefined();
   });
 });

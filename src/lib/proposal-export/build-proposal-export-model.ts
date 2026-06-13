@@ -32,6 +32,19 @@ export const defaultProposalExportSettings: ProposalExportSettings = {
   showSupplierInRemarks: true,
 };
 
+// F-19 / D0=A (P1-T9 minimal redaction): the default workbook is the contractor → client
+// bid document, so internal-only artifacts are dropped for a client audience until the full
+// P2-T3 settings gate lands. `audience` is server-derived (never read off the wire), so this
+// gate cannot be flipped by a client-supplied parameter. Idempotent.
+export function applyAudiencePolicy(settings: ProposalExportSettings): ProposalExportSettings {
+  if (settings.audience !== "client") return settings;
+  return {
+    ...settings,
+    includeSourceBreakdownSheet: false,
+    showSupplierInRemarks: false,
+  };
+}
+
 function normalizeWhitespace(value: string | null | undefined) {
   return (value ?? "").replace(/\s+/g, " ").trim();
 }
@@ -73,10 +86,16 @@ function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
   const confidence = normalizeWhitespace(row.confidence);
   const notes = normalizeWhitespace(row.notes);
 
-  if (settings.showSupplierInRemarks && supplier) remarks.push(`Supplier: ${supplier}`);
-  if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
-  if (pricingDate) remarks.push(`As of ${pricingDate}`);
-  if (confidence) remarks.push(`Confidence: ${confidence}`);
+  // `showSupplierInRemarks` gates all internal pricing intelligence (supplier, pricing
+  // source/date, confidence) together — applyAudiencePolicy forces it off for a client
+  // audience so none of it leaks into a client-facing bid (F-19). Free-form notes are
+  // client-relevant and always kept.
+  if (settings.showSupplierInRemarks) {
+    if (supplier) remarks.push(`Supplier: ${supplier}`);
+    if (pricingSource) remarks.push(`Pricing: ${pricingSource}`);
+    if (pricingDate) remarks.push(`As of ${pricingDate}`);
+    if (confidence) remarks.push(`Confidence: ${confidence}`);
+  }
   if (notes) remarks.push(notes);
 
   return remarks.join(" | ");
@@ -344,7 +363,7 @@ export function consolidateProposalRows(
 }
 
 export function buildProposalExportModel(input: BuildProposalExportModelInput): ProposalExportModel {
-  const settings = { ...defaultProposalExportSettings, ...input.settings };
+  const settings = applyAudiencePolicy({ ...defaultProposalExportSettings, ...input.settings });
   const flatRows = flattenEstimateTree(input.nodes);
   const proposalRows = consolidateProposalRows(flatRows, settings);
   const validationIssues: ProposalExportValidationIssue[] = [...collectNonAreaRows(input.nodes)];

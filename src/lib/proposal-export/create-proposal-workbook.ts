@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 
 import type { ProposalExportModel, ProposalExportWorkbookTab, ProposalTabbedWorkbookModel } from "./types";
+import { applyAudiencePolicy } from "./build-proposal-export-model";
 import { quoteWorksheetCellReference } from "./worksheet-name";
 
 export type ProposalWorkbookColumn = {
@@ -14,6 +15,11 @@ const PHP_FORMAT = '₱ #,##0.00;[Red]-₱ #,##0.00';
 const QUANTITY_FORMAT = '#,##0.####';
 const DETAIL_HEADER_ROW = 17;
 const SUMMARY_HEADER_ROW = 14;
+
+// F-01 (P1-T9): until real labor data lands (P3-T1/D1), labor is exported as 0. A visible
+// in-file caveat keeps a LABOR=0 column from silently implying labor is priced at zero.
+const LABOR_DISCLAIMER_NOTE =
+  "NOTE: LABOR is not yet captured in the source estimate — figures reflect MATERIAL-ONLY pricing. Capture labor before issuing this bid.";
 
 export const BID_FORM_COLUMNS = [
   { key: "item", header: "ITEM", width: 9 },
@@ -151,7 +157,7 @@ function setPrintLayout(worksheet: ExcelJS.Worksheet) {
   };
 }
 
-function addGeneralNotes(worksheet: ExcelJS.Worksheet) {
+function addGeneralNotes(worksheet: ExcelJS.Worksheet, options: { includeLaborDisclaimer: boolean }) {
   worksheet.addRow([]);
   const notesTitle = worksheet.addRow(["General Notes"]);
   notesTitle.font = { bold: true, size: 10, color: { argb: "FF111827" } };
@@ -167,6 +173,16 @@ function addGeneralNotes(worksheet: ExcelJS.Worksheet) {
     styleSubtleRow(row);
     worksheet.mergeCells(row.number, 1, row.number, 10);
   });
+
+  // Adding exactly one disclaimer row keeps DETAIL_HEADER_ROW at 17: the pad loop
+  // (`while rowCount < DETAIL_HEADER_ROW - 1`) backfills to the same target whether or
+  // not the disclaimer is present, so the header position is stable either way.
+  if (options.includeLaborDisclaimer) {
+    const disclaimerRow = worksheet.addRow([LABOR_DISCLAIMER_NOTE]);
+    disclaimerRow.font = { bold: true, size: 10, color: { argb: "FFB45309" } };
+    disclaimerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
+    worksheet.mergeCells(disclaimerRow.number, 1, disclaimerRow.number, 10);
+  }
 }
 
 type BidSectionRange = {
@@ -188,19 +204,26 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
       printTitlesRow: `${DETAIL_HEADER_ROW}:${DETAIL_HEADER_ROW}`,
     },
   });
+  const laborCompatibilityMode = model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode");
   applyColumnDefinitions(worksheet, BID_FORM_COLUMNS);
   addTitleRow(worksheet, "BID FORM / BILL OF QUANTITIES", BID_FORM_COLUMNS.length);
   addHeaderField(worksheet, "Project", model.metadata.projectName);
   addHeaderField(worksheet, "Location", model.metadata.projectAddress);
   addHeaderField(worksheet, "Owner / Client", "");
-  addHeaderField(worksheet, "Bidder / Contractor", "Archestimator beta workbook");
+  // F-07 (P1-T9): drop the "Archestimator beta workbook" placeholder. Real contractor
+  // identity is D4-gated (workspace_profiles migration); the contractor fills this in their
+  // copy until P2-T4 wires Owner/Client + contractor name from the project/workspace.
+  addHeaderField(worksheet, "Bidder / Contractor", "");
   addHeaderField(worksheet, "Estimate / Revision", `${model.metadata.estimateName} (${model.metadata.versionLabel})`);
   addHeaderField(worksheet, "Date Submitted", model.generatedAt.slice(0, 10));
-  addGeneralNotes(worksheet);
+  addGeneralNotes(worksheet, { includeLaborDisclaimer: laborCompatibilityMode });
 
   while (worksheet.rowCount < DETAIL_HEADER_ROW - 1) worksheet.addRow([]);
   const headerRow = worksheet.addRow(BID_FORM_COLUMNS.map((column) => column.header));
   styleHeaderRow(headerRow);
+  if (laborCompatibilityMode) {
+    headerRow.getCell(6).note = LABOR_DISCLAIMER_NOTE; // LABOR column (F)
+  }
   const sectionRanges: BidSectionRange[] = [];
 
   for (const summaryRow of model.summaryRows) {
@@ -517,6 +540,11 @@ function createBaseWorkbook(input: ProposalExportModel | ProposalTabbedWorkbookM
 
 export function createProposalWorkbook(input: ProposalExportModel | ProposalTabbedWorkbookModel) {
   const workbook = createBaseWorkbook(input);
+  // Audience gate applied at the single workbook chokepoint so the Source Breakdown sheet
+  // is dropped for a client audience regardless of how the caller built the settings
+  // (the route passes the top-level settings for the tabbed model). Idempotent with the
+  // per-model gate in buildProposalExportModel.
+  const settings = applyAudiencePolicy(input.settings);
 
   if (isTabbedWorkbookModel(input)) {
     const summaryWorksheet = workbook.addWorksheet("Summary", {
@@ -528,7 +556,7 @@ export function createProposalWorkbook(input: ProposalExportModel | ProposalTabb
     }));
     populateTabbedSummaryWorksheet(summaryWorksheet, input, tabRanges);
     createCommercialTermsWorksheet(workbook);
-    if (input.settings.includeSourceBreakdownSheet) {
+    if (settings.includeSourceBreakdownSheet) {
       createTabbedSourceBreakdownWorksheet(workbook, input);
     }
     return workbook;
@@ -537,7 +565,7 @@ export function createProposalWorkbook(input: ProposalExportModel | ProposalTabb
   const { sectionRanges } = createBidFormWorksheet(workbook, input);
   createSummaryWorksheet(workbook, input, sectionRanges);
   createCommercialTermsWorksheet(workbook);
-  if (input.settings.includeSourceBreakdownSheet) {
+  if (settings.includeSourceBreakdownSheet) {
     createSourceBreakdownWorksheet(workbook, input);
   }
 
