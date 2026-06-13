@@ -1,0 +1,16 @@
+$ bunx playwright test e2e/estimate-tabs.spec.ts e2e/workshop-template-insert-smoke.spec.ts e2e/workshop-project-specific-unlink-smoke.spec.ts --reporter=list
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3020"[0m
+[2m[WebServer] [22m(node:92044) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:92077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:92248) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 3 workers
+
+  -  1 [chromium] › e2e/estimate-tabs.spec.ts:137:7 › estimate tabs smoke › switches between tab-scoped trees without exposing cross-tab nodes
+  -  2 [chromium] › e2e/workshop-project-specific-unlink-smoke.spec.ts:373:7 › workshop project-specific unlink smoke › detaches a linked row, edits it, preserves the library item, exports, and cleans up
+  -  3 [chromium] › e2e/workshop-template-insert-smoke.spec.ts:264:7 › workshop template insertion smoke › inserts a reusable estimate template into an isolated estimate group and cleans up
+
+  3 skipped

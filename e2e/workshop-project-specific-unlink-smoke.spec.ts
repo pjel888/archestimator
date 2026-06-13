@@ -29,6 +29,7 @@ type LibraryItemSnapshot = {
 
 type UnlinkFixture = {
   estimateId: string;
+  defaultTabId: string;
   groupNodeId: string;
   areaNodeId: string;
   rowItemId: string;
@@ -162,6 +163,7 @@ async function createLinkedRowFixture(): Promise<UnlinkFixture> {
   const admin = createAdminClient();
   const [userId, libraryItem] = await Promise.all([getDevAuthUserId(), getLibraryItemSnapshot()]);
   const estimateId = randomUUID();
+  const defaultTabId = randomUUID();
   const groupNodeId = randomUUID();
   const areaNodeId = randomUUID();
   const rowItemId = randomUUID();
@@ -188,10 +190,22 @@ async function createLinkedRowFixture(): Promise<UnlinkFixture> {
     });
     if (memberInsertError) throw memberInsertError;
 
+    const { error: tabInsertError } = await admin.from("estimate_tabs").insert({
+      id: defaultTabId,
+      estimate_id: estimateId,
+      name: "Main",
+      sort_order: 0,
+      is_default: true,
+      created_by: userId,
+      metadata: { e2e: true, source: "workshop-project-specific-unlink-smoke" },
+    });
+    if (tabInsertError) throw tabInsertError;
+
     const { error: nodesInsertError } = await admin.from("estimate_nodes").insert([
       {
         id: groupNodeId,
         estimate_id: estimateId,
+        estimate_tab_id: defaultTabId,
         parent_id: null,
         kind: "group",
         name: "E2E Proof Group",
@@ -201,6 +215,7 @@ async function createLinkedRowFixture(): Promise<UnlinkFixture> {
       {
         id: areaNodeId,
         estimate_id: estimateId,
+        estimate_tab_id: defaultTabId,
         parent_id: groupNodeId,
         kind: "area",
         name: "E2E Proof Area",
@@ -248,6 +263,7 @@ async function createLinkedRowFixture(): Promise<UnlinkFixture> {
 
   return {
     estimateId,
+    defaultTabId,
     groupNodeId,
     areaNodeId,
     rowItemId,
@@ -404,6 +420,7 @@ test.describe("workshop project-specific unlink smoke", () => {
         route: `/workshop/projects/${projectId}/estimates/${fixture.areaNodeId}`,
         material: fixture.material,
         sourceLibraryItemId: linkedLibraryItemId,
+        defaultTabId: fixture.defaultTabId,
         beforeLibraryItem,
         afterLibraryItem,
         detachedRow,
