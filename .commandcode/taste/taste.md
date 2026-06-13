@@ -1,5 +1,11 @@
 # workflow
 See [workflow/taste.md](workflow/taste.md)
+
+# mvp-mandate
+- This is a pre-launch MVP with zero users. Freely make Supabase/database changes, skip heavy regression cycles, and prefer speed over caution. Mistakes are acceptable — the DB can be reset. Confidence: 0.85
+
+# review-format
+- When requesting multi-faceted architecture/code reviews, use the structured format: TASK (one-line objective), DELIVERABLE (specific outputs expected), SCOPE (repo paths, read-only constraint), VERIFY (citation standards, status markers like CLEAR/WATCH/BLOCK, EXPAND section). Confidence: 0.80
 # dependencies
 - Use react-complex-tree (https://rct.lukasbach.com/) for estimate tree components. Confidence: 0.85
 
