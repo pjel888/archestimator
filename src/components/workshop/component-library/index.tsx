@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
+import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { useToast } from "@/components/ui/toast";
 import {
   pruneSelection,
   toggleCascadeSelection,
@@ -72,6 +74,30 @@ import {
 } from "./tree";
 import type { ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
 
+// U1b: project-source load failures surface through the existing toast — never
+// an inline banner (which shifts the tree) and never a raw DB error shape
+// ({code,details,hint,message}). One fixed, friendly string per scope; the raw
+// error is logged to the browser console only, never to the DOM.
+type SourceErrorScope = "dataset" | "estimates" | "outline" | "search";
+
+function toUserSourceError(scope: SourceErrorScope): string {
+  switch (scope) {
+    case "dataset":
+      return "Couldn't load project sources. Try Refresh.";
+    case "estimates":
+      return "Couldn't load this project's estimates. Try Refresh.";
+    case "outline":
+      return "Couldn't load this project's outline. Try Refresh.";
+    case "search":
+      return "Couldn't search project sources. Try again.";
+  }
+}
+
+// Stable default for the optional `templates` prop. A bare `= []` default mints a
+// fresh array each render, which would make the U10 prop-reconciliation guard
+// (`syncedTemplatesProp !== templates`) fire every render → infinite re-render.
+const EMPTY_TEMPLATE_PROP: EstimateTemplate[] = [];
+
 // The single create-component modal, shared with the Components page: the
 // estimate sidebar must not grow its own variant of this form.
 const AddComponentModal = dynamic(() =>
@@ -107,10 +133,75 @@ const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
 const PROJECT_SOURCE_NODE_PREFIX = "source-project-";
 const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 
+/**
+ * A warm/prefetched expand resolves in well under this window, so its skeleton
+ * never appears; only a genuinely cold expand lingers long enough to reveal the
+ * in-place skeleton rows (U23 — no spinner flash, no layout shift).
+ */
+const SKELETON_REVEAL_DELAY_MS = 150;
+
+/**
+ * Gates a set of "loading" ids behind {@link SKELETON_REVEAL_DELAY_MS}: an id
+ * is returned only after it has been loading continuously for `delayMs`, and
+ * drops out the instant it stops loading. State writes happen only inside the
+ * timer callback (never synchronously in the effect), and settled-but-finished
+ * ids are filtered out at read time — so no loading id can outlive its load.
+ */
+function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
+  const [revealedIds, setRevealedIds] = useState<string[]>([]);
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const activeKey = activeIds.join("\0");
+
+  useEffect(() => {
+    const active = new Set(activeIds);
+    const timers = timersRef.current;
+    for (const id of active) {
+      if (timers.has(id)) continue;
+      const timer = setTimeout(() => {
+        timers.delete(id);
+        setRevealedIds((current) => (current.includes(id) ? current : [...current, id]));
+      }, delayMs);
+      timers.set(id, timer);
+    }
+    for (const [id, timer] of Array.from(timers.entries())) {
+      if (!active.has(id)) {
+        clearTimeout(timer);
+        timers.delete(id);
+      }
+    }
+    // activeKey is the content-stable proxy for activeIds; delayMs is constant.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey, delayMs]);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
+
+  // Only ids still loading should show a skeleton; revealed-but-settled ids fall
+  // away here, so removal needs no state write in the effect above.
+  return useMemo(
+    () => activeIds.filter((id) => revealedIds.includes(id)),
+    [activeIds, revealedIds],
+  );
+}
+
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
 type ProjectSourceScope = "all" | "current-project";
-type TemplateSourceFilter = "all" | "custom" | "projects";
+const TEMPLATE_SOURCE_FILTER_OPTIONS = [
+  { value: "all", label: "All sources" },
+  { value: "custom", label: "Custom templates" },
+  { value: "projects", label: "Project sources" },
+] as const satisfies readonly DropdownSelectOption[];
+type TemplateSourceFilter = (typeof TEMPLATE_SOURCE_FILTER_OPTIONS)[number]["value"];
+
+function isTemplateSourceFilter(value: string): value is TemplateSourceFilter {
+  return TEMPLATE_SOURCE_FILTER_OPTIONS.some((option) => option.value === value);
+}
 
 function getComponentTreeTab(mode: ComponentViewMode): EstimateComponentTreeTab {
   if (mode === "brand") return "brands";
@@ -191,7 +282,7 @@ function PreviewPanel({
         </div>
       </div>
       <div className="px-2 pb-2">
-        <p className="line-clamp-3 text-[9px] leading-4 text-secondary/70">{item.description || "No description."}</p>
+        <p className="line-clamp-3 text-[9px] leading-4 text-tertiary">{item.description || "No description."}</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
           <Badge size="xs">
             {getComponentDiscipline(item)}
@@ -413,7 +504,7 @@ function ProjectSourcePreviewPanel({
   return (
     <div className="shrink-0 border-t border-hairline bg-white" role="region" aria-label="Project source preview">
       <div className="flex items-start gap-2 p-2">
-        <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-accent-soft text-accent">
+        <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-surfaceMuted text-tertiary">
           <StackSimple size={18} weight="regular" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
@@ -434,8 +525,16 @@ function ProjectSourcePreviewPanel({
             </Button>
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
-            <Badge size="xs" tone="info">Live source</Badge>
-            <Badge size="xs">Read-through source</Badge>
+            {/* U13/A3: neutral chips (no off-palette `info` tone); the live dot is
+                the only functional-color signal. Content-sized, so they don't
+                stretch in the 360px panel. */}
+            <span className="inline-flex items-center gap-1 rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-px text-[8px] font-medium leading-4 text-secondary">
+              <span className="size-1.5 rounded-xs bg-success" aria-hidden="true" />
+              Live source
+            </span>
+            <span className="inline-flex items-center rounded-xs border border-hairline bg-surfaceMuted px-1.5 py-px text-[8px] font-medium leading-4 text-secondary">
+              Read-through source
+            </span>
           </div>
         </div>
       </div>
@@ -456,7 +555,7 @@ function ProjectSourcePreviewPanel({
         )}
         {outlineRows.length ? (
           <div className="mt-2 border border-hairline bg-surfaceMuted/20 p-2">
-            <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Source outline</p>
+            <p className="text-[9px] font-medium text-tertiary">Source outline</p>
             <ul className="mt-1 grid gap-1">
               {outlineRows.map((row) => (
                 <li key={row.id} className="flex min-w-0 items-center justify-between gap-2 text-[9px] leading-4">
@@ -666,7 +765,7 @@ export function EstimateRightSidebar({
   canInsertTemplate: canInsertTemplateProp,
   nodes,
   initialLibraryItems = estimateLibraryItems,
-  templates = [],
+  templates = EMPTY_TEMPLATE_PROP,
   projectSources = EMPTY_REUSABLE_PROJECT_SOURCES,
   onInsertProjectSource,
   categoryTree = componentCategoryTree,
@@ -702,19 +801,34 @@ export function EstimateRightSidebar({
   // Like libraryItems, the template list seeds from the server prop once and
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
+  // U10 (DATA-1): reconcile to the prop when it changes (a rename/delete/create
+  // on another surface refreshes it via cache invalidation) WHILE preserving any
+  // local optimistic appends not yet reflected in the prop — so an open panel
+  // never shows stale templates and never drops an in-flight optimistic add.
+  const [syncedTemplatesProp, setSyncedTemplatesProp] = useState(templates);
+  if (syncedTemplatesProp !== templates) {
+    setSyncedTemplatesProp(templates);
+    setTemplateList((current) => {
+      const propIds = new Set(templates.map((template) => template.id));
+      const optimisticOnly = current.filter((template) => !propIds.has(template.id));
+      return optimisticOnly.length > 0 ? [...templates, ...optimisticOnly] : templates;
+    });
+  }
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
   const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
   const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
-  const [projectSourcesError, setProjectSourcesError] = useState("");
   const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
   const [projectSourceSearchLoading, setProjectSourceSearchLoading] = useState(false);
-  const [projectSourceSearchError, setProjectSourceSearchError] = useState("");
   const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
   const [projectEstimateLoadedProjectIds, setProjectEstimateLoadedProjectIds] = useState<string[]>([]);
-  const [projectEstimateErrors, setProjectEstimateErrors] = useState<Record<string, string>>({});
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
-  const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
+  // U23: gate the loading ids behind a short delay so a warm/prefetched expand
+  // shows nothing transient; only a genuinely cold expand reveals skeleton rows.
+  const skeletonProjectIds = useDelayedIdSet(projectEstimateLoadingProjectIds, SKELETON_REVEAL_DELAY_MS);
+  const skeletonEstimateIds = useDelayedIdSet(projectOutlineLoadingEstimateIds, SKELETON_REVEAL_DELAY_MS);
+  // U1b: outline/source/search failures go to this toast, not inline banners.
+  const { toast } = useToast();
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
     Array.from(new Set([
       templatesTreeSectionId("custom-templates"),
@@ -794,29 +908,26 @@ export function EstimateRightSidebar({
   const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
     if (!canLoadProjectSourcesFromActions) return Promise.resolve();
     setProjectSourcesLoading(true);
-    setProjectSourcesError("");
-    setProjectEstimateErrors({});
     setProjectEstimateLoadedProjectIds([]);
     setProjectEstimateLoadingProjectIds([]);
-    setProjectOutlineErrors({});
     setProjectOutlineLoadingEstimateIds([]);
     return listReusableProjectSources()
       .then((result) => {
         if (!isCancelled?.()) setLoadedProjectSources(result.sources);
       })
       .catch((error: unknown) => {
-        if (!isCancelled?.()) setProjectSourcesError(error instanceof Error ? error.message : "Could not load project sources.");
+        console.error("[templates] project sources load failed", error);
+        if (!isCancelled?.()) toast({ tone: "error", message: toUserSourceError("dataset") });
       })
       .finally(() => {
         if (!isCancelled?.()) setProjectSourcesLoading(false);
       });
-  }, [canLoadProjectSourcesFromActions]);
+  }, [canLoadProjectSourcesFromActions, toast]);
   const refreshProjectSources = useCallback(() => {
     setPreviewProjectSourceKey(null);
     setBulkSelectedNodeIds(new Set());
     setProjectSourceSearchResults([]);
     setProjectEstimateLoadedProjectIds([]);
-    setProjectEstimateErrors({});
     void loadProjectSources();
   }, [loadProjectSources]);
   const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
@@ -932,8 +1043,6 @@ export function EstimateRightSidebar({
       setLoadedProjectSources(projectSources);
       setProjectEstimateLoadedProjectIds([]);
       setProjectEstimateLoadingProjectIds([]);
-      setProjectEstimateErrors({});
-      setProjectOutlineErrors({});
     }, 0);
     return () => {
       cancelled = true;
@@ -958,7 +1067,6 @@ export function EstimateRightSidebar({
     const resetTimer = window.setTimeout(() => {
       if (cancelled) return;
       setProjectSourceSearchResults([]);
-      setProjectSourceSearchError("");
       setProjectSourceSearchLoading(false);
     }, 0);
     if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
@@ -971,7 +1079,6 @@ export function EstimateRightSidebar({
       if (cancelled) return;
       setProjectSourceSearchResults([]);
       setProjectSourceSearchLoading(true);
-      setProjectSourceSearchError("");
     }, 0);
     const timer = window.setTimeout(() => {
       searchReusableProjectSources({ query: projectSourceSearchQuery })
@@ -979,7 +1086,8 @@ export function EstimateRightSidebar({
           if (!cancelled) setProjectSourceSearchResults(result.sources);
         })
         .catch((error: unknown) => {
-          if (!cancelled) setProjectSourceSearchError(error instanceof Error ? error.message : "Could not search project sources.");
+          console.error("[templates] project source search failed", error);
+          if (!cancelled) toast({ tone: "error", message: toUserSourceError("search") });
         })
         .finally(() => {
           if (!cancelled) setProjectSourceSearchLoading(false);
@@ -991,7 +1099,7 @@ export function EstimateRightSidebar({
       window.clearTimeout(loadingTimer);
       window.clearTimeout(timer);
     };
-  }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery]);
+  }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery, toast]);
 
   useEffect(() => {
     const handler = (event: StorageEvent) => {
@@ -1063,56 +1171,23 @@ export function EstimateRightSidebar({
   );
   const templatesProjectSourceEmptyState = useMemo(() => {
     if (projectSourcesLoading) {
+      // U23: the first project-source load shows fixed-height skeleton rows in
+      // place of a spinner/text banner, so real rows replace them with no shift.
       return (
-        <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-          Loading project sources…
+        <div className="space-y-px" role="status" aria-label="Loading project sources">
+          {[0, 1, 2].map((index) => (
+            <div key={index} className="flex h-7 items-center px-1">
+              <span className="h-2.5 w-full max-w-[160px] animate-pulse rounded-xs bg-surfaceMuted" aria-hidden="true" />
+            </div>
+          ))}
         </div>
       );
     }
-    if (projectSourcesError) {
-      return (
-        <div className="rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t load project sources. {projectSourcesError}
-        </div>
-      );
-    }
+    // U1b: load failures surface via toast, not an inline banner.
     return undefined;
-  }, [projectSourcesError, projectSourcesLoading]);
-  const templatesProjectSourceStatus = useMemo(() => {
-    const projectLoadingCount = projectEstimateLoadingProjectIds.length;
-    const projectErrors = Object.values(projectEstimateErrors);
-    if (projectLoadingCount > 0) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-          Loading {projectLoadingCount === 1 ? "project estimates" : `${projectLoadingCount} project estimate lists`}…
-        </div>
-      );
-    }
-    if (projectErrors.length > 0) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t load project estimates. {projectErrors[0]}
-        </div>
-      );
-    }
-    const loadingCount = projectOutlineLoadingEstimateIds.length;
-    const errors = Object.values(projectOutlineErrors);
-    if (loadingCount > 0) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-          Loading {loadingCount === 1 ? "estimate outline" : `${loadingCount} estimate outlines`}…
-        </div>
-      );
-    }
-    if (errors.length > 0) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t load estimate outline. {errors[0]}
-        </div>
-      );
-    }
-    return null;
-  }, [projectEstimateErrors, projectEstimateLoadingProjectIds.length, projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
+  }, [projectSourcesLoading]);
+  // U23: expand-time loading no longer shows a layout-shifting banner; the
+  // tree renders in-place skeleton rows under the expanding node instead.
   const templatesProjectSourceSearchStatus = useMemo(() => {
     if (!projectSourceSearchQuery) return null;
     if (projectSourceSearchLoading) {
@@ -1122,15 +1197,9 @@ export function EstimateRightSidebar({
         </div>
       );
     }
-    if (projectSourceSearchError) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t search project sources. {projectSourceSearchError}
-        </div>
-      );
-    }
+    // U1b: search failures surface via toast, not an inline banner.
     return null;
-  }, [projectSourceSearchError, projectSourceSearchLoading, projectSourceSearchQuery]);
+  }, [projectSourceSearchLoading, projectSourceSearchQuery]);
   const templatesProjectSourceScopeControls = useMemo(() => {
     if (
       templateSourceFilter === "custom" ||
@@ -1188,26 +1257,17 @@ export function EstimateRightSidebar({
     const hasCustomTemplates = templateList.length > 0;
     const hasProjectSources = loadedProjectSources.some((source) => source.kind !== "custom-template") || projectSourcesLoading;
     if (!hasCustomTemplates || !hasProjectSources) return null;
-    const filters: Array<{ id: TemplateSourceFilter; label: string }> = [
-      { id: "all", label: "All sources" },
-      { id: "custom", label: "Custom templates" },
-      { id: "projects", label: "Project sources" },
-    ];
     return (
-      <div className="mb-2 flex gap-1" role="group" aria-label="Reusable source filter">
-        {filters.map((filter) => (
-          <Button
-            key={filter.id}
-            type="button"
-            variant="outline"
-            size="xs"
-            aria-pressed={templateSourceFilter === filter.id}
-            className="min-h-6 min-w-0 flex-1 px-2 py-1"
-            onClick={() => handleTemplateSourceFilterChange(filter.id)}
-          >
-            {filter.label}
-          </Button>
-        ))}
+      <div className="mb-2">
+        <DropdownSelect
+          options={TEMPLATE_SOURCE_FILTER_OPTIONS}
+          value={templateSourceFilter}
+          onValueChange={(nextValue) => {
+            if (isTemplateSourceFilter(nextValue)) handleTemplateSourceFilterChange(nextValue);
+          }}
+          aria-label="Reusable source filter"
+          className="w-full"
+        />
       </div>
     );
   }, [handleTemplateSourceFilterChange, loadedProjectSources, projectSourcesLoading, templateList.length, templateSourceFilter]);
@@ -1711,6 +1771,68 @@ export function EstimateRightSidebar({
     }));
   }, [activeTab, componentViewMode]);
 
+  // Loading the next level (estimates under a project, the outline under an
+  // estimate) is shared by both expand and hover-prefetch (U6/U23). Each is
+  // idempotent: already-resident or already-in-flight levels short-circuit, so
+  // a hover followed by an expand never double-fetches.
+  const ensureProjectEstimatesLoaded = useCallback((projectId: string) => {
+    if (hasReusableProjectEstimates(loadedProjectSources, projectId)) return;
+    if (projectEstimateLoadedProjectIds.includes(projectId)) return;
+    if (projectEstimateLoadingProjectIds.includes(projectId)) return;
+
+    setProjectEstimateLoadingProjectIds((current) =>
+      current.includes(projectId) ? current : [...current, projectId],
+    );
+    listReusableProjectEstimateSources({ projectId })
+      .then((result) => {
+        setLoadedProjectSources((current) =>
+          mergeReusableProjectEstimateSources(current, result.sources, projectId),
+        );
+        setProjectEstimateLoadedProjectIds((current) =>
+          current.includes(projectId) ? current : [...current, projectId],
+        );
+      })
+      .catch((error: unknown) => {
+        console.error("[templates] project estimates load failed", error);
+        toast({ tone: "error", message: toUserSourceError("estimates") });
+      })
+      .finally(() => {
+        setProjectEstimateLoadingProjectIds((current) => current.filter((id) => id !== projectId));
+      });
+  }, [loadedProjectSources, projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds, toast]);
+
+  const ensureEstimateOutlineLoaded = useCallback((source: { projectId: string; estimateId: string }) => {
+    if (hasReusableEstimateOutline(loadedProjectSources, source.estimateId)) return;
+    if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
+
+    setProjectOutlineLoadingEstimateIds((current) =>
+      current.includes(source.estimateId) ? current : [...current, source.estimateId],
+    );
+    getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
+      .then((result) => {
+        setLoadedProjectSources((current) => mergeReusableProjectSources(current, result.sources, source.estimateId));
+      })
+      .catch((error: unknown) => {
+        console.error("[templates] estimate outline load failed", error);
+        toast({ tone: "error", message: toUserSourceError("outline") });
+      })
+      .finally(() => {
+        setProjectOutlineLoadingEstimateIds((current) => current.filter((id) => id !== source.estimateId));
+      });
+  }, [loadedProjectSources, projectOutlineLoadingEstimateIds, toast]);
+
+  // Hovering a project/estimate row warms its next level so the subsequent
+  // expand is already resident and shows no loading state at all (U23).
+  const handleTemplatesPrefetch = useCallback((nodeId: string) => {
+    const projectSource = findProjectSourceByNodeId(loadedProjectSources, nodeId);
+    if (projectSource) {
+      ensureProjectEstimatesLoaded(projectSource.projectId);
+      return;
+    }
+    const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
+    if (source) ensureEstimateOutlineLoaded(source);
+  }, [ensureEstimateOutlineLoaded, ensureProjectEstimatesLoaded, loadedProjectSources]);
+
   const handleTemplatesToggle = useCallback((nodeId: string) => {
     const isExpanded = templatesExpandedIds.includes(nodeId);
     setTemplatesExpandedIds((current) =>
@@ -1720,72 +1842,12 @@ export function EstimateRightSidebar({
 
     const projectSource = findProjectSourceByNodeId(loadedProjectSources, nodeId);
     if (projectSource) {
-      if (hasReusableProjectEstimates(loadedProjectSources, projectSource.projectId)) return;
-      if (projectEstimateLoadedProjectIds.includes(projectSource.projectId)) return;
-      if (projectEstimateLoadingProjectIds.includes(projectSource.projectId)) return;
-
-      setProjectEstimateLoadingProjectIds((current) =>
-        current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
-      );
-      setProjectEstimateErrors((current) => {
-        const next = { ...current };
-        delete next[projectSource.projectId];
-        return next;
-      });
-      listReusableProjectEstimateSources({ projectId: projectSource.projectId })
-        .then((result) => {
-          setLoadedProjectSources((current) =>
-            mergeReusableProjectEstimateSources(current, result.sources, projectSource.projectId),
-          );
-          setProjectEstimateLoadedProjectIds((current) =>
-            current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
-          );
-        })
-        .catch((error: unknown) => {
-          setProjectEstimateErrors((current) => ({
-            ...current,
-            [projectSource.projectId]: error instanceof Error ? error.message : "Could not load project estimates.",
-          }));
-        })
-        .finally(() => {
-          setProjectEstimateLoadingProjectIds((current) => current.filter((projectId) => projectId !== projectSource.projectId));
-        });
+      ensureProjectEstimatesLoaded(projectSource.projectId);
       return;
     }
-
     const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
-    if (!source) return;
-    if (hasReusableEstimateOutline(loadedProjectSources, source.estimateId)) return;
-    if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
-
-    setProjectOutlineLoadingEstimateIds((current) =>
-      current.includes(source.estimateId) ? current : [...current, source.estimateId],
-    );
-    setProjectOutlineErrors((current) => {
-      const next = { ...current };
-      delete next[source.estimateId];
-      return next;
-    });
-    getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
-      .then((result) => {
-        setLoadedProjectSources((current) => mergeReusableProjectSources(current, result.sources, source.estimateId));
-      })
-      .catch((error: unknown) => {
-        setProjectOutlineErrors((current) => ({
-          ...current,
-          [source.estimateId]: error instanceof Error ? error.message : "Could not load estimate outline.",
-        }));
-      })
-      .finally(() => {
-        setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
-      });
-  }, [
-    loadedProjectSources,
-    projectEstimateLoadedProjectIds,
-    projectEstimateLoadingProjectIds,
-    projectOutlineLoadingEstimateIds,
-    templatesExpandedIds,
-  ]);
+    if (source) ensureEstimateOutlineLoaded(source);
+  }, [ensureEstimateOutlineLoaded, ensureProjectEstimatesLoaded, loadedProjectSources, templatesExpandedIds]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
@@ -1938,7 +2000,8 @@ export function EstimateRightSidebar({
           ]}
           tabs={LIBRARY_TREE_TABS}
           activeTab={activeTab}
-          tabsAriaLabel="Library tree views"
+          tabVariant="tabs"
+          tabsAriaLabel="Library sections"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
         >
           {activeTab === "components" && viewModeMenuOpen ? (
@@ -1957,7 +2020,6 @@ export function EstimateRightSidebar({
           <div className={cn("p-2", bulkSelectionCount > 0 && "pb-16")}>
             {activeTab === "templates" ? (
               <>
-                {templatesProjectSourceStatus}
                 {templatesProjectSourceSearchStatus}
                 {templatesSourceFilterControls}
                 {templatesProjectSourceScopeControls}
@@ -1968,6 +2030,9 @@ export function EstimateRightSidebar({
                   searchQuery={searchQuery}
                   expandedNodeIds={templatesExpandedIds}
                   onToggle={handleTemplatesToggle}
+                  loadingProjectIds={skeletonProjectIds}
+                  loadingEstimateIds={skeletonEstimateIds}
+                  onPrefetchNode={handleTemplatesPrefetch}
                   canInsertTemplate={canInsertTemplate}
                   templateTargetName={effectiveTemplateTargetName || "selected group"}
                   onAddTemplate={addTemplate}

@@ -227,6 +227,9 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
     const result = await getEstimateTabTree(projectId, estimateId, tabId, {
       maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
       maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
+      // U1-5: an explicit synthetic "legacy-main" tab id (schema-missing) must
+      // degrade to the legacy whole-estimate loader, not 500 on a literal lookup.
+      allowLegacyFallback: true,
     });
     if (!result.project || !result.estimate || !result.tab) {
       return NextResponse.json({ error: "Estimate not found." }, { status: 404 });
@@ -386,7 +389,10 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
   try {
     if (tabId) return await buildSingleTabResponse(projectId, estimateId, tabId, exportContext);
 
-    const tabs = await getEstimateTabs(projectId, estimateId);
+    // U1-5 (legacy fallback, from origin/main): without estimate_tabs applied, listing tabs
+    // would 500 — the fallback yields a synthetic single "Main" tab so this degrades to the
+    // whole-estimate path (which already degrades safely via getProjectEstimateTreeByEstimate).
+    const tabs = await getEstimateTabs(projectId, estimateId, { allowLegacyFallback: true });
     if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, exportContext);
     return await buildAllTabsResponse(projectId, estimateId, tabs, exportContext);
   } catch (error) {

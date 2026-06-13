@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { useState, type ComponentProps } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateTabStrip } from "@/components/workshop/estimate-sheet/EstimateTabStrip";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/drag-types";
@@ -28,7 +27,7 @@ function fixtureTabs(): EstimateTabSummary[] {
 function renderStrip(overrides: Partial<ComponentProps<typeof EstimateTabStrip>> = {}) {
   const onTabChange = vi.fn();
   const onTabsChange = vi.fn();
-  render(
+  const result = render(
     <EstimateTabStrip
       tabs={fixtureTabs()}
       activeTabId="tab-main"
@@ -39,8 +38,42 @@ function renderStrip(overrides: Partial<ComponentProps<typeof EstimateTabStrip>>
       {...overrides}
     />,
   );
-  return { onTabChange, onTabsChange };
+  return { onTabChange, onTabsChange, container: result.container };
 }
+
+function tabButton(tabId: string) {
+  const element = document.querySelector(`[data-estimate-tab-id="${tabId}"]`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing tab button ${tabId}`);
+  return element;
+}
+
+async function openTabContextMenu(tabId: string) {
+  fireEvent.contextMenu(tabButton(tabId), { clientX: 24, clientY: 24 });
+  return screen.findByRole("menu");
+}
+
+async function chooseTabMenuItem(tabId: string, name: string) {
+  await openTabContextMenu(tabId);
+  fireEvent.click(screen.getByRole("menuitem", { name }));
+}
+
+beforeAll(() => {
+  if (!window.PointerEvent) {
+    window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
+  }
+  if (!window.ResizeObserver) {
+    window.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+  // jsdom does not implement scrollIntoView; stub it so the strip's scroll-into-view
+  // calls are no-ops here (and spy-able in the U5 tests).
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = function scrollIntoView() {};
+  }
+});
 
 describe("EstimateTabStrip", () => {
   beforeEach(() => {
@@ -60,18 +93,55 @@ describe("EstimateTabStrip", () => {
     renderStrip();
 
     expect(screen.getByRole("tablist", { name: "Estimate tabs" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Main/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Alternate" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("renders estimate tabs through the shared Tabs primitive without default copy", () => {
+    const { container } = renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+
+    const tabRoot = container.querySelector("[data-navigation-tabs]");
+    expect(tabRoot).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Alternate" })).toBeInTheDocument();
+    expect(screen.queryByText("Default")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Main/ })).not.toBeInTheDocument();
+    expect(tabRoot?.contains(screen.getByRole("button", { name: "New tab" }))).toBe(true);
+  });
+
+  it("matches the sidebar tab group surface and height contract", () => {
+    const { container } = renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+
+    expect(container.querySelector("[data-estimate-tab-strip]")).toHaveClass("bg-white");
+    expect(container.querySelector("[data-estimate-tab-strip-row]")).toHaveClass("min-h-10");
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveClass("min-h-10", "border-brand-orange", "text-ink");
+    expect(screen.getByRole("tab", { name: "Alternate" })).toHaveClass("min-h-10", "border-transparent", "text-tertiary/60");
+    expect(screen.getByRole("tab", { name: "Alternate" })).not.toHaveClass("text-ink");
+  });
+
+  it("uses Page 001 for only the first rendered tab after reorder", () => {
+    renderStrip({
+      tabs: [
+        { id: "tab-alt", name: "Alternate", sortOrder: 0, isDefault: false },
+        { id: "tab-main", name: "Main", sortOrder: 1, isDefault: true },
+      ],
+      activeTabId: "tab-alt",
+    });
+
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveAttribute("data-estimate-tab-id", "tab-alt");
+    expect(screen.getByRole("tab", { name: "Main" })).toHaveAttribute("data-estimate-tab-id", "tab-main");
+    expect(screen.getAllByText("Page 001")).toHaveLength(1);
   });
 
   it("moves focus with roving keyboard controls and activates on Enter", () => {
     const { onTabChange } = renderStrip();
-    const mainTab = screen.getByRole("tab", { name: /Main/ });
+    const mainTab = screen.getByRole("tab", { name: "Page 001" });
     const alternateTab = screen.getByRole("tab", { name: "Alternate" });
 
     mainTab.focus();
     fireEvent.keyDown(mainTab, { key: "ArrowRight" });
     expect(document.activeElement).toBe(alternateTab);
+    expect(onTabChange).not.toHaveBeenCalled();
 
     fireEvent.keyDown(alternateTab, { key: "Enter" });
     expect(onTabChange).toHaveBeenCalledWith("tab-alt");
@@ -80,12 +150,72 @@ describe("EstimateTabStrip", () => {
     expect(document.activeElement).toBe(mainTab);
   });
 
-  it("keeps create, duplicate, and rename controls hidden until the lifecycle gate opts in", () => {
-    renderStrip({ enableLifecycleActions: false, canCreateTabs: true, canDuplicateTabs: true });
+  it("hides every edit affordance when the lifecycle gate is closed (read-only switcher)", async () => {
+    renderStrip({ enableLifecycleActions: false, canCreateTabs: true });
 
-    expect(screen.queryByRole("button", { name: "Create tab" })).not.toBeInTheDocument();
+    // No persistent controls — the strip is a pure read-only tab switcher.
+    expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
+
+    // No context menu attaches: right-click opens nothing.
+    fireEvent.contextMenu(tabButton("tab-alt"), { clientX: 24, clientY: 24 });
+    await Promise.resolve();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    // Double-click does not enter inline rename.
+    fireEvent.doubleClick(tabButton("tab-alt"));
+    expect(screen.queryByRole("textbox", { name: /Rename/ })).not.toBeInTheDocument();
+  });
+
+  it("removes the legacy toolbar action buttons even when lifecycle actions are enabled", () => {
+    renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+
+    // The persistent Duplicate / Rename-pencil / Archive / Delete buttons are gone;
+    // those actions now live in the right-click context menu (U2).
     expect(screen.queryByRole("button", { name: "Duplicate tab" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Rename active tab" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Archive active tab" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete active tab" })).not.toBeInTheDocument();
+    // The "+" remains the only persistent control.
+    expect(screen.getByRole("button", { name: "New tab" })).toBeInTheDocument();
+  });
+
+  it("creates a tab through the +, updates the list from the returned array, switches to it, and arms inline rename", async () => {
+    const createdTabs = [
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-alt", name: "Alternate", sortOrder: 1, isDefault: false },
+      { id: "tab-3", name: "Tab 3", sortOrder: 2, isDefault: false },
+    ];
+    actionMocks.createEstimateTab.mockResolvedValue({ estimateTabId: "tab-3", tabs: createdTabs });
+    const switchedTo: string[] = [];
+    function CreateHarness() {
+      const [tabs, setTabs] = useState(fixtureTabs());
+      const [activeTabId, setActiveTabId] = useState("tab-main");
+      return (
+        <EstimateTabStrip
+          tabs={tabs}
+          activeTabId={activeTabId}
+          projectId="project-1"
+          estimateId="estimate-1"
+          enableLifecycleActions
+          canCreateTabs
+          onTabChange={(id) => { switchedTo.push(id); setActiveTabId(id); }}
+          onTabsChange={setTabs}
+        />
+      );
+    }
+    render(<CreateHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "New tab" }));
+
+    await waitFor(() => {
+      // Auto-named from the returned list; the action is the single round-trip.
+      expect(actionMocks.createEstimateTab).toHaveBeenCalledWith({ projectId: "project-1", estimateId: "estimate-1", name: "Page 003" });
+    });
+    // The list updates from the returned array and the new tab arms inline rename
+    // (the input only renders if "tab-3" was added to the rendered list).
+    expect(await screen.findByRole("textbox", { name: "Rename Tab 3 tab" })).toBeInTheDocument();
+    expect(switchedTo).toContain("tab-3");
+    expect(actionMocks.createEstimateTab).toHaveBeenCalledTimes(1);
   });
 
   it("spring-loads inactive tabs during drag hover so drops can target another tab tree", () => {
@@ -131,16 +261,14 @@ describe("EstimateTabStrip", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Moving between tabs isn't supported yet — duplicate the tab or save the group as a template.");
   });
 
-  it("renames the active tab only through the gated lifecycle path", async () => {
-    const user = userEvent.setup();
+  it("renames a tab through the context menu and commits on Enter", async () => {
     const renamedTabs = [{ id: "tab-main", name: "Main Revised", sortOrder: 0, isDefault: true }];
     actionMocks.renameEstimateTab.mockResolvedValue({ estimateTabId: "tab-main", tabs: renamedTabs });
     const { onTabsChange } = renderStrip({ enableLifecycleActions: true });
 
-    await user.click(screen.getByRole("button", { name: "Rename active tab" }));
-    const input = screen.getByRole("textbox", { name: "Rename Main tab" });
-    await user.clear(input);
-    await user.type(input, "Main Revised");
+    await chooseTabMenuItem("tab-main", "Rename");
+    const input = await screen.findByRole("textbox", { name: "Rename Page 001 tab" });
+    fireEvent.change(input, { target: { value: "Main Revised" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
@@ -155,6 +283,120 @@ describe("EstimateTabStrip", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Renamed tab to Main Revised.");
   });
 
+  it("still renames a tab on double-click (regression of the previous rename path)", async () => {
+    const renamedTabs = [{ id: "tab-main", name: "Main Revised", sortOrder: 0, isDefault: true }];
+    actionMocks.renameEstimateTab.mockResolvedValue({ estimateTabId: "tab-main", tabs: renamedTabs });
+    renderStrip({ enableLifecycleActions: true });
+
+    fireEvent.doubleClick(tabButton("tab-main"));
+    const input = await screen.findByRole("textbox", { name: "Rename Page 001 tab" });
+    fireEvent.change(input, { target: { value: "Main Revised" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(actionMocks.renameEstimateTab).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        tabId: "tab-main",
+        name: "Main Revised",
+      });
+    });
+  });
+
+  it("menu → Rename ignores the transient menu-close blur and never commits prematurely", async () => {
+    renderStrip({ enableLifecycleActions: true });
+
+    await chooseTabMenuItem("tab-main", "Rename");
+    const input = screen.getByRole("textbox", { name: "Rename Page 001 tab" });
+    expect(input).toHaveValue("Main");
+
+    // Mutation-killing assertion: we are inside the suppression window (the rename
+    // guard refs are armed and the menu-close focus timeouts have not fired yet).
+    // A transient blur on the UNCHANGED name must be swallowed by the onBlur guard
+    // so the editor stays mounted and nothing commits. Removing the guard unmounts
+    // the editor here (commitRename's unchanged-name early return clears editing).
+    fireEvent.blur(input);
+    expect(screen.getByRole("textbox", { name: "Rename Page 001 tab" })).toBeInTheDocument();
+    expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
+
+    // Focus settles back on the input after the menu-close dance; still no commit.
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Rename Page 001 tab" })).toHaveFocus());
+    expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
+
+    // Esc cancels cleanly without committing.
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Rename Page 001 tab" }), { key: "Escape" });
+    expect(screen.queryByRole("textbox", { name: "Rename Page 001 tab" })).not.toBeInTheDocument();
+    expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
+  });
+
+  it("targets the right-clicked background tab for Rename without force-activating it", async () => {
+    const { onTabChange } = renderStrip({ enableLifecycleActions: true });
+
+    await chooseTabMenuItem("tab-alt", "Rename");
+    expect(await screen.findByRole("textbox", { name: "Rename Alternate tab" })).toBeInTheDocument();
+    // Right-clicking a background tab must not switch to it.
+    expect(onTabChange).not.toHaveBeenCalled();
+  });
+
+  it("duplicates the right-clicked tab through the context menu and switches to the copy", async () => {
+    const duplicatedTabs = [
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-alt", name: "Alternate", sortOrder: 1, isDefault: false },
+      { id: "tab-copy", name: "Alternate copy", sortOrder: 2, isDefault: false },
+    ];
+    actionMocks.duplicateEstimateTab.mockResolvedValue({ estimateTabId: "tab-copy", tabs: duplicatedTabs });
+    const { onTabChange, onTabsChange } = renderStrip({ enableLifecycleActions: true });
+
+    await chooseTabMenuItem("tab-alt", "Duplicate");
+
+    await waitFor(() => {
+      expect(actionMocks.duplicateEstimateTab).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        tabId: "tab-alt",
+      });
+    });
+    expect(onTabsChange).toHaveBeenCalledWith(duplicatedTabs);
+    expect(onTabChange).toHaveBeenCalledWith("tab-copy");
+  });
+
+  it("deletes the right-clicked background tab and leaves the active tab unchanged", async () => {
+    const remainingTabs = [{ id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }];
+    actionMocks.deleteEstimateTab.mockResolvedValue({ estimateTabId: "tab-alt", replacementTabId: "tab-main", tabs: remainingTabs });
+    const { onTabChange, onTabsChange } = renderStrip({ enableLifecycleActions: true });
+
+    await chooseTabMenuItem("tab-alt", "Delete");
+
+    await waitFor(() => {
+      expect(actionMocks.deleteEstimateTab).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        tabId: "tab-alt",
+      });
+    });
+    expect(onTabsChange).toHaveBeenCalledWith(remainingTabs);
+    // Deleting a background tab must not move the active selection.
+    expect(onTabChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Alternate tab deleted.");
+  });
+
+  it("disables Delete in the context menu when only one tab remains", async () => {
+    render(
+      <EstimateTabStrip
+        tabs={[{ id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }]}
+        activeTabId="tab-main"
+        projectId="project-1"
+        estimateId="estimate-1"
+        enableLifecycleActions
+        onTabChange={vi.fn()}
+        onTabsChange={vi.fn()}
+      />,
+    );
+
+    await openTabContextMenu("tab-main");
+    expect(screen.getByRole("menuitem", { name: "Delete" })).toHaveAttribute("data-disabled");
+  });
+
   it("announces keyboard reorder and keeps focus on the moved tab", async () => {
     actionMocks.reorderEstimateTabs.mockResolvedValue({
       estimateTabId: "tab-main",
@@ -165,7 +407,7 @@ describe("EstimateTabStrip", () => {
     });
     renderStrip({ enableLifecycleActions: true });
 
-    const mainTab = screen.getByRole("tab", { name: /Main/ });
+    const mainTab = screen.getByRole("tab", { name: "Page 001" });
     mainTab.focus();
     fireEvent.keyDown(mainTab, { key: "ArrowRight", metaKey: true, shiftKey: true });
 
@@ -183,7 +425,8 @@ describe("EstimateTabStrip", () => {
     expect(document.activeElement).toBe(mainTab);
   });
 
-  it("focuses the nearest remaining tab after a gated delete", async () => {
+  it("switches to and focuses the replacement tab after deleting the active tab via the context menu", async () => {
+    const switchedTo: string[] = [];
     function Harness() {
       const [tabs, setTabs] = useState(fixtureTabs());
       const [activeTabId, setActiveTabId] = useState("tab-main");
@@ -194,8 +437,7 @@ describe("EstimateTabStrip", () => {
           projectId="project-1"
           estimateId="estimate-1"
           enableLifecycleActions
-          canDeleteTabs
-          onTabChange={setActiveTabId}
+          onTabChange={(id) => { switchedTo.push(id); setActiveTabId(id); }}
           onTabsChange={setTabs}
         />
       );
@@ -208,7 +450,7 @@ describe("EstimateTabStrip", () => {
     });
     render(<Harness />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Delete active tab" }));
+    await chooseTabMenuItem("tab-main", "Delete");
 
     await waitFor(() => {
       expect(actionMocks.deleteEstimateTab).toHaveBeenCalledWith({
@@ -217,8 +459,111 @@ describe("EstimateTabStrip", () => {
         tabId: "tab-main",
       });
     });
-    const alternateTab = await screen.findByRole("tab", { name: "Alternate" });
+    // Active selection moves to the replacement (the load-bearing browser semantic)…
+    await waitFor(() => expect(switchedTo).toContain("tab-alt"));
+    // …and focus follows it.
+    const alternateTab = await screen.findByRole("tab", { name: "Page 001" });
     await waitFor(() => expect(document.activeElement).toBe(alternateTab));
     expect(screen.getByRole("status")).toHaveTextContent("Main tab deleted.");
+  });
+
+  it("pins the New tab control outside the scrollable tab list so it never scrolls away", () => {
+    const manyTabs = Array.from({ length: 12 }, (_, index) => ({
+      id: `tab-${index}`,
+      name: `Tab ${index + 1}`,
+      sortOrder: index,
+      isDefault: index === 0,
+    }));
+    render(
+      <EstimateTabStrip
+        tabs={manyTabs}
+        activeTabId="tab-0"
+        projectId="project-1"
+        estimateId="estimate-1"
+        enableLifecycleActions
+        canCreateTabs
+        onTabChange={vi.fn()}
+        onTabsChange={vi.fn()}
+      />,
+    );
+    const createButton = screen.getByRole("button", { name: "New tab" });
+    const tablist = screen.getByRole("tablist", { name: "Estimate tabs" });
+    expect(createButton).toBeInTheDocument();
+    // Pinned: the "+" is a sibling of (not inside) the overflow-x-auto tablist.
+    expect(tablist.contains(createButton)).toBe(false);
+  });
+
+  it("scrolls the active tab into view (smoothly) when the active tab changes", async () => {
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    try {
+      function ActivateHarness() {
+        const [activeTabId, setActiveTabId] = useState("tab-main");
+        return (
+          <EstimateTabStrip
+            tabs={fixtureTabs()}
+            activeTabId={activeTabId}
+            projectId="project-1"
+            estimateId="estimate-1"
+            enableLifecycleActions
+            onTabChange={setActiveTabId}
+            onTabsChange={vi.fn()}
+          />
+        );
+      }
+      render(<ActivateHarness />);
+      spy.mockClear();
+      fireEvent.click(screen.getByRole("tab", { name: "Alternate" }));
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      const usedSmooth = spy.mock.calls.some(([options]) => (options as { behavior?: string } | undefined)?.behavior === "smooth");
+      expect(usedSmooth).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("uses instant (non-smooth) scroll when prefers-reduced-motion is set", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes("reduce"),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
+    try {
+      function ReducedHarness() {
+        const [activeTabId, setActiveTabId] = useState("tab-main");
+        return (
+          <EstimateTabStrip
+            tabs={fixtureTabs()}
+            activeTabId={activeTabId}
+            projectId="project-1"
+            estimateId="estimate-1"
+            enableLifecycleActions
+            onTabChange={setActiveTabId}
+            onTabsChange={vi.fn()}
+          />
+        );
+      }
+      render(<ReducedHarness />);
+      spy.mockClear();
+      fireEvent.click(screen.getByRole("tab", { name: "Alternate" }));
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      const everyInstant = spy.mock.calls.every(([options]) => (options as { behavior?: string } | undefined)?.behavior === "auto");
+      expect(everyInstant).toBe(true);
+    } finally {
+      window.matchMedia = originalMatchMedia;
+      spy.mockRestore();
+    }
+  });
+
+  it("shows an accessible \"New tab\" tooltip on the create control", async () => {
+    renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+    fireEvent.focus(screen.getByRole("button", { name: "New tab" }));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("New tab");
   });
 });

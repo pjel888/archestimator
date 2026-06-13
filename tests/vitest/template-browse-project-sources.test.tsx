@@ -1,9 +1,8 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TemplatesBrowseManager } from "@/components/workshop/library/templates-browse/TemplatesBrowseManager";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
-import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const componentLibraryActionMocks = vi.hoisted(() => ({
   createEstimateTemplate: vi.fn(),
@@ -48,10 +47,6 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/library/templates",
 }));
 
-type ReusableEstimateOutlineResult = {
-  readonly sources: ReusableEstimateSource[];
-};
-
 const fixtureTemplate: EstimateTemplate = {
   id: "template-empty",
   name: "Empty Starter",
@@ -60,22 +55,11 @@ const fixtureTemplate: EstimateTemplate = {
   nodes: [],
 };
 
-const fixtureProjectSources: ReusableEstimateSource[] = [
-  {
-    kind: "project",
-    projectId: "project-1",
-    name: "Library Route Project",
-  },
-  {
-    kind: "project-estimate",
-    projectId: "project-1",
-    estimateId: "estimate-1",
-    name: "Route Estimate",
-    sheetCode: "EST-ROUTE",
-  },
-];
-
-describe("TemplatesBrowseManager project sources", () => {
+// Templates Audit U3 (decision D-C): the standalone library route no longer
+// derives reusable sources from projects. Project-source browsing now lives
+// solely in the in-estimate Templates panel, so the route renders custom
+// templates only and never touches the reusable-source actions.
+describe("TemplatesBrowseManager library route (no project sources)", () => {
   beforeEach(() => {
     navigationMocks.push.mockReset();
     navigationMocks.refresh.mockReset();
@@ -86,71 +70,18 @@ describe("TemplatesBrowseManager project sources", () => {
     reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
   });
 
-  it("loads route-level project estimates only after a project expands", async () => {
-    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
-      sources: fixtureProjectSources.filter((source) => source.kind === "project-estimate"),
-    });
+  it("renders only the custom-template tree with no Projects section", () => {
+    render(<TemplatesBrowseManager templates={[fixtureTemplate]} />);
 
-    render(<TemplatesBrowseManager templates={[fixtureTemplate]} projectSources={[fixtureProjectSources[0]]} />);
-
-    const projectRow = screen.getByRole("treeitem", { name: "Library Route Project project source" });
-    expect(screen.queryByRole("treeitem", { name: "Route Estimate estimate EST-ROUTE" })).not.toBeInTheDocument();
-    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
-
-    fireEvent.click(within(projectRow).getByRole("button", { name: "Expand" }));
-
-    await waitFor(() => {
-      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-1" });
-    });
-    expect(await screen.findByRole("treeitem", { name: "Route Estimate estimate EST-ROUTE" })).toBeInTheDocument();
-    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
+    expect(screen.getByRole("treeitem", { name: "All Templates" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: /project source$/ })).not.toBeInTheDocument();
   });
 
-  it("lazy-loads a route-level project estimate outline when the estimate expands", async () => {
-    let resolveOutline: (value: ReusableEstimateOutlineResult) => void = () => undefined;
-    reusableSourceActionMocks.getReusableEstimateOutline.mockReturnValue(new Promise<ReusableEstimateOutlineResult>((resolve) => {
-      resolveOutline = resolve;
-    }));
+  it("never calls the reusable-source actions from the library route", () => {
+    render(<TemplatesBrowseManager templates={[fixtureTemplate]} />);
 
-    render(<TemplatesBrowseManager templates={[fixtureTemplate]} projectSources={fixtureProjectSources} />);
-
-    const estimateRow = screen.getByRole("treeitem", { name: "Route Estimate estimate EST-ROUTE" });
-    expect(screen.queryByRole("treeitem", { name: "Demolition project tab source" })).not.toBeInTheDocument();
-
-    fireEvent.click(within(estimateRow).getByRole("button", { name: "Expand" }));
-
-    await waitFor(() => {
-      expect(reusableSourceActionMocks.getReusableEstimateOutline).toHaveBeenCalledWith({
-        projectId: "project-1",
-        estimateId: "estimate-1",
-      });
-    });
-    expect(await screen.findByText("Loading estimate outline…")).toBeInTheDocument();
-
-    await act(async () => {
-      resolveOutline({
-        sources: [
-          {
-            kind: "project-tab",
-            projectId: "project-1",
-            estimateId: "estimate-1",
-            tabId: "tab-1",
-            name: "Demolition",
-          },
-          {
-            kind: "project-node",
-            projectId: "project-1",
-            estimateId: "estimate-1",
-            tabId: "tab-1",
-            nodeId: "node-1",
-            nodeKind: "group",
-            name: "Site Works",
-          },
-        ],
-      });
-    });
-
-    expect(await screen.findByRole("treeitem", { name: "Demolition project tab source" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Site Works project group" })).toBeInTheDocument();
+    expect(reusableSourceActionMocks.listReusableProjectEstimateSources).not.toHaveBeenCalled();
+    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
   });
 });

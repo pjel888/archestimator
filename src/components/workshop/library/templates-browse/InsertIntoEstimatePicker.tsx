@@ -38,6 +38,9 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
   const [selectedEstimateId, setSelectedEstimateId] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [pending, setPending] = useState(false);
+  // U15 (UX-11): pre-validate group availability when an estimate is selected so
+  // the user learns up front (not after clicking Insert) that a target group exists.
+  const [insertAvailability, setInsertAvailability] = useState<"idle" | "checking" | "available" | "unavailable">("idle");
 
   // The fetch only sets state from its async callbacks; the initial state
   // already reads "loading", so the mount effect does not set state itself.
@@ -61,6 +64,26 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
     setTargets({ state: "loading" });
     fetchTargets();
   }, [fetchTargets]);
+
+  // Keyed on the primitive ids (selectedEstimate is recomputed each render).
+  // The "checking"/"idle" transitions are set by the dropdown handlers (events);
+  // this effect only resolves the result in its async callbacks — never a
+  // synchronous setState in the effect body.
+  useEffect(() => {
+    if (!selectedProjectId || !selectedEstimateId) return;
+    let cancelled = false;
+    resolveEstimateTemplateInsertTarget({ projectId: selectedProjectId, estimateId: selectedEstimateId })
+      .then(({ targetParentNodeId }) => {
+        if (!cancelled) setInsertAvailability(targetParentNodeId ? "available" : "unavailable");
+      })
+      .catch(() => {
+        // Advisory only — don't block on a pre-check error; submit re-resolves authoritatively.
+        if (!cancelled) setInsertAvailability("idle");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProjectId, selectedEstimateId]);
 
   const projects = useMemo(() => (targets.state === "ready" ? targets.projects : []), [targets]);
   const selectedProject = useMemo(
@@ -161,6 +184,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
                   setSelectedProjectId(value);
                   setSelectedEstimateId("");
                   setSubmitError("");
+                  setInsertAvailability("idle");
                 }}
               />
             </label>
@@ -177,12 +201,22 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
                     onValueChange={(value) => {
                       setSelectedEstimateId(value);
                       setSubmitError("");
+                      setInsertAvailability(value ? "checking" : "idle");
                     }}
                   />
                 </label>
               ) : (
                 <p className="text-[10px] leading-4 text-tertiary">No estimates in this project yet.</p>
               )
+            ) : null}
+
+            {selectedEstimateId && insertAvailability === "checking" ? (
+              <p className="text-[10px] leading-4 text-tertiary" role="status">Checking group availability…</p>
+            ) : null}
+            {selectedEstimateId && insertAvailability === "unavailable" ? (
+              <p className="text-[10px] leading-4 text-warning" role="status">
+                This estimate has no group to insert under. Add a group to the estimate first.
+              </p>
             ) : null}
           </>
         )}
@@ -195,7 +229,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
             type="button"
             variant="primary"
             size="sm"
-            disabled={!selectedEstimate || pending}
+            disabled={!selectedEstimate || pending || insertAvailability === "unavailable"}
             aria-busy={pending ? "true" : undefined}
             onClick={handleSubmit}
           >

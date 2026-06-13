@@ -51,7 +51,7 @@ describe("NewTemplateModal", () => {
     renderModal();
 
     expect(screen.getByText("Kitchen Wing")).toBeInTheDocument();
-    expect(screen.getByText(/Group node · 1 groups · 1 areas · 0 rows/)).toBeInTheDocument();
+    expect(screen.getByText(/Group node · 1 group · 1 area · 0 rows/)).toBeInTheDocument();
   });
 
   it("disables saving and explains when no estimate node is selected", () => {
@@ -78,7 +78,7 @@ describe("NewTemplateModal", () => {
     renderModal({ onCreated, onOpenChange });
 
     fireEvent.change(screen.getByLabelText("Template name"), { target: { value: "Kitchen Wing Template" } });
-    fireEvent.change(screen.getByLabelText("Template group"), { target: { value: "Rooms" } });
+    fireEvent.change(screen.getByLabelText("Template category"), { target: { value: "Rooms" } });
     fireEvent.click(screen.getByRole("button", { name: "Save template" }));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(createdTemplate));

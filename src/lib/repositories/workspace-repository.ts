@@ -1,5 +1,7 @@
 import { cache } from "react";
+import { cookies, headers } from "next/headers";
 
+import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
 import type { EstimateRowItem, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
@@ -191,6 +193,12 @@ function normalizeCollaborationRole(role: string | null | undefined): Collaborat
 
 function normalizePendingInviteScope(scope: string | null | undefined): "project" | "estimate" {
   return scope === "estimate" ? "estimate" : "project";
+}
+
+async function isDevAdminDatabaseBypassActiveForRequest() {
+  const requestHeaders = await headers();
+  const credential = getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies());
+  return isDevAdminDatabaseBypassRequest(requestHeaders.get("host"), credential);
 }
 
 function createWorkshopProjectAccessResolver({
@@ -1469,6 +1477,14 @@ type LiveEstimateTreeResult = {
 type LiveEstimateTreeLoadOptions = {
   maxNodeCount?: number;
   maxRowItemCount?: number;
+  /**
+   * Opt-in read-only fallback for the reusable-source / export paths: when the
+   * `estimate_tabs` schema is not yet applied to the live database, synthesize a
+   * single "Main" tab from the legacy whole-estimate tree instead of throwing.
+   * Only read paths set this; tab-CRUD mutation callers must NOT (U1-RO) so they
+   * never operate on a synthetic tab.
+   */
+  allowLegacyFallback?: boolean;
 };
 
 type LiveEstimateTreeLoadLimitState = {
@@ -1486,6 +1502,9 @@ type LiveEstimateTabTreeResult = LiveEstimateTreeResult & {
 
 type EstimateTabRouteContext = LiveEstimateTabTreeResult & {
   selectedNodeId: string | null;
+  // U21: the full tab list, resolved in parallel with the tree on the tab-present
+  // paths, so the node-route page avoids a second serial getEstimateTabs round-trip.
+  tabs?: EstimateTabSummary[];
 };
 type EstimateNodeRouteRow = {
   id: string;
@@ -1591,6 +1610,18 @@ function toEstimateTabSummary(row: EstimateTabQueryRow): EstimateTabSummary {
   };
 }
 
+/**
+ * Synthetic single-tab id used by the read-only legacy fallback when the
+ * `estimate_tabs` schema is not yet applied. Mirrors the AI read-context
+ * convention (`src/lib/ai/read-context.ts`) so every fallback agrees on the
+ * same id/name.
+ */
+export const LEGACY_MAIN_TAB_ID = "legacy-main";
+
+function syntheticMainTab(): EstimateTabSummary {
+  return { id: LEGACY_MAIN_TAB_ID, name: "Main", sortOrder: 0, isDefault: true };
+}
+
 function isEstimateTabsSchemaMissing(error: unknown) {
   const candidate = error as { code?: string | null; message?: string | null } | null | undefined;
   return isMissingRelationError(candidate, "estimate_tabs") || isMissingColumnError(candidate, "estimate_tab_id");
@@ -1694,7 +1725,26 @@ async function getProjectEstimateTreeByEstimateLegacy(
   return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
 }
 
-export async function getEstimateTabs(projectId: string, estimateId: string): Promise<EstimateTabSummary[]> {
+/**
+ * Read-only legacy fallback for the reusable-source / export paths: present the
+ * whole-estimate legacy tree as a single synthetic "Main" tab when
+ * `estimate_tabs` is not yet applied. Forwards load-limit options so export
+ * limit enforcement is unchanged (U1-4).
+ */
+async function buildLegacyTabTree(
+  projectId: string,
+  estimateId: string,
+  options: LiveEstimateTreeLoadOptions,
+): Promise<LiveEstimateTabTreeResult> {
+  const legacy = await getProjectEstimateTreeByEstimateLegacy(projectId, estimateId, options);
+  return { ...legacy, tab: legacy.estimate ? syntheticMainTab() : null };
+}
+
+export async function getEstimateTabs(
+  projectId: string,
+  estimateId: string,
+  options: { allowLegacyFallback?: boolean } = {},
+): Promise<EstimateTabSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 
@@ -1709,15 +1759,42 @@ export async function getEstimateTabs(projectId: string, estimateId: string): Pr
   if (estimateError) throw estimateError;
   if (!estimate) return [];
 
-  const { data, error } = await asEstimateTabsReadClient(supabase)
-    .from("estimate_tabs")
-    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
-    .eq("estimate_id", estimate.id)
-    .is("archived_at", null)
-    .order("sort_order", { ascending: true });
+  try {
+    const { data, error } = await asEstimateTabsReadClient(supabase)
+      .from("estimate_tabs")
+      .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
+      .eq("estimate_id", estimate.id)
+      .is("archived_at", null)
+      .order("sort_order", { ascending: true });
 
-  if (error) throw error;
-  return (data ?? []).map(toEstimateTabSummary);
+    if (error) throw error;
+    return (data ?? []).map(toEstimateTabSummary);
+  } catch (error) {
+    // Strictly gated on the missing-schema signal so a real data error (schema
+    // present, zero tabs) is never masked as legacy (U1-2/U1-3). The synthetic
+    // tab is read-only: only opt-in read callers reach this branch.
+    if (options.allowLegacyFallback && isEstimateTabsSchemaMissing(error)) {
+      return [syntheticMainTab()];
+    }
+    throw error;
+  }
+}
+
+/**
+ * Resolves whether the current user can edit this estimate using the same
+ * `can_edit_estimate` RPC that RLS and `assertCanEditEstimate` rely on, so the
+ * client-side edit gate can never diverge from server enforcement. This is UX
+ * gating only — the server (RLS + `assert_can_edit_estimate_for_history`) stays
+ * authoritative. Fails closed (returns `false`) on any error so a transient
+ * failure hides edit affordances rather than exposing ones that error on use.
+ */
+export async function resolveEstimateEditCapability(estimateId: string): Promise<boolean> {
+  if (await isDevAdminDatabaseBypassActiveForRequest()) return true;
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  if (error) return false;
+  return data === true;
 }
 
 export async function getDefaultEstimateTab(estimateId: string): Promise<EstimateTabSummary | null> {
@@ -1740,6 +1817,12 @@ export async function getEstimateTabTree(
   tabId: string,
   options: LiveEstimateTreeLoadOptions = {},
 ): Promise<LiveEstimateTabTreeResult> {
+  // A synthetic "Main" tab id maps straight to the legacy whole-estimate loader
+  // — never a literal estimate_tabs lookup on a non-existent id (U1-2).
+  if (options.allowLegacyFallback && tabId === LEGACY_MAIN_TAB_ID) {
+    return buildLegacyTabTree(projectId, estimateId, options);
+  }
+
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
@@ -1754,59 +1837,74 @@ export async function getEstimateTabTree(
   if (estimateError) throw estimateError;
   if (!estimate) return { workspace, project, estimate: null, tab: null, selectedNodeId: null, tree: [] };
 
-  const { data: tab, error: tabError } = await asEstimateTabsReadClient(supabase)
-    .from("estimate_tabs")
-    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
-    .eq("id", tabId)
-    .eq("estimate_id", estimate.id)
-    .is("archived_at", null)
-    .maybeSingle();
+  try {
+    const { data: tab, error: tabError } = await asEstimateTabsReadClient(supabase)
+      .from("estimate_tabs")
+      .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
+      .eq("id", tabId)
+      .eq("estimate_id", estimate.id)
+      .is("archived_at", null)
+      .maybeSingle();
 
-  if (tabError) throw tabError;
-  if (!tab) return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tab: null, selectedNodeId: null, tree: [] };
+    if (tabError) throw tabError;
+    if (!tab) return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tab: null, selectedNodeId: null, tree: [] };
 
-  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
-  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
-  const nodesQuery = supabase
-    .from("estimate_nodes")
-    .select(ESTIMATE_TREE_NODE_COLUMNS)
-    .eq("estimate_id", estimate.id);
-  const tabScopedNodesQuery = (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
-    .eq("estimate_tab_id", tab.id)
-    .order("sort_order", { ascending: true });
-  const nodesResult = maxNodeCount ? await tabScopedNodesQuery.limit(maxNodeCount + 1) : await tabScopedNodesQuery;
-
-  if (nodesResult.error) throw nodesResult.error;
-
-  const rawNodes = (nodesResult.data ?? []) as EstimateTreeNodeQueryRow[];
-  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
-  const nodeIds = limitedNodes.rows.map((node) => node.id);
-  let rawRows: EstimateTreeRowItemQueryRow[] = [];
-  if (nodeIds.length > 0) {
-    const rowsQuery = supabase
-      .from("estimate_row_items")
-      .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
-      .in("node_id", nodeIds)
+    const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
+    const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+    const nodesQuery = supabase
+      .from("estimate_nodes")
+      .select(ESTIMATE_TREE_NODE_COLUMNS)
+      .eq("estimate_id", estimate.id);
+    const tabScopedNodesQuery = (nodesQuery as unknown as { eq: (column: string, value: string) => typeof nodesQuery })
+      .eq("estimate_tab_id", tab.id)
       .order("sort_order", { ascending: true });
-    const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
-    if (rowsResult.error) throw rowsResult.error;
-    rawRows = rowsResult.data ?? [];
-  }
+    const nodesResult = maxNodeCount ? await tabScopedNodesQuery.limit(maxNodeCount + 1) : await tabScopedNodesQuery;
 
-  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
-  const loadLimitState = maxNodeCount || maxRowItemCount
-    ? {
-      maxNodeCount,
-      maxRowItemCount,
-      fetchedNodeCount: rawNodes.length,
-      fetchedRowItemCount: rawRows.length,
-      didExceedNodeLimit: limitedNodes.didExceedLimit,
-      didExceedRowItemLimit: limitedRows.didExceedLimit,
+    if (nodesResult.error) throw nodesResult.error;
+
+    const rawNodes = (nodesResult.data ?? []) as EstimateTreeNodeQueryRow[];
+    const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
+    const nodeIds = limitedNodes.rows.map((node) => node.id);
+    let rawRows: EstimateTreeRowItemQueryRow[] = [];
+    if (nodeIds.length > 0) {
+      // U9 (PERF-7): lead with estimate_id so this hits the composite index
+      // estimate_row_items(estimate_id, node_id, sort_order). The result set is
+      // identical — every node in nodeIds belongs to estimate.id (the nodes
+      // query above is scoped to it) — so this only improves the index path.
+      const rowsQuery = supabase
+        .from("estimate_row_items")
+        .select(ESTIMATE_TREE_ROW_ITEM_COLUMNS)
+        .eq("estimate_id", estimate.id)
+        .in("node_id", nodeIds)
+        .order("sort_order", { ascending: true });
+      const rowsResult = maxRowItemCount ? await rowsQuery.limit(maxRowItemCount + 1) : await rowsQuery;
+      if (rowsResult.error) throw rowsResult.error;
+      rawRows = rowsResult.data ?? [];
     }
-    : undefined;
-  const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
-  const tree = buildEstimateTree(limitedNodes.rows, limitedRows.rows);
-  return { workspace, project, estimate: normalizedEstimate, tab: toEstimateTabSummary(tab), selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
+
+    const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
+    const loadLimitState = maxNodeCount || maxRowItemCount
+      ? {
+        maxNodeCount,
+        maxRowItemCount,
+        fetchedNodeCount: rawNodes.length,
+        fetchedRowItemCount: rawRows.length,
+        didExceedNodeLimit: limitedNodes.didExceedLimit,
+        didExceedRowItemLimit: limitedRows.didExceedLimit,
+      }
+      : undefined;
+    const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
+    const tree = buildEstimateTree(limitedNodes.rows, limitedRows.rows);
+    return { workspace, project, estimate: normalizedEstimate, tab: toEstimateTabSummary(tab), selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
+  } catch (error) {
+    // Read-only fallback only on the missing-schema signal (the tab lookup or
+    // the estimate_tab_id node predicate). Real errors and non-opt-in callers
+    // keep throwing — no working path changes (U1-2/U1-3/U1-RO).
+    if (options.allowLegacyFallback && isEstimateTabsSchemaMissing(error)) {
+      return buildLegacyTabTree(projectId, estimateId, options);
+    }
+    throw error;
+  }
 }
 
 export type LiveEstimateTabTree = { tab: EstimateTabSummary; tree: EstimateTreeNode[] };
@@ -1974,16 +2072,28 @@ export async function resolveEstimateTabRouteContext(
 
   const routeNode = selectedNode as unknown as EstimateNodeRouteRow | null;
   if (routeNode?.estimate_tab_id) {
-    const result = await getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id, options);
+    // U21: resolve the tab tree and the tab list in parallel so the page needn't
+    // issue a second serial getEstimateTabs round-trip after this resolver.
+    const [result, tabs] = await Promise.all([
+      getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id, options),
+      getEstimateTabs(projectId, routeNode.estimate_id),
+    ]);
     return {
       ...result,
       selectedNodeId: routeNode.id,
+      tabs,
     };
   }
 
   try {
     const defaultTab = await getDefaultEstimateTab(routeSegment);
-    if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options);
+    if (defaultTab) {
+      const [result, tabs] = await Promise.all([
+        getEstimateTabTree(projectId, routeSegment, defaultTab.id, options),
+        getEstimateTabs(projectId, routeSegment),
+      ]);
+      return { ...result, tabs };
+    }
   } catch (error) {
     if (!isEstimateTabsSchemaMissing(error)) throw error;
   }

@@ -12,7 +12,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
-import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
+import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
+import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
@@ -26,12 +27,17 @@ import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "./component-library";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
+import { useToast } from "@/components/ui/toast";
+import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
+import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
 import { CommandPalette } from "./component-library/CommandPalette";
 import {
   INSERT_ESTIMATE_TEMPLATE_EVENT,
+  INSERT_PROJECT_SOURCE_EVENT,
   type EstimateTemplate,
   type EstimateTemplateDragPayload,
   type InsertEstimateTemplateEventDetail,
+  type InsertProjectSourceEventDetail,
 } from "./component-library/templates";
 import { reportEstimateSheetContentRender } from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
@@ -124,6 +130,8 @@ type EstimateSheetContentProps = {
   activeTabId?: string;
   /** Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17. */
   dataTabId?: string;
+  /** Server-resolved edit capability (UX gating only; default false fails closed). */
+  canEditEstimate?: boolean;
   initialTabId?: string;
   onActiveTabChange?: (tabId: string) => void;
   onEstimateTabsChange?: (tabs: EstimateTabSummary[]) => void;
@@ -695,6 +703,7 @@ export function EstimateSheetContent({
   estimateTabs = [],
   activeTabId,
   dataTabId,
+  canEditEstimate = false,
   initialTabId,
   onActiveTabChange,
   onEstimateTabsChange,
@@ -772,18 +781,28 @@ export function EstimateSheetContent({
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
   const libraryQuery = useQuery({
-    queryKey: ["workspace-component-library"],
-    queryFn: () => loadCurrentWorkspaceComponentLibrary(),
+    // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
+    // dataset under its own key — never the full-graph key the editor surfaces use.
+    queryKey: WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY,
+    queryFn: () => loadCurrentWorkspaceComponentLibraryLite(),
     enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
     staleTime: 5 * 60 * 1000,
+    // U19: keep the warmed cache long after navigate-away so returning to the
+    // estimate doesn't re-run the cold load (it's workspace-global + mutation-invalidated).
+    gcTime: 30 * 60 * 1000,
   });
   const lazyLibrary = shouldLoadLibraryLazily ? libraryQuery.data : undefined;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const queryClient = useQueryClient();
+  // U2: project-source insert is non-optimistic (the full source subtree isn't
+  // resident client-side); failures surface through the existing toast.
+  const { toast } = useToast();
   // Library mutations in the sidebar update its local state; the lazy query
   // cache must also be marked stale or remounts re-seed from pre-mutation data.
+  // Non-exact invalidation on the shared prefix covers both the lite (panel) and
+  // full (editor) datasets.
   const handleLibraryDataChanged = useStableCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY });
   });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
@@ -1515,6 +1534,47 @@ export function EstimateSheetContent({
     [insertTemplateIntoParent, selectedNode, templateTargetParentNode, wrapAreaAndInsertTemplates],
   );
 
+  // U2: insert a project-derived source (whole tab / group / area subtree) under a
+  // target GROUP. Non-optimistic — the server copies the subtree via the hardened
+  // RPC and returns the refreshed tree. (Area targets need a wrap flow like
+  // templates; not wired in this pass — the panel/drop gate to group targets.)
+  const insertProjectSourceIntoParentById = useStableCallback(
+    (targetParentNodeId: string, source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null }) => {
+      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
+      if (targetParentNode?.kind !== "group") return false;
+      if (!projectId || !estimateId) return false;
+
+      insertProjectSourceIntoEstimate({
+        targetProjectId: projectId,
+        targetEstimateId: estimateId,
+        targetParentNodeId,
+        source,
+      })
+        .then((result) => {
+          setEstimateTreeData(() => result.tree);
+        })
+        .catch((error: unknown) => {
+          console.error("[estimate] project source insert failed", error);
+          toast({ tone: "error", message: "Couldn't insert the project source. Try again." });
+        });
+
+      return true;
+    },
+  );
+
+  const insertProjectSourceIntoSelectedGroup = useCallback(
+    (source: ProjectSourceInsertTarget) => {
+      if (!templateTargetParentNode) return false;
+      return insertProjectSourceIntoParentById(templateTargetParentNode.id, {
+        projectId: source.projectId,
+        estimateId: source.estimateId,
+        tabId: source.tabId,
+        nodeId: source.kind === "project-node" ? source.nodeId : null,
+      });
+    },
+    [insertProjectSourceIntoParentById, templateTargetParentNode],
+  );
+
   // Inserts ONE node of a template (a group or area inside it) with its
   // subtree. Same optimistic shape as whole-template insertion; the server
   // recreates the subtree through the history-aware node/row RPCs.
@@ -1645,6 +1705,18 @@ export function EstimateSheetContent({
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
   }, [insertTemplateIntoParentById, insertTemplateNodeIntoParentById, wrapAreaAndInsertTemplates]);
+
+  // U2: a project source dropped onto a group row hands the insert over here (the
+  // sheet owns the tree + the action), mirroring the template-drop event flow.
+  useEffect(() => {
+    function handleInsertProjectSourceEvent(event: Event) {
+      const detail = (event as CustomEvent<InsertProjectSourceEventDetail>).detail;
+      if (!detail || typeof detail.targetParentNodeId !== "string" || !detail.source) return;
+      insertProjectSourceIntoParentById(detail.targetParentNodeId, detail.source);
+    }
+    window.addEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
+    return () => window.removeEventListener(INSERT_PROJECT_SOURCE_EVENT, handleInsertProjectSourceEvent);
+  }, [insertProjectSourceIntoParentById]);
 
   const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
     const previousTree = estimateTree;
@@ -1832,12 +1904,23 @@ export function EstimateSheetContent({
         data-estimate-center-column="sheet"
         aria-label="Estimate tab content"
       >
+        <EstimateSheetHeader
+          onExpandAll={expandAll}
+          onCollapseAll={collapseAll}
+          onPreviewProposalExport={openProposalPreview}
+          canPreviewProposalExport={canPreviewCurrentExport}
+          onOpenSheetActivity={openActivityHistory}
+          searchQuery={sheetSearchQuery}
+          onSearchQueryChange={setSheetSearchQuery}
+        />
         {estimateTabs.length > 0 ? (
           <EstimateTabStrip
             tabs={estimateTabs}
             activeTabId={activeTabId ?? estimateTabs[0]?.id ?? "legacy-main"}
             projectId={projectId}
             estimateId={estimateId}
+            enableLifecycleActions={canEditEstimate}
+            canCreateTabs={canEditEstimate}
             onTabChange={onActiveTabChange ?? (() => {})}
             onTabsChange={onEstimateTabsChange}
           />
@@ -1849,15 +1932,6 @@ export function EstimateSheetContent({
         ) : null}
         {isActiveTabTreeLoading ? (
           <>
-            <EstimateSheetHeader
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-              onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={canPreviewCurrentExport}
-              onOpenSheetActivity={openActivityHistory}
-              searchQuery={sheetSearchQuery}
-              onSearchQueryChange={setSheetSearchQuery}
-            />
             <div role="status" aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
               {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="h-7 w-full" />)}
               <span className="sr-only">Loading estimate tab</span>
@@ -1865,15 +1939,6 @@ export function EstimateSheetContent({
           </>
         ) : selectedNode ? (
           <>
-            <EstimateSheetHeader
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-              onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={canPreviewCurrentExport}
-              onOpenSheetActivity={openActivityHistory}
-              searchQuery={sheetSearchQuery}
-              onSearchQueryChange={setSheetSearchQuery}
-            />
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 className={cn("relative min-h-0 flex-1 overflow-auto px-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
@@ -1931,15 +1996,6 @@ export function EstimateSheetContent({
           </>
         ) : (
           <>
-            <EstimateSheetHeader
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
-              onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={canPreviewCurrentExport}
-              onOpenSheetActivity={openActivityHistory}
-              searchQuery={sheetSearchQuery}
-              onSearchQueryChange={setSheetSearchQuery}
-            />
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" data-estimate-pointer-surface>
               <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
               <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
@@ -1950,10 +2006,12 @@ export function EstimateSheetContent({
                     <p className="mt-1 text-[10px] leading-4 text-tertiary">
                       Add a group to start the tree, or drag a template or project content here.
                     </p>
-                    <div className="mt-3 flex justify-center gap-2">
-                      <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Group</Button>
-                      <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
-                    </div>
+                    {canEditEstimate ? (
+                      <div className="mt-3 flex justify-center gap-2">
+                        <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Group</Button>
+                        <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
+                      </div>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -1991,6 +2049,7 @@ export function EstimateSheetContent({
             libraryFolders={libraryFolders ?? lazyLibrary?.libraryFolders}
             onInsertTemplate={insertTemplateIntoSelectedGroup}
             onInsertTemplateNode={insertTemplateNodeIntoSelectedGroup}
+            onInsertProjectSource={insertProjectSourceIntoSelectedGroup}
             onLibraryDataChanged={handleLibraryDataChanged}
           />
         )
