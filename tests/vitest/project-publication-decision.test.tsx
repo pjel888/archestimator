@@ -214,6 +214,39 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       const json = await res.json();
       expect(json.error).toMatch(/not found|recipient/i);
     });
+
+    // SEC-15 (AC-SEC-15): a forced UNEXPECTED RPC/DB error (one that maps to 500) must return a
+    // GENERIC message to the public client — the raw error string must not appear in the response
+    // body — while the detailed message is logged server-side via console.error.
+    it("returns a generic 500 envelope and never echoes the raw RPC/DB error string (SEC-15)", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const rawDbError = 'duplicate key value violates unique constraint "shared_link_responses_pkey" DETAIL: internal db guts';
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.submitSharedLinkDecision.mockRejectedValue(new Error(rawDbError));
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      // Client gets a generic message; the raw DB error string is NOT in the response body.
+      expect(json.error).toBe("Something went wrong. Please try again.");
+      expect(JSON.stringify(json)).not.toContain("shared_link_responses_pkey");
+      expect(JSON.stringify(json)).not.toContain("internal db guts");
+
+      // The detailed message IS logged server-side (truncated) for operators.
+      const loggedDetail = consoleSpy.mock.calls.some((call) =>
+        JSON.stringify(call[0] ?? "").includes("shared_link_responses_pkey"),
+      );
+      expect(loggedDetail).toBe(true);
+
+      consoleSpy.mockRestore();
+    });
   });
 
 
