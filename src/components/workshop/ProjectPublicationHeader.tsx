@@ -21,7 +21,7 @@ import {
 import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
-import { WorkshopTreeTabs } from "./workshop-tree";
+import { WorkshopTreeTabs, getTabStripPanelId, getTabStripTabId } from "./workshop-tree";
 import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectPublicationHeaderProps = {
@@ -585,9 +585,19 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               activeTab={activeTab}
               ariaLabel="Shared link settings"
               onTabChange={handlePublicationTabChange}
+              idBase="project-publication"
             />
 
-            <div className="flex-1 overflow-auto p-6">
+            {/* AC-MOD-11: a single tabpanel wrapper whose id/labelledby track the active
+                tab — correct because only the active panel renders. tabIndex={0} makes the
+                panel focusable for keyboard users moving off the tablist. */}
+            <div
+              className="flex-1 overflow-auto p-6"
+              role="tabpanel"
+              id={getTabStripPanelId("project-publication", activeTab)}
+              aria-labelledby={getTabStripTabId("project-publication", activeTab)}
+              tabIndex={0}
+            >
               {activeTab === "activity" && canManagePublication && (
                 <div className="space-y-2">
                   <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link activity</h3>

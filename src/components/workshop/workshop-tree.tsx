@@ -266,4 +266,8 @@ function WorkshopTreeNode<TNode>({
 // Tab strip now lives in the shared UI layer; these aliases keep existing
 // workshop consumers working.
 export type { TabStripItem as WorkshopTreeTabItem } from "@/components/ui/tab-strip";
-export { TabStrip as WorkshopTreeTabs } from "@/components/ui/tab-strip";
+export {
+  TabStrip as WorkshopTreeTabs,
+  getTabStripPanelId,
+  getTabStripTabId,
+} from "@/components/ui/tab-strip";
