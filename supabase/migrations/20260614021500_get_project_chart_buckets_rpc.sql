@@ -34,7 +34,11 @@ stable
 security invoker
 set search_path = public
 as $$
-  with row_totals as (
+  -- `recursive` is required because node_climb (below) self-references; without it
+  -- a clean apply fails with "relation node_climb does not exist". Non-recursive
+  -- CTEs in the same WITH list are unaffected. (Cross-plan fix surfaced while
+  -- landing the Estimates-List plan — this migration had not been applied to hosted.)
+  with recursive row_totals as (
     select
       ri.estimate_id,
       ri.node_id,

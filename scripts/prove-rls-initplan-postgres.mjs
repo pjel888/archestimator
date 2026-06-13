@@ -336,14 +336,17 @@ try {
     on conflict (id) do nothing;
   `);
 
-  // Sanity: confirm the helpers we are about to test are the OLD bare-auth.uid()
-  // versions (the target migration is the only file we skipped above).
+  // Sanity: confirm the helper THIS migration rewrites (is_workspace_member) is
+  // still the OLD bare-auth.uid() version before we apply it. (can_access_estimate
+  // and current_project_access_rank were already wrapped by the earlier Teamspace
+  // migration 20260614120100, so we guard on is_workspace_member — the helper this
+  // migration uniquely covers — to keep the before/after proof meaningful.)
   const preBodyHasSelectAuthUid = runPsql(
-    "select pg_get_functiondef('public.can_access_estimate(uuid)'::regprocedure) like '%(select auth.uid())%';",
+    "select pg_get_functiondef('public.is_workspace_member(uuid)'::regprocedure) like '%(select auth.uid())%';",
   ).stdout.trim();
   if (preBodyHasSelectAuthUid !== "f") {
     throw new Error(
-      `Pre-condition failed: can_access_estimate already contains (select auth.uid()) before the target migration was applied (got ${preBodyHasSelectAuthUid}).`,
+      `Pre-condition failed: is_workspace_member already contains (select auth.uid()) before the target migration was applied (got ${preBodyHasSelectAuthUid}).`,
     );
   }
 
@@ -357,13 +360,13 @@ try {
   // ---- Apply ONLY the target migration — helpers become (select auth.uid()) ----
   applySqlFile(join(migrationDir, targetMigration));
 
-  // Sanity: confirm the rewrite actually landed.
+  // Sanity: confirm the rewrite actually landed on is_workspace_member.
   const postBodyHasSelectAuthUid = runPsql(
-    "select pg_get_functiondef('public.can_access_estimate(uuid)'::regprocedure) like '%(select auth.uid())%';",
+    "select pg_get_functiondef('public.is_workspace_member(uuid)'::regprocedure) like '%(select auth.uid())%';",
   ).stdout.trim();
   if (postBodyHasSelectAuthUid !== "t") {
     throw new Error(
-      `Post-condition failed: can_access_estimate does not contain (select auth.uid()) after the target migration (got ${postBodyHasSelectAuthUid}).`,
+      `Post-condition failed: is_workspace_member does not contain (select auth.uid()) after the target migration (got ${postBodyHasSelectAuthUid}).`,
     );
   }
 
