@@ -27,5 +27,9 @@ export function useNavigationRouter() {
       show("refresh");
       return router.refresh();
     },
+    // Overlay-free refresh for reconciliation that needs fresh server data
+    // without a full-screen navigation flash. In-place optimistic mutations use
+    // the client store and should not call this at all (P0 / D3).
+    silentRefresh: () => router.refresh(),
   };
 }
