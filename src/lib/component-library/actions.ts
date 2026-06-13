@@ -196,6 +196,29 @@ async function assertCanManageLibrary(
   if (data !== true) throw new Error("Only workspace editors/admins can manage the library.");
 }
 
+// Library Optimization Plan P3 T19 (F24): a generous per-workspace creation quota so a
+// runaway client / abuse cannot create unbounded library rows. Enforced at the app layer
+// (a head count, no migration). The caps are far above any legitimate workspace today.
+const LIBRARY_COMPONENT_CAP = 10_000;
+const LIBRARY_TEMPLATE_CAP = 2_000;
+
+async function assertWithinLibraryQuota(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  table: "cost_library_items" | "estimate_templates",
+  workspaceId: string,
+  cap: number,
+  label: string,
+) {
+  const { count, error } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId);
+  if (error) throwActionError(`Could not verify the ${label} limit.`, error);
+  if ((count ?? 0) >= cap) {
+    throw new Error(`This workspace has reached its ${label} limit (${cap}). Archive or delete some first.`);
+  }
+}
+
 function readRequiredComponentText(value: string | undefined | null, label: string) {
   const text = String(value ?? "").trim();
   if (!text) throw new Error(`${label} is required.`);
@@ -421,6 +444,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
   });
   const priceOptions = input.priceOptions.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
   await assertCanManageLibrary(supabase, workspace.id);
+  await assertWithinLibraryQuota(supabase, "cost_library_items", workspace.id, LIBRARY_COMPONENT_CAP, "component");
   const { data, error } = await supabase.rpc("create_cost_library_component", {
     target_workspace_id: workspace.id,
     component: { ...component, createdBy: currentUser.userId } as Json,
@@ -1125,6 +1149,7 @@ export async function createEstimateTemplate(input: { name: string; category?: s
 
   const supabase = await createSupabaseServerClient();
   await assertCanManageLibrary(supabase, workspace.id);
+  await assertWithinLibraryQuota(supabase, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
   const { data: siblingTemplates, error: sortError } = await supabase
     .from("estimate_templates")
     .select("sort_order")
@@ -1173,6 +1198,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
 
   const supabase = await createSupabaseServerClient();
   await assertCanManageLibrary(supabase, workspace.id);
+  await assertWithinLibraryQuota(supabase, "estimate_templates", workspace.id, LIBRARY_TEMPLATE_CAP, "template");
   const { data: sourceTemplate, error: sourceError } = await supabase
     .from("estimate_templates")
     .select("*")

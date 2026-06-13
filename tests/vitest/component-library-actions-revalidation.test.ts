@@ -77,4 +77,24 @@ describe("template-surface revalidation (U11)", () => {
     expect(maybeSingle).not.toHaveBeenCalled();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it("rejects creation when the workspace is at its quota (P3 T19 / F24)", async () => {
+    // editor allowed, but the head-count query reports the workspace is at the cap.
+    const insert = vi.fn(() => ({ select: () => ({ single: async () => ({ data: {}, error: null }) }) }));
+    const quotaBuilder: Record<string, unknown> = {};
+    quotaBuilder.select = () => quotaBuilder;
+    quotaBuilder.eq = () => quotaBuilder;
+    quotaBuilder.then = (resolve: (v: { count: number; error: null }) => unknown) =>
+      resolve({ count: 1_000_000, error: null });
+    quotaBuilder.insert = insert;
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+      from: () => quotaBuilder,
+      rpc: async () => ({ data: true, error: null }),
+    });
+    const { createEstimateTemplate } = await import("@/lib/component-library/actions");
+
+    await expect(createEstimateTemplate({ name: "Over the limit" })).rejects.toThrow(/limit/);
+    expect(insert).not.toHaveBeenCalled();
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
 });
