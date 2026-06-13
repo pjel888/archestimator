@@ -500,6 +500,11 @@ function TemplatesBrowseTreePanel({
 
 export type TemplatesBrowseManagerProps = {
   templates?: EstimateTemplate[];
+  // Library Optimization Plan P0 T4: TemplatesBrowsePageClient owns the warm
+  // TanStack Query cache and passes this so mutations patch that cache instead of
+  // router.refresh() (which re-ran the whole server segment). No-op default keeps
+  // the manager mountable bare in unit tests.
+  onTemplatesMutated?: (updater: (templates: EstimateTemplate[]) => EstimateTemplate[]) => void;
 };
 
 /**
@@ -507,8 +512,10 @@ export type TemplatesBrowseManagerProps = {
  * center `TemplateGallery`, right `TemplatePreviewDock`. Selection state
  * lives here so the tree, gallery, and preview dock stay in sync.
  */
-export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManagerProps = {}) {
+export function TemplatesBrowseManager({ templates = [], onTemplatesMutated = () => {} }: TemplatesBrowseManagerProps = {}) {
   const router = useNavigationRouter();
+  // Mutations patch the route shell's warm query cache (T4). No-op when bare.
+  const syncTemplatesCache = onTemplatesMutated;
   const [templateState, setTemplateState] = useState<{ source: EstimateTemplate[]; items: EstimateTemplate[] }>(() => ({
     source: templates,
     items: templates,
@@ -600,9 +607,9 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
       setItems((items) => [...items.filter((entry) => entry.id !== template.id), template]);
       setSelectedTemplateId(template.id);
       setStatus({ state: "saved", message: "Template created." });
-      router.refresh();
+      syncTemplatesCache((items) => [...items.filter((entry) => entry.id !== template.id), template]);
     },
-    [router, setItems],
+    [syncTemplatesCache, setItems],
   );
 
   const applyRenameTemplate = useCallback(
@@ -614,7 +621,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
       renameEstimateTemplate({ templateId: template.id, name })
         .then(() => {
           setStatus({ state: "saved", message: "Template renamed." });
-          router.refresh();
+          syncTemplatesCache((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
         })
         .catch((error: unknown) => {
           setItems((items) => items.map((entry) => (entry.id === previous.id ? previous : entry)));
@@ -624,7 +631,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
           });
         });
     },
-    [router, setItems],
+    [syncTemplatesCache, setItems],
   );
 
   const renameTemplate = useCallback(
@@ -648,7 +655,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
           setItems((items) => [...items.filter((entry) => entry.id !== duplicated.id), duplicated]);
           setSelectedTemplateId(duplicated.id);
           setStatus({ state: "saved", message: "Template duplicated." });
-          router.refresh();
+          syncTemplatesCache((items) => [...items.filter((entry) => entry.id !== duplicated.id), duplicated]);
         })
         .catch((error: unknown) => {
           setStatus({
@@ -657,7 +664,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
           });
         });
     },
-    [router, setItems],
+    [syncTemplatesCache, setItems],
   );
 
   const moveTemplateToCategory = useCallback(
@@ -670,7 +677,9 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
       moveEstimateTemplateToCategory({ templateId: template.id, category: nextCategory })
         .then(() => {
           setStatus({ state: "saved", message: `Moved to ${nextCategory}.` });
-          router.refresh();
+          syncTemplatesCache((items) =>
+            items.map((entry) => (entry.id === template.id ? { ...entry, category: nextCategory } : entry)),
+          );
         })
         .catch((error: unknown) => {
           setItems((items) => items.map((entry) => (entry.id === previous.id ? previous : entry)));
@@ -680,7 +689,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
           });
         });
     },
-    [router, setItems],
+    [syncTemplatesCache, setItems],
   );
 
   const moveTemplatePrompt = useCallback(
@@ -707,7 +716,9 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
       renameTemplateCategory({ from: category, to: name })
         .then(() => {
           setStatus({ state: "saved", message: "Group renamed." });
-          router.refresh();
+          syncTemplatesCache((items) =>
+            items.map((entry) => (entry.category === category ? { ...entry, category: name } : entry)),
+          );
         })
         .catch((error: unknown) => {
           setItems(() => previousItems);
@@ -718,7 +729,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
           });
         });
     },
-    [localTemplates, router, selectedCategory, setItems],
+    [localTemplates, syncTemplatesCache, selectedCategory, setItems],
   );
 
   const renameCategory = useCallback(
@@ -744,7 +755,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
         setItems((items) => items.filter((entry) => entry.id !== template.id));
         setSelectedTemplateId((current) => (current === template.id ? null : current));
         setStatus({ state: "saved", message: "Template deleted." });
-        router.refresh();
+        syncTemplatesCache((items) => items.filter((entry) => entry.id !== template.id));
       })
       .catch((error: unknown) => {
         setStatus({
@@ -756,7 +767,7 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
         setDeletePending(false);
         setDeleteTarget(null);
       });
-  }, [deletePending, deleteTarget, router, setItems]);
+  }, [deletePending, deleteTarget, syncTemplatesCache, setItems]);
 
   const handleInserted = useCallback((estimateName: string) => {
     setStatus({ state: "saved", message: `Inserted into ${estimateName}.` });
