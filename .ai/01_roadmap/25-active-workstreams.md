@@ -15,7 +15,7 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 
 ## 2026-06-14 — Library Optimization IMPLEMENTED (merged to main)
 
-The `/workshop/library` optimization plan (`.ai/03_plans/2026-06-14-Library-Optimization-Plan/`)
+The `/workshop/library` optimization plan (`.ai/09_archive/store/2026-06-14-Library-Optimization-Plan/`, now archived)
 moved from planning to implemented on branch `2026-06-14-Library-Optimization-Plan` (merged to main).
 - **Shipped:** P0 felt-latency (delay-before-show overlay, no blur on refresh, Overview skeleton reshape,
   browse-tab TanStack Query cache + `staleTimes` for warm-revisit no-skeleton, cache-patch mutations);
@@ -26,7 +26,7 @@ moved from planning to implemented on branch `2026-06-14-Library-Optimization-Pl
   hosted per plan 08 Q4; all additive/relax-only (zero data loss). Apply needs owner approval + the
   PG17 prove-harness (see `migrations/00_P2_MIGRATIONS_README.md`).
 - **Residual gates (owner):** wall-clock browser standard-session (dev-auth disabled) + hosted P2 apply.
-- Plan archived to `.ai/09_archive/`.
+- Plan archived to `.ai/09_archive/store/2026-06-14-Library-Optimization-Plan/`.
 
 ---
 
