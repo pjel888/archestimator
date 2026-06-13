@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
+import { SHARE_CONTAINER_WIDTH } from "@/components/share/ShareContainer";
 
 type SharePageSessionBannerProps = {
   recipientEmail?: string | null;
@@ -25,19 +26,19 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
   if (recipientEmail) {
     return (
       <div className="border-b border-hairline bg-white">
-        <div className="mx-auto flex max-w-[960px] items-center justify-between gap-3 px-4 py-2 sm:px-6">
-          <p className="min-w-0 truncate text-[9px] font-medium uppercase leading-3 text-secondary">
+        <div className={`${SHARE_CONTAINER_WIDTH} flex items-center justify-between gap-3 py-2`}>
+          <p className="min-w-0 truncate text-[12px] font-medium uppercase leading-[16px] tracking-normal text-secondary">
             You are reviewing as {recipientEmail}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
-            <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
+            <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">
               Reviewer
             </span>
             <button
               type="button"
               onClick={clearRecipientSession}
               disabled={isClearingRecipientSession}
-              className="rounded-xs px-1.5 py-0.5 text-[9px] font-medium uppercase leading-3 text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
+              className="rounded-xs px-1.5 py-0.5 text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary transition hover:bg-surfaceMuted hover:text-ink disabled:cursor-wait disabled:opacity-60"
             >
               Not you?
             </button>
@@ -51,14 +52,14 @@ export function SharePageSessionBanner({ recipientEmail = null, token }: SharePa
 
   return (
     <div className="border-b border-hairline bg-surfaceMuted">
-      <div className="mx-auto flex max-w-[960px] items-start justify-between gap-3 px-4 py-2.5 sm:px-6">
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">
+      <div className={`${SHARE_CONTAINER_WIDTH} flex items-start justify-between gap-3 py-2.5`}>
+        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">
           Sign in as a recipient to comment and respond to this proposal.
         </p>
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded-xs p-0.5 text-[11px] leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink"
+          className="shrink-0 rounded-xs p-0.5 text-[14px] leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink"
           aria-label="Dismiss"
         >
           ×

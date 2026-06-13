@@ -294,26 +294,30 @@ export default function SharePageTabs({
       {/* Active estimate summary — shows current sheet name + total above tabs */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-[12px] font-medium leading-4 text-ink">{activeEstimate.name}</h2>
+          <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{activeEstimate.name}</h2>
           {activeEstimateMetaText ? (
-            <p className="text-[10px] leading-3 text-tertiary">{activeEstimateMetaText}</p>
+            <p className="text-[13px] leading-[18px] tracking-normal text-tertiary">{activeEstimateMetaText}</p>
           ) : null}
         </div>
-        <p className="text-[12px] font-medium leading-4 text-ink">
+        <p className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">
           {formatMoney(activeContentTotal, currencyCode)}
         </p>
       </div>
 
       {/* P1/P5 polish: Per-sheet donut chart. compact variant ensures full callout visibility
-          (520×400 internal, scaled D3 logic + DESIGN ≤12px text) in the flex-1 + lg sidebar
-          layout without clipping or excessive page scroll. Workshop charts unchanged. */}
-      <CostDonutChart
-        buckets={donutBuckets}
-        total={activeContentTotal}
-        currencyCode={currencyCode}
-        label={`${activeContentLabel} cost breakdown`}
-        compact
-      />
+          (520×400 internal, scaled D3 logic + DESIGN ≤12px text). T1-C MVP: the compact donut
+          has a fixed ~520-wide viewBox, so in the wider single-column ShareContainer it is
+          constrained at this call-site (mx-auto max-w-[560px]) instead of floating meet-centered
+          in a wide band. CostDonutChart itself is untouched (ProjectChartsPage out of blast radius). */}
+      <div className="mx-auto w-full max-w-[560px]">
+        <CostDonutChart
+          buckets={donutBuckets}
+          total={activeContentTotal}
+          currencyCode={currencyCode}
+          label={`${activeContentLabel} cost breakdown`}
+          compact
+        />
+      </div>
 
       {/* Tablist — horizontal scroll + fade masks for mobile, design-system compliant */}
       <div className="relative">
@@ -321,7 +325,7 @@ export default function SharePageTabs({
           ref={scrollRef}
           role="tablist"
           aria-label="Estimates"
-          className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
+          className="flex h-[34px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[11px] font-medium scrollbar-thin scrollbar-thumb-hairline"
           style={{ scrollbarWidth: "thin" }}
         >
           {estimates.map((estimate, index) => {
@@ -338,7 +342,7 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${estimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[13px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "z-10 bg-white text-ink border-hairline -mb-px"
                     : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline"
@@ -348,7 +352,7 @@ export default function SharePageTabs({
               >
                 <span className="truncate">{estimate.name}</span>
                 {estimate.sheetCode ? (
-                  <span className="ml-1 text-[9px] text-tertiary">({estimate.sheetCode})</span>
+                  <span className="ml-1 text-[12px] text-tertiary">({estimate.sheetCode})</span>
                 ) : null}
               </button>
             );
@@ -370,7 +374,7 @@ export default function SharePageTabs({
         <div
           role="tablist"
           aria-label={`${activeEstimate.name} tabs`}
-          className="flex h-7 items-center gap-0 overflow-x-auto border-b border-hairline bg-white text-[10px] font-medium"
+          className="flex h-8 items-center gap-0 overflow-x-auto border-b border-hairline bg-white text-[13px] font-medium tracking-normal"
         >
           {activeEstimateTabs.map((tab, index) => {
             const isActive = tab.id === activeEstimateTabId;
@@ -386,7 +390,7 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${activeEstimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`h-full flex-shrink-0 rounded-xs border px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`h-full flex-shrink-0 rounded-xs border px-3 text-[13px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
                     ? "bg-surfaceMuted text-ink border-hairline"
                     : "text-tertiary hover:text-ink border-transparent hover:border-hairline"
@@ -405,7 +409,7 @@ export default function SharePageTabs({
       <div
         role="tablist"
         aria-label="Estimate view mode"
-        className="flex h-7 items-center gap-0 border-b border-hairline bg-white text-[10px] font-medium"
+        className="flex h-8 items-center gap-0 border-b border-hairline bg-white text-[13px] font-medium tracking-normal"
         onKeyDown={handleSubTabKeyDown}
       >
         {(["tree", "grid"] as const).map((mode) => {
@@ -450,12 +454,12 @@ export default function SharePageTabs({
                   setGridSearchByEstimateId((prev) => ({ ...prev, [gridSearchKey || activeEstimate.id]: next }));
                 }}
                 placeholder="Filter rows"
-                className="h-7 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus"
+                className="h-8 w-full rounded-xs border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none placeholder:text-tertiary focus:border-focus"
               />
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-left text-[10px] leading-4">
-                <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
+              <table className="min-w-full border-collapse text-left text-[13px] leading-[18px] tracking-normal">
+                <thead className="bg-surfaceMuted text-[12px] uppercase tracking-normal text-tertiary">
                   <tr>
                     <th className="px-3 py-2 font-medium">Description</th>
                     <th className="px-3 py-2 font-medium">Discipline</th>
@@ -498,7 +502,7 @@ export default function SharePageTabs({
                     );
                   }) : (
                     <tr className="border-t border-hairline">
-                      <td colSpan={5} className="px-3 py-4 text-center text-[10px] leading-4 text-tertiary">
+                      <td colSpan={5} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-tertiary">
                         {`No rows match ${JSON.stringify(activeGridSearch.trim())}`}
                       </td>
                     </tr>

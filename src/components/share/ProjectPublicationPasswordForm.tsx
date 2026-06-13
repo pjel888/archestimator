@@ -49,10 +49,10 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
 
   return (
     <form className="mt-4 grid gap-2" onSubmit={submitPassword}>
-      <label className="grid gap-1 text-[10px] font-medium leading-4 text-secondary">
+      <label className="grid gap-1 text-[13px] font-medium leading-[18px] tracking-normal text-secondary">
         Password
         <input
-          className="h-8 border border-hairline bg-white px-2 text-[11px] leading-4 text-ink outline-none focus:border-secondary disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-9 border border-hairline bg-white px-2 text-[13px] leading-[18px] tracking-normal text-ink outline-none focus:border-secondary disabled:cursor-not-allowed disabled:opacity-60"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.currentTarget.value)}
@@ -60,13 +60,13 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
           disabled={isSubmitting || isLocked}
         />
       </label>
-      {status === "invalid" ? <p className="text-[10px] leading-4 text-red-700">Password is invalid.</p> : null}
-      {status === "error" ? <p className="text-[10px] leading-4 text-red-700">Unable to unlock publication.</p> : null}
+      {status === "invalid" ? <p className="text-[13px] leading-[18px] tracking-normal text-red-700">Password is invalid.</p> : null}
+      {status === "error" ? <p className="text-[13px] leading-[18px] tracking-normal text-red-700">Unable to unlock publication.</p> : null}
       {isLocked ? (
-        <p className="text-[10px] leading-4 text-red-700">Too many attempts. Please try again later.</p>
+        <p className="text-[13px] leading-[18px] tracking-normal text-red-700">Too many attempts. Please try again later.</p>
       ) : null}
       <button
-        className="h-8 bg-ink px-3 text-[10px] font-medium leading-none text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
+        className="h-9 bg-ink px-3 text-[13px] font-medium leading-none tracking-normal text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
         type="submit"
         disabled={isSubmitting || isLocked}
       >

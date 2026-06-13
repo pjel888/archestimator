@@ -15,14 +15,14 @@ export function SharePageProposalHeader({ project }: SharePageProposalHeaderProp
     <section className="rounded-xs border border-hairline bg-white p-3 text-ink">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Proposal Review</p>
-          <h1 className="mt-1.5 truncate text-[12px] font-medium leading-4 text-ink">{project.name}</h1>
-          <p className="mt-1 text-[10px] leading-4 text-secondary">Prepared for your review</p>
+          <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Proposal Review</p>
+          <h1 className="mt-1.5 text-[22px] font-medium leading-[28px] tracking-normal text-ink lg:text-[26px] lg:leading-[32px]">{project.name}</h1>
+          <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">Prepared for your review</p>
           {metaItems.length > 0 ? (
-            <p className="mt-1 text-[10px] leading-4 text-secondary">{metaItems.join(" • ")}</p>
+            <p className="mt-1 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">{metaItems.join(" • ")}</p>
           ) : null}
         </div>
-        <div className="shrink-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[9px] font-medium leading-3 text-tertiary">
+        <div className="shrink-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[12px] font-medium leading-[16px] tracking-normal text-tertiary">
           Awaiting your review
         </div>
       </div>

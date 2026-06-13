@@ -291,9 +291,9 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
 
   if (!isValid) {
     return (
-      <section role="region" aria-label="Discussion comments" className="share-print-hidden w-full rounded-xs border border-hairline bg-white p-3 text-[10px] leading-4 text-secondary">
-        <div className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Discussion</div>
-        <p className="mt-2 text-[10px] leading-4 text-secondary">Recipient session required to comment and respond to this proposal.</p>
+      <section role="region" aria-label="Discussion comments" className="share-print-hidden w-full rounded-xs border border-hairline bg-white p-3 text-[13px] leading-[18px] tracking-normal text-secondary">
+        <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
+        <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">Recipient session required to comment and respond to this proposal.</p>
       </section>
     );
   }
@@ -306,8 +306,8 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
     >
       <div className="flex items-start justify-between gap-3 border-b border-hairline px-3 py-2">
         <div>
-          <div className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Discussion</div>
-          <p className="text-[9px] leading-3 text-tertiary">
+          <div className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">Discussion</div>
+          <p className="text-[12px] leading-[16px] tracking-normal text-tertiary">
             {comments.length} comment{comments.length === 1 ? "" : "s"} • visible to the project team
           </p>
         </div>
@@ -328,7 +328,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       <div
         id="share-page-discussion-body"
         aria-live="polite"
-        className={isExpanded ? "max-h-[420px] overflow-y-auto px-3 py-2 text-[10px] leading-4 text-ink" : "sr-only"}
+        className={isExpanded ? "max-h-[420px] overflow-y-auto px-3 py-2 text-[13px] leading-[18px] tracking-normal text-ink" : "sr-only"}
         style={{ scrollbarWidth: "thin" }}
       >
         {isLoadingComments ? (
@@ -337,19 +337,19 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
             <div className="h-3 w-1/2 rounded-xs bg-surfaceMuted" />
           </div>
         ) : loadError ? (
-          <div className="rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[9px] leading-3 text-danger" role="alert">
+          <div className="rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[12px] leading-[16px] tracking-normal text-danger" role="alert">
             {loadError}
             <Button variant="ghost" size="sm" className="ml-2" onClick={() => void loadComments()}>
               Retry
             </Button>
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-[9px] leading-3 text-tertiary">No comments yet. Add a note or question below.</p>
+          <p className="text-[12px] leading-[16px] tracking-normal text-tertiary">No comments yet. Add a note or question below.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="max-w-[600px] space-y-3">
             {comments.map((c) => (
               <li key={c.id} className="rounded-xs border border-hairline bg-white p-2">
-                <div className="text-[9px] leading-3 text-tertiary">
+                <div className="text-[12px] leading-[16px] tracking-normal text-tertiary">
                   {c.authorName || c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {c.isOptimistic ? " (sending...)" : ""}
                 </div>
@@ -365,7 +365,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       {/* Composer + counter */}
       <div className="border-t border-hairline p-3 pb-[env(safe-area-inset-bottom)]">
         {error && (
-          <div className="mb-2 rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[9px] text-danger" role="alert">
+          <div className="mb-2 rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[12px] tracking-normal text-danger" role="alert">
             {error}
             <Button variant="ghost" size="sm" className="ml-2" onClick={() => setError(null)}>
               Dismiss
@@ -373,9 +373,9 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
           </div>
         )}
 
-        {/* P12 additive status (retry/queued) — strictly design compliant (text-[9px], rounded-xs, existing tokens, no new primitives) */}
+        {/* P12 additive status (retry/queued) — strictly design compliant (rounded-xs, existing tokens, no new primitives) */}
         {(retryStatus || pendingCount > 0) && (
-          <div className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[9px] text-tertiary" role="status" aria-live="polite">
+          <div className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[12px] tracking-normal text-tertiary" role="status" aria-live="polite">
             {retryStatus ? retryStatus : `${pendingCount} comment${pendingCount > 1 ? "s" : ""} queued — will retry on reconnect`}
           </div>
         )}
@@ -389,14 +389,14 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
           }}
           onKeyDown={handleKeyDown}
           placeholder="Add a comment, note, or question for the project team..."
-          className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[10px] leading-4 text-ink placeholder:text-tertiary focus:outline focus:outline-1 focus:outline-ink disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline focus:outline-1 focus:outline-ink disabled:cursor-not-allowed disabled:opacity-60"
           rows={3}
           maxLength={MAX}
           disabled={isPosting || !isValid}
           aria-label="Comment body"
         />
 
-        <div className="mt-1 flex items-center justify-between text-[9px] text-tertiary">
+        <div className="mt-1 flex items-center justify-between text-[12px] tracking-normal text-tertiary">
           <span>
             {remaining} / {MAX}
           </span>
@@ -404,7 +404,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
             {isPosting ? "Sending..." : "Send"}
           </Button>
         </div>
-        <p className="mt-1 text-[8px] leading-[10px] text-tertiary">Comments are sent to the project team. Max 1000 characters.</p>
+        <p className="mt-1 text-[11px] leading-[15px] tracking-normal text-tertiary">Comments are sent to the project team. Max 1000 characters.</p>
       </div>
     </section>
   );

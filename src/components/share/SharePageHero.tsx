@@ -33,12 +33,12 @@ export default function SharePageHero({ project }: SharePageHeroProps) {
           alt={`${project.name} project cover`}
           fill
           className="object-cover"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 768px, 1024px"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 768px, (max-width: 1280px) 1120px, 1280px"
           loading="lazy"
         />
       </div>
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/35 to-transparent p-2 sm:p-2.5">
-        <p className="text-[9px] font-medium uppercase leading-3 text-white/90">Project cover</p>
+        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-white/90">Project cover</p>
       </div>
     </div>
   );
