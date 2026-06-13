@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/proposal-export/build-proposal-export-model";
 import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-proposal-workbook";
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
+import { getCurrentUserContext } from "@/lib/auth/session";
 import { getEstimateTabs, getEstimateTabTree, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import type { Json, Tables } from "@/lib/supabase/types";
@@ -205,6 +206,14 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
 }
 
 export async function GET(request: NextRequest, context: ProposalExportRouteContext) {
+  // F-15 (P1-T5): fail closed in-handler. getCurrentUserContext() is nullable; a null
+  // result must be a clean 401 JSON for the fetch-then-blob client (P1-T1), never a 307
+  // redirect (which requireCurrentUserContext() would emit and the blob client can't render).
+  const userContext = await getCurrentUserContext();
+  if (!userContext) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { projectId, estimateId } = await context.params;
   const tabId = new URL(request.url).searchParams.get("tab");
 
