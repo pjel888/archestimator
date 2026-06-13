@@ -5,8 +5,8 @@ import { CopySimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dis
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
-import { tabStripTabClassName } from "@/components/ui/tab-strip";
 import {
   createEstimateTab,
   deleteEstimateTab,
@@ -60,14 +60,23 @@ function canSpringLoadTabDrag(event: DragEvent<HTMLElement>) {
 }
 
 function getNextTabName(tabs: readonly EstimateTabSummary[]) {
-  const usedNames = new Set(tabs.map((tab) => tab.name.toLowerCase()));
+  const usedNames = new Set(tabs.map((tab, index) => getTabDisplayName(tab, index).toLowerCase()));
   let index = tabs.length + 1;
-  while (usedNames.has(`tab ${index}`)) index += 1;
-  return `Tab ${index}`;
+  while (usedNames.has(formatPageTabName(index).toLowerCase())) index += 1;
+  return formatPageTabName(index);
 }
 
 function sortTabs(tabs: readonly EstimateTabSummary[]) {
   return [...tabs].sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
+}
+
+function formatPageTabName(index: number) {
+  return `Page ${String(index).padStart(3, "0")}`;
+}
+
+function getTabDisplayName(tab: EstimateTabSummary, index: number) {
+  if (index === 0) return "Page 001";
+  return tab.name;
 }
 
 export function EstimateTabStrip({
@@ -113,9 +122,7 @@ export function EstimateTabStrip({
 
   // Browser-grade polish (U5): pinned "+", scroll-into-view, overflow fade, and
   // restrained enter motion — all respecting prefers-reduced-motion.
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const previousTabIdsRef = useRef<Set<string>>(new Set(orderedTabs.map((tab) => tab.id)));
-  const [edgeFade, setEdgeFade] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
   const [enteringTabIds, setEnteringTabIds] = useState<ReadonlySet<string>>(() => new Set());
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(
     () =>
@@ -234,23 +241,6 @@ export function EstimateTabStrip({
     media.addEventListener?.("change", handleChange);
     return () => media.removeEventListener?.("change", handleChange);
   }, []);
-
-  const updateEdgeFade = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const maxScrollLeft = container.scrollWidth - container.clientWidth;
-    setEdgeFade({ left: container.scrollLeft > 1, right: container.scrollLeft < maxScrollLeft - 1 });
-  }, []);
-
-  // Recompute the overflow fade on tab-list changes and container resize.
-  useEffect(() => {
-    updateEdgeFade();
-    const container = scrollContainerRef.current;
-    if (!container || typeof ResizeObserver === "undefined") return undefined;
-    const observer = new ResizeObserver(() => updateEdgeFade());
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [orderedTabs, updateEdgeFade]);
 
   const scrollTabIntoView = useCallback((tabId: string) => {
     const index = orderedTabs.findIndex((tab) => tab.id === tabId);
@@ -546,76 +536,31 @@ export function EstimateTabStrip({
   }, [beginRename, contextMenuTabId, deleteTab, duplicateTab, orderedTabs, pendingAction]);
 
   const handleTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const moveFocus = (nextIndex: number) => {
-      event.preventDefault();
-      focusTab(nextIndex);
-    };
-
     if ((event.metaKey || event.ctrlKey) && event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
       void moveActiveTab(event.key === "ArrowLeft" ? -1 : 1);
       return;
     }
 
-    if (event.key === "ArrowRight") {
-      moveFocus((index + 1) % orderedTabs.length);
-      return;
-    }
-    if (event.key === "ArrowLeft") {
-      moveFocus((index - 1 + orderedTabs.length) % orderedTabs.length);
-      return;
-    }
-    if (event.key === "Home") {
-      moveFocus(0);
-      return;
-    }
-    if (event.key === "End") {
-      moveFocus(orderedTabs.length - 1);
-      return;
-    }
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      const tab = orderedTabs[index];
-      if (tab) onTabChange(tab.id);
-      return;
-    }
     if (event.key === "F2") {
       const tab = orderedTabs[index];
       if (tab) beginRename(tab);
     }
-  }, [beginRename, focusTab, moveActiveTab, onTabChange, orderedTabs]);
+  }, [beginRename, moveActiveTab, orderedTabs]);
 
-  const tabList = (
-    <div
-      ref={scrollContainerRef}
-      className="flex items-end gap-1 overflow-x-auto"
-      role="tablist"
-      aria-label="Estimate tabs"
-      onScroll={updateEdgeFade}
-      onContextMenu={(event) => {
-        // Only a tab opens the menu; right-clicks on the "+" or empty strip
-        // space keep it closed (mirrors EstimateSheetTree).
-        if (!(event.target instanceof Element) || !event.target.closest("[data-estimate-tab-id]")) {
-          event.preventDefault();
-        }
-      }}
-    >
-      {orderedTabs.map((tab, index) => {
-        const isActive = tab.id === resolvedActiveTabId;
+  const navigationTabs = useMemo<readonly TabItem[]>(() =>
+    orderedTabs.map((tab, index) => {
         const isEditing = editingTabId === tab.id;
-        const isEntering = enteringTabIds.has(tab.id);
-        return (
-          <div key={tab.id} className="flex h-7 shrink-0 items-end">
-            {isEditing ? (
-              // Rename keeps the file-folder tab shape (active styling) and embeds a
-              // borderless input where the label sits, so editing reads as "this tab,
-              // being renamed" rather than a detached box. Width tracks the text.
-              <div className={cn(tabStripTabClassName(true), "max-w-44 ring-1 ring-inset ring-focus")} data-estimate-tab-id={tab.id}>
+        const displayName = getTabDisplayName(tab, index);
+        return {
+          id: tab.id,
+          label: isEditing ? (
+            <span className="inline-flex max-w-44 items-center ring-1 ring-inset ring-focus" data-estimate-tab-id={tab.id}>
                 <input
                   ref={attachRenameInputRef}
                   size={Math.max(editingName.length, 3)}
                   className="min-w-0 max-w-[150px] bg-transparent text-[10px] font-medium leading-none text-ink outline-none"
-                  aria-label={`Rename ${tab.name} tab`}
+                  aria-label={`Rename ${displayName} tab`}
                   value={editingName}
                   disabled={pendingAction === "rename"}
                   onChange={(event) => setEditingName(event.target.value)}
@@ -639,44 +584,66 @@ export function EstimateTabStrip({
                     }
                   }}
                 />
-              </div>
-            ) : (
-              <button
-                ref={(element) => {
-                  tabRefs.current[index] = element;
-                }}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                tabIndex={isActive ? 0 : -1}
-                data-estimate-tab-id={tab.id}
-                className={cn(
-                  tabStripTabClassName(isActive),
-                  "max-w-44",
-                  isEntering && "animate-in fade-in-0 slide-in-from-bottom-1 duration-150",
-                )}
-                onClick={() => onTabChange(tab.id)}
-                onDoubleClick={() => beginRename(tab)}
-                onContextMenu={() => setContextMenuTabId(tab.id)}
-                onKeyDown={(event) => handleTabKeyDown(event, index)}
-                onDragOver={(event) => scheduleSpringLoadedTabTarget(event, tab.id)}
-                onDragLeave={clearSpringLoadedTabTarget}
-                onDrop={(event) => handleTabDrop(event, tab.id)}
-              >
-                <span className="truncate">{tab.name}</span>
-                {tab.isDefault ? <span className="text-[8px] font-normal leading-none text-tertiary">Default</span> : null}
-              </button>
-            )}
-          </div>
-        );
+              </span>
+          ) : (
+            <span className="truncate" data-estimate-tab-id={tab.id}>{displayName}</span>
+          ),
+        };
+      }),
+    [attachRenameInputRef, commitRename, editingName, editingTabId, orderedTabs, pendingAction],
+  );
+
+  const createButton = lifecycleActionsReady && canCreateTabs ? (
+    <ToolbarIconButton
+      type="button"
+      label="New tab"
+      className="mb-0.5"
+      disabled={Boolean(pendingAction)}
+      onClick={() => void createTab()}
+    >
+      <Plus size={12} weight="regular" aria-hidden="true" />
+    </ToolbarIconButton>
+  ) : null;
+
+  const tabList = (
+    <Tabs
+      tabs={navigationTabs}
+      activeId={resolvedActiveTabId}
+      onChange={onTabChange}
+      ariaLabel="Estimate tabs"
+      activationMode="manual"
+      endAction={createButton}
+      className="min-w-0 flex-1"
+      onContextMenu={(event) => {
+        if (!(event.target instanceof Element) || !event.target.closest("[data-estimate-tab-id]")) {
+          event.preventDefault();
+        }
+      }}
+      onTabButtonMount={(_tab, index, element) => {
+        tabRefs.current[index] = element;
+      }}
+      getTabButtonProps={(tab, index) => ({
+        "data-estimate-tab-id": tab.id,
+        className: cn(
+          "max-w-44 min-h-7 px-2",
+          enteringTabIds.has(tab.id) && "animate-in fade-in-0 slide-in-from-bottom-1 duration-150",
+        ),
+        onDoubleClick: () => {
+          const targetTab = orderedTabs[index];
+          if (targetTab) beginRename(targetTab);
+        },
+        onContextMenu: () => setContextMenuTabId(tab.id),
+        onKeyDown: (event) => handleTabKeyDown(event, index),
+        onDragOver: (event) => scheduleSpringLoadedTabTarget(event, tab.id),
+        onDragLeave: clearSpringLoadedTabTarget,
+        onDrop: (event) => handleTabDrop(event, tab.id),
       })}
-    </div>
+    />
   );
 
   return (
     <div className={cn("shrink-0 border-b border-hairline bg-surfaceMuted", className)} data-estimate-tab-strip>
       <div className="flex min-h-8 items-end gap-1 px-2 pt-1">
-        {/* Scrollable tab region with overflow fades; the "+" is pinned outside it. */}
         <div className="relative flex min-w-0 flex-1 items-end">
           {lifecycleActionsReady ? (
             <ContextMenu>
@@ -692,26 +659,7 @@ export function EstimateTabStrip({
           ) : (
             tabList
           )}
-          {edgeFade.left ? (
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-surfaceMuted to-transparent" />
-          ) : null}
-          {edgeFade.right ? (
-            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-surfaceMuted to-transparent" />
-          ) : null}
         </div>
-        {lifecycleActionsReady && canCreateTabs ? (
-          <span className="shrink-0">
-            <ToolbarIconButton
-              type="button"
-              label="New tab"
-              className="mb-0.5"
-              disabled={Boolean(pendingAction)}
-              onClick={() => void createTab()}
-            >
-              <Plus size={12} weight="regular" aria-hidden="true" />
-            </ToolbarIconButton>
-          </span>
-        ) : null}
       </div>
       {error ? <p role="alert" className="px-2 pb-1 text-[10px] leading-4 text-danger">{error}</p> : null}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">

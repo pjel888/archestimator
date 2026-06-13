@@ -27,7 +27,7 @@ function fixtureTabs(): EstimateTabSummary[] {
 function renderStrip(overrides: Partial<ComponentProps<typeof EstimateTabStrip>> = {}) {
   const onTabChange = vi.fn();
   const onTabsChange = vi.fn();
-  render(
+  const result = render(
     <EstimateTabStrip
       tabs={fixtureTabs()}
       activeTabId="tab-main"
@@ -38,7 +38,7 @@ function renderStrip(overrides: Partial<ComponentProps<typeof EstimateTabStrip>>
       {...overrides}
     />,
   );
-  return { onTabChange, onTabsChange };
+  return { onTabChange, onTabsChange, container: result.container };
 }
 
 function tabButton(tabId: string) {
@@ -93,18 +93,45 @@ describe("EstimateTabStrip", () => {
     renderStrip();
 
     expect(screen.getByRole("tablist", { name: "Estimate tabs" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Main/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Alternate" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("renders estimate tabs through the shared Tabs primitive without default copy", () => {
+    const { container } = renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+
+    const tabRoot = container.querySelector("[data-navigation-tabs]");
+    expect(tabRoot).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Alternate" })).toBeInTheDocument();
+    expect(screen.queryByText("Default")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Main/ })).not.toBeInTheDocument();
+    expect(tabRoot?.contains(screen.getByRole("button", { name: "New tab" }))).toBe(true);
+  });
+
+  it("uses Page 001 for only the first rendered tab after reorder", () => {
+    renderStrip({
+      tabs: [
+        { id: "tab-alt", name: "Alternate", sortOrder: 0, isDefault: false },
+        { id: "tab-main", name: "Main", sortOrder: 1, isDefault: true },
+      ],
+      activeTabId: "tab-alt",
+    });
+
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveAttribute("data-estimate-tab-id", "tab-alt");
+    expect(screen.getByRole("tab", { name: "Main" })).toHaveAttribute("data-estimate-tab-id", "tab-main");
+    expect(screen.getAllByText("Page 001")).toHaveLength(1);
   });
 
   it("moves focus with roving keyboard controls and activates on Enter", () => {
     const { onTabChange } = renderStrip();
-    const mainTab = screen.getByRole("tab", { name: /Main/ });
+    const mainTab = screen.getByRole("tab", { name: "Page 001" });
     const alternateTab = screen.getByRole("tab", { name: "Alternate" });
 
     mainTab.focus();
     fireEvent.keyDown(mainTab, { key: "ArrowRight" });
     expect(document.activeElement).toBe(alternateTab);
+    expect(onTabChange).not.toHaveBeenCalled();
 
     fireEvent.keyDown(alternateTab, { key: "Enter" });
     expect(onTabChange).toHaveBeenCalledWith("tab-alt");
@@ -172,7 +199,7 @@ describe("EstimateTabStrip", () => {
 
     await waitFor(() => {
       // Auto-named from the returned list; the action is the single round-trip.
-      expect(actionMocks.createEstimateTab).toHaveBeenCalledWith({ projectId: "project-1", estimateId: "estimate-1", name: "Tab 3" });
+      expect(actionMocks.createEstimateTab).toHaveBeenCalledWith({ projectId: "project-1", estimateId: "estimate-1", name: "Page 003" });
     });
     // The list updates from the returned array and the new tab arms inline rename
     // (the input only renders if "tab-3" was added to the rendered list).
@@ -230,7 +257,7 @@ describe("EstimateTabStrip", () => {
     const { onTabsChange } = renderStrip({ enableLifecycleActions: true });
 
     await chooseTabMenuItem("tab-main", "Rename");
-    const input = await screen.findByRole("textbox", { name: "Rename Main tab" });
+    const input = await screen.findByRole("textbox", { name: "Rename Page 001 tab" });
     fireEvent.change(input, { target: { value: "Main Revised" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -252,7 +279,7 @@ describe("EstimateTabStrip", () => {
     renderStrip({ enableLifecycleActions: true });
 
     fireEvent.doubleClick(tabButton("tab-main"));
-    const input = await screen.findByRole("textbox", { name: "Rename Main tab" });
+    const input = await screen.findByRole("textbox", { name: "Rename Page 001 tab" });
     fireEvent.change(input, { target: { value: "Main Revised" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
@@ -270,7 +297,7 @@ describe("EstimateTabStrip", () => {
     renderStrip({ enableLifecycleActions: true });
 
     await chooseTabMenuItem("tab-main", "Rename");
-    const input = screen.getByRole("textbox", { name: "Rename Main tab" });
+    const input = screen.getByRole("textbox", { name: "Rename Page 001 tab" });
     expect(input).toHaveValue("Main");
 
     // Mutation-killing assertion: we are inside the suppression window (the rename
@@ -279,16 +306,16 @@ describe("EstimateTabStrip", () => {
     // so the editor stays mounted and nothing commits. Removing the guard unmounts
     // the editor here (commitRename's unchanged-name early return clears editing).
     fireEvent.blur(input);
-    expect(screen.getByRole("textbox", { name: "Rename Main tab" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Rename Page 001 tab" })).toBeInTheDocument();
     expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
 
     // Focus settles back on the input after the menu-close dance; still no commit.
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Rename Main tab" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Rename Page 001 tab" })).toHaveFocus());
     expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
 
     // Esc cancels cleanly without committing.
-    fireEvent.keyDown(screen.getByRole("textbox", { name: "Rename Main tab" }), { key: "Escape" });
-    expect(screen.queryByRole("textbox", { name: "Rename Main tab" })).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Rename Page 001 tab" }), { key: "Escape" });
+    expect(screen.queryByRole("textbox", { name: "Rename Page 001 tab" })).not.toBeInTheDocument();
     expect(actionMocks.renameEstimateTab).not.toHaveBeenCalled();
   });
 
@@ -370,7 +397,7 @@ describe("EstimateTabStrip", () => {
     });
     renderStrip({ enableLifecycleActions: true });
 
-    const mainTab = screen.getByRole("tab", { name: /Main/ });
+    const mainTab = screen.getByRole("tab", { name: "Page 001" });
     mainTab.focus();
     fireEvent.keyDown(mainTab, { key: "ArrowRight", metaKey: true, shiftKey: true });
 
@@ -425,7 +452,7 @@ describe("EstimateTabStrip", () => {
     // Active selection moves to the replacement (the load-bearing browser semantic)…
     await waitFor(() => expect(switchedTo).toContain("tab-alt"));
     // …and focus follows it.
-    const alternateTab = await screen.findByRole("tab", { name: "Alternate" });
+    const alternateTab = await screen.findByRole("tab", { name: "Page 001" });
     await waitFor(() => expect(document.activeElement).toBe(alternateTab));
     expect(screen.getByRole("status")).toHaveTextContent("Main tab deleted.");
   });

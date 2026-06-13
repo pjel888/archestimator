@@ -1,5 +1,7 @@
 import { cache } from "react";
+import { cookies, headers } from "next/headers";
 
+import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
 import type { EstimateRowItem, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
@@ -191,6 +193,12 @@ function normalizeCollaborationRole(role: string | null | undefined): Collaborat
 
 function normalizePendingInviteScope(scope: string | null | undefined): "project" | "estimate" {
   return scope === "estimate" ? "estimate" : "project";
+}
+
+async function isDevAdminDatabaseBypassActiveForRequest() {
+  const requestHeaders = await headers();
+  const credential = getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies());
+  return isDevAdminDatabaseBypassRequest(requestHeaders.get("host"), credential);
 }
 
 function createWorkshopProjectAccessResolver({
@@ -1723,6 +1731,8 @@ export async function getEstimateTabs(projectId: string, estimateId: string): Pr
  * failure hides edit affordances rather than exposing ones that error on use.
  */
 export async function resolveEstimateEditCapability(estimateId: string): Promise<boolean> {
+  if (await isDevAdminDatabaseBypassActiveForRequest()) return true;
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
   if (error) return false;
