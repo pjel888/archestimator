@@ -292,10 +292,11 @@ try {
   applySqlFile(join(migrationDir, targetMigration));
 
   // U2: the project-source subtree insert RPC is sequenced AFTER the foundation
-  // (it is tab-aware + reuses the foundation's hardened gate). The U4 migration is
-  // intentionally NOT applied here — it rewrites the LIVE (no-tab) template RPC for
-  // the pre-foundation schema; the foundation body already carries the hardened gate.
-  applySqlFile(join(migrationDir, "20260613180000_insert_estimate_subtree_rpc.sql"));
+  // (it is tab-aware + reuses the foundation's hardened gate). The standalone U4
+  // migration was removed once the foundation shipped live — the foundation body
+  // already carries the same hardened can_edit gate, so a separate no-tab RPC
+  // rewrite would only regress it. Applied to prod as 20260613134852.
+  applySqlFile(join(migrationDir, "20260613134852_insert_estimate_subtree_rpc.sql"));
 
   assertScalar("select count(*) from public.estimates e join public.estimate_tabs t on t.estimate_id = e.id and t.is_default where e.id in ('" + ids.inheritedEstimate + "', '" + ids.restrictedEstimate + "')", "2", "P1 harness default tabs");
   assertScalar("select count(*) from public.estimate_nodes where estimate_tab_id is null", "0", "P2 harness attached nodes");
