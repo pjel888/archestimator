@@ -592,7 +592,7 @@ describe("component library UI", () => {
     });
 
     expect(await screen.findByText("Powder Room")).toBeInTheDocument();
-    expect(screen.getByText(/Area node · 0 groups · 1 areas · 0 rows/)).toBeInTheDocument();
+    expect(screen.getByText(/Area node · 0 groups · 1 area · 0 rows/)).toBeInTheDocument();
   });
 });
 
@@ -1092,7 +1092,7 @@ describe("templates tree", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "New template" });
     expect(within(dialog).getByText("Amenity Millwork")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Template group")).toHaveValue("Project Sources");
+    expect(within(dialog).getByLabelText("Template category")).toHaveValue("Project Sources");
     fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Amenity Template" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
 
@@ -1126,7 +1126,7 @@ describe("templates tree", () => {
     const dialog = await screen.findByRole("dialog", { name: "New template" });
     expect(within(dialog).getByText("Lobby Main")).toBeInTheDocument();
     expect(within(dialog).getByText(/Tab source/)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Template group")).toHaveValue("Project Sources");
+    expect(within(dialog).getByLabelText("Template category")).toHaveValue("Project Sources");
     fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Lobby Main Template" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
 
@@ -1325,6 +1325,6 @@ describe("templates tree", () => {
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Rooms templates" }), { clientX: 16, clientY: 16 });
     fireEvent.click(await screen.findByRole("menuitem", { name: "New Template" }));
 
-    expect(await screen.findByLabelText("Template group")).toHaveValue("Rooms");
+    expect(await screen.findByLabelText("Template category")).toHaveValue("Rooms");
   });
 });
