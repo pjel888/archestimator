@@ -251,3 +251,41 @@ their **apply** is deferred to the owner runbook; app-layer guards ship immediat
   + provenance + `project_source_inserted` event. EXIT=0. Denial 6 (cross-workspace) is blocked transitively
   by the same can_access gate (fires before the workspace-equality check).
 - **Next:** U5 (server-side search + migration), U7 (bound reads), U16 (remaining test gaps + e2e), closeout.
+
+---
+
+## U5 — server-side reusable search pre-filter (PERF) — DONE (local)
+
+### `searchReusableProjectSources` rewrite (reusable-sources/actions.ts)
+- Old path materialized the FULL node tree for **every** accessible estimate, then filtered in
+  memory — O(all-nodes-in-workspace) per keystroke. New path pre-filters with two **bounded,
+  indexed** `ILIKE` queries before materializing anything:
+  - in-memory project/estimate **name** matches (already-loaded summaries → cheap);
+  - `estimate_nodes` typed query: `.in("estimate_id", accessibleEstimateIds).in("kind",
+    ["group","area"]).ilike("name", likePattern)` → estimate ids with a matching group/area;
+  - `estimate_tabs` tab-name match via a narrow cast client, tolerant of the missing-schema case
+    (`isMissingRelationError(error, "estimate_tabs")` → skip, legacy single-Main has no tab names).
+- Union → `estimatesToMaterialize`; only those estimates run the existing rich
+  `getEstimateTabs`/`getEstimateTabTree` + `collectProjectNodeSearchSources` assembly. **Result
+  shape is byte-identical** to the old path (same ranking, same fields) — no truncation, no cap;
+  RLS-scoped throughout (`accessibleEstimateIds` already filtered by `can_access`).
+- Added `toReusableSearchLikePattern` (escapes `\ % _`, wraps `%…%`). New imports: `createHash`
+  (node:crypto, shared with U2), `createSupabaseServerClient`, `isUuid`, `isMissingRelationError`,
+  `getProjectEstimateTreeByEstimate`.
+- Tests: `reusable-sources-actions.test.ts` gained `mockSearchPrefilter` + `supabaseServerMocks`;
+  asserts only matching estimates are materialized and the empty-match case materializes nothing.
+
+### U7 — bound reusable/editor reads — DEFERRED (documented rationale)
+- Doc proposes hard caps on project-list + editor node reads. **Not shipped:** a naive `LIMIT`
+  silently truncates a user's own projects/nodes mid-edit — that is a *correctness* regression
+  (partial-edit / lost-rows bugs), not a perf win, unless paired with pagination + an explicit
+  "showing N of M" limit-state UX that the doc does not specify. The realized perf wins (U18 lite
+  loader, U19 prefetch/cache, U21 waterfall, U5 search pre-filter) already hit the warm-cache bar
+  without risking data loss. U7 is parked pending a pagination/limit-state design — honest deferral
+  per handoff §8 rather than a silent truncation.
+
+### Gates
+- Full `bun run validate` (type-check + lint + lint:design-system + lint:design + test + test:dom)
+  **exit 0** — 244 files / 1819 tests passed, 3 skipped, 0 failed.
+- RTM: PERF (U5 search) ✓ local. U7 → DEFERRED (rationale above).
+- **Next:** U16 (assess remaining test-gap coverage), then closeout (state docs + archive + final validate/build).
