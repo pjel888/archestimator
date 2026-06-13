@@ -82,6 +82,8 @@ export type TreeRowDomProps = {
   "aria-selected"?: boolean;
   "aria-current"?: "page";
   "aria-label"?: string;
+  "aria-grabbed"?: boolean;
+  "aria-dropeffect"?: "move" | "copy";
   tabIndex: number;
   draggable: boolean;
   "data-tree-row": string;
@@ -1044,6 +1046,12 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
           "aria-label": flat.node.ariaLabel,
           tabIndex: effectiveFocusId === flat.id ? 0 : -1,
           draggable: isNodeDraggable(flat.node),
+          // U12 (UX-5): expose drag state to assistive tech. A grabbed source row
+          // reads aria-grabbed=true; the row currently under the drag reads the
+          // effect that would apply — "move" for an intra-tree reorder (a drag
+          // source exists) or "copy" for an external insert (template/project source).
+          "aria-grabbed": isNodeDraggable(flat.node) ? dragSourceId === flat.id : undefined,
+          "aria-dropeffect": dropTarget?.id === flat.id ? (dragSourceId ? "move" : "copy") : undefined,
           "data-tree-row": flat.id,
           onClick: (event) => handleRowClick(flat.id, flat.node, event),
           onDoubleClick: onRowDoubleClick
@@ -1071,6 +1079,8 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         currentId,
         effectiveFocusId,
         isNodeDraggable,
+        dragSourceId,
+        dropTarget,
         onContextMenu,
         onRowDoubleClick,
         handleRowClick,

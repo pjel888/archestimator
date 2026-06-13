@@ -267,7 +267,6 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
   });
 
   it("renames a template from the row kebab through the existing action", async () => {
-    vi.spyOn(window, "prompt").mockReturnValue("Condo Premium");
     componentLibraryActionMocks.renameEstimateTemplate.mockResolvedValue({
       templateId: "template-condo",
       name: "Condo Premium",
@@ -276,6 +275,12 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Condo Starter actions" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Rename" }));
+
+    // U12 (C5): the native window.prompt is replaced by an in-DS modal.
+    const input = await screen.findByLabelText("Template name");
+    expect(input).toHaveValue("Condo Starter");
+    fireEvent.change(input, { target: { value: "Condo Premium" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
 
     await waitFor(() => {
       expect(componentLibraryActionMocks.renameEstimateTemplate).toHaveBeenCalledWith({
@@ -369,8 +374,7 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(await screen.findByText("Moved to Exterior.")).toBeInTheDocument();
   });
 
-  it("offers a keyboard move equivalent through the Move to group prompt", async () => {
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Exterior");
+  it("offers a keyboard move equivalent through the Move to group modal", async () => {
     componentLibraryActionMocks.moveEstimateTemplateToCategory.mockResolvedValue({
       templateId: "template-condo",
       category: "Exterior",
@@ -382,7 +386,13 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     fireEvent.contextMenu(within(tree).getByRole("treeitem", { name: "Condo Starter template" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Move to group…" }));
 
-    expect(promptSpy).toHaveBeenCalledWith('Move "Condo Starter" to group (existing: Exterior)', "Residential");
+    // U12 (C5): in-DS modal replaces window.prompt; the field is prefilled with
+    // the current category and surfaces the existing alternatives.
+    const input = await screen.findByLabelText("Group (existing: Exterior)");
+    expect(input).toHaveValue("Residential");
+    fireEvent.change(input, { target: { value: "Exterior" } });
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+
     await waitFor(() => {
       expect(componentLibraryActionMocks.moveEstimateTemplateToCategory).toHaveBeenCalledWith({
         templateId: "template-condo",

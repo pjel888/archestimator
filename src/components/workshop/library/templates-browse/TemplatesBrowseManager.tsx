@@ -18,6 +18,7 @@ import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
   TREE_ROW_ICON_SIZE,
@@ -516,6 +517,24 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [status, setStatus] = useState<TemplatesBrowseStatus>({ state: "idle" });
   const [newTemplate, setNewTemplate] = useState<{ open: boolean; category?: string }>({ open: false });
+  // U12 (C5): replaces the native window.prompt for rename/move with an in-DS
+  // modal (SF Pro, tokens, focus management). One reusable text prompt.
+  const [textPrompt, setTextPrompt] = useState<
+    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
+    | null
+  >(null);
+  const [textPromptValue, setTextPromptValue] = useState("");
+  const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
+    setTextPrompt(next);
+    setTextPromptValue(next.initialValue);
+  }, []);
+  const submitTextPrompt = useCallback(() => {
+    if (!textPrompt) return;
+    const value = textPromptValue.trim();
+    const handler = textPrompt.onSubmit;
+    setTextPrompt(null);
+    if (value) handler(value);
+  }, [textPrompt, textPromptValue]);
   const [insertTarget, setInsertTarget] = useState<EstimateTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EstimateTemplate | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -586,10 +605,9 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
     [router, setItems],
   );
 
-  const renameTemplate = useCallback(
-    (template: EstimateTemplate) => {
-      const name = window.prompt("Template name", template.name)?.trim();
-      if (!name || name === template.name) return;
+  const applyRenameTemplate = useCallback(
+    (template: EstimateTemplate, name: string) => {
+      if (name === template.name) return;
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
       setStatus({ state: "saving", message: "Renaming template…" });
@@ -607,6 +625,19 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
         });
     },
     [router, setItems],
+  );
+
+  const renameTemplate = useCallback(
+    (template: EstimateTemplate) => {
+      openTextPrompt({
+        title: "Rename template",
+        label: "Template name",
+        confirmLabel: "Rename",
+        initialValue: template.name,
+        onSubmit: (name) => applyRenameTemplate(template, name),
+      });
+    },
+    [applyRenameTemplate, openTextPrompt],
   );
 
   const duplicateTemplate = useCallback(
@@ -655,20 +686,20 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
   const moveTemplatePrompt = useCallback(
     (template: EstimateTemplate) => {
       const otherCategories = categories.filter((category) => category !== template.category);
-      const promptMessage = otherCategories.length
-        ? `Move "${template.name}" to group (existing: ${otherCategories.join(", ")})`
-        : `Move "${template.name}" to group`;
-      const category = window.prompt(promptMessage, template.category)?.trim();
-      if (!category || category === template.category) return;
-      moveTemplateToCategory(template, category);
+      openTextPrompt({
+        title: `Move "${template.name}" to group`,
+        label: otherCategories.length ? `Group (existing: ${otherCategories.join(", ")})` : "Group",
+        confirmLabel: "Move",
+        initialValue: template.category,
+        onSubmit: (category) => moveTemplateToCategory(template, category),
+      });
     },
-    [categories, moveTemplateToCategory],
+    [categories, moveTemplateToCategory, openTextPrompt],
   );
 
-  const renameCategory = useCallback(
-    (category: string) => {
-      const name = window.prompt("Group name", category)?.trim();
-      if (!name || name === category) return;
+  const applyRenameCategory = useCallback(
+    (category: string, name: string) => {
+      if (name === category) return;
       const previousItems = localTemplates;
       setItems((items) => items.map((entry) => (entry.category === category ? { ...entry, category: name } : entry)));
       if (selectedCategory === category) setSelectedCategory(name);
@@ -688,6 +719,19 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
         });
     },
     [localTemplates, router, selectedCategory, setItems],
+  );
+
+  const renameCategory = useCallback(
+    (category: string) => {
+      openTextPrompt({
+        title: "Rename group",
+        label: "Group name",
+        confirmLabel: "Rename",
+        initialValue: category,
+        onSubmit: (name) => applyRenameCategory(category, name),
+      });
+    },
+    [applyRenameCategory, openTextPrompt],
   );
 
   const confirmDeleteTemplate = useCallback(() => {
@@ -807,6 +851,35 @@ export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManage
           busy={deletePending}
           onConfirm={confirmDeleteTemplate}
         />
+      ) : null}
+
+      {textPrompt ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setTextPrompt(null);
+          }}
+          title={textPrompt.title}
+          description="Enter a new name and confirm to apply."
+          confirmLabel={textPrompt.confirmLabel}
+          onConfirm={submitTextPrompt}
+        >
+          <label className="grid gap-1">
+            <span className="text-[9px] font-medium text-tertiary">{textPrompt.label}</span>
+            <ControlInput
+              aria-label={textPrompt.label}
+              autoFocus
+              value={textPromptValue}
+              onChange={(event) => setTextPromptValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitTextPrompt();
+                }
+              }}
+            />
+          </label>
+        </ConfirmDialog>
       ) : null}
     </div>
   );
