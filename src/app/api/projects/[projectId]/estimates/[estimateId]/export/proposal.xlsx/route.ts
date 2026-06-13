@@ -67,6 +67,23 @@ function createLimitResponse() {
   );
 }
 
+type ProposalExportLogContext = { startedAt: number; estimateId: string };
+
+// F-13 (P1-T4): structured, single-line observability for the heaviest export endpoint.
+// Mirrors the share-route logging shape ({ level, route, ... , ts }).
+function logProposalExport(entry: {
+  estimateId: string;
+  tabCount: number;
+  rowCount: number;
+  durationMs: number;
+  outcome: "success" | "error";
+  message?: string;
+}) {
+  const payload = { level: entry.outcome === "error" ? "error" : "info", route: "proposal_export", ts: new Date().toISOString(), ...entry };
+  if (entry.outcome === "error") console.error(payload);
+  else console.info(payload);
+}
+
 function countTree(nodes: EstimateTreeNode[]) {
   let nodeCount = 0;
   let rowItemCount = 0;
@@ -103,7 +120,7 @@ function buildMetadata(project: ProposalExportProject, estimate: ProposalExportE
   };
 }
 
-async function buildSingleTabResponse(projectId: string, estimateId: string, tabId: string | null) {
+async function buildSingleTabResponse(projectId: string, estimateId: string, tabId: string | null, logContext: ProposalExportLogContext) {
   if (tabId) {
     const result = await getEstimateTabTree(projectId, estimateId, tabId, {
       maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
@@ -125,6 +142,13 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
       result.estimate.sheet_code || result.estimate.name,
       result.tab.name,
     );
+    logProposalExport({
+      estimateId: logContext.estimateId,
+      tabCount: 1,
+      rowCount: countTree(result.tree).rowItemCount,
+      durationMs: Date.now() - logContext.startedAt,
+      outcome: "success",
+    });
     return createXlsxResponse(buffer, filename);
   }
 
@@ -149,24 +173,55 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
     result.estimate.sheet_code || result.estimate.name,
   );
 
+  logProposalExport({
+    estimateId: logContext.estimateId,
+    tabCount: 1,
+    rowCount: countTree(result.tree).rowItemCount,
+    durationMs: Date.now() - logContext.startedAt,
+    outcome: "success",
+  });
   return createXlsxResponse(buffer, filename);
 }
 
-async function buildAllTabsResponse(projectId: string, estimateId: string, tabs: EstimateTabSummary[]) {
-  const tabResults = await Promise.all(tabs.map((tab) =>
+async function buildAllTabsResponse(projectId: string, estimateId: string, tabs: EstimateTabSummary[], logContext: ProposalExportLogContext) {
+  // F-25/F-14 (P1-T4): allSettled so one archived/failing tab can be skipped rather than
+  // failing the whole export. A tab can be deleted between getEstimateTabs() and this fetch
+  // (TOCTOU); a rejected fetch is logged and skipped. Only an all-tabs-gone result is a 404.
+  const settled = await Promise.allSettled(tabs.map((tab) =>
     getEstimateTabTree(projectId, estimateId, tab.id, {
       maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
       maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
     }),
   ));
-  const firstResult = tabResults[0];
-  if (!firstResult?.project || !firstResult.estimate || tabResults.some((result) => !result.tab)) {
+
+  const resolvedTabs: Array<{ tab: EstimateTabSummary; result: Awaited<ReturnType<typeof getEstimateTabTree>> }> = [];
+  for (let index = 0; index < tabs.length; index += 1) {
+    const tab = tabs[index];
+    const outcome = settled[index];
+    if (!tab || !outcome) continue;
+    if (outcome.status !== "fulfilled") {
+      logProposalExport({
+        estimateId: logContext.estimateId,
+        tabCount: tabs.length,
+        rowCount: 0,
+        durationMs: Date.now() - logContext.startedAt,
+        outcome: "error",
+        message: `Skipped tab ${tab.id}: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`,
+      });
+      continue;
+    }
+    if (!outcome.value.tab) continue; // archived between list and fetch — skip gracefully
+    resolvedTabs.push({ tab, result: outcome.value });
+  }
+
+  const firstResult = resolvedTabs[0]?.result;
+  if (!firstResult?.project || !firstResult.estimate) {
     return NextResponse.json({ error: "Estimate not found." }, { status: 404 });
   }
 
   let totalNodeCount = 0;
   let totalRowItemCount = 0;
-  for (const result of tabResults) {
+  for (const { result } of resolvedTabs) {
     if (didExceedExportLimit(result.loadLimitState, result.tree)) return createLimitResponse();
     const treeCounts = countTree(result.tree);
     totalNodeCount += result.loadLimitState?.fetchedNodeCount ?? treeCounts.nodeCount;
@@ -178,15 +233,14 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
 
   const metadata = buildMetadata(firstResult.project, firstResult.estimate);
   const generatedAt = new Date().toISOString();
-  const worksheetNames = buildUniqueWorksheetNames(tabs.map((tab) => ({ id: tab.id, name: tab.name })));
+  const worksheetNames = buildUniqueWorksheetNames(resolvedTabs.map(({ tab }) => ({ id: tab.id, name: tab.name })));
   const tabWorkbookModel: ProposalTabbedWorkbookModel = {
     metadata,
     settings: defaultProposalExportSettings,
     generatedAt,
-    tabs: tabResults.map((result, index) => {
-      const tab = tabs[index];
+    tabs: resolvedTabs.map(({ tab, result }, index) => {
       const worksheetName = worksheetNames[index];
-      if (!tab || !worksheetName) throw new Error("Estimate tab export mapping failed.");
+      if (!worksheetName) throw new Error("Estimate tab export mapping failed.");
       return {
         tabId: tab.id,
         tabName: tab.name,
@@ -202,6 +256,13 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
 
   const buffer = await createProposalWorkbookBuffer(tabWorkbookModel);
   const filename = buildProposalWorkbookFilename(firstResult.project.project_code || firstResult.project.name, firstResult.estimate.sheet_code || firstResult.estimate.name);
+  logProposalExport({
+    estimateId: logContext.estimateId,
+    tabCount: resolvedTabs.length,
+    rowCount: totalRowItemCount,
+    durationMs: Date.now() - logContext.startedAt,
+    outcome: "success",
+  });
   return createXlsxResponse(buffer, filename);
 }
 
@@ -214,12 +275,32 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = Date.now();
   const { projectId, estimateId } = await context.params;
   const tabId = new URL(request.url).searchParams.get("tab");
+  const logContext: ProposalExportLogContext = { startedAt, estimateId };
 
-  if (tabId) return buildSingleTabResponse(projectId, estimateId, tabId);
+  // F-13 (P1-T4): one try/catch around the whole build so a DB/ExcelJS/throw becomes a
+  // logged JSON 500 (consumed by the fetch-then-blob client), never an unhandled stack page.
+  // `return await` is required so a rejected build promise is caught here, not escaped.
+  try {
+    if (tabId) return await buildSingleTabResponse(projectId, estimateId, tabId, logContext);
 
-  const tabs = await getEstimateTabs(projectId, estimateId);
-  if (tabs.length <= 1) return buildSingleTabResponse(projectId, estimateId, null);
-  return buildAllTabsResponse(projectId, estimateId, tabs);
+    const tabs = await getEstimateTabs(projectId, estimateId);
+    if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, logContext);
+    return await buildAllTabsResponse(projectId, estimateId, tabs, logContext);
+  } catch (error) {
+    logProposalExport({
+      estimateId,
+      tabCount: 0,
+      rowCount: 0,
+      durationMs: Date.now() - startedAt,
+      outcome: "error",
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      { error: "Failed to generate the spreadsheet export. Please try again." },
+      { status: 500 },
+    );
+  }
 }
