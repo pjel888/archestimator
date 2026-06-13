@@ -63,7 +63,10 @@ test.describe('Shared Link V2 Receiver (per 12-testing-strategy-plan.md)', () =>
   test('4.4 mobile layout (swipe tabs + sticky decision bar)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/share/test-token?recipient=test-recipient-token');
-    await expect(page.locator('[data-testid="sticky-decision-bar"]')).toBeVisible();
+    // S-13: the decision bar is marked with the stable data-share-decision-bar attribute
+    // (present in every render state: active, decided, and the read-only anonymous state),
+    // not a "sticky-decision-bar" testid that never existed in the component.
+    await expect(page.locator('[data-share-decision-bar="true"]')).toBeVisible();
     // Horizontal scroll for tabs (mobile)
     const tabs = page.locator('role=tablist');
     await tabs.evaluate((el) => el.scrollBy(200, 0));
