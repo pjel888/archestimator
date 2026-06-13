@@ -193,8 +193,10 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("A1").value).toBe("SUMMARY OF BID");
     expect(summary?.getRow(14).values).toEqual([undefined, "SECTION", "ROWS", "AMOUNT"]);
     expect(summary?.getRow(15).values).toEqual([undefined, "Finishes", 1, { formula: "'Bid Form'!H20", result: 21_700 }]);
-    expect(summary?.getCell("B27").value).toEqual({ formula: "SUM(C15:C15)", result: 21_700 });
-    expect(summary?.getCell("B30").value).toEqual({ formula: "B27+B28+B29", result: 21_700 });
+    // P1-T6: single-tab Summary now uses the dynamic totals start (one spacer past the last
+    // section row). One section at row 15 → totals start at row 17, Grand Total at row 20.
+    expect(summary?.getCell("B17").value).toEqual({ formula: "SUM(C15)", result: 21_700 });
+    expect(summary?.getCell("B20").value).toEqual({ formula: "B17+B18+B19", result: 21_700 });
     expect(terms?.getCell("A1").value).toBe("COMMERCIAL TERMS");
     expect(terms?.getCell("A3").value).toBe("Exclusions");
     expect(terms?.getCell("A13").value).toBe("Signature / Conforme");
@@ -368,5 +370,36 @@ describe("proposal workbook generation", () => {
     expect(cell?.value).toBe('=HYPERLINK("http://evil","click")');
     expect(typeof cell?.value).toBe("string");
     expect(cell?.numFmt).toBe("@");
+  });
+
+  it("keeps the single-tab Summary totals from colliding past 11 sections (P1-T6, F-16)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: Array.from({ length: 15 }, (_, index) => ({
+          id: `area-${index}`,
+          name: `Area ${index}`,
+          kind: "area" as const,
+          total: "₱0.00",
+          estimateRowItems: [
+            row({ id: `r-${index}`, material: `Item ${index}`, category: `Division ${String(index).padStart(2, "0")}`, itemCost: 100 + index }),
+          ],
+        })),
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    expect(model.summaryRows).toHaveLength(15);
+
+    const summary = createProposalWorkbook(model).getWorksheet("Summary");
+    // 15 sections occupy rows 15..29. The old fixed A27–B32 block overwrote a real section
+    // row with "Direct Cost"; with the dynamic start the section data survives and totals
+    // begin at row 31 (29 + 2 spacer).
+    expect(summary?.getCell("A27").value).not.toBe("Direct Cost");
+    expect(summary?.getCell("A31").value).toBe("Direct Cost");
+    expect(summary?.getCell("A34").value).toBe("Grand Total");
+    expect(summary?.getCell("B34").value).toEqual(expect.objectContaining({ formula: "B31+B32+B33" }));
   });
 });
