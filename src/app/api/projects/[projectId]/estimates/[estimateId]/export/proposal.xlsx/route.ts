@@ -14,6 +14,9 @@ import { buildProposalWorkbookFilename } from "./filename";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// F-34 (P3-T5): explicit serverless ceiling. The export is CPU/memory-light (per-tab DB
+// fan-out is batched and ExcelJS build is bounded by the node/row caps), so 60s is generous.
+export const maxDuration = 60;
 
 const PROPOSAL_EXPORT_NODE_LIMIT = 1200;
 const PROPOSAL_EXPORT_ROW_ITEM_LIMIT = 3000;

@@ -63,7 +63,7 @@ const authedContext = {
   avatarUrl: null,
 };
 
-import { GET } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
+import { GET, maxDuration } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
 import { buildProposalWorkbookFilename } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/filename";
 
 const tree: EstimateTreeNode[] = [
@@ -539,6 +539,11 @@ describe("proposal xlsx export route", () => {
     expect(response.status).toBe(400);
     expect((await response.json()).error).toMatch(/identifier/i);
     errorSpy.mockRestore();
+  });
+
+  it("declares an explicit serverless maxDuration (P3-T5, F-34)", () => {
+    expect(typeof maxDuration).toBe("number");
+    expect(maxDuration).toBeGreaterThan(0);
   });
 
   it("sets X-Content-Type-Options nosniff on the download (P2-T8, F-33)", async () => {
