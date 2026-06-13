@@ -1,71 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
-const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
+import { describe, expect, it } from "vitest";
 
-const requireCurrentUserContext = vi.hoisted(() => vi.fn());
-const fromSpy = vi.hoisted(() => vi.fn());
-const rpcSpy = vi.hoisted(() => vi.fn(async () => ({ data: [], error: null })));
+// F7 (redundant projects re-query) is solved by reusing the request-cached
+// getCurrentWorkspaceProject inside the collaboration + publication summaries
+// (Teamspace T2.2 / F-P8 superseded the Estimates-List P1-3 resolved-project
+// param). React cache() dedupe is per-request, so this is asserted as a source
+// contract; the per-request round-trip reduction is captured at runtime.
+const source = readFileSync(
+  path.resolve(__dirname, "../../src/lib/repositories/workspace-repository.ts"),
+  "utf8",
+);
 
-vi.mock("@/lib/auth/session", () => ({
-  requireCurrentUserContext,
-  getCurrentUserContext: requireCurrentUserContext,
-}));
-vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => ({ from: fromSpy, rpc: rpcSpy })),
-}));
-
-import { getProjectCollaborationSummary, getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
-
-// Generic chainable Supabase stub: every builder method returns the chain; the
-// chain is awaitable ({ data: [] }) and maybeSingle/single resolve a per-table row.
-function chain(row: unknown) {
-  const c: Record<string, unknown> = {};
-  for (const method of ["select", "eq", "in", "order", "is", "gte", "lte", "not", "or", "contains", "limit", "overlaps"]) {
-    c[method] = () => c;
-  }
-  c.maybeSingle = async () => ({ data: row ?? null, error: null });
-  c.single = async () => ({ data: row ?? null, error: null });
-  c.then = (resolve: (value: { data: unknown[]; error: null }) => unknown) => resolve({ data: [], error: null });
-  return c;
+function summaryBody(fnSignature: string) {
+  const start = source.indexOf(fnSignature);
+  expect(start, `${fnSignature} should exist`).toBeGreaterThan(-1);
+  return source.slice(start, start + 900);
 }
 
-function countProjectsQueries() {
-  return fromSpy.mock.calls.filter(([table]) => table === "projects").length;
-}
-
-describe("collaboration/publication summaries reuse resolved project (F7)", () => {
-  beforeEach(() => {
-    fromSpy.mockReset();
-    rpcSpy.mockClear();
-    requireCurrentUserContext.mockResolvedValue({
-      userId: "11111111-1111-4111-8111-111111111111",
-      email: "owner@example.com",
-      profile: { id: "11111111-1111-4111-8111-111111111111", default_workspace_id: "ws-1", role: "admin" },
-    });
-    fromSpy.mockImplementation((table: string) => {
-      if (table === "workspaces") return chain({ id: "ws-1", name: "WS", created_by: "u1" });
-      if (table === "projects") return chain({ id: PROJECT_ID, workspace_id: "ws-1" });
-      return chain(null);
-    });
+describe("collaboration/publication summaries reuse the cached project (F7)", () => {
+  it("collaboration summary uses the cached project lookup, not a raw projects re-query", () => {
+    const body = summaryBody("export async function getProjectCollaborationSummary(projectId: string)");
+    expect(body).toContain("await getCurrentWorkspaceProject(projectId)");
+    expect(body).not.toContain('.from("projects")');
   });
 
-  it("skips the projects re-query when a resolved project is passed (collaboration)", async () => {
-    await getProjectCollaborationSummary(PROJECT_ID, { id: PROJECT_ID, workspace_id: "ws-1" }).catch(() => {});
-    expect(countProjectsQueries()).toBe(0);
+  it("publication summary uses the cached project lookup, not a raw projects re-query", () => {
+    const body = summaryBody("export async function getProjectPublicationSummary(projectId: string)");
+    expect(body).toContain("await getCurrentWorkspaceProject(projectId)");
+    expect(body).not.toContain('.from("projects")');
   });
 
-  it("re-queries projects when no resolved project is passed (collaboration)", async () => {
-    await getProjectCollaborationSummary(PROJECT_ID).catch(() => {});
-    expect(countProjectsQueries()).toBe(1);
-  });
-
-  it("skips the projects re-query when a resolved project is passed (publication)", async () => {
-    await getProjectPublicationSummary(PROJECT_ID, { id: PROJECT_ID, workspace_id: "ws-1" }).catch(() => {});
-    expect(countProjectsQueries()).toBe(0);
-  });
-
-  it("re-queries projects when no resolved project is passed (publication)", async () => {
-    await getProjectPublicationSummary(PROJECT_ID).catch(() => {});
-    expect(countProjectsQueries()).toBe(1);
+  it("dedupes project_members across both summaries via a request-cached helper", () => {
+    expect(source).toContain("const getCachedProjectMembers = cache(");
   });
 });

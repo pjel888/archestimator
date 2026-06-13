@@ -433,9 +433,15 @@ async function recordCollaborationAuditEvent({
 }
 
 function revalidateCollaborationRoutes(projectId: string) {
+  // T2.1 / F-P6: the project-layout collaboration summary is now a client
+  // TanStack Query (["project-collaboration", projectId]) that the mutating
+  // client invalidates directly, so we no longer revalidate the heavy project
+  // layout or the estimates route on every role/invite change (each previously
+  // re-ran the collaboration + publication + sheets server fans). Only the
+  // lightweight projects list is revalidated so membership reflects there on the
+  // next navigation.
   revalidatePath("/workshop/projects");
-  revalidatePath(`/workshop/projects/${projectId}`);
-  revalidatePath(`/workshop/projects/${projectId}/estimates`);
+  void projectId;
 }
 
 export async function readProjectInviteDeliveryReadiness(): Promise<ProjectInviteDeliveryReadiness> {

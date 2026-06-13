@@ -29,6 +29,43 @@ changed behavior. Run broad validation, builds, full regression, or manual QA
 only when the change touches shared logic, auth/security, RLS, data integrity,
 release readiness, or another high-blast-radius surface.
 
+## 2026-06-14 — Project Charts page is a cost-comparison surface (implemented)
+
+**Decision:** `/workshop/projects/[id]/charts` is a **cost comparison** surface, not
+a distribution-donut gallery. Durable consequences future agents must respect:
+
+- **Comparison view-model is the single source.** UI is driven by
+  `ProjectChartComparisonView` (built from pre-bucketed series); never re-derive
+  comparison logic in components.
+- **Color is stable + CVD-safe.** `src/lib/project-charts/bucket-color.ts`
+  (`colorForBucket`, Okabe–Ito) keys color by bucket id, not per-series rank. This
+  is a **named data-viz palette exception** in DESIGN.md → "Data visualization":
+  Okabe–Ito hues may appear ONLY in chart marks/legends/data-table swatches, never
+  in controls, chrome, nav, buttons, or headers (applied as inline fills, never
+  Tailwind classes).
+- **Charts payload is buckets-only.** `getProjectChartsData` ships
+  `seriesByEstimateId` (pre-aggregated server-side), NOT raw `estimate_row_items`/
+  nodes/categories/suppliers — closes the SEC-1 data-minimization finding. Do not
+  reintroduce raw-fact arrays into the charts payload.
+- **The data table is the a11y backbone.** Each chart is `role="img"` +
+  `aria-describedby` → the comparison detail table, which is the keyboard/SR
+  surface. SVG chart text ≥ 11px; HTML controls/values ≥ 10px.
+- **`get_project_chart_buckets` RPC is a ready, unused future push-down**
+  (`20260614021500…`). The repository uses the proven server-side JS reduce; a
+  future RPC cutover must pass the golden-master oracle and be probed on deploy
+  (fail-open on partial drift), per the add-new-tab deploy lesson.
+- **Bubble chart deleted; donut demoted** to a dynamic single-estimate Share view.
+  Any donut change must keep the `/share/[token]` compact path pixel/deterministic
+  -stable.
+
+**Cross-cutting (referenced, NOT owned here):** the `(select auth.uid())` RLS
+InitPlan wrap for `is_workspace_member` + 5 sibling helpers is a coordinate-once
+repo-wide change (shared with the estimates/library plans) — apply once, not three
+times. `/workshop/*` security headers remain a shared cross-cutting ticket.
+
+Full record: `.ai/05_logs/2026-06-14-project-charts-implementation/IMPLEMENTATION_REPORT.md`;
+archived plan `.ai/09_archive/store/2026-06-14-Project-Charts-Page-Improvement-Plan/`.
+
 ## 2026-06-13 — Templates owner-gated DB items applied to prod (owner-authorized)
 
 **Decision:** With owner authorization, resolve the Templates Audit owner-gated DB
@@ -829,3 +866,16 @@ Rejected: D8=(b) server totals endpoint / (c) disclaimer-beside-wrong-number | (
 Confidence: high
 Scope-risk: low (narrow blast radius — route + preview + proposal-export lib only; three shared repository fn signatures untouched, new additive fns added instead; model fields additive-only; 7 existing proposal tests kept green).
 Directive: Never read `audience` from the wire (server-derive from role); validate `vatRate`/`contingencyRate` as finite 0–100 → 400 (no silent clamp); ship P2-T2 expose + P2-T3 enforce as one atomic unit; do NOT change `getEstimateTabs`/`getEstimateTabTree`/`getProjectEstimateTreeByEstimate` signatures (add new fns); keep model fields additive; close the [11 §A] manual cross-app recalc QA gate before calling P1 client-ready.
+
+## 2026-06-14 — Teamspace Improvement Plan implemented (owner decisions resolved)
+
+- **D-1 (Supabase tier / project-wide page cursors):** Resolved as **build-but-hold**. The `ProjectCursorLayer` (page-relative cursors on the project channel, reusing the verified sheet-cursor engine) is fully built and mounted, but gated OFF by `NEXT_PUBLIC_TEAMSPACE_PROJECT_CURSORS` (default off), restricted to the overview surface, and suppressed on touch. Enable only after confirming the Supabase tier has headroom (Pro / 500 msg/s class). Sheet cursors are unaffected and ship as before.
+- **D-4 (viewer cursors):** Resolved **No** — viewers remain presence-only; broadcast send still requires editor tier. Revisit only after the signed-envelope identity (shipped) is exercised in production.
+- **D-6 (follow mode):** Resolved **defer** — not in the stated ask. The `06 §4.5` edge contract (target leave, permission loss, missing cell, Escape/Stop, no focus theft, manual-scroll pause, reduced motion) remains the prerequisite if later enabled; `NEXT_PUBLIC_TEAMSPACE_FOLLOW_MODE` flag scaffold exists (off).
+- **Identity trust model:** the realtime wire is untrusted; display identity is sender-bound via a short-lived **Ed25519 signed envelope** (issued by `issueRealtimeIdentity`, verified client-side with a public key from the client's own authenticated call) binding `auth.uid` to the channel topic. Receivers drop cursors that fail signature/topic/expiry/`sub===payload.userId`. Color is deterministic by `userId`; names render as escaped React text. Signing key derives deterministically from an existing server secret (invite pepper / service-role) so it is stable across instances without new config; override with `REALTIME_IDENTITY_SIGNING_KEY`.
+- **Membership invariants are DB invariants.** Last workspace owner and last project access manager are now enforced by `BEFORE` triggers (`enforce_workspace_owner_floor`, `enforce_project_manager_floor`), applied to prod. The project floor reuses `has_other_project_access_manager` (workspace OR project manager) so it mirrors the app and never false-blocks; both skip cascade contexts via `pg_trigger_depth()`. App-side read-then-write guards remain as the first line; the triggers close the concurrency race.
+- **Project-channel presence is coarse by contract.** Only an allowlisted `activeSurface` enum crosses `project:{id}` — never raw route/estimate/tab/cell. Sheet-granular state stays on `estimate:{id}` (sheet-RLS-bounded). Roster activity is therefore coarse ("active now · in an estimate"), not specific sheet names — a deliberate correction to the plan's aspirational "editing Estimate A2" header text (R-14).
+- **Plan corrections (honesty):** F3's "≈3.3:1 contrast fail" was overstated — the old avatar pairing actually cleared 4.5:1 for all 8 hues (amber marginal 4.51). The white-on-`cursor` fix is a real headroom improvement and guaranteed non-regression, not a hard-fail fix. The T1.4 project-manager floor was hardened (first pass counted only project-level managers and would have false-blocked removing the last project admin while a workspace owner remained).
+- **T1.3 (server-side realtime rate limit):** documented value + rationale in the rollout ledger; apply via the Supabase dashboard / management API (not exposed by the in-session MCP toolset). CSP on `/workshop`+`/invite` ships **Report-Only** first (D-9 window) — the four hardening headers enforce immediately.
+
+Evidence: `.ai/05_logs/2026-06-14-teamspace-implementation-ledger.md` (+ baseline + rollout ledger). Migrations `20260614120000_teamspace_membership_atomic_guards` and `20260614120100_teamspace_rls_authuid_perf` applied to `ebxxqidacheyapmmzavr`; `get_advisors(security)` 0 ERROR.

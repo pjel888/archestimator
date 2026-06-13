@@ -1,3 +1,4 @@
+import { ProjectCursorLayer } from "@/components/workshop/ProjectCursorLayer";
 import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
 import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,8 +26,10 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
   const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
     ? await traced("ProjectChromeAsync.summaries", async () =>
         Promise.all([
-          getProjectCollaborationSummary(projectId, liveProject),
-          getProjectPublicationSummary(projectId, liveProject),
+          // The summaries reuse the request-cached getCurrentWorkspaceProject /
+          // project_members internally (no redundant projects re-query, F7).
+          getProjectCollaborationSummary(projectId),
+          getProjectPublicationSummary(projectId),
           listProjectEstimateSheets(projectId),
         ]),
       )
@@ -45,6 +48,15 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
         projectEstimateSheets={projectEstimateSheets}
       />
       <ProjectTeamspaceHeader summary={collaborationSummary} />
+      {/* Teamspace T5.3 project-wide cursors — a fixed inset-0 overlay, inert
+          unless the OFF-by-default flag is on. Rendered here (not the layout) so
+          it reuses the collaboration identity this streamed chrome already
+          resolves, keeping the shell paint unblocked (P1-2). */}
+      <ProjectCursorLayer
+        projectId={projectId}
+        userId={collaborationSummary?.currentUserId ?? null}
+        displayName={currentCollaborator?.displayName ?? null}
+      />
     </>
   );
 }

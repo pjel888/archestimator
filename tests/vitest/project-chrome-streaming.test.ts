@@ -21,13 +21,17 @@ describe("project header chrome streaming (F5 / P1-2)", () => {
   it("moves the collaboration/publication/sheets fan-out out of the layout critical path", () => {
     expect(layout).not.toContain("getProjectCollaborationSummary");
     expect(layout).not.toContain("getProjectPublicationSummary");
-    expect(chrome).toContain("getProjectCollaborationSummary(projectId, liveProject)");
-    expect(chrome).toContain("getProjectPublicationSummary(projectId, liveProject)");
+    expect(chrome).toContain("getProjectCollaborationSummary(projectId)");
+    expect(chrome).toContain("getProjectPublicationSummary(projectId)");
     expect(chrome).toContain("listProjectEstimateSheets(projectId)");
   });
 
-  it("renders both header components from the streamed chrome", () => {
+  it("renders both header components and the project cursor layer from the streamed chrome", () => {
     expect(chrome).toContain("<ProjectPublicationHeader");
     expect(chrome).toContain("<ProjectTeamspaceHeader");
+    // Teamspace cursor layer moved into the streamed chrome so it reuses the
+    // resolved collaboration identity without blocking shell paint.
+    expect(chrome).toContain("<ProjectCursorLayer");
+    expect(layout).not.toContain("<ProjectCursorLayer");
   });
 });

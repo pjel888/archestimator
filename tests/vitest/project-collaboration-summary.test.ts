@@ -23,7 +23,7 @@ describe("project collaboration summary contract", () => {
     // ProjectChromeAsync; the layout streams it behind Suspense in the actions slot.
     expect(projectLayout).toContain("actions={");
     expect(projectLayout).toContain("<ProjectChromeAsync");
-    expect(projectChrome).toContain("getProjectCollaborationSummary(projectId, liveProject)");
+    expect(projectChrome).toContain("getProjectCollaborationSummary(projectId)");
     expect(projectChrome).toContain("<ProjectTeamspaceHeader summary={collaborationSummary} />");
   });
 });

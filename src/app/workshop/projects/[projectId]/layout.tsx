@@ -16,8 +16,9 @@ type ProjectLayoutProps = {
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
   // Resolve only what the shell needs to paint (title / notFound). The
-  // collaboration + publication + sheets fan-out moves into ProjectChromeAsync
-  // behind Suspense so it no longer blocks first paint (F5 / P1-2).
+  // collaboration + publication + sheets fan-out — and the Teamspace project
+  // cursor layer that needs collaboration identity — move into ProjectChromeAsync
+  // behind Suspense so they no longer block first paint (F5 / P1-2).
   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
   const project = liveProject ?? sampleProject;
