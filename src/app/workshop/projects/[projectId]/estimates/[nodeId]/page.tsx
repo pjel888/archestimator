@@ -35,7 +35,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
     resolveEstimateTabRouteContext(projectId, nodeId),
     requireCurrentUserContext(),
   ]);
-  const { project, estimate, selectedNodeId, tree, tab } = estimateTreeResult;
+  const { project, estimate, selectedNodeId, tree, tab, tabs } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
 
@@ -59,7 +59,9 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
     versionLabel: estimateVersionLabel,
     currency: estimate.currency_code || project.currency_code || "PHP",
   };
-  const estimateTabs = tab ? await getEstimateTabs(project.id, estimate.id) : [];
+  // U21: the resolver returns the tab list on tab-present paths (no extra
+  // round-trip); fall back to a direct fetch only if it wasn't provided.
+  const estimateTabs = tabs ?? (tab ? await getEstimateTabs(project.id, estimate.id) : []);
 
   return (
     <>

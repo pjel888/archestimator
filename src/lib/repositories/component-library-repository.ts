@@ -515,9 +515,18 @@ export function getTemplateTableFallbackTemplates({ isTemplateTableMissing }: { 
 async function loadCurrentWorkspaceComponentRowsLibrary({
   supabase,
   workspaceId,
+  includeDetailGraph = true,
 }: {
   supabase: ComponentLibraryRepositoryClient;
   workspaceId: string;
+  // U18: the in-estimate panel renders only the slim EstimateRowItem fields and
+  // never reads the per-item versions / price history / state history /
+  // attachments. When false, those 4 audit/attachment queries are skipped
+  // (the bulk of the cold-load waterfall + the unbounded-growth tables). The
+  // cost-determining price-options + cost-entries queries are still loaded so
+  // the panel cost stays byte-identical to the full loader. The Library
+  // management surfaces pass true for the complete graph.
+  includeDetailGraph?: boolean;
 }): Promise<ComponentRowsLibraryDataset> {
   const [categoriesResult, suppliersResult, brandsResult, itemsResult] = await Promise.all([
     supabase.from("component_category_nodes").select("*").order("sort_order", { ascending: true }),
@@ -570,7 +579,12 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
     ? persistedBrands
     : [...fallbackBrandMap.values()].sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name));
   const itemIds = itemRows.map((row) => row.id);
-  const [priceOptionsResult, versionsResult, priceHistoryResult, stateHistoryResult, costEntriesResult, attachmentsResult] = itemIds.length > 0
+  // U18 cost fidelity: the slim EstimateRowItem cost derives from the default
+  // price option and its current cost entry (normalizeComponentLibraryItem +
+  // normalizePriceOption). These two queries are ALWAYS loaded so the lite panel
+  // dataset is byte-identical to the full one — never reconstructed from the
+  // (potentially lagging) denormalized cost_library_items columns alone.
+  const [priceOptionsResult, costEntriesResult] = itemIds.length > 0
     ? await Promise.all([
         supabase
           .from("cost_library_item_price_options")
@@ -580,6 +594,26 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
           .order("is_default", { ascending: false })
           .order("variant_sort_order", { ascending: true })
           .order("created_at", { ascending: true }),
+        supabase
+          .from("cost_library_item_variant_cost_entries")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .in("item_id", itemIds)
+          .is("deleted_at", null)
+          .order("is_current", { ascending: false })
+          .order("pricing_date", { ascending: false })
+          .order("created_at", { ascending: false }),
+      ])
+    : [
+        { data: [], error: null },
+        { data: [], error: null },
+      ];
+  // U18: the audit + attachment graph (versions / price history / state history
+  // / variant attachments) is never read by the in-estimate panel — and these
+  // are the unbounded-growth tables. The lite loader skips them; the Library
+  // management surfaces (includeDetailGraph: true) keep the full set.
+  const [versionsResult, priceHistoryResult, stateHistoryResult, attachmentsResult] = (itemIds.length > 0 && includeDetailGraph)
+    ? await Promise.all([
         supabase
           .from("cost_library_item_versions")
           .select("*")
@@ -599,15 +633,6 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
           .in("item_id", itemIds)
           .order("effective_at", { ascending: false }),
         supabase
-          .from("cost_library_item_variant_cost_entries")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .in("item_id", itemIds)
-          .is("deleted_at", null)
-          .order("is_current", { ascending: false })
-          .order("pricing_date", { ascending: false })
-          .order("created_at", { ascending: false }),
-        supabase
           .from("cost_library_item_variant_attachments")
           .select("*")
           .eq("workspace_id", workspaceId)
@@ -615,8 +640,6 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
           .order("created_at", { ascending: false }),
       ])
     : [
-        { data: [], error: null },
-        { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
         { data: [], error: null },
@@ -1090,6 +1113,29 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
   const supabase = await createSupabaseServerClient();
   const [componentRows, templates] = await Promise.all([
     loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id }),
+    loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+  ]);
+
+  return {
+    ...componentRows,
+    templates,
+  };
+}
+
+/**
+ * U18: lite library load for the in-estimate Templates panel. Produces an
+ * EstimateRowItem[] byte-identical to {@link getCurrentWorkspaceComponentLibrary}
+ * for every field the panel reads — it still loads price options + current cost
+ * entries (which drive the displayed cost) and only skips the per-item
+ * versions / price history / state history / attachments graph the panel never
+ * reads. Do NOT use this for the Library management surfaces (template editor /
+ * component manager), which edit variants and need the full attachment/history graph.
+ */
+export async function getCurrentWorkspaceComponentLibraryLite(): Promise<ComponentLibraryDataset> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const [componentRows, templates] = await Promise.all([
+    loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id, includeDetailGraph: false }),
     loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
   ]);
 

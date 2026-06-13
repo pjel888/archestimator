@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TemplatesBrowseManager } from "@/components/workshop/library/templates-browse/TemplatesBrowseManager";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
-import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const componentLibraryActionMocks = vi.hoisted(() => ({
   createEstimateTemplate: vi.fn(),
@@ -135,20 +134,6 @@ const deckTemplate: EstimateTemplate = {
 };
 
 const fixtureTemplates: EstimateTemplate[] = [condoTemplate, deckTemplate];
-const fixtureProjectSources: ReusableEstimateSource[] = [
-  {
-    kind: "project",
-    projectId: "project-1",
-    name: "Library Route Project",
-  },
-  {
-    kind: "project-estimate",
-    projectId: "project-1",
-    estimateId: "estimate-1",
-    name: "Route Estimate",
-    sheetCode: "EST-ROUTE",
-  },
-];
 
 function createDataTransferStub() {
   const data: Record<string, string> = {};
@@ -166,8 +151,8 @@ function createDataTransferStub() {
   };
 }
 
-function renderManager(templates: EstimateTemplate[] = fixtureTemplates, projectSources: ReusableEstimateSource[] = []) {
-  return render(<TemplatesBrowseManager templates={templates} projectSources={projectSources} />);
+function renderManager(templates: EstimateTemplate[] = fixtureTemplates) {
+  return render(<TemplatesBrowseManager templates={templates} />);
 }
 
 function getGallery() {
@@ -195,19 +180,15 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     expect(contextStrip).toHaveTextContent("Sorted by group");
   });
 
-  it("shows route-level project sources without template management actions", () => {
-    renderManager(fixtureTemplates, fixtureProjectSources);
+  it("renders only the custom-template tree with no project sources section", () => {
+    renderManager();
 
     expect(screen.getByRole("treeitem", { name: "All Templates" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Library Route Project project source" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("treeitem", { name: "Library Route Project project source" }));
-    expect(screen.getByRole("treeitem", { name: "Route Estimate estimate EST-ROUTE" })).toBeInTheDocument();
+    // The standalone library route browses custom templates only; the
+    // project-derived "Projects" section lives solely in the in-estimate panel.
+    expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Condo Starter" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Insert Condo Starter into estimate" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Project source preview" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Rename" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "Delete" })).not.toBeInTheDocument();
   });
 
   it("selects a row on click and shows its structure in the preview dock", async () => {

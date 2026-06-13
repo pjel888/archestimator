@@ -1494,6 +1494,9 @@ type LiveEstimateTabTreeResult = LiveEstimateTreeResult & {
 
 type EstimateTabRouteContext = LiveEstimateTabTreeResult & {
   selectedNodeId: string | null;
+  // U21: the full tab list, resolved in parallel with the tree on the tab-present
+  // paths, so the node-route page avoids a second serial getEstimateTabs round-trip.
+  tabs?: EstimateTabSummary[];
 };
 type EstimateNodeRouteRow = {
   id: string;
@@ -1917,16 +1920,28 @@ export async function resolveEstimateTabRouteContext(
 
   const routeNode = selectedNode as unknown as EstimateNodeRouteRow | null;
   if (routeNode?.estimate_tab_id) {
-    const result = await getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id, options);
+    // U21: resolve the tab tree and the tab list in parallel so the page needn't
+    // issue a second serial getEstimateTabs round-trip after this resolver.
+    const [result, tabs] = await Promise.all([
+      getEstimateTabTree(projectId, routeNode.estimate_id, routeNode.estimate_tab_id, options),
+      getEstimateTabs(projectId, routeNode.estimate_id),
+    ]);
     return {
       ...result,
       selectedNodeId: routeNode.id,
+      tabs,
     };
   }
 
   try {
     const defaultTab = await getDefaultEstimateTab(routeSegment);
-    if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options);
+    if (defaultTab) {
+      const [result, tabs] = await Promise.all([
+        getEstimateTabTree(projectId, routeSegment, defaultTab.id, options),
+        getEstimateTabs(projectId, routeSegment),
+      ]);
+      return { ...result, tabs };
+    }
   } catch (error) {
     if (!isEstimateTabsSchemaMissing(error)) throw error;
   }
