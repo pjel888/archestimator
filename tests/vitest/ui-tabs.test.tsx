@@ -15,6 +15,12 @@ describe("shared Tabs primitive", () => {
     expect(screen.getByRole("tab", { name: "Scope" })).toHaveClass("border-brand-orange");
   });
 
+  it("keeps inactive underline tabs visually muted", () => {
+    render(<Tabs tabs={tabs} activeId="scope" onChange={vi.fn()} variant="underline" />);
+
+    expect(screen.getByRole("tab", { name: "Pricing" })).toHaveClass("border-transparent", "text-tertiary/60");
+  });
+
   it("renders an end action outside the scrollable tablist", () => {
     render(
       <Tabs

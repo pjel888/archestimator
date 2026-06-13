@@ -625,7 +625,7 @@ export function EstimateTabStrip({
       getTabButtonProps={(tab, index) => ({
         "data-estimate-tab-id": tab.id,
         className: cn(
-          "max-w-44 min-h-7 px-2",
+          "max-w-44",
           enteringTabIds.has(tab.id) && "animate-in fade-in-0 slide-in-from-bottom-1 duration-150",
         ),
         onDoubleClick: () => {
@@ -642,8 +642,8 @@ export function EstimateTabStrip({
   );
 
   return (
-    <div className={cn("shrink-0 border-b border-hairline bg-surfaceMuted", className)} data-estimate-tab-strip>
-      <div className="flex min-h-8 items-end gap-1 px-2 pt-1">
+    <div className={cn("shrink-0 border-b border-hairline bg-white", className)} data-estimate-tab-strip>
+      <div className="flex min-h-10 items-stretch gap-1 px-2" data-estimate-tab-strip-row>
         <div className="relative flex min-w-0 flex-1 items-end">
           {lifecycleActionsReady ? (
             <ContextMenu>

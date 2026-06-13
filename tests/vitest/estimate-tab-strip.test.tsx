@@ -109,6 +109,16 @@ describe("EstimateTabStrip", () => {
     expect(tabRoot?.contains(screen.getByRole("button", { name: "New tab" }))).toBe(true);
   });
 
+  it("matches the sidebar tab group surface and height contract", () => {
+    const { container } = renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
+
+    expect(container.querySelector("[data-estimate-tab-strip]")).toHaveClass("bg-white");
+    expect(container.querySelector("[data-estimate-tab-strip-row]")).toHaveClass("min-h-10");
+    expect(screen.getByRole("tab", { name: "Page 001" })).toHaveClass("min-h-10", "border-brand-orange", "text-ink");
+    expect(screen.getByRole("tab", { name: "Alternate" })).toHaveClass("min-h-10", "border-transparent", "text-tertiary/60");
+    expect(screen.getByRole("tab", { name: "Alternate" })).not.toHaveClass("text-ink");
+  });
+
   it("uses Page 001 for only the first rendered tab after reorder", () => {
     renderStrip({
       tabs: [
