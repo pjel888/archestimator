@@ -59,7 +59,7 @@ describe("project estimates create flow", () => {
   });
 
   it("guards the create estimate action against rapid double-submit", async () => {
-    let resolveCreate: ((value: { estimateId: string; areaNodeId: string; sheetCode: string }) => void) | undefined;
+    let resolveCreate: ((value: { row: ProjectEstimateTableRow }) => void) | undefined;
     actionMocks.createEstimateSheetDraft.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -78,16 +78,14 @@ describe("project estimates create flow", () => {
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
     expect(screen.getByRole("button", { name: "Creating estimate" })).toBeDisabled();
 
-    resolveCreate?.({ estimateId: "estimate-1", areaNodeId: "node-1", sheetCode: "ES-001" });
-    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
+    resolveCreate?.({ row: makeEstimate({ id: "estimate-1" }) });
+    // P0: optimistic reconciliation, never a full-screen-overlay router.refresh().
+    await waitFor(() => expect(screen.getByRole("button", { name: "Create Estimate" })).not.toBeDisabled());
+    expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
   it("guides first-run users to create the first estimate sheet", async () => {
-    actionMocks.createEstimateSheetDraft.mockResolvedValue({
-      estimateId: "estimate-1",
-      areaNodeId: "node-1",
-      sheetCode: "ES-001",
-    });
+    actionMocks.createEstimateSheetDraft.mockResolvedValue({ row: makeEstimate({ id: "estimate-1" }) });
     const user = userEvent.setup();
 
     renderClient();
@@ -99,7 +97,8 @@ describe("project estimates create flow", () => {
     await user.click(screen.getByRole("button", { name: "Create first estimate" }));
 
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
-    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledTimes(1));
+    expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
   it("shows searchable no-match copy without creating duplicate estimate actions", async () => {
