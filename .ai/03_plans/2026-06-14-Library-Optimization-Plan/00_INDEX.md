@@ -4,8 +4,8 @@
 **Live URL:** http://localhost:3000/workshop/library
 **Date:** 2026-06-14
 **Type:** Multi-discipline audit + implementation-ready plan (no code changed during planning)
-**Status:** Implementation-ready only after the preimplementation gap gates in `09` are satisfied (pending owner/default decisions in `08`)
-**Branch:** `claude/2026-06-13-unification-plan-deepening`
+**Status:** ✅ IMPLEMENTED (2026-06-14) on branch `2026-06-14-Library-Optimization-Plan` — P0 (felt-latency) + P1 + P3 (app guards/headers/a11y/error-sanitization/quota) shipped with TDD + type-check + design-lint + full DOM suite green; P2 DB scaling-cliff authored as ready, owner-gated migrations (Q4: not applied to hosted). See `BASELINE.md`, `AFTER_P0/P1/P3.md`, `migrations/`. Deferred-with-rationale: T5 `dynamic()` split (measurement-gated), T12 explicit columns + T14 pagination (pair with the gated P2 RPCs), browser/Playwright + PG17 prove-harness gates (require the owner's authed Chrome session / DB approval).
+**Branch:** `2026-06-14-Library-Optimization-Plan` (merged to main)
 
 ---
 

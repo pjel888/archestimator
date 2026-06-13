@@ -1,0 +1,12 @@
+# AFTER — P1 (residual waterfalls & rough edges)
+
+Branch `2026-06-14-Library-Optimization-Plan`.
+
+| Task | Status | Evidence |
+|---|---|---|
+| T6 — `cache()`-wrap `ensureDefaultWorkspace` (F18) | ✅ done | `workspace-repository.ts` wrapped in `React.cache()` (same pattern as `getCurrentUserContext`); request-deduped across 58 call sites; idempotent auto-provision preserved. No regression (`workspace-repository-estimate-tree`, `estimate-workspace-client-cache` green). Request-scoped dedup is not unit-testable without an RSC harness (same as `getCurrentUserContext`). |
+| T7 — optimistic / single-resolve insert-into-estimate (F21) | ✅ done | `InsertIntoEstimatePicker` pre-check resolve effect removed; submit resolves exactly once. Test: `template-gallery` asserts `resolveEstimateTemplateInsertTarget` called once. |
+| T8 — replace native `prompt`/`confirm`; Overview CTA opens add modal (F22/F23) | ✅ done | TemplateEditor add/rename/delete use DS `ConfirmDialog`+`ControlInput` (+ destructive dialog for delete); Overview CTAs navigate `?add=component`, manager auto-opens the Add Component modal once. Tests: `template-editor` drives the DS dialog (dialog/alertdialog roles). |
+| T5 — editor double-fetch + lazy-load (F17) | partially addressed / deferred-with-rationale | The editor's Components dock already uses a **lazy** `useQuery` (`TemplateEditorClient.tsx:121`) that fetches after mount, so it does **not** block first editor paint — the "double-fetch" never gated the critical render (the template comes from the server, the library from the lazy query; different datasets). The remaining T5 item is converting `TemplateStructureTree`/`TemplateEditorSheet`/`EstimateRightSidebar` to `dynamic()`. The plan itself gates this on measurement ("Decide with measurement before…"); lazy-loading the always-visible core editor pieces trades bundle size for a load flash and the bundle delta could not be browser-measured this session (dev-auth disabled, `ANALYZE` build not run). Deferred to a measured pass rather than shipping an unmeasured, possibly-regressive change. The dock (`EstimateRightSidebar`) is already conditionally rendered. |
+
+**P1 exit gate:** editor shows one loading phase for its dock (lazy query, not a second blocking fetch); round-trips per request reduced by the workspace prefix (T6); no native OS dialogs in the editor (T8). The optional `dynamic()` split (T5) is measurement-gated and deferred.

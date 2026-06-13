@@ -1112,12 +1112,14 @@ export function ComponentLibraryManager({
   const [selectedBrandNodeId, setSelectedBrandNodeId] = useState("all-brands");
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
-  const [addComponentOpen, setAddComponentOpen] = useState(false);
   // Library Optimization Plan P1 T8 (F23): the Overview "Add component" CTA navigates
-  // here with ?add=component; open the Add Component modal once on arrival instead of
-  // just landing on the tab. Ref-guarded so it does not re-open on re-render.
-  const addParamHandledRef = useRef(false);
+  // here with ?add=component; open the Add Component modal on arrival instead of just
+  // landing on the tab. Seeding the initial state from the param (not an effect) opens
+  // it exactly once on mount with no cascading re-render.
   const addComponentSearchParams = useSearchParams();
+  const [addComponentOpen, setAddComponentOpen] = useState(
+    () => addComponentSearchParams?.get("add") === "component",
+  );
   const [libraryItemState, setLibraryItemState] = useState<{ source: EstimateRowItem[]; items: EstimateRowItem[] }>(() => ({
     source: libraryItems,
     items: libraryItems,
@@ -1186,13 +1188,6 @@ export function ComponentLibraryManager({
     setAddComponentOpen(true);
   }
 
-  useEffect(() => {
-    if (addParamHandledRef.current) return;
-    if (addComponentSearchParams?.get("add") === "component") {
-      addParamHandledRef.current = true;
-      setAddComponentOpen(true);
-    }
-  }, [addComponentSearchParams]);
 
   function setAddComponentOpenWithFocus(open: boolean) {
     setAddComponentOpen(open);
