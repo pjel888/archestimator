@@ -137,6 +137,45 @@ describe("EstimateTabStrip", () => {
     expect(screen.getByRole("button", { name: "Create tab" })).toBeInTheDocument();
   });
 
+  it("creates a tab through the +, updates the list from the returned array, switches to it, and arms inline rename", async () => {
+    const createdTabs = [
+      { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+      { id: "tab-alt", name: "Alternate", sortOrder: 1, isDefault: false },
+      { id: "tab-3", name: "Tab 3", sortOrder: 2, isDefault: false },
+    ];
+    actionMocks.createEstimateTab.mockResolvedValue({ estimateTabId: "tab-3", tabs: createdTabs });
+    const switchedTo: string[] = [];
+    function CreateHarness() {
+      const [tabs, setTabs] = useState(fixtureTabs());
+      const [activeTabId, setActiveTabId] = useState("tab-main");
+      return (
+        <EstimateTabStrip
+          tabs={tabs}
+          activeTabId={activeTabId}
+          projectId="project-1"
+          estimateId="estimate-1"
+          enableLifecycleActions
+          canCreateTabs
+          onTabChange={(id) => { switchedTo.push(id); setActiveTabId(id); }}
+          onTabsChange={setTabs}
+        />
+      );
+    }
+    render(<CreateHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create tab" }));
+
+    await waitFor(() => {
+      // Auto-named from the returned list; the action is the single round-trip.
+      expect(actionMocks.createEstimateTab).toHaveBeenCalledWith({ projectId: "project-1", estimateId: "estimate-1", name: "Tab 3" });
+    });
+    // The list updates from the returned array and the new tab arms inline rename
+    // (the input only renders if "tab-3" was added to the rendered list).
+    expect(await screen.findByRole("textbox", { name: "Rename Tab 3 tab" })).toBeInTheDocument();
+    expect(switchedTo).toContain("tab-3");
+    expect(actionMocks.createEstimateTab).toHaveBeenCalledTimes(1);
+  });
+
   it("spring-loads inactive tabs during drag hover so drops can target another tab tree", () => {
     vi.useFakeTimers();
     const { onTabChange } = renderStrip();

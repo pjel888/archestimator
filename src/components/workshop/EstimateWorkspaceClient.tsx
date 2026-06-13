@@ -2,12 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
-import { useEstimateTabsQuery } from "@/hooks/use-estimate-query";
+import { estimateQueryKeys, useEstimateTabsQuery } from "@/hooks/use-estimate-query";
 import { useEstimateActiveTab } from "@/hooks/use-estimate-workspace-state";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
@@ -69,6 +70,7 @@ export function EstimateWorkspaceClient({
   libraryBrands,
   libraryFolders,
 }: EstimateWorkspaceClientProps) {
+  const queryClient = useQueryClient();
   const tabQueriesEnabled = Boolean(activeTabId);
   const tabsQuery = useEstimateTabsQuery({
     projectId,
@@ -119,7 +121,12 @@ export function EstimateWorkspaceClient({
         canEditEstimate={canEditEstimate}
         initialTabId={activeTabId ?? undefined}
         onActiveTabChange={setActiveTabId}
-        onEstimateTabsChange={() => { void tabsQuery.refetch(); }}
+        onEstimateTabsChange={(tabs) => {
+          // The tab CRUD actions already return the canonical tab array, so set
+          // the cache directly instead of a blind refetch — create now issues a
+          // single network round-trip with no redundant re-fetch flash (R10).
+          queryClient.setQueryData(estimateQueryKeys.tabs(estimateId), tabs);
+        }}
         collaborationUserId={collaborationUserId}
         collaborationDisplayName={collaborationDisplayName}
         proposalExportMetadata={proposalExportMetadata}
