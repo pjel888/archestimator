@@ -1084,19 +1084,22 @@ describe("templates tree", () => {
   it("filters reusable source sections between custom templates and project sources", () => {
     openTemplatesTab({ projectSources });
 
-    expect(screen.getByRole("button", { name: "All sources" })).toHaveAttribute("aria-pressed", "true");
+    const sourceFilter = screen.getByRole("combobox", { name: "Reusable source filter" });
+    expect(sourceFilter).toHaveTextContent("All sources");
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Project sources" }));
+    fireEvent.click(sourceFilter);
+    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
 
-    expect(screen.getByRole("button", { name: "Project sources" })).toHaveAttribute("aria-pressed", "true");
+    expect(sourceFilter).toHaveTextContent("Project sources");
     expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Custom templates" }));
+    fireEvent.click(sourceFilter);
+    fireEvent.click(screen.getByRole("option", { name: "Custom templates" }));
 
-    expect(screen.getByRole("button", { name: "Custom templates" })).toHaveAttribute("aria-pressed", "true");
+    expect(sourceFilter).toHaveTextContent("Custom templates");
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
   });
