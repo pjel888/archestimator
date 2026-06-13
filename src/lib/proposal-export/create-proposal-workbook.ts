@@ -37,7 +37,10 @@ export type ProposalWorkbookColumn = {
   style?: Partial<ExcelJS.Style>;
 };
 
-const PHP_FORMAT = '₱ #,##0.00;[Red]-₱ #,##0.00';
+// P3-T4 (F-34, 09 §5): the 4-part accounting peso mask (positive · negative · zero-as-dash ·
+// text) with the [$₱-3409] locale token, so amounts column-align on the decimal with the symbol
+// left-flush — matching the 10 reference BOQs.
+const PHP_FORMAT = '_-[$₱-3409]* #,##0.00_-;-[$₱-3409]* #,##0.00_-;_-[$₱-3409]* "-"??_-;_-@_-';
 const QUANTITY_FORMAT = '#,##0.####';
 // F-18 (P1-T7): force text type on every data string column so a cell whose text begins
 // with =, +, -, @ (CSV/formula-injection vectors) is written and read as literal text, never
@@ -153,6 +156,48 @@ function styleTotalRow(row: ExcelJS.Row) {
 
 function formatPeso(value: number) {
   return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// P3-T4 (F-28): Grand Total amount in words — a required line on a formal bid document.
+const WORD_ONES = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+const WORD_TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+const WORD_SCALES = ["", "Thousand", "Million", "Billion", "Trillion"];
+
+function threeDigitWords(value: number) {
+  const parts: string[] = [];
+  const hundreds = Math.floor(value / 100);
+  const remainder = value % 100;
+  if (hundreds > 0) parts.push(`${WORD_ONES[hundreds]} Hundred`);
+  if (remainder >= 20) {
+    parts.push(WORD_TENS[Math.floor(remainder / 10)] + (remainder % 10 ? `-${WORD_ONES[remainder % 10]}` : ""));
+  } else if (remainder > 0) {
+    parts.push(WORD_ONES[remainder]);
+  }
+  return parts.join(" ");
+}
+
+function integerToWords(value: number) {
+  if (value === 0) return "Zero";
+  const groups: number[] = [];
+  let remaining = value;
+  while (remaining > 0) {
+    groups.push(remaining % 1000);
+    remaining = Math.floor(remaining / 1000);
+  }
+  const words: string[] = [];
+  for (let scale = groups.length - 1; scale >= 0; scale -= 1) {
+    if (groups[scale] === 0) continue;
+    const scaleWord = WORD_SCALES[scale] ?? "";
+    words.push(scaleWord ? `${threeDigitWords(groups[scale])} ${scaleWord}` : threeDigitWords(groups[scale]));
+  }
+  return words.join(" ");
+}
+
+function pesoInWords(amount: number) {
+  const rounded = roundMoney(amount);
+  const pesos = Math.floor(rounded);
+  const centavos = Math.round((rounded - pesos) * 100);
+  return `${integerToWords(pesos)} Peso${pesos === 1 ? "" : "s"} and ${String(centavos).padStart(2, "0")}/100`;
 }
 
 function formulaAmountSuffix(value: number) {
@@ -395,6 +440,14 @@ function writeSummaryTotalsBlock(
   }
   worksheet.getCell(`A${durationRow}`).value = "Estimated duration";
   worksheet.getCell(`B${durationRow}`).value = "To be confirmed";
+
+  // F-28 (P3-T4): Grand Total amount in words.
+  const amountInWordsRow = durationRow + 1;
+  worksheet.getCell(`A${amountInWordsRow}`).value = "Amount in words";
+  const wordsCell = worksheet.getCell(`B${amountInWordsRow}`);
+  wordsCell.value = pesoInWords(totals.grandTotalWithTaxes);
+  wordsCell.numFmt = TEXT_FORMAT;
+  wordsCell.font = { italic: true, size: 10, color: { argb: "FF4B5563" } };
 
   [totalsStartRow, contingencyRow, vatRow, grandTotalRow].forEach((rowNumber) => {
     const row = worksheet.getRow(rowNumber);
