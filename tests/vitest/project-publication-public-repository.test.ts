@@ -84,6 +84,11 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
     process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
 
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: "publication-1" }, error: null }),
+    };
     const recipientQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -97,6 +102,7 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     vi.doMock("@supabase/supabase-js", () => ({
       createClient: vi.fn(() => ({
         from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
           if (table === "shared_link_recipients") return recipientQuery;
           throw new Error(`Unexpected table: ${table}`);
         }),
@@ -128,6 +134,11 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
     process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
 
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: "publication-1" }, error: null }),
+    };
     const recipientQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -141,6 +152,7 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     vi.doMock("@supabase/supabase-js", () => ({
       createClient: vi.fn(() => ({
         from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
           if (table === "shared_link_recipients") return recipientQuery;
           throw new Error(`Unexpected table: ${table}`);
         }),
@@ -172,6 +184,11 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
     process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
 
+    const publicationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: "publication-1" }, error: null }),
+    };
     const recipientQuery = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -188,6 +205,7 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     vi.doMock("@supabase/supabase-js", () => ({
       createClient: vi.fn(() => ({
         from: vi.fn((table: string) => {
+          if (table === "project_publications") return publicationQuery;
           if (table === "shared_link_recipients") return recipientQuery;
           throw new Error(`Unexpected table: ${table}`);
         }),

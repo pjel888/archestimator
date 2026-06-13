@@ -314,6 +314,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       record5xx(Date.now());
     }
     logStructured("error", "/api/share/[token]/comment", status === 500 ? "INSERT_FAILED" : "POST_ERROR", ipHash, { status, msg: msg.slice(0, 120) });
-    return Response.json({ error: msg }, { status, headers: { "Cache-Control": "no-store" } });
+    // SEC-15 (AC-SEC-15): never echo a raw RPC/DB error to the public client. The detailed
+    // message is logged server-side (above). Known client-facing cases (429 rate limit, 403
+    // not-found/expired/recipient) keep their app-authored message; only the unexpected 500
+    // path returns a generic envelope.
+    const clientError = status === 500 ? "Something went wrong. Please try again." : msg;
+    return Response.json({ error: clientError }, { status, headers: { "Cache-Control": "no-store" } });
   }
 }

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -131,9 +131,41 @@ function readTokenHash(token: string) {
   return hashPublicationToken(token, readPublicationTokenHashSecret());
 }
 
+// SEC-06 (AC-SEC-06): resolve a publication's id from its token hash so recipient lookups in
+// the comment/decision write paths can be constrained by publication_id. Returns null when no
+// publication matches the token hash (the caller treats that as "publication not found").
+async function resolvePublicationIdByTokenHash(
+  supabase: ReturnType<typeof createPublicationServiceClient>,
+  tokenHash: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("project_publications")
+    .select("id")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+// SEC-02 (AC-SEC-02): the telemetry hash pepper. An unsalted sha256(ip) is reversible —
+// the IPv4 space is small enough to rainbow-table — so the "hashed" IP/user-agent stored
+// in project_publication_events / shared_link_events would be recoverable PII. Keying the
+// hash with a server-only pepper makes the stored value non-reversible without the secret.
+// Prefer a dedicated ARCHESTIMATOR_TELEMETRY_HASH_PEPPER, but fall back to the publication
+// token hash secret (which already has a prod-required + dev-fallback contract) so no new
+// env wiring is required to run locally or in CI.
+function readTelemetryHashPepper() {
+  return process.env.ARCHESTIMATOR_TELEMETRY_HASH_PEPPER?.trim() || readPublicationTokenHashSecret();
+}
+
+// SEC-02 (AC-SEC-02): keyed HMAC of an IP / user-agent for the *_hash telemetry columns.
+// MUST be the only path that hashes ip/user-agent for those fields — never write a bare
+// createHash("sha256")(ip) for ip_hash / user_agent_hash. Keeps the null-passthrough so a
+// missing value still stores null (no value hashed = no PII written).
 function hashRequestValue(value: string | null) {
   if (!value) return null;
-  return createHash("sha256").update(value).digest("base64url");
+  return createHmac("sha256", readTelemetryHashPepper()).update(value).digest("base64url");
 }
 
 export function isProjectPublicationAccessTelemetryEnabled(env: Partial<Pick<NodeJS.ProcessEnv, "NODE_ENV" | "ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED" | "ARCHESTIMATOR_ACCESS_TELEMETRY_PRODUCTION_READY">> = process.env) {
@@ -873,11 +905,22 @@ export async function insertSharedLinkComment(params: {
   const supabase = createPublicationServiceClient();
   const pubHash = readTokenHash(params.publicationToken); // uses same secret as P3/P4/P5
 
-  // Lookup recipient_token_hash (P3 table — cast as in verify fn)
+  // SEC-06 (AC-SEC-06): resolve the publication owning THIS token so the recipient lookup
+  // below can be constrained by publication_id. Without this an `id` from publication A could
+  // (at the app layer) resolve a recipient_token_hash even when posting against publication B.
+  // The downstream RPC also re-validates the recipient belongs to the publication, but we close
+  // the app-layer seam too (defense-in-depth — see SEC-06 in 06_SECURITY_AUDIT.md).
+  const publicationId = await resolvePublicationIdByTokenHash(supabase, pubHash);
+  if (!publicationId) {
+    throw new Error("Publication not found for comment.");
+  }
+
+  // Lookup recipient_token_hash (P3 table — cast as in verify fn), scoped to the publication.
   const { data: rec, error: recErr } = await supabase
     .from("shared_link_recipients")
     .select("recipient_token_hash")
     .eq("id", params.recipientId)
+    .eq("publication_id", publicationId)
     .maybeSingle();
 
   if (recErr) throw recErr;
@@ -929,11 +972,20 @@ export async function submitSharedLinkDecision(params: {
   const supabase = createPublicationServiceClient();
   const pubHash = readTokenHash(params.publicationToken);
 
-  // Lookup recipient_token_hash (P3 table — same pattern as comments)
+  // SEC-06 (AC-SEC-06): scope the recipient lookup to the publication owning THIS token so a
+  // recipient `id` from publication A cannot resolve under publication B at the app layer.
+  // The RPC re-validates publication+recipient too; this closes the app-layer seam.
+  const publicationId = await resolvePublicationIdByTokenHash(supabase, pubHash);
+  if (!publicationId) {
+    throw new Error("Publication not found for decision.");
+  }
+
+  // Lookup recipient_token_hash (P3 table — same pattern as comments), scoped to the publication.
   const { data: rec, error: recErr } = await supabase
     .from("shared_link_recipients")
     .select("recipient_token_hash")
     .eq("id", params.recipientId)
+    .eq("publication_id", publicationId)
     .maybeSingle();
 
   if (recErr) throw recErr;

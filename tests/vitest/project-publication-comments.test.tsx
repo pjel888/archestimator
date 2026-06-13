@@ -263,6 +263,36 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       // red: will fail until route does the RPC call via service client and returns success
       expect([201, 400, 503]).toContain(res.status);
     });
+
+    // SEC-15 (AC-SEC-15): a forced UNEXPECTED RPC/DB error (mapping to 500) must return a
+    // GENERIC message to the public client — the raw error string must not appear in the
+    // response body — while the detailed message is logged server-side via console.error.
+    it("returns a generic 500 envelope and never echoes the raw RPC/DB error string (SEC-15)", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const rawDbError = 'null value in column "body" violates not-null constraint DETAIL: internal db guts';
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.insertSharedLinkComment.mockRejectedValue(new Error(rawDbError));
+      const req = makeRequest(
+        { body: "comment that triggers an unexpected db error" },
+        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "x-forwarded-for": "203.0.113.9" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe("Something went wrong. Please try again.");
+      expect(JSON.stringify(json)).not.toContain("not-null constraint");
+      expect(JSON.stringify(json)).not.toContain("internal db guts");
+
+      const loggedDetail = consoleSpy.mock.calls.some((call) =>
+        JSON.stringify(call[0] ?? "").includes("not-null constraint"),
+      );
+      expect(loggedDetail).toBe(true);
+
+      consoleSpy.mockRestore();
+    });
   });
 
 
