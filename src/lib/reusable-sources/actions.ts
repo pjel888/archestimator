@@ -134,9 +134,9 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         addReusableSearchSource(sourcesByKey, estimateSource);
       }
 
-      const tabs = await getEstimateTabs(project.id, estimate.id);
+      const tabs = await getEstimateTabs(project.id, estimate.id, { allowLegacyFallback: true });
       const tabTrees = await Promise.all(
-        tabs.map((tab) => getEstimateTabTree(project.id, estimate.id, tab.id)),
+        tabs.map((tab) => getEstimateTabTree(project.id, estimate.id, tab.id, { allowLegacyFallback: true })),
       );
       tabs.forEach((tab, tabIndex) => {
         const updatedAt = tabTrees[tabIndex]?.estimate?.updated_at ?? estimate.updatedAt;
@@ -189,9 +189,9 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
 
 export async function getReusableEstimateOutline(input: { projectId: string; estimateId: string }): Promise<ReusableEstimateOutlineResult> {
   await requireCurrentUserContext();
-  const tabs = await getEstimateTabs(input.projectId, input.estimateId);
+  const tabs = await getEstimateTabs(input.projectId, input.estimateId, { allowLegacyFallback: true });
   const tabTrees = await Promise.all(
-    tabs.map((tab) => getEstimateTabTree(input.projectId, input.estimateId, tab.id)),
+    tabs.map((tab) => getEstimateTabTree(input.projectId, input.estimateId, tab.id, { allowLegacyFallback: true })),
   );
 
   const sources: ReusableEstimateOutlineResult["sources"] = [];
