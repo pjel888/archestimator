@@ -12,7 +12,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
-import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
+import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
+import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
@@ -720,18 +721,25 @@ export function EstimateSheetContent({
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
   const libraryQuery = useQuery({
-    queryKey: ["workspace-component-library"],
-    queryFn: () => loadCurrentWorkspaceComponentLibrary(),
+    // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
+    // dataset under its own key — never the full-graph key the editor surfaces use.
+    queryKey: WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY,
+    queryFn: () => loadCurrentWorkspaceComponentLibraryLite(),
     enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
     staleTime: 5 * 60 * 1000,
+    // U19: keep the warmed cache long after navigate-away so returning to the
+    // estimate doesn't re-run the cold load (it's workspace-global + mutation-invalidated).
+    gcTime: 30 * 60 * 1000,
   });
   const lazyLibrary = shouldLoadLibraryLazily ? libraryQuery.data : undefined;
   const resolvedLibraryItems = libraryItems ?? lazyLibrary?.libraryItems;
   const queryClient = useQueryClient();
   // Library mutations in the sidebar update its local state; the lazy query
   // cache must also be marked stale or remounts re-seed from pre-mutation data.
+  // Non-exact invalidation on the shared prefix covers both the lite (panel) and
+  // full (editor) datasets.
   const handleLibraryDataChanged = useStableCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ["workspace-component-library"] });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY });
   });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {

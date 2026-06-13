@@ -85,4 +85,58 @@ their **apply** is deferred to the owner runbook; app-layer guards ship immediat
 - RTM rows flipped: DEF-1 (P0) ✓, UX-6 (U1b) ✓, SEC-1/DEF-4 (U4 app-layer) ✓ (RPC apply pending owner).
 - **Owner-gated remaining for this slice:** apply `20260613170000_harden_template_insert_can_edit.sql`
   to `ebxxqidacheyapmmzavr` + RLS-harness denial proof (U16 extends the prove script).
-- **Next:** commit Phase 0; then Perf (U18/U19/U21) + Library scope (U3, subagent).
+- Committed Phase 0 as `a15b82c1`.
+
+---
+
+## Perf (3b) + Library scope — DONE (local)
+
+### U18 — lite in-estimate library loader
+- `component-library-repository.ts`: `loadCurrentWorkspaceComponentRowsLibrary({ includeDetailGraph })`
+  + new `getCurrentWorkspaceComponentLibraryLite()`. **Cost-fidelity decision (from adversarial
+  review P0):** the lite loader STILL loads price options + current cost entries (which drive the
+  displayed cost via normalizePriceOption→normalizeComponentLibraryItem) and skips only the 4
+  audit/attachment queries (versions / price history / state history / attachments) the panel never
+  reads. This makes the panel cost byte-identical to the full loader regardless of any
+  denormalized-column lag — rather than relying on `cost_library_items.unit_cost` being perfectly
+  synced to the current cost entry (which the write path does not unconditionally guarantee).
+- `component-library/actions.ts`: `loadCurrentWorkspaceComponentLibraryLite()`.
+- `EstimateSheetContent.tsx`: panel loads the lite dataset under a DISTINCT key
+  `["workspace-component-library","lite"]` (shared module `lib/component-library/query-keys.ts`) so it
+  never serves incomplete data to the full-graph editor surfaces; the editor (`TemplateEditorClient`)
+  keeps the full loader + full key, unchanged. Invalidation uses the shared prefix (non-exact → covers both).
+- Tests: `estimate-sheet-library-lazy-load.test.tsx` mock + invalidation-string assertion updated.
+
+### U19 — prefetch + cache-tune
+- `ProjectEstimatesTable.tsx`: estimate-row hover now also prefetches the lite library (same key/fn as
+  the panel consumer → real cache hit). `EstimateSheetContent` library query `gcTime` 30min so
+  navigate-away-back doesn't re-run the cold load.
+
+### U21 — node-route tabs waterfall
+- `workspace-repository.ts` `resolveEstimateTabRouteContext` now returns `tabs` (resolved in parallel
+  with the tree on the two tab-present branches); `[nodeId]/page.tsx` prefers it (`tabs ?? fallback`),
+  removing the serial `getEstimateTabs` round-trip. No change on legacy/no-tab paths.
+- **U20 (RSC streaming) deferred as optional** (doc 08 marks it "(Optional)"): the lite loader + hover
+  prefetch already target the <800ms warm-cache bar; U20 is an additional request-time overlap that is
+  architecturally riskier. Documented deferral, honest per the handoff.
+
+### U3 — remove project sources from library route (D-C) — via isolated-worktree subagent
+- `templates/page.tsx`, `TemplatesBrowsePageClient.tsx`, `TemplatesBrowseManager.tsx` stripped of all
+  project-source machinery; `project-source-browse-tree.tsx` deleted; `template-gallery.test.tsx` +
+  `template-browse-project-sources.test.tsx` updated (U3-1). In-estimate panel + `reusable-sources/actions.ts`
+  untouched (verified by review). Subagent validated in isolation (type-check + eslint + 14 tests); merged
+  by patch (disjoint files).
+
+### U22 — supplier-templates data-model spike (decision doc, no code)
+- `18_SUPPLIER_TEMPLATES_DATA_MODEL_SPIKE.md`: keeps the `source_workspace_id = target_workspace_id`
+  assumption for U2/U4 (correct for the no-supplier product), pins the future licensed-catalogue model
+  so suppliers won't force a security-critical RPC rewrite. Sequenced before U2's migration.
+
+### Perf+Library — adversarial review (workflow, 13 agents) + gates
+- Review: U18/U19/U21/U3 all PASS; the one U18 P0 (denormalized-cost lag) resolved by the cost-fidelity
+  restructure above.
+- Gates: type-check ✓; targeted tests (U3 gallery/browse, lazy-load, template-editor, perf) green;
+  full `bun run validate` re-run exit 0 (pre-restructure) + final re-run pending.
+- RTM rows: PERF-9 (U18/U19) ✓ local; PERF-10 (U21) ✓ local; DEF-3/UX-1/UX-2 (U3, D-C) ✓; S-1/2/3 (U22) decision doc ✓.
+- **Next:** commit Perf+Library+U22; then index.tsx-touching units (U6/U23, U10, U13/U14) sequentially,
+  U5/U7, U12 (a11y), U2 (insert path), U16 (tests), closeout.

@@ -12,7 +12,7 @@ import {
   type BulkActionExecutionResult,
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
-import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
+import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, type ComponentLibraryDataset } from "@/lib/repositories/component-library-repository";
 import {
   ensureDefaultWorkspace,
   listCurrentWorkspaceProjects,
@@ -354,6 +354,14 @@ function getRpcPriceOptions(result: unknown): Array<{ id: string; label: string;
 export async function loadCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
   await requireCurrentUserContext();
   return getCurrentWorkspaceComponentLibrary();
+}
+
+// U18: lite variant for the in-estimate panel — skips the per-item detail graph
+// it never reads. Keyed separately on the client (["workspace-component-library",
+// "lite"]) so it never serves incomplete data to the full-graph editor surfaces.
+export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<ComponentLibraryDataset> {
+  await requireCurrentUserContext();
+  return getCurrentWorkspaceComponentLibraryLite();
 }
 
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {

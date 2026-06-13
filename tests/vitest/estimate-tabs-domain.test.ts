@@ -51,10 +51,14 @@ describe("estimate tab repository compatibility wrappers", () => {
     const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
     expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
-    expect(routeSource).toContain("const estimateTabs = tab ? await getEstimateTabs(project.id, estimate.id) : []");
+    // U21: the resolver returns the tab list (parallel with the tree), so the page
+    // prefers it and falls back to a direct fetch only when it wasn't provided.
+    expect(routeSource).toContain("const estimateTabs = tabs ?? (tab ? await getEstimateTabs(project.id, estimate.id) : [])");
     expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
     expect(repositorySource).toContain("const defaultTab = await getDefaultEstimateTab(routeSegment)");
-    expect(repositorySource).toContain("if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
+    expect(repositorySource).toContain("getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
+    // U21: the tab-present branches resolve the tab list in parallel with the tree.
+    expect(repositorySource).toContain("getEstimateTabs(projectId, routeNode.estimate_id)");
   });
 });
 
