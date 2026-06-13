@@ -177,6 +177,55 @@ function createSourceReference(row: ProposalNormalizedSourceRow): ProposalExport
   };
 }
 
+// P3-T3/D6 (F-27): an ordered canonical division taxonomy. Each entry's keywords are matched
+// against the free-text section label (category/discipline); the first match wins. Sections that
+// match nothing sort last (Misc), preserving their relative encounter order.
+const DIVISION_TAXONOMY: ReadonlyArray<{ keywords: readonly string[] }> = [
+  { keywords: ["preliminar", "general requirement", "mobiliz", "general condition"] },
+  { keywords: ["site", "earth", "excavat", "grading", "demolition"] },
+  { keywords: ["civil", "concrete", "structur", "foundation", "rebar", "formwork"] },
+  { keywords: ["architectur", "masonry", "wall", "partition", "roofing"] },
+  { keywords: ["finish", "tile", "paint", "flooring", "ceiling", "plaster"] },
+  { keywords: ["glass", "glazing", "curtain wall", "window"] },
+  { keywords: ["door"] },
+  { keywords: ["joinery", "millwork", "cabinet", "carpentry", "casework"] },
+  { keywords: ["mechanical", "electrical", "plumbing", "mep", "hvac", "fire", "sanitary", "power", "lighting"] },
+  { keywords: ["ffe", "furnitur", "fixture", "equipment", "appliance"] },
+];
+const MISC_DIVISION_RANK = DIVISION_TAXONOMY.length;
+
+function divisionRank(label: string): number {
+  const text = keyText(label);
+  for (let index = 0; index < DIVISION_TAXONOMY.length; index += 1) {
+    if (DIVISION_TAXONOMY[index].keywords.some((keyword) => text.includes(keyword))) return index;
+  }
+  return MISC_DIVISION_RANK;
+}
+
+// Reorder consolidated rows so sections follow the canonical division order, keeping each
+// section's rows contiguous and the relative order of equal-rank sections stable.
+function applyCanonicalDivisionOrder(rows: ProposalExportRow[]): ProposalExportRow[] {
+  const sectionsInOrder: string[] = [];
+  const rowsBySection = new Map<string, ProposalExportRow[]>();
+  for (const row of rows) {
+    let bucket = rowsBySection.get(row.sectionKey);
+    if (!bucket) {
+      bucket = [];
+      rowsBySection.set(row.sectionKey, bucket);
+      sectionsInOrder.push(row.sectionKey);
+    }
+    bucket.push(row);
+  }
+  const sortedSections = sectionsInOrder
+    .map((sectionKey, appearance) => ({
+      sectionKey,
+      appearance,
+      rank: divisionRank(rowsBySection.get(sectionKey)?.[0]?.sectionLabel ?? sectionKey),
+    }))
+    .sort((a, b) => a.rank - b.rank || a.appearance - b.appearance);
+  return sortedSections.flatMap((section) => rowsBySection.get(section.sectionKey) ?? []);
+}
+
 function renumberProposalRows(rows: ProposalExportRow[]): ProposalExportRow[] {
   // P2-T5/F-09: hierarchical numbering — line numbers restart at 1 within each section
   // (in proposalRows order, which is exactly the per-section filter order the Bid Form uses
@@ -388,7 +437,9 @@ export function consolidateProposalRows(
 export function buildProposalExportModel(input: BuildProposalExportModelInput): ProposalExportModel {
   const settings = applyAudiencePolicy({ ...defaultProposalExportSettings, ...input.settings });
   const flatRows = flattenEstimateTree(input.nodes);
-  const proposalRows = consolidateProposalRows(flatRows, settings);
+  // P3-T3: reorder sections canonically, then renumber so line numbers/division letters follow
+  // the canonical order rather than data-encounter order.
+  const proposalRows = renumberProposalRows(applyCanonicalDivisionOrder(consolidateProposalRows(flatRows, settings)));
   const validationIssues: ProposalExportValidationIssue[] = [...collectNonAreaRows(input.nodes)];
 
   if (flatRows.length === 0) {
