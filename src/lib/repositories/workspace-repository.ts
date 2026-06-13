@@ -723,7 +723,11 @@ function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
   };
 }
 
-export async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
+// Memoized per request (React cache) so the workspace lookup runs once even
+// though the layout fan-out (collaboration + publication + sheets summaries) and
+// the page each resolve it — previously 3× per render (finding F6). Mirrors the
+// getCurrentWorkspaceProject memoization below.
+export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
   const context = await requireCurrentUserContext();
   const supabase = await createSupabaseServerClient();
 
@@ -782,7 +786,7 @@ export async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
   if (profileError) throw profileError;
 
   return { workspace, profile };
-}
+});
 
 export async function listCurrentWorkspaceProjects() {
   const { workspace, profile } = await ensureDefaultWorkspace();
