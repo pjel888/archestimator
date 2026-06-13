@@ -602,28 +602,23 @@ export async function rotateProjectPublicationLink({
         ? await hashPublicationPassword(password)
         : latest.password_hash;
 
-  await context.admin
+  // MOD-ROT-01 / MOD-REC-01: rotate the token IN PLACE on the existing row instead of
+  // revoke + insert. Keeping the same row id means shared_link_recipients stay FK-bound and
+  // remain visible/re-sendable in the Recipients tab, the publicationId never points at a dead
+  // row (no transient zero-live window), and the old /share/<token> stops resolving immediately.
+  const { error } = await context.admin
     .from("project_publications")
     .update({
-      status: "revoked",
-      revoked_at: new Date().toISOString(),
+      token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
+      encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
+      password_hash: passwordHash,
+      snapshot_json: snapshot,
+      snapshot_version: latest.snapshot_version + 1,
+      published_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      // status stays 'published'; expires_at and selected_estimate_ids unchanged on this row.
     })
-    .eq("project_id", context.project.id)
-    .eq("status", "published");
-
-  const { error } = await context.admin.from("project_publications").insert({
-    workspace_id: context.project.workspace_id,
-    project_id: context.project.id,
-    token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
-    encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
-    password_hash: passwordHash,
-    snapshot_json: snapshot,
-    selected_estimate_ids: latest.selected_estimate_ids,
-    snapshot_version: latest.snapshot_version + 1,
-    published_by: context.currentUserId,
-    expires_at: latest.expires_at,
-  });
+    .eq("id", latest.id);
 
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
@@ -1057,20 +1052,11 @@ export async function resendSharedLinkRecipientEmail({
   const rawToken = createPublicationToken();
   const tokenHash = hashPublicationToken(rawToken, readPublicationTokenHashSecret());
   const linkBase = baseClientLink || pubCtx.clientLinkPath || `/share/${publicationId}`;
-  const now = new Date().toISOString();
 
-  const { error: updateError } = await admin
-    .from("shared_link_recipients")
-    .update({
-      recipient_token_hash: tokenHash,
-      delivery_status: "pending",
-      invited_by: context.currentUserId,
-      updated_at: now,
-    })
-    .eq("publication_id", publicationId)
-    .eq("id", recipientId);
-  if (updateError) throw updateError;
-
+  // MOD-REC-02: generate token -> SEND -> persist only on success. We must send the email with
+  // the new rawToken BEFORE overwriting recipient_token_hash so a send failure leaves the
+  // recipient's previously-emailed link intact (the new hash is never written, so the old link
+  // still resolves). The earlier pre-send "pending" write stranded recipients on send failure.
   const sendResult = await sendSharedLinkRecipientInvitationEmail({
     linkBase,
     projectName: context.project.name || "your project",
@@ -1083,14 +1069,18 @@ export async function resendSharedLinkRecipientEmail({
 
   if (!sendResult.ok) {
     console.warn("[P4] recipient email resend non-fatal failure", { email: recipient.email, error: sendResult.error });
-    return { ok: false, message: "Recipient email resend failed. The recipient remains pending." };
+    // No DB write happened: the prior recipient_token_hash and delivery_status are untouched and
+    // the previously-emailed link still works.
+    return { ok: false, message: "Recipient email resend failed. The previous link is still active." };
   }
 
   const { error: sentUpdateError } = await admin
     .from("shared_link_recipients")
     .update({
+      recipient_token_hash: tokenHash,
       delivery_status: "sent",
       resend_email_id: sendResult.messageId ?? null,
+      invited_by: context.currentUserId,
       updated_at: new Date().toISOString(),
     })
     .eq("publication_id", publicationId)

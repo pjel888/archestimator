@@ -107,7 +107,7 @@ function readDestructivePublicationActionCopy(action: DestructivePublicationActi
     return {
       title: "Create new shared link?",
       description: "The current shared link will stop working.",
-      body: "The current shared link will stop working immediately after the new link is created. Existing recipients will need the replacement link.",
+      body: "The current shared link will stop working immediately. Existing recipients are kept — re-send them the new link from the Recipients tab. Password-protected links require recipients to re-enter the password.",
       confirmLabel: "Create new link",
     };
   }
