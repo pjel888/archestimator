@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartBar, ChartPieSlice, ClipboardText } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, ChartBarHorizontal, ClipboardText } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 type ProjectMiniSidebarProps = {
@@ -34,9 +34,12 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       exact: false,
     },
     {
+      // Route stays /charts for compatibility; the surface is a cost comparison
+      // (`08` reframe / `13` R-7), so the label/icon stop presenting it as pie
+      // decoration. "Compare" keeps the 104px rail legible.
       href: `/workshop/projects/${projectId}/charts`,
-      label: "Charts",
-      icon: ChartPieSlice,
+      label: "Compare",
+      icon: ChartBarHorizontal,
       exact: false,
     },
   ];

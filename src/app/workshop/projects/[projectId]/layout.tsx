@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 
+import { ProjectCursorLayer } from "@/components/workshop/ProjectCursorLayer";
 import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
 import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
@@ -70,6 +71,13 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
           </div>
         </div>
       </div>
+      {/* T5.3: project-wide page cursors — inert unless the OFF-by-default flag
+          is enabled (D-1 capacity gate) and the active surface is the overview. */}
+      <ProjectCursorLayer
+        projectId={projectId}
+        userId={collaborationSummary?.currentUserId ?? null}
+        displayName={currentCollaborator?.displayName ?? null}
+      />
     </WorkshopPageShell>
   );
 }

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
+import { buildSeriesByEstimate } from "../project-charts/project-comparison-view";
 import { getCurrentWorkspaceProject } from "./workspace-repository";
 import type {
   ProjectChartCategoryNodeFact,
@@ -109,22 +110,40 @@ export async function getProjectChartsData(
     };
   });
 
+  // Aggregate server-side and ship only pre-bucketed series (`02` DB-4 / `01`
+  // PERF-2). The raw rowFacts / nodeFacts / categoryNodeFacts / supplierFacts stay
+  // on the server — qty, unit cost, contingency, and supplier ids never cross the
+  // wire (`05` SEC-1). This is the repository-reduce form of PERF-2; an equivalent
+  // `get_project_chart_buckets` RPC is provided as a ready migration for a future
+  // push-down, proven against this same JS reduce by the golden-master oracle.
+  const seriesByEstimateId = buildSeriesByEstimate(
+    {
+      estimates: estimateOptions,
+      rows: rowFacts,
+      nodes: nodeFacts,
+      categoryNodes: categoryNodeFacts,
+      suppliers: supplierFacts,
+    },
+    estimateIdsToLoad,
+  );
+
+  const didTruncate =
+    didHitRowLimit
+    || didHitNodeLimit
+    || categoryNodeFactsResult.didHitLimit
+    || supplierFactsResult.didHitLimit;
+
   return {
     projectId: project.id,
     projectName: project.name,
     estimateOptions,
-    rowFacts,
-    nodeFacts,
-    categoryNodeFacts,
-    supplierFacts,
+    seriesByEstimateId,
     loadMode,
     requiresSelectedPair:
       loadMode === "selected-pair"
       || didHitEstimateOptionLimit
-      || didHitRowLimit
-      || didHitNodeLimit
-      || categoryNodeFactsResult.didHitLimit
-      || supplierFactsResult.didHitLimit,
+      || didTruncate,
+    didTruncate,
     rowLimit: ESTIMATE_ROW_LIMIT,
     estimateLimit: ESTIMATE_CHART_LIMIT,
   };
@@ -139,12 +158,10 @@ function emptyProjectChartsData(
     projectId,
     projectName,
     estimateOptions,
-    rowFacts: [],
-    nodeFacts: [],
-    categoryNodeFacts: [],
-    supplierFacts: [],
+    seriesByEstimateId: {},
     loadMode: "all-estimates",
     requiresSelectedPair: false,
+    didTruncate: false,
     rowLimit: ESTIMATE_ROW_LIMIT,
     estimateLimit: ESTIMATE_CHART_LIMIT,
   };
@@ -158,6 +175,10 @@ async function loadRowFacts(
     .from("estimate_row_items")
     .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, unit_cost, contingency_percentage, misc_cost")
     .in("estimate_id", estimateIds)
+    // Deterministic order before truncation (`02` DB-6): if an estimate exceeds the
+    // cap, the SAME rows are kept across loads, so totals don't silently shuffle.
+    // `didTruncate` then surfaces the "totals incomplete" banner.
+    .order("id", { ascending: true })
     .limit(ESTIMATE_ROW_LIMIT + 1);
 
   if (error) {
@@ -220,6 +241,11 @@ async function loadNodeFacts(
 async function loadCategoryFacts(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
 ): Promise<LimitedLoadResult<ProjectChartCategoryNodeFact>> {
+  // `component_category_nodes` is a GLOBAL taxonomy by design — it has no
+  // workspace_id column and a `using(true)` read policy (`02` DB-1). The absence
+  // of a workspace filter here is intentional, NOT a leak: buckets key on the
+  // global category id, so two workspaces using the same category share a bucket.
+  // Do not "fix" this into a workspace filter unless the taxonomy becomes scoped.
   const { data, error } = await supabase
     .from("component_category_nodes")
     .select("id, parent_id, node_type, label, sort_order")

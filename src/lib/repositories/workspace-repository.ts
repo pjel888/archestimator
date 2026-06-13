@@ -1176,39 +1176,50 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
   return { workspace: projectWorkspace ?? defaultWorkspace, project };
 });
 
+// Request-scoped dedupe of project_members (Teamspace plan T2.2 / F-P8 / F10).
+// The collaboration summary AND the publication summary both read this table in
+// the same project-layout render; wrapping in React `cache()` collapses the two
+// fetches into one round-trip per request, the same pattern as
+// `getCurrentWorkspaceProject`.
+const getCachedProjectMembers = cache(async function getCachedProjectMembers(projectId: string) {
+  const supabase = await createSupabaseServerClient();
+  return readOptionalProjectMembers(supabase, projectId);
+});
+
 export async function getProjectCollaborationSummary(projectId: string): Promise<ProjectCollaborationSummary | null> {
   const { profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
-  const supabase = await createSupabaseServerClient();
-
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", projectId)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
+  // T2.2 / F-P8: reuse the request-cached project lookup instead of re-fetching
+  // `projects` here (and again in the publication summary). One project fetch
+  // per render across all three layout fans.
+  const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return null;
 
-  const { data: workspaceMembers, error: workspaceMembersError } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, user_id, role")
-    .eq("workspace_id", project.workspace_id);
+  const supabase = await createSupabaseServerClient();
 
-  if (workspaceMembersError) throw workspaceMembersError;
+  // T2.3 / F-P1: workspace_members and estimates are independent of each other —
+  // run them in a single parallel wave instead of two serial round-trips.
+  const [workspaceMembersResult, estimatesResult] = await Promise.all([
+    supabase
+      .from("workspace_members")
+      .select("workspace_id, user_id, role")
+      .eq("workspace_id", project.workspace_id),
+    supabase
+      .from("estimates")
+      .select("id, project_id, name, sheet_code")
+      .eq("project_id", project.id)
+      .order("sheet_code", { ascending: true }),
+  ]);
 
-  const { data: estimates, error: estimatesError } = await supabase
-    .from("estimates")
-    .select("id, project_id, name, sheet_code")
-    .eq("project_id", project.id)
-    .order("sheet_code", { ascending: true });
-
-  if (estimatesError) throw estimatesError;
+  if (workspaceMembersResult.error) throw workspaceMembersResult.error;
+  if (estimatesResult.error) throw estimatesResult.error;
+  const workspaceMembers = workspaceMembersResult.data;
+  const estimates = estimatesResult.data;
 
   const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
   const [projectMembers, sheetMembers, sheetSettings, pendingInvitationRows] = await Promise.all([
-    readOptionalProjectMembers(supabase, project.id),
+    getCachedProjectMembers(project.id),
     readOptionalEstimateSheetMembers(supabase, estimateIds),
     readOptionalEstimateSheetAccessSettings(supabase, estimateIds),
     readOptionalCollaborationInvitations(supabase, project.id),
@@ -1335,16 +1346,12 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
   const { workspace, profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
-  const supabase = await createSupabaseServerClient();
-
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", projectId)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
+  // T2.2 / F-P8: reuse the request-cached project + project_members reads shared
+  // with the collaboration summary instead of re-fetching them here.
+  const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return null;
+
+  const supabase = await createSupabaseServerClient();
 
   const [workspaceMembershipResult, projectMembers, publication] = await Promise.all([
     supabase
@@ -1353,7 +1360,7 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
       .eq("workspace_id", project.workspace_id)
       .eq("user_id", profile.id)
       .maybeSingle(),
-    readOptionalProjectMembers(supabase, project.id),
+    getCachedProjectMembers(project.id),
     readOptionalProjectPublication(supabase, project.id),
   ]);
 

@@ -3,14 +3,12 @@ import { describe, expect, it } from "vitest";
 import nextConfig from "../../next.config";
 
 describe("landing security headers", () => {
-  it("applies CSP Report-Only to public marketing pages without covering workshop routes", async () => {
+  it("applies CSP Report-Only to public marketing pages", async () => {
     const headers = await nextConfig.headers?.();
 
     expect(headers).toBeDefined();
 
     const sources = headers?.map((entry) => entry.source) ?? [];
-    // Library Optimization Plan P3 T18 (F20): /workshop now carries hardening headers
-    // + a Report-Only CSP (previously it had none).
     expect(sources).toEqual([
       "/",
       "/about",
@@ -20,6 +18,7 @@ describe("landing security headers", () => {
       "/share/:path*",
       "/api/share/:path*",
       "/workshop/:path*",
+      "/invite/:path*",
     ]);
 
     for (const entry of headers?.filter((header) => ["/", "/about", "/features", "/pricing", "/contact"].includes(header.source)) ?? []) {
@@ -37,18 +36,37 @@ describe("landing security headers", () => {
     expect(shareApi?.headers.some((header) => header.key === "X-Content-Type-Options")).toBe(true);
   });
 
-  it("hardens /workshop routes with nosniff, frame-deny, referrer-policy, and Report-Only CSP (T18)", async () => {
+  // T1.5 (finding F8 / gap G4): authed /workshop/* and token-bearing /invite/* now carry
+  // the four hardening headers immediately; CSP is Report-Only first (D-9), not enforced yet.
+  it("applies hardening headers to /workshop and /invite, with CSP Report-Only (not enforced)", async () => {
     const headers = await nextConfig.headers?.();
+
+    expect(headers).toBeDefined();
+
+    const sources = headers?.map((entry) => entry.source) ?? [];
+    expect(sources).toContain("/workshop/:path*");
+    expect(sources).toContain("/invite/:path*");
+
+    for (const source of ["/workshop/:path*", "/invite/:path*"]) {
+      const entry = headers?.find((header) => header.source === source);
+      expect(entry, `${source} should have a header entry`).toBeDefined();
+
+      const find = (key: string) => entry?.headers.find((header) => header.key === key)?.value;
+
+      // Four mandatory hardening headers enforced immediately.
+      expect(find("X-Frame-Options")).toBe("DENY");
+      expect(find("Referrer-Policy")).toBe("no-referrer");
+      expect(find("X-Content-Type-Options")).toBe("nosniff");
+      expect(find("Strict-Transport-Security")).toBeDefined();
+    }
+
+    // CSP must be Report-Only on the app (NOT enforced) until the observation window passes (D-9).
     const workshop = headers?.find((entry) => entry.source === "/workshop/:path*");
-    expect(workshop).toBeDefined();
-    const keys = workshop?.headers.map((header) => header.key) ?? [];
-    expect(keys).toContain("X-Content-Type-Options");
-    expect(keys).toContain("X-Frame-Options");
-    expect(keys).toContain("Referrer-Policy");
-    expect(keys).toContain("Content-Security-Policy-Report-Only");
-    // Report-Only (not enforced) so dynamic Next chunks / user content cannot break.
-    expect(keys).not.toContain("Content-Security-Policy");
-    expect(workshop?.headers.find((h) => h.key === "X-Frame-Options")?.value).toBe("DENY");
-    expect(workshop?.headers.find((h) => h.key === "Referrer-Policy")?.value).toBe("same-origin");
+    expect(workshop?.headers.some((header) => header.key === "Content-Security-Policy-Report-Only")).toBe(true);
+    expect(workshop?.headers.some((header) => header.key === "Content-Security-Policy")).toBe(false);
+
+    // The Report-Only policy must keep Supabase Realtime websockets allowed for /workshop.
+    const workshopCsp = workshop?.headers.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value;
+    expect(workshopCsp).toContain("wss://*.supabase.co");
   });
 });
