@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 
@@ -76,7 +76,13 @@ function formatMoney(value: number) {
   return previewPesoFormatter.format(value).replace("₱", "₱ ");
 }
 
-function clampRate(raw: string, fallback: number) {
+// P2-T2/T3: clamp a typed rate to 0–100. A cleared field emits "" and Number("") === 0
+// (which IS finite), so without the empty/whitespace guard clearing the input would silently
+// commit 0% instead of keeping the prior rate — making the fallback unreachable for the only
+// non-numeric value a number input actually emits. Treat empty/in-progress input as "keep
+// current" so clearing the field never zeroes the rate behind the user's back.
+export function clampRate(raw: string, fallback: number) {
+  if (raw.trim() === "") return fallback;
   const value = Number(raw);
   if (!Number.isFinite(value)) return fallback;
   return Math.min(100, Math.max(0, value));
@@ -92,18 +98,26 @@ type ExportContentSheet = { name: string; description: string; flag?: "review" |
 // instead of rendering a table that never matched the file. Commercial Terms is flagged as
 // boilerplate to review (F-35); Source Breakdown is listed as internal — and noted as omitted
 // when the (server-derived) audience redacts it.
-function buildExportContents(model: ProposalExportModel, isAllTabs: boolean, tabCount: number): ExportContentSheet[] {
-  const includeSourceBreakdown = model.settings.includeSourceBreakdownSheet;
+function buildExportContents(
+  isAllTabs: boolean,
+  tabCount: number,
+  internalBreakdownRequested: boolean,
+): ExportContentSheet[] {
+  // The preview model is always built client-safe (audience is server-resolved at download),
+  // so it can't tell us whether the file will contain the Source Breakdown. Drive the flag
+  // off the user's explicit request instead — when a member checks "Include internal Source
+  // Breakdown" the download URL carries audience=internal and the file WILL include the sheet,
+  // so the contents summary must say so rather than always reporting it omitted.
   return [
     { name: isAllTabs ? `Bid Form × ${tabCount} tabs` : "Bid Form", description: "Itemized bill of quantities with live formulas." },
     { name: "Summary", description: "Section subtotals, Direct Cost, VAT, and Grand Total." },
     { name: "Commercial Terms", description: "Boilerplate terms and a signature block.", flag: "review" },
     {
       name: "Source Breakdown",
-      description: includeSourceBreakdown
-        ? "Internal supplier and source-row traceability."
-        : "Internal supplier traceability — omitted from this client export.",
-      flag: includeSourceBreakdown ? "internal" : "omitted",
+      description: internalBreakdownRequested
+        ? "Internal supplier and source-row traceability — included for members only."
+        : "Internal supplier traceability — omitted from this export.",
+      flag: internalBreakdownRequested ? "internal" : "omitted",
     },
   ];
 }
@@ -131,6 +145,13 @@ export function ProposalExportPreviewDialog({
   onClose,
 }: ProposalExportPreviewDialogProps) {
   const sectionRef = useRef<HTMLElement>(null);
+  // Local draft strings for the rate inputs (RV-4). A controlled number input bound to the
+  // committed rate can never show empty, so clearing it would snap back and "clear then type"
+  // would append onto the old value (e.g. 12 → 128 → clamped 100). The draft lets the field
+  // display empty / in-progress text while editing; the committed rate still updates on each
+  // keystroke via clampRate, and the draft is dropped on blur to re-sync with the committed value.
+  const [contingencyRateDraft, setContingencyRateDraft] = useState<string | null>(null);
+  const [vatRateDraft, setVatRateDraft] = useState<string | null>(null);
 
   // F-06 (P1-T3): keyboard accessibility — initial focus on open, Esc-to-close, and a Tab
   // focus trap, mirroring the sibling modals in EstimateSheetContent. Focus-return to the
@@ -165,7 +186,9 @@ export function ProposalExportPreviewDialog({
   // D8=a: for a multi-tab all-tabs export the modal's grand total would be the active tab's
   // number only — hide it and point to the downloaded Summary instead of misquoting.
   const isMultiTabAllTabs = Boolean(scopeControls && scopeControls.selectedScope === "all-tabs");
-  const contentSheets = model ? buildExportContents(model, isMultiTabAllTabs, scopeControls?.tabCount ?? 1) : [];
+  const contentSheets = model
+    ? buildExportContents(isMultiTabAllTabs, scopeControls?.tabCount ?? 1, exportSettings?.includeInternalBreakdown ?? false)
+    : [];
 
   const dialog = (
     <div
@@ -304,15 +327,17 @@ export function ProposalExportPreviewDialog({
                   <label className={settingsCheckboxLabelClass}>
                     <span>Contingency %</span>
                     <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.5}
+                      type="text"
+                      inputMode="decimal"
                       className={settingsRateInputClass}
                       aria-label="Contingency rate percent"
-                      value={exportSettings.contingencyIncluded ? "" : exportSettings.contingencyRate}
+                      value={exportSettings.contingencyIncluded ? "" : (contingencyRateDraft ?? String(exportSettings.contingencyRate))}
                       disabled={exportSettings.contingencyIncluded}
-                      onChange={(event) => onExportSettingsChange({ ...exportSettings, contingencyRate: clampRate(event.target.value, exportSettings.contingencyRate) })}
+                      onChange={(event) => {
+                        setContingencyRateDraft(event.target.value);
+                        onExportSettingsChange({ ...exportSettings, contingencyRate: clampRate(event.target.value, exportSettings.contingencyRate) });
+                      }}
+                      onBlur={() => setContingencyRateDraft(null)}
                     />
                   </label>
                   <label className={settingsCheckboxLabelClass}>
@@ -326,15 +351,17 @@ export function ProposalExportPreviewDialog({
                   <label className={settingsCheckboxLabelClass}>
                     <span>VAT %</span>
                     <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.5}
+                      type="text"
+                      inputMode="decimal"
                       className={settingsRateInputClass}
                       aria-label="VAT rate percent"
-                      value={exportSettings.vatIncluded ? "" : exportSettings.vatRate}
+                      value={exportSettings.vatIncluded ? "" : (vatRateDraft ?? String(exportSettings.vatRate))}
                       disabled={exportSettings.vatIncluded}
-                      onChange={(event) => onExportSettingsChange({ ...exportSettings, vatRate: clampRate(event.target.value, exportSettings.vatRate) })}
+                      onChange={(event) => {
+                        setVatRateDraft(event.target.value);
+                        onExportSettingsChange({ ...exportSettings, vatRate: clampRate(event.target.value, exportSettings.vatRate) });
+                      }}
+                      onBlur={() => setVatRateDraft(null)}
                     />
                   </label>
                   <label className={settingsCheckboxLabelClass}>
