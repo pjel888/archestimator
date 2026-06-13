@@ -33,6 +33,13 @@ describe("project charts UI governance", () => {
     expect(projectChartsClient).toContain("overflow-auto");
   });
 
+  it("uses a responsive stacking layout, not the fixed 220px columns that forced horizontal scroll (`06` A11Y-14)", () => {
+    expect(projectChartsClient).not.toContain("minmax(220px");
+    // Secondary band stacks at small widths and only splits at lg+.
+    expect(projectChartsClient).toContain("grid-cols-1");
+    expect(projectChartsClient).toContain("lg:grid-cols-2");
+  });
+
   it("deletes the bubble chart and its d3-hierarchy dependency (`01` PERF-5 / `03` UX-2)", () => {
     expect(projectCostBubbleChart).toBe("");
     expect(projectChartsClient).not.toContain("ProjectCostBubbleChart");
