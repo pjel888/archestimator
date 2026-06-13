@@ -354,6 +354,15 @@ async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createS
   if (data !== true) throw new Error("Estimate edit access denied.");
 }
 
+// Project-scoped edit guard for sheet creation (no estimate id exists yet). RLS
+// still backstops the insert; this returns a clean app-level denial first so a
+// read-only collaborator never sees a raw RLS error (F15 / P3-3).
+async function assertCanEditProject(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, projectId: string) {
+  const { data, error } = await supabase.rpc("can_edit_project", { target_project_id: projectId });
+  if (error) throw error;
+  if (data !== true) throw new Error("Project edit access denied.");
+}
+
 function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
   const value = readRequiredText(formData, "kind");
   if (value === "group") return "group";
@@ -1450,6 +1459,7 @@ export async function createEstimateSheetDraft(projectId: string) {
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanEditProject(supabase, project.id);
   const currentUser = await requireCurrentUserContext();
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
 
@@ -1478,6 +1488,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, input.estimateId);
   const currentUser = await requireCurrentUserContext();
 
   const { data: sourceEstimate, error: sourceEstimateError } = await supabase
@@ -1780,6 +1791,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, input.estimateId);
   const currentUser = await requireCurrentUserContext();
   const payload: TablesUpdate<"estimates"> = {};
   const estimatePatch: Record<string, Json | undefined> = {};
@@ -1829,6 +1841,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, input.estimateId);
   const currentUser = await requireCurrentUserContext();
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id, input.estimateId);
   const { error } = await supabase.rpc("update_estimate_details_with_history", {

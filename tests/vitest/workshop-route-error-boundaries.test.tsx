@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import LibraryRouteError from "@/app/workshop/library/error";
 import TemplatesRouteError from "@/app/workshop/library/templates/error";
 import ChartsRouteError from "@/app/workshop/projects/[projectId]/charts/error";
+import EstimatesListRouteError from "@/app/workshop/projects/[projectId]/estimates/error";
 import EstimateRouteError from "@/app/workshop/projects/[projectId]/estimates/[nodeId]/error";
 import { WorkshopRouteErrorState } from "@/components/workshop/WorkshopRouteErrorState";
 
@@ -39,6 +40,7 @@ describe("workshop route error boundaries", () => {
     ["Library", LibraryRouteError],
     ["Templates", TemplatesRouteError],
     ["Project charts", ChartsRouteError],
+    ["Project estimates", EstimatesListRouteError],
     ["Estimate workspace", EstimateRouteError],
   ])("renders sanitized retry UI for %s route failures", (routeLabel, ErrorComponent) => {
     vi.spyOn(console, "error").mockImplementation(() => {});
