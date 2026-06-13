@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
   createProposalWorkbookBuffer: vi.fn(),
+  getCurrentUserContext: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
@@ -20,6 +21,19 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
 vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
   createProposalWorkbookBuffer: mocks.createProposalWorkbookBuffer,
 }));
+
+vi.mock("@/lib/auth/session", () => ({
+  getCurrentUserContext: mocks.getCurrentUserContext,
+}));
+
+const authedContext = {
+  userId: "user-1",
+  email: "owner@example.com",
+  role: "member",
+  profile: { id: "user-1", role: "member" },
+  displayName: "Owner",
+  avatarUrl: null,
+};
 
 import { GET } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
 import { buildProposalWorkbookFilename } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/filename";
@@ -64,6 +78,7 @@ function tabRequest(tabId: string) {
 describe("proposal xlsx export route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getCurrentUserContext.mockResolvedValue(authedContext);
     mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
@@ -141,6 +156,20 @@ describe("proposal xlsx export route", () => {
     expect(response.headers.get("content-disposition")).toContain("attachment");
     expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
     expect(await response.text()).toBe("xlsx-bytes");
+  });
+
+  it("fails closed with a 401 JSON body when no authenticated user context is present", async () => {
+    mocks.getCurrentUserContext.mockResolvedValueOnce(null);
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(mocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
   it("exports a requested active tab in the legacy four-sheet workbook shape", async () => {

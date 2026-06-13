@@ -7,12 +7,17 @@ const mocks = vi.hoisted(() => ({
   getProjectEstimateTreeByEstimate: vi.fn(),
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
+  getCurrentUserContext: vi.fn(),
 }));
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getProjectEstimateTreeByEstimate: mocks.getProjectEstimateTreeByEstimate,
   getEstimateTabs: mocks.getEstimateTabs,
   getEstimateTabTree: mocks.getEstimateTabTree,
+}));
+
+vi.mock("@/lib/auth/session", () => ({
+  getCurrentUserContext: mocks.getCurrentUserContext,
 }));
 
 import { GET } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
@@ -80,6 +85,14 @@ function request() {
 describe("proposal xlsx export route workbook integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getCurrentUserContext.mockResolvedValue({
+      userId: "user-1",
+      email: "owner@example.com",
+      role: "member",
+      profile: { id: "user-1", role: "member" },
+      displayName: "Owner",
+      avatarUrl: null,
+    });
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       workspace: { id: "workspace-1" },
