@@ -1725,6 +1725,8 @@ export function EstimateSheetContent({
             activeTabId={activeTabId ?? estimateTabs[0]?.id ?? "legacy-main"}
             projectId={projectId}
             estimateId={estimateId}
+            enableLifecycleActions={canEditEstimate}
+            canCreateTabs={canEditEstimate}
             onTabChange={onActiveTabChange ?? (() => {})}
             onTabsChange={onEstimateTabsChange}
           />
