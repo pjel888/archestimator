@@ -1,10 +1,35 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ArrowClockwise, FileXls } from "@phosphor-icons/react/dist/ssr";
 
 import type { ProposalExportModel } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+function trapFocus(container: HTMLElement, event: KeyboardEvent) {
+  // The selector already excludes disabled controls; we don't filter on offsetParent so the
+  // trap behaves identically under jsdom (no layout) and in a real browser.
+  const focusables = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+  if (focusables.length === 0) {
+    event.preventDefault();
+    container.focus();
+    return;
+  }
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  const active = document.activeElement;
+  if (event.shiftKey && (active === first || active === container)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 
 export type ProposalExportPreviewScope = "all-tabs" | "active-tab";
 
@@ -61,12 +86,12 @@ function buildExportContents(model: ProposalExportModel, isAllTabs: boolean, tab
 }
 
 const previewActionButtonClass =
-  "inline-flex h-7 items-center justify-center gap-1 rounded-xs px-2 text-[9px] font-medium leading-none tracking-normal transition";
+  "inline-flex h-7 items-center justify-center gap-1 rounded-xs px-2 text-[11px] font-medium leading-none tracking-normal transition";
 
-const previewActionTextClass = "text-[9px] font-medium leading-none tracking-normal";
+const previewActionTextClass = "text-[11px] font-medium leading-none tracking-normal";
 
 const previewStatusBadgeClass =
-  "inline-flex h-7 items-center justify-center rounded-xs px-2 text-[9px] font-medium leading-none tracking-normal whitespace-nowrap";
+  "inline-flex h-7 items-center justify-center rounded-xs px-2 text-[11px] font-medium leading-none tracking-normal whitespace-nowrap";
 
 export function ProposalExportPreviewDialog({
   open,
@@ -80,6 +105,32 @@ export function ProposalExportPreviewDialog({
   onRefresh,
   onClose,
 }: ProposalExportPreviewDialogProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // F-06 (P1-T3): keyboard accessibility — initial focus on open, Esc-to-close, and a Tab
+  // focus trap, mirroring the sibling modals in EstimateSheetContent. Focus-return to the
+  // opener is handled by the parent's onClose. Capture-phase so the dialog wins over
+  // background keydown handlers (e.g. the sheet's own Escape listener).
+  useEffect(() => {
+    if (!open) return;
+    const node = sectionRef.current;
+    const focusFrame = window.requestAnimationFrame(() => node?.focus());
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+      if (event.key === "Tab" && node) trapFocus(node, event);
+    }
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [open, onClose]);
+
   if (!open || typeof document === "undefined") return null;
 
   const activeTabName = scopeControls?.activeTabName.trim() || "Current";
@@ -96,12 +147,17 @@ export function ProposalExportPreviewDialog({
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/25 p-2 backdrop-blur-md"
       data-testid="proposal-preview-overlay"
       role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <section
+        ref={sectionRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Excel export preview"
-        className="flex h-[min(900px,94vh)] max-h-[94vh] w-[min(1360px,98vw)] flex-col overflow-hidden border border-hairline bg-white shadow-2xl"
+        className="flex h-[min(900px,94vh)] max-h-[94vh] w-[min(1360px,98vw)] flex-col overflow-hidden border border-hairline bg-white shadow-2xl outline-none"
       >
         <header className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
           <div className="min-w-0">
