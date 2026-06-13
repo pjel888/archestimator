@@ -30,7 +30,11 @@ function mockTemplateRow(row: { id: string; name: string }) {
   const builder: Record<string, unknown> = {};
   for (const method of ["update", "eq", "select"]) builder[method] = () => builder;
   builder.maybeSingle = async () => ({ data: row, error: null });
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from: () => builder });
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+    from: () => builder,
+    // P3 T17: mutating actions now editor-gate via is_workspace_editor; allow editor here.
+    rpc: async () => ({ data: true, error: null }),
+  });
 }
 
 beforeEach(() => {
@@ -52,5 +56,25 @@ describe("template-surface revalidation (U11)", () => {
     const paths = cacheMocks.revalidatePath.mock.calls.map((call) => call[0]);
     expect(paths).toContain("/workshop/library");
     expect(paths).toContain("/workshop/library/templates");
+  });
+
+  it("denies a workspace viewer at the app layer (P3 T17 / F19) without mutating", async () => {
+    // is_workspace_editor returns false → assertCanManageLibrary must throw before any write.
+    const builder: Record<string, unknown> = {};
+    for (const method of ["update", "eq", "select"]) builder[method] = () => builder;
+    const maybeSingle = vi.fn(async () => ({ data: { id: TEMPLATE_ID, name: "x" }, error: null }));
+    builder.maybeSingle = maybeSingle;
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+      from: () => builder,
+      rpc: async () => ({ data: false, error: null }),
+    });
+    const { renameEstimateTemplate } = await import("@/lib/component-library/actions");
+
+    await expect(renameEstimateTemplate({ templateId: TEMPLATE_ID, name: "Hijack" })).rejects.toThrow(
+      /editors\/admins/,
+    );
+    // No write reached the DB, and no revalidation fired.
+    expect(maybeSingle).not.toHaveBeenCalled();
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

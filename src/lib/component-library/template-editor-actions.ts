@@ -37,6 +37,12 @@ function revalidateTemplateEditorPaths(templateId: string) {
  */
 async function requireWorkspaceTemplate(supabase: SupabaseServerClient, workspaceId: string, templateId: string) {
   if (!isUuid(templateId)) throw new Error("Template not found in the current workspace.");
+  // Library Optimization Plan P3 T17 (F19): every template-editor mutation funnels
+  // through here, so this is the single app-layer editor-write gate — a workspace
+  // viewer is denied before any node/row mutation (defense-in-depth on top of RLS).
+  const { data: canManage, error: roleError } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
+  if (roleError) throwActionError("Could not verify template access.", roleError);
+  if (canManage !== true) throw new Error("Only workspace editors/admins can edit templates.");
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .select("id, workspace_id, name")
