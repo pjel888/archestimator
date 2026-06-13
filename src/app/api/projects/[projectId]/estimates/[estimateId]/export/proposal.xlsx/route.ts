@@ -44,6 +44,23 @@ function readVersionLabel(metadata: Json): string {
   return "V1";
 }
 
+// P2-T6/D3: read GFA from estimate metadata (per-estimate), falling back to project metadata.
+// Read-side ships now against the existing JSONB columns (no DB channel needed).
+function readNumberFromMetadata(metadata: Json, key: string): number | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, Json>)[key];
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return null;
+}
+
+function readGrossFloorArea(estimateMetadata: Json, projectMetadata: Json): number | null {
+  return readNumberFromMetadata(estimateMetadata, "grossFloorArea") ?? readNumberFromMetadata(projectMetadata, "grossFloorArea");
+}
+
 function createXlsxResponse(buffer: Buffer, filename: string) {
   return new Response(new Uint8Array(buffer), {
     status: 200,
@@ -125,6 +142,7 @@ function buildMetadata(project: ProposalExportProject, estimate: ProposalExportE
     clientName: project.client_name, // DB-free: projects.client_name
     contractorName,
     subject: `BID FORM — ${estimate.name}`,
+    grossFloorArea: readGrossFloorArea(estimate.metadata, project.metadata),
   };
 }
 

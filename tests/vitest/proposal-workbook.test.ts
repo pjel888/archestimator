@@ -430,4 +430,32 @@ describe("proposal workbook generation", () => {
     // Grand Total reduces to the Direct Cost when both charges are INCLUDED.
     expect(summary?.getCell("B20").value).toEqual({ formula: "B17+B18+B19", result: 21_700 });
   });
+
+  it("computes Cost per SQM from a metadata gross floor area (P2-T6, F-10)", () => {
+    const model = buildProposalExportModel({
+      metadata: { ...metadata, grossFloorArea: 100 },
+      nodes: modelTree(),
+      settings: { audience: "internal" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    const summary = createProposalWorkbook(model).getWorksheet("Summary");
+
+    // 1 section at row 15 → totals start 17, Grand Total row 20, Cost/sqm 21, GFA 22.
+    // Grand Total (26,734.40) / GFA (100) = 267.34.
+    expect(summary?.getCell("A21").value).toBe("Cost per sqm");
+    expect(summary?.getCell("B21").value).toEqual({ formula: "B20/B22", result: 267.34 });
+    expect(summary?.getCell("A22").value).toBe("Total Gross Floor Area");
+    expect(summary?.getCell("B22").value).toBe(100);
+    expect(summary?.getCell("A23").value).toBe("Estimated duration");
+  });
+
+  it("shows Cost per SQM = N/A when no gross floor area is captured (P2-T6)", () => {
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const summary = createProposalWorkbook(model).getWorksheet("Summary");
+
+    expect(summary?.getCell("A21").value).toBe("Cost per sqm");
+    expect(summary?.getCell("B21").value).toBe("N/A");
+    // No GFA row → duration is the next row.
+    expect(summary?.getCell("A22").value).toBe("Estimated duration");
+  });
 });
