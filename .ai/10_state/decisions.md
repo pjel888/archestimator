@@ -1,5 +1,22 @@
 # Decisions
 
+## 2026-06-13 - Global improve install replaces repo-local duplicate
+
+**Decision:** Remove the repo-local `.agents/skills/improve/` copy because the
+same `shadcn/improve` skill is installed globally on this machine. Keep
+Archestimator's improve routing policy in `.ai` and `AGENTS.md` instead of
+duplicating the skill payload in the repo.
+
+**Rationale:** The repo-local adapter was useful while it carried
+Archestimator-specific overrides, but it had drifted into a byte-identical copy
+of the global upstream skill. Keeping both produced duplicate `improve` entries
+without preserving the intended adapter behavior.
+
+**Follow-up:** Improve-generated plans still belong under
+`.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/`, not root `plans/`. If a future global
+skill update ignores that policy, add the smallest repo-local wrapper needed and
+record the reason here.
+
 ## 2026-06-13 - App validation excludes portable tool adapter bundles
 
 **Decision:** Keep ESLint validation focused on Archestimator app/source/test code by globally ignoring versioned tool-adapter bundles and generated/scratch artifacts: `.agents/`, `.claude/`, `.codex/`, `.commandcode/`, `.cursor/`, `.github/skills/`, `archestimator_pitch deck/`, and `test-table.tsx`.
@@ -8,7 +25,7 @@
 
 **Follow-up:** Do not use this ignore boundary to hide app/runtime code. New Archestimator source, tests, scripts, migrations, and `.ai` truth updates still need targeted validation through typecheck, lint/design checks, tests, build, and proof scripts as applicable.
 
-## 2026-06-13 - Project-local shadcn/improve plan routing
+## 2026-06-13 - Project-local shadcn/improve plan routing (superseded)
 
 **Decision:** Add a project-local `.agents/skills/improve/SKILL.md` adapter for
 `shadcn/improve`. It preserves the upstream advisor-plan workflow but overrides
@@ -16,16 +33,20 @@ the default root `plans/` output path. Improve-generated plan packs in
 Archestimator must live under `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/` and
 follow the project-local Archestimator plan template.
 
+**Superseded:** Replaced later on 2026-06-13 by the global-improve decision
+above after the repo-local adapter drifted into a duplicate upstream copy. The
+plan-output policy remains active, but the repo-local adapter path is no longer
+the active mechanism.
+
 **Rationale:** Upstream `shadcn/improve` writes to root `plans/` and treats
 that folder as its backlog. Archestimator already uses `.ai/03_plans` as the
 canonical planning surface, with source-of-truth sync, proof-boundary language,
 approval gates, and archived/superseded plan discipline. A repo-local adapter
 keeps the skill useful without creating a competing planning silo.
 
-**Follow-up:** Do not edit the global installed skill in `~/.agents` as the
-source of truth. If future agents run `/improve`, they should load the
-project-local adapter first and treat any upstream `plans/` instruction as
-overridden for this repo.
+**Follow-up:** Do not restore this repo-local adapter unless the global
+installed skill cannot honor Archestimator's `.ai/03_plans` policy. Treat any
+upstream `plans/` instruction as overridden for this repo.
 
 ## 2026-06-13 - Advisory response economy overlay
 

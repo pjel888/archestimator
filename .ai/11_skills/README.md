@@ -24,9 +24,10 @@ Use `11_skills/` for repeatable workflows such as:
 
 External advisor/planning skills such as `shadcn/improve` must route plan
 artifacts into `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/`, not root `plans/`.
-The project-local adapter is `.agents/skills/improve/SKILL.md`; it keeps the
-upstream improve workflow but applies Archestimator's `.ai` source-of-truth,
-proof-boundary, approval-gate, and plan-template standards.
+`shadcn/improve` is installed globally on this machine, so this repo should not
+keep a duplicate `.agents/skills/improve/` copy. Archestimator's `.ai`
+source-of-truth, proof-boundary, approval-gate, and plan-folder standards still
+override any generic upstream default that points at root `plans/`.
 
 ## Framework playbooks
 
