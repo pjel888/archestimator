@@ -1176,19 +1176,27 @@ export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspa
   return { workspace: projectWorkspace ?? defaultWorkspace, project };
 });
 
-export async function getProjectCollaborationSummary(projectId: string): Promise<ProjectCollaborationSummary | null> {
+export async function getProjectCollaborationSummary(
+  projectId: string,
+  resolvedProject?: Pick<Tables<"projects">, "id" | "workspace_id"> | null,
+): Promise<ProjectCollaborationSummary | null> {
   const { profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
   const supabase = await createSupabaseServerClient();
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", projectId)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
+  // Reuse the project the layout already resolved, skipping a redundant projects
+  // re-query (finding F7). Falls back to a lookup when no project is passed.
+  let project = resolvedProject && resolvedProject.id === projectId ? resolvedProject : null;
+  if (!project) {
+    const { data, error: projectError } = await supabase
+      .from("projects")
+      .select("id, workspace_id")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (projectError) throw projectError;
+    project = data;
+  }
   if (!project) return null;
 
   const { data: workspaceMembers, error: workspaceMembersError } = await supabase
@@ -1331,19 +1339,27 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
   };
 }
 
-export async function getProjectPublicationSummary(projectId: string): Promise<ProjectPublicationSummary | null> {
+export async function getProjectPublicationSummary(
+  projectId: string,
+  resolvedProject?: Pick<Tables<"projects">, "id" | "workspace_id"> | null,
+): Promise<ProjectPublicationSummary | null> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
   const supabase = await createSupabaseServerClient();
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id, workspace_id")
-    .eq("id", projectId)
-    .maybeSingle();
-
-  if (projectError) throw projectError;
+  // Reuse the project the layout already resolved, skipping a redundant projects
+  // re-query (finding F7). Falls back to a lookup when no project is passed.
+  let project = resolvedProject && resolvedProject.id === projectId ? resolvedProject : null;
+  if (!project) {
+    const { data, error: projectError } = await supabase
+      .from("projects")
+      .select("id, workspace_id")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (projectError) throw projectError;
+    project = data;
+  }
   if (!project) return null;
 
   const [workspaceMembershipResult, projectMembers, publication] = await Promise.all([

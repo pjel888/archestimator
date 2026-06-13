@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 const collaborationTypes = readFileSync("src/lib/collaboration/types.ts", "utf8");
 const projectLayout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8");
+const projectChrome = readFileSync("src/components/workshop/ProjectChromeAsync.tsx", "utf8");
 
 describe("project collaboration summary contract", () => {
   it("keeps project and estimate collaboration facts server-fed and realtime-ready", () => {
@@ -18,8 +19,11 @@ describe("project collaboration summary contract", () => {
     expect(workspaceRepository).toContain("readOptionalEstimateSheetMembers");
     expect(workspaceRepository).toContain('projectChannel: `project:${projectId}`');
     expect(workspaceRepository).toContain('estimateChannelPrefix: "estimate:"');
-    expect(projectLayout).toContain("getProjectCollaborationSummary(projectId)");
+    // P1-2: the collaboration fan-out + teamspace header moved into the streamed
+    // ProjectChromeAsync; the layout streams it behind Suspense in the actions slot.
     expect(projectLayout).toContain("actions={");
-    expect(projectLayout).toContain("<ProjectTeamspaceHeader summary={collaborationSummary} />");
+    expect(projectLayout).toContain("<ProjectChromeAsync");
+    expect(projectChrome).toContain("getProjectCollaborationSummary(projectId, liveProject)");
+    expect(projectChrome).toContain("<ProjectTeamspaceHeader summary={collaborationSummary} />");
   });
 });

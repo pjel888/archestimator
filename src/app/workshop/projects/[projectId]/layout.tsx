@@ -1,19 +1,12 @@
 import { Suspense, type ReactNode } from "react";
 
+import { ProjectChromeAsync, ProjectHeaderChromeSkeleton } from "@/components/workshop/ProjectChromeAsync";
 import { ProjectEstimateMetadataStrip } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
-import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
 import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
-import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
-import { traced } from "@/lib/perf/server-timing";
-import {
-  getCurrentWorkspaceProject,
-  getProjectCollaborationSummary,
-  getProjectPublicationSummary,
-  listProjectEstimateSheets,
-} from "@/lib/repositories/workspace-repository";
+import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 
 type ProjectLayoutProps = {
   children: ReactNode;
@@ -22,24 +15,14 @@ type ProjectLayoutProps = {
 
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
+  // Resolve only what the shell needs to paint (title / notFound). The
+  // collaboration + publication + sheets fan-out moves into ProjectChromeAsync
+  // behind Suspense so it no longer blocks first paint (F5 / P1-2).
   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
-  const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
-    ? await traced("ProjectLayout.summaries", async () =>
-        Promise.all([
-          getProjectCollaborationSummary(projectId),
-          getProjectPublicationSummary(projectId),
-          listProjectEstimateSheets(projectId),
-        ]),
-      )
-    : [null, null, []];
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
   const project = liveProject ?? sampleProject;
   const title = project?.name ?? "Project";
   const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
-  const currentCollaborator = collaborationSummary?.collaborators.find(
-    (collaborator) => collaborator.id === collaborationSummary.currentUserId,
-  );
-  const currentUserEmail = currentCollaborator?.email ?? null;
 
   return (
     <WorkshopPageShell
@@ -55,14 +38,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       centerHeader={<ProjectEstimateMetadataStrip />}
       projectId={projectId}
       actions={
-        <>
-          <ProjectPublicationHeader
-            summary={publicationSummary}
-            currentUserEmail={currentUserEmail}
-            projectEstimateSheets={projectEstimateSheets}
-          />
-          <ProjectTeamspaceHeader summary={collaborationSummary} />
-        </>
+        <Suspense fallback={<ProjectHeaderChromeSkeleton />}>
+          <ProjectChromeAsync projectId={projectId} liveProject={liveProject} />
+        </Suspense>
       }
     >
       <div className="flex h-full min-h-0 overflow-hidden bg-white">
