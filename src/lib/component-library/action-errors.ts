@@ -5,7 +5,6 @@
 // (not `throw throwActionError(...)`).
 export function throwActionError(userMessage: string, cause?: unknown): never {
   // Server-side only (these modules are "use server"); keeps the detail for debugging.
-  // eslint-disable-next-line no-console
   console.error(`[library action] ${userMessage}`, cause);
   throw new Error(userMessage);
 }
