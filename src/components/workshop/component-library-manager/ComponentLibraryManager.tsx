@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { CaretDown, CaretRight, FolderSimple, ImageSquare, Plus, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { EmptyState } from "@/components/ui/empty-state";
@@ -1066,14 +1065,26 @@ export function ComponentLibraryManager({
   brands = [],
   libraryFolders,
   libraryItems = estimateLibraryItems,
+  onLibraryItemsMutated = () => {},
+  onLibraryFoldersMutated = () => {},
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
+  // Library Optimization Plan P0 T4: the Components route shell (LibraryPageClient)
+  // owns the TanStack Query cache and passes these so mutations patch that warm cache
+  // instead of calling router.refresh() (which re-ran the whole server segment). They
+  // default to no-ops so the manager has no hard QueryClient dependency and can still
+  // be mounted bare in unit tests.
+  onLibraryItemsMutated?: (updater: (items: EstimateRowItem[]) => EstimateRowItem[]) => void;
+  onLibraryFoldersMutated?: (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => void;
 } = {}) {
-  const router = useNavigationRouter();
+  // Mutations call these to keep the route shell's warm query cache coherent
+  // (T4). No-ops when mounted bare (e.g. unit tests / surfaces without the shell).
+  const syncLibraryItemsCache = onLibraryItemsMutated;
+  const syncLibraryFoldersCache = onLibraryFoldersMutated;
   const addButtonReturnRef = useRef<HTMLElement | null>(null);
   const fallbackFolders = useMemo(() => buildFallbackLibraryFolders(categoryTree), [categoryTree]);
   const normalizedPropFolders = useMemo(
@@ -1081,6 +1092,20 @@ export function ComponentLibraryManager({
     [fallbackFolders, libraryFolders],
   );
   const [localFolders, setLocalFolders] = useState<LibraryFolderRecord[]>(normalizedPropFolders);
+  // Reorder + any external folder edit goes through here so the warm query cache
+  // (T4) stays coherent with localFolders. The same functional updater is applied
+  // independently to both — they start equal, so they stay equal.
+  const handleFoldersChange = (
+    action: LibraryFolderRecord[] | ((current: LibraryFolderRecord[]) => LibraryFolderRecord[]),
+  ) => {
+    if (typeof action === "function") {
+      setLocalFolders(action);
+      syncLibraryFoldersCache(action);
+    } else {
+      setLocalFolders(action);
+      syncLibraryFoldersCache(() => action);
+    }
+  };
   const [viewMode, setViewMode] = useState<ComponentViewMode>("default");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(ALL_COMPONENTS_FOLDER_ID);
   const [selectedSupplierNodeId, setSelectedSupplierNodeId] = useState("all-suppliers");
@@ -1172,7 +1197,7 @@ export function ComponentLibraryManager({
     if (item.supplierId) setSelectedSupplierNodeId(toSupplierTreeNodeId(item.supplierId));
     if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
     setSheetStatus({ state: "saved", message: "Component saved." });
-    router.refresh();
+    syncLibraryItemsCache((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
   }
 
   const inspectorItem = localLibraryItems.find((entry) => entry.id === inspectorItemId) ?? null;
@@ -1200,7 +1225,7 @@ export function ComponentLibraryManager({
       items: current.items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)),
     }));
     setSheetStatus({ state: "saved", message: "Component updated." });
-    router.refresh();
+    syncLibraryItemsCache((items) => items.map((entry) => (entry.id === patch.id ? { ...entry, ...patch } : entry)));
   }
 
   function duplicateInspectorComponent() {
@@ -1331,7 +1356,7 @@ export function ComponentLibraryManager({
           });
           setSheetStatus({ state: "saved", message: `${archivedIds.length} component${archivedIds.length === 1 ? "" : "s"} archived.` });
           closeArchiveComponentPreview();
-          router.refresh();
+          syncLibraryItemsCache((items) => items.filter((item) => !archivedIds.includes(item.id)));
         })
         .catch((error: unknown) => {
           setArchiveComponentError(error instanceof Error ? error.message : "Could not archive components.");
@@ -1350,7 +1375,9 @@ export function ComponentLibraryManager({
           ? await createLibraryFolder(parentId, name, { placement: options.placement })
           : await createLibraryFolder(parentId, name);
         const folder = normalizeLibraryFolderRecords([result.folder as LibraryFolderRecord])[0];
-        setLocalFolders((current) => [...current, folder]);
+        const appendFolder = (current: LibraryFolderRecord[]) => [...current, folder];
+        setLocalFolders(appendFolder);
+        syncLibraryFoldersCache(appendFolder);
         selectFolder(folder.id);
         options?.onCreated?.(folder);
         setReorderStatus({ state: "saved", message: "Folder created." });
@@ -1368,7 +1395,10 @@ export function ComponentLibraryManager({
       try {
         const result = await renameLibraryFolder(folderId, name);
         const folder = normalizeLibraryFolderRecords([result.folder as LibraryFolderRecord])[0];
-        setLocalFolders((current) => current.map((entry) => (entry.id === folder.id ? { ...entry, name: folder.name } : entry)));
+        const renameInList = (current: LibraryFolderRecord[]) =>
+          current.map((entry) => (entry.id === folder.id ? { ...entry, name: folder.name } : entry));
+        setLocalFolders(renameInList);
+        syncLibraryFoldersCache(renameInList);
         setReorderStatus({ state: "saved", message: "Folder renamed." });
       } catch (error) {
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not rename folder." });
@@ -1383,7 +1413,10 @@ export function ComponentLibraryManager({
       try {
         await deleteLibraryFolder(folderId);
         const deletedParentId = localFolders.find((folder) => folder.id === folderId)?.parent_id ?? null;
-        setLocalFolders((current) => planLibraryFolderDelete(current, folderId)?.nextFolders ?? current.filter((folder) => folder.id !== folderId));
+        const removeFolder = (current: LibraryFolderRecord[]) =>
+          planLibraryFolderDelete(current, folderId)?.nextFolders ?? current.filter((folder) => folder.id !== folderId);
+        setLocalFolders(removeFolder);
+        syncLibraryFoldersCache(removeFolder);
         if (selectedFolderId === folderId) {
           setSelectedFolderId(deletedParentId);
         }
@@ -1406,7 +1439,9 @@ export function ComponentLibraryManager({
     try {
       await moveCostLibraryComponentToFolder({ itemId: item.id, libraryFolderId: targetFolderId });
       setSelectedFolderId(targetFolderId);
-      router.refresh();
+      syncLibraryItemsCache((items) =>
+        items.map((entry) => (entry.id === item.id ? { ...entry, libraryFolderId: targetFolderId } : entry)),
+      );
     } catch (error) {
       setLibraryItemState((current) => ({
         ...current,
@@ -1439,7 +1474,7 @@ export function ComponentLibraryManager({
             onToggleSelected={toggleComponentSelection}
             onMoveComponentToFolder={moveComponentToFolder}
             onViewModeChange={setViewMode}
-            onFoldersChange={setLocalFolders}
+            onFoldersChange={handleFoldersChange}
             onReorderStatus={setReorderStatus}
             onCreateFolder={createFolder}
             onRenameFolder={renameFolder}

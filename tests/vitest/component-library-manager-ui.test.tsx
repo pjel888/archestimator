@@ -3,7 +3,8 @@ import { join } from "node:path";
 
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentProps, ReactNode } from "react";
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
@@ -192,19 +193,27 @@ const unmatchedLibraryItem: EstimateRowItem = {
   pricingDate: "2026-05-22",
 };
 
+// LibraryPageClient now owns a TanStack Query cache (P0 T3), so it needs a provider.
+function withQueryClient(children: ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
 async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPageClient>> = {}) {
   const result = render(
-    <LibraryPageClient
-      categoryTree={sharedCategoryTree}
-      suppliers={[
-        { id: "db-supplier", name: "Database Supplier", sort_order: 1 },
-        { id: "db-custom-supplier", name: "Custom Maker", sort_order: 2 },
-      ]}
-      brands={sharedBrands}
-      libraryFolders={sharedLibraryFolders}
-      libraryItems={sharedLibraryItems}
-      {...overrides}
-    />,
+    withQueryClient(
+      <LibraryPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[
+          { id: "db-supplier", name: "Database Supplier", sort_order: 1 },
+          { id: "db-custom-supplier", name: "Custom Maker", sort_order: 2 },
+        ]}
+        brands={sharedBrands}
+        libraryFolders={sharedLibraryFolders}
+        libraryItems={sharedLibraryItems}
+        {...overrides}
+      />,
+    ),
   );
   await screen.findByLabelText("Component library tree", undefined, { timeout: 10_000 });
   // The folder tree surface is a named dynamic import; its toolbar is the stable anchor.
