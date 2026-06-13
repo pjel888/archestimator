@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -1058,5 +1058,60 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
     });
     expect(within(dialog).getByRole("button", { name: /Send to 0 recipients/ })).toBeDisabled();
     expect(publicationActions.addSharedLinkRecipients).not.toHaveBeenCalled();
+  });
+});
+
+// AC-MOD-11 — keyboard + ARIA tabpanel wiring for the publication-manager tab strip.
+describe("ProjectPublicationHeader tab a11y (AC-MOD-11)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    publicationActions.refreshProjectPublicationSummary.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn(async () => undefined) },
+    });
+  });
+
+  it("renders the active panel as a tabpanel labelled by the active tab's id", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // The Link tab is active on open; the panel must reference its id.
+    const linkTab = within(dialog).getByRole("tab", { name: "Link" });
+    expect(linkTab).toHaveAttribute("id", "project-publication-tab-link");
+    expect(linkTab).toHaveAttribute("aria-controls", "project-publication-panel-link");
+
+    const panel = within(dialog).getByRole("tabpanel");
+    expect(panel).toHaveAttribute("id", "project-publication-panel-link");
+    expect(panel).toHaveAttribute("aria-labelledby", "project-publication-tab-link");
+    expect(panel).toHaveAttribute("tabindex", "0");
+  });
+
+  it("switches the active tab/panel via arrow keys on the tablist (automatic activation)", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    const linkTab = within(dialog).getByRole("tab", { name: "Link" });
+    linkTab.focus();
+    fireEvent.keyDown(linkTab, { key: "ArrowRight" });
+
+    // Focus and selection move to "Estimates"; the panel relabels to track it.
+    const estimatesTab = within(dialog).getByRole("tab", { name: "Estimates" });
+    expect(document.activeElement).toBe(estimatesTab);
+    expect(estimatesTab).toHaveAttribute("aria-selected", "true");
+    expect(linkTab).toHaveAttribute("aria-selected", "false");
+
+    const panel = within(dialog).getByRole("tabpanel");
+    expect(panel).toHaveAttribute("id", "project-publication-panel-sheets");
+    expect(panel).toHaveAttribute("aria-labelledby", "project-publication-tab-sheets");
+    // The Estimates panel content rendered (proves the switch is real, not cosmetic).
+    expect(within(panel).getByText("Estimates to include")).toBeInTheDocument();
   });
 });

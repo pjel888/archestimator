@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 
 import { cn } from "@/lib/ui/cn";
@@ -22,7 +23,24 @@ export type TabStripProps<TTab extends string = string> = {
   ariaLabel: string;
   onTabChange?: (tab: TTab) => void;
   className?: string;
+  /**
+   * Opt-in tabpanel wiring. When provided, each tab gets a stable `id` and an
+   * `aria-controls` pointing at the panel with the matching id. Consumers that
+   * render the active panel can label it with the same ids via the helpers
+   * below. Omit to keep the strip byte-identical to its prop-only form.
+   */
+  idBase?: string;
 };
+
+/** Stable DOM id for a tab element when `idBase` tabpanel wiring is opted into. */
+export function getTabStripTabId(idBase: string, tabId: string) {
+  return `${idBase}-tab-${tabId}`;
+}
+
+/** Stable DOM id for the tabpanel a tab controls when `idBase` is opted into. */
+export function getTabStripPanelId(idBase: string, tabId: string) {
+  return `${idBase}-panel-${tabId}`;
+}
 
 const tabClassName = (isActive: boolean) =>
   cn(
@@ -62,38 +80,90 @@ export function TabStrip<TTab extends string>({
   ariaLabel,
   onTabChange,
   className,
+  idBase,
 }: TabStripProps<TTab>) {
+  // Roving tabIndex: keep a handle on each tab DOM node so Arrow/Home/End can
+  // move focus directly. Each tab's ref callback writes its own index and
+  // clears it (node === null) on unmount, so stale nodes never linger.
+  const tabRefs = useRef<(HTMLElement | null)[]>([]);
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLElement>, index: number) {
+    const { key } = event;
+    const lastIndex = tabs.length - 1;
+    let targetIndex: number | null = null;
+
+    if (key === "ArrowRight" || key === "ArrowDown") {
+      targetIndex = index === lastIndex ? 0 : index + 1;
+    } else if (key === "ArrowLeft" || key === "ArrowUp") {
+      targetIndex = index === 0 ? lastIndex : index - 1;
+    } else if (key === "Home") {
+      targetIndex = 0;
+    } else if (key === "End") {
+      targetIndex = lastIndex;
+    }
+
+    if (targetIndex === null) return;
+
+    event.preventDefault();
+    const targetTab = tabs[targetIndex];
+    if (!targetTab) return;
+    tabRefs.current[targetIndex]?.focus();
+    // Activation policy: buttons activate automatically on move (expected tab
+    // UX); link tabs only move focus (manual activation — Enter follows the
+    // link natively) so arrow keys never navigate.
+    if (!targetTab.href) {
+      onTabChange?.(targetTab.id);
+    }
+  }
+
   return (
     <div
       className={cn("flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted", className)}
       role="tablist"
       aria-label={ariaLabel}
     >
-      {tabs.map((tab) =>
-        tab.href ? (
+      {tabs.map((tab, index) => {
+        const isActive = activeTab === tab.id;
+        const tabId = idBase ? getTabStripTabId(idBase, tab.id) : undefined;
+        const panelId = idBase ? getTabStripPanelId(idBase, tab.id) : undefined;
+        return tab.href ? (
           <Link
             key={tab.id}
+            ref={(node) => {
+              tabRefs.current[index] = node;
+            }}
             href={tab.href}
             role="tab"
-            aria-selected={activeTab === tab.id}
-            className={tabClassName(activeTab === tab.id)}
+            id={tabId}
+            aria-controls={panelId}
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
+            className={tabClassName(isActive)}
             onClick={() => onTabChange?.(tab.id)}
+            onKeyDown={(event) => handleTabKeyDown(event, index)}
           >
             <TabContent tab={tab} />
           </Link>
         ) : (
           <button
             key={tab.id}
+            ref={(node) => {
+              tabRefs.current[index] = node;
+            }}
             type="button"
             role="tab"
-            aria-selected={activeTab === tab.id}
-            className={tabClassName(activeTab === tab.id)}
+            id={tabId}
+            aria-controls={panelId}
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
+            className={tabClassName(isActive)}
             onClick={() => onTabChange?.(tab.id)}
+            onKeyDown={(event) => handleTabKeyDown(event, index)}
           >
             <TabContent tab={tab} />
           </button>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }
