@@ -37,6 +37,8 @@ type EstimateWorkspaceClientProps = {
   nodes: EstimateTreeNode[];
   estimateTabs?: EstimateTabSummary[];
   activeTabId?: string | null;
+  /** Server-resolved edit capability (UX gating only; default false fails closed). */
+  canEditEstimate?: boolean;
   collaborationUserId?: string | null;
   collaborationDisplayName?: string | null;
   proposalExportMetadata?: ProposalExportMetadata;
@@ -56,6 +58,7 @@ export function EstimateWorkspaceClient({
   nodes,
   estimateTabs = [],
   activeTabId = null,
+  canEditEstimate = false,
   collaborationUserId,
   collaborationDisplayName,
   proposalExportMetadata,
@@ -113,6 +116,7 @@ export function EstimateWorkspaceClient({
         estimateTabs={fallbackTabs}
         activeTabId={displayActiveTabId}
         dataTabId={resolvedActiveTabId}
+        canEditEstimate={canEditEstimate}
         initialTabId={activeTabId ?? undefined}
         onActiveTabChange={setActiveTabId}
         onEstimateTabsChange={() => { void tabsQuery.refetch(); }}

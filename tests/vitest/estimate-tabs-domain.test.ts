@@ -51,7 +51,14 @@ describe("estimate tab repository compatibility wrappers", () => {
     const repositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 
     expect(routeSource).toContain("resolveEstimateTabRouteContext(projectId, nodeId)");
-    expect(routeSource).toContain("const estimateTabs = tab ? await getEstimateTabs(project.id, estimate.id) : []");
+    // The edit-capability RPC resolves in parallel with the existing tabs read
+    // (one Promise.all, no new sequential first-paint hop). It cannot live in
+    // the route's first Promise.all because `estimate.id` is only known after
+    // `resolveEstimateTabRouteContext` resolves — see plan U1.
+    expect(routeSource).toContain("await Promise.all([");
+    expect(routeSource).toContain("tab ? getEstimateTabs(project.id, estimate.id) : Promise.resolve");
+    expect(routeSource).toContain("resolveEstimateEditCapability(estimate.id)");
+    expect(routeSource).toContain("canEditEstimate={canEditEstimate}");
     expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
     expect(repositorySource).toContain("const defaultTab = await getDefaultEstimateTab(routeSegment)");
     expect(repositorySource).toContain("if (defaultTab) return getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");

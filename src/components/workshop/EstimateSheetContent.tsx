@@ -124,6 +124,8 @@ type EstimateSheetContentProps = {
   activeTabId?: string;
   /** Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17. */
   dataTabId?: string;
+  /** Server-resolved edit capability (UX gating only; default false fails closed). */
+  canEditEstimate?: boolean;
   initialTabId?: string;
   onActiveTabChange?: (tabId: string) => void;
   onEstimateTabsChange?: (tabs: EstimateTabSummary[]) => void;
@@ -647,6 +649,7 @@ export function EstimateSheetContent({
   estimateTabs = [],
   activeTabId,
   dataTabId,
+  canEditEstimate = false,
   initialTabId,
   onActiveTabChange,
   onEstimateTabsChange,
@@ -1834,10 +1837,12 @@ export function EstimateSheetContent({
                     <p className="mt-1 text-[10px] leading-4 text-tertiary">
                       Add a group to start the tree, or drag a template or project content here.
                     </p>
-                    <div className="mt-3 flex justify-center gap-2">
-                      <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Group</Button>
-                      <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
-                    </div>
+                    {canEditEstimate ? (
+                      <div className="mt-3 flex justify-center gap-2">
+                        <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Group</Button>
+                        <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
+                      </div>
+                    ) : null}
                   </>
                 ) : (
                   <>
