@@ -42,7 +42,10 @@ describe("project-charts golden master (P-1.4 — RPC equivalence baseline)", ()
     expect(byLabel.get("MEP")).toMatchObject({ baselineTotal: 0, comparandTotal: 200, delta: 200, deltaPercent: null });
     expect(byLabel.get("Ground Floor")).toMatchObject({ baselineTotal: 225, comparandTotal: 100, delta: -125 });
     expect(byLabel.get("Roof")).toMatchObject({ baselineTotal: 100, comparandTotal: 0, delta: -100 });
-    expect(byLabel.get("Unassigned space")).toMatchObject({ baselineTotal: 80, comparandTotal: 0, delta: -80 });
+    // OWN-node bucketing: r4 (on the "House" Group node) no longer falls into
+    // "Unassigned space" (now just r3, 50) — it buckets to its own "House" node.
+    expect(byLabel.get("Unassigned space")).toMatchObject({ baselineTotal: 50, comparandTotal: 0, delta: -50 });
+    expect(byLabel.get("House")).toMatchObject({ baselineTotal: 30, comparandTotal: 0, delta: -30, deltaPercent: -1 });
 
     // Sorted by |delta| desc: MEP (200) first.
     expect(view.buckets[0].label).toBe("MEP");

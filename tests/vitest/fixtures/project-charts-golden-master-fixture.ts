@@ -5,8 +5,9 @@
  * reproduce byte-for-byte (totals/labels/ids/order) for all three grouping modes,
  * BEFORE the read path is swapped server-side. It deliberately exercises every
  * non-trivial ancestor-walk semantic the RPC has to replicate:
- *   - SPACE: walk to the highest `Area` ancestor; rows with no area ancestor and
- *     rows with a null node fall into "Unassigned space".
+ *   - SPACE: attribute each row to its OWN owning node (kind-agnostic). A row
+ *     with a null node falls into "Unassigned space"; a row on a non-area node
+ *     (e.g. r4 on the "House" Group) buckets to that node, not an area ancestor.
  *   - CATEGORY: walk to the highest `category` node; organizer-only / null fall
  *     into "Uncategorized".
  *   - SUPPLIER: prefer the resolved supplier, then the source_snapshot supplier
@@ -59,7 +60,8 @@ export const GOLDEN_ROWS: ProjectChartRowFact[] = [
   { id: "r2", estimateId: "estimate-a", nodeId: "area-roof-a", categoryNodeId: "cat-concrete", supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: "Acme Steel", quantity: 1, unitCost: 100, miscCost: 0 },
   // r3: null node / organizer-only / no supplier; total = 50  -> Unassigned space, Uncategorized, No supplier
   { id: "r3", estimateId: "estimate-a", nodeId: null, categoryNodeId: "organizer", supplierId: null, supplierName: null, sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 50, miscCost: 0 },
-  // r4: Group node (no Area ancestor) / null category / legacy supplier text "Legacy Co"; total = 30
+  // r4: Group node "House" (no Area ancestor) / null category / legacy supplier text "Legacy Co"; total = 30
+  //     SPACE: OWN-node bucket "House" (space:house); CATEGORY: Uncategorized; SUPPLIER: Legacy Co
   { id: "r4", estimateId: "estimate-a", nodeId: "group-house-a", categoryNodeId: null, supplierId: null, supplierName: "Legacy Co", sourceSupplierId: null, sourceSupplierName: null, quantity: 1, unitCost: 30, miscCost: 0 },
   // estimate-b
   // r5: Ground Floor / Masonry / BuildMart; total = 100
@@ -87,7 +89,10 @@ export const GOLDEN_EXPECTED: Record<
     "estimate-a": [
       { id: "space:ground-floor", label: "Ground Floor", total: 225, rowCount: 1 },
       { id: "space:roof", label: "Roof", total: 100, rowCount: 1 },
-      { id: "unassigned-space", label: "Unassigned space", total: 80, rowCount: 2 },
+      // OWN-node bucketing: r4 (on the "House" Group node, no Area ancestor) now
+      // attributes to its own node instead of falling into "Unassigned space".
+      { id: "unassigned-space", label: "Unassigned space", total: 50, rowCount: 1 },
+      { id: "space:house", label: "House", total: 30, rowCount: 1 },
     ],
     "estimate-b": [
       { id: "space:mep", label: "MEP", total: 200, rowCount: 1 },
