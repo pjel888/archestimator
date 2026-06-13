@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { loadSharedLinkActivity, type ActivityItem } from "@/lib/publication/actions"; // server action callable from client
 
@@ -12,15 +11,7 @@ type SharedLinkActivityFeedProps = {
   onActivitySeen?: () => void;
 };
 
-// Lightweight browser Supabase client for Realtime only (public anon key safe for sub; RLS + owner context in channel)
-function getBrowserSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return null;
-  return createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-export default function SharedLinkActivityFeed({ publicationToken, publicationId = null, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
+export default function SharedLinkActivityFeed({ publicationToken, publicationId: _publicationId = null, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -28,10 +19,13 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [newActivityNotice, setNewActivityNotice] = useState(false);
+  const loadingRef = useRef(false);
+  const newestIdRef = useRef<string | null>(null);
 
   const load = useCallback(async (cursor?: string | null) => {
     if (cursor) setLoadingMore(true);
     else setLoading(true);
+    loadingRef.current = true;
     setError(null);
     try {
       if (isOwner) {
@@ -40,6 +34,13 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
         setActivities((current) => cursor ? [...current, ...(res.activities as ActivityItem[])] : (res.activities as ActivityItem[]));
         setHasMore(res.hasMore);
         setNextCursor(res.nextCursor ?? null);
+        if (!cursor) {
+          const newNewest = (res.activities as ActivityItem[])[0]?.id ?? null;
+          if (newestIdRef.current !== null && newNewest !== null && newNewest !== newestIdRef.current) {
+            setNewActivityNotice(true);
+          }
+          newestIdRef.current = newNewest;
+        }
       } else {
         // Public/recipient path: filtered route (never leaks is_internal)
         const url = new URL(`/api/share/${encodeURIComponent(publicationToken)}/activity`, window.location.origin);
@@ -52,6 +53,13 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
         setActivities((current) => cursor ? [...current, ...(json.activities || [])] : (json.activities || []));
         setHasMore(Boolean(json.hasMore));
         setNextCursor(json.nextCursor ?? null);
+        if (!cursor) {
+          const newNewest = (json.activities ?? [])[0]?.id ?? null;
+          if (newestIdRef.current !== null && newNewest !== null && newNewest !== newestIdRef.current) {
+            setNewActivityNotice(true);
+          }
+          newestIdRef.current = newNewest;
+        }
       }
       onActivitySeen?.();
     } catch (e) {
@@ -59,6 +67,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      loadingRef.current = false;
     }
   }, [publicationToken, isOwner, onActivitySeen]);
 
@@ -69,45 +78,21 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
     return () => window.clearTimeout(timeoutId);
   }, [load]);
 
-  // Supabase Realtime subscription (owner only, for live updates on comment/decision/event)
+  // Refresh on window focus / tab visible — no always-on interval, no background load
   useEffect(() => {
-    if (!isOwner || !publicationId) return;
-    const supabase = getBrowserSupabase();
-    if (!supabase) return;
-    const changeEvent = "postgres_changes" as const;
-
-    const channel = supabase
-      .channel(`shared-link-activity-${publicationId}`)
-      .on(
-        changeEvent,
-        { event: "INSERT", schema: "public", table: "shared_link_comments", filter: `publication_id=eq.${publicationId}` },
-        () => {
-          setNewActivityNotice(true);
-          void load();
-        }
-      )
-      .on(
-        changeEvent,
-        { event: "INSERT", schema: "public", table: "shared_link_responses", filter: `publication_id=eq.${publicationId}` },
-        () => {
-          setNewActivityNotice(true);
-          void load();
-        }
-      )
-      .on(
-        changeEvent,
-        { event: "INSERT", schema: "public", table: "shared_link_events", filter: `publication_id=eq.${publicationId}` },
-        () => {
-          setNewActivityNotice(true);
-          void load();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const handleFocus = () => {
+      if (!loadingRef.current) void load();
     };
-  }, [isOwner, publicationId, load]);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && !loadingRef.current) void load();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [load]);
 
   if (loading) {
     return (
@@ -187,7 +172,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
           {loadingMore ? "Loading…" : "Load older activity"}
         </Button>
       ) : null}
-      <p className="mt-2 text-[8px] text-tertiary">Live updates via Realtime (owner).</p>
+      <p className="mt-2 text-[8px] text-tertiary">Activity refreshes when you reopen this tab. Use Refresh for the latest.</p>
     </section>
   );
 }
