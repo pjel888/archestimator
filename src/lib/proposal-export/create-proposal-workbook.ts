@@ -314,6 +314,7 @@ function writeSummaryTotalsBlock(
   directCostFormula: string,
   totals: Pick<ProposalExportTotals, "grandTotal" | "projectContingencyAmount" | "vatAmount" | "grandTotalWithTaxes">,
   settings: ProposalExportSettings,
+  grossFloorArea: number | null,
 ) {
   const contingencyRow = totalsStartRow + 1;
   const vatRow = totalsStartRow + 2;
@@ -342,10 +343,27 @@ function writeSummaryTotalsBlock(
     result: totals.grandTotalWithTaxes,
   };
 
-  worksheet.getCell(`A${totalsStartRow + 4}`).value = "Cost per sqm";
-  worksheet.getCell(`B${totalsStartRow + 4}`).value = "N/A";
-  worksheet.getCell(`A${totalsStartRow + 5}`).value = "Estimated duration";
-  worksheet.getCell(`B${totalsStartRow + 5}`).value = "To be confirmed";
+  // P2-T6 (F-10/D3): Cost per SQM = Grand Total / GFA, referencing the GFA cell so it
+  // recalcs if the floor area is edited; "N/A" until a GFA is captured in metadata.
+  const costPerSqmRow = totalsStartRow + 4;
+  const hasGfa = typeof grossFloorArea === "number" && Number.isFinite(grossFloorArea) && grossFloorArea > 0;
+  const gfaRow = hasGfa ? totalsStartRow + 5 : null;
+  const durationRow = hasGfa ? totalsStartRow + 6 : totalsStartRow + 5;
+
+  worksheet.getCell(`A${costPerSqmRow}`).value = "Cost per sqm";
+  if (hasGfa && gfaRow) {
+    const costPerSqmCell = worksheet.getCell(`B${costPerSqmRow}`);
+    costPerSqmCell.value = { formula: `B${grandTotalRow}/B${gfaRow}`, result: roundMoney(totals.grandTotalWithTaxes / grossFloorArea) };
+    costPerSqmCell.numFmt = PHP_FORMAT;
+    worksheet.getCell(`A${gfaRow}`).value = "Total Gross Floor Area";
+    const gfaCell = worksheet.getCell(`B${gfaRow}`);
+    gfaCell.value = grossFloorArea;
+    gfaCell.numFmt = '#,##0.00 "sqm"';
+  } else {
+    worksheet.getCell(`B${costPerSqmRow}`).value = "N/A";
+  }
+  worksheet.getCell(`A${durationRow}`).value = "Estimated duration";
+  worksheet.getCell(`B${durationRow}`).value = "To be confirmed";
 
   [totalsStartRow, contingencyRow, vatRow, grandTotalRow].forEach((rowNumber) => {
     const row = worksheet.getRow(rowNumber);
@@ -390,7 +408,7 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   // tab carries more than ~11 sections (the old fixed A27–B32 block corrupted past that).
   const totalsStartRow = worksheet.rowCount + 2;
   const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
-  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, model.totals, model.settings);
+  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, model.totals, model.settings, model.metadata.grossFloorArea ?? null);
   setPrintLayout(worksheet);
   return worksheet;
 }
@@ -470,7 +488,7 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
   const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
   const directCost = roundMoney(tabRanges.reduce((total, { tab }) => total + tab.model.totals.grandTotal, 0));
   const tabbedTotals = { grandTotal: directCost, ...resolveProjectCharges(directCost, input.settings) };
-  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings);
+  writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings, input.metadata.grossFloorArea ?? null);
   setPrintLayout(worksheet);
   return worksheet;
 }
