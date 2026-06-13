@@ -3,7 +3,7 @@
 **Created:** 2026-06-13
 **Type:** `refactor` (schema + interaction + data-safety; forward-only migration)
 **Depth:** Deep (cross-cutting, irreversible step, multi-phase)
-**Status:** Plan — **not yet approved to implement.** Two open owner decisions remain: node name and Phase 5/6 maintenance-window timing.
+**Status:** Reversible corridor **PARTIALLY IMPLEMENTED & merged to `main`** (2026-06-14) — P0 (oracle + `prove:unify-kinds`), P1 (public share firewall), P2-export, and P3-crash-safety landed as monotonic production no-ops (commits `7127e976`/`1b7cd161`/`667a1bb1`/`1eb7195f`). **STAGED (not done):** P2-charts re-bucketing, P3 activity-scope decoupling, P4 vocab+layout, and **P5 migration apply + P6 enable-writes + P7**. The irreversible P5/P6 are **owner-supervised-maintenance-window-only** (PITR off; manual-dump-only rollback). Owner decisions: Q-1 node name **adopted "Area"**; Q-3 maintenance-window timing **PENDING**. Evidence + staged-work reasons: `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md`. *(Original status "not yet approved to implement" superseded by the owner's go-ahead for the reversible corridor.)*
 **Supersedes:** the earlier two-type "friction reduction" framing. The committed decision is **one node type**, not two-disguised-as-one.
 **Backed by:** [`.ai/13_research/single-node-type-sheet-tree-2026-06-13/implementation-research/`](../../13_research/single-node-type-sheet-tree-2026-06-13/implementation-research/00-README.md) — verified, implementation-grade research from two multi-agent workflows (10 + 7 agents) with adversarial verification.
 
