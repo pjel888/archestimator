@@ -84,7 +84,7 @@ function TreeNodeRenderer({
     ? Math.min((depth + 1) * 12, 80) + 4
     : Math.min((depth + 1) * indentStep, maxIndent) + indentStep;
 
-  const rowItems = node.kind === "area" && node.rows && node.rows.length > 0 ? (
+  const rowItems = node.rows && node.rows.length > 0 ? (
     <div
       style={{
         paddingLeft: `${rowIndent}px`,

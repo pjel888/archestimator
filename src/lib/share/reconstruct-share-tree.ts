@@ -294,7 +294,11 @@ export function buildShareTreeFromSnapshotNodes(
 
   function visit(node: PublicationSnapshotTreeNode, depth: number): ShareTreeNode {
     const childNodes = node.children.map((c) => visit(c, depth + 1));
-    const directRows = node.kind === "area" ? (rowsByNodeId.get(node.id) ?? []) : [];
+    // Unification (single node type): rows attach to ANY node, not only "area".
+    // Pre-migration the DB still enforces two kinds, so non-area nodes have no rows in
+    // rowsByNodeId and this stays byte-identical on real data — but the public-share
+    // total can never silently drop a mixed node's rows once writes are enabled.
+    const directRows = rowsByNodeId.get(node.id) ?? [];
     const directTotal = directRows.reduce((s, r) => s + (r.rowTotal ?? 0), 0);
     const directRowCount = directRows.length;
     const childrenTotal = childNodes.reduce((s, c) => s + c.total, 0);

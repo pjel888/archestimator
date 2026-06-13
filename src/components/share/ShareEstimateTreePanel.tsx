@@ -80,9 +80,9 @@ function filterTreeNodes(
       .map(visit)
       .filter(Boolean) as ShareTreeNode[];
 
-    // Also check rows for description matches
+    // Also check rows for description matches (any node may own rows post-unification)
     const rowMatches =
-      node.kind === "area" && node.rows
+      node.rows
         ? node.rows.filter((r) =>
             r.description.toLowerCase().includes(lower)
           )
@@ -145,7 +145,7 @@ function TreeNodeRenderer({
   };
 
   const rowItems =
-    showInlineRows && node.kind === "area" && node.rows && node.rows.length > 0 ? (
+    showInlineRows && node.rows && node.rows.length > 0 ? (
       <div
         className="border-l border-hairline/60"
         style={{
