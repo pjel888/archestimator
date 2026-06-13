@@ -3,7 +3,12 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectPublicationHeader, SheetPickerList } from "@/components/workshop/ProjectPublicationHeader";
+import {
+  ProjectPublicationHeader,
+  SheetPickerList,
+  readPublicationServerSignature,
+  shouldUseOptimisticPublicationResult,
+} from "@/components/workshop/ProjectPublicationHeader";
 import type { ProjectEstimateSheet, ProjectPublicationSummary } from "@/lib/publication/types";
 
 const workspaceRepositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
@@ -436,6 +441,158 @@ describe("ProjectPublicationHeader publication control", () => {
   // No active assertion (would be noise post-delivery).
   it("receiver page renders accessible tabs for selected estimates", () => {
     // P2 delivered; original expect(true).toBe(false) removed.
+  });
+
+  // AC-MOD-05 — reconcile optimistic owner-modal state against server truth.
+  it("shows 'Turned off' with disabled controls when the live summary is revoked elsewhere", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // Drive an owner action so the optimistic localResult is set ("Link live").
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared page updated.");
+    expect(within(dialog).getByText("Link live")).toBeInTheDocument();
+
+    // The layout later passes a fresh summary whose link was revoked elsewhere
+    // (same projectId, status now "revoked"). The optimistic signature no longer
+    // matches, so the modal must fall back to server truth.
+    const revokedSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "revoked",
+      clientLinkPath: null,
+    };
+    rerender(
+      <ProjectPublicationHeader summary={revokedSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    expect(within(dialog).getByText("Turned off")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Link live")).not.toBeInTheDocument();
+    // hasLiveClientLink is false → live-link controls disabled, Generate flips to create.
+    expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Turn off shared link" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Generate shared link" })).toBeInTheDocument();
+  });
+
+  it("renders a revoked summary as 'Turned off' on first paint without any optimistic action", async () => {
+    const user = userEvent.setup();
+    const revokedSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "revoked",
+      clientLinkPath: null,
+    };
+    render(<ProjectPublicationHeader summary={revokedSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    expect(within(dialog).getByText("Turned off")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Turn off shared link" })).toBeDisabled();
+  });
+
+  // MOD-SHEET-01 — estimate-picker override clears on action success so it re-syncs to truth.
+  it("clears the estimate-picker override after a successful publish (re-syncs to summary)", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // Override the picker: deselect est-2 so only est-1 remains selected.
+    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    const framing = within(dialog).getByRole("checkbox", { name: /S-200.*Framing/ });
+    expect(framing).toBeChecked();
+    await user.click(framing);
+    expect(framing).not.toBeChecked();
+
+    // Publish: the override should be cleared on success, re-syncing the picker
+    // to the (unchanged) summary's full selection — est-2 checked again.
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared page updated.");
+
+    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+    expect(within(dialog).getByRole("checkbox", { name: /S-200.*Framing/ })).toBeChecked();
+  });
+});
+
+// AC-MOD-05 — pure reconcile predicate + server signature.
+describe("optimistic publication-result reconciliation (AC-MOD-05)", () => {
+  const baseSummary: ProjectPublicationSummary = {
+    projectId: "project-1",
+    workspaceId: "workspace-1",
+    canManagePublication: true,
+    status: "published",
+    publicationId: "publication-1",
+    clientLinkPath: "/share/client-token",
+    tokenCopyAvailable: true,
+    publishedAt: "2026-05-27T00:00:00.000Z",
+    expiresAt: null,
+    passwordRequired: true,
+    selectedEstimateCount: 2,
+    selectedEstimateIds: ["est-1", "est-2"],
+    snapshotVersion: 3,
+    openCount: 4,
+    latestOpenedAt: "2026-05-27T01:00:00.000Z",
+  };
+
+  it("readPublicationServerSignature returns a stable signature and 'none' for null", () => {
+    expect(readPublicationServerSignature(null)).toBe("none");
+    const signature = readPublicationServerSignature(baseSummary);
+    expect(signature).toBe("published|/share/client-token|3|true");
+    // Stable across identical-field summaries.
+    expect(readPublicationServerSignature({ ...baseSummary })).toBe(signature);
+  });
+
+  it("signature changes when status, link, snapshotVersion, or password flips (projectId unchanged)", () => {
+    const base = readPublicationServerSignature(baseSummary);
+    expect(readPublicationServerSignature({ ...baseSummary, status: "revoked", clientLinkPath: null })).not.toBe(base);
+    expect(readPublicationServerSignature({ ...baseSummary, snapshotVersion: 4 })).not.toBe(base);
+    expect(readPublicationServerSignature({ ...baseSummary, passwordRequired: false })).not.toBe(base);
+    expect(readPublicationServerSignature({ ...baseSummary, status: "expired" })).not.toBe(base);
+  });
+
+  it("honors the optimistic result while summaryKey AND signature match", () => {
+    const signature = readPublicationServerSignature(baseSummary);
+    const localResult = { summaryKey: "project-1", baseServerSignature: signature };
+    expect(shouldUseOptimisticPublicationResult(localResult, "project-1", signature)).toBe(true);
+  });
+
+  it("drops the optimistic result once the live signature moves on (revoke/expire elsewhere)", () => {
+    const capturedSignature = readPublicationServerSignature(baseSummary);
+    const localResult = { summaryKey: "project-1", baseServerSignature: capturedSignature };
+
+    // Same projectId (summaryKey unchanged), but the link was revoked elsewhere.
+    const revokedSignature = readPublicationServerSignature({
+      ...baseSummary,
+      status: "revoked",
+      clientLinkPath: null,
+    });
+    expect(shouldUseOptimisticPublicationResult(localResult, "project-1", revokedSignature)).toBe(false);
+
+    // Snapshot bump from a revalidation also drops it.
+    const bumpedSignature = readPublicationServerSignature({ ...baseSummary, snapshotVersion: 4 });
+    expect(shouldUseOptimisticPublicationResult(localResult, "project-1", bumpedSignature)).toBe(false);
+  });
+
+  it("returns false when localResult is null", () => {
+    expect(shouldUseOptimisticPublicationResult(null, "project-1", "any")).toBe(false);
   });
 });
 

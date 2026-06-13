@@ -40,6 +40,7 @@ type PublicationLocalResult = {
   passwordRequired: boolean;
   status: ProjectPublicationStatus;
   summaryKey: string;
+  baseServerSignature: string;
 };
 
 type PublicationTabId = "link" | "sheets" | "access" | "recipients" | "activity";
@@ -67,6 +68,42 @@ function readPublicationStatusLabel(status: ProjectPublicationStatus | null | un
 
 function readSummaryKey(summary: ProjectPublicationSummary | null) {
   return summary?.projectId ?? "no-project";
+}
+
+/**
+ * Server "signature" of the publication summary at a moment in time. The
+ * optimistic `localResult` is only honored while the *live* summary still
+ * carries the signature captured when the optimistic result was created.
+ * When revalidation lands — or the link is revoked/expired elsewhere — this
+ * signature changes, so the optimistic result is dropped and the modal falls
+ * back to server truth (AC-MOD-05).
+ */
+export function readPublicationServerSignature(summary: ProjectPublicationSummary | null): string {
+  if (!summary) return "none";
+  return [
+    summary.status ?? "unpublished",
+    summary.clientLinkPath ?? "",
+    summary.snapshotVersion ?? 0,
+    summary.passwordRequired ?? false,
+  ].join("|");
+}
+
+/**
+ * Whether the optimistic owner-action result should still be preferred over
+ * server truth. True only while the optimistic result targets the mounted
+ * summary (same projectId) AND the live server signature is unchanged from the
+ * one captured when the optimistic result was created.
+ */
+export function shouldUseOptimisticPublicationResult(
+  localResult: { summaryKey: string; baseServerSignature: string } | null,
+  summaryKey: string,
+  serverSignature: string,
+): boolean {
+  return Boolean(
+    localResult &&
+      localResult.summaryKey === summaryKey &&
+      localResult.baseServerSignature === serverSignature,
+  );
 }
 
 function readActivitySeenStorageKey(summary: ProjectPublicationSummary | null, summaryKey: string) {
@@ -184,14 +221,15 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   // P1/P4/P8: 5-tab navigation (Link / Estimates / Access / Recipients / Activity owner-only)
   const [activeTab, setActiveTab] = useState<PublicationTabId>("link");
   const browserOrigin = useSyncExternalStore(subscribeToOriginChange, readBrowserOrigin, readServerOrigin);
-  const hasLocalResult = localResult?.summaryKey === summaryKey;
+  const serverSignature = readPublicationServerSignature(summary);
+  const hasLocalResult = shouldUseOptimisticPublicationResult(localResult, summaryKey, serverSignature);
   const hasPasswordDraft = passwordDraft.summaryKey === summaryKey;
   const requirePassword = hasPasswordDraft ? passwordDraft.requirePassword : Boolean(summary?.passwordRequired);
   const password = hasPasswordDraft ? passwordDraft.password : "";
-  const clientLinkPath = hasLocalResult ? localResult.clientLinkPath ?? "" : summary?.clientLinkPath ?? "";
+  const clientLinkPath = hasLocalResult ? localResult?.clientLinkPath ?? "" : summary?.clientLinkPath ?? "";
   const canManagePublication = summary?.canManagePublication ?? false;
-  const effectiveStatus = hasLocalResult ? localResult.status : summary?.status ?? "unpublished";
-  const effectivePasswordRequired = hasLocalResult ? localResult.passwordRequired : summary?.passwordRequired ?? false;
+  const effectiveStatus = hasLocalResult ? localResult?.status ?? "unpublished" : summary?.status ?? "unpublished";
+  const effectivePasswordRequired = hasLocalResult ? localResult?.passwordRequired ?? false : summary?.passwordRequired ?? false;
   const hasLiveClientLink = effectiveStatus === "published";
   const latestActivityAt = readLatestPublicationActivityAt(summary);
   const activitySeenAt = activitySeenState.storageKey === activitySeenStorageKey
@@ -250,6 +288,9 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
             passwordRequired: result.clientLinkPath ? requirePassword : false,
             status: result.clientLinkPath ? "published" : "revoked",
             summaryKey,
+            // Capture the server signature of the *pre-revalidation* summary so
+            // the optimistic result auto-expires once the live summary moves on.
+            baseServerSignature: serverSignature,
           });
         }
         setPasswordDraft({
@@ -257,6 +298,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           requirePassword: result.clientLinkPath === null ? false : requirePassword,
           summaryKey,
         });
+        // Clear the Estimates-picker override so it re-syncs to the freshly
+        // revalidated summary's selection instead of showing stale pre-publish
+        // edits (MOD-SHEET-01). Success path only — never in catch.
+        setSelectedEstimateOverride(null);
         setActionMessage(result.message);
       } catch (error) {
         setActionMessage(error instanceof Error ? error.message : "Publication update failed.");
