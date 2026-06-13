@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
+import { ShareContainer } from "@/components/share/ShareContainer";
 import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
@@ -9,6 +10,7 @@ import SharePageHero from "@/components/share/SharePageHero";
 import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
 import { SharePageRecipientSessionInitializer } from "@/components/share/SharePageRecipientSessionInitializer";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
+import { SharePageSummaryCard } from "@/components/share/SharePageSummaryCard";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -68,8 +70,11 @@ function ProjectPublicationView({
     <main aria-label="Proposal review" className="min-h-dvh bg-white text-ink">
       {recipientToken ? <SharePageRecipientSessionInitializer recipientToken={recipientToken} token={token} /> : null}
       <SharePageSessionBanner recipientEmail={recipientEmail} token={token} />
-      <div className="share-print-content mx-auto flex w-full max-w-[960px] flex-col gap-5 px-4 py-6 sm:px-6">
+      {/* T1-C MVP: single-column ShareContainer replaces the 960px cap (UX-14). Width
+          ladder lives once in ShareContainer; share-print-content stays on this wrapper. */}
+      <ShareContainer className="share-print-content flex flex-col gap-5 py-6">
         <SharePageProposalHeader project={snapshot.project} />
+        <SharePageSummaryCard snapshot={snapshot} />
         <SharePageDecision token={token} />
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
@@ -82,10 +87,10 @@ function ProjectPublicationView({
           token={token}
         />
         <SharePageComments token={token} />
-        <footer className="share-print-hidden border-t border-hairline pt-3 text-[8px] leading-[10px] text-tertiary">
+        <footer className="share-print-hidden border-t border-hairline pt-3 text-[11px] leading-[15px] text-tertiary">
           Shared via Archestimator • Activity logged for security
         </footer>
-      </div>
+      </ShareContainer>
     </main>
   );
 }
@@ -108,11 +113,11 @@ function decodeCookieValue(value: string | undefined) {
 function ProjectPublicationPasswordGate({ token }: { token: string }) {
   return (
     <main aria-label="Proposal review password" className="share-print-hidden grid min-h-dvh place-items-center bg-white px-4 py-6 text-ink">
-      <section className="w-full max-w-sm border border-hairline bg-white p-4">
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Proposal Review</p>
-        <h1 className="mt-2 text-[12px] font-medium leading-4 text-ink">Enter proposal password</h1>
-        <p className="mt-1 text-[10px] leading-4 text-secondary">This proposal is password protected.</p>
-        <p className="mt-2 text-[9px] leading-4 text-tertiary">Access attempts may be recorded for security. We do not store raw IP addresses, exact GPS location, or password values.</p>
+      <section className="w-full max-w-md rounded-xs border border-hairline bg-white p-4">
+        <p className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Proposal Review</p>
+        <h1 className="mt-2 text-[15px] font-medium leading-[20px] tracking-normal text-ink">Enter proposal password</h1>
+        <p className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">This proposal is password protected.</p>
+        <p className="mt-2 text-[13px] leading-[18px] tracking-normal text-tertiary">Access attempts may be recorded for security. We do not store raw IP addresses, exact GPS location, or password values.</p>
         <ProjectPublicationPasswordForm token={token} />
       </section>
     </main>

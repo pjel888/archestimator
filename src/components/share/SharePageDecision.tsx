@@ -219,15 +219,15 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
       <section
         data-share-decision-bar="true"
         data-testid="decision-locked-badge"
-        className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-[10px] leading-4 text-ink"
+        className="share-print-hidden w-full rounded-xs border border-hairline bg-[#FFFDF8] p-3 text-[13px] leading-[18px] tracking-normal text-ink"
         role="status"
         aria-live="polite"
       >
-        <div className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Your response</div>
-        <div className="mt-1 text-[12px] font-medium leading-4 text-ink">{decisionLabel(decided.decision)}</div>
-        {decided.note && <div className="mt-1 text-[10px] leading-4 text-secondary">Note: {decided.note}</div>}
-        <div className="mt-2 text-[9px] leading-3 text-tertiary">Decision recorded. You can still add comments below.</div>
-        {error && <div className="mt-1 text-[9px] leading-3 text-danger">{error}</div>}
+        <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Your response</div>
+        <div className="mt-1 text-[15px] font-medium leading-[20px] tracking-normal text-ink">{decisionLabel(decided.decision)}</div>
+        {decided.note && <div className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">Note: {decided.note}</div>}
+        <div className="mt-2 text-[12px] leading-[16px] tracking-normal text-tertiary">Decision recorded. You can still add comments below.</div>
+        {error && <div className="mt-1 text-[12px] leading-[16px] tracking-normal text-danger">{error}</div>}
         <div aria-live="polite" className="sr-only">{lastAnnouncement}</div>
       </section>
     );
@@ -242,8 +242,8 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Your response</div>
-          <p className="mt-1 text-[10px] leading-4 text-secondary">
+          <div className="text-[12px] font-medium uppercase leading-[16px] tracking-normal text-tertiary">Your response</div>
+          <p className="mt-1 text-[13px] leading-[18px] tracking-normal text-secondary">
             {isLoadingDecision ? "Checking for an existing response..." : "Choose a response when you are ready."}
           </p>
         </div>
@@ -281,7 +281,7 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
         </div>
       </div>
 
-      {error && <p className="mt-2 text-[9px] leading-3 text-danger">{error}</p>}
+      {error && <p className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
 
       {pendingDecision && (
         <div
@@ -294,22 +294,22 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-confirm-title"
-            className="w-full max-w-sm rounded-xs border border-hairline bg-[#FFFDF8] p-4 text-[10px] leading-4 text-ink shadow-sm"
+            className="w-full max-w-md rounded-xs border border-hairline bg-[#FFFDF8] p-4 text-[13px] leading-[18px] tracking-normal text-ink shadow-sm"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={handleDialogKeyDown}
           >
-            <h2 id="decision-confirm-title" className="text-[12px] font-medium leading-4 text-ink">
+            <h2 id="decision-confirm-title" className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">
               {confirmTitle(pendingDecision)}
             </h2>
-            <p className="mt-2 text-[10px] leading-4 text-secondary">{confirmBody(pendingDecision)}</p>
+            <p className="mt-2 max-w-[600px] text-[13px] leading-[18px] tracking-normal text-secondary">{confirmBody(pendingDecision)}</p>
 
             <div className="mt-3">
-              <label className="block text-[9px] font-medium leading-3 text-tertiary" htmlFor="decision-note">
+              <label className="block text-[12px] font-medium leading-[16px] tracking-normal text-tertiary" htmlFor="decision-note">
                 Note (optional)
               </label>
               <textarea
                 id="decision-note"
-                className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[10px] leading-4 text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
+                className="mt-1 w-full rounded-xs border border-hairline bg-white p-2 text-[13px] leading-[18px] tracking-normal text-ink placeholder:text-tertiary focus:outline-none focus:ring-2 focus:ring-focus"
                 rows={3}
                 maxLength={2000}
                 placeholder={pendingDecision === "revision_requested" ? "Describe the requested changes..." : "Add a note (optional)"}
@@ -317,10 +317,10 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
                 onChange={(event) => setNoteDraft(event.target.value)}
                 disabled={isSubmitting}
               />
-              <div className="mt-0.5 text-right text-[8px] leading-[10px] text-tertiary">{noteDraft.length}/2000</div>
+              <div className="mt-0.5 text-right text-[11px] leading-[15px] tracking-normal text-tertiary">{noteDraft.length}/2000</div>
             </div>
 
-            {error && <p className="mt-2 text-[9px] leading-3 text-danger">{error}</p>}
+            {error && <p className="mt-2 text-[12px] leading-[16px] tracking-normal text-danger">{error}</p>}
 
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={closeConfirm} disabled={isSubmitting}>

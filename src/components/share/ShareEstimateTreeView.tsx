@@ -99,7 +99,7 @@ function TreeNodeRenderer({
           return (
             <div
               key={row.id}
-              className="group flex min-h-[26px] items-center gap-2 py-0.5 pr-2 text-[10px] text-secondary hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
+              className="group flex min-h-[28px] items-center gap-2 py-0.5 pr-2 text-[13px] tracking-normal text-secondary hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
             >
               {imageUrl ? (
                 <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs bg-surfaceMuted">
@@ -118,7 +118,7 @@ function TreeNodeRenderer({
               <span className="min-w-0 flex-1 truncate" title={row.description}>
                 {row.description}
               </span>
-              <span className="flex-shrink-0 tabular-nums text-right font-medium text-ink text-[10px]">
+              <span className="flex-shrink-0 tabular-nums text-right font-medium text-ink text-[13px]">
                 {formatMoney(row.rowTotal, currencyCode)}
               </span>
             </div>
@@ -127,7 +127,7 @@ function TreeNodeRenderer({
         return (
           <div
             key={row.id}
-            className="group flex min-h-[20px] items-center gap-1.5 py-px pr-2 text-[10px] text-secondary hover:bg-surfaceMuted/60 active:bg-surfaceMuted touch-manipulation"
+            className="group flex min-h-[24px] items-center gap-1.5 py-px pr-2 text-[13px] tracking-normal text-secondary hover:bg-surfaceMuted/60 active:bg-surfaceMuted touch-manipulation"
           >
             {/* Optional thumbnail (P9 snapshot imageUrl) — compact 16-20px for tree density */}
             {imageUrl ? (
@@ -151,17 +151,17 @@ function TreeNodeRenderer({
             </span>
 
             {/* Qty */}
-            <span className="w-9 flex-shrink-0 text-right tabular-nums text-[9px] text-tertiary">
+            <span className="w-10 flex-shrink-0 text-right tabular-nums text-[12px] text-tertiary">
               {row.quantity}
             </span>
 
             {/* Unit */}
-            <span className="w-8 flex-shrink-0 text-left text-[9px] text-tertiary">
+            <span className="w-10 flex-shrink-0 text-left text-[12px] text-tertiary">
               {row.unit}
             </span>
 
             {/* rowTotal */}
-            <span className="w-[88px] flex-shrink-0 text-right font-medium tabular-nums text-ink text-[10px]">
+            <span className="w-[104px] flex-shrink-0 text-right font-medium tabular-nums text-ink text-[13px]">
               {formatMoney(row.rowTotal, currencyCode)}
             </span>
           </div>
@@ -218,7 +218,7 @@ function TreeNodeRenderer({
           </span>
 
           {node.rowCount > 0 && (
-            <span className="ml-1 flex-shrink-0 text-[9px] text-tertiary tabular-nums">
+            <span className="ml-1 flex-shrink-0 text-[12px] text-tertiary tabular-nums">
               ({node.rowCount})
             </span>
           )}
@@ -281,7 +281,7 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
 
   if (nodes.length === 0) {
     return (
-      <div className="p-4 text-[10px] text-tertiary">
+      <div className="p-4 text-[13px] tracking-normal text-tertiary">
         No estimate items.
       </div>
     );
@@ -290,7 +290,7 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
   return (
     <div>
       {disclaimer && (
-        <div className="bg-surfaceMuted px-3 py-1 text-[9px] text-tertiary">
+        <div className="bg-surfaceMuted px-3 py-1 text-[12px] tracking-normal text-tertiary">
           {disclaimer}
         </div>
       )}
