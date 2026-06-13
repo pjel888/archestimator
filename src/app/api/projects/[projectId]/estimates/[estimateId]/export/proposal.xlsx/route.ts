@@ -6,7 +6,7 @@ import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name"
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getEstimateTabs, getEstimateTabTree, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
+import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import type { Json, Tables } from "@/lib/supabase/types";
 import type { ProposalExportAudience, ProposalExportMetadata, ProposalExportSettings, ProposalChargeMode, ProposalTabbedWorkbookModel } from "@/lib/proposal-export/types";
@@ -285,64 +285,33 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
 }
 
 async function buildAllTabsResponse(projectId: string, estimateId: string, tabs: EstimateTabSummary[], exportContext: ProposalExportContext) {
-  // F-25/F-14 (P1-T4): allSettled so one archived/failing tab can be skipped rather than
-  // failing the whole export. A tab can be deleted between getEstimateTabs() and this fetch
-  // (TOCTOU); a rejected fetch is logged and skipped. Only an all-tabs-gone result is a 404.
-  const settled = await Promise.allSettled(tabs.map((tab) =>
-    getEstimateTabTree(projectId, estimateId, tab.id, {
-      maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
-      maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
-    }),
-  ));
+  // F-14/F-24 (P2-T7): one batched fetch (estimate + nodes + rows) instead of a per-tab
+  // getEstimateTabTree fan-out. The over-fetch guard caps the TOTAL node/row count, so the
+  // 413 fires early rather than after reading up to the full cap per tab.
+  const result = await getEstimateTreesForTabs(projectId, estimateId, tabs, {
+    maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
+    maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
+  });
 
-  const resolvedTabs: Array<{ tab: EstimateTabSummary; result: Awaited<ReturnType<typeof getEstimateTabTree>> }> = [];
-  for (let index = 0; index < tabs.length; index += 1) {
-    const tab = tabs[index];
-    const outcome = settled[index];
-    if (!tab || !outcome) continue;
-    if (outcome.status !== "fulfilled") {
-      logProposalExport({
-        estimateId: exportContext.estimateId,
-        tabCount: tabs.length,
-        rowCount: 0,
-        durationMs: Date.now() - exportContext.startedAt,
-        outcome: "error",
-        message: `Skipped tab ${tab.id}: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`,
-      });
-      continue;
-    }
-    if (!outcome.value.tab) continue; // archived between list and fetch — skip gracefully
-    resolvedTabs.push({ tab, result: outcome.value });
-  }
-
-  const firstResult = resolvedTabs[0]?.result;
-  if (!firstResult?.project || !firstResult.estimate) {
+  if (!result.project || !result.estimate || result.tabs.length === 0) {
     return NextResponse.json({ error: "Estimate not found." }, { status: 404 });
   }
 
-  let totalNodeCount = 0;
-  let totalRowItemCount = 0;
-  for (const { result } of resolvedTabs) {
-    if (didExceedExportLimit(result.loadLimitState, result.tree)) return createLimitResponse();
-    const treeCounts = countTree(result.tree);
-    totalNodeCount += result.loadLimitState?.fetchedNodeCount ?? treeCounts.nodeCount;
-    totalRowItemCount += result.loadLimitState?.fetchedRowItemCount ?? treeCounts.rowItemCount;
-  }
-  if (totalNodeCount > PROPOSAL_EXPORT_NODE_LIMIT || totalRowItemCount > PROPOSAL_EXPORT_ROW_ITEM_LIMIT) {
-    return createLimitResponse();
-  }
+  const allTrees = result.tabs.flatMap((entry) => entry.tree);
+  if (didExceedExportLimit(result.loadLimitState, allTrees)) return createLimitResponse();
+  const totalRowItemCount = result.loadLimitState?.fetchedRowItemCount ?? countTree(allTrees).rowItemCount;
 
-  const metadata = buildMetadata(firstResult.project, firstResult.estimate, firstResult.workspace);
+  const metadata = buildMetadata(result.project, result.estimate, result.workspace);
   const generatedAt = new Date().toISOString();
   // Resolve the (gated) audience once from the shared workspace; all tabs use the same settings.
-  const resolvedSettings = await resolveExportSettings(firstResult.workspace, exportContext);
+  const resolvedSettings = await resolveExportSettings(result.workspace, exportContext);
   const settings = { ...defaultProposalExportSettings, ...resolvedSettings };
-  const worksheetNames = buildUniqueWorksheetNames(resolvedTabs.map(({ tab }) => ({ id: tab.id, name: tab.name })));
+  const worksheetNames = buildUniqueWorksheetNames(result.tabs.map(({ tab }) => ({ id: tab.id, name: tab.name })));
   const tabWorkbookModel: ProposalTabbedWorkbookModel = {
     metadata,
     settings,
     generatedAt,
-    tabs: resolvedTabs.map(({ tab, result }, index) => {
+    tabs: result.tabs.map(({ tab, tree }, index) => {
       const worksheetName = worksheetNames[index];
       if (!worksheetName) throw new Error("Estimate tab export mapping failed.");
       return {
@@ -351,7 +320,7 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
         worksheetName: worksheetName.worksheetName,
         model: buildProposalExportModel({
           metadata,
-          nodes: result.tree,
+          nodes: tree,
           generatedAt,
           settings: resolvedSettings,
         }),
@@ -360,10 +329,10 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
   };
 
   const buffer = await createProposalWorkbookBuffer(tabWorkbookModel);
-  const filename = buildProposalWorkbookFilename(firstResult.project.project_code || firstResult.project.name, firstResult.estimate.sheet_code || firstResult.estimate.name);
+  const filename = buildProposalWorkbookFilename(result.project.project_code || result.project.name, result.estimate.sheet_code || result.estimate.name);
   logProposalExport({
     estimateId: exportContext.estimateId,
-    tabCount: resolvedTabs.length,
+    tabCount: result.tabs.length,
     rowCount: totalRowItemCount,
     durationMs: Date.now() - exportContext.startedAt,
     outcome: "success",
