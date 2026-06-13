@@ -1,7 +1,20 @@
 export type ProposalExportAudience = "client" | "internal";
 export type ProposalExportMode = "detailed-boq" | "summary-only";
 export type ProposalConsolidationMode = "industry-standard" | "area-breakdown";
-export type ProposalScopeStatus = "included" | "excluded" | "alternate";
+// P3-T2/D5 (F-08): recognized per-row scope vocabulary. Anything not "included" is excluded
+// from totals and listed in the EXCLUSIONS block.
+export type ProposalScopeStatus =
+  | "included"
+  | "excluded"
+  | "by_others"
+  | "by_owner"
+  | "owner_supplied"
+  | "ofci"
+  | "osci"
+  | "osm"
+  | "omitted"
+  | "not_applicable"
+  | "alternate";
 export type ProposalValidationSeverity = "info" | "warning" | "error";
 // "percentage" applies the rate to the running total; "included" treats the charge as
 // already baked into the line rates (shown as 0, labelled INCLUDED). F-02/D2.

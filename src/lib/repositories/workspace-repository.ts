@@ -1523,10 +1523,16 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
   const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
   const tags = Array.isArray(metadata.tags) ? metadata.tags.filter((tag): tag is string => typeof tag === "string") : undefined;
   const componentVersionNumber = typeof sourceSnapshot.componentVersionNumber === "number" ? sourceSnapshot.componentVersionNumber : undefined;
+  // P3-T1/T2: interim read of labor rate + per-row scope from row metadata (typed columns
+  // are DB-gated). Absent → undefined, so the proposal model falls back to 0 / "included".
+  const laborUnitCost = typeof metadata.laborUnitCost === "number" && Number.isFinite(metadata.laborUnitCost) ? metadata.laborUnitCost : undefined;
+  const scopeStatus = typeof metadata.scopeStatus === "string" && metadata.scopeStatus.trim() ? metadata.scopeStatus : undefined;
 
   return {
     id: row.id,
     material: row.material,
+    laborUnitCost,
+    scopeStatus,
     description: row.description,
     supplier: row.supplier || "No supplier",
     supplierId: supplierId ?? undefined,

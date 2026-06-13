@@ -53,6 +53,8 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     pricingDate: overrides.pricingDate ?? "2026-05-23",
     confidence: overrides.confidence ?? "allowance",
     notes: overrides.notes,
+    laborUnitCost: overrides.laborUnitCost,
+    scopeStatus: overrides.scopeStatus,
   };
 }
 
@@ -329,5 +331,25 @@ describe("proposal export model", () => {
       "Finishes", // rank 4
       "Electrical Works", // rank 8 (MEP)
     ]);
+  });
+
+  it("reads interim labor + scope and excludes non-included scope from totals (P3-T1/T2, F-01/F-08)", () => {
+    const nodes = treeWithBedrooms(
+      [row({ id: "incl", quantity: 1, itemCost: 1_000, laborUnitCost: 200 })],
+      [row({ id: "excl", material: "Owner Fixtures", quantity: 1, itemCost: 500, scopeStatus: "by_others" })],
+    );
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    const included = model.proposalRows.find((proposalRow) => proposalRow.includedInTotal);
+    expect(included?.laborUnitCost).toBe(200);
+    expect(included?.laborSubtotal).toBe(200);
+
+    const excluded = model.proposalRows.find((proposalRow) => !proposalRow.includedInTotal);
+    expect(excluded?.scopeStatus).toBe("by_others");
+
+    // Only the included row (1,000 material + 200 labor) counts toward the Grand Total.
+    expect(model.totals.grandTotal).toBe(1_200);
+    // Labor is present → the material-only disclaimer is suppressed.
+    expect(model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode")).toBe(false);
   });
 });

@@ -105,18 +105,31 @@ function buildRemarks(row: EstimateRowItem, settings: ProposalExportSettings) {
   return remarks.join(" | ");
 }
 
+const SCOPE_VOCABULARY = new Set<ProposalScopeStatus>([
+  "included", "excluded", "by_others", "by_owner", "owner_supplied", "ofci", "osci", "osm", "omitted", "not_applicable", "alternate",
+]);
+
+// P3-T2: normalize a metadata scope string (e.g. "EXCLUDED", "by others") to a recognized
+// canonical status; anything unrecognized is treated as included (safe default).
+function normalizeScope(value: string | null | undefined): ProposalScopeStatus {
+  const key = keyText(value ?? "").replace(/[\s-]+/g, "_");
+  return SCOPE_VOCABULARY.has(key as ProposalScopeStatus) ? (key as ProposalScopeStatus) : "included";
+}
+
 function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, settings: ProposalExportSettings): ProposalNormalizedSourceRow {
   const sourceRow = flatRow.sourceRow;
   const quantity = roundQuantity(sourceRow.quantity);
   const materialUnitCost = roundMoney(sourceRow.itemCost);
-  const laborUnitCost = 0;
+  // P3-T1: interim labor rate from row metadata (else 0, with a visible disclaimer).
+  const laborUnitCost = roundMoney(sourceRow.laborUnitCost ?? 0);
   const materialSubtotal = roundMoney(materialUnitCost * quantity);
   const laborSubtotal = roundMoney(laborUnitCost * quantity);
   const contingencySubtotal = roundMoney((materialSubtotal * (sourceRow.contingencyPercentage ?? 0)) / 100);
   const miscSubtotal = roundMoney(sourceRow.miscCost);
   const costAmount = roundMoney(materialSubtotal + laborSubtotal + contingencySubtotal + miscSubtotal);
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
-  const scopeStatus: ProposalScopeStatus = "included";
+  // P3-T2: per-row scope from row metadata (else included).
+  const scopeStatus: ProposalScopeStatus = normalizeScope(sourceRow.scopeStatus);
 
   return {
     sourceRowId: flatRow.sourceRowId,
@@ -266,6 +279,9 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
   const sections = new Map<string, ProposalSummaryRow>();
 
   for (const row of proposalRows) {
+    // P3-T2: excluded rows are summarized in the EXCLUSIONS block, not the priced section
+    // totals — so section amounts match the Grand Total and the Bid Form subtotal SUMs.
+    if (!row.includedInTotal) continue;
     const current = sections.get(row.sectionKey) ?? {
       sectionKey: row.sectionKey,
       sectionLabel: row.sectionLabel,
@@ -450,7 +466,10 @@ export function buildProposalExportModel(input: BuildProposalExportModelInput): 
     });
   }
 
-  if (proposalRows.length > 0) {
+  // P3-T1: only flag the material-only compatibility mode (which drives the visible LABOR
+  // disclaimer) when no row actually carries a labor rate — so the caveat auto-clears once
+  // real labor data lands via metadata.
+  if (proposalRows.length > 0 && proposalRows.every((row) => row.laborUnitCost === 0)) {
     validationIssues.push({
       severity: "info",
       code: "cost_split_compatibility_mode",

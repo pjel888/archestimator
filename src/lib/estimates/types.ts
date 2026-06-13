@@ -129,6 +129,10 @@ export type EstimateRowItem = {
   pricingSource: string;
   pricingDate: string;
   confidence?: string;
+  // P3-T1/T2 (read-side via estimate_row_items.metadata JSONB; typed columns DB-gated):
+  // interim labor unit rate and per-row scope for the proposal export. Absent → 0 / included.
+  laborUnitCost?: number;
+  scopeStatus?: string;
 };
 
 export type EstimateTreeNode = {
