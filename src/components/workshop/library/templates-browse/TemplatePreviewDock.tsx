@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { CaretDown, FolderSimple, MapPin, Package } from "@phosphor-icons/react/dist/ssr";
+import { FolderSimple, MapPin, Package, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { TREE_ROW_ICON_SIZE } from "@/components/ui/tree";
@@ -108,7 +108,7 @@ export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInser
             aria-label="Close template preview"
             onClick={onClose}
           >
-            <span aria-hidden="true">×</span>
+            <X size={11} weight="regular" aria-hidden="true" />
           </Button>
         </header>
 
@@ -157,7 +157,6 @@ export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInser
             onClick={() => onInsertIntoEstimate(template)}
           >
             Insert into estimate
-            <CaretDown size={10} weight="regular" aria-hidden="true" className="ml-1" />
           </Button>
         </footer>
       </section>

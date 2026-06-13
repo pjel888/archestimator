@@ -66,7 +66,7 @@ const ACTIVITY_FILTER_EVENT_TYPES = [
   { value: "tab_deleted", label: "Tab deleted" },
 ] as const;
 
-const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Tabs" }];
+const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Sheets" }];
 
 export type FlattenedEstimateRow = {
   item: EstimateRowItem;

@@ -1,8 +1,24 @@
 export type ProposalExportAudience = "client" | "internal";
 export type ProposalExportMode = "detailed-boq" | "summary-only";
 export type ProposalConsolidationMode = "industry-standard" | "area-breakdown";
-export type ProposalScopeStatus = "included" | "excluded" | "alternate";
+// P3-T2/D5 (F-08): recognized per-row scope vocabulary. Anything not "included" is excluded
+// from totals and listed in the EXCLUSIONS block.
+export type ProposalScopeStatus =
+  | "included"
+  | "excluded"
+  | "by_others"
+  | "by_owner"
+  | "owner_supplied"
+  | "ofci"
+  | "osci"
+  | "osm"
+  | "omitted"
+  | "not_applicable"
+  | "alternate";
 export type ProposalValidationSeverity = "info" | "warning" | "error";
+// "percentage" applies the rate to the running total; "included" treats the charge as
+// already baked into the line rates (shown as 0, labelled INCLUDED). F-02/D2.
+export type ProposalChargeMode = "percentage" | "included";
 
 export type ProposalExportMetadata = {
   projectId: string;
@@ -15,6 +31,13 @@ export type ProposalExportMetadata = {
   versionLabel: string;
   currency: "PHP" | string;
   sourceNodeId?: string | null;
+  // Title-block fields (P2-T4). clientName is DB-free (projects.client_name); contractorName
+  // is the D4 interim (workspace name) until a contractor profile lands; subject is derived.
+  clientName?: string | null;
+  contractorName?: string | null;
+  subject?: string | null;
+  // P2-T6 (D3): gross floor area read from estimate/project metadata JSONB; Cost/SQM = Grand Total / GFA.
+  grossFloorArea?: number | null;
 };
 
 export type ProposalExportSettings = {
@@ -26,6 +49,11 @@ export type ProposalExportSettings = {
   includeZeroRows: boolean;
   includeExcludedRows: boolean;
   showSupplierInRemarks: boolean;
+  // Project-level charges applied in the Summary totals block (rates are percentages, 0–100).
+  contingencyRate: number;
+  contingencyMode: ProposalChargeMode;
+  vatRate: number;
+  vatMode: ProposalChargeMode;
 };
 
 export type ProposalExportValidationIssue = {
@@ -148,7 +176,10 @@ export type ProposalExportTotals = {
   laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
-  grandTotal: number;
+  grandTotal: number; // Direct Cost — sum of line cost amounts (pre project contingency/VAT)
+  projectContingencyAmount: number; // F-02: project-level contingency on Direct Cost
+  vatAmount: number; // VAT on (Direct Cost + project contingency)
+  grandTotalWithTaxes: number; // Direct Cost + project contingency + VAT
 };
 
 export type ProposalExportModel = {

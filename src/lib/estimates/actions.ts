@@ -2165,6 +2165,10 @@ export async function insertEstimateTemplateIntoEstimate({
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
+  // U4 (SEC-1): deny a workspace-member *viewer* on a restricted estimate before
+  // any write. Defense-in-depth with the hardened RPC gate; the app gate ships
+  // immediately even before the RPC migration applies.
+  await assertCanEditEstimate(supabase, estimateId);
   const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
@@ -2223,6 +2227,10 @@ export async function insertEstimateTemplateNodeIntoEstimate({
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
+  // U4 (SEC-1): this path is invoked directly from the panel (not only via the
+  // gated wrap flow), so it needs its own edit gate before any create/insert RPC
+  // — otherwise a workspace-member viewer could insert a template-node subtree.
+  await assertCanEditEstimate(supabase, estimateId);
 
   const { data: targetParent, error: parentError } = await supabase
     .from("estimate_nodes")
@@ -2400,6 +2408,9 @@ export async function wrapEstimateAreaAndInsertTemplate({
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
+  // U4-2: assert edit access at the very top — before the wrapper-group create
+  // and the area reorder below — so a denied viewer leaves no orphan group.
+  await assertCanEditEstimate(supabase, estimateId);
 
   const { data: areaNode, error: areaError } = await supabase
     .from("estimate_nodes")

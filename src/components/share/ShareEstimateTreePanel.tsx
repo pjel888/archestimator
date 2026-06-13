@@ -399,9 +399,9 @@ export function ShareEstimateTreePanel({
           addActions={[]}
         />
         <WorkshopTreeTabs
-          tabs={[{ id: "sheets", label: "Tabs" }]}
+          tabs={[{ id: "sheets", label: "Sheets" }]}
           activeTab="sheets"
-          ariaLabel="Estimate tree views"
+          ariaLabel="Estimate sheets"
         />
       </div>
 

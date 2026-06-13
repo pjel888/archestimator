@@ -53,6 +53,8 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     pricingDate: overrides.pricingDate ?? "2026-05-23",
     confidence: overrides.confidence ?? "allowance",
     notes: overrides.notes,
+    laborUnitCost: overrides.laborUnitCost,
+    scopeStatus: overrides.scopeStatus,
   };
 }
 
@@ -244,5 +246,145 @@ describe("proposal export model", () => {
         code: "empty_estimate",
       }),
     );
+  });
+
+  it("computes project contingency and VAT in model totals, honoring INCLUDED mode (P2-T1)", () => {
+    const nodes = treeWithBedrooms([row({ id: "a", quantity: 1, itemCost: 1_000, miscCost: 0 })], []);
+
+    const percentage = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    expect(percentage.totals.grandTotal).toBe(1_000); // Direct Cost unchanged
+    expect(percentage.totals.projectContingencyAmount).toBe(100); // 10% of 1,000
+    expect(percentage.totals.vatAmount).toBe(132); // 12% of (1,000 + 100)
+    expect(percentage.totals.grandTotalWithTaxes).toBe(1_232);
+
+    const included = buildProposalExportModel({
+      metadata,
+      nodes,
+      settings: { contingencyMode: "included", vatMode: "included" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    expect(included.totals.projectContingencyAmount).toBe(0);
+    expect(included.totals.vatAmount).toBe(0);
+    expect(included.totals.grandTotalWithTaxes).toBe(1_000);
+  });
+
+  it("restarts line numbers within each section (P2-T5, F-09)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "prelim",
+            name: "Prelim Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "p1", material: "Prelim 1", category: "Preliminaries" }),
+              row({ id: "p2", material: "Prelim 2", category: "Preliminaries" }),
+            ],
+          },
+          {
+            id: "finishes",
+            name: "Finishes Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "f1", material: "Finish 1", category: "Finishes" }),
+              row({ id: "f2", material: "Finish 2", category: "Finishes" }),
+            ],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.proposalRows.map((proposalRow) => [proposalRow.sectionLabel, proposalRow.rowNumber])).toEqual([
+      ["Preliminaries", "1"],
+      ["Preliminaries", "2"],
+      ["Finishes", "1"],
+      ["Finishes", "2"],
+    ]);
+  });
+
+  it("keeps Bid Form line numbers contiguous when a section mixes included and excluded scope (F-09)", () => {
+    // An excluded row interleaved between two included rows of the same section must NOT
+    // consume a priced-section line number — the Bid Form renders only the included rows, so
+    // the ITEM column would otherwise read 1, 3 (a visible gap). Excluded rows are numbered on
+    // their own flat sequence, matching the EXCLUSIONS block.
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "concrete",
+            name: "Concrete Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "c1", material: "Footing", category: "Concrete" }),
+              row({ id: "c2", material: "Owner Rebar", category: "Concrete", scopeStatus: "by_others" }),
+              row({ id: "c3", material: "Slab", category: "Concrete" }),
+            ],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    const includedNumbers = model.proposalRows.filter((proposalRow) => proposalRow.includedInTotal).map((proposalRow) => proposalRow.rowNumber);
+    const excludedNumbers = model.proposalRows.filter((proposalRow) => !proposalRow.includedInTotal).map((proposalRow) => proposalRow.rowNumber);
+
+    expect(includedNumbers).toEqual(["1", "2"]); // contiguous — no skipped ITEM number
+    expect(excludedNumbers).toEqual(["1"]); // excluded row numbered independently
+  });
+
+  it("orders sections by the canonical division taxonomy, not encounter order (P3-T3, F-27)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          // Finishes is encountered first, Preliminaries second — canonical order flips them.
+          { id: "fin", name: "Fin", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "f1", material: "Floor Tile", category: "Finishes" })] },
+          { id: "pre", name: "Pre", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "p1", material: "Mobilization", category: "General Preliminaries" })] },
+          { id: "mep", name: "Mep", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "e1", material: "Wiring", category: "Electrical Works" })] },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.summaryRows.map((summaryRow) => summaryRow.sectionLabel)).toEqual([
+      "General Preliminaries", // rank 0
+      "Finishes", // rank 4
+      "Electrical Works", // rank 8 (MEP)
+    ]);
+  });
+
+  it("reads interim labor + scope and excludes non-included scope from totals (P3-T1/T2, F-01/F-08)", () => {
+    const nodes = treeWithBedrooms(
+      [row({ id: "incl", quantity: 1, itemCost: 1_000, laborUnitCost: 200 })],
+      [row({ id: "excl", material: "Owner Fixtures", quantity: 1, itemCost: 500, scopeStatus: "by_others" })],
+    );
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    const included = model.proposalRows.find((proposalRow) => proposalRow.includedInTotal);
+    expect(included?.laborUnitCost).toBe(200);
+    expect(included?.laborSubtotal).toBe(200);
+
+    const excluded = model.proposalRows.find((proposalRow) => !proposalRow.includedInTotal);
+    expect(excluded?.scopeStatus).toBe("by_others");
+
+    // Only the included row (1,000 material + 200 labor) counts toward the Grand Total.
+    expect(model.totals.grandTotal).toBe(1_200);
+    // Labor is present → the material-only disclaimer is suppressed.
+    expect(model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode")).toBe(false);
   });
 });

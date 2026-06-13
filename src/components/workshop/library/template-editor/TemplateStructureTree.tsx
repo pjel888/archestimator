@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Blueprint, FolderSimple, MapPin, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDown, ArrowUp, Blueprint, FolderSimple, MapPin, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -88,6 +88,8 @@ export function TemplateStructureTree({
   handlers: TemplateStructureTreeHandlers;
 }) {
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
+  // U12 (UX-5): polite SR announcement after a keyboard reorder.
+  const [moveAnnouncement, setMoveAnnouncement] = useState("");
 
   const nodes = useMemo<UiTreeNode[]>(
     () => [
@@ -204,8 +206,40 @@ export function TemplateStructureTree({
           ]
         : [];
 
+    // U12 (UX-4): keyboard-reachable reorder. The context menu is keyboard-
+    // navigable, so "Move up/down" gives a non-drag path to reorder a node
+    // among its siblings via the existing onMoveNode handler.
+    const placement = findNodePlacement(template, node.id);
+    const moveSiblings = placement?.siblings ?? [];
+    const moveIndex = moveSiblings.findIndex((sibling) => sibling.id === node.id);
+    const reorderNode = (direction: -1 | 1) => {
+      const targetIndex = moveIndex + direction;
+      if (moveIndex === -1 || targetIndex < 0 || targetIndex >= moveSiblings.length) return;
+      const orderedSiblingIds = moveSiblings.map((sibling) => sibling.id);
+      [orderedSiblingIds[moveIndex], orderedSiblingIds[targetIndex]] = [orderedSiblingIds[targetIndex], orderedSiblingIds[moveIndex]];
+      handlers.onMoveNode(node.id, placement?.parent?.id ?? null, orderedSiblingIds);
+      setMoveAnnouncement(`Moved ${node.name} ${direction === -1 ? "up" : "down"}.`);
+    };
+    const moveItems = [
+      {
+        id: "move-up",
+        label: "Move up",
+        icon: <ArrowUp size={12} weight="regular" aria-hidden="true" />,
+        disabled: isTemporary || moveIndex <= 0,
+        onSelect: () => reorderNode(-1),
+      },
+      {
+        id: "move-down",
+        label: "Move down",
+        icon: <ArrowDown size={12} weight="regular" aria-hidden="true" />,
+        disabled: isTemporary || moveIndex === -1 || moveIndex >= moveSiblings.length - 1,
+        onSelect: () => reorderNode(1),
+      },
+    ];
+
     return [
       ...(addItems.length > 0 ? [{ id: "template-node-add", items: addItems }] : []),
+      { id: "template-node-move", items: moveItems },
       {
         id: "template-node-edit",
         items: [
@@ -235,6 +269,8 @@ export function TemplateStructureTree({
   }, [contextMenuNodeId, handlers, template.nodes]);
 
   return (
+    <>
+    <span className="sr-only" role="status" aria-live="polite">{moveAnnouncement}</span>
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
@@ -273,5 +309,6 @@ export function TemplateStructureTree({
         <ContextActionMenuContent groups={contextMenuGroups} />
       </ContextMenuContent>
     </ContextMenu>
+    </>
   );
 }

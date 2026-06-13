@@ -18,6 +18,7 @@ import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import { ControlInput } from "@/components/ui/control-input";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import {
   TREE_ROW_ICON_SIZE,
@@ -40,20 +41,6 @@ import {
   renameEstimateTemplate,
   renameTemplateCategory,
 } from "@/lib/component-library/actions";
-import { getReusableEstimateOutline, listReusableProjectEstimateSources } from "@/lib/reusable-sources/actions";
-import type { ProjectEstimateReusableSource, ProjectReusableSource, ReusableEstimateSource } from "@/lib/reusable-sources/types";
-import {
-  buildProjectSourceBrowseTreeNodes,
-  findProjectEstimateSourceByBrowseNodeId,
-  findProjectSourceByBrowseNodeId,
-  getUnloadedProjectBrowseNodeIds,
-  getUnloadedProjectEstimateBrowseNodeIds,
-  hasReusableEstimateOutline,
-  hasReusableProjectEstimates,
-  mergeReusableProjectEstimateBrowseSources,
-  mergeReusableProjectBrowseSources,
-  type ProjectBrowseTreeDatum,
-} from "./project-source-browse-tree";
 import { TemplateGallery, type TemplatesBrowseStatus } from "./TemplateGallery";
 import { TemplatePreviewDock } from "./TemplatePreviewDock";
 
@@ -73,8 +60,7 @@ const ALL_TEMPLATES_NODE_ID = "all-templates";
 type BrowseTreeDatum =
   | { type: "all" }
   | { type: "category"; category: string }
-  | { type: "template"; template: EstimateTemplate }
-  | ProjectBrowseTreeDatum;
+  | { type: "template"; template: EstimateTemplate };
 
 function browseCategoryNodeId(category: string) {
   return `browse-category:${category}`;
@@ -92,7 +78,7 @@ function getTemplateCategories(templates: EstimateTemplate[]) {
   return Array.from(new Set(templates.map((template) => template.category))).sort();
 }
 
-function buildBrowseTreeNodes(templates: EstimateTemplate[], projectSources: ReusableEstimateSource[] = []): UiTreeNode[] {
+function buildBrowseTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
   const categories = getTemplateCategories(templates);
 
   return [
@@ -127,7 +113,6 @@ function buildBrowseTreeNodes(templates: EstimateTemplate[], projectSources: Reu
           })),
       })),
     },
-    ...buildProjectSourceBrowseTreeNodes(projectSources),
   ];
 }
 
@@ -154,16 +139,8 @@ function BrowseTreeRowContent({ label, total }: { label: string; total: number |
 
 type TemplatesBrowseTreePanelProps = {
   templates: EstimateTemplate[];
-  projectSources: ReusableEstimateSource[];
   selectedCategory: string | null;
   selectedTemplateId: string | null;
-  projectEstimateLoadingProjectIds: readonly string[];
-  projectEstimateLoadedProjectIds: readonly string[];
-  projectEstimateError: string | null;
-  projectOutlineLoadingEstimateIds: readonly string[];
-  projectOutlineError: string | null;
-  onLoadProjectEstimates: (source: ProjectReusableSource) => void;
-  onLoadProjectEstimateOutline: (source: ProjectEstimateReusableSource) => void;
   onSelectAll: () => void;
   onSelectCategory: (category: string) => void;
   onSelectTemplate: (templateId: string) => void;
@@ -180,16 +157,8 @@ type TemplatesBrowseTreePanelProps = {
 
 function TemplatesBrowseTreePanel({
   templates,
-  projectSources,
   selectedCategory,
   selectedTemplateId,
-  projectEstimateLoadingProjectIds,
-  projectEstimateLoadedProjectIds,
-  projectEstimateError,
-  projectOutlineLoadingEstimateIds,
-  projectOutlineError,
-  onLoadProjectEstimates,
-  onLoadProjectEstimateOutline,
   onSelectAll,
   onSelectCategory,
   onSelectTemplate,
@@ -212,24 +181,14 @@ function TemplatesBrowseTreePanel({
     () => filterTemplatesByQuery(templates, searchQuery),
     [searchQuery, templates],
   );
-  const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates, projectSources), [filteredTemplates, projectSources]);
+  const treeNodes = useMemo(() => buildBrowseTreeNodes(filteredTemplates), [filteredTemplates]);
   const folderIds = useMemo(() => getBrowseTreeFolderIds(treeNodes), [treeNodes]);
   const searchActive = searchQuery.trim().length > 0;
-  const unloadedProjectNodeIds = useMemo(
-    () => new Set(getUnloadedProjectBrowseNodeIds(projectSources, projectEstimateLoadingProjectIds, projectEstimateLoadedProjectIds)),
-    [projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds, projectSources],
-  );
-  const unloadedProjectEstimateNodeIds = useMemo(
-    () => new Set(getUnloadedProjectEstimateBrowseNodeIds(projectSources, projectOutlineLoadingEstimateIds)),
-    [projectOutlineLoadingEstimateIds, projectSources],
-  );
   // New categories default expanded: collapse state is tracked, not expansion.
   // Active searches reveal every match instead of hiding hits under folds.
   const expandedIds = useMemo(
-    () => (searchActive
-      ? folderIds
-      : folderIds.filter((id) => !collapsedIds.has(id) && !unloadedProjectNodeIds.has(id) && !unloadedProjectEstimateNodeIds.has(id))),
-    [collapsedIds, folderIds, searchActive, unloadedProjectEstimateNodeIds, unloadedProjectNodeIds],
+    () => (searchActive ? folderIds : folderIds.filter((id) => !collapsedIds.has(id))),
+    [collapsedIds, folderIds, searchActive],
   );
 
   const nodeById = useMemo(() => {
@@ -274,13 +233,7 @@ function TemplatesBrowseTreePanel({
 
   const handleTreeToggle = useCallback((nodeId: string, expanded: boolean) => {
     toggleNode(nodeId, expanded);
-    if (!expanded) return;
-
-    const projectSource = findProjectSourceByBrowseNodeId(projectSources, nodeId);
-    if (projectSource) onLoadProjectEstimates(projectSource);
-    const estimateSource = findProjectEstimateSourceByBrowseNodeId(projectSources, nodeId);
-    if (estimateSource) onLoadProjectEstimateOutline(estimateSource);
-  }, [onLoadProjectEstimateOutline, onLoadProjectEstimates, projectSources, toggleNode]);
+  }, [toggleNode]);
 
   const handleRowClick = useCallback(
     (_nodeId: string, node: UiTreeNode) => {
@@ -340,7 +293,6 @@ function TemplatesBrowseTreePanel({
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     const datum = contextMenuNodeId ? getBrowseTreeDatum(nodeById.get(contextMenuNodeId)) : undefined;
     if (!datum) return [];
-    if (datum.type === "project-section" || datum.type === "project-source") return [];
 
     if (datum.type === "all") {
       return [
@@ -460,9 +412,6 @@ function TemplatesBrowseTreePanel({
           <BrowseTreeRowContent label={datum.template.name} total={summarizeEstimateTemplate(datum.template).total} />
         );
       }
-      if (datum?.type === "project-source") {
-        return <BrowseTreeRowContent label={datum.source.name} total={null} />;
-      }
       return <BrowseTreeRowContent label={treeNode.label} total={null} />;
     },
     [totalsByCategory],
@@ -499,18 +448,11 @@ function TemplatesBrowseTreePanel({
         />
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
-          {templates.length === 0 && projectSources.length === 0 ? (
+          {templates.length === 0 ? (
             <EmptyState
               icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
               title="No templates yet"
               description="Create a template from scratch, or save any estimate group as a template from the estimate page."
-              className="min-h-24 rounded-xs"
-            />
-          ) : treeNodes.length === 0 ? (
-            <EmptyState
-              icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
-              title="No matching sources"
-              description={`No reusable sources match "${searchQuery}".`}
               className="min-h-24 rounded-xs"
             />
           ) : (
@@ -526,26 +468,6 @@ function TemplatesBrowseTreePanel({
                     }
                   }}
                 >
-                  {projectEstimateLoadingProjectIds.length > 0 ? (
-                    <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-                      Loading {projectEstimateLoadingProjectIds.length === 1 ? "project estimates" : `${projectEstimateLoadingProjectIds.length} project estimate lists`}…
-                    </div>
-                  ) : null}
-                  {projectEstimateError ? (
-                    <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-                      Couldn&apos;t load project estimates. {projectEstimateError}
-                    </div>
-                  ) : null}
-                  {projectOutlineLoadingEstimateIds.length > 0 ? (
-                    <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-                      Loading {projectOutlineLoadingEstimateIds.length === 1 ? "estimate outline" : `${projectOutlineLoadingEstimateIds.length} estimate outlines`}…
-                    </div>
-                  ) : null}
-                  {projectOutlineError ? (
-                    <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-                      Couldn&apos;t load estimate outline. {projectOutlineError}
-                    </div>
-                  ) : null}
                   <Tree
                     nodes={treeNodes}
                     ariaLabel="Template library tree"
@@ -578,7 +500,6 @@ function TemplatesBrowseTreePanel({
 
 export type TemplatesBrowseManagerProps = {
   templates?: EstimateTemplate[];
-  projectSources?: ReusableEstimateSource[];
 };
 
 /**
@@ -586,7 +507,7 @@ export type TemplatesBrowseManagerProps = {
  * center `TemplateGallery`, right `TemplatePreviewDock`. Selection state
  * lives here so the tree, gallery, and preview dock stay in sync.
  */
-export function TemplatesBrowseManager({ templates = [], projectSources = [] }: TemplatesBrowseManagerProps = {}) {
+export function TemplatesBrowseManager({ templates = [] }: TemplatesBrowseManagerProps = {}) {
   const router = useNavigationRouter();
   const [templateState, setTemplateState] = useState<{ source: EstimateTemplate[]; items: EstimateTemplate[] }>(() => ({
     source: templates,
@@ -596,30 +517,33 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [status, setStatus] = useState<TemplatesBrowseStatus>({ state: "idle" });
   const [newTemplate, setNewTemplate] = useState<{ open: boolean; category?: string }>({ open: false });
+  // U12 (C5): replaces the native window.prompt for rename/move with an in-DS
+  // modal (SF Pro, tokens, focus management). One reusable text prompt.
+  const [textPrompt, setTextPrompt] = useState<
+    | { title: string; label: string; confirmLabel: string; initialValue: string; onSubmit: (value: string) => void }
+    | null
+  >(null);
+  const [textPromptValue, setTextPromptValue] = useState("");
+  const openTextPrompt = useCallback((next: NonNullable<typeof textPrompt>) => {
+    setTextPrompt(next);
+    setTextPromptValue(next.initialValue);
+  }, []);
+  const submitTextPrompt = useCallback(() => {
+    if (!textPrompt) return;
+    const value = textPromptValue.trim();
+    const handler = textPrompt.onSubmit;
+    setTextPrompt(null);
+    if (value) handler(value);
+  }, [textPrompt, textPromptValue]);
   const [insertTarget, setInsertTarget] = useState<EstimateTemplate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EstimateTemplate | null>(null);
   const [deletePending, setDeletePending] = useState(false);
-  const [projectSourceState, setProjectSourceState] = useState<{ source: ReusableEstimateSource[]; items: ReusableEstimateSource[] }>(() => ({
-    source: projectSources,
-    items: projectSources,
-  }));
-  const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
-  const [projectEstimateLoadedProjectIds, setProjectEstimateLoadedProjectIds] = useState<string[]>([]);
-  const [projectEstimateErrors, setProjectEstimateErrors] = useState<Record<string, string>>({});
-  const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
-  const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
 
   // Server refreshes re-seed the local list; optimistic edits hold otherwise.
   let localTemplates = templateState.items;
   if (templateState.source !== templates) {
     localTemplates = templates;
     setTemplateState({ source: templates, items: templates });
-  }
-
-  let localProjectSources = projectSourceState.items;
-  if (projectSourceState.source !== projectSources) {
-    localProjectSources = projectSources;
-    setProjectSourceState({ source: projectSources, items: projectSources });
   }
 
   const categories = useMemo(() => getTemplateCategories(localTemplates), [localTemplates]);
@@ -629,79 +553,10 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
   );
   const selectedTemplate = localTemplates.find((template) => template.id === selectedTemplateId) ?? null;
   const scopeLabel = selectedCategory ?? "All Templates";
-  const projectEstimateError = Object.values(projectEstimateErrors)[0] ?? null;
-  const projectOutlineError = Object.values(projectOutlineErrors)[0] ?? null;
 
   const setItems = useCallback((updater: (items: EstimateTemplate[]) => EstimateTemplate[]) => {
     setTemplateState((current) => ({ ...current, items: updater(current.items) }));
   }, []);
-
-
-  const loadProjectEstimates = useCallback((source: ProjectReusableSource) => {
-    if (hasReusableProjectEstimates(localProjectSources, source.projectId)) return;
-    if (projectEstimateLoadedProjectIds.includes(source.projectId)) return;
-    if (projectEstimateLoadingProjectIds.includes(source.projectId)) return;
-
-    setProjectEstimateLoadingProjectIds((current) =>
-      current.includes(source.projectId) ? current : [...current, source.projectId],
-    );
-    setProjectEstimateErrors((current) => {
-      const next = { ...current };
-      delete next[source.projectId];
-      return next;
-    });
-
-    void listReusableProjectEstimateSources({ projectId: source.projectId })
-      .then((result) => {
-        setProjectSourceState((current) => ({
-          ...current,
-          items: mergeReusableProjectEstimateBrowseSources(current.items, result.sources, source.projectId),
-        }));
-        setProjectEstimateLoadedProjectIds((current) =>
-          current.includes(source.projectId) ? current : [...current, source.projectId],
-        );
-      })
-      .catch((error: unknown) => {
-        setProjectEstimateErrors((current) => ({
-          ...current,
-          [source.projectId]: error instanceof Error ? error.message : "Could not load project estimates.",
-        }));
-      })
-      .finally(() => {
-        setProjectEstimateLoadingProjectIds((current) => current.filter((projectId) => projectId !== source.projectId));
-      });
-  }, [localProjectSources, projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds]);
-
-  const loadProjectEstimateOutline = useCallback((source: ProjectEstimateReusableSource) => {
-    if (hasReusableEstimateOutline(localProjectSources, source.estimateId)) return;
-    if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
-
-    setProjectOutlineLoadingEstimateIds((current) =>
-      current.includes(source.estimateId) ? current : [...current, source.estimateId],
-    );
-    setProjectOutlineErrors((current) => {
-      const next = { ...current };
-      delete next[source.estimateId];
-      return next;
-    });
-
-    void getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
-      .then((result) => {
-        setProjectSourceState((current) => ({
-          ...current,
-          items: mergeReusableProjectBrowseSources(current.items, result.sources, source.estimateId),
-        }));
-      })
-      .catch((error: unknown) => {
-        setProjectOutlineErrors((current) => ({
-          ...current,
-          [source.estimateId]: error instanceof Error ? error.message : "Could not load estimate outline.",
-        }));
-      })
-      .finally(() => {
-        setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
-      });
-  }, [localProjectSources, projectOutlineLoadingEstimateIds]);
 
   const selectAll = useCallback(() => {
     setSelectedCategory(null);
@@ -750,10 +605,9 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
     [router, setItems],
   );
 
-  const renameTemplate = useCallback(
-    (template: EstimateTemplate) => {
-      const name = window.prompt("Template name", template.name)?.trim();
-      if (!name || name === template.name) return;
+  const applyRenameTemplate = useCallback(
+    (template: EstimateTemplate, name: string) => {
+      if (name === template.name) return;
       const previous = template;
       setItems((items) => items.map((entry) => (entry.id === template.id ? { ...entry, name } : entry)));
       setStatus({ state: "saving", message: "Renaming template…" });
@@ -771,6 +625,19 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
         });
     },
     [router, setItems],
+  );
+
+  const renameTemplate = useCallback(
+    (template: EstimateTemplate) => {
+      openTextPrompt({
+        title: "Rename template",
+        label: "Template name",
+        confirmLabel: "Rename",
+        initialValue: template.name,
+        onSubmit: (name) => applyRenameTemplate(template, name),
+      });
+    },
+    [applyRenameTemplate, openTextPrompt],
   );
 
   const duplicateTemplate = useCallback(
@@ -819,20 +686,20 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
   const moveTemplatePrompt = useCallback(
     (template: EstimateTemplate) => {
       const otherCategories = categories.filter((category) => category !== template.category);
-      const promptMessage = otherCategories.length
-        ? `Move "${template.name}" to group (existing: ${otherCategories.join(", ")})`
-        : `Move "${template.name}" to group`;
-      const category = window.prompt(promptMessage, template.category)?.trim();
-      if (!category || category === template.category) return;
-      moveTemplateToCategory(template, category);
+      openTextPrompt({
+        title: `Move "${template.name}" to group`,
+        label: otherCategories.length ? `Group (existing: ${otherCategories.join(", ")})` : "Group",
+        confirmLabel: "Move",
+        initialValue: template.category,
+        onSubmit: (category) => moveTemplateToCategory(template, category),
+      });
     },
-    [categories, moveTemplateToCategory],
+    [categories, moveTemplateToCategory, openTextPrompt],
   );
 
-  const renameCategory = useCallback(
-    (category: string) => {
-      const name = window.prompt("Group name", category)?.trim();
-      if (!name || name === category) return;
+  const applyRenameCategory = useCallback(
+    (category: string, name: string) => {
+      if (name === category) return;
       const previousItems = localTemplates;
       setItems((items) => items.map((entry) => (entry.category === category ? { ...entry, category: name } : entry)));
       if (selectedCategory === category) setSelectedCategory(name);
@@ -852,6 +719,19 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
         });
     },
     [localTemplates, router, selectedCategory, setItems],
+  );
+
+  const renameCategory = useCallback(
+    (category: string) => {
+      openTextPrompt({
+        title: "Rename group",
+        label: "Group name",
+        confirmLabel: "Rename",
+        initialValue: category,
+        onSubmit: (name) => applyRenameCategory(category, name),
+      });
+    },
+    [applyRenameCategory, openTextPrompt],
   );
 
   const confirmDeleteTemplate = useCallback(() => {
@@ -891,16 +771,8 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Template library workspace">
         <TemplatesBrowseTreePanel
           templates={localTemplates}
-          projectSources={localProjectSources}
           selectedCategory={selectedCategory}
           selectedTemplateId={selectedTemplateId}
-          projectEstimateLoadingProjectIds={projectEstimateLoadingProjectIds}
-          projectEstimateLoadedProjectIds={projectEstimateLoadedProjectIds}
-          projectEstimateError={projectEstimateError}
-          projectOutlineLoadingEstimateIds={projectOutlineLoadingEstimateIds}
-          projectOutlineError={projectOutlineError}
-          onLoadProjectEstimates={loadProjectEstimates}
-          onLoadProjectEstimateOutline={loadProjectEstimateOutline}
             onSelectAll={selectAll}
             onSelectCategory={selectCategory}
             onSelectTemplate={selectTemplate}
@@ -979,6 +851,35 @@ export function TemplatesBrowseManager({ templates = [], projectSources = [] }: 
           busy={deletePending}
           onConfirm={confirmDeleteTemplate}
         />
+      ) : null}
+
+      {textPrompt ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setTextPrompt(null);
+          }}
+          title={textPrompt.title}
+          description="Enter a new name and confirm to apply."
+          confirmLabel={textPrompt.confirmLabel}
+          onConfirm={submitTextPrompt}
+        >
+          <label className="grid gap-1">
+            <span className="text-[9px] font-medium text-tertiary">{textPrompt.label}</span>
+            <ControlInput
+              aria-label={textPrompt.label}
+              autoFocus
+              value={textPromptValue}
+              onChange={(event) => setTextPromptValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitTextPrompt();
+                }
+              }}
+            />
+          </label>
+        </ConfirmDialog>
       ) : null}
     </div>
   );

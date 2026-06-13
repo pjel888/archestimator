@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
@@ -29,11 +30,11 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-function renderEstimateSheet(selectedNodeId: string) {
+function renderEstimateSheet(selectedNodeId: string, props: Partial<ComponentProps<typeof EstimateSheetContent>> = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetContent selectedNodeId={selectedNodeId} renderSidebar={false} />
+      <EstimateSheetContent selectedNodeId={selectedNodeId} renderSidebar={false} {...props} />
     </QueryClientProvider>,
   );
 }
@@ -419,6 +420,10 @@ describe("estimate sheet cost inputs", () => {
       </QueryClientProvider>,
     );
 
+    const lotHeader = screen.getByRole("button", { name: "Collapse Lot group" }).closest("div");
+    if (!lotHeader) throw new Error("Expected Lot group header to render.");
+    expect(lotHeader).toHaveClass("bg-neutral-50");
+    expect(lotHeader).not.toHaveClass("bg-surfaceMuted");
     expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-4");
     expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-4");
   });
@@ -658,11 +663,16 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("removes the active group context and moves the project total out of the estimate footer", () => {
-    renderEstimateSheet("living-area");
+    renderEstimateSheet("living-area", {
+      activeTabId: "tab-main",
+      estimateTabs: [{ id: "tab-main", name: "Main", sortOrder: 0, isDefault: true }],
+    });
 
     expect(screen.queryByLabelText("Active estimate group context")).not.toBeInTheDocument();
 
     const actionHeader = screen.getByLabelText("Tab controls");
+    const tabList = screen.getByRole("tablist", { name: "Estimate tabs" });
+    expect(actionHeader.compareDocumentPosition(tabList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(actionHeader).queryByRole("heading", { name: "Sheet" })).not.toBeInTheDocument();
     expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();
     expect(within(actionHeader).queryByLabelText("Search Tab")).not.toBeInTheDocument();
