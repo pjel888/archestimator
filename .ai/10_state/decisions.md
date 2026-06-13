@@ -1,5 +1,45 @@
 # Decisions
 
+## 2026-06-13 - Project-local shadcn/improve plan routing
+
+**Decision:** Add a project-local `.agents/skills/improve/SKILL.md` adapter for
+`shadcn/improve`. It preserves the upstream advisor-plan workflow but overrides
+the default root `plans/` output path. Improve-generated plan packs in
+Archestimator must live under `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/` and
+follow the project-local Archestimator plan template.
+
+**Rationale:** Upstream `shadcn/improve` writes to root `plans/` and treats
+that folder as its backlog. Archestimator already uses `.ai/03_plans` as the
+canonical planning surface, with source-of-truth sync, proof-boundary language,
+approval gates, and archived/superseded plan discipline. A repo-local adapter
+keeps the skill useful without creating a competing planning silo.
+
+**Follow-up:** Do not edit the global installed skill in `~/.agents` as the
+source of truth. If future agents run `/improve`, they should load the
+project-local adapter first and treat any upstream `plans/` instruction as
+overridden for this repo.
+
+## 2026-06-13 - Advisory response economy overlay
+
+**Decision:** Add response economy guidance to
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md` as an advisory overlay. Agents
+should prefer targeted diffs over full rewrites, concise progress over repeated
+narration, compact final reports, and batched safe edits, but they should not
+turn open-ended work into a forced approval workflow when the active prompt is
+clear and reversible.
+
+**Rationale:** The external token-economy guidance has useful habits, but its
+hard "wait for selection" and "override all modes" framing conflicts with the
+Archestimator autonomy, verification, provider-gate, routing, and `.ai`
+source-of-truth hierarchy. The project needs lower token waste without
+reintroducing always-on ceremony.
+
+**Follow-up:** Keep this overlay subordinate to autonomy, verification,
+provider approval gates, agent-routing hierarchy, and current `.ai`
+source-of-truth rules. Do not install a vendor-specific token-economy skill as
+an enforcing policy unless a later owner-approved framework change explicitly
+supersedes this decision.
+
 ## 2026-06-12 - Lean agent mandate and shared agent assets
 
 **Decision:** Replace always-on workflow mandates with proportional execution.

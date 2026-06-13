@@ -11,6 +11,14 @@ requirements. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` and
 Shared agent/project intelligence should travel through Git via `.ai/`,
 `.codex/`, `.agents/`, `.claude/`, `.cursor/`, and `.commandcode/`, while
 runtime/cache/session/worktree state remains local-only through `.gitignore`.
+A response-economy overlay is now part of
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: agents should prefer targeted
+diffs, concise progress, compact final reports, and batched safe edits, but the
+overlay is advisory only and never overrides autonomy, verification, provider
+approval gates, routing hierarchy, or `.ai` source-of-truth rules.
+Advisor-style planning tools, including `shadcn/improve`, are now routed through
+the project-local `.agents/skills/improve/SKILL.md` adapter and must write plan
+packs to `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/` rather than root `plans/`.
 
 **Multi-agent loop orchestration mandate added (2026-06-12 local, branch `main`):**
 The lean mandate now explicitly prefers multi-agent orchestration whenever work

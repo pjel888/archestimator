@@ -23,6 +23,38 @@ truth docs, package/runtime facts, and graph/index evidence when it is useful.
 For agent-framework, payload, harness, multi-agent, evidence, provider-proof,
 or run-log work, also follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 
+## Response economy overlay
+
+Use response economy as an advisory execution habit, not as a separate workflow
+or approval gate. Prefer targeted diffs over full rewrites, concise progress
+updates over repeated narration, and compact final reports that name the result,
+evidence, validation gaps, and changed files.
+
+For broad or open-ended requests, scope the work before editing and surface
+options only when the choice materially changes risk, cost, behavior, approval
+boundaries, or implementation direction. Do not pause for option selection when
+the task is clear, reversible, and already authorized by the active prompt.
+
+Batch related safe edits when it reduces churn, but checkpoint verification
+whenever risk, shared files, auth, data integrity, provider behavior, or UI
+surface proof requires it.
+
+This overlay never overrides autonomy, verification, provider approval gates,
+agent-routing hierarchy, or current `.ai` source-of-truth rules.
+
+## Advisor plan output
+
+Advisor-style planning tools, including `shadcn/improve`, must write durable
+Archestimator plans under `.ai/03_plans/<YYYY-MM-DD>-<topic-slug>/`. They must
+not create root `plans/` or a parallel advisor backlog for this repo.
+
+Improve-generated plans must follow the project-local adapter at
+`.agents/skills/improve/SKILL.md` when available, use `.ai/03_plans/README.md`
+as the plan-folder contract, and update `.ai/10_state/*` or the narrowest
+canonical `.ai` doc when plan work changes project truth. If an external skill
+or tool says to use another folder, treat that as an adapter default overridden
+by Archestimator's `.ai` source-of-truth policy.
+
 ## Self-diagnostic trigger
 
 If Philip says the agent is getting worse, confused, stale, not following instructions, or repeating mistakes, stop the normal workflow and run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before planning or coding. This is not optional cleanup; it is the recovery path for protecting project quality.
