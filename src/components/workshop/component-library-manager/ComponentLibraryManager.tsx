@@ -1113,6 +1113,11 @@ export function ComponentLibraryManager({
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
   const [addComponentOpen, setAddComponentOpen] = useState(false);
+  // Library Optimization Plan P1 T8 (F23): the Overview "Add component" CTA navigates
+  // here with ?add=component; open the Add Component modal once on arrival instead of
+  // just landing on the tab. Ref-guarded so it does not re-open on re-render.
+  const addParamHandledRef = useRef(false);
+  const addComponentSearchParams = useSearchParams();
   const [libraryItemState, setLibraryItemState] = useState<{ source: EstimateRowItem[]; items: EstimateRowItem[] }>(() => ({
     source: libraryItems,
     items: libraryItems,
@@ -1180,6 +1185,14 @@ export function ComponentLibraryManager({
     addButtonReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setAddComponentOpen(true);
   }
+
+  useEffect(() => {
+    if (addParamHandledRef.current) return;
+    if (addComponentSearchParams?.get("add") === "component") {
+      addParamHandledRef.current = true;
+      setAddComponentOpen(true);
+    }
+  }, [addComponentSearchParams]);
 
   function setAddComponentOpenWithFocus(open: boolean) {
     setAddComponentOpen(open);
