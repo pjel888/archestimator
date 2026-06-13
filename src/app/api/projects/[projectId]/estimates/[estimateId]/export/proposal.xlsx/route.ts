@@ -128,6 +128,8 @@ function createXlsxResponse(buffer: Buffer, filename: string) {
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Content-Length": String(buffer.byteLength),
       "Cache-Control": "private, no-store",
+      // F-33 (P2-T8): stop content-type sniffing on the binary download.
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
@@ -416,6 +418,11 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
     if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, exportContext);
     return await buildAllTabsResponse(projectId, estimateId, tabs, exportContext);
   } catch (error) {
+    // F-33 (P2-T8): a malformed estimate/tab id reaches Postgres as an invalid uuid (SQLSTATE
+    // 22P02) — surface that as a clean 400 instead of a 500. No pre-validation, so it doesn't
+    // disturb the mocked-id test fixtures; the real DB raises 22P02 in production.
+    const errorCode = error && typeof error === "object" && "code" in error ? (error as { code?: unknown }).code : undefined;
+    const isInvalidIdentifier = errorCode === "22P02";
     logProposalExport({
       estimateId,
       tabCount: 0,
@@ -425,8 +432,8 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
       message: error instanceof Error ? error.message : String(error),
     });
     return NextResponse.json(
-      { error: "Failed to generate the spreadsheet export. Please try again." },
-      { status: 500 },
+      { error: isInvalidIdentifier ? "Invalid estimate or tab identifier." : "Failed to generate the spreadsheet export. Please try again." },
+      { status: isInvalidIdentifier ? 400 : 500 },
     );
   }
 }

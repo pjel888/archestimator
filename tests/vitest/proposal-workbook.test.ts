@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import {
   BID_FORM_COLUMNS,
+  BID_FORM_COLUMN_LETTERS,
   createProposalWorkbook,
   createProposalWorkbookBuffer,
 } from "@/lib/proposal-export/create-proposal-workbook";
@@ -515,5 +516,18 @@ describe("proposal workbook generation", () => {
     expect(bidForm?.getCell("H19").value).toBe(21_700);
     // The Summary Grand Total is a static value too.
     expect(summary?.getCell("B20").value).toBe(26_734.4);
+  });
+
+  it("derives Bid Form formula columns from BID_FORM_COLUMNS so a reorder can't break them (P2-T8, F-21)", () => {
+    const model = buildProposalExportModel({ metadata, nodes: modelTree(), settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const bidForm = createProposalWorkbook(model).getWorksheet("Bid Form");
+    const col = BID_FORM_COLUMN_LETTERS;
+
+    const lineTotal = bidForm?.getCell("H19").value as { formula: string };
+    expect(lineTotal.formula).toContain(`${col.quantity}19*${col.costTotal}19`);
+    expect(lineTotal.formula).toContain(`${col.scope}19="EXCLUDED"`);
+
+    const costTotal = bidForm?.getCell("G19").value as { formula: string };
+    expect(costTotal.formula).toBe(`${col.material}19+${col.labor}19`);
   });
 });

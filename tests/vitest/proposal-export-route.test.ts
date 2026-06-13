@@ -532,6 +532,27 @@ describe("proposal xlsx export route", () => {
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
+  it("returns 400 (not 500) for a malformed identifier via the Postgres 22P02 error (P2-T8, F-33)", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.getProjectEstimateTreeByEstimate.mockRejectedValueOnce({ code: "22P02", message: "invalid input syntax for type uuid" });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/identifier/i);
+    errorSpy.mockRestore();
+  });
+
+  it("sets X-Content-Type-Options nosniff on the download (P2-T8, F-33)", async () => {
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
   it("sanitizes workbook filenames for content-disposition", () => {
     expect(buildProposalWorkbookFilename("Synthetic Hotel / Tower?", "EST:001")).toBe(
       "Synthetic-Hotel-Tower-EST-001-proposal.xlsx",
