@@ -18,6 +18,10 @@ import {
   isPasswordLocked,
   recordPasswordFailure,
   recordPasswordSuccess,
+  // AC-MOD-15 (MOD-PW-02 / MOD-PW-05) — normalize + min-length
+  MIN_PUBLICATION_PASSWORD_LENGTH,
+  normalizePublicationPassword,
+  validatePublicationPassword,
 } from "@/lib/publication/security";
 
 describe("project publication security helpers (Shared Link V2)", () => {
@@ -113,6 +117,69 @@ describe("project publication security helpers (Shared Link V2)", () => {
   });
 
   // (end of original describe)
+});
+
+// ============================================================================
+// AC-MOD-15 (MOD-PW-02 + MOD-PW-05) — shared password normalize + min-length
+// normalizePublicationPassword trims + NFC; hash/verify normalize identically so
+// padded input round-trips against the same stored hash (no migration needed —
+// existing hashes were created from UI-trimmed input). validatePublicationPassword
+// enforces a 4-char minimum measured on the normalized value.
+// ============================================================================
+describe("AC-MOD-15 — shared publication password normalize + min-length", () => {
+  it("normalizePublicationPassword trims surrounding whitespace and applies NFC", () => {
+    expect(normalizePublicationPassword("  hunter2  ")).toBe("hunter2");
+    expect(normalizePublicationPassword("\thunter2\n")).toBe("hunter2");
+    // NFC: a decomposed "é" (e + U+0301) normalizes to the precomposed code point.
+    expect(normalizePublicationPassword("café")).toBe("café");
+    // ASCII without padding is unchanged (NFC is a no-op for ASCII).
+    expect(normalizePublicationPassword("hunter2")).toBe("hunter2");
+  });
+
+  it("hash/verify normalize identically so padded and unpadded input verify against one stored hash", async () => {
+    // The hash is created from a PADDED password, mirroring a second/internal caller that did
+    // not trim. Because hashPublicationPassword normalizes internally, the stored hash is for the
+    // trimmed value — so BOTH the padded and the clean input must verify against it.
+    const storedHash = await hashPublicationPassword("  client-pass  ", {
+      saltBytes: () => Buffer.alloc(16, 9),
+    });
+
+    // A separately-created hash from the already-trimmed value must produce a hash that the
+    // padded input also verifies against (proves normalization happens on both sides).
+    const trimmedHash = await hashPublicationPassword("client-pass", {
+      saltBytes: () => Buffer.alloc(16, 9),
+    });
+    expect(storedHash).toBe(trimmedHash);
+
+    // Padded input verifies against the stored hash.
+    await expect(verifyPublicationPassword("  client-pass  ", storedHash)).resolves.toBe(true);
+    // Unpadded (clean) input verifies against the SAME stored hash.
+    await expect(verifyPublicationPassword("client-pass", storedHash)).resolves.toBe(true);
+    // A genuinely different password still fails.
+    await expect(verifyPublicationPassword("client-pass-wrong", storedHash)).resolves.toBe(false);
+  });
+
+  it("validatePublicationPassword rejects fewer than the minimum and accepts at least the minimum", () => {
+    expect(MIN_PUBLICATION_PASSWORD_LENGTH).toBe(4);
+
+    expect(validatePublicationPassword("a")).toEqual({
+      ok: false,
+      message: "Password must be at least 4 characters.",
+    });
+    expect(validatePublicationPassword("abc")).toEqual({
+      ok: false,
+      message: "Password must be at least 4 characters.",
+    });
+    // Length is measured AFTER trim — padding around a short password does not satisfy it.
+    expect(validatePublicationPassword("  ab  ")).toEqual({
+      ok: false,
+      message: "Password must be at least 4 characters.",
+    });
+    // Exactly the minimum passes.
+    expect(validatePublicationPassword("abcd")).toEqual({ ok: true });
+    // Longer passes; padding is trimmed first but still leaves >= minimum.
+    expect(validatePublicationPassword("  abcdef  ")).toEqual({ ok: true });
+  });
 });
 
 // ============================================================================

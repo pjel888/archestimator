@@ -100,6 +100,26 @@ export function readPublicationAccessCookieSecret() {
   return readPublicationTokenHashSecret();
 }
 
+// AC-MOD-15 (MOD-PW-02): canonical form for every publication password before it is hashed or
+// verified — Unicode NFC plus a surrounding-whitespace trim. The modal already trims its input,
+// so applying the same normalization INSIDE hash/verify means every caller (create / republish /
+// rotate AND the recipient verify path) produces and checks the identical canonical string. NFC is
+// a no-op for ASCII, and existing stored hashes were created from UI-trimmed input, so verifying a
+// normalized recipient submission against them still matches — no migration required.
+export function normalizePublicationPassword(raw: string): string {
+  return raw.normalize("NFC").trim();
+}
+
+// AC-MOD-15 (MOD-PW-05): minimum length enforced when SETTING a password (never on verify/clear).
+export const MIN_PUBLICATION_PASSWORD_LENGTH = 4;
+
+export function validatePublicationPassword(raw: string): { ok: true } | { ok: false; message: string } {
+  if (normalizePublicationPassword(raw).length >= MIN_PUBLICATION_PASSWORD_LENGTH) {
+    return { ok: true };
+  }
+  return { ok: false, message: "Password must be at least 4 characters." };
+}
+
 export async function hashPublicationPassword(
   password: string,
   {
@@ -108,8 +128,10 @@ export async function hashPublicationPassword(
     saltBytes?: RandomBytes;
   } = {},
 ) {
+  // Normalize before hashing so padded/decomposed input stores the same canonical hash (AC-MOD-15).
+  const normalized = normalizePublicationPassword(password);
   const salt = saltBytes(16);
-  const hash = (await scryptAsync(password, salt, 32)) as Buffer;
+  const hash = (await scryptAsync(normalized, salt, 32)) as Buffer;
   return `${passwordHashPrefix}:${toBase64Url(salt)}:${toBase64Url(hash)}`;
 }
 
@@ -117,7 +139,10 @@ export async function verifyPublicationPassword(password: string, passwordHash: 
   const [prefix, salt, expected] = passwordHash.split(":");
   if (prefix !== passwordHashPrefix || !salt || !expected) return false;
 
-  const actual = (await scryptAsync(password, fromBase64Url(salt), 32)) as Buffer;
+  // Normalize identically to hashing so a padded/decomposed recipient submission still matches the
+  // canonical stored hash (AC-MOD-15). No length gate here — old/short passwords must still verify.
+  const normalized = normalizePublicationPassword(password);
+  const actual = (await scryptAsync(normalized, fromBase64Url(salt), 32)) as Buffer;
   return constantTimeEqual(actual, fromBase64Url(expected));
 }
 

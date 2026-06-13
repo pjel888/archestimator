@@ -341,7 +341,19 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
       Date.parse(latestRecipientOpen.openedAt) >= Date.parse(latestAnonymousOpenedAt));
   const statusLabel = readPublicationStatusLabel(effectiveStatus);
   const absoluteClientLink = clientLinkPath && browserOrigin ? `${browserOrigin}${clientLinkPath}` : clientLinkPath;
-  const passwordStateLabel = requirePassword ? "Password on" : "Open access";
+  // AC-MOD-16 (MOD-PW-03): the chip reflects the SAVED server state, never the optimistic draft, so
+  // it does not flip to "Open access" the instant the box is unchecked. Source of truth is the actual
+  // server value — `summary?.passwordRequired` — which equals the reconciled effective value when no
+  // optimistic owner action is in flight, and stays on server truth while only the draft has changed.
+  const serverPasswordRequired = Boolean(summary?.passwordRequired);
+  const passwordStateLabel = serverPasswordRequired ? "Password on" : "Open access";
+  // AC-MOD-16 (MOD-PWDRAFT-CHECK-02): the Access tab's password draft is "unsaved" when it diverges
+  // from the saved server state — the require toggle differs, or a new password is typed while the
+  // box is checked. (Clearing/typing on an open link with the box unchecked is covered by the toggle
+  // comparison.) Only meaningful while there is a draft for this summary.
+  const passwordDraftDirty =
+    hasPasswordDraft &&
+    (requirePassword !== serverPasswordRequired || (requirePassword && password.trim().length > 0));
   const passwordRequiredForSubmit = requirePassword && !effectivePasswordRequired && !password.trim();
 
   function markSharedLinkActivitySeen() {
@@ -725,7 +737,21 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
               {activeTab === "access" && (
                 <div className="space-y-3">
-                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Access</h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Access</h3>
+                    {/* AC-MOD-16 (MOD-PWDRAFT-CHECK-02): same unsaved-hint styling as the Estimates tab
+                        (AC-MOD-14) — surfaces a pending password change before Update is pressed. */}
+                    {passwordDraftDirty && (
+                      <span className="text-[9px] font-medium leading-3 text-warning" role="status">
+                        Unsaved — Update to apply
+                      </span>
+                    )}
+                  </div>
+                  {/* AC-MOD-16 (MOD-PW-04): state the SAVED server password state explicitly so a
+                      checked box with a blank field is never ambiguous about whether one is set. */}
+                  <p className="text-[10px] leading-3 text-secondary" role="status">
+                    {serverPasswordRequired ? "Password is currently set" : "No password set"}
+                  </p>
                   <label className="flex min-h-7 items-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary transition hover:border-tertiary cursor-pointer">
                     <input
                       type="checkbox"

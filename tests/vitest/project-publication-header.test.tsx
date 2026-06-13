@@ -1246,6 +1246,135 @@ describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => 
   });
 });
 
+// AC-MOD-16 (MOD-PW-03 + MOD-PW-04 + MOD-PWDRAFT-CHECK-02) — password-state clarity.
+// The Link-tab chip must reflect SERVER truth (summary.passwordRequired), not the optimistic
+// draft. The Access tab must show a "currently set" / "no password set" line from server truth
+// plus an "Unsaved — Update to apply" cue when the draft diverges from the saved state.
+describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    publicationActions.createProjectPublication.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockReset();
+    publicationActions.republishProjectPublication.mockReset();
+    publicationActions.revokeProjectPublication.mockReset();
+    publicationActions.rotateProjectPublicationLink.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn(async () => undefined) },
+    });
+  });
+
+  // MOD-PW-03 — the chip tracks the SAVED server state, not the unsaved draft.
+  // Non-vacuous: the summary has passwordRequired:true; after the owner unchecks "Require
+  // password" (draft → open) the chip must STILL read "Password on" because nothing was saved.
+  // If the chip read the draft it would flip to "Open access" instantly — this asserts it does not.
+  it("keeps the Link-tab chip on server truth ('Password on') after the draft toggles password off", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // Server truth: a password is set → chip reads "Password on".
+    expect(within(dialog).getByText("Password on")).toBeInTheDocument();
+
+    // Owner unchecks "Require password" on the Access tab (optimistic draft only — not saved).
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByLabelText("Require password"));
+
+    // Back on the Link tab the chip must STILL show server truth until Update is pressed.
+    await user.click(within(dialog).getByRole("tab", { name: "Link" }));
+    expect(within(dialog).getByText("Password on")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Open access")).not.toBeInTheDocument();
+  });
+
+  // The mirror: an open-access link's chip reads "Open access" even after the draft enables one.
+  it("keeps the chip on 'Open access' (server truth) after the draft enables a password", async () => {
+    const user = userEvent.setup();
+    const openSummary: ProjectPublicationSummary = { ...publicationSummary, passwordRequired: false };
+    render(<ProjectPublicationHeader summary={openSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    expect(within(dialog).getByText("Open access")).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByLabelText("Require password"));
+    await user.type(within(dialog).getByLabelText("Link password"), "new-pass");
+
+    await user.click(within(dialog).getByRole("tab", { name: "Link" }));
+    // The saved state is still open → chip unchanged until Update.
+    expect(within(dialog).getByText("Open access")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Password on")).not.toBeInTheDocument();
+  });
+
+  // MOD-PW-04 — Access tab states the current SAVED password state explicitly.
+  it("shows 'Password is currently set' on the Access tab when the summary has a password", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+
+    expect(within(dialog).getByText("Password is currently set")).toBeInTheDocument();
+    expect(within(dialog).queryByText("No password set")).not.toBeInTheDocument();
+  });
+
+  it("shows 'No password set' on the Access tab for an open-access summary", async () => {
+    const user = userEvent.setup();
+    const openSummary: ProjectPublicationSummary = { ...publicationSummary, passwordRequired: false };
+    render(<ProjectPublicationHeader summary={openSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+
+    expect(within(dialog).getByText("No password set")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Password is currently set")).not.toBeInTheDocument();
+  });
+
+  // MOD-PWDRAFT-CHECK-02 — an "Unsaved — Update to apply" cue when the draft diverges from
+  // the saved state. Starts hidden (draft matches server), shows when the box is unchecked
+  // (server has a password but the draft would remove it), and hides again when re-checked.
+  it("toggles the Access-tab 'Unsaved' password cue as the draft diverges from / matches the saved state", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+
+    // Initially the draft matches the saved state (require=on, no new password typed) → no cue.
+    const accessPanel = within(dialog).getByRole("tabpanel");
+    expect(within(accessPanel).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
+
+    // Uncheck "Require password" → the draft (open) diverges from the saved (protected) state.
+    await user.click(within(dialog).getByLabelText("Require password"));
+    expect(within(accessPanel).getByText("Unsaved — Update to apply")).toBeInTheDocument();
+
+    // Re-check → draft matches the saved state again → cue hides.
+    await user.click(within(dialog).getByLabelText("Require password"));
+    expect(within(accessPanel).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
+  });
+
+  it("shows the 'Unsaved' password cue when a new password is typed for an already-protected link", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+
+    const accessPanel = within(dialog).getByRole("tabpanel");
+    // Require stays checked (matches server) but a new password typed = a pending change.
+    expect(within(accessPanel).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Link password"), "rotated-secret");
+    expect(within(accessPanel).getByText("Unsaved — Update to apply")).toBeInTheDocument();
+  });
+});
+
 // AC-MOD-11 — keyboard + ARIA tabpanel wiring for the publication-manager tab strip.
 describe("ProjectPublicationHeader tab a11y (AC-MOD-11)", () => {
   beforeEach(() => {
