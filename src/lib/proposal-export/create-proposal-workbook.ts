@@ -13,6 +13,17 @@ function rateDecimal(rate: number) {
   return String(rate / 100);
 }
 
+// P2-T5/F-09: section division letter by position — 0→A, 25→Z, 26→AA, … (Excel-column style).
+function divisionLetter(index: number) {
+  let n = index;
+  let letter = "";
+  do {
+    letter = String.fromCharCode(65 + (n % 26)) + letter;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letter;
+}
+
 export type ProposalWorkbookColumn = {
   key: string;
   header: string;
@@ -240,9 +251,11 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   }
   const sectionRanges: BidSectionRange[] = [];
 
-  for (const summaryRow of model.summaryRows) {
+  model.summaryRows.forEach((summaryRow, sectionIndex) => {
     const sectionRows = model.proposalRows.filter((proposalRow) => proposalRow.sectionKey === summaryRow.sectionKey);
-    const sectionRow = worksheet.addRow([summaryRow.sectionLabel]);
+    // P2-T5/F-09: the section header carries the division letter; its rows are numbered 1..k
+    // (restarting per section) by renumberProposalRows.
+    const sectionRow = worksheet.addRow([`${divisionLetter(sectionIndex)}  ${summaryRow.sectionLabel}`]);
     sectionRow.font = { bold: true, size: 10, color: { argb: "FF111827" } };
     sectionRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
     worksheet.mergeCells(sectionRow.number, 1, sectionRow.number, BID_FORM_COLUMNS.length);
@@ -297,7 +310,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
       subtotalRowNumber: subtotalRow.number,
       subtotalResult: summaryRow.costAmount,
     });
-  }
+  });
 
   setPrintLayout(worksheet);
   worksheet.pageSetup.printTitlesRow = `${DETAIL_HEADER_ROW}:${DETAIL_HEADER_ROW}`;
