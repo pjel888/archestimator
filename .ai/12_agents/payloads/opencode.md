@@ -13,6 +13,10 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Shared rules live in `.ai/00_system`. If this payload conflicts with
 `.ai/00_system`, `.ai` wins.
+Loop-engineered product work follows the shared `.ai/00_system` sequence:
+discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
+execution, maker/checker verification, real-surface proof, durable memory, and
+next decision.
 
 ## Reading Chain
 

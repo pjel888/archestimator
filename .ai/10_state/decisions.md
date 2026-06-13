@@ -114,6 +114,35 @@ or marketing/support copy until Phase 6 export parity has local and provider-bac
 proof. Continue preserving legacy estimate-wide fallback behavior before linked
 Supabase apply/typegen is owner-authorized.
 
+## 2026-06-13 - Loop-engineered product development mandate
+
+**Decision:** Treat non-trivial product development as loop engineering rather
+than prompt-by-prompt prompting. The default loop is current-state audit,
+dated `.ai/03_plans` plan pack, source-backed `.ai/13_research`, execution
+through the narrowest adequate loop surface, maker/checker verification,
+real-surface proof, durable state, and next-iteration decision.
+
+**Rationale:** Addy Osmani's 2026-06-07 loop-engineering framing matches the
+repo's agentic workflow direction: the system should discover work, hand it out,
+check it, remember what happened, and decide the next step. Archestimator already
+has local workflow surfaces that map to this pattern: `ultrawork` for parallel
+lanes, `ultragoal` for durable goal execution, `omo:ulw-loop` for
+criterion-led real-surface evidence, `autopilot` for the full lifecycle,
+`omo:ultraresearch` for exhaustive research, `ultraqa` for adversarial QA, and
+`vercel:agent-browser` for browser proof.
+
+**Follow-up:** Keep this mandate agent-neutral and proportional. Claude, Codex,
+OpenCode, CommandCode, Antigravity, Kimi, DeepSeek, Cursor, Gemini if
+explicitly reapproved, and future agents must all follow `.ai/00_system` as the
+shared authority. Tool payloads and connector-specific prompts are adapters
+only. Direct execution is still correct for narrow reversible fixes. Broad,
+ambiguous, research-heavy, user-facing, provider-facing, or multi-lane work must
+preserve the loop spine in durable repo/runtime artifacts before claiming
+completion. Canonical plan pack:
+`.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/`; companion
+research note:
+`.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+
 ## 2026-06-12 - Lean agent mandate and shared agent assets
 
 **Decision:** Replace always-on workflow mandates with proportional execution.

@@ -6,6 +6,13 @@ Shared framework rules live in `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 Payloads in `payloads/` are thin role-specific adapters and must not fork
 project policy.
 
+All agents and harnesses inherit the same loop-engineered product-development
+mandate from `.ai/00_system`: discover current reality, plan in `.ai/03_plans`,
+research uncertain claims in `.ai/13_research`, execute through the narrowest
+adequate loop surface, verify with maker/checker and real-surface evidence,
+persist state outside chat, then decide the next iteration. Tool-specific
+features translate this loop; they do not replace it.
+
 ## Roster
 
 | Agent/harness | Status | Primary lane | Notes |
@@ -28,6 +35,9 @@ project policy.
 - Give write-capable agents disjoint scopes and isolated branches/worktrees.
 - Keep read-only reviewers read-only.
 - The lead owns integration, validation, evidence, and final status.
+- The lead maps agent-specific features to the shared loop surfaces: direct
+  execution, parallel lanes, durable goal state, exhaustive research,
+  adversarial QA, browser proof, and provider/manual proof.
 - Provider, GitHub settings, Notion mutation, paid add-ons, and destructive
   actions require action-specific authority and proof logging.
 

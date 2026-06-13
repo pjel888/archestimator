@@ -150,6 +150,30 @@ write scope, validation, expected output, and escalation rules. The lead owns
 integration and final verification.
 ```
 
+## Loop-Engineered Product Development
+
+Target agents: lead/Codex/Claude/OpenCode/CommandCode/Antigravity/Kimi/DeepSeek.
+Mode: plan-only, implementation, review, or provider-proof by phase.
+
+```txt
+Use the common header. Treat the work as a loop, not a single prompt:
+1. audit current repo/provider truth;
+2. create or update the dated .ai/03_plans plan pack;
+3. research uncertain claims into .ai/13_research with source dates;
+4. choose the loop surface: direct, ultrawork, ultragoal, omo:ulw-loop,
+   autopilot, omo:ultraresearch, ultraqa, vercel:agent-browser, or an
+   equivalent surface in the active coding agent;
+5. execute the next smallest coherent step;
+6. verify through the matching real surface and maker/checker separation;
+7. persist evidence and decide the next iteration.
+Tool-specific payloads are adapters only. Claude, Codex, OpenCode, CommandCode,
+Antigravity, Kimi, DeepSeek, Cursor where approved, Gemini only if explicitly
+reapproved, and future agents must all follow .ai/00_system as the shared
+authority. Do not claim completion from chat memory, worker self-report, or
+tests alone when the behavior requires browser, HTTP, provider, DB, CLI, or
+manual proof.
+```
+
 ## Read-Only Audit
 
 Target agents: any reviewer. Mode: read-only.

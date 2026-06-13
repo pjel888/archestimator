@@ -1,5 +1,37 @@
 # Execution Ledger
 
+## 2026-06-13 - Loop-engineering mandate and research update
+
+**Type:** documentation, governance, research
+
+**Decision context:** Philip requested that the normal Archestimator product
+development flow move beyond one-off prompting toward loop engineering, while
+preserving the existing `.ai/03_plans` audit/plan-pack habit and research-driven
+iteration across Claude, Codex, OpenCode, Gemini/Antigravity-style agents, and
+other coding-agent adapters.
+
+**Deliverables:**
+
+- Updated root and `.ai/00_system` agent mandate docs so non-trivial product
+  work follows a discover -> plan -> research -> execute -> verify -> remember
+  -> iterate loop.
+- Made the loop mandate explicitly agent-neutral: tool-specific payloads,
+  skills, prompts, and connectors adapt the loop but do not fork policy.
+- Created and archived
+  `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` as
+  the canonical plan pack for this completed governance update.
+- Created `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`
+  as the source-dated research note for Addy Osmani's loop-engineering framing
+  and the local workflow-surface mapping.
+- Cross-linked the mandate through current-state, decisions, plan index,
+  research README, reusable workflow templates, and skill docs.
+
+**Validation:** Documentation-only validation: referenced-path checks and
+`git diff --check`.
+
+**Remaining risk:** No provider, GitHub, Vercel, browser runtime, or production
+proof was attempted because this update changes repo-local governance docs only.
+
 ## 2026-05-17 — Reset cleanup after rejected prototype
 
 **Type:** destructive pre-MVP cleanup, docs rebaseline, validation

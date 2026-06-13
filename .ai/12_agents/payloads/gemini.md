@@ -13,6 +13,10 @@ Fail-safe: fail closed because this lane is deprecated unless explicitly reappro
 
 Gemini is fail-closed for Archestimator. Shared rules live in `.ai/00_system`;
 this payload exists to prevent accidental routing drift.
+If Gemini is explicitly reapproved for a task, loop-engineered product work
+follows the shared `.ai/00_system` sequence: discover/audit, `.ai/03_plans`
+plan pack, `.ai/13_research` research, loop execution, maker/checker
+verification, real-surface proof, durable memory, and next decision.
 
 ## Reading Chain
 

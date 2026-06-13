@@ -18,5 +18,13 @@ model/effort tier, loop role, and whether parallel execution is worth the token
 cost. Payloads may declare defaults and constraints, but they must not fork that
 policy.
 
+All payloads also inherit the loop-engineering contract from
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: non-trivial product work follows
+discover/audit -> `.ai/03_plans` plan pack -> `.ai/13_research` research ->
+loop execution -> maker/checker verification -> real-surface proof -> durable
+memory -> next decision. Claude, Codex, OpenCode, CommandCode, Antigravity,
+Kimi, DeepSeek, Cursor where approved, Gemini only if explicitly reapproved,
+and future payloads must map their local capabilities back to that shared loop.
+
 Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent
 payloads must still state their fail-closed behavior.

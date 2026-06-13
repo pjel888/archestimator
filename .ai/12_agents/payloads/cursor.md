@@ -13,6 +13,10 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Cursor is not an autonomous Archestimator agent lane by default. `.cursor/` is a
 config adapter. Shared rules live in `.ai/00_system`.
+If Cursor is explicitly approved for a task, loop-engineered product work
+follows the shared `.ai/00_system` sequence: discover/audit, `.ai/03_plans`
+plan pack, `.ai/13_research` research, loop execution, maker/checker
+verification, real-surface proof, durable memory, and next decision.
 
 ## Reading Chain
 

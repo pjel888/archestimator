@@ -17,8 +17,16 @@ or missing required routing metadata
 Shared rules live in `.ai/00_system`. This payload may add role-specific
 constraints only. If this payload conflicts with `.ai/00_system`, `.ai` wins.
 The active lead orchestrator chooses whether this lane participates in
-`ultrawork`, `ultragoal`, `team`, `autopilot`, `ultraqa`, Browser/manual proof,
-or direct execution.
+direct execution, `ultrawork`, `ultragoal`, `omo:ulw-loop`, `team`,
+`autopilot`, `omo:ultraresearch`, `ultraqa`, `vercel:agent-browser`,
+provider/manual proof, or an agent-specific equivalent that preserves the same
+loop contract.
+
+Loop-engineered product work follows the shared sequence: discover/audit,
+`.ai/03_plans` plan pack, `.ai/13_research` research, loop execution,
+maker/checker verification, real-surface proof, durable memory, then next
+decision. This sequence is agent-neutral; the payload adapts it to this agent's
+capabilities but does not fork it.
 
 ## Reading Chain
 

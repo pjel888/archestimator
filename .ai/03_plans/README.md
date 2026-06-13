@@ -30,6 +30,11 @@ Active/current plans:
 
 Archived closeout / superseded plans:
 
+- `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` —
+  implemented docs/governance plan pack that upgraded the
+  agent/product-development mandate from prompt-by-prompt work toward
+  agent-neutral loop-engineered development. Companion research note:
+  `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
 - `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/` — cleanup archive containing:
   - `current-post-reset-workshop-slice.md` — early workshop/projects/components route slice orientation.
   - `estimate-line-items-library-tree-plan.md` — planning for estimate line items and library tree integration.
@@ -89,6 +94,12 @@ A new plan must state:
 - files expected to change;
 - validation gate;
 - deletion criteria if Philip rejects the direction.
+- loop surface selection when the work is non-trivial: direct, `ultrawork`,
+  `ultragoal`, `omo:ulw-loop`, `autopilot`, `ultraqa`,
+  `omo:ultraresearch`, `vercel:agent-browser`, or an agent-neutral equivalent;
+- durable state/evidence path: `.ai` plan, `.ai/13_research` note,
+  `.ai/05_logs` run log, `.omx`/`.omo` ledger, provider proof packet, or issue
+  tracker link.
 
 Do not create broad route families, dashboards, proposal systems, component libraries, grids, or persistence layers without explicit approval in the plan.
 
