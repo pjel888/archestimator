@@ -173,10 +173,11 @@ function setPrintLayout(worksheet: ExcelJS.Worksheet) {
 }
 
 function addGeneralNotes(worksheet: ExcelJS.Worksheet, options: { includeLaborDisclaimer: boolean }) {
-  worksheet.addRow([]);
+  // P2-T4: the two blank spacer rows were trimmed so the expanded title block (Owner/Client,
+  // Bidder, Project Ref, Subject) fits without pushing DETAIL_HEADER_ROW past 17 — the pad
+  // loop backfills to the same target either way, keeping the data rows at their tested rows.
   const notesTitle = worksheet.addRow(["General Notes"]);
   notesTitle.font = { bold: true, size: 10, color: { argb: "FF111827" } };
-  worksheet.addRow([]);
   [
     "1. Do not leave LINE TOTAL blank; formulas or zero values must be visible for every item.",
     "2. Indicate INCLUDED, EXCLUDED, BY OTHERS, OWNER SUPPLIED, OSM, OFCI, OSCI, OMITTED, or NOT APPLICABLE in the SCOPE column.",
@@ -189,9 +190,6 @@ function addGeneralNotes(worksheet: ExcelJS.Worksheet, options: { includeLaborDi
     worksheet.mergeCells(row.number, 1, row.number, 10);
   });
 
-  // Adding exactly one disclaimer row keeps DETAIL_HEADER_ROW at 17: the pad loop
-  // (`while rowCount < DETAIL_HEADER_ROW - 1`) backfills to the same target whether or
-  // not the disclaimer is present, so the header position is stable either way.
   if (options.includeLaborDisclaimer) {
     const disclaimerRow = worksheet.addRow([LABOR_DISCLAIMER_NOTE]);
     disclaimerRow.font = { bold: true, size: 10, color: { argb: "FFB45309" } };
@@ -224,11 +222,12 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   addTitleRow(worksheet, "BID FORM / BILL OF QUANTITIES", BID_FORM_COLUMNS.length);
   addHeaderField(worksheet, "Project", model.metadata.projectName);
   addHeaderField(worksheet, "Location", model.metadata.projectAddress);
-  addHeaderField(worksheet, "Owner / Client", "");
-  // F-07 (P1-T9): drop the "Archestimator beta workbook" placeholder. Real contractor
-  // identity is D4-gated (workspace_profiles migration); the contractor fills this in their
-  // copy until P2-T4 wires Owner/Client + contractor name from the project/workspace.
-  addHeaderField(worksheet, "Bidder / Contractor", "");
+  // P2-T4: Owner/Client is DB-free (projects.client_name); Bidder is the D4 interim
+  // (workspace name) — never the removed beta placeholder.
+  addHeaderField(worksheet, "Owner / Client", model.metadata.clientName ?? "");
+  addHeaderField(worksheet, "Bidder / Contractor", model.metadata.contractorName ?? "");
+  addHeaderField(worksheet, "Project Ref / Code", model.metadata.projectCode ?? "");
+  addHeaderField(worksheet, "Subject", model.metadata.subject ?? "");
   addHeaderField(worksheet, "Estimate / Revision", `${model.metadata.estimateName} (${model.metadata.versionLabel})`);
   addHeaderField(worksheet, "Date Submitted", model.generatedAt.slice(0, 10));
   addGeneralNotes(worksheet, { includeLaborDisclaimer: laborCompatibilityMode });

@@ -21,8 +21,9 @@ type ProposalExportRouteContext = {
   params: Promise<{ projectId: string; estimateId: string }>;
 };
 
-type ProposalExportProject = Pick<Tables<"projects">, "id" | "name" | "project_code" | "location" | "currency_code">;
+type ProposalExportProject = Pick<Tables<"projects">, "id" | "name" | "project_code" | "location" | "currency_code" | "client_name" | "metadata">;
 type ProposalExportEstimate = Pick<Tables<"estimates">, "id" | "name" | "sheet_code" | "currency_code" | "metadata">;
+type ProposalExportWorkspace = { name?: string | null } | null | undefined;
 type ProposalExportLoadLimitState = {
   fetchedNodeCount: number;
   fetchedRowItemCount: number;
@@ -107,7 +108,10 @@ function didExceedExportLimit(loadLimitState: ProposalExportLoadLimitState | und
   return fetchedNodeCount > PROPOSAL_EXPORT_NODE_LIMIT || fetchedRowItemCount > PROPOSAL_EXPORT_ROW_ITEM_LIMIT;
 }
 
-function buildMetadata(project: ProposalExportProject, estimate: ProposalExportEstimate): ProposalExportMetadata {
+function buildMetadata(project: ProposalExportProject, estimate: ProposalExportEstimate, workspace: ProposalExportWorkspace): ProposalExportMetadata {
+  // P2-T4: contractor identity is D4-gated; until a contractor profile lands, fall back to
+  // the workspace name (DB-free) — never the removed beta placeholder.
+  const contractorName = typeof workspace?.name === "string" && workspace.name.trim() ? workspace.name.trim() : null;
   return {
     projectId: project.id,
     estimateId: estimate.id,
@@ -118,6 +122,9 @@ function buildMetadata(project: ProposalExportProject, estimate: ProposalExportE
     estimateSheetCode: estimate.sheet_code,
     versionLabel: readVersionLabel(estimate.metadata),
     currency: estimate.currency_code || project.currency_code || "PHP",
+    clientName: project.client_name, // DB-free: projects.client_name
+    contractorName,
+    subject: `BID FORM — ${estimate.name}`,
   };
 }
 
@@ -134,7 +141,7 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
     if (didExceedExportLimit(result.loadLimitState, result.tree)) return createLimitResponse();
 
     const model = buildProposalExportModel({
-      metadata: buildMetadata(result.project, result.estimate),
+      metadata: buildMetadata(result.project, result.estimate, result.workspace),
       nodes: result.tree,
     });
     const buffer = await createProposalWorkbookBuffer(model);
@@ -165,7 +172,7 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
   if (didExceedExportLimit(result.loadLimitState, result.tree)) return createLimitResponse();
 
   const model = buildProposalExportModel({
-    metadata: buildMetadata(result.project, result.estimate),
+    metadata: buildMetadata(result.project, result.estimate, result.workspace),
     nodes: result.tree,
   });
   const buffer = await createProposalWorkbookBuffer(model);
@@ -232,7 +239,7 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
     return createLimitResponse();
   }
 
-  const metadata = buildMetadata(firstResult.project, firstResult.estimate);
+  const metadata = buildMetadata(firstResult.project, firstResult.estimate, firstResult.workspace);
   const generatedAt = new Date().toISOString();
   const worksheetNames = buildUniqueWorksheetNames(resolvedTabs.map(({ tab }) => ({ id: tab.id, name: tab.name })));
   const tabWorkbookModel: ProposalTabbedWorkbookModel = {

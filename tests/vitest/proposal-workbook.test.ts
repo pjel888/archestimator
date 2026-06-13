@@ -112,7 +112,12 @@ describe("proposal workbook generation", () => {
     expect(bidForm?.getCell("A2").value).toBe("Project");
     expect(bidForm?.getCell("B2").value).toBe(metadata.projectName);
     expect(bidForm?.getCell("A4").value).toBe("Owner / Client");
-    expect(bidForm?.getCell("A9").value).toBe("General Notes");
+    // P2-T4: expanded title block (Project Ref / Code, Subject) with trimmed General Notes
+    // spacers keeps DETAIL_HEADER_ROW at 17 (data rows unchanged).
+    expect(bidForm?.getCell("A6").value).toBe("Project Ref / Code");
+    expect(bidForm?.getCell("B6").value).toBe("SYN-001");
+    expect(bidForm?.getCell("A7").value).toBe("Subject");
+    expect(bidForm?.getCell("A10").value).toBe("General Notes");
     expect(bidForm?.getCell("A11").value).toContain("Do not leave LINE TOTAL blank");
     expect(bidForm?.getRow(17).values).toEqual([undefined, ...BID_FORM_COLUMNS.map((column) => column.header)]);
   });
