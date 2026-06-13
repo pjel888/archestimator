@@ -13,6 +13,12 @@ function rateDecimal(rate: number) {
   return String(rate / 100);
 }
 
+// P2-T3 (F-12): includeFormulas=false writes the computed value instead of a live formula,
+// for consumers that want a static values-only workbook.
+function formulaCell(includeFormulas: boolean, formula: string, result: number): ExcelJS.CellValue {
+  return includeFormulas ? { formula, result } : result;
+}
+
 // P2-T5/F-09: section division letter by position — 0→A, 25→Z, 26→AA, … (Excel-column style).
 function divisionLetter(index: number) {
   let n = index;
@@ -229,6 +235,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
     },
   });
   const laborCompatibilityMode = model.validationIssues.some((issue) => issue.code === "cost_split_compatibility_mode");
+  const includeFormulas = model.settings.includeFormulas;
   applyColumnDefinitions(worksheet, BID_FORM_COLUMNS);
   addTitleRow(worksheet, "BID FORM / BILL OF QUANTITIES", BID_FORM_COLUMNS.length);
   addHeaderField(worksheet, "Project", model.metadata.projectName);
@@ -282,8 +289,8 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
         proposalRow.quantity,
         proposalRow.materialUnitCost,
         proposalRow.laborUnitCost,
-        { formula: `E${rowNumber}+F${rowNumber}`, result: proposalRow.materialUnitCost + proposalRow.laborUnitCost },
-        { formula: lineFormula, result: proposalRow.includedInTotal ? proposalRow.costAmount : 0 },
+        formulaCell(includeFormulas, `E${rowNumber}+F${rowNumber}`, proposalRow.materialUnitCost + proposalRow.laborUnitCost),
+        formulaCell(includeFormulas, lineFormula, proposalRow.includedInTotal ? proposalRow.costAmount : 0),
         scopeLabel(proposalRow.scopeStatus),
         remarks,
       ]);
@@ -299,7 +306,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
       "",
       "",
       "",
-      { formula: `SUM(H${firstDetailRow}:H${lastDetailRow})`, result: summaryRow.costAmount },
+      formulaCell(includeFormulas, `SUM(H${firstDetailRow}:H${lastDetailRow})`, summaryRow.costAmount),
       "",
       "",
     ]);
@@ -329,32 +336,34 @@ function writeSummaryTotalsBlock(
   settings: ProposalExportSettings,
   grossFloorArea: number | null,
 ) {
+  const includeFormulas = settings.includeFormulas;
   const contingencyRow = totalsStartRow + 1;
   const vatRow = totalsStartRow + 2;
   const grandTotalRow = totalsStartRow + 3;
 
   worksheet.getCell(`A${totalsStartRow}`).value = "Direct Cost";
-  worksheet.getCell(`B${totalsStartRow}`).value = { formula: directCostFormula, result: totals.grandTotal };
+  worksheet.getCell(`B${totalsStartRow}`).value = formulaCell(includeFormulas, directCostFormula, totals.grandTotal);
 
   const contingencyIncluded = settings.contingencyMode === "included";
   worksheet.getCell(`A${contingencyRow}`).value = contingencyIncluded
     ? "Contingency (INCLUDED)"
     : `Contingency (${settings.contingencyRate}%)`;
   worksheet.getCell(`B${contingencyRow}`).value = contingencyIncluded
-    ? { formula: "0", result: 0 }
-    : { formula: `B${totalsStartRow}*${rateDecimal(settings.contingencyRate)}`, result: totals.projectContingencyAmount };
+    ? formulaCell(includeFormulas, "0", 0)
+    : formulaCell(includeFormulas, `B${totalsStartRow}*${rateDecimal(settings.contingencyRate)}`, totals.projectContingencyAmount);
 
   const vatIncluded = settings.vatMode === "included";
   worksheet.getCell(`A${vatRow}`).value = vatIncluded ? "VAT (INCLUDED)" : `VAT (${settings.vatRate}%)`;
   worksheet.getCell(`B${vatRow}`).value = vatIncluded
-    ? { formula: "0", result: 0 }
-    : { formula: `(B${totalsStartRow}+B${contingencyRow})*${rateDecimal(settings.vatRate)}`, result: totals.vatAmount };
+    ? formulaCell(includeFormulas, "0", 0)
+    : formulaCell(includeFormulas, `(B${totalsStartRow}+B${contingencyRow})*${rateDecimal(settings.vatRate)}`, totals.vatAmount);
 
   worksheet.getCell(`A${grandTotalRow}`).value = "Grand Total";
-  worksheet.getCell(`B${grandTotalRow}`).value = {
-    formula: `B${totalsStartRow}+B${contingencyRow}+B${vatRow}`,
-    result: totals.grandTotalWithTaxes,
-  };
+  worksheet.getCell(`B${grandTotalRow}`).value = formulaCell(
+    includeFormulas,
+    `B${totalsStartRow}+B${contingencyRow}+B${vatRow}`,
+    totals.grandTotalWithTaxes,
+  );
 
   // P2-T6 (F-10/D3): Cost per SQM = Grand Total / GFA, referencing the GFA cell so it
   // recalcs if the floor area is edited; "N/A" until a GFA is captured in metadata.
@@ -366,7 +375,7 @@ function writeSummaryTotalsBlock(
   worksheet.getCell(`A${costPerSqmRow}`).value = "Cost per sqm";
   if (hasGfa && gfaRow) {
     const costPerSqmCell = worksheet.getCell(`B${costPerSqmRow}`);
-    costPerSqmCell.value = { formula: `B${grandTotalRow}/B${gfaRow}`, result: roundMoney(totals.grandTotalWithTaxes / grossFloorArea) };
+    costPerSqmCell.value = formulaCell(includeFormulas, `B${grandTotalRow}/B${gfaRow}`, roundMoney(totals.grandTotalWithTaxes / grossFloorArea));
     costPerSqmCell.numFmt = PHP_FORMAT;
     worksheet.getCell(`A${gfaRow}`).value = "Total Gross Floor Area";
     const gfaCell = worksheet.getCell(`B${gfaRow}`);
@@ -407,10 +416,7 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
     const row = worksheet.addRow([
       sectionRange.sectionLabel,
       sectionRange.rowCount,
-      {
-        formula: quoteWorksheetCellReference(bidWorksheetName, `H${sectionRange.subtotalRowNumber}`),
-        result: sectionRange.subtotalResult,
-      },
+      formulaCell(model.settings.includeFormulas, quoteWorksheetCellReference(bidWorksheetName, `H${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
     ]);
     styleBodyRow(row);
     amountRows.push(row.number);
@@ -487,10 +493,7 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
       const row = worksheet.addRow([
         sectionRange.sectionLabel,
         sectionRange.rowCount,
-        {
-          formula: quoteWorksheetCellReference(tab.worksheetName, `H${sectionRange.subtotalRowNumber}`),
-          result: sectionRange.subtotalResult,
-        },
+        formulaCell(input.settings.includeFormulas, quoteWorksheetCellReference(tab.worksheetName, `H${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
       ]);
       styleBodyRow(row);
       amountRows.push(row.number);

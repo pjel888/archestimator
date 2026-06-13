@@ -38,7 +38,7 @@ import type { ComponentLibrarySupplierOption } from "./component-library/tree/bu
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip } from "./estimate-sheet/EstimateTabStrip";
 import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "./estimate-sheet/events";
-import { ProposalExportPreviewDialog, type ProposalExportPreviewScope } from "./ProposalExportPreviewDialog";
+import { ProposalExportPreviewDialog, type ProposalExportPreviewScope, type ProposalExportUserSettings } from "./ProposalExportPreviewDialog";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import {
   ActivityHistoryModal,
@@ -248,6 +248,38 @@ function triggerBlobDownload(blob: Blob, filename: string) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+const DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS: ProposalExportUserSettings = {
+  contingencyRate: 10,
+  vatRate: 12,
+  contingencyIncluded: false,
+  vatIncluded: false,
+  includeFormulas: true,
+  includeInternalBreakdown: false,
+};
+
+// Append only non-default settings so an untouched export keeps a clean URL (and the route's
+// own defaults stay authoritative).
+function appendProposalExportSettingsParams(params: URLSearchParams, settings: ProposalExportUserSettings) {
+  if (settings.contingencyRate !== DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS.contingencyRate) params.set("contingencyRate", String(settings.contingencyRate));
+  if (settings.vatRate !== DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS.vatRate) params.set("vatRate", String(settings.vatRate));
+  if (settings.contingencyIncluded) params.set("contingencyMode", "included");
+  if (settings.vatIncluded) params.set("vatMode", "included");
+  if (!settings.includeFormulas) params.set("includeFormulas", "false");
+  if (settings.includeInternalBreakdown) params.set("audience", "internal");
+}
+
+// The rate/formula choices flow into the client preview model (audience stays client-safe in the
+// preview; the real audience is server-resolved at download).
+function proposalPreviewModelSettings(settings: ProposalExportUserSettings) {
+  return {
+    contingencyRate: settings.contingencyRate,
+    vatRate: settings.vatRate,
+    contingencyMode: settings.contingencyIncluded ? ("included" as const) : ("percentage" as const),
+    vatMode: settings.vatIncluded ? ("included" as const) : ("percentage" as const),
+    includeFormulas: settings.includeFormulas,
+  };
 }
 
 
@@ -715,6 +747,7 @@ export function EstimateSheetContent({
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
   const [isDownloadingProposal, setIsDownloadingProposal] = useState(false);
   const [proposalDownloadError, setProposalDownloadError] = useState<string | null>(null);
+  const [proposalExportSettings, setProposalExportSettings] = useState<ProposalExportUserSettings>(DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS);
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
@@ -790,8 +823,9 @@ export function EstimateSheetContent({
       dataTabId ?? "legacy",
       tabScopeSignature,
       scope,
+      JSON.stringify(proposalPreviewModelSettings(proposalExportSettings)),
     ].join("::"),
-    [dataTabId, editableRows, estimateTree, resolvedProposalExportMetadata, tabScopeSignature],
+    [dataTabId, editableRows, estimateTree, proposalExportSettings, resolvedProposalExportMetadata, tabScopeSignature],
   );
   const currentProposalPreviewSignature = useMemo(
     () => getProposalPreviewSignature(proposalPreviewScope),
@@ -800,10 +834,12 @@ export function EstimateSheetContent({
   const proposalDownloadHref = useMemo(() => {
     if (!projectId || !estimateId) return null;
     const baseHref = `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
-    return hasMultiplePersistedTabs && proposalPreviewScope === "active-tab" && dataTabId
-      ? `${baseHref}?tab=${encodeURIComponent(dataTabId)}`
-      : baseHref;
-  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId, proposalPreviewScope]);
+    const params = new URLSearchParams();
+    if (hasMultiplePersistedTabs && proposalPreviewScope === "active-tab" && dataTabId) params.set("tab", dataTabId);
+    appendProposalExportSettingsParams(params, proposalExportSettings);
+    const query = params.toString();
+    return query ? `${baseHref}?${query}` : baseHref;
+  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId, proposalExportSettings, proposalPreviewScope]);
   const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
@@ -1083,19 +1119,28 @@ export function EstimateSheetContent({
   const buildProposalPreview = useCallback((scope: ProposalExportPreviewScope = proposalPreviewScope) => {
     if (!resolvedProposalExportMetadata) return null;
 
+    // The preview reflects the user's rate/formula choices so its grand total matches the file;
+    // audience stays client-safe in the preview (the real audience is server-resolved on download).
     const model = buildProposalExportModel({
       metadata: resolvedProposalExportMetadata,
       nodes: materializeEditableEstimateTree(estimateTree, editableRows),
+      settings: proposalPreviewModelSettings(proposalExportSettings),
     });
     setProposalPreviewModel(model);
     setProposalPreviewSignature(getProposalPreviewSignature(scope));
     return model;
-  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalPreviewScope, resolvedProposalExportMetadata]);
+  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalExportSettings, proposalPreviewScope, resolvedProposalExportMetadata]);
   const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
     setProposalPreviewScope(scope);
     setProposalDownloadError(null);
     if (isProposalPreviewOpen) buildProposalPreview(scope);
   }, [buildProposalPreview, isProposalPreviewOpen]);
+  const changeProposalExportSettings = useCallback((next: ProposalExportUserSettings) => {
+    // Settings changes mark the preview stale (the signature includes settings); the user
+    // refreshes to rebuild — matching the existing stale-then-refresh pattern (avoids jank).
+    setProposalExportSettings(next);
+    setProposalDownloadError(null);
+  }, []);
   const openProposalPreview = useCallback(() => {
     // Capture the opener so focus returns to it when the dialog closes (F-06/P1-T3),
     // mirroring inspectorOpenerRef / rowDetailsOpenerRef.
@@ -1716,6 +1761,8 @@ export function EstimateSheetContent({
         downloadError={proposalDownloadError}
         canDownload={Boolean(proposalDownloadHref) && !isProposalExportEmpty}
         scopeControls={proposalPreviewScopeControls}
+        exportSettings={proposalExportSettings}
+        onExportSettingsChange={changeProposalExportSettings}
         onRefresh={refreshProposalPreview}
         onClose={closeProposalPreview}
       />

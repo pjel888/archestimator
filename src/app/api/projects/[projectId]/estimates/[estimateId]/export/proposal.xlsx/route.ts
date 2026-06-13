@@ -5,10 +5,11 @@ import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-propo
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateTabs, getEstimateTabTree, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
 import type { Json, Tables } from "@/lib/supabase/types";
-import type { ProposalExportMetadata, ProposalTabbedWorkbookModel } from "@/lib/proposal-export/types";
+import type { ProposalExportAudience, ProposalExportMetadata, ProposalExportSettings, ProposalChargeMode, ProposalTabbedWorkbookModel } from "@/lib/proposal-export/types";
 import { buildProposalWorkbookFilename } from "./filename";
 
 export const runtime = "nodejs";
@@ -23,7 +24,65 @@ type ProposalExportRouteContext = {
 
 type ProposalExportProject = Pick<Tables<"projects">, "id" | "name" | "project_code" | "location" | "currency_code" | "client_name" | "metadata">;
 type ProposalExportEstimate = Pick<Tables<"estimates">, "id" | "name" | "sheet_code" | "currency_code" | "metadata">;
-type ProposalExportWorkspace = { name?: string | null } | null | undefined;
+type ProposalExportWorkspace = { id?: string | null; name?: string | null } | null | undefined;
+
+type ParsedExportSettings =
+  | { ok: true; settings: Partial<ProposalExportSettings>; requestedInternal: boolean }
+  | { ok: false; error: string };
+
+// P2-T2/§C: parse only non-sensitive settings off the wire, fully validated. `audience` is a
+// PREFERENCE here (requestedInternal) — it is never authoritative and is gated server-side by
+// resolveExportAudience. Rates must be finite within 0–100 (no silent clamp → 400); modes and
+// booleans accept only an explicit allow-list.
+function parseExportSettings(searchParams: URLSearchParams): ParsedExportSettings {
+  const settings: Partial<ProposalExportSettings> = {};
+
+  for (const key of ["contingencyRate", "vatRate"] as const) {
+    const raw = searchParams.get(key);
+    if (raw === null) continue;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      return { ok: false, error: `${key} must be a finite number between 0 and 100.` };
+    }
+    settings[key] = value;
+  }
+
+  for (const key of ["contingencyMode", "vatMode"] as const) {
+    const raw = searchParams.get(key);
+    if (raw === null) continue;
+    if (raw !== "percentage" && raw !== "included") {
+      return { ok: false, error: `${key} must be 'percentage' or 'included'.` };
+    }
+    settings[key] = raw as ProposalChargeMode;
+  }
+
+  for (const key of ["includeFormulas", "includeZeroRows", "includeExcludedRows", "includeSourceBreakdownSheet"] as const) {
+    const raw = searchParams.get(key);
+    if (raw === null) continue;
+    if (raw !== "true" && raw !== "false") {
+      return { ok: false, error: `${key} must be 'true' or 'false'.` };
+    }
+    settings[key] = raw === "true";
+  }
+
+  return { ok: true, settings, requestedInternal: searchParams.get("audience") === "internal" };
+}
+
+// §C.1: audience is SERVER-derived. An internal export (Source Breakdown + supplier/pricing)
+// is granted only to a workspace member (owner/admin/member) of the project's workspace — a
+// viewer or external collaborator's `audience=internal` cannot escalate and falls to client.
+async function resolveExportAudience(workspaceId: string | null | undefined, userId: string, requestedInternal: boolean): Promise<ProposalExportAudience> {
+  if (!requestedInternal || !workspaceId) return "client";
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const role = data?.role;
+  return role === "owner" || role === "admin" || role === "member" ? "internal" : "client";
+}
 type ProposalExportLoadLimitState = {
   fetchedNodeCount: number;
   fetchedRowItemCount: number;
@@ -87,6 +146,18 @@ function createLimitResponse() {
 }
 
 type ProposalExportLogContext = { startedAt: number; estimateId: string };
+type ProposalExportContext = ProposalExportLogContext & {
+  userId: string;
+  requestedSettings: Partial<ProposalExportSettings>;
+  requestedInternal: boolean;
+};
+
+// Merge the validated request settings with the server-resolved (gated) audience. The audience
+// is decided here, never taken from the caller's settings.
+async function resolveExportSettings(workspace: ProposalExportWorkspace, exportContext: ProposalExportContext): Promise<Partial<ProposalExportSettings>> {
+  const audience = await resolveExportAudience(workspace?.id, exportContext.userId, exportContext.requestedInternal);
+  return { ...exportContext.requestedSettings, audience };
+}
 
 // F-13 (P1-T4): structured, single-line observability for the heaviest export endpoint.
 // Mirrors the share-route logging shape ({ level, route, ... , ts }).
@@ -146,7 +217,7 @@ function buildMetadata(project: ProposalExportProject, estimate: ProposalExportE
   };
 }
 
-async function buildSingleTabResponse(projectId: string, estimateId: string, tabId: string | null, logContext: ProposalExportLogContext) {
+async function buildSingleTabResponse(projectId: string, estimateId: string, tabId: string | null, exportContext: ProposalExportContext) {
   if (tabId) {
     const result = await getEstimateTabTree(projectId, estimateId, tabId, {
       maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
@@ -161,6 +232,7 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
     const model = buildProposalExportModel({
       metadata: buildMetadata(result.project, result.estimate, result.workspace),
       nodes: result.tree,
+      settings: await resolveExportSettings(result.workspace, exportContext),
     });
     const buffer = await createProposalWorkbookBuffer(model);
     const filename = buildProposalWorkbookFilename(
@@ -169,10 +241,10 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
       result.tab.name,
     );
     logProposalExport({
-      estimateId: logContext.estimateId,
+      estimateId: exportContext.estimateId,
       tabCount: 1,
       rowCount: countTree(result.tree).rowItemCount,
-      durationMs: Date.now() - logContext.startedAt,
+      durationMs: Date.now() - exportContext.startedAt,
       outcome: "success",
     });
     return createXlsxResponse(buffer, filename);
@@ -192,6 +264,7 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
   const model = buildProposalExportModel({
     metadata: buildMetadata(result.project, result.estimate, result.workspace),
     nodes: result.tree,
+    settings: await resolveExportSettings(result.workspace, exportContext),
   });
   const buffer = await createProposalWorkbookBuffer(model);
   const filename = buildProposalWorkbookFilename(
@@ -200,16 +273,16 @@ async function buildSingleTabResponse(projectId: string, estimateId: string, tab
   );
 
   logProposalExport({
-    estimateId: logContext.estimateId,
+    estimateId: exportContext.estimateId,
     tabCount: 1,
     rowCount: countTree(result.tree).rowItemCount,
-    durationMs: Date.now() - logContext.startedAt,
+    durationMs: Date.now() - exportContext.startedAt,
     outcome: "success",
   });
   return createXlsxResponse(buffer, filename);
 }
 
-async function buildAllTabsResponse(projectId: string, estimateId: string, tabs: EstimateTabSummary[], logContext: ProposalExportLogContext) {
+async function buildAllTabsResponse(projectId: string, estimateId: string, tabs: EstimateTabSummary[], exportContext: ProposalExportContext) {
   // F-25/F-14 (P1-T4): allSettled so one archived/failing tab can be skipped rather than
   // failing the whole export. A tab can be deleted between getEstimateTabs() and this fetch
   // (TOCTOU); a rejected fetch is logged and skipped. Only an all-tabs-gone result is a 404.
@@ -227,10 +300,10 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
     if (!tab || !outcome) continue;
     if (outcome.status !== "fulfilled") {
       logProposalExport({
-        estimateId: logContext.estimateId,
+        estimateId: exportContext.estimateId,
         tabCount: tabs.length,
         rowCount: 0,
-        durationMs: Date.now() - logContext.startedAt,
+        durationMs: Date.now() - exportContext.startedAt,
         outcome: "error",
         message: `Skipped tab ${tab.id}: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`,
       });
@@ -259,10 +332,13 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
 
   const metadata = buildMetadata(firstResult.project, firstResult.estimate, firstResult.workspace);
   const generatedAt = new Date().toISOString();
+  // Resolve the (gated) audience once from the shared workspace; all tabs use the same settings.
+  const resolvedSettings = await resolveExportSettings(firstResult.workspace, exportContext);
+  const settings = { ...defaultProposalExportSettings, ...resolvedSettings };
   const worksheetNames = buildUniqueWorksheetNames(resolvedTabs.map(({ tab }) => ({ id: tab.id, name: tab.name })));
   const tabWorkbookModel: ProposalTabbedWorkbookModel = {
     metadata,
-    settings: defaultProposalExportSettings,
+    settings,
     generatedAt,
     tabs: resolvedTabs.map(({ tab, result }, index) => {
       const worksheetName = worksheetNames[index];
@@ -275,6 +351,7 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
           metadata,
           nodes: result.tree,
           generatedAt,
+          settings: resolvedSettings,
         }),
       };
     }),
@@ -283,10 +360,10 @@ async function buildAllTabsResponse(projectId: string, estimateId: string, tabs:
   const buffer = await createProposalWorkbookBuffer(tabWorkbookModel);
   const filename = buildProposalWorkbookFilename(firstResult.project.project_code || firstResult.project.name, firstResult.estimate.sheet_code || firstResult.estimate.name);
   logProposalExport({
-    estimateId: logContext.estimateId,
+    estimateId: exportContext.estimateId,
     tabCount: resolvedTabs.length,
     rowCount: totalRowItemCount,
-    durationMs: Date.now() - logContext.startedAt,
+    durationMs: Date.now() - exportContext.startedAt,
     outcome: "success",
   });
   return createXlsxResponse(buffer, filename);
@@ -312,18 +389,32 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
 
   const startedAt = Date.now();
   const { projectId, estimateId } = await context.params;
-  const tabId = new URL(request.url).searchParams.get("tab");
-  const logContext: ProposalExportLogContext = { startedAt, estimateId };
+  const url = new URL(request.url);
+  const tabId = url.searchParams.get("tab");
+
+  // P2-T2/§C.2-C.3: validate export settings off the wire → 400 on malformed input (no silent
+  // clamp). The audience is NOT taken from here; it is server-resolved in build*Response.
+  const parsedSettings = parseExportSettings(url.searchParams);
+  if (!parsedSettings.ok) {
+    return NextResponse.json({ error: parsedSettings.error }, { status: 400 });
+  }
+  const exportContext: ProposalExportContext = {
+    startedAt,
+    estimateId,
+    userId: userContext.userId,
+    requestedSettings: parsedSettings.settings,
+    requestedInternal: parsedSettings.requestedInternal,
+  };
 
   // F-13 (P1-T4): one try/catch around the whole build so a DB/ExcelJS/throw becomes a
   // logged JSON 500 (consumed by the fetch-then-blob client), never an unhandled stack page.
   // `return await` is required so a rejected build promise is caught here, not escaped.
   try {
-    if (tabId) return await buildSingleTabResponse(projectId, estimateId, tabId, logContext);
+    if (tabId) return await buildSingleTabResponse(projectId, estimateId, tabId, exportContext);
 
     const tabs = await getEstimateTabs(projectId, estimateId);
-    if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, logContext);
-    return await buildAllTabsResponse(projectId, estimateId, tabs, logContext);
+    if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, exportContext);
+    return await buildAllTabsResponse(projectId, estimateId, tabs, exportContext);
   } catch (error) {
     logProposalExport({
       estimateId,
