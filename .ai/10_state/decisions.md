@@ -1,5 +1,43 @@
 # Decisions
 
+## 2026-06-14 — Estimates List Page performance optimization
+
+**Decision:** Implemented the Estimates-List plan with these resolved choices:
+(D1) sequence by felt-impact not category — optimistic UX (P0) before the DB
+scaling fix (P2), since the slowness was the overlay + no-optimistic-UI, not
+volume; (D2) a per-mount Zustand vanilla store (not `useOptimistic`) as the
+optimistic-UI unlock; (D3) `silentRefresh` for the rare overlay-free
+reconciliation, in-place mutations call nothing; (D4) the aggregation RPC is
+`security invoker`; (D5) explicit `ESTIMATE_LIST_COLUMNS` drop
+`metadata`/`created_by`/`assumptions`; (D6) workshop CSP starts Report-Only;
+(D8) a frozen `ProjectEstimateListRow` DTO + canonical action reconciliation
+payloads precede optimistic UI; (D10) a reversible `OPTIMISTIC_ESTIMATE_LIST_ENABLED`
+cutover gate. Path A for the RPC (keeps the depth-first/area-first `firstNodeId`
+JS oracle; `first_node_id` stays null in SQL).
+
+**Concurrent-agent reconciliation:** origin/main landed the Teamspace + Charts
+plans mid-flight. F7 (redundant projects re-query) was superseded by Teamspace's
+cached `getCurrentWorkspaceProject` reuse, so this plan's resolved-project param
+was dropped. P2-3 RLS initplan was trimmed to ONLY `is_workspace_member` because
+Teamspace's `20260614120100` already wrapped `can_access_estimate` +
+`current_project_access_rank` byte-identically. F14 workshop headers are satisfied
+by Teamspace's broader `/workshop`+`/invite` block.
+
+**Cross-plan fix (authorized by the standing forward-fix mandate):** Charts'
+`get_project_chart_buckets` migration (`20260614021500`) used `with` for a
+recursive `node_climb` CTE — fails any clean apply and was never applied to
+hosted. Fixed to `with recursive`.
+
+**Applied to prod `ebxxqidacheyapmmzavr`:** `project_estimate_list_summaries` RPC
++ `is_workspace_member` initplan wrap, both proven (PG17 harnesses + real-data
+parity + `get_advisors` 0 new findings).
+
+**Deferred:** F16 create/duplicate rate-limit (insert-retry already prevents code
+collisions); pagination/server-side search (row-count is not the dominant cost at
+current volume — revisit if it becomes so); live browser RUM (dev-auth disabled —
+scaffolding + e2e ship ready); applying Charts' now-correct RPC to hosted (Charts
+plan's call).
+
 ## 2026-06-13 — Standing pre-launch MVP database autonomy
 
 **Decision:** Philip grants standing authorization for agents to make
