@@ -231,7 +231,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     const decision = readFileSync("src/components/share/SharePageDecision.tsx", "utf8");
     expect(banner).toContain("hasValidRecipientSession");
     expect(banner).toContain("Sign in as a recipient to comment and respond to this proposal.");
-    expect(banner).toContain("text-[9px]"); // design system typography
+    expect(banner).toContain("text-[12px]"); // client-portal type scale (T1: /share label floor is 12px)
     expect(comments).toContain("useSharedLinkSession");
     expect(decision).toContain("useSharedLinkSession");
   });
