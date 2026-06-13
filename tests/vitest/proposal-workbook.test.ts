@@ -458,4 +458,44 @@ describe("proposal workbook generation", () => {
     // No GFA row → duration is the next row.
     expect(summary?.getCell("A22").value).toBe("Estimated duration");
   });
+
+  it("emits division letters on Bid Form section headers (P2-T5, F-09)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "prelim",
+            name: "Prelim Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "p1", material: "Prelim 1", category: "Preliminaries" }),
+              row({ id: "p2", material: "Prelim 2", category: "Preliminaries" }),
+            ],
+          },
+          {
+            id: "finishes",
+            name: "Finishes Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [row({ id: "f1", material: "Finish 1", category: "Finishes" })],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const bidForm = createProposalWorkbook(model).getWorksheet("Bid Form");
+
+    // Header 17 → section A header 18, data 19-20, subtotal 21, section B header 22.
+    expect(bidForm?.getCell("A18").value).toBe("A  Preliminaries");
+    expect(bidForm?.getCell("A22").value).toBe("B  Finishes");
+    // Item numbers restart per section: Preliminaries rows are 1, 2; Finishes row is 1.
+    expect(bidForm?.getCell("A19").value).toBe("1");
+    expect(bidForm?.getCell("A20").value).toBe("2");
+    expect(bidForm?.getCell("A23").value).toBe("1");
+  });
 });

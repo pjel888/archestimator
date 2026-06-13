@@ -265,4 +265,45 @@ describe("proposal export model", () => {
     expect(included.totals.vatAmount).toBe(0);
     expect(included.totals.grandTotalWithTaxes).toBe(1_000);
   });
+
+  it("restarts line numbers within each section (P2-T5, F-09)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "prelim",
+            name: "Prelim Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "p1", material: "Prelim 1", category: "Preliminaries" }),
+              row({ id: "p2", material: "Prelim 2", category: "Preliminaries" }),
+            ],
+          },
+          {
+            id: "finishes",
+            name: "Finishes Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "f1", material: "Finish 1", category: "Finishes" }),
+              row({ id: "f2", material: "Finish 2", category: "Finishes" }),
+            ],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.proposalRows.map((proposalRow) => [proposalRow.sectionLabel, proposalRow.rowNumber])).toEqual([
+      ["Preliminaries", "1"],
+      ["Preliminaries", "2"],
+      ["Finishes", "1"],
+      ["Finishes", "2"],
+    ]);
+  });
 });

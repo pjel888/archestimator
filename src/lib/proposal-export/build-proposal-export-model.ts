@@ -178,10 +178,16 @@ function createSourceReference(row: ProposalNormalizedSourceRow): ProposalExport
 }
 
 function renumberProposalRows(rows: ProposalExportRow[]): ProposalExportRow[] {
-  return rows.map((row, index) => ({
-    ...row,
-    rowNumber: String(index + 1),
-  }));
+  // P2-T5/F-09: hierarchical numbering — line numbers restart at 1 within each section
+  // (in proposalRows order, which is exactly the per-section filter order the Bid Form uses
+  // to lay rows out). The division letter (A/B/C…) is emitted on the section header row by
+  // the workbook builder, derived from the section's position in model.summaryRows.
+  const sectionCounters = new Map<string, number>();
+  return rows.map((row) => {
+    const next = (sectionCounters.get(row.sectionKey) ?? 0) + 1;
+    sectionCounters.set(row.sectionKey, next);
+    return { ...row, rowNumber: String(next) };
+  });
 }
 
 function buildSourceBreakdownRows(proposalRows: ProposalExportRow[]): ProposalSourceBreakdownRow[] {
