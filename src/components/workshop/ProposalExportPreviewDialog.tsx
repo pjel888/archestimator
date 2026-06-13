@@ -288,7 +288,7 @@ export function ProposalExportPreviewDialog({
                     All {scopeControls?.tabCount} tabs — total is in the downloaded Summary sheet
                   </p>
                 ) : (
-                  <p className="mt-0.5 font-semibold tabular-nums text-ink">{formatMoney(model.totals.grandTotal)}</p>
+                  <p className="mt-0.5 font-semibold tabular-nums text-ink">{formatMoney(model.totals.grandTotalWithTaxes)}</p>
                 )}
               </div>
             </div>

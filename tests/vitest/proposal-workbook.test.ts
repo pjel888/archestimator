@@ -193,10 +193,13 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("A1").value).toBe("SUMMARY OF BID");
     expect(summary?.getRow(14).values).toEqual([undefined, "SECTION", "ROWS", "AMOUNT"]);
     expect(summary?.getRow(15).values).toEqual([undefined, "Finishes", 1, { formula: "'Bid Form'!H20", result: 21_700 }]);
-    // P1-T6: single-tab Summary now uses the dynamic totals start (one spacer past the last
+    // P1-T6: single-tab Summary uses the dynamic totals start (one spacer past the last
     // section row). One section at row 15 → totals start at row 17, Grand Total at row 20.
+    // P2-T1: Contingency (10%) and VAT (12% of Direct+Contingency) are now real formulas.
     expect(summary?.getCell("B17").value).toEqual({ formula: "SUM(C15)", result: 21_700 });
-    expect(summary?.getCell("B20").value).toEqual({ formula: "B17+B18+B19", result: 21_700 });
+    expect(summary?.getCell("B18").value).toEqual({ formula: "B17*0.1", result: 2_170 });
+    expect(summary?.getCell("B19").value).toEqual({ formula: "(B17+B18)*0.12", result: 2_864.4 });
+    expect(summary?.getCell("B20").value).toEqual({ formula: "B17+B18+B19", result: 26_734.4 });
     expect(terms?.getCell("A1").value).toBe("COMMERCIAL TERMS");
     expect(terms?.getCell("A3").value).toBe("Exclusions");
     expect(terms?.getCell("A13").value).toBe("Signature / Conforme");
@@ -278,7 +281,8 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("A17").value).toBe("Owner's / Scope");
     expect(summary?.getRow(18).values).toEqual([undefined, "Finishes", 1, { formula: "'Owner''s Scope'!H20", result: 1_500 }]);
     expect(summary?.getCell("B20").value).toEqual({ formula: "SUM(C16,C18)", result: 23_200 });
-    expect(summary?.getCell("B23").value).toEqual({ formula: "B20+B21+B22", result: 23_200 });
+    // P2-T1: Grand Total = Direct (23,200) + 10% contingency (2,320) + 12% VAT (3,062.4).
+    expect(summary?.getCell("B23").value).toEqual({ formula: "B20+B21+B22", result: 28_582.4 });
 
     const breakdown = workbook.getWorksheet("Source Breakdown");
     expect(breakdown?.getRow(6).values).toEqual([
@@ -401,5 +405,24 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("A31").value).toBe("Direct Cost");
     expect(summary?.getCell("A34").value).toBe("Grand Total");
     expect(summary?.getCell("B34").value).toEqual(expect.objectContaining({ formula: "B31+B32+B33" }));
+  });
+
+  it("renders Contingency/VAT as INCLUDED in the Summary when modes are included (P2-T1)", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: modelTree(),
+      settings: { audience: "internal", contingencyMode: "included", vatMode: "included" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    const summary = createProposalWorkbook(model).getWorksheet("Summary");
+
+    // One section (Finishes) at row 15 → totals start at row 17. (ExcelJS omits result:0 on
+    // an in-memory formula cell, so assert the formula only.)
+    expect(summary?.getCell("A18").value).toBe("Contingency (INCLUDED)");
+    expect(summary?.getCell("B18").value).toMatchObject({ formula: "0" });
+    expect(summary?.getCell("A19").value).toBe("VAT (INCLUDED)");
+    expect(summary?.getCell("B19").value).toMatchObject({ formula: "0" });
+    // Grand Total reduces to the Direct Cost when both charges are INCLUDED.
+    expect(summary?.getCell("B20").value).toEqual({ formula: "B17+B18+B19", result: 21_700 });
   });
 });

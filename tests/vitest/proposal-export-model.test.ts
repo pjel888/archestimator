@@ -245,4 +245,24 @@ describe("proposal export model", () => {
       }),
     );
   });
+
+  it("computes project contingency and VAT in model totals, honoring INCLUDED mode (P2-T1)", () => {
+    const nodes = treeWithBedrooms([row({ id: "a", quantity: 1, itemCost: 1_000, miscCost: 0 })], []);
+
+    const percentage = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+    expect(percentage.totals.grandTotal).toBe(1_000); // Direct Cost unchanged
+    expect(percentage.totals.projectContingencyAmount).toBe(100); // 10% of 1,000
+    expect(percentage.totals.vatAmount).toBe(132); // 12% of (1,000 + 100)
+    expect(percentage.totals.grandTotalWithTaxes).toBe(1_232);
+
+    const included = buildProposalExportModel({
+      metadata,
+      nodes,
+      settings: { contingencyMode: "included", vatMode: "included" },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    expect(included.totals.projectContingencyAmount).toBe(0);
+    expect(included.totals.vatAmount).toBe(0);
+    expect(included.totals.grandTotalWithTaxes).toBe(1_000);
+  });
 });

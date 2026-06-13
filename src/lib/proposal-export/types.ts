@@ -3,6 +3,9 @@ export type ProposalExportMode = "detailed-boq" | "summary-only";
 export type ProposalConsolidationMode = "industry-standard" | "area-breakdown";
 export type ProposalScopeStatus = "included" | "excluded" | "alternate";
 export type ProposalValidationSeverity = "info" | "warning" | "error";
+// "percentage" applies the rate to the running total; "included" treats the charge as
+// already baked into the line rates (shown as 0, labelled INCLUDED). F-02/D2.
+export type ProposalChargeMode = "percentage" | "included";
 
 export type ProposalExportMetadata = {
   projectId: string;
@@ -26,6 +29,11 @@ export type ProposalExportSettings = {
   includeZeroRows: boolean;
   includeExcludedRows: boolean;
   showSupplierInRemarks: boolean;
+  // Project-level charges applied in the Summary totals block (rates are percentages, 0–100).
+  contingencyRate: number;
+  contingencyMode: ProposalChargeMode;
+  vatRate: number;
+  vatMode: ProposalChargeMode;
 };
 
 export type ProposalExportValidationIssue = {
@@ -148,7 +156,10 @@ export type ProposalExportTotals = {
   laborSubtotal: number;
   contingencySubtotal: number;
   miscSubtotal: number;
-  grandTotal: number;
+  grandTotal: number; // Direct Cost — sum of line cost amounts (pre project contingency/VAT)
+  projectContingencyAmount: number; // F-02: project-level contingency on Direct Cost
+  vatAmount: number; // VAT on (Direct Cost + project contingency)
+  grandTotalWithTaxes: number; // Direct Cost + project contingency + VAT
 };
 
 export type ProposalExportModel = {
