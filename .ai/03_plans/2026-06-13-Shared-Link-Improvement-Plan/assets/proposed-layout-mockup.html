@@ -1,0 +1,600 @@
+<style>
+/* ============================================================
+   Proposed Shared-Link Full-Browser Layout — pixel mockup
+   doc 03 §4. Self-contained fragment. Real Archestimator tokens.
+   ============================================================ */
+.slm-root{
+  --ink:#3D3D3D;          /* runtime --ink (spec drift #292929) */
+  --secondary:#5d5d5d;
+  --tertiary:#7f7f7f;
+  --hairline:#f2f2f2;
+  --surfaceMuted:#f5f5f5;
+  --proposalPaper:#FFFDF8;
+  --success:#15803d;
+  --successSoft:#dcfce7;
+  --danger:#b91c1c;
+  --dangerSoft:#fee2e2;
+  --warning:#b45309;
+  --radius-xs:3px;
+  --sf:"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font-family:var(--sf);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.45;
+  font-size:13px;
+  background:transparent;
+}
+.slm-root *{box-sizing:border-box;margin:0;padding:0;}
+.slm-root h1,.slm-root h2,.slm-root h3,.slm-root p{font-weight:400;}
+.slm-num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+
+/* --- meta header for the artifact itself (not part of the product) --- */
+.slm-doc-bar{
+  border:1px solid var(--hairline);
+  border-radius:var(--radius-xs);
+  background:var(--surfaceMuted);
+  padding:10px 14px;
+  margin-bottom:18px;
+}
+.slm-doc-bar .t{font-size:13px;font-weight:500;letter-spacing:-0.01em;}
+.slm-doc-bar .s{font-size:11px;color:var(--tertiary);margin-top:2px;}
+.slm-scale-key{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:8px;font-size:11px;color:var(--secondary);}
+.slm-scale-key span b{color:var(--ink);font-weight:500;}
+
+.slm-section-label{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tertiary);
+  margin:26px 0 10px;display:flex;align-items:center;gap:10px;
+}
+.slm-section-label::after{content:"";flex:1;height:1px;background:var(--hairline);}
+
+/* ============================================================
+   FRAME chrome — simulates a browser viewport at a fixed width
+   ============================================================ */
+.slm-frame{
+  border:1px solid var(--hairline);
+  border-radius:var(--radius-xs);
+  overflow:hidden;
+  background:#fff;
+  box-shadow:none;
+}
+.slm-frame-bar{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 12px;background:var(--surfaceMuted);
+  border-bottom:1px solid var(--hairline);
+}
+.slm-dot{width:8px;height:8px;border-radius:50%;background:#d8d8d8;}
+.slm-frame-url{
+  margin-left:8px;font-size:10px;color:var(--tertiary);
+  background:#fff;border:1px solid var(--hairline);border-radius:var(--radius-xs);
+  padding:2px 10px;flex:1;max-width:340px;
+}
+.slm-frame-w{margin-left:auto;font-size:10px;color:var(--tertiary);}
+.slm-viewport{background:#fff;overflow:hidden;}
+
+/* shared full-bleed session banner */
+.slm-banner{
+  border-bottom:1px solid var(--hairline);
+  background:#fff;
+}
+.slm-banner-in{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;}
+.slm-banner .chip{
+  font-size:11px;color:var(--secondary);display:flex;align-items:center;gap:8px;
+}
+.slm-banner .chip b{color:var(--ink);font-weight:500;}
+.slm-pill{
+  font-size:11px;border:1px solid var(--hairline);border-radius:var(--radius-xs);
+  padding:2px 8px;color:var(--secondary);background:var(--surfaceMuted);
+}
+
+/* ----- DESKTOP container + grid ----- */
+.slm-container{margin:0 auto;width:100%;}
+.slm-desktop .slm-container{padding:0 40px;}      /* xl px-10 */
+.slm-grid{
+  display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;
+  align-items:start;padding:22px 0 18px;
+}
+
+/* card primitives — thin borders, NOT shadows */
+.slm-card{
+  border:1px solid var(--hairline);
+  border-radius:var(--radius-xs);
+  background:#fff;
+}
+.slm-pad{padding:16px 18px;}
+
+/* proposal header */
+.slm-eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tertiary);}
+.slm-h1{font-size:26px;line-height:1.12;letter-spacing:-0.015em;color:var(--ink);margin:6px 0 8px;font-weight:500;}
+.slm-prose{max-width:680px;}     /* humane measure for prose */
+.slm-meta{font-size:13px;color:var(--secondary);}
+.slm-meta b{color:var(--ink);font-weight:500;}
+.slm-status{
+  font-size:11px;border:1px solid var(--hairline);border-radius:var(--radius-xs);
+  padding:3px 9px;color:var(--secondary);background:var(--surfaceMuted);white-space:nowrap;
+}
+.slm-status .d{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning);margin-right:6px;vertical-align:middle;}
+
+/* hero cover */
+.slm-hero{
+  border:1px solid var(--hairline);border-radius:var(--radius-xs);overflow:hidden;
+  aspect-ratio:16/6;width:100%;position:relative;
+  background:
+    linear-gradient(0deg,rgba(0,0,0,.30),rgba(0,0,0,0) 55%),
+    repeating-linear-gradient(118deg,#6f6a63 0 26px,#7c766e 26px 52px),
+    linear-gradient(160deg,#8a8178,#5f5a53);
+}
+.slm-hero .cap{position:absolute;left:14px;bottom:11px;color:#fff;}
+.slm-hero .cap .l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;}
+.slm-hero .cap .t{font-size:14px;font-weight:500;margin-top:1px;}
+
+/* estimate viewer */
+.slm-est-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--hairline);}
+.slm-est-title{font-size:15px;color:var(--ink);font-weight:500;}
+.slm-est-sub{font-size:11px;color:var(--tertiary);margin-top:2px;}
+/* segmented Tree|Grid control, right-aligned (consolidates UX-15) */
+.slm-seg{display:inline-flex;border:1px solid var(--hairline);border-radius:var(--radius-xs);overflow:hidden;background:var(--surfaceMuted);}
+.slm-seg button{font:inherit;font-size:11px;padding:4px 12px;border:0;background:transparent;color:var(--secondary);cursor:default;}
+.slm-seg button.on{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--hairline);}
+/* estimate sheet tablist */
+.slm-tabs{display:flex;gap:0;background:var(--surfaceMuted);border-bottom:1px solid var(--hairline);overflow:hidden;}
+.slm-tabs button{font:inherit;font-size:13px;padding:8px 14px;border:0;background:transparent;color:var(--tertiary);cursor:default;border-right:1px solid var(--hairline);}
+.slm-tabs button.on{background:#fff;color:var(--ink);font-weight:500;box-shadow:inset 0 -2px 0 var(--ink);}
+
+/* two-pane: tree nav + content */
+.slm-two{display:grid;grid-template-columns:240px minmax(0,1fr);}
+.slm-tree{border-right:1px solid var(--hairline);padding:12px 10px;background:#fff;}
+.slm-tree .srch{font-size:11px;color:var(--tertiary);border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:5px 9px;margin-bottom:10px;}
+.slm-tree-row{display:flex;align-items:center;gap:6px;font-size:13px;padding:5px 4px;color:var(--secondary);border-radius:var(--radius-xs);}
+.slm-tree-row.on{background:var(--surfaceMuted);color:var(--ink);font-weight:500;}
+.slm-tree-row.lvl2{padding-left:20px;font-size:13px;color:var(--secondary);}
+.slm-tree-row .c{color:var(--tertiary);font-size:11px;}
+.slm-tw{width:9px;color:var(--tertiary);display:inline-block;text-align:center;}
+
+/* BOQ table — now gets REAL width */
+.slm-tblwrap{padding:0;}
+table.slm-boq{width:100%;border-collapse:collapse;font-size:13px;}
+.slm-boq thead th{
+  font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--tertiary);font-weight:500;text-align:left;
+  padding:9px 12px;border-bottom:1px solid var(--hairline);background:#fff;
+}
+.slm-boq th.r,.slm-boq td.r{text-align:right;}
+.slm-boq tbody td{padding:8px 12px;border-bottom:1px solid var(--hairline);color:var(--secondary);}
+.slm-boq tbody td.desc{color:var(--ink);}
+.slm-boq tr.grp td{background:var(--surfaceMuted);color:var(--ink);font-weight:500;font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:7px 12px;}
+.slm-boq tfoot td{padding:11px 12px;border-top:1px solid var(--ink);color:var(--ink);font-weight:500;font-size:14px;}
+.slm-disc{display:inline-block;font-size:11px;color:var(--secondary);background:var(--surfaceMuted);border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:1px 7px;}
+
+/* ----- RIGHT RAIL ----- */
+.slm-rail{display:flex;flex-direction:column;gap:16px;position:sticky;top:18px;}
+.slm-rail-note{font-size:11px;color:var(--tertiary);text-align:center;margin-top:-6px;}
+
+/* summary card — the confident total */
+.slm-sum .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tertiary);}
+.slm-sum .total{font-size:24px;line-height:1.05;letter-spacing:-0.02em;color:var(--ink);font-weight:500;margin:5px 0 2px;}
+.slm-sum .totlbl{font-size:11px;color:var(--tertiary);}
+.slm-sum .rows{margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13px;}
+.slm-sum .rows dt{color:var(--tertiary);}
+.slm-sum .rows dd{color:var(--ink);text-align:right;}
+
+/* decision card on proposal paper */
+.slm-dec{background:var(--proposalPaper);}
+.slm-dec .lbl{font-size:15px;color:var(--ink);font-weight:500;}
+.slm-dec .help{font-size:11px;color:var(--tertiary);margin:3px 0 12px;}
+.slm-btn{
+  display:flex;align-items:center;justify-content:center;width:100%;
+  font:inherit;font-size:13px;padding:10px 12px;border-radius:var(--radius-xs);
+  border:1px solid var(--hairline);cursor:default;margin-bottom:8px;background:#fff;color:var(--ink);
+}
+.slm-btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:500;}
+.slm-btn.danger{color:var(--danger);border-color:var(--dangerSoft);}
+.slm-btn:last-child{margin-bottom:0;}
+
+/* discussion */
+.slm-disc-head{font-size:15px;color:var(--ink);font-weight:500;padding:14px 16px 10px;border-bottom:1px solid var(--hairline);}
+.slm-msg{padding:11px 16px;border-bottom:1px solid var(--hairline);}
+.slm-msg .who{font-size:11px;color:var(--tertiary);margin-bottom:3px;}
+.slm-msg .who b{color:var(--ink);font-weight:500;}
+.slm-msg .body{font-size:13px;color:var(--secondary);}
+.slm-composer{padding:12px 16px;}
+.slm-composer .box{font-size:13px;color:var(--tertiary);border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:9px 11px;min-height:46px;}
+
+.slm-footer{font-size:11px;color:var(--tertiary);padding:14px 0 18px;border-top:1px solid var(--hairline);margin-top:6px;}
+
+/* annotation callouts */
+.slm-annot{
+  font-size:11px;color:var(--secondary);background:var(--surfaceMuted);
+  border:1px solid var(--hairline);border-left:2px solid var(--ink);border-radius:var(--radius-xs);
+  padding:7px 11px;margin:10px 0;
+}
+.slm-annot b{color:var(--ink);font-weight:500;}
+
+/* ============================================================
+   BEFORE thumbnail — today's 960px centered tiny-type page
+   ============================================================ */
+.slm-compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;}
+@media(max-width:760px){.slm-compare{grid-template-columns:1fr;}}
+.slm-thumb-frame{border:1px solid var(--hairline);border-radius:var(--radius-xs);background:#fff;overflow:hidden;}
+.slm-thumb-cap{font-size:11px;padding:8px 12px;border-bottom:1px solid var(--hairline);background:var(--surfaceMuted);color:var(--secondary);}
+.slm-thumb-cap b{color:var(--ink);font-weight:500;}
+.slm-thumb-stage{padding:14px;background:#fff;height:230px;display:flex;justify-content:center;}
+/* the cramped 960px strip */
+.slm-thumb-before .strip{width:34%;height:100%;border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:8px;display:flex;flex-direction:column;gap:5px;}
+.slm-thumb-before .gutter{flex:1;}
+.slm-tiny{height:5px;background:var(--surfaceMuted);border-radius:1px;}
+.slm-tiny.t1{width:40%;height:6px;background:#e3e3e3;}
+.slm-tiny.t2{width:70%;}
+.slm-tiny.wide{width:100%;}
+.slm-thumb-before .empty{position:absolute;}
+.slm-emptylbl{font-size:9px;color:var(--tertiary);writing-mode:vertical-rl;align-self:center;}
+/* after mini */
+.slm-thumb-after .row{display:flex;gap:6px;height:100%;}
+.slm-thumb-after .wz{flex:1;border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:8px;display:flex;flex-direction:column;gap:6px;}
+.slm-thumb-after .rail{width:30%;border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:8px;display:flex;flex-direction:column;gap:6px;background:var(--proposalPaper);}
+.slm-blk{height:8px;background:var(--surfaceMuted);border-radius:1px;}
+.slm-blk.big{height:18px;width:80%;background:#e0e0e0;}
+.slm-blk.grid{flex:1;background:repeating-linear-gradient(var(--surfaceMuted) 0 9px,#fff 9px 11px);}
+.slm-blk.btn{height:14px;background:#dcdcdc;}
+.slm-blk.btnd{height:14px;background:var(--ink);opacity:.85;}
+
+/* ============================================================
+   MOBILE 375 column
+   ============================================================ */
+.slm-mob-wrap{display:flex;justify-content:flex-start;}
+.slm-mobile{width:375px;max-width:100%;}
+.slm-mobile .slm-container{padding:0 16px;}        /* px-4 */
+.slm-mobile .slm-col{display:flex;flex-direction:column;gap:14px;padding:16px 0;}
+.slm-mobile .slm-h1{font-size:22px;}
+.slm-mobile .slm-sum .total{font-size:22px;}
+/* stacked BOQ row-cards (no side-scroll) */
+.slm-rowcard{border:1px solid var(--hairline);border-radius:var(--radius-xs);padding:10px 12px;}
+.slm-rowcard .d{font-size:13px;color:var(--ink);}
+.slm-rowcard .m{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px;color:var(--tertiary);}
+.slm-rowcard .m .tot{font-size:14px;color:var(--ink);font-weight:500;}
+.slm-rowcard + .slm-rowcard{margin-top:8px;}
+
+@media(max-width:900px){
+  .slm-grid{grid-template-columns:1fr;}
+  .slm-rail{position:static;}
+  .slm-desktop .slm-container{padding:0 20px;}
+}
+</style>
+
+<div class="slm-root">
+
+  <!-- artifact meta -->
+  <div class="slm-doc-bar">
+    <div class="t">Proposed full-browser shared-link layout — pixel mockup</div>
+    <div class="s">doc 03 §4 · content-type-dependent zoning · real Archestimator tokens · not production code</div>
+    <div class="slm-scale-key">
+      <span><b>Client Portal type scale:</b></span>
+      <span>H1 <b>26px</b></span>
+      <span>Total <b>24px</b></span>
+      <span>Section <b>15px</b></span>
+      <span>Body / cells <b>13px</b></span>
+      <span>Labels <b>11px min</b></span>
+    </div>
+  </div>
+
+  <!-- ===================== DESKTOP ===================== -->
+  <div class="slm-section-label">Desktop · xl / 2xl · container ~1440–1760px · work-zone + sticky 380px rail</div>
+
+  <div class="slm-frame slm-desktop">
+    <div class="slm-frame-bar">
+      <span class="slm-dot"></span><span class="slm-dot"></span><span class="slm-dot"></span>
+      <span class="slm-frame-url">archestimator.app/share/9fa2…e1</span>
+      <span class="slm-frame-w">viewport ≈ 1560px · max-w 1440 → 1760 @2xl</span>
+    </div>
+    <div class="slm-viewport">
+
+      <!-- full-bleed session banner; inner content aligns to container -->
+      <div class="slm-banner">
+        <div class="slm-container">
+          <div class="slm-banner-in">
+            <span class="chip"><span class="slm-pill">Reviewer</span> Signed in as <b>J. Cruz</b> · cruz@maplehomes.ph</span>
+            <span class="chip">Shared via Archestimator · activity logged</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="slm-container">
+        <div class="slm-grid">
+
+          <!-- ============ WORK-ZONE ============ -->
+          <div style="display:flex;flex-direction:column;gap:18px;">
+
+            <!-- proposal header -->
+            <div class="slm-card slm-pad">
+              <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;">
+                <div class="slm-prose">
+                  <div class="slm-eyebrow">Proposal Review</div>
+                  <h1 class="slm-h1">Maple Residence Fit-Out</h1>
+                  <p class="slm-meta">Prepared for <b>J. Cruz</b> · Project <b>PRJ-014</b> · Cebu City, Philippines</p>
+                </div>
+                <span class="slm-status"><span class="d"></span>Awaiting your review</span>
+              </div>
+            </div>
+
+            <!-- hero cover -->
+            <div class="slm-hero">
+              <div class="cap"><div class="l">Cover</div><div class="t">Maple Residence — North Elevation</div></div>
+            </div>
+
+            <!-- estimate viewer -->
+            <div class="slm-card">
+              <div class="slm-est-head">
+                <div>
+                  <div class="slm-est-title">Structural &amp; Architectural Works</div>
+                  <div class="slm-est-sub">Sheet 1 of 3 · 412 line items · ₱ values incl. VAT</div>
+                </div>
+                <!-- consolidated UX-15: Tree/Grid as right-aligned segmented control -->
+                <div class="slm-seg"><button class="on">Tree</button><button>Grid</button></div>
+              </div>
+
+              <!-- sheet tablist -->
+              <div class="slm-tabs">
+                <button class="on">Structural</button>
+                <button>Architectural</button>
+                <button>MEP &amp; Services</button>
+              </div>
+
+              <!-- two-pane: 240px tree nav + WIDE content -->
+              <div class="slm-two">
+                <div class="slm-tree">
+                  <div class="srch">Search items…</div>
+                  <div class="slm-tree-row on"><span class="slm-tw">▾</span>Substructure</div>
+                  <div class="slm-tree-row lvl2"><span class="slm-tw">·</span>Excavation &amp; earthworks <span class="c slm-num" style="margin-left:auto;">38</span></div>
+                  <div class="slm-tree-row lvl2"><span class="slm-tw">·</span>Foundations <span class="c slm-num" style="margin-left:auto;">52</span></div>
+                  <div class="slm-tree-row"><span class="slm-tw">▸</span>Superstructure <span class="c slm-num" style="margin-left:auto;">164</span></div>
+                  <div class="slm-tree-row"><span class="slm-tw">▸</span>Roofing <span class="c slm-num" style="margin-left:auto;">71</span></div>
+                  <div class="slm-tree-row"><span class="slm-tw">▸</span>External works <span class="c slm-num" style="margin-left:auto;">87</span></div>
+                </div>
+
+                <div class="slm-tblwrap">
+                  <table class="slm-boq">
+                    <thead>
+                      <tr>
+                        <th style="width:42%">Description</th>
+                        <th>Discipline</th>
+                        <th class="r">Qty</th>
+                        <th>Unit</th>
+                        <th class="r" style="width:16%">Total (₱)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="grp"><td colspan="5">Substructure · Foundations</td></tr>
+                      <tr>
+                        <td class="desc">Reinforced concrete footing, 25MPa, incl. formwork &amp; rebar</td>
+                        <td><span class="slm-disc">Structural</span></td>
+                        <td class="r slm-num">86.0</td><td>cu.m</td><td class="r slm-num">412,800.00</td>
+                      </tr>
+                      <tr>
+                        <td class="desc">Anti-termite soil treatment to slab-on-grade footprint</td>
+                        <td><span class="slm-disc">Structural</span></td>
+                        <td class="r slm-num">240.0</td><td>sq.m</td><td class="r slm-num">36,000.00</td>
+                      </tr>
+                      <tr>
+                        <td class="desc">Damp-proof membrane, 0.20mm polyethylene, lapped &amp; sealed</td>
+                        <td><span class="slm-disc">Architectural</span></td>
+                        <td class="r slm-num">240.0</td><td>sq.m</td><td class="r slm-num">21,600.00</td>
+                      </tr>
+                      <tr class="grp"><td colspan="5">Superstructure · Frame</td></tr>
+                      <tr>
+                        <td class="desc">RC suspended slab, 150mm, 28MPa, two-way reinforced</td>
+                        <td><span class="slm-disc">Structural</span></td>
+                        <td class="r slm-num">198.0</td><td>sq.m</td><td class="r slm-num">693,000.00</td>
+                      </tr>
+                      <tr>
+                        <td class="desc">CHB masonry wall, 150mm, plastered both faces</td>
+                        <td><span class="slm-disc">Architectural</span></td>
+                        <td class="r slm-num">512.0</td><td>sq.m</td><td class="r slm-num">486,400.00</td>
+                      </tr>
+                      <tr>
+                        <td class="desc">Structural steel roof truss, fabricated &amp; erected</td>
+                        <td><span class="slm-disc">Structural</span></td>
+                        <td class="r slm-num">6.0</td><td>set</td><td class="r slm-num">318,000.00</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr><td colspan="4">Sheet subtotal — Structural &amp; Architectural</td><td class="r slm-num">1,967,800.00</td></tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="slm-annot"><b>The fix, made literal:</b> the BOQ now spans the full work-zone — Description gets ~42% and the numeric columns read straight across, no inner side-scroll. Prose above stays capped at a 680px measure so reading comfort survives a 1760px viewport.</div>
+          </div>
+
+          <!-- ============ STICKY RIGHT RAIL (380px) ============ -->
+          <div class="slm-rail">
+
+            <!-- summary -->
+            <div class="slm-card slm-pad slm-sum">
+              <div class="lbl">Proposal total</div>
+              <div class="total slm-num">₱ 2,480,000.00</div>
+              <div class="totlbl">VAT-inclusive · all sheets</div>
+              <dl class="rows">
+                <dt>Sheets</dt><dd class="slm-num">3</dd>
+                <dt>Line items</dt><dd class="slm-num">412</dd>
+                <dt>Currency</dt><dd>PHP (₱)</dd>
+                <dt>Prepared for</dt><dd>J. Cruz</dd>
+                <dt>Prepared on</dt><dd class="slm-num">2026-06-10</dd>
+              </dl>
+            </div>
+
+            <!-- decision on proposal paper -->
+            <div class="slm-card slm-pad slm-dec">
+              <div class="lbl">Your response</div>
+              <div class="help">Review the estimate, then choose how to proceed.</div>
+              <button class="slm-btn primary">Accept proposal</button>
+              <button class="slm-btn">Request revision</button>
+              <button class="slm-btn danger">Decline</button>
+            </div>
+
+            <!-- discussion -->
+            <div class="slm-card">
+              <div class="slm-disc-head">Discussion</div>
+              <div class="slm-msg">
+                <div class="who"><b>You</b> · 2 days ago</div>
+                <div class="body">Can the roofing scope be split into a separate phase?</div>
+              </div>
+              <div class="slm-msg">
+                <div class="who"><b>A. Reyes</b> · Preparer · 1 day ago</div>
+                <div class="body">Yes — I can issue MEP &amp; roofing as a phase-2 sheet. Updated total to follow.</div>
+              </div>
+              <div class="slm-composer">
+                <div class="box">Write a reply…</div>
+              </div>
+            </div>
+
+            <div class="slm-rail-note">↑ rail is <b>sticky</b> (top-6) — Accept / Decline stay visible while the client scrolls the estimate</div>
+          </div>
+
+        </div>
+
+        <div class="slm-footer">Shared via Archestimator · Activity logged for security · Valid through 2026-07-10</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== BEFORE vs AFTER ===================== -->
+  <div class="slm-section-label">Why it changes — today vs. proposed (schematic)</div>
+  <div class="slm-compare">
+
+    <div class="slm-thumb-frame slm-thumb-before">
+      <div class="slm-thumb-cap"><b>Today</b> — 960px centered column, 12px-max type</div>
+      <div class="slm-thumb-stage" style="position:relative;justify-content:center;gap:0;">
+        <span class="slm-emptylbl" style="position:absolute;left:18px;top:0;bottom:0;">~480px empty</span>
+        <div class="strip">
+          <div class="slm-tiny t1"></div>
+          <div class="slm-tiny t2"></div>
+          <div class="slm-tiny wide" style="height:30px;background:#ececec;"></div>
+          <div class="slm-tiny wide"></div>
+          <div class="slm-tiny wide"></div>
+          <div class="slm-tiny wide"></div>
+          <div class="slm-tiny wide" style="background:#e8e8e8;"></div>
+          <div class="slm-tiny t2"></div>
+          <div class="slm-tiny wide"></div>
+          <div class="gutter"></div>
+        </div>
+        <span class="slm-emptylbl" style="position:absolute;right:18px;top:0;bottom:0;">~480px empty</span>
+      </div>
+    </div>
+
+    <div class="slm-thumb-frame slm-thumb-after">
+      <div class="slm-thumb-cap"><b>Proposed</b> — fluid work-zone + sticky rail</div>
+      <div class="slm-thumb-stage">
+        <div class="row">
+          <div class="wz">
+            <div class="slm-blk big"></div>
+            <div class="slm-blk" style="height:26px;"></div>
+            <div class="slm-blk grid"></div>
+          </div>
+          <div class="rail">
+            <div class="slm-blk big" style="width:90%;height:22px;background:#d6d6d6;"></div>
+            <div class="slm-blk btnd"></div>
+            <div class="slm-blk btn"></div>
+            <div class="slm-blk btn"></div>
+            <div class="slm-blk" style="flex:1;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== MOBILE ===================== -->
+  <div class="slm-section-label">Mobile · 375px · single column, total up top, stacked</div>
+
+  <div class="slm-mob-wrap">
+    <div class="slm-frame slm-mobile">
+      <div class="slm-frame-bar">
+        <span class="slm-dot"></span><span class="slm-dot"></span><span class="slm-dot"></span>
+        <span class="slm-frame-url" style="max-width:200px;">share/9fa2…e1</span>
+        <span class="slm-frame-w">375px</span>
+      </div>
+      <div class="slm-viewport">
+
+        <div class="slm-banner">
+          <div class="slm-container">
+            <div class="slm-banner-in" style="padding:8px 0;">
+              <span class="chip"><span class="slm-pill">Reviewer</span> <b>J. Cruz</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="slm-container">
+          <div class="slm-col">
+
+            <!-- header -->
+            <div>
+              <div class="slm-eyebrow">Proposal Review</div>
+              <h1 class="slm-h1">Maple Residence Fit-Out</h1>
+              <p class="slm-meta">Prepared for <b>J. Cruz</b> · PRJ-014</p>
+            </div>
+
+            <!-- SUMMARY first: the number lands immediately -->
+            <div class="slm-card slm-pad slm-sum">
+              <div class="lbl">Proposal total</div>
+              <div class="total slm-num">₱ 2,480,000.00</div>
+              <div class="totlbl">VAT-inclusive · 3 sheets · 412 items</div>
+            </div>
+
+            <!-- hero -->
+            <div class="slm-hero" style="aspect-ratio:16/7;">
+              <div class="cap"><div class="l">Cover</div><div class="t">North Elevation</div></div>
+            </div>
+
+            <!-- estimate -->
+            <div class="slm-card">
+              <div class="slm-est-head" style="padding:11px 13px;">
+                <div class="slm-est-title" style="font-size:14px;">Structural</div>
+                <div class="slm-seg"><button class="on">Tree</button><button>Grid</button></div>
+              </div>
+              <!-- stacked row-cards, no side-scroll -->
+              <div style="padding:12px 13px;">
+                <div class="slm-rowcard">
+                  <div class="d">RC footing, 25MPa, incl. formwork &amp; rebar</div>
+                  <div class="m"><span>Structural · <span class="slm-num">86.0</span> cu.m</span><span class="tot slm-num">₱412,800</span></div>
+                </div>
+                <div class="slm-rowcard">
+                  <div class="d">RC suspended slab, 150mm, 28MPa</div>
+                  <div class="m"><span>Structural · <span class="slm-num">198.0</span> sq.m</span><span class="tot slm-num">₱693,000</span></div>
+                </div>
+                <div class="slm-rowcard">
+                  <div class="d">CHB masonry wall, 150mm, plastered</div>
+                  <div class="m"><span>Architectural · <span class="slm-num">512.0</span> sq.m</span><span class="tot slm-num">₱486,400</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- decision -->
+            <div class="slm-card slm-pad slm-dec">
+              <div class="lbl">Your response</div>
+              <div class="help">Choose how to proceed.</div>
+              <button class="slm-btn primary" style="min-height:44px;">Accept proposal</button>
+              <button class="slm-btn" style="min-height:44px;">Request revision</button>
+              <button class="slm-btn danger" style="min-height:44px;">Decline</button>
+            </div>
+
+            <!-- discussion -->
+            <div class="slm-card">
+              <div class="slm-disc-head" style="font-size:14px;">Discussion</div>
+              <div class="slm-msg">
+                <div class="who"><b>A. Reyes</b> · Preparer</div>
+                <div class="body">Yes — I can issue roofing as a phase-2 sheet.</div>
+              </div>
+              <div class="slm-composer"><div class="box">Write a reply…</div></div>
+            </div>
+
+            <div class="slm-footer" style="text-align:center;">Shared via Archestimator · Valid through 2026-07-10</div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>

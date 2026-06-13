@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Add New Tabs — strip target state (before / after)</title>
+<style>
+  :root{
+    --ink:#1c1c1e; --tertiary:#8a8a8e; --hairline:#e3e3e6; --surfaceMuted:#f5f5f7;
+    --white:#fff; --danger:#c0392b; --focus:#3b82f6; --bg:#fafafa;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px; background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+    color:var(--ink); font-size:13px; line-height:1.5;
+  }
+  h1{font-size:16px;font-weight:600;margin:0 0 4px}
+  .sub{color:var(--tertiary);font-size:12px;margin:0 0 28px}
+  h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--tertiary);margin:28px 0 8px}
+  .note{font-size:12px;color:var(--tertiary);margin:6px 0 0}
+  .frame{border:1px solid var(--hairline);border-radius:6px;background:var(--white);overflow:hidden;max-width:760px}
+
+  /* ---- tab strip primitives (approximate design tokens) ---- */
+  .strip{display:flex;align-items:flex-end;gap:4px;min-height:32px;padding:4px 8px 0;
+         background:var(--surfaceMuted);border-bottom:1px solid var(--hairline);overflow-x:auto}
+  .tab{position:relative;display:inline-flex;align-items:center;gap:4px;height:28px;max-width:176px;
+       padding:0 12px;border:1px solid transparent;border-bottom:0;border-radius:3px 3px 0 0;
+       font-size:10px;font-weight:500;line-height:1;color:var(--tertiary);background:var(--surfaceMuted);
+       white-space:nowrap;cursor:default}
+  .tab:hover{border-color:var(--hairline);color:var(--ink)}
+  .tab.active{z-index:2;margin-bottom:-1px;border-color:var(--hairline);background:var(--white);color:var(--ink)}
+  .tab .badge{font-size:8px;font-weight:400;color:var(--tertiary)}
+  .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-bottom:2px;
+           border:0;border-radius:3px;background:transparent;color:var(--tertiary);cursor:pointer;flex:none}
+  .iconbtn:hover{color:var(--ink);background:rgba(0,0,0,.04)}
+  .iconbtn.danger{color:var(--danger)}
+  .iconbtn svg{width:12px;height:12px}
+  .textbtn{height:24px;margin-bottom:2px;padding:0 8px;border:0;border-radius:3px;background:transparent;
+           color:var(--tertiary);font-size:9px;cursor:pointer}
+  .spacer{flex:1}
+  .panel{padding:18px;font-size:12px;color:var(--tertiary)}
+
+  .label{display:inline-block;font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;margin-bottom:6px}
+  .label.before{background:#fdecea;color:#a33}
+  .label.after{background:#e8f5ec;color:#2e7d4f}
+
+  /* context menu mock */
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .menu{width:180px;border:1px solid var(--hairline);border-radius:6px;background:var(--white);
+        box-shadow:0 6px 24px rgba(0,0,0,.10);padding:4px;font-size:12px}
+  .mi{display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border-radius:4px;color:var(--ink);cursor:default}
+  .mi:hover{background:var(--surfaceMuted)}
+  .mi.danger{color:var(--danger)}
+  .mi.disabled{color:var(--hairline);cursor:not-allowed}
+  .mi .k{margin-left:auto;font-size:10px;color:var(--tertiary)}
+  .sep{height:1px;background:var(--hairline);margin:4px 0}
+
+  /* empty state */
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+         min-height:140px;text-align:center;padding:24px;border:1px dashed var(--hairline);
+         margin:14px;border-radius:6px}
+  .empty h3{font-size:10px;font-weight:500;color:var(--ink);margin:0}
+  .empty p{font-size:10px;color:var(--tertiary);margin:0}
+  .btns{display:flex;gap:8px;margin-top:4px}
+  .btn{height:24px;padding:0 10px;border-radius:4px;font-size:10px;border:1px solid var(--hairline);
+       background:var(--white);color:var(--ink);cursor:pointer}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--tertiary)}
+  .caret{margin-bottom:2px;color:var(--tertiary);font-size:9px}
+  .tip{position:relative;display:inline-flex}
+  .tip .bubble{position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+       font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap}
+</style>
+</head>
+<body>
+  <h1>Add New Tabs — estimate strip target state</h1>
+  <p class="sub">Static reference (not pixel-final). Tokens approximate the editor: SF Pro, 10px tab type, <code>rounded-xs</code>, hairline borders, neutral only, Phosphor 12px. See <code>02_UX_UI_DESIGN.md</code>.</p>
+
+  <h2>Before — current (when the gate is naively flipped on)</h2>
+  <span class="label before">persistent toolbar row · acts on active tab · pencil has no flag</span>
+  <div class="frame">
+    <div class="strip">
+      <div class="tab active">Main <span class="badge">Default</span></div>
+      <div class="tab">Alternate</div>
+      <!-- the whole action row this plan REMOVES -->
+      <button class="iconbtn" title="Create tab">＋</button>
+      <button class="iconbtn" title="Duplicate tab">⧉</button>
+      <button class="iconbtn" title="Rename active tab">✎</button>
+      <button class="textbtn">Archive</button>
+      <button class="iconbtn danger" title="Delete active tab">🗑</button>
+    </div>
+    <div class="panel">Estimate tree for the active tab…</div>
+  </div>
+  <p class="note">Problem: a row of buttons that all act on the <em>active</em> tab; the Rename pencil renders with no per-action flag; not browser-like.</p>
+
+  <h2>After — target</h2>
+  <span class="label after">"+" is the only persistent control · double-click = rename · right-click = menu (target tab)</span>
+  <div class="frame">
+    <div class="strip">
+      <div class="tab active">Main <span class="badge">Default</span></div>
+      <div class="tab">Alternate</div>
+      <div class="tab">Tab&nbsp;3</div>
+      <span class="tip">
+        <span class="bubble">New tab</span>
+        <button class="iconbtn" title="New tab" aria-label="Create tab">＋</button>
+      </span>
+      <span class="spacer"></span>
+    </div>
+    <div class="panel">Estimate tree for the active tab…</div>
+  </div>
+  <p class="note">"+" pinned at the trailing edge (stays visible when tabs overflow and scroll). New/active/rename-target tab scrolls into view. Edge fade on overflow.</p>
+
+  <div class="row">
+    <div>
+      <h2>Right-click a tab → context menu (single controlled menu)</h2>
+      <div class="menu" role="menu" aria-label="Tab actions">
+        <div class="mi">Rename <span class="k">F2 / dbl-click</span></div>
+        <div class="mi">Duplicate</div>
+        <div class="sep"></div>
+        <div class="mi danger">Delete</div>
+        <div class="mi disabled" title="The last tab can't be deleted">Delete <span class="k">last tab</span></div>
+      </div>
+      <p class="note">Acts on the <em>right-clicked</em> tab (not active). Delete disabled on the last tab. Archive optional (OQ2).</p>
+    </div>
+
+    <div>
+      <h2>New tab → empty state (already exists; edit-gated in U6)</h2>
+      <div class="frame" style="max-width:320px">
+        <div class="strip">
+          <div class="tab">Main <span class="badge">Default</span></div>
+          <div class="tab active">Tab&nbsp;3</div>
+          <button class="iconbtn" title="New tab">＋</button>
+        </div>
+        <div class="empty">
+          <h3>This tab is empty</h3>
+          <p>Add a group, or drag from the library / a template.</p>
+          <div class="btns">
+            <button class="btn">Add Group</button>
+            <button class="btn ghost">Browse templates</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Viewer (no edit permission)</h2>
+  <span class="label before">read-only switcher — no "+", no menu, no rename</span>
+  <div class="frame" style="max-width:420px">
+    <div class="strip">
+      <div class="tab active">Main <span class="badge">Default</span></div>
+      <div class="tab">Alternate</div>
+      <!-- nothing else: gated on canEditEstimate -->
+    </div>
+    <div class="panel">Estimate tree (read-only)…</div>
+  </div>
+</body>
+</html>
