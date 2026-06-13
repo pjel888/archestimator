@@ -102,7 +102,7 @@ describe("ProjectTeamspaceHeader", () => {
       },
     });
     collaborationActions.copyProjectInviteLink.mockResolvedValue({ ok: true, message: "Copy invite link", invitePath: "/invite/copied" });
-    collaborationActions.inviteEstimateSheetCollaborator.mockResolvedValue({ ok: true, message: "Sheet invite email sent." });
+    collaborationActions.inviteEstimateSheetCollaborator.mockResolvedValue({ ok: true, message: "Estimate invite email sent." });
     collaborationActions.inviteProjectCollaborator.mockResolvedValue({ ok: true, message: "Invite email sent." });
     collaborationActions.removeProjectCollaborator.mockResolvedValue({ ok: true, message: "Project-specific access removed." });
     collaborationActions.readProjectInviteDeliveryReadiness.mockResolvedValue({
@@ -110,7 +110,7 @@ describe("ProjectTeamspaceHeader", () => {
       message: "Teamspace invite delivery is configured.",
     });
     collaborationActions.resendProjectInviteEmail.mockResolvedValue({ ok: true, message: "Invite email resent." });
-    collaborationActions.setEstimateSheetAccessMode.mockResolvedValue({ ok: true, message: "Sheet now inherits project access." });
+    collaborationActions.setEstimateSheetAccessMode.mockResolvedValue({ ok: true, message: "Estimate now inherits project access." });
     collaborationActions.updateProjectCollaboratorRole.mockResolvedValue({ ok: true, message: "Role updated." });
   });
 
@@ -140,7 +140,7 @@ describe("ProjectTeamspaceHeader", () => {
     expect(within(dialog).getByRole("textbox", { name: "Invite by email" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Send invite" })).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Role for Ana Builder")).toBeInTheDocument();
-    expect(within(dialog).getByText("Estimate sheet access")).toBeInTheDocument();
+    expect(within(dialog).getByText("Estimate access")).toBeInTheDocument();
     expect(within(dialog).getByText("Main Estimate")).toBeInTheDocument();
     expect(within(dialog).getByText("Client Option")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Access mode for Main Estimate")).toBeInTheDocument();
@@ -237,7 +237,7 @@ describe("ProjectTeamspaceHeader", () => {
     expect(within(dialog).getByLabelText("Invite role")).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Send invite" })).toBeDisabled();
     expect(within(dialog).getByRole("textbox", { name: "Invite to Main Estimate" })).toBeDisabled();
-    expect(within(dialog).getByLabelText("Sheet role for Main Estimate")).toBeDisabled();
+    expect(within(dialog).getByLabelText("Estimate role for Main Estimate")).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Resend invite for new.collaborator@example.com" })).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Copy invite link for new.collaborator@example.com" })).toBeDisabled();
   });
@@ -270,7 +270,7 @@ describe("ProjectTeamspaceHeader", () => {
     expect(roleTrigger).toHaveFocus();
   });
 
-  it("commits a sheet access mode change through the shared dropdown", async () => {
+  it("commits an estimate access mode change through the shared dropdown", async () => {
     const user = userEvent.setup();
 
     render(<ProjectTeamspaceHeader summary={summary} />);
@@ -287,7 +287,7 @@ describe("ProjectTeamspaceHeader", () => {
       estimateId: "estimate-1",
       inheritProjectAccess: false,
     });
-    expect(await within(dialog).findByRole("status")).toHaveTextContent("Sheet now inherits project access.");
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Estimate now inherits project access.");
   });
 
   it("keeps pending pickers focusable via aria-disabled and ignores activation until the action settles", async () => {
@@ -363,7 +363,7 @@ describe("ProjectTeamspaceHeader", () => {
     await user.click(screen.getByRole("button", { name: "Remove Ana Builder" }));
 
     const dialog = screen.getByRole("dialog", { name: "Remove Ana Builder?" });
-    expect(within(dialog).getByText("They will lose access to this project and all estimate sheets.")).toBeInTheDocument();
+    expect(within(dialog).getByText("They will lose access to this project and all estimates.")).toBeInTheDocument();
     expect(within(dialog).getByRole("checkbox", { name: "Notify Ana Builder of removal" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Remove" })).toBeInTheDocument();

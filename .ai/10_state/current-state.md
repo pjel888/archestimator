@@ -1,4 +1,678 @@
 # Current State
+**Estimate Tabs / Project Sources / XLSX Tabs Local Implementation Complete and Archived (2026-06-13 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The implementation prompt `.ai/08_prompts/IMPLEMENT-2026-06-12-Projects-Auto-Added-To-Templates.md` is now satisfied for repo-local merge readiness. The branch ships first-class estimate tabs, tab-scoped estimate trees, user-facing sheet→estimate/tab copy, unified custom-template + virtual project-source browsing, tab-aware XLSX export, tab-aware activity/presence/publication/AI context, local RLS/backfill proof, and release-boundary documentation. Final evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-implementation-completion-audit.md` plus `.ai/05_logs/2026-06-13-estimate-tabs-closeout/`: `bun run validate` passed (ESLint 0 errors / 549 warnings; unit 9 passed; DOM Vitest 243 files passed / 1 skipped, 1808 tests passed / 3 skipped), `bun run build` passed, `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed, `bunx vitest run tests/vitest/perf --maxWorkers=1` passed 4 files / 14 tests, export regression passed 4 files / 22 tests, and the targeted Playwright specs were present/discovered but skipped by provider-env gates without mutation. The plan pack is archived at `.ai/09_archive/store/2026-06-12-Projects-Auto-Added-To-Templates/`.
+Provider/manual proof remains separate and unclaimed: linked Supabase apply/typegen/advisor, hosted export/Vercel deploy, spreadsheet-app workbook inspection, two-browser collaboration QA, 375px responsive/browser pass, old-bookmark export, and hosted invite/share/publication smoke are still `provider-proof-open` / `manual-proof-pending`.
+
+**Estimate Tabs R1.7 Cross-Tab Node-Drop Boundary Implemented Locally (2026-06-13 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The D-7 decision remains intact: true cross-tab node moves still require a new
+move RPC, DB simulation, linked/provider proof, and follow-up product semantics.
+The locally actionable v1 boundary is now implemented: estimate-tree node drags
+use a shared MIME type, inactive estimate tabs no longer spring-load for tree-node
+drags, and dropping a tree node on another tab strip button rejects with the
+published workaround message (duplicate the tab or save the group as a template).
+Template and project-source drags still spring-load inactive tabs. Fresh local
+proof is in `.ai/05_logs/2026-06-13-estimate-tabs-r1-7-cross-tab-rejection-run.md`:
+`bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1`
+passed 1 file / 9 tests, the adjacent tab/tree/reorder/schema regression passed
+5 files / 62 tests, focused ESLint passed on the changed files, `bun run
+type-check` passed, and `git diff --check` passed. Full `bun run validate`
+initially found one stale R11.3 AI package-builder security assertion; after
+updating it for `estimate_tab_id`/`estimate_tabs` activity attribution, full
+validation passed: type-check passed, ESLint had 0 errors / 549 warnings,
+design-system passed, design lint passed, unit tests passed 9/9, and DOM Vitest
+passed 243 files / 1 skipped with 1808 tests passed / 3 skipped. No linked
+Supabase apply/typegen, hosted browser proof, Vercel deploy, production deploy,
+provider proof, or manual two-browser QA was performed.
+
+**Estimate Tabs Phase 5 Supabase Generated Types Boundary Confirmed (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+After commit `e2e7a6d1`, fresh focused validation confirms the remaining local
+failure is the generated Supabase type contract in
+`tests/vitest/estimate-sheet-version-control-actions.test.ts`: the migration
+`supabase/migrations/20260612094734_estimate_tabs_foundation.sql` defines
+`public.estimate_tabs`, `estimate_tab_id`, grants, and the six new
+estimate-tab history RPCs, but `src/lib/supabase/types.ts` still lacks the
+corresponding generated table/column/function entries. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-supabase-generated-types-boundary-run.md`
+and the raw logs
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-focused-red.log`
+and
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/supabase-history-rpc-types-boundary-probe.log`:
+the focused action test fails only on the missing generated function entry,
+coverage probing reports six missing estimate-tab RPCs, `supabase status` cannot
+inspect local services because Docker is unavailable, no `docker` CLI is visible,
+the Homebrew Postgres estimate-tabs migration/RLS harness passes, and
+`supabase gen types --db-url` against that temp DB still fails on Docker image
+inspection. Local `supabase gen types --local --schema public` also cannot run
+without Docker. No generated-type hand edit was made because the plan pack treats
+`src/lib/supabase/types.ts` as provider/local-generated output after authorized
+Supabase apply/typegen. Remaining proof gate: owner-approved linked Supabase
+apply/typegen or a working Docker-backed Supabase typegen environment,
+followed by focused action validation and full `bun run validate`. No linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof, or
+browser visual proof was performed.
+
+**Estimate Tabs Phase 5 Public Cache/Font Contracts Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The root app layout no longer loads unused Inter or Source Serif public webfont
+variables; it keeps only the `Roboto_Mono` `next/font` variable used by the mono
+Tailwind token while the current CSS baseline remains the SF Pro system stack.
+The public cache-safety harness now matches the current anonymous landing header
+CTA (`Book a walkthrough` to `/contact`) and logged-in `Workspace` CTA. Evidence
+is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-public-cache-font-repair-run.md`:
+the focused red run failed on stale header CTA and font contracts, the focused
+green run passed (2 files / 7 tests), `bun run type-check` passed,
+changed-file ESLint passed, the TypeScript no-excuse script passed, `bun run
+build` passed after which generated `next-env.d.ts` route-type churn was
+restored, and the refreshed `bun run validate` still fails in `test:dom` but now
+reports 4 failed files / 12 failed tests with public cache/font contracts
+removed from the failure set. This is local build/static-test proof only; linked
+Supabase/provider/RLS, hosted, production/manual, deploy, and browser visual
+proof remain open.
+
+**Estimate Tabs Phase 5 Project Summary Contracts Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The project collaboration/publication static contracts now match the current
+project layout. `WorkshopPageShell.actions` mounts `ProjectPublicationHeader`
+and `ProjectTeamspaceHeader` directly; the publication header receives
+`summary={publicationSummary}`, `currentUserEmail`, and project estimate-sheet
+picker data, while the Teamspaces header continues to own private project link
+copy controls. Evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-project-summary-contract-repair-run.md`:
+the focused red run failed on stale `ProjectWorkspaceHeaderRow` prop contracts,
+the focused green run passed (2 files / 2 tests), `bun run type-check` passed,
+changed-file ESLint passed, the TypeScript no-excuse script passed, and the
+refreshed `bun run validate` still fails in `test:dom` but now reports 6 failed
+files / 15 failed tests with project summary contracts removed from the failure
+set. This is local static-test proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Project Dashboard UI Contract Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The project-dashboard static UI governance tests now match the current live
+project layout: `WorkshopPageShell` owns project-level actions and the estimate
+metadata strip, `ProjectMiniSidebar` remains the project-section navigation and
+hides itself on estimate-sheet detail routes, and the legacy
+`ProjectWorkspaceHeaderRow` is no longer mounted by the project layout. Because
+the edited aggregate project-dashboard test was 286 pure LOC, it was split into
+five focused dashboard governance files plus a shared fixture module; the split
+files are 67/42/79/54/55/33 pure LOC. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-project-dashboard-ui-contract-repair-run.md`:
+the focused red run failed on stale `ProjectWorkspaceHeaderRow` layout
+assertions, the split suite passed (5 files / 17 tests), `bun run type-check`
+passed, changed-file ESLint passed, the TypeScript no-excuse script passed, and
+the refreshed `bun run validate` still fails in `test:dom` but now reports 8
+failed files / 17 failed tests with project-dashboard contracts removed from the
+failure set. This is local static-test proof only; linked Supabase/provider/RLS,
+hosted, production/manual, deploy, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Security Findings Tooling Contract Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Codex security-findings tooling contract now matches the current hook
+architecture: MCP package pins remain `code-review-graph==2.3.5` in
+`.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`, while
+`.codex/hooks.json` delegates to the pinned `oh-my-codex` native hook instead of
+carrying direct `code-review-graph update/status` shell commands. The contract
+continues to forbid unpinned direct `code-review-graph` hook commands and now
+asserts the OMX native hook path. Because the edited aggregate contract test was
+355 pure LOC, it was split into five focused security contract files plus a
+shared helper; the split files are 62/86/101/58/41/27 pure LOC. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-security-findings-tooling-contract-repair-run.md`:
+the focused red run failed on the stale direct hook expectation, the split suite
+passed (5 files / 23 tests), `bun run type-check` passed, changed-file ESLint
+passed, the TypeScript no-excuse script passed, and the refreshed
+`bun run validate` still fails in `test:dom` but now reports 9 failed files / 19
+failed tests with security-findings contracts removed from the failure set. This
+is local config/test proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Estimate Tree Bulk Selection Test Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tree bulk-selection DOM test now matches the current compact
+bottom-dock toolbar contract: the dock visibly renders the numeric count while
+exposing the full "1 node selected" phrase as the count label's accessible name.
+The test also uses `userEvent` and waits for the accessible count label, removing
+the React `act(...)` warning captured in the red run. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-estimate-tree-bulk-selection-test-repair-run.md`:
+the focused red run failed on the stale visible-text assertion, the focused
+green run passed (1 file / 4 tests), `bun run type-check` passed, changed-file
+ESLint passed, the TypeScript no-excuse script passed, and the file is healthy
+at 155 pure LOC. The refreshed `bun run validate` still fails in `test:dom` but
+now reports 10 failed files / 20 failed tests, with the estimate-tree
+bulk-selection suite removed from the failure set. This is local DOM-test proof
+only; linked Supabase/provider/RLS, hosted, production/manual, deploy, and
+browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Storybook Plan Matrix Archive Import Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Storybook plan-matrix module now imports the 2026-06-06 component inventory
+and Storybook coverage Markdown from the archived canonical plan pack under
+`.ai/09_archive/2026-06-06-ui-component-optimization-componentization/` instead
+of the now-empty `.ai/03_plans/...` path. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-storybook-plan-matrix-archive-import-repair-run.md`:
+`bun x vitest run tests/vitest/storybook-plan-matrix.test.ts --maxWorkers=1`
+passed (1 file / 2 tests), changed-file ESLint passed, the TypeScript
+no-excuse script passed, and the files are healthy (73/24 pure LOC). The
+refreshed `bun run validate` now has no failed import suites and still fails in
+`test:dom` with 11 failed files / 21 failed assertion-level stale contracts
+(generated Supabase history RPC types, estimate-tree bulk-selection,
+landing/public font/cache contracts, project summary/dashboard contracts, and
+code-review-graph hook command text). This is local Storybook-doc import proof
+only; linked Supabase/provider/RLS, hosted, production/manual, deploy, and
+browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Route Error Boundary Import Repaired (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The stale route-boundary DOM test import for the removed legacy
+`/workshop/templates/error` module now targets the live
+`/workshop/library/templates/error` route boundary. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-route-error-boundary-import-repair-run.md`:
+`bun x vitest run tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1`
+passed (1 file / 5 tests), changed-file ESLint passed, the TypeScript
+no-excuse script passed, and the file is healthy at 56 pure LOC. The refreshed
+`bun run validate` now gets past that route-boundary suite and still fails in
+`test:dom` with 1 failed suite and 21 failed tests across unrelated stale
+contracts (Storybook plan matrix raw imports, generated Supabase history RPC
+types, estimate-tree bulk-selection, landing/public font/cache contracts,
+project summary/dashboard contracts, and code-review-graph hook command text).
+This is local test-import proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Workshop Baseline Validation Repair (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+A fresh `bun run validate` after the server-action build fix reached the local
+unit/DOM test stages and exposed stale workshop baseline assertions. The reset
+baseline tests now assert the current grid-based workshop greeting shell and the
+inline beta-feedback dialog trigger instead of the older inline period row and
+feedback route link. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-workshop-baseline-validation-repair-run.md`:
+`bun test tests/unit/reset-baseline.test.ts` passed (2 tests),
+`bun x vitest run tests/vitest/workshop-reset.test.tsx --maxWorkers=1` passed
+(1 file / 5 tests), `bun run type-check` passed, changed-file ESLint passed,
+full `bun run lint` exited 0 with existing warnings only (548 warnings / 0
+errors), the TypeScript no-excuse script passed, and `git diff --check` passed.
+The refreshed `bun run validate` still fails in `test:dom` with 2 failed suites
+and 21 failed tests across unrelated stale contracts (Storybook plan import,
+legacy templates error route import, generated Supabase history RPC types,
+landing/public font/cache contracts, project summary/dashboard contracts,
+estimate-tree bulk-selection, and code-review-graph hook command text). This is
+local test-baseline proof only; linked Supabase/provider/RLS, hosted,
+production/manual, deploy, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Build Gate Restored After Server Action Type Export Fix (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+A fresh `bun run build` after the lint-blocker cleanup exposed a Turbopack server
+action boundary error: the `"use server"` reusable-source action module exported
+a type-only `ReusableEstimateSource`, which Next/Turbopack treated as an action
+export. The type re-export was removed from `src/lib/reusable-sources/actions.ts`;
+all callers import reusable-source types directly from
+`src/lib/reusable-sources/types.ts`. Evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-build-server-action-type-export-fix-run.md`:
+the first build failure is captured in `bun-run-build-after-lint-blockers.log`,
+the fixed `bun run build` passed in
+`bun-run-build-after-server-action-type-export-fix.log`, `bun run type-check`
+passed, changed-file ESLint passed, and `git diff --check` passed after
+restoring generated `next-env.d.ts` route-type churn. This is local build proof
+only; linked Supabase/provider/RLS, hosted, production, manual, and browser
+visual proof remain open.
+
+**Estimate Tabs Phase 5 Local Lint Blockers Cleared (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The repo-wide lint gate no longer has blocking errors in this worktree. The
+cleanup removed React Compiler `set-state-in-effect` errors in the command menu
+and templates-panel project-source effects, and removed stale Storybook `any`
+casts from the Tabs stories. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-lint-blockers-implementation-run.md`:
+changed-file ESLint passed, `bun run lint` exited 0 with existing warnings only
+(548 warnings / 0 errors), `bun run type-check` passed,
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 60 tests), and `git diff --check` passed. This is local lint
+and UI-regression proof only; linked Supabase/provider/RLS, hosted, production,
+manual, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Project Source UpdatedAt Metadata Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+Reusable project-source actions now carry `estimates.updated_at` through the
+lightweight estimate-source list and already-loaded per-tab tree results into
+project estimate/tab/group/area metadata. The Supabase read helper for project
+estimate sheets was extracted to
+`src/lib/repositories/project-estimate-sheets-repository.ts` so the oversized
+workspace repository delegates the lightweight query instead of growing. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-project-source-updated-at-metadata-implementation-run.md`:
+`bunx vitest run tests/vitest/project-estimate-sheets-repository.test.ts tests/vitest/reusable-sources-actions.test.ts tests/vitest/template-browse-project-sources.test.tsx tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (4 files / 65 tests), `bun run type-check` passed,
+`git diff --check` passed, and changed-file ESLint passed. Full `bun run lint`
+was attempted and remains blocked by pre-existing/repo-wide lint errors outside
+this slice (logged separately). This is local code/test proof only: live linked
+Supabase/RLS/provider proof, R7.1/R7.2 insert RPC/action proof, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Project Source Outline Metadata Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+Reusable project-source outline/search actions now attach local row-count and
+total-cost metadata to loaded tab and group/area sources, so existing preview
+surfaces can show richer live-source details without additional provider calls.
+The collector logic moved from the oversized server-action file into
+`src/lib/reusable-sources/source-collectors.ts`, reducing
+`src/lib/reusable-sources/actions.ts` to 188 pure LOC. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-project-source-outline-metadata-implementation-run.md`:
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-browse-project-sources.test.tsx --maxWorkers=1`
+passed (3 files / 64 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local action/UI proof only: `updatedAt` live
+freshness from provider data, hosted RLS/provider proof, R7.1/R7.2 insert
+RPC/action proof, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Template Browse Lazy Project Outline Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The `/workshop/library/templates` browse route now lazily expands readable
+project-estimate sources into tab and group/area project-source rows through the
+existing access-filtered `getReusableEstimateOutline` server action. The route
+keeps project-derived sources read-only, preserves template-only management and
+preview actions, and extracts the project-source browse tree helpers into a
+focused module instead of growing the oversized route manager. Local evidence is
+in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-template-browse-lazy-project-outline-implementation-run.md`:
+`bunx vitest run tests/vitest/template-browse-project-sources.test.tsx tests/vitest/template-gallery.test.tsx --maxWorkers=1`
+passed (2 files / 13 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local route/UI proof only: row-level provider
+detail beyond loaded outline/search metadata, live provider/RLS proof, R7.1/R7.2
+insert RPC/action proof, linked Supabase apply/typegen, hosted provider proof,
+Vercel deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Template Browse Project Sources Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The `/workshop/library/templates` browse route now receives readable
+project/estimate reusable sources and renders them as a read-only `Projects`
+section in the left template tree. Project-source rows do not expose template
+management actions, do not open the template editor route, and do not mount the
+sidebar project-source preview dock; custom template management remains scoped to
+template rows. Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-template-browse-project-sources-implementation-run.md`:
+the focused missing-Projects-section regression failed before implementation,
+the focused test passed after implementation,
+`bunx vitest run tests/vitest/template-gallery.test.tsx --maxWorkers=1` passed
+(1 file / 12 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local route/UI proof only: row-level provider detail beyond
+loaded outline/search metadata, browse-route lazy tab/node expansion provider
+proof, R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, and browser
+visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Search UI Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 sidebar Templates tab now debounces action-loaded project-source
+searches through `searchReusableProjectSources(query)` and merges the returned
+hits into the visible project-source tree so unloaded tab/group/area matches can
+be revealed by the existing expanded search view. Current-project narrowing is
+respected for returned hits, while prop-supplied source lists and the Custom
+Templates-only filter stay client-local. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-search-ui-implementation-run.md`:
+the focused missing-action-call regression failed before implementation, the
+focused UI search and action ancestor tests passed after implementation,
+`bunx vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/reusable-sources-actions.test.ts --maxWorkers=1`
+passed (2 files / 63 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/sidebar proof only: route-level
+project-source parity, row-level provider detail beyond loaded outline/search
+metadata, R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Search Action Contract Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 project-source surface now has a read-only
+`searchReusableProjectSources(query)` server action. It keeps the existing
+non-pending project access boundary, searches project, estimate, tab, and
+group/area node names, and returns flattened project-source hits with preview
+metadata for future reveal/search UI. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-search-action-implementation-run.md`:
+the focused missing-export regression failed before implementation, the focused
+search action test passed after implementation,
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts --maxWorkers=1`
+passed (1 file / 3 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/action-contract proof only: debounced
+sidebar UI integration, reveal-in-tree search result affordance, route-level
+project-source parity, row-level provider detail beyond loaded outline rows,
+R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase apply/typegen, hosted
+provider proof, Vercel deploy, production/manual proof, and browser visual proof
+remain open.
+
+**Estimate Tabs Phase 5 R4.4 Refresh Affordance Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now exposes a local manual `Refresh project sources`
+control for estimate/project contexts whose project sources are loaded through
+the existing read-only reusable-source action. Refresh clears stale preview and
+bulk source selections, resets outline loading/error state, and replaces the
+project-source tree with the freshly returned source list. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-refresh-affordance-implementation-run.md`:
+the focused missing-button regression failed before implementation, the focused
+refresh test passed after implementation, `bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 59 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/sidebar proof only: server search,
+route-level project-source parity, row-level provider detail beyond loaded
+outline rows, R7.1/R7.2 provider/RLS/RPC/action proof, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Preview Outline Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab project-source preview now includes a local source
+outline for already-loaded children: project previews list estimates, estimate
+previews list tabs, and tab previews list loaded group/area rows. This adds
+richer preview detail without server search, polling, or provider refresh
+behavior. Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`
+and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-preview-outline-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 58 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/sidebar proof only: server-backed
+metadata freshness, server search, row-level provider detail beyond loaded
+outline rows, route-level project-source parity, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, and browser
+visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.5 Whole-Tab Save-As-Template Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has a local explicit save-as-template seam for
+whole project tab sources in addition to project group/area sources. Project tab
+context menus expose `Save as template`, the shared `NewTemplateModal` opens in
+an `estimate-tab` mode with a tab-source summary, and
+`createEstimateTemplateFromEstimateTab` wraps the tab's copied nodes under one
+generated template group root. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-5-project-tab-save-template-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/new-template-modal.test.tsx --maxWorkers=1`
+passed (2 files / 62 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is local/mock proof only: linked Supabase
+action execution, hosted typegen/provider proof, R4.4 metadata freshness/richer
+preview detail, R7.1/R7.2 provider/RLS and insert RPC/action proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 Local Consolidation Proof Recorded (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has a consolidated local verification pass across
+the reusable-source action/drag suites, estimate-sidebar Templates tab,
+template browse/gallery divergence, template editor template-only boundary,
+library tab layout, New Template modal, and estimate template drop zones. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the
+consolidation run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-local-consolidation-run.md`:
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/reusable-source-drag.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-gallery.test.tsx tests/vitest/template-editor.test.tsx tests/vitest/library-tabs-layout.test.tsx tests/vitest/new-template-modal.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx --maxWorkers=1`
+passed (8 files / 103 tests), `bun run type-check` passed, and
+`git diff --check` passed. This is a local consolidation boundary only: R4.4
+server-backed metadata freshness/richer preview detail, R4.5 whole-tab
+save-as-template wrapping/live provider proof, R7.1/R7.2 provider/RLS and insert
+RPC/action proof, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.5 Project Node Save-As-Template Seam Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has an explicit local save-as-template seam for
+project-derived group/area sources. Project node context menus expose `Save as
+template`, then hand the source project id, estimate id, and node id into the
+existing `NewTemplateModal` / `createEstimateTemplateFromEstimateNode` path with
+`Project Sources` as the default category. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-5-project-node-save-template-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 56 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local handoff proof only: whole-tab save-as-template wrapping,
+live provider execution of the action, insert RPC/action, RLS harness, linked
+Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual
+proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R6.2 Keyboard/Context/Bulk UI Parity Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 Templates tab now has local UI parity proof for non-drag insertion
+paths. Space-key tree selection plus the existing bulk add action inserts custom
+templates and project-source tab rows into the selected group target; earlier
+local slices already proved project-source drag payloads, context-menu
+insertion, and bulk project-source top-level resolution. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-2-keyboard-insert-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 55 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local UI/callback proof only: save-as-template from project
+source, insert RPC/action, RLS harness, linked Supabase apply/typegen, hosted
+provider proof, Vercel deploy, production/manual proof, and browser visual proof
+remain open.
+
+**Estimate Tabs Phase 5 R4.4 Source Filter Chips Locally Implemented (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 sidebar Templates tab now has local source-section filters on top of
+the earlier project-source preview metadata seam. When custom templates and
+project-derived sources are both present, `All sources`, `Custom templates`, and
+`Project sources` chips drive the rendered tree, cascade selection, bulk
+insertion resolution, preview source lookup, and expand-all node set. Existing
+current-project narrowing remains available when project sources are visible.
+Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase
+run summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-filter-chips-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 53 tests), `bun run type-check` passed, and `git diff --check`
+passed. R4.4 is still not fully complete: server-backed live metadata freshness,
+richer preview row detail, route-level project-source preview/search parity,
+save-as-template from project source, insert RPC/action, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.6 Browse Route Divergence Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 templates work now has local route/sidebar divergence proof. The
+`/workshop/library/templates` browse manager remains a template-management
+surface with template `Open` and `Insert into estimate` actions, while project
+source tree and `Project source preview` surfaces stay absent there; the
+estimate-sidebar Templates tab owns project-source browsing in this slice. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-6-browse-route-divergence-implementation-run.md`:
+`bunx vitest run tests/vitest/template-gallery.test.tsx --maxWorkers=1` passed
+(1 file / 12 tests), `bun run type-check` passed, and `git diff --check` passed.
+This is local component proof only: if project-source browsing is later added to
+the route, the route-specific management/insert rules and permission proof must
+be updated in the same slice. Save-as-template from project source, remaining
+sidebar R4.4 completeness, insert RPC/action, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, and browser
+visual proof remain open.
+
+**Estimate Tabs Phase 5 R5.2 Template Editor Template-Only Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 templates work now has explicit local proof that the template editor
+stays template-only while project-derived sources remain out of editor
+composition in v1. `TemplateEditorClient` mounts the re-hosted sidebar in
+`scratch` template mode without `projectId`, `estimateId`, `projectSources`, or
+`onInsertProjectSource`, and the library route layout still hides the normal tab
+strip on template editor routes. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r5-2-template-editor-only-implementation-run.md`:
+`bunx vitest run tests/vitest/template-editor.test.tsx tests/vitest/library-tabs-layout.test.tsx --maxWorkers=1`
+passed (2 files / 16 tests), `bun run type-check` passed, and `git diff --check`
+passed. D-8 remains in force: project-derived content composition in the editor
+is deferred; save-as-template from source, browse-route project-source parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R5.1/R5.3 Template Flow Preservation Locally Proven (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The Phase 5 project-source work now has fresh local preservation evidence for
+existing custom template behavior. A proof-only suite covering the estimate
+sidebar Templates tab, template browse/gallery preview and insert flows, the New
+Template modal, and estimate canvas template drop zones passed without changing
+template CRUD or insert source behavior. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r5-template-preservation-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx tests/vitest/template-gallery.test.tsx tests/vitest/new-template-modal.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx --maxWorkers=1`
+passed (4 files / 75 tests), `bun run type-check` passed, and `git diff --check`
+passed. This proves R5.1/R5.3 preservation locally only; R5.2 template-editor-only
+proof, save-as-template from project source, browse-route project-source parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R6.2 Project-Source Bulk Insert Seam Partial Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now includes a local bulk-insertion
+seam for project-derived reusable sources. Insertable project tab and project
+group/area rows participate in cascade selection; project and estimate container
+rows remain non-insertable. Bulk add resolves checked project sources as
+top-most reusable selections, so a checked tab inserts once instead of also
+inserting its checked child nodes. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-2-project-source-bulk-insert-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 52 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is partial local R6.2 proof only: keyboard-specific insertion
+parity, full template/source parity review, insert RPC/action, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.4 Preview Metadata Seam Partial Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now includes a narrow local preview
+metadata seam for project-derived reusable sources. Clicking a project,
+estimate, tab, or group/area row opens a read-through `Project source preview`
+that can display action-provided live metadata fields (project, estimate,
+Estimate code, tab, node path, last updated, row count, and total) plus a
+non-management insert handoff for insertable tab/node sources. Local evidence is
+in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-4-preview-metadata-seam-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 51 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is partial local R4.4 proof only: broader section/search filter
+chips, server-backed live metadata freshness, richer preview row detail,
+browse-route parity, insert RPC/action, linked Supabase apply/typegen, hosted
+provider proof, Vercel deploy, production/manual proof, and browser visual proof
+remain open.
+
+**Estimate Tabs Phase 5 R4.2a Default Projects + Current-Project Narrowing Complete Locally (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now covers the local R4.2a sidebar UI
+contract. The `Projects` section shows all readable project roots by default,
+and a secondary `Current project only` control narrows the virtual project-source
+list to the active project only when the user opts in. `All projects` restores
+the full readable source list. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2a-current-project-filter-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 50 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local UI proof only: broader section filter chips,
+preview/live metadata, browse-route parity, insert RPC/action, linked Supabase
+apply/typegen, hosted provider proof, Vercel deploy, production/manual proof,
+and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.3 Outline-On-Expand Local UI Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now consumes the lazy per-estimate
+outline read action from the estimate right sidebar. Project-estimate rows remain
+expandable before child tabs are loaded; expanding one calls
+`getReusableEstimateOutline`, merges the returned tab/group/area project sources
+into the virtual Projects tree, and avoids refetching when caller-supplied
+`projectSources` already include outline rows. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-3-outline-on-expand-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 49 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is local UI/action proof; the later R4.2a filter slice now
+covers current-project narrowing. Preview/live metadata, browse-route parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.2a Default Project Source Root Load Partial Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now consumes the reusable project-source
+root read action in the estimate right sidebar. When the Templates tab opens with
+an estimate context and no caller-supplied `projectSources`,
+`EstimateRightSidebar` calls `listReusableProjectSources`, stores the readable
+project/estimate roots locally, and renders them under the unified `Projects`
+section. Prop-supplied sources remain authoritative and do not refetch. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2a-default-project-source-load-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 48 tests), `bun run type-check` passed, and `git diff --check`
+passed. This local R4.2a work now includes both default all-project root
+loading and the later opt-in current-project narrowing control; the R4.3 slice
+covers lazy per-estimate outline-on-expand. Preview/live metadata, insert
+RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel deploy,
+production/manual proof, and browser visual proof remain open.
+
+**Estimate Tabs Phase 5 R4.1/R4.3 Local Read Actions Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 reusable-source foundation now includes local
+server-action contracts for virtual project-derived sources.
+`src/lib/reusable-sources/actions.ts` exposes `listReusableProjectSources` for
+project/estimate source roots and `getReusableEstimateOutline` for lazy
+per-estimate tab/group/area outlines. The actions use the current user context
+and existing workspace repository reads, exclude pending-invite projects from
+the source root list, and do not persist project-derived data into template
+tables. Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and
+the phase run summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-1-r4-3-read-actions-implementation-run.md`:
+`bunx vitest run tests/vitest/reusable-sources-actions.test.ts --maxWorkers=1`
+passed (1 file / 2 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is action-contract groundwork: the root source list is now consumed
+by the later R4.2a sidebar slice, and the later R4.3 slice now consumes lazy
+outline loading in the sidebar, and the later R4.2a filter slice covers
+current-project narrowing. Browse-route consumption, broader section filter
+chips, and preview/live metadata remain open. No insert RPC/action, linked
+Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual
+proof, or browser visual proof was performed.
+
+**Estimate Tabs Phase 5 R4.2 Local UI Seam Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs Phase 5 templates panel now has a local prop-driven unified
+reusable-source tree seam. `TemplatesTree` supports `Custom Templates` and
+`Projects` sections, project/estimate/tab/node source rows, shared search that
+keeps matched source ancestors visible, project-source drag payload stamping,
+and a context-menu insertion callback seam for project tab/node sources. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r4-2-ui-seam-implementation-run.md`:
+`bunx vitest run tests/vitest/component-library-ui.test.tsx --maxWorkers=1`
+passed (1 file / 46 tests), the reusable-source drag parser rerun passed (1 file
+/ 5 tests), `bun run type-check` passed, and `git diff --check` passed. This is
+UI seam groundwork only: no RLS-scoped project-source read action, all-readable
+projects default population, preview/live metadata dock, browse-route parity,
+insert RPC/action, linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, or browser visual proof was performed.
+
+**Estimate Tabs Phase 5 R6.1 Local Parser Slice Complete (2026-06-12 local, branch `feat/estimate-tabs-phase5-templates-panel`):**
+The estimate-tabs stacked implementation now includes the narrow Phase 5 R6.1
+project-source drag payload foundation. `templates.ts` exposes a distinct
+`application/x-archestimator-project-source` MIME type plus a strict parser for
+whole-tab (`project-tab`) and subtree (`project-node`) project-source payloads,
+while preserving the existing template drag parser as a separate contract. Local
+evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase5/` and the phase run
+summary is `.ai/05_logs/2026-06-12-estimate-tabs-phase5-r6-1-implementation-run.md`:
+`bunx vitest run tests/vitest/reusable-source-drag.test.ts --maxWorkers=1`
+passed (1 file / 5 tests), `bun run type-check` passed, and `git diff --check`
+passed. This is parser/test groundwork only: no unified Projects/Templates panel
+UI, project-source read actions, insert RPC/action, linked Supabase apply/typegen,
+hosted provider proof, Vercel deploy, production/manual proof, or browser visual
+proof was performed.
+
+**Estimate Tabs Phase 4 Local Terminology Rebrand Complete (2026-06-12 local, branch `feat/estimate-tabs-phase4-terminology`):**
+The estimate-tabs stacked implementation now includes Phase 4 local copy alignment.
+User-facing "estimate sheet/sheet" copy that referred to the estimate now reads
+"estimate"; active tree containers are labeled "tabs"; and `sheet_code` is
+displayed as "Estimate code" while internal compatibility names stay unchanged.
+The keep-list remains active: `estimate_sheet_*` tables/RPCs, `EstimateSheet*`
+component/file names, `sheetCode`/`sheet_code`, stored `sheet_*` event names,
+Excel worksheet vocabulary, overlay `Sheet`, material/unit strings, localStorage
+keys, and mass-deletion RPC tokens were not renamed. Local evidence is in
+`.ai/05_logs/2026-06-12-estimate-tabs-phase4/` and the phase run summary is
+`.ai/05_logs/2026-06-12-estimate-tabs-phase4-implementation-run.md`: targeted
+Phase 4 copy suites passed (15 files / 176 tests), adjacent copy-sensitive suites
+passed when the known MCP baseline test was excluded (5 files / 64 tests), AI
+package-builder copy tests passed (4 files / 88 tests), teamspace/invite copy
+rerun passed (3 files / 29 tests), the history cursor label assertion passed in
+isolation, the exact source-copy scan had no legacy pattern output, `bun run
+type-check` passed, `bun run build` passed, `bun run lint:design-system` passed,
+and `bun run lint:design` passed. Repo-wide `bun run lint`/`bun run validate`
+still fail at the known lint baseline (3 errors / 548 warnings), and `bun test
+tests/unit` still fails the known `tests/unit/reset-baseline.test.ts:54` homebase
+class assertion. No linked Supabase apply/typegen, hosted provider proof, Vercel
+deploy, production/manual proof, or browser visual proof was performed.
+
+**Estimate Tabs Phase 0-3 Local Implementation Complete Through Editor UI (2026-06-12 local, branch `feat/estimate-tabs-phase3-editor-ui`):**
+The canonical estimate-tabs plan pack
+`.ai/09_archive/store/2026-06-12-Projects-Auto-Added-To-Templates/` has local implementation
+through Phase 3 on the stacked branch family. Phase 0 recorded the rerun baseline
+and known failures; Phase 1 added the local database foundation/migration harness;
+Phase 2 added tab-aware repository/domain/actions/query/state compatibility
+wrappers; Phase 3 now wires the estimate editor UI with a WAI-ARIA tab strip,
+route-resolved initial tabs, tab-scoped tree/sheet queries, per-tab selection,
+expansion, sheet collapse state, row invalidation, and cursor payload filtering.
+Release gate D-15 is enforced locally: tab create/duplicate/rename/reorder controls
+are hidden by default in beta editor routes, and proposal preview is blocked with a
+warning when multiple persisted tabs exist because tab-aware export remains Phase 6.
+Local evidence is in `.ai/05_logs/2026-06-12-estimate-tabs-phase3/`: Phase 3 tab
+UI/domain/tree/cursor tests passed (4 files / 20 tests), sheet regression/perf tests
+passed (4 files / 54 tests), `bun run type-check` passed, `bun run build` passed,
+`bun run lint:design-system` passed, and `git diff --check` passed. Repo-wide
+`bun run lint` still fails only at the known baseline (3 errors / 548 warnings).
+No linked Supabase apply/typegen, hosted provider proof, Vercel deploy, or
+production/manual proof was performed. Browser visual proof is not claimed because
+the in-app Browser `iab` surface was unavailable and local `/workshop/projects`
+redirected to `/login`.
 
 **Lean agent mandate adopted (2026-06-12 local, branch `main`):**
 The root agent mandate now defaults to direct solo execution, minimal relevant
@@ -1331,7 +2005,7 @@ The reset remains the baseline quality principle: do not blindly restore the del
 ## AI Copilot implementation
 
 - `.ai/03_plans/ai-chatbot-agent-readiness/` has moved from readiness-only into a staged implementation. The footer-mounted `AskFlipFooterAssistant` is mounted from `WorkshopPageShell`, opens a two-column Ask Flip panel with a local/in-memory chat-session list on the left and the active chat on the right, and now routes ordinary read-only Ask turns to `/api/ai/ask` while routing package-builder prompts, including natural project-plus-estimate creation wording such as "make a project with an estimate sheet for a 3 bedroom condo unit," to `/api/ai/package-builder`.
-- The `/api/ai/ask` route is now read-only account-aware for real authenticated Supabase workspace sessions. It derives the user/workspace server-side, refuses local admin DB bypass, and uses intent-gated reads through `src/lib/ai/read-context.ts`: project-count questions send only the exact authenticated workspace project count, project-list questions send a bounded list of authenticated project labels, component-library questions send compact ID-free workspace component matches with active price-option unit/cost/currency values, reusable-template questions send compact ID-free template matches with bounded area names and row previews, prior-row/other-project usage questions send compact ID-free historical estimate-row matches, chart/cost-breakdown questions on a project route send compact ID-free chart bucket summaries, current-route questions may send validated project/estimate labels plus compact current-estimate tree/row/total context from the active estimate route, and current-estimate activity/history/who-edited questions send compact activity summaries from `estimate_sheet_events`. Activity context includes event type/label, created time, display actor label, target label, changed fields, total delta, and summary only; raw event ids, actor ids/emails, row/project/estimate/node ids, snapshots, payload, metadata, and correlation ids stay server-side. The server does not hardcode the final natural-language answer; it provides scoped read context to the provider and records metadata-only `ai_data_access_events` for those reads. It still does not create, edit, apply, save, or mutate records, and it does not trust browser/model supplied user or workspace identity.
+- The `/api/ai/ask` route is now read-only account-aware for real authenticated Supabase workspace sessions. It derives the user/workspace server-side, refuses local admin DB bypass, and uses intent-gated reads through `src/lib/ai/read-context.ts`: project-count questions send only the exact authenticated workspace project count, project-list questions send a bounded list of authenticated project labels, component-library questions send compact ID-free workspace component matches with active price-option unit/cost/currency values, reusable-template questions send compact ID-free template matches with bounded area names and row previews, prior-row/other-project usage questions send compact ID-free historical estimate-row matches, chart/cost-breakdown questions on a project route send compact ID-free chart bucket summaries, current-route questions may send validated project/estimate labels plus compact current-estimate tree/row/total context grouped by provider-safe tab names from the active estimate route, and current-estimate activity/history/who-edited questions send compact activity summaries from `estimate_sheet_events` with tab-name attribution when present. Activity context includes event type/label, created time, display actor label, target label, changed fields, total delta, and summary only; raw event ids, actor ids/emails, row/project/estimate/node ids, snapshots, payload, metadata, and correlation ids stay server-side. The server does not hardcode the final natural-language answer; it provides scoped read context to the provider and records metadata-only `ai_data_access_events` for those reads. It still does not create, edit, apply, save, or mutate records, and it does not trust browser/model supplied user or workspace identity.
 - Ask Flip package-builder Draft is implemented for prompts such as "Assemble me a 3 bedroom package, budget is 5 million pesos." Draft mode uses compact authenticated workspace/project/estimate/component/template/prior-row/comparable-package summaries when real Supabase workspace auth is available, may use DeepSeek through the provider-neutral package-builder adapter for structured hints, and falls back to deterministic server-side package assembly. The deterministic fallback now recognizes 3-bedroom condo/unit prompts, names the draft "3 Bedroom Condo Unit", creates bedroom plus toilet/bath Area Nodes, folds bounded matched template area names and comparable prior-estimate area patterns into the draft structure, can reuse matched workspace library components for repeated needs such as beds and wardrobes in bedrooms plus water closets and lavatories in toilet/bath areas, can use linked prior-project component usage as a ranking hint when choosing between otherwise similar scoped library components, can fan out Living/Dining across multiple tightly matched scoped library components such as sofa, media-console, dining-table, chair, pendant, and light rows before fallback, can read bounded comparable prior estimate packages as room/row/cost/source-coverage patterns, can use matched prior estimate rows from accessible workspace projects as reviewed allowance precedents when live library components are missing, can use prior estimate rows for generic rooms such as Living and Dining before generated allowances, can use comparable package row previews as review-required allowance precedents for matched room patterns, can use bounded matched estimate-template row previews as review-required allowance rows without enabling generic template-source row Apply, can build current-route matched template-insert drafts for an existing estimate Group Node, can build current-route selective `templateRowCopyDraft` drafts for matched template row previews and existing estimate Area Nodes, and can use normalized/capped provider `searchTerms` as row-planning hints against already-retrieved scoped component matches. Generic condo Draft reads use the full bounded package search vocabulary so wardrobe, kitchen/cabinet/millwork, water-closet, lavatory/basin/sink/faucet, living, dining, furniture, console, table, sofa, chair, pendant, lounge, light, fixture, paint, tile, bathroom, sanitary, finish, and general data can be discovered even when the user does not name each component. The provider may receive bounded portfolio project labels, current project estimate summaries, and ID-free comparable package summaries; when route context resolves a current project/estimate, it may also receive provider-safe current project name, estimate summary, current area names/paths, and compact current area rows. Raw project/estimate/node/row ids and client/location details are not forwarded. Historical estimate rows, comparable package row previews, and template row previews are not live supplier-priced sources and are emitted only as ranking hints, review-required allowance rows, room/row pattern hints, or explicit reviewed template-row copies with source warnings; generic `sourceType: "template"` rows remain rejected by validation and Apply runtime guards outside the dedicated row-copy contract. Draft returns a normalized brief, project/estimate/tree/row/template/template-row-copy draft, component/template matches, marked allowance rows, budget summary, assumptions/warnings, operation eligibility, a server draft hash, and a server-signed HMAC draft token bound to the draft id/hash, user, workspace, provider/model, and expiry. Draft mode writes no production records, package-builder read tools must not call workspace-bootstrap helpers that can create/update workspace or profile rows during Draft, provider `searchTerms` do not authorize model-directed SQL or broad retrieval, and linked component rows must carry either a confirmed price-option timestamp or a component-version snapshot so Apply cannot silently use a changed current price.
 - Pending package-builder drafts can now be revised or rejected before Apply through the same signed draft boundary. Additive follow-ups such as adding a scoped library component to an existing draft send `mode: "draft"` with `baseDraft`, `baseDraftHash`, and `baseDraftToken`; deterministic refinement follow-ups such as "make it cheaper" send `mode: "refine"` with the same verified base fields. The route verifies the base hash/token against the authenticated user/workspace before read tools, returns a fresh reviewable draft/hash/token with `productionWrite: false`, audits the turn as metadata-only `mode: "draft"` refinement/revision, and does not call Apply or provider generation for this in-memory revision path. Rejecting a preview, including an Apply-ineligible but server-signed preview, sends `mode: "feedback"` with the reviewed draft/hash/token, verifies the same signed boundary, records metadata-only rejected-draft feedback as `mode: "draft"` audit, optionally records feature-flagged package-builder memory source signals, performs no read tools/provider generation/Apply, and closes that preview in the UI.
 - Ask Flip package-builder Apply is implemented as a command-style, confirmation-gated server route. The UI shows a reviewable package/update/replacement/delete/rename/template preview, disables Apply until the user checks the explicit confirmation box, allows the user to reject a preview so it cannot be applied or revised, renders current-row update drafts as row changes with patch summaries, renders current-row replacement drafts with the replacement component, renders current-row delete drafts with the matched row delete, renders current-node rename drafts with the old/new node names, renders current-template row-copy drafts with the copied row and source template, renders current-template insert drafts with expected node/row counts, and after Apply succeeds reports inserted, updated, replaced, deleted, renamed-node, and template-inserted rows separately while rendering an `Open estimate` link built only from the server-returned `projectId` and `selectedNodeId`, with a project estimates fallback when no selected node is returned. The server rejects model/browser supplied workspace/user ids, derives the authenticated user/workspace, validates the draft hash, validates Group/Area hierarchy and Area-only row targets, revalidates linked component items and active price options against the current workspace, preserves source snapshots for linked component rows, marks generated allowances as allowances, and uses an idempotency key to prevent duplicate project/estimate/tree/row creation on replay.
@@ -1640,3 +2314,134 @@ Open:
 - Linked Supabase proof: migration `20260606095935` was applied to ArchEstimator project `ebxxqidacheyapmmzavr` by exact-file query, repaired into migration history, and verified by table/grant/RLS/type-shape readback. Evidence lives at `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/evidence/2026-06-06-linked-supabase-terms-migration-proof.md`.
 - Validation: red-first focused Terms tests, focused green 7 files / 19 tests, `bun run validate` passed (typecheck, lint, design-system lint, unit tests, 195 Vitest files / 1475 passing / 2 skipped), `bun run build` passed, and `bun run test:e2e` passed (9 passed / 24 environment-gated skipped).
 - Remaining gates: qualified lawyer review before public/paid launch enforcement, exact entity/notices/venue/dispute language, hosted real-user acceptance smoke, global Supabase migration-parity reconciliation for broad `db push`, and normal production release/deployment proof if/when this merged main is deployed.
+
+## Estimate Tabs Phase 5 Landing Contract Repair (2026-06-12)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Repaired stale landing tests for the current simplified public landing flow: hero, company-proof/workflow section, secondary claim, final CTA, and centered footer.
+- Removed unused CSS for the retired empty company-logo marquee rail in `src/app/globals.css`; retained testimonial crossfade reduced-motion behavior.
+- Evidence: `.ai/05_logs/2026-06-12-estimate-tabs-phase5-landing-contracts-repair-run.md` plus focused red/green, type-check, ESLint, no-excuse, design, build, LOC, diff-check, and full-validate logs under `.ai/05_logs/2026-06-12-estimate-tabs-phase5/`.
+- Fresh broad status: `bun run validate` now fails only in `tests/vitest/estimate-sheet-version-control-actions.test.ts` because generated Supabase types still lack the estimate-tab history RPC names (for example `archive_estimate_tab_with_history`). No landing/public cache/font/project-summary/project-dashboard failures remain in the refreshed validation run.
+- Boundary: no linked Supabase apply/typegen, hosted provider proof, Vercel deploy, production/manual proof, or browser visual proof was performed.
+
+## Estimate Tabs Phase 6 XLSX Tab Export Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Implemented local Phase 6 XLSX tab-aware export: worksheet-name sanitization/dedup/escaping, all-active-tabs default route export, `?tab={tabId}` active-tab single-tab fallback, global Summary/Commercial Terms/Source Breakdown, per-tab bid-form worksheets, Source Breakdown `TAB` column, optional tab filename slug, all-tabs-default preview/download scope chips, active-tab `?tab=` preview/download fallback, and tabbed benchmark fixtures.
+- Preserved the legacy single-tab workbook shape (`Bid Form`, `Summary`, `Commercial Terms`, `Source Breakdown`) and existing worksheet/cell assertions.
+- Fresh local evidence: `bun run type-check` passed; focused Phase 6 Vitest suites passed (6 files / 29 tests); no-excuse checker passed on 13 touched TS/TSX/test/script files; `git diff --check` passed; `bun run validate` passed (243 Vitest files passed / 1 skipped, 1,767 tests passed / 3 skipped); `bun run build` passed; `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed; 5-tab × 500-row benchmark passed at 443.59ms and 413,142 bytes / 0.39 MiB.
+- Evidence log: `.ai/05_logs/2026-06-12-estimate-tabs-phase6-xlsx-tabs-export-implementation-run.md`.
+- Boundaries: no linked Supabase apply/typegen, hosted route smoke, production deploy, or manual spreadsheet-app proof was performed.
+
+## Estimate Tabs R6.3 Spring-loaded Drop Targeting Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Implemented tab-strip spring-loaded drop targeting: during drag hover, inactive estimate tabs now schedule a 450ms switch so the destination tab tree can appear before the user drops a dragged template/project source/tree item. Leaving or dropping on the tab cancels the pending switch.
+- Local evidence: `bun x vitest run tests/vitest/estimate-tab-strip.test.tsx --maxWorkers=1` passed (1 file / 6 tests), `bun run type-check` passed, and `bun run lint:design-system` passed.
+- Boundary: this is local UI/DOM proof only; linked Supabase/provider, hosted drag/drop, and production/manual proof were not performed.
+
+## Estimate Tabs R11.1-R11.2 Ask Flip Active-tab Targeting Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Ask Flip current-route package-builder requests now include the active estimate tab id from the tab strip as additive route context without changing the existing `/workshop/projects/{projectId}/estimates/{selectedNodeId}` regex shape.
+- Package-builder read tools scope current-estimate tree/row context to the active tab when provided or to the selected node's tab when inferred; generated fill-current-estimate draft targets preserve `activeTabId`, and Apply passes `target_tab_id` to `create_estimate_node_with_history` when it creates missing Area Nodes.
+- Local evidence: `bun x vitest run tests/vitest/estimate-copilot-floating-button.test.tsx tests/vitest/ai-package-builder-read-tools.test.ts tests/vitest/ai-package-builder-draft.test.ts tests/vitest/ai-package-builder-schema.test.ts tests/vitest/ai-package-builder-apply.test.ts --maxWorkers=1` passed (5 files / 109 tests), plus `bun run type-check` and focused ESLint passed during the implementation slice.
+- Boundary: no live provider Ask Flip call, hosted browser route smoke, linked Supabase proof, or production deploy was performed.
+
+## Estimate Tabs Traceability Matrix Audit Refresh (2026-06-13)
+
+- Refreshed stale matrix rows that were already locally implemented/proven by the current branch: R1.1-R1.6, R7.1-R7.3, R9.1, R12.1-R12.3, and R13.4 now distinguish local implementation from linked/provider/browser proof gaps.
+- Fresh broad evidence after commits `bacf01bd` and `d7c9c450`: `bun run validate` passed (typecheck, ESLint with 549 warnings / 0 errors, design-system, strict design, unit tests, 243 Vitest files passed / 1 skipped, 1,771 tests passed / 3 skipped), `bun run build` passed, and `POSTGRES_BIN_DIR=/opt/homebrew/bin node scripts/prove-estimate-tabs-postgres.mjs` passed.
+- Merge-to-main remained blocked at that audit point because the matrix still had planned/open rows requiring implementation or external proof, especially activity/audit tab events and UI scope (R10.1-R10.2), invite/share deep-link proof (R9.3), performance/accessibility hardening (R13.1-R13.3), linked Supabase apply/typegen/provider proof, hosted smoke, 2-browser collaboration/publication manual proof, and owner/product review rows. Later 2026-06-13 work closed those local rows, including delegated R2.4 owner/product review; external provider/hosted/manual gates remain separate.
+
+## Estimate Tabs R10.3 Collaboration Presence Active-tab Attribution Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Added additive `activeTabId` support to `useProjectPresence` so slow presence state can advertise the active estimate tab when callers provide it; existing high-frequency cursor broadcast already includes and filters by `tabId`.
+- Local evidence: `bun x vitest run tests/vitest/project-collaboration-realtime.test.ts tests/vitest/estimate-cursor-broadcast-throttle.test.ts --maxWorkers=1` passed (2 files / 4 tests), `bun run type-check` passed, focused ESLint passed, and `git diff --check` passed.
+- Boundary: no live Supabase realtime, 2-browser hosted/manual QA, linked provider proof, or production deploy was performed.
+
+## Estimate Tabs R10.4 Publication Snapshot Tabs Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Publication snapshots now emit schema version `1.2` when estimate tabs are present: the server-side publication builder reads active `estimate_tabs` alongside nodes/rows, the snapshot DTO carries nested tab rows/tree nodes/totals, and estimate-level rows/tree nodes remain for compatibility.
+- The public share surface now renders a nested estimate-tab strip for v1.2 tabbed snapshots, with donut, total, tree view, and grid preview scoped to the selected nested tab. Legacy v1/v1.1 snapshots without `tabs` continue rendering from estimate-level rows/tree nodes without a nested strip.
+- Local evidence: `bun x vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed (3 files / 48 tests), `bun run type-check` passed, focused ESLint passed with 0 warnings after the hook-dependency fix, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-4-publication-tabs-snapshot-run.md`.
+- Boundary: no linked Supabase apply/typegen, hosted shared-link publication smoke, live browser/manual proof, Vercel deploy, or production proof was performed.
+
+## Estimate Tabs R10.5 Dormant Version Guard Proven Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- R10.5 was already satisfied by the Phase 1 migration guard and schema contract: the dormant `estimate_sheet_snapshot` / `create_estimate_sheet_version` / `restore_estimate_sheet_version_as_copy` v2 stack is not recreated or awakened, and the migration documents that a future v3 must carry `tabs[]` plus per-node `estimateTabId` before that feature can return.
+- Local evidence: `bun x vitest run tests/vitest/estimate-tabs-schema.test.ts --maxWorkers=1` passed (1 file / 7 tests), and `git diff --check` passed after the traceability update.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-5-dormant-version-guard-run.md`.
+- Boundary: named-version restore remains deferred; no linked Supabase apply/typegen, provider proof, hosted/manual proof, or production deploy was performed.
+
+## Estimate Tabs R10.1-R10.2 Activity Tab Attribution Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Activity reads now select and normalize `estimate_sheet_events.estimate_tab_id` as `estimateTabId`, so tab lifecycle/node/row history rows can carry their tab attribution into TypeScript view models.
+- Activity composer/UI support now covers `tab_created`, `tab_renamed`, `tab_reordered`, `tab_duplicated`, `tab_archived`, and `tab_deleted`: tab events produce human-readable copy, event filters expose tab lifecycle options, accessibility labels handle tab event cards, and public-safe copy scrubs the new technical tokens.
+- Local evidence: focused activity/version-control suites passed (`7 files / 177 tests`), `bun run type-check` passed, focused ESLint passed, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r10-1-r10-2-activity-tabs-run.md`.
+- Boundary: no linked Supabase apply/typegen, live provider Activity History proof, hosted/manual two-browser proof, Vercel deploy, or production proof was performed.
+
+## Estimate Tabs R9.3 / R13.1-R13.3 Local Proof and A11y Hardening (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- R9.3 invite/share deep-link preservation is locally proven: invite route contracts remain `/invite/[token]`, pending-invite auth still bridges through `/workshop/pending-invite`, and shared-link email/API contracts continue using `/share/[token]` with recipient query tokens rather than tab-id URL rewrites.
+- R13.1 perf guard is locally proven by the existing `tests/vitest/perf` suite with the tab strip mounted.
+- R13.2 lazy reusable-source browsing is locally implemented: `listReusableProjectSources` returns readable project roots only, `listReusableProjectEstimateSources` fetches one expanded project's estimate rows, and existing outline loading remains per expanded estimate. Both the templates browse route and estimate sidebar use this two-step lazy flow.
+- R13.3 tab-strip a11y is locally hardened: `EstimateTabStrip` now has polite live-region announcements, keyboard reorder focus retention, and gated delete/archive focus fallback to the nearest remaining tab. Prior R6.2 proof covers non-drag insertion paths.
+- Fresh local evidence: lazy-source focused Vitest passed (3 files / 67 tests), perf suite passed (4 files / 14 tests), invite/share focused Vitest passed (5 files / 40 tests), tab-strip a11y DOM suite passed (1 file / 8 tests), post-doc focused Vitest passed (13 files / 129 tests), focused ESLint passed, `bun run type-check` passed, `bun run lint:design-system` passed, `bun run lint:design` passed, `bun run build` passed, and `git diff --check` passed after restoring `next-env.d.ts` build churn.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r9-3-r13-local-proof-run.md`.
+- Boundary: no linked Supabase apply/typegen, hosted invite/share e2e, live DB p95/provider scale proof, browser/Storybook a11y proof, Vercel deploy, production deploy, or two-browser/manual QA was performed.
+
+## Estimate Tabs R3 Compatibility Governance Locally Proven (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Retained legacy `sheet` seams now carry plan-linked compatibility comments at the key kept code boundaries: legacy `areaTree`, `sheet_code`, `fetchEstimateSheetVersionControl`, `EstimateSheetContent`, pre-tab `dataTabId`, and the narrow `estimate_tabs` type-cast boundary.
+- Cleanup/deletion criteria remain explicit and guarded: immediate deletion is limited to dead code with zero imports plus source-contract updates and validation; wrapper/alias/route fallback/internal `EstimateSheet*` renames require a completed beta release with provider/manual proof archived, no rollback, grep evidence, contract-test updates, and owner/reviewer approval.
+- Fresh local evidence: `bun x vitest run tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1` passed (1 file / 6 tests), focused ESLint passed, `bun run type-check` passed, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r3-compat-governance-run.md`.
+- Boundary: no compatibility shim deletion, internal rename batch, linked Supabase apply/typegen, hosted proof, Vercel deploy, production deploy, or manual QA was performed.
+
+
+## Estimate Tabs R4.4-R4.5 Template Source Local Proof Refreshed (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- R4.4 search/filter/preview local seams are implemented and freshly re-proven: local filter chips, project-source preview metadata/outline rows, manual refresh, search action/UI, browse-route Projects tree, and server-backed reusable-source search.
+- R4.5 save-as-template local seams are implemented and freshly re-proven: explicit project-node and whole-tab source handoffs call the template creation actions and update the template tree.
+- Fresh local evidence: `bun x vitest run tests/vitest/reusable-sources-actions.test.ts tests/vitest/component-library-ui.test.tsx tests/vitest/template-browse-project-sources.test.tsx tests/vitest/library-overview.test.tsx --maxWorkers=1` passed (4 files / 77 tests).
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r4-template-source-local-proof-refresh.md`.
+- Boundary: no linked/hosted provider freshness proof, provider-backed action proof, linked Supabase apply/typegen, hosted browser proof, Vercel deploy, production deploy, or manual QA was performed.
+
+## Estimate Tabs R2.4 Owner/Product Review Copy Alignment Completed Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Owner/product review authority was delegated in the active goal; reviewed outcome is to align public product/workspace copy to estimates/tabs while preserving Excel quote-sheet and spreadsheet/document handoff wording only for external-file contexts.
+- Updated public copy in `src/app/features/page.tsx`, `src/app/pricing/page.tsx`, `src/app/about/page.tsx`, `src/components/landing/AnimatedProposalRecordSection.tsx`, `src/components/landing/FeaturesSection.tsx`, `src/components/landing/PricingSection.tsx`, and `src/components/landing/SecondaryClaimSection.tsx`.
+- Added `tests/vitest/closed-beta-pricing-copy.test.ts` coverage to prevent non-Excel public `quote sheets` / `multi-sheet` / `structured sheet` drift while allowing the FAQ's `Excel quote sheets` and `spreadsheet/document handoff` wording.
+- Fresh local evidence: the new R2.4 contract failed red before the copy changes, then `bun x vitest run tests/vitest/closed-beta-pricing-copy.test.ts --maxWorkers=1` passed (1 file / 3 tests); targeted residue grep found only test assertions and allowed FAQ `Excel quote sheets`.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r2-4-owner-review-copy-alignment.md`.
+- Boundary: no hosted browser proof, Vercel deploy, production proof, or analytics/conversion impact proof was performed.
+
+## Estimate Tabs R8.5 Preview Scope Chips Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Multi-tab proposal export previews now default to the all-tabs workbook route, expose All tabs / active-tab scope chips, and switch the download href to `?tab={tabId}` only when the active-tab chip is selected.
+- Preview copy now says consolidation occurs within each tab, matching the tab-aware workbook/export model.
+- Fresh local evidence: the new preview contract failed red before implementation, then `bun x vitest run tests/vitest/proposal-export-preview.test.tsx --maxWorkers=1` passed (1 file / 3 tests), and the adjacent export/model regression command passed (`5 files / 25 tests`); focused ESLint, `bun run type-check`, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r8-5-preview-scope-chips-run.md`.
+- Boundary: no hosted browser proof, spreadsheet-app manual inspection, Vercel deploy, production deploy, or linked provider proof was performed.
+
+## Estimate Tabs R11.3 AI Tab Context Implemented Locally (2026-06-13)
+
+- Branch/worktree: `feat/estimate-tabs-phase5-templates-panel` at `/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates`.
+- Ask read context now reads `estimate_tabs` for current-route estimates, exposes provider-safe tab grouping (`currentEstimate.tabs`, active/default tab names, per-tab totals/tree/rows), and keeps raw tab IDs out of the provider context JSON.
+- Current-estimate activity reads select `estimate_sheet_events.estimate_tab_id` and map events to provider-safe tab names.
+- AI data-access audit inputs include `estimate_tabs` in `sourceTables` and tab IDs/active tab IDs inside hashed `filter` payloads for current-estimate tree/row/activity reads without changing the audit schema.
+- Fresh local evidence: new read-context contracts failed red before implementation, then `bun x vitest run tests/vitest/ai-ask-read-context.test.ts --maxWorkers=1` passed (1 file / 9 tests), and the adjacent AI/package-builder regression command passed (7 files / 118 tests); focused ESLint, `bun run type-check`, and `git diff --check` passed.
+- Evidence log: `.ai/05_logs/2026-06-13-estimate-tabs-r11-3-ai-tab-context-run.md`.
+- Boundary: no live AI provider request, linked Supabase audit-table insert, hosted browser proof, Vercel deploy, production deploy, or provider dashboard proof was performed.

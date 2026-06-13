@@ -1,0 +1,10 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+
+ Test Files  5 passed (5)
+      Tests  64 passed (64)
+   Start at  19:26:53
+   Duration  8.34s (transform 508ms, setup 131ms, import 2.30s, tests 3.96s, environment 1.41s)

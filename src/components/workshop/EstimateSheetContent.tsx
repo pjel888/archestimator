@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import { ClockCounterClockwise, FileXls, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -14,7 +14,7 @@ import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { loadCurrentWorkspaceComponentLibrary } from "@/lib/component-library/actions";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
-import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
+import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
@@ -36,7 +36,10 @@ import {
 import { reportEstimateSheetContentRender } from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
-import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
+import { EstimateTabStrip } from "./estimate-sheet/EstimateTabStrip";
+import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "./estimate-sheet/events";
+import { ProposalExportPreviewDialog, type ProposalExportPreviewScope } from "./ProposalExportPreviewDialog";
+import type { EstimateTabSummary } from "@/lib/estimates/types";
 import {
   ActivityHistoryModal,
   BLANK_ESTIMATE_ROW_AUDIT_LABEL,
@@ -111,11 +114,19 @@ export {
 export { EstimateRightSidebar } from "./component-library";
 export { pesoFormatter };
 
+// legacy "EstimateSheetContent" name kept for compatibility; see plan 2026-06-12 §01-17
 type EstimateSheetContentProps = {
   selectedNodeId: string | null;
   nodes?: EstimateTreeNode[];
   projectId?: string;
   estimateId?: string;
+  estimateTabs?: EstimateTabSummary[];
+  activeTabId?: string;
+  /** Real persisted tab id. Undefined means pre-tab compatibility mode; see plan 2026-06-12 §01-17. */
+  dataTabId?: string;
+  initialTabId?: string;
+  onActiveTabChange?: (tabId: string) => void;
+  onEstimateTabsChange?: (tabs: EstimateTabSummary[]) => void;
   collaborationUserId?: string | null;
   collaborationDisplayName?: string | null;
   proposalExportMetadata?: ProposalExportMetadata;
@@ -387,8 +398,8 @@ function buildActivityScopeTreeItems({
       scope: { mode: "sheet" },
       depth: 0,
       kind: "sheet",
-      label: metadata?.estimateName ?? "Estimate sheet",
-      eyebrow: metadata?.estimateSheetCode ?? "Sheet",
+      label: metadata?.estimateName ?? "Estimate",
+      eyebrow: metadata?.estimateSheetCode ?? "Estimate",
       total: projectTotal,
       row: null,
     },
@@ -456,18 +467,18 @@ function EstimateSheetHeader({
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Sheet controls">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
-        ariaLabel="Sheet tools"
-        labelPrefix="sheet"
+        ariaLabel="Tab tools"
+        labelPrefix="tab"
         onExpandAll={onExpandAll}
         onCollapseAll={onCollapseAll}
-        startActionsLabel="Sheet search"
+        startActionsLabel="Tab search"
         searchValue={searchQuery}
         onSearchValueChange={onSearchQueryChange}
-        searchPlaceholder="Search Sheet"
-        searchLabel="Search Sheet"
+        searchPlaceholder="Search Tab"
+        searchLabel="Search Tab"
         addActions={[
           {
             label: "Activity",
@@ -535,15 +546,18 @@ function getRemoteCursorLabel(cursor: RemoteEstimateCursor) {
 // the enclosing [data-estimate-pointer-surface] element imperatively.
 function EstimateSheetCursorLayer({
   estimateId,
+  tabId,
   userId,
   displayName,
 }: {
   estimateId?: string;
+  tabId?: string;
   userId: string | null;
   displayName: string | null;
 }) {
   const { broadcastCursor, channelStatus, lastSendStatus, remoteCursors } = useEstimateCursorCollaboration({
     estimateId,
+    tabId,
     userId,
     displayName,
     enabled: Boolean(estimateId && userId),
@@ -630,6 +644,12 @@ export function EstimateSheetContent({
   nodes = sampleEstimateTree,
   projectId,
   estimateId,
+  estimateTabs = [],
+  activeTabId,
+  dataTabId,
+  initialTabId,
+  onActiveTabChange,
+  onEstimateTabsChange,
   collaborationUserId = null,
   collaborationDisplayName = null,
   proposalExportMetadata,
@@ -642,28 +662,39 @@ export function EstimateSheetContent({
   libraryFolders,
 }: EstimateSheetContentProps) {
   reportEstimateSheetContentRender();
-  const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
+  const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
+  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
+  const legacyTreeQuery = useEstimateAreaTreeQuery({
+    projectId,
+    estimateId,
+    initialNodes: nodes,
+    enabled: !dataTabId,
+  });
+  const tabTreeQuery = useEstimateTabTreeQuery({
+    projectId,
+    estimateId,
+    tabId: dataTabId,
+    initialNodes: tabInitialNodes,
+    enabled: Boolean(dataTabId),
+  });
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
     restore: restoreEstimateTree,
     getTreeRevision: getEstimateTreeRevision,
-  } = useEstimateAreaTreeQuery({
-    projectId,
-    estimateId,
-    initialNodes: nodes,
-  });
+  } = dataTabId ? tabTreeQuery : legacyTreeQuery;
   const skipEditableRowsSyncRef = useRef(0);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
+  const [collapsedNodeIdsByScope, setCollapsedNodeIdsByScope] = useState<Record<string, string[]>>({});
   const [bulkSelectedRowIds, setBulkSelectedRowIds] = useState<Set<string>>(() => new Set());
   const [isProposalPreviewOpen, setIsProposalPreviewOpen] = useState(false);
+  const [proposalPreviewScope, setProposalPreviewScope] = useState<ProposalExportPreviewScope>("all-tabs");
   const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
@@ -719,14 +750,41 @@ export function EstimateSheetContent({
       currency: "PHP",
     };
   }, [estimateId, projectId, proposalExportMetadata]);
+  const persistedTabs = useMemo(() => estimateTabs.filter((tab) => tab.id !== "legacy-main"), [estimateTabs]);
+  const hasMultiplePersistedTabs = persistedTabs.length > 1;
+  const activeProposalExportTab = useMemo(
+    () =>
+      persistedTabs.find((tab) => tab.id === dataTabId) ??
+      persistedTabs.find((tab) => tab.id === activeTabId) ??
+      persistedTabs.find((tab) => tab.isDefault) ??
+      persistedTabs[0],
+    [activeTabId, dataTabId, persistedTabs],
+  );
+  const activeProposalExportTabName = activeProposalExportTab?.name ?? "Current";
+  const tabScopeSignature = useMemo(
+    () => persistedTabs.map((tab) => `${tab.id}:${tab.name}:${tab.sortOrder}`).join("|"),
+    [persistedTabs],
+  );
+  const getProposalPreviewSignature = useCallback(
+    (scope: ProposalExportPreviewScope) => [
+      createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
+      dataTabId ?? "legacy",
+      tabScopeSignature,
+      scope,
+    ].join("::"),
+    [dataTabId, editableRows, estimateTree, resolvedProposalExportMetadata, tabScopeSignature],
+  );
   const currentProposalPreviewSignature = useMemo(
-    () => createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
-    [editableRows, estimateTree, resolvedProposalExportMetadata],
+    () => getProposalPreviewSignature(proposalPreviewScope),
+    [getProposalPreviewSignature, proposalPreviewScope],
   );
-  const proposalDownloadHref = useMemo(
-    () => (projectId && estimateId ? `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx` : null),
-    [estimateId, projectId],
-  );
+  const proposalDownloadHref = useMemo(() => {
+    if (!projectId || !estimateId) return null;
+    const baseHref = `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
+    return hasMultiplePersistedTabs && proposalPreviewScope === "active-tab" && dataTabId
+      ? `${baseHref}?tab=${encodeURIComponent(dataTabId)}`
+      : baseHref;
+  }, [dataTabId, estimateId, hasMultiplePersistedTabs, projectId, proposalPreviewScope]);
   const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
@@ -745,13 +803,28 @@ export function EstimateSheetContent({
     () => (selectedNode && sheetSearchActive ? filterEstimateSheetNode(selectedNode, sheetSearchQuery) : selectedNode),
     [selectedNode, sheetSearchActive, sheetSearchQuery],
   );
+  const collapsedScopeKey = dataTabId ?? "legacy";
+  const collapsedNodeIds = useMemo(
+    () => new Set(collapsedNodeIdsByScope[collapsedScopeKey] ?? []),
+    [collapsedNodeIdsByScope, collapsedScopeKey],
+  );
+  const setCollapsedNodeIds = useCallback((update: SetStateAction<Set<string>>) => {
+    setCollapsedNodeIdsByScope((current) => {
+      const previous = new Set(current[collapsedScopeKey] ?? []);
+      const next = typeof update === "function" ? update(previous) : update;
+      return {
+        ...current,
+        [collapsedScopeKey]: Array.from(next),
+      };
+    });
+  }, [collapsedScopeKey]);
   // Searches reveal every match: collapse state pauses while filtering.
   const sheetExpansionContextValue = useMemo(
     () => ({
       collapsedNodeIds: sheetSearchActive ? EMPTY_COLLAPSED_NODE_IDS : collapsedNodeIds,
       setCollapsedNodeIds,
     }),
-    [collapsedNodeIds, sheetSearchActive],
+    [collapsedNodeIds, setCollapsedNodeIds, sheetSearchActive],
   );
   const visibleSheetRowIds = useMemo(() => {
     const rowIds = new Set<string>();
@@ -848,8 +921,22 @@ export function EstimateSheetContent({
     [currentRows, projectSpecificRowId],
   );
   const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
-  const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), []);
-  const collapseAll = useCallback(() => setCollapsedNodeIds(new Set(allNodeIds)), [allNodeIds]);
+  const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), [setCollapsedNodeIds]);
+  const collapseAll = useCallback(() => setCollapsedNodeIds(new Set(allNodeIds)), [allNodeIds, setCollapsedNodeIds]);
+  const requestRootGroupCreate = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, { detail: { kind: "group" } }));
+  }, []);
+  const openTemplateBrowser = useCallback(() => {
+    setShowCommandPalette(true);
+  }, []);
+  const syncActiveTabRouteUrl = useCallback((nodeId: string | null) => {
+    if (!projectId || !estimateId || typeof window === "undefined") return;
+    const href = nodeId
+      ? `/workshop/projects/${projectId}/estimates/${nodeId}`
+      : `/workshop/projects/${projectId}/estimates/${estimateId}`;
+    if (window.location.pathname === href) return;
+    window.history.replaceState(null, "", href);
+  }, [estimateId, projectId]);
   const setActiveInspector = useCallback((nextInspector: EstimateActivityScope | null) => {
     const nextScopeKey = getActivityScopeKey(nextInspector);
     activateHistoryScope(nextScopeKey);
@@ -974,7 +1061,7 @@ export function EstimateSheetContent({
         setIsHistoryLoadingMore(false);
       });
   }, [activityFilters, estimateId, historyData, inspector, isHistoryLoadingMore, projectId]);
-  const buildProposalPreview = useCallback(() => {
+  const buildProposalPreview = useCallback((scope: ProposalExportPreviewScope = proposalPreviewScope) => {
     if (!resolvedProposalExportMetadata) return null;
 
     const model = buildProposalExportModel({
@@ -982,9 +1069,13 @@ export function EstimateSheetContent({
       nodes: materializeEditableEstimateTree(estimateTree, editableRows),
     });
     setProposalPreviewModel(model);
-    setProposalPreviewSignature(currentProposalPreviewSignature);
+    setProposalPreviewSignature(getProposalPreviewSignature(scope));
     return model;
-  }, [currentProposalPreviewSignature, editableRows, estimateTree, resolvedProposalExportMetadata]);
+  }, [editableRows, estimateTree, getProposalPreviewSignature, proposalPreviewScope, resolvedProposalExportMetadata]);
+  const changeProposalPreviewScope = useCallback((scope: ProposalExportPreviewScope) => {
+    setProposalPreviewScope(scope);
+    if (isProposalPreviewOpen) buildProposalPreview(scope);
+  }, [buildProposalPreview, isProposalPreviewOpen]);
   const openProposalPreview = useCallback(() => {
     const model = buildProposalPreview();
     if (model) setIsProposalPreviewOpen(true);
@@ -992,6 +1083,14 @@ export function EstimateSheetContent({
   const refreshProposalPreview = useCallback(() => {
     buildProposalPreview();
   }, [buildProposalPreview]);
+  const proposalPreviewScopeControls = hasMultiplePersistedTabs
+    ? {
+        selectedScope: proposalPreviewScope,
+        activeTabName: activeProposalExportTabName,
+        tabCount: persistedTabs.length,
+        onScopeChange: changeProposalPreviewScope,
+      }
+    : undefined;
   const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
   useEffect(() => {
     if (!inspectorScopeKey) return;
@@ -1071,6 +1170,11 @@ export function EstimateSheetContent({
     if (!estimateId || activeSelectedNodeId === resolvedSelectedNodeId) return;
     setSelectedNodeId(resolvedSelectedNodeId);
   }, [activeSelectedNodeId, estimateId, resolvedSelectedNodeId, setSelectedNodeId]);
+
+  useEffect(() => {
+    if (!dataTabId) return;
+    syncActiveTabRouteUrl(resolvedSelectedNodeId);
+  }, [dataTabId, resolvedSelectedNodeId, syncActiveTabRouteUrl]);
 
   const setEstimateTree = useCallback((updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => {
     skipEditableRowsSyncRef.current += 1;
@@ -1524,6 +1628,8 @@ export function EstimateSheetContent({
     bulkSelectedRowIds.forEach((rowItemId) => deleteRowItem(rowItemId));
     setBulkSelectedRowIds(new Set());
   }
+  const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
+  const canPreviewCurrentExport = Boolean(resolvedProposalExportMetadata);
 
   return (
     <>
@@ -1540,6 +1646,7 @@ export function EstimateSheetContent({
         model={proposalPreviewModel}
         isStale={isProposalPreviewStale}
         downloadHref={proposalDownloadHref}
+        scopeControls={proposalPreviewScopeControls}
         onRefresh={refreshProposalPreview}
         onClose={() => setIsProposalPreviewOpen(false)}
       />
@@ -1607,15 +1714,46 @@ export function EstimateSheetContent({
         id="estimate-sheet-center-column"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
         data-estimate-center-column="sheet"
-        aria-label="Main estimate sheet"
+        aria-label="Estimate tab content"
       >
-        {selectedNode ? (
+        {estimateTabs.length > 0 ? (
+          <EstimateTabStrip
+            tabs={estimateTabs}
+            activeTabId={activeTabId ?? estimateTabs[0]?.id ?? "legacy-main"}
+            projectId={projectId}
+            estimateId={estimateId}
+            onTabChange={onActiveTabChange ?? (() => {})}
+            onTabsChange={onEstimateTabsChange}
+          />
+        ) : null}
+        {hasMultiplePersistedTabs ? (
+          <p className="border-b border-hairline bg-white px-3 py-1 text-[10px] leading-4 text-tertiary">
+            XLSX export includes all tabs by default. Use the preview scope chips to download all tabs or just the active tab.
+          </p>
+        ) : null}
+        {isActiveTabTreeLoading ? (
           <>
             <EstimateSheetHeader
               onExpandAll={expandAll}
               onCollapseAll={collapseAll}
               onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
+              canPreviewProposalExport={canPreviewCurrentExport}
+              onOpenSheetActivity={openActivityHistory}
+              searchQuery={sheetSearchQuery}
+              onSearchQueryChange={setSheetSearchQuery}
+            />
+            <div role="status" aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
+              {Array.from({ length: 10 }, (_, index) => <Skeleton key={index} className="h-7 w-full" />)}
+              <span className="sr-only">Loading estimate tab</span>
+            </div>
+          </>
+        ) : selectedNode ? (
+          <>
+            <EstimateSheetHeader
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+              onPreviewProposalExport={openProposalPreview}
+              canPreviewProposalExport={canPreviewCurrentExport}
               onOpenSheetActivity={openActivityHistory}
               searchQuery={sheetSearchQuery}
               onSearchQueryChange={setSheetSearchQuery}
@@ -1625,7 +1763,7 @@ export function EstimateSheetContent({
                 className={cn("relative min-h-0 flex-1 overflow-auto px-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
                 data-estimate-pointer-surface
               >
-                <EstimateSheetCursorLayer estimateId={estimateId} userId={collaborationUserId} displayName={collaborationDisplayName} />
+                <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
                 {displayedSheetNode ? (
                 <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
                   <EstimateSheetBranch
@@ -1654,7 +1792,7 @@ export function EstimateSheetContent({
                 </EstimateSheetExpansionContext.Provider>
                 ) : (
                   <div className="mt-4 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center text-[10px] leading-4 text-tertiary">
-                    No sheet rows match &quot;{sheetSearchQuery}&quot;.
+                    No rows in this tab match &quot;{sheetSearchQuery}&quot;.
                   </div>
                 )}
               </div>
@@ -1681,19 +1819,35 @@ export function EstimateSheetContent({
               onExpandAll={expandAll}
               onCollapseAll={collapseAll}
               onPreviewProposalExport={openProposalPreview}
-              canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
+              canPreviewProposalExport={canPreviewCurrentExport}
               onOpenSheetActivity={openActivityHistory}
               searchQuery={sheetSearchQuery}
               onSearchQueryChange={setSheetSearchQuery}
             />
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" data-estimate-pointer-surface>
-              <EstimateSheetCursorLayer estimateId={estimateId} userId={collaborationUserId} displayName={collaborationDisplayName} />
+              <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
               <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
-                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
-                <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>
-                <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                  This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
-                </p>
+                {dataTabId ? (
+                  <>
+                    <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty tab</p>
+                    <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">This tab is empty</h2>
+                    <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                      Add a group to start the tree, or drag a template or project content here.
+                    </p>
+                    <div className="mt-3 flex justify-center gap-2">
+                      <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Group</Button>
+                      <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
+                    <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>
+                    <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                      This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </>
@@ -1738,7 +1892,7 @@ function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolea
       {isError ? (
         <div role="alert" className="mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
-          <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate sheet is still editable. Retry to load components and templates.</p>
+          <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate is still editable. Retry to load components and templates.</p>
           <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>
             Retry
           </Button>

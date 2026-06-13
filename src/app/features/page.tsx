@@ -21,12 +21,12 @@ export default async function FeaturesPage() {
       title: "Estimate Workspace",
       maturity: "Available in MVP preview",
       maturityColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      description: "Create and manage structured quote, estimate, and proposal sheets in an early workspace for teams that price and document sales work.",
+      description: "Create and manage structured estimates, quote options, and proposal data in an early workspace for teams that price and document sales work.",
       problem: "Replaces scattered browser tabs, hidden formulas, and blank spreadsheet setup lag.",
       details: [
         "Protected workspace routes requiring user login.",
         "Interactive grid designed for direct entry of quantities and rates.",
-        "Side-by-side node and sheet navigation for quick lookups."
+        "Side-by-side node and tab navigation for quick lookups."
       ]
     },
     {
@@ -63,7 +63,7 @@ export default async function FeaturesPage() {
       title: "Component Library Workflow",
       maturity: "Partially available in MVP preview",
       maturityColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      description: "Use an early catalog flow to insert reusable products, assemblies, services, and rates into your quote sheets.",
+      description: "Use an early catalog flow to insert reusable products, assemblies, services, and rates into your estimate tabs.",
       problem: "Replaces copying and pasting rows between older estimate files, bringing along obsolete rates.",
       details: [
         "Insert pre-configured cost items instantly.",
@@ -80,7 +80,7 @@ export default async function FeaturesPage() {
       description: "Track version indicators as the quote matures to pinpoint exactly how and why prices changed.",
       problem: "Replaces filename suffix madness and blind buyer updates.",
       details: [
-        "Version-labeled sheets with unique tracking codes.",
+        "Version-labeled estimates with unique tracking codes.",
         "Planned revision history timeline indicating who changed what and when.",
         "Future snapshot comparison tool to trace price changes before presenting proposals."
       ]
@@ -91,7 +91,7 @@ export default async function FeaturesPage() {
       title: "Proposal Comparisons",
       maturity: "Planned next",
       maturityColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-      description: "Build multiple quote or estimate sheets inside one workspace to compare different options.",
+      description: "Build multiple estimates inside one workspace to compare different options.",
       problem: "Replaces duplicating entire folders and manually cross-referencing alternate bids.",
       details: [
         "Support for alternate quote structures (e.g. Option A vs Option B).",

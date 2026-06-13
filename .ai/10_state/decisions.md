@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-06-13 - App validation excludes portable tool adapter bundles
+
+**Decision:** Keep ESLint validation focused on Archestimator app/source/test code by globally ignoring versioned tool-adapter bundles and generated/scratch artifacts: `.agents/`, `.claude/`, `.codex/`, `.commandcode/`, `.cursor/`, `.github/skills/`, `archestimator_pitch deck/`, and `test-table.tsx`.
+
+**Rationale:** These folders are intentionally portable/shared agent assets or legacy non-app artifacts. They contain vendored detector scripts, generated bundles, and skill adapters whose lint profile is not part of the app runtime contract. Including them caused root `bun run validate` to fail on unrelated tool-bundle lint errors after the main-branch skill-routing work landed.
+
+**Follow-up:** Do not use this ignore boundary to hide app/runtime code. New Archestimator source, tests, scripts, migrations, and `.ai` truth updates still need targeted validation through typecheck, lint/design checks, tests, build, and proof scripts as applicable.
+
 ## 2026-06-13 - Project-local shadcn/improve plan routing
 
 **Decision:** Add a project-local `.agents/skills/improve/SKILL.md` adapter for
@@ -39,6 +47,51 @@ provider approval gates, agent-routing hierarchy, and current `.ai`
 source-of-truth rules. Do not install a vendor-specific token-economy skill as
 an enforcing policy unless a later owner-approved framework change explicitly
 supersedes this decision.
+
+## 2026-06-13 - Estimate tabs local implementation archived for merge readiness
+
+**Decision:** Treat the estimate-tabs implementation as complete for local merge readiness after the final audit and archive move. The shipped local contract is: one default `estimate_tabs` row per estimate, `estimate_nodes.estimate_tab_id` as the tab boundary, tab-scoped loaders/actions/query keys, user-facing estimate/tab copy, virtual read-through project sources in the templates panel, all-tabs/default and `?tab=` XLSX export, and additive tab metadata for activity, presence, publication snapshots, and AI read/audit context.
+
+**Rationale:** The final closeout gates passed locally: `bun run validate`, `bun run build`, local Homebrew Postgres estimate-tabs proof, perf suites, export regressions, env-gated Playwright discovery, RTM flip audit, and UltraQA closeout. The branch preserves the plan's compatibility boundaries: legacy `estimate_sheet_*` tables/RPC names, `sheet_code`, stored `sheet_*` event values, Excel/worksheet vocabulary, and template-table persistence rules remain intact until separately approved cleanup/migration work.
+
+**Follow-up:** Do not claim linked/provider/hosted/manual proof from this merge. Linked Supabase apply/typegen/advisor, hosted export/Vercel deploy, spreadsheet-app workbook inspection, two-browser collaboration QA, 375px responsive/browser pass, old-bookmark export, and hosted invite/share/publication smoke remain separate owner-authorized proof gates. Future modifiers should use the archived plan at `.ai/09_archive/store/2026-06-12-Projects-Auto-Added-To-Templates/` and the completion audit at `.ai/05_logs/2026-06-12-estimate-tabs-implementation-completion-audit.md`.
+
+## 2026-06-12 - Phase 4 rebrands visible sheets while preserving internal sheet contracts
+
+**Decision:** Phase 4 changes user-facing terminology only. Copy that names the
+estimate moves from "estimate sheet" / "sheet" to "estimate"; tree containers are
+called "tabs"; and `sheet_code` is labeled "Estimate code" in UI/audit surfaces.
+Internal names on the keep-list remain unchanged until an explicit cleanup phase
+or migration plan says otherwise.
+
+**Rationale:** The plan intentionally separates product language from compatibility
+contracts. Renaming DB tables, RPCs, generated types, `EstimateSheet*` files, stored
+`sheet_*` event names, localStorage keys, or Excel/worksheet terminology during the
+copy pass would add migration/refactor risk and could break existing data, tests,
+and older links.
+
+**Follow-up:** Future agents must keep Phase 4 terminology edits copy-only unless
+a dedicated Phase 8 cleanup or owner-approved migration updates contracts and tests
+in one atomic batch. Marketing/landing copy is locally aligned, but owner review is
+still the product-decision boundary for final product wording.
+
+## 2026-06-12 - Estimate tabs Phase 3 keeps lifecycle controls hidden until export parity
+
+**Decision:** Phase 3 may render editor tab switching and tab-scoped state, but
+must not expose beta-visible tab create, duplicate, rename, or reorder controls by
+default. The internal tab-strip lifecycle path remains opt-in only for tests/future
+phases, and proposal preview is disabled with a warning when multiple persisted
+tabs exist until Phase 6 tab-aware export ships.
+
+**Rationale:** The plan-pack D-15 gate prevents users from creating multi-tab
+estimate state before export can represent every tab. Shipping lifecycle controls
+without all-tabs export would create a data/product mismatch where edited tab data
+could be omitted from proposal packages.
+
+**Follow-up:** Do not enable `EstimateTabStrip` lifecycle controls in beta routes
+or marketing/support copy until Phase 6 export parity has local and provider-backed
+proof. Continue preserving legacy estimate-wide fallback behavior before linked
+Supabase apply/typegen is owner-authorized.
 
 ## 2026-06-12 - Lean agent mandate and shared agent assets
 

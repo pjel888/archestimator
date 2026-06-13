@@ -207,7 +207,7 @@ function ProjectEstimateRowActions({
 
     void duplicateEstimateSheet({ projectId, estimateId: estimate.id })
       .then(() => router.refresh())
-      .catch((error: unknown) => onDuplicateError(error instanceof Error ? error.message : "Could not duplicate estimate sheet."))
+      .catch((error: unknown) => onDuplicateError(error instanceof Error ? error.message : "Could not duplicate estimate."))
       .finally(() => {
         duplicateInFlightRef.current = false;
         setIsDuplicating(false);
@@ -227,7 +227,7 @@ function ProjectEstimateRowActions({
         type="button"
         className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Delete ${estimate.name}`}
-        title="Delete estimate sheet"
+        title="Delete estimate"
         onClick={() => onDeleteRequested(estimate.id)}
       >
         <Trash size={12} weight="regular" aria-hidden="true" />
@@ -238,7 +238,7 @@ function ProjectEstimateRowActions({
         aria-label={`Duplicate ${estimate.name}`}
         disabled={isDuplicating}
         onClick={handleDuplicate}
-        title={isDuplicating ? "Duplicating estimate sheet..." : "Duplicate estimate sheet"}
+        title={isDuplicating ? "Duplicating estimate..." : "Duplicate estimate"}
       >
         <CopySimple size={12} weight="regular" aria-hidden="true" />
       </button>
@@ -496,7 +496,7 @@ function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectE
             onFocus={(event) => event.currentTarget.select()}
             onKeyDown={handleKeyDown}
             placeholder="0.00"
-            title="Edit the project budget for this estimate sheet. Press Enter or leave the cell to save. Press Esc to cancel."
+            title="Edit the project budget for this estimate. Press Enter or leave the cell to save. Press Esc to cancel."
             value={draft}
           />
         </div>
@@ -542,17 +542,17 @@ function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: Proje
         estimate={estimate}
         field="sheetCode"
         inputClassName="font-medium text-tertiary tabular-nums"
-        label="Sheet code"
+        label="Estimate code"
         placeholder="Auto Code"
         projectId={projectId}
       />
       <button
         type="button"
-        aria-label={`Auto-generate sheet code for ${estimate.name}`}
+        aria-label={`Auto-generate estimate code for ${estimate.name}`}
         className="h-5 shrink-0 rounded-xs border border-hairline bg-white px-1.5 text-[8px] font-medium uppercase tracking-normal text-tertiary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
         disabled={isPending}
         onClick={handleAutoGenerate}
-        title={errorMessage ?? "Auto-generate the next sheet code"}
+        title={errorMessage ?? "Auto-generate the next estimate code"}
       >
         Auto
       </button>
@@ -617,7 +617,7 @@ function ProjectEstimatesColumnResizeHandle({
 
 ProjectEstimatesColumnResizeHandle.displayName = "ProjectEstimatesColumnResizeHandle";
 
-function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "No estimate sheets yet" }: ProjectEstimatesTableProps) {
+function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "No estimates yet" }: ProjectEstimatesTableProps) {
   const router = useNavigationRouter();
   const queryClient = useQueryClient();
   const columnWidthStorageKey = `${COLUMN_WIDTH_STORAGE_KEY_PREFIX}:${projectId}`;
@@ -681,8 +681,8 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
     () => estimates.filter((estimate) => selectedEstimateIds.has(estimate.id)).map((estimate) => estimate.id),
     [estimates, selectedEstimateIds],
   );
-  const deleteEstimatePhrase = deleteEstimateTargetIds.length === 1 ? "DELETE SHEET" : `DELETE ${deleteEstimateTargetIds.length} SHEETS`;
-  const deleteEstimateModalTitle = deleteEstimateTargetIds.length === 1 ? "Delete estimate sheet" : `Delete ${deleteEstimateTargetIds.length} estimate sheets`;
+  const deleteEstimatePhrase = deleteEstimateTargetIds.length === 1 ? "DELETE ESTIMATE" : `DELETE ${deleteEstimateTargetIds.length} ESTIMATES`;
+  const deleteEstimateModalTitle = deleteEstimateTargetIds.length === 1 ? "Delete estimate" : `Delete ${deleteEstimateTargetIds.length} estimates`;
 
   const openDeleteEstimatePreview = useCallback((estimateIds: string[]) => {
     const uniqueEstimateIds = Array.from(new Set(estimateIds)).filter((id) => estimates.some((estimate) => estimate.id === id));
@@ -725,7 +725,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         .then((result) => {
           if (!result.ok) {
             setDeleteEstimatePreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
-            setDeleteEstimateError(result.issues[0]?.message ?? "Could not delete estimate sheets.");
+            setDeleteEstimateError(result.issues[0]?.message ?? "Could not delete estimates.");
             setDeleteEstimateState("ready");
             return;
           }
@@ -743,7 +743,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
           router.refresh();
         })
         .catch((error: unknown) => {
-          setDeleteEstimateError(error instanceof Error ? error.message : "Could not delete estimate sheets.");
+          setDeleteEstimateError(error instanceof Error ? error.message : "Could not delete estimates.");
           setDeleteEstimateState("ready");
         });
     });
@@ -778,7 +778,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
       },
       {
         accessorKey: "sheet_code",
-        header: "Sheet Code",
+        header: "Estimate Code",
         size: 176,
         minSize: 132,
         maxSize: 260,
@@ -786,7 +786,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
       },
       {
         accessorKey: "name",
-        header: "Estimate Sheet Name",
+        header: "Estimate Name",
         size: 340,
         minSize: 220,
         maxSize: 520,
@@ -796,8 +796,8 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
             estimate={row.original}
             field="name"
             inputClassName="font-medium tracking-normal"
-            label="Estimate sheet name"
-            placeholder="Estimate Sheet Name"
+            label="Estimate name"
+            placeholder="Estimate Name"
             projectId={projectId}
           />
         ),
@@ -907,8 +907,8 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
       ) : null}
       <BulkActionToolbar
         selectedCount={selectedVisibleEstimateIds.length}
-        actionLabel="Delete selected sheets"
-        helperText="Preview dependencies before deleting estimate sheets."
+        actionLabel="Delete selected estimates"
+        helperText="Preview dependencies before deleting estimates."
         onAction={() => openDeleteEstimatePreview(selectedVisibleEstimateIds)}
         onClear={() => setSelectedEstimateIds(new Set())}
         onSelectVisible={() => setSelectedEstimateIds(new Set(estimates.map((estimate) => estimate.id)))}
@@ -966,7 +966,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         </table>
       </div>
       <div className="flex h-6 shrink-0 items-center justify-between border-t border-hairline bg-white px-2 text-[9px] font-medium text-tertiary">
-        <span>{formatCount(estimates.length, "estimate sheet", "estimate sheets")}</span>
+        <span>{formatCount(estimates.length, "estimate", "estimates")}</span>
         <button
           type="button"
           className="rounded-xs px-1.5 py-0.5 font-medium uppercase tracking-normal text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -981,9 +981,9 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
       <BulkDestructivePreviewModal
         open={deleteEstimateTargetIds.length > 0}
         title={deleteEstimateModalTitle}
-        description="Deleting estimate sheets removes their tree nodes, row items, and activity surface after a dependency preview."
+        description="Deleting estimates removes their tree nodes, row items, and activity surface after a dependency preview."
         requiredPhrase={deleteEstimatePhrase}
-        executeLabel="Delete sheets"
+        executeLabel="Delete estimates"
         loading={deleteEstimateState === "loading"}
         executing={deleteEstimateState === "executing"}
         preview={deleteEstimatePreview}

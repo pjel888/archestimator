@@ -86,7 +86,7 @@ export const placeholderCompanyProof: CompanyProofLogo[] = [
     permissionConfirmed: false,
     isPlaceholder: true,
     publicLabel: "Sample profile",
-    workflowFit: "Sitework estimate sheets",
+    workflowFit: "Sitework estimates",
   },
   {
     name: "Draftline Contractors",

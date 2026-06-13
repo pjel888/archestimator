@@ -34,7 +34,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
   const createInFlightRef = useRef(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const filteredEstimates = useMemo(() => filterEstimateSheets(estimates, searchQuery), [estimates, searchQuery]);
-  const emptyMessage = searchQuery.trim() ? "No matching estimate sheets" : "No estimate sheets yet";
+  const emptyMessage = searchQuery.trim() ? "No matching estimates" : "No estimates yet";
   const hasEstimates = estimates.length > 0;
   const hasFilteredEstimates = filteredEstimates.length > 0;
 
@@ -47,7 +47,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
 
     void createEstimateSheetDraft(projectId)
       .then(() => router.refresh())
-      .catch((error: unknown) => setCreateError(error instanceof Error ? error.message : "Could not create estimate sheet."))
+      .catch((error: unknown) => setCreateError(error instanceof Error ? error.message : "Could not create estimate."))
       .finally(() => {
         createInFlightRef.current = false;
         setIsCreating(false);
@@ -58,8 +58,8 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
     <section className="flex h-full min-h-0 flex-col bg-white" aria-label={`${projectName} estimates`}>
       <div className="flex shrink-0 items-center gap-2 bg-white">
         <SearchInput
-          placeholder="Search Estimate Sheets"
-          aria-label="Search Estimate Sheets"
+          placeholder="Search Estimates"
+          aria-label="Search Estimates"
           wrapperClassName="w-full"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.currentTarget.value)}
@@ -68,11 +68,11 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
       </div>
 
       <HeaderIconToolbar
-        ariaLabel="Project estimate sheet tools"
-        labelPrefix="estimate sheets"
+        ariaLabel="Project estimate tools"
+        labelPrefix="estimates"
         addActions={[
           {
-            label: isCreating ? "Creating estimate sheet" : "Create Estimate Sheet",
+            label: isCreating ? "Creating estimate" : "Create Estimate",
             disabled: isCreating,
             onClick: handleCreateEstimateSheet,
           },
@@ -94,11 +94,11 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
         ) : (
           <EmptyState
             icon={<FileText size={18} weight="regular" aria-hidden="true" />}
-            title={hasEstimates ? "No matching estimate sheets" : "Create the first estimate sheet"}
+            title={hasEstimates ? "No matching estimates" : "Create the first estimate"}
             description={
               hasEstimates
-                ? "Try a sheet code, estimate name, or clear search to return to all sheets."
-                : "Start an estimate sheet before adding groups, inserting components, or exporting a bid workbook."
+                ? "Try an estimate code, estimate name, or clear search to return to all estimates."
+                : "Start an estimate before adding groups, inserting components, or exporting a bid workbook."
             }
             action={
               hasEstimates ? null : (
@@ -108,7 +108,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
                   size="sm"
                   onClick={handleCreateEstimateSheet}
                   disabled={isCreating}
-                  aria-label={isCreating ? "Creating first estimate sheet" : "Create first estimate sheet"}
+                  aria-label={isCreating ? "Creating first estimate" : "Create first estimate"}
                 >
                   <Plus size={12} weight="regular" aria-hidden="true" />
                   {isCreating ? "Creating" : "Create estimate"}

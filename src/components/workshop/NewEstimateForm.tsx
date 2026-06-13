@@ -27,7 +27,7 @@ export function NewEstimateForm({ projectId }: { projectId: string }) {
           <ControlInput name="name" placeholder="e.g. Baseline cost estimate" required className="h-8 px-2" />
         </label>
         <label className="space-y-1">
-          <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Sheet Code</span>
+          <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate Code</span>
           <ControlInput name="sheetCode" placeholder="Rev 0" className="h-8 px-2" />
         </label>
       </div>

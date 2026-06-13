@@ -1,0 +1,10 @@
+bun test v1.3.10 (30e609e0)
+
+tests/unit/reset-baseline.test.ts:
+(pass) workshop sidebar baseline > workshop page keeps the approved sidebar shell and sparse greeting homebase [0.97ms]
+(pass) workshop sidebar baseline > main sidebar preserves SlateCamp sidebar measurements with overlay expansion [0.35ms]
+
+ 2 pass
+ 0 fail
+ 112 expect() calls
+Ran 2 tests across 1 file. [15.00ms]

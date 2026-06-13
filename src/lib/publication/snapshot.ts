@@ -1,5 +1,5 @@
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
-import type { ProjectPublicationSnapshot, PublicationSnapshotEstimate, PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
+import type { ProjectPublicationSnapshot, PublicationSnapshotEstimate, PublicationSnapshotEstimateTab, PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
 
 type SnapshotProjectInput = {
   id: string;
@@ -29,12 +29,20 @@ type SnapshotRowInput = {
   nodeId?: string | null;
 };
 
+type SnapshotTabInput = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isDefault: boolean;
+};
+
 type SnapshotNodeInput = {
   id: string;
   name: string;
   kind: "group" | "area";
   parentId?: string | null;
   sortOrder?: number;
+  estimateTabId?: string | null;
 };
 
 type SnapshotEstimateInput = {
@@ -44,6 +52,7 @@ type SnapshotEstimateInput = {
   updatedAt: string | null;
   rows: SnapshotRowInput[];
   nodes?: SnapshotNodeInput[];
+  tabs?: SnapshotTabInput[];
 };
 
 function toFiniteNumber(value: number) {
@@ -59,8 +68,8 @@ function calculateRowTotal(row: SnapshotRowInput) {
   return subtotal + miscCost + (subtotal * contingencyPercentage) / 100;
 }
 
-function buildSnapshotRow(row: SnapshotRowInput): PublicationSnapshotRow {
-  return {
+function buildSnapshotRow(row: SnapshotRowInput, tabId?: string | null): PublicationSnapshotRow {
+  const snapshotRow: PublicationSnapshotRow = {
     id: row.id,
     description: row.description,
     designation: row.designation,
@@ -73,6 +82,8 @@ function buildSnapshotRow(row: SnapshotRowInput): PublicationSnapshotRow {
     imageUrl: normalizePublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
   };
+  if (tabId) snapshotRow.tabId = tabId;
+  return snapshotRow;
 }
 
 type LegacyPublicationSnapshotRow = PublicationSnapshotRow & {
@@ -82,7 +93,7 @@ type LegacyPublicationSnapshotRow = PublicationSnapshotRow & {
 };
 
 function sanitizeSnapshotRow(row: LegacyPublicationSnapshotRow): PublicationSnapshotRow {
-  return {
+  const snapshotRow: PublicationSnapshotRow = {
     id: row.id,
     description: row.description,
     designation: row.designation,
@@ -94,6 +105,8 @@ function sanitizeSnapshotRow(row: LegacyPublicationSnapshotRow): PublicationSnap
     imageUrl: normalizePublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
   };
+  if (row.tabId) snapshotRow.tabId = row.tabId;
+  return snapshotRow;
 }
 
 export function sanitizeProjectPublicationSnapshotForPublicRead(snapshot: ProjectPublicationSnapshot): ProjectPublicationSnapshot {
@@ -111,6 +124,10 @@ export function sanitizeProjectPublicationSnapshotForPublicRead(snapshot: Projec
     estimates: (snapshot.estimates ?? []).map((estimate) => ({
       ...estimate,
       rows: (estimate.rows ?? []).map((row) => sanitizeSnapshotRow(row as LegacyPublicationSnapshotRow)),
+      tabs: estimate.tabs?.map((tab) => ({
+        ...tab,
+        rows: (tab.rows ?? []).map((row) => sanitizeSnapshotRow(row as LegacyPublicationSnapshotRow)),
+      })),
     })),
   };
 }
@@ -120,12 +137,14 @@ function buildSnapshotTreeNodes(nodes: SnapshotNodeInput[]): PublicationSnapshot
 
   const nodeMap = new Map<string, PublicationSnapshotTreeNode>();
   for (const node of nodes) {
-    nodeMap.set(node.id, {
+    const treeNode: PublicationSnapshotTreeNode = {
       id: node.id,
       name: node.name,
       kind: node.kind,
       children: [],
-    });
+    };
+    if (node.estimateTabId) treeNode.tabId = node.estimateTabId;
+    nodeMap.set(node.id, treeNode);
   }
 
   const roots: PublicationSnapshotTreeNode[] = [];
@@ -143,8 +162,79 @@ function buildSnapshotTreeNodes(nodes: SnapshotNodeInput[]): PublicationSnapshot
   return roots;
 }
 
+function sortSnapshotTabs(tabs: SnapshotTabInput[]): SnapshotTabInput[] {
+  return [...tabs].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+}
+
+function findDefaultTabId(tabs: SnapshotTabInput[]): string | null {
+  return tabs.find((tab) => tab.isDefault)?.id ?? tabs[0]?.id ?? null;
+}
+
+function buildNodeTabMap(nodes: SnapshotNodeInput[]): Map<string, string | null> {
+  const map = new Map<string, string | null>();
+  for (const node of nodes) map.set(node.id, node.estimateTabId ?? null);
+  return map;
+}
+
+function buildSnapshotEstimateTab({
+  tab,
+  rows,
+  nodes,
+}: {
+  tab: SnapshotTabInput;
+  rows: PublicationSnapshotRow[];
+  nodes: SnapshotNodeInput[];
+}): PublicationSnapshotEstimateTab {
+  return {
+    id: tab.id,
+    name: tab.name,
+    sortOrder: tab.sortOrder,
+    isDefault: tab.isDefault,
+    rowCount: rows.length,
+    totalCost: rows.reduce((total, row) => total + row.rowTotal, 0),
+    rows,
+    treeNodes: nodes.length > 0 ? buildSnapshotTreeNodes(nodes) : undefined,
+  };
+}
+
 function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnapshotEstimate {
-  const rows = estimate.rows.map(buildSnapshotRow);
+  const nodeTabMap = buildNodeTabMap(estimate.nodes ?? []);
+  const sortedTabs = sortSnapshotTabs(estimate.tabs ?? []);
+  const defaultTabId = findDefaultTabId(sortedTabs);
+  const rows = estimate.rows.map((row) => buildSnapshotRow(row, row.nodeId ? nodeTabMap.get(row.nodeId) ?? defaultTabId : defaultTabId));
+  const tabRows = new Map<string, PublicationSnapshotRow[]>();
+  const tabNodes = new Map<string, SnapshotNodeInput[]>();
+
+  for (const tab of sortedTabs) {
+    tabRows.set(tab.id, []);
+    tabNodes.set(tab.id, []);
+  }
+
+  if (sortedTabs.length > 0) {
+    for (const row of rows) {
+      const targetTabId = row.tabId && tabRows.has(row.tabId) ? row.tabId : defaultTabId;
+      if (!targetTabId) continue;
+      tabRows.get(targetTabId)?.push(row);
+    }
+
+    for (const node of estimate.nodes ?? []) {
+      const targetTabId = node.estimateTabId && tabNodes.has(node.estimateTabId) ? node.estimateTabId : defaultTabId;
+      if (!targetTabId) continue;
+      tabNodes.get(targetTabId)?.push(node);
+    }
+  }
+
+  const tabs =
+    sortedTabs.length > 0
+      ? sortedTabs.map((tab) =>
+          buildSnapshotEstimateTab({
+            tab,
+            rows: tabRows.get(tab.id) ?? [],
+            nodes: tabNodes.get(tab.id) ?? [],
+          }),
+        )
+      : undefined;
+
   return {
     id: estimate.id,
     name: estimate.name,
@@ -154,6 +244,7 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnap
     totalCost: rows.reduce((total, row) => total + row.rowTotal, 0),
     rows,
     treeNodes: estimate.nodes && estimate.nodes.length > 0 ? buildSnapshotTreeNodes(estimate.nodes) : undefined,
+    tabs,
   };
 }
 
@@ -174,9 +265,10 @@ export function buildProjectPublicationSnapshot({
           coverImageUrl: normalizePublicationImageUrl(project.coverImageUrl),
         }
       : project;
+  const schemaVersion = estimates.some((estimate) => (estimate.tabs?.length ?? 0) > 0) ? 1.2 : 1;
 
   return sanitizeProjectPublicationSnapshotForPublicRead({
-    schemaVersion: 1,
+    schemaVersion,
     generatedAt,
     project: snapshotProject,
     estimateCount: snapshotEstimates.length,

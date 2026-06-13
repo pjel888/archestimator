@@ -871,13 +871,13 @@ function ComponentLibrarySheet({
       id="component-library-sheet-center-column"
       className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white !text-[10px]"
       data-component-library-sheet="true"
-      aria-label="Component sheet"
+      aria-label="Component table"
     >
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component sheet controls">
+      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component table controls">
         <TreePanelHeader
           className="static z-auto bg-transparent"
-          ariaLabel="Component sheet tools"
-          labelPrefix="component sheet"
+          ariaLabel="Component table tools"
+          labelPrefix="component table"
           searchValue={searchQuery}
           onSearchValueChange={setSearchQuery}
           searchPlaceholder="Search components"

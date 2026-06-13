@@ -1,0 +1,6 @@
+label=targeted-export-regression
+command=bunx vitest run tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts --maxWorkers=1
+exit_code=1
+started=2026-06-12T09:32:57Z
+ended=2026-06-12T09:32:59Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/targeted-export-regression.log

@@ -24,4 +24,27 @@ describe("closed beta pricing copy", () => {
     expect(combined).toMatch(/request access/i);
     expect(combined).not.toMatch(/₱0|free access|MVP preview offers free access|pricing tiers/i);
   });
+  it("keeps public product copy aligned to estimates and tabs outside Excel/spreadsheet contexts", () => {
+    const publicCopySources = [
+      readFileSync(join(process.cwd(), "src/app/features/page.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/app/pricing/page.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/app/about/page.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/components/landing/AnimatedProposalRecordSection.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/components/landing/FeaturesSection.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/components/landing/PricingSection.tsx"), "utf8"),
+      readFileSync(join(process.cwd(), "src/components/landing/SecondaryClaimSection.tsx"), "utf8"),
+    ].join("\n");
+
+    expect(publicCopySources).toMatch(/structured estimate tabs/i);
+    expect(publicCopySources).not.toMatch(/structured quote sheets/i);
+    expect(publicCopySources).not.toMatch(/multi-sheet estimates/i);
+    expect(publicCopySources).not.toMatch(/multiple quote sheets/i);
+    expect(publicCopySources).not.toMatch(/version-labeled sheets/i);
+    expect(publicCopySources).not.toMatch(/quote sheets(?!\?)/i);
+    expect(publicCopySources).not.toMatch(/structured sheet/i);
+
+    expect(landingFaq).toMatch(/Excel quote sheets/i);
+    expect(landingFaq).toMatch(/spreadsheet\/document handoff/i);
+  });
+
 });

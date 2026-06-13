@@ -25,6 +25,7 @@ type SourceEstimateNode = {
 
 type TemplateFixture = {
   estimateId: string;
+  defaultTabId: string;
   selectedNodeId: string;
   targetGroupNodeId: string;
   nodeIds: Record<string, string>;
@@ -100,6 +101,7 @@ async function getFirstTemplateSummary(): Promise<TemplateSummary> {
 async function createIsolatedEstimateFixture(): Promise<TemplateFixture> {
   const admin = createAdminClient();
   const estimateId = randomUUID();
+  const defaultTabId = randomUUID();
   const userId = await getDevAuthUserId();
 
   const { data: sourceNodes, error: sourceNodesError } = await admin
@@ -128,6 +130,17 @@ async function createIsolatedEstimateFixture(): Promise<TemplateFixture> {
     });
     if (estimateInsertError) throw estimateInsertError;
 
+    const { error: tabInsertError } = await admin.from("estimate_tabs").insert({
+      id: defaultTabId,
+      estimate_id: estimateId,
+      name: "Main",
+      sort_order: 0,
+      is_default: true,
+      created_by: userId,
+      metadata: { e2e: true, source: "workshop-template-insert-smoke" },
+    });
+    if (tabInsertError) throw tabInsertError;
+
     const rowsById = new Map(sourceNodes.map((node) => [node.id, node as SourceEstimateNode]));
     const depthCache = new Map<string, number>();
     const getDepth = (node: SourceEstimateNode): number => {
@@ -151,6 +164,7 @@ async function createIsolatedEstimateFixture(): Promise<TemplateFixture> {
       const { error } = await admin.from("estimate_nodes").insert({
         id: getFixtureNodeId(sourceNode.id),
         estimate_id: estimateId,
+        estimate_tab_id: defaultTabId,
         parent_id: sourceNode.parent_id ? getFixtureNodeId(sourceNode.parent_id) : null,
         kind: sourceNode.kind,
         name: sourceNode.name,
@@ -166,6 +180,7 @@ async function createIsolatedEstimateFixture(): Promise<TemplateFixture> {
 
   return {
     estimateId,
+    defaultTabId,
     selectedNodeId: getFixtureNodeId(masterBedroomSeedNodeId),
     targetGroupNodeId: getFixtureNodeId(secondFloorSeedNodeId),
     nodeIds,
@@ -276,6 +291,7 @@ test.describe("workshop template insertion smoke", () => {
         route: `/workshop/projects/${projectId}/estimates/${fixture.selectedNodeId}`,
         templateName: template.name,
         targetGroupName: "Second Floor",
+        defaultTabId: fixture.defaultTabId,
         before,
         after: await countEstimateRows(fixture.estimateId),
         expectedInsertedNodes: template.nodeCount,

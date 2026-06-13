@@ -24,7 +24,7 @@ if (!notesMigrationPath) throw new Error("Missing estimate sheet notes migration
 const notesMigration = readFileSync(join(process.cwd(), "supabase/migrations", notesMigrationPath), "utf8");
 
 describe("estimate sheet project budget schema", () => {
-  it("stores project budget on estimate sheets and versions it through the sheet details RPC", () => {
+  it("stores project budget on estimates and versions it through the sheet details RPC", () => {
     expect(migration).toContain("add column if not exists project_budget");
     expect(migration).toContain("set project_budget = (project.metadata->>'projectBudget')::numeric");
     expect(migration).toContain("'projectBudget', old_estimate.project_budget");
@@ -33,7 +33,7 @@ describe("estimate sheet project budget schema", () => {
     expect(supabaseTypes).toContain("project_budget: number | null");
   });
 
-  it("keeps budget UI attached to estimate sheets instead of project metadata", () => {
+  it("keeps budget UI attached to estimates instead of project metadata", () => {
     expect(estimatesTable).toContain('header: "Project Budget"');
     expect(estimatesTable).toContain('header: "Remaining Budget"');
     expect(estimatesTable).toContain("row.original.project_budget - row.original.totalProjectCost");
@@ -41,7 +41,7 @@ describe("estimate sheet project budget schema", () => {
     expect(projectLayout).not.toContain("readProjectBudget");
   });
 
-  it("orders estimate sheet budget columns before ongoing cost and remaining budget", () => {
+  it("orders estimate budget columns before ongoing cost and remaining budget", () => {
     const projectBudgetHeader = estimatesTable.indexOf('header: "Project Budget"');
     const ongoingCostHeader = estimatesTable.indexOf('header: "Ongoing Project Cost"');
     const remainingBudgetHeader = estimatesTable.indexOf('header: "Remaining Budget"');
@@ -51,8 +51,8 @@ describe("estimate sheet project budget schema", () => {
     expect(remainingBudgetHeader).toBeGreaterThan(ongoingCostHeader);
   });
 
-  it("stores editable estimate sheet notes next to the sheet name", () => {
-    const nameHeader = estimatesTable.indexOf('header: "Estimate Sheet Name"');
+  it("stores editable estimate notes next to the estimate name", () => {
+    const nameHeader = estimatesTable.indexOf('header: "Estimate Name"');
     const notesHeader = estimatesTable.indexOf('header: "Notes"');
     const projectBudgetHeader = estimatesTable.indexOf('header: "Project Budget"');
 

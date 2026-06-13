@@ -1462,6 +1462,7 @@ export type Database = {
         Row: {
           created_at: string
           estimate_id: string
+          estimate_tab_id: string
           id: string
           kind: Database["public"]["Enums"]["estimate_node_kind"]
           metadata: Json
@@ -1473,6 +1474,7 @@ export type Database = {
         Insert: {
           created_at?: string
           estimate_id: string
+          estimate_tab_id: string
           id?: string
           kind: Database["public"]["Enums"]["estimate_node_kind"]
           metadata?: Json
@@ -1484,6 +1486,7 @@ export type Database = {
         Update: {
           created_at?: string
           estimate_id?: string
+          estimate_tab_id?: string
           id?: string
           kind?: Database["public"]["Enums"]["estimate_node_kind"]
           metadata?: Json
@@ -1499,6 +1502,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estimates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_nodes_tab_same_estimate_fkey"
+            columns: ["estimate_id", "estimate_tab_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_tabs"
+            referencedColumns: ["estimate_id", "id"]
           },
           {
             foreignKeyName: "estimate_nodes_parent_id_fkey"
@@ -1631,6 +1641,7 @@ export type Database = {
           created_at: string
           estimate_id: string
           estimate_node_id: string | null
+          estimate_tab_id: string | null
           event_source: string
           event_type: string
           id: string
@@ -1650,6 +1661,7 @@ export type Database = {
           created_at?: string
           estimate_id: string
           estimate_node_id?: string | null
+          estimate_tab_id?: string | null
           event_source?: string
           event_type: string
           id?: string
@@ -1669,6 +1681,7 @@ export type Database = {
           created_at?: string
           estimate_id?: string
           estimate_node_id?: string | null
+          estimate_tab_id?: string | null
           event_source?: string
           event_type?: string
           id?: string
@@ -1694,6 +1707,13 @@ export type Database = {
             columns: ["estimate_node_id"]
             isOneToOne: false
             referencedRelation: "estimate_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_events_estimate_tab_id_fkey"
+            columns: ["estimate_tab_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_tabs"
             referencedColumns: ["id"]
           },
           {
@@ -2037,6 +2057,60 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_tabs: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          estimate_id: string
+          id: string
+          is_default: boolean
+          metadata: Json
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_id: string
+          id?: string
+          is_default?: boolean
+          metadata?: Json
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string
+          id?: string
+          is_default?: boolean
+          metadata?: Json
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_tabs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_tabs_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
             referencedColumns: ["id"]
           },
         ]
@@ -3114,6 +3188,7 @@ export type Database = {
           initial_sort_order: number
           acting_user_id?: string
           correlation_id?: string
+          target_tab_id?: string
         }
         Returns: Json
       }
@@ -3154,6 +3229,74 @@ export type Database = {
           target_project_id: string
           target_estimate_id: string
           target_node_id: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      resolve_default_estimate_tab_id: {
+        Args: {
+          target_estimate_id: string
+        }
+        Returns: string
+      }
+      create_estimate_tab_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          tab_name: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      rename_estimate_tab_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_tab_id: string
+          next_name: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      reorder_estimate_tabs_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          sort_updates: Json
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      duplicate_estimate_tab_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          source_tab_id: string
+          next_name?: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      archive_estimate_tab_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_tab_id: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      delete_estimate_tab_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_tab_id: string
           acting_user_id?: string
           correlation_id?: string
         }

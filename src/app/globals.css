@@ -177,32 +177,6 @@ body:has([data-workshop-page-shell-root]) {
   fill: none;
 }
 
-@keyframes landing-company-marquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(calc(-50% - var(--landing-company-marquee-gap) / 2), 0, 0);
-  }
-}
-
-.landing-company-marquee {
-  --landing-company-marquee-gap: 3rem; /* matches gap-12 */
-  animation: landing-company-marquee 68s linear infinite;
-  will-change: transform;
-}
-
-@media (min-width: 64rem) {
-  .landing-company-marquee {
-    --landing-company-marquee-gap: 4rem; /* matches lg:gap-16 */
-  }
-}
-
-.landing-company-carousel-viewport:hover .landing-company-marquee,
-.landing-company-carousel-viewport:focus-within .landing-company-marquee {
-  animation-play-state: paused;
-}
-
 @keyframes landing-testimonial-crossfade {
   0%,
   27% {
@@ -740,21 +714,6 @@ body:has([data-workshop-page-shell-root]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-company-carousel-viewport {
-    overflow-x: auto;
-  }
-
-  .landing-company-marquee {
-    width: max-content;
-    animation: none;
-    transform: none;
-    will-change: auto;
-  }
-
-  .landing-company-marquee > [aria-hidden="true"] {
-    display: none;
-  }
-
   .landing-testimonial-slide {
     animation: none;
     filter: none;

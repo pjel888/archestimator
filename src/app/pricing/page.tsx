@@ -8,7 +8,7 @@ export default async function PricingPage() {
 
   const inclusions = [
     "Create and organize unlimited projects",
-    "Build custom multi-sheet estimates within projects",
+    "Build custom multi-tab estimates within projects",
     "Nest unlimited cost groups and work breakdown areas",
     "Edit quantities and Misc Cost allowances",
     "Access and search the early Component Library flow",
@@ -16,15 +16,15 @@ export default async function PricingPage() {
   ];
 
   const futureHighlights = [
-    { title: "Revision comparisons", desc: "Compare versions of the same sheet side-by-side to catch scope creep." },
-    { title: "Excel (.xlsx) exports", desc: "Handoff complete cost sheets preserving hierarchy and formulas." },
+    { title: "Revision comparisons", desc: "Compare versions of the same estimate side-by-side to catch scope creep." },
+    { title: "Excel (.xlsx) exports", desc: "Handoff complete estimate workbooks preserving hierarchy and formulas." },
     { title: "Document proposal packages", desc: "Format quote data into professional client packages after the document workflow ships." }
   ];
 
   const pricingFaq = [
     {
       q: "Is Archestimator production-ready?",
-      a: "Archestimator is in a closed beta. It is useful for structured estimate sheets, reusable catalog logic, and workflow feedback, but it is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files.",
+      a: "Archestimator is in a closed beta. It is useful for structured estimates, reusable catalog logic, and workflow feedback, but it is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files.",
     },
     {
       q: "Is payment required during closed beta?",

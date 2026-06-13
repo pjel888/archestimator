@@ -1,0 +1,6 @@
+label=bun-run-test-dom
+command=bun run test:dom
+exit_code=127
+started=2026-06-12T09:32:52Z
+ended=2026-06-12T09:32:53Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/bun-run-test-dom.log

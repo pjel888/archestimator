@@ -1,0 +1,6 @@
+label=targeted-perf
+command=bunx vitest run tests/vitest/perf --maxWorkers=1
+exit_code=1
+started=2026-06-12T09:32:56Z
+ended=2026-06-12T09:32:57Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/targeted-perf.log

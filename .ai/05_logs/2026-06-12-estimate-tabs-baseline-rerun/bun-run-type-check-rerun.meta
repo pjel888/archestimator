@@ -1,0 +1,8 @@
+label=bun-run-type-check-rerun
+command=bun run type-check
+started=2026-06-12T09:36:36Z
+ended=2026-06-12T09:36:45Z
+exit_code=0
+timeout_seconds=900
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/bun-run-type-check-rerun.log

@@ -123,7 +123,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
     <Modal
       open={open}
       title="Insert into estimate"
-      description={`Choose the estimate sheet that receives "${template.name}".`}
+      description={`Choose the estimate that receives "${template.name}".`}
       closeLabel="Cancel template insert"
       className="max-w-sm"
       onOpenChange={handleOpenChange}
@@ -168,7 +168,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
             {selectedProject ? (
               estimates.length > 0 ? (
                 <label className="grid gap-1">
-                  <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate sheet</span>
+                  <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Estimate</span>
                   <DropdownSelect
                     aria-label="Insert target estimate"
                     options={estimateOptions}
@@ -181,7 +181,7 @@ export function InsertIntoEstimatePicker({ open, onOpenChange, template, onInser
                   />
                 </label>
               ) : (
-                <p className="text-[10px] leading-4 text-tertiary">No estimate sheets in this project yet.</p>
+                <p className="text-[10px] leading-4 text-tertiary">No estimates in this project yet.</p>
               )
             ) : null}
           </>

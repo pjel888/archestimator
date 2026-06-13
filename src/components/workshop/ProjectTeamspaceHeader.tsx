@@ -350,7 +350,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
       <Modal
         open={open}
         title="Teamspace settings"
-        description="Project and estimate sheet access"
+        description="Project and estimate access"
         onOpenChange={setOpen}
         className="max-w-2xl"
         bodyClassName="p-0"
@@ -377,7 +377,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-[11px] font-medium leading-4 text-ink">Project access</h3>
-                  <p className="text-[9px] leading-3 text-tertiary">Role baseline for every estimate sheet</p>
+                  <p className="text-[9px] leading-3 text-tertiary">Role baseline for every estimate</p>
                 </div>
                 <RoleBadge role={activeSummary.currentUserRole} />
               </div>
@@ -512,8 +512,8 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
               ) : null}
             </section>
             <section className="p-3">
-              <h3 className="text-[11px] font-medium leading-4 text-ink">Estimate sheet access</h3>
-              <p className="text-[9px] leading-3 text-tertiary">Sheets inherit project roles until an override is set</p>
+              <h3 className="text-[11px] font-medium leading-4 text-ink">Estimate access</h3>
+              <p className="text-[9px] leading-3 text-tertiary">Estimates inherit project roles until an override is set</p>
               <div className="mt-2 space-y-1">
                 {activeSummary.estimateSheets.length ? (
                   activeSummary.estimateSheets.map((sheet) => (
@@ -561,20 +561,20 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                             className="min-h-6 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[9px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus"
                             type="email"
                             value={sheetInviteEmailById[sheet.estimateId] ?? ""}
-                            placeholder="sheet email"
+                            placeholder="email"
                             aria-label={`Invite to ${sheet.name}`}
                             disabled={!canUseInviteDelivery || isPending}
                             onChange={(event) => updateSheetInviteEmail(sheet.estimateId, event.target.value)}
                           />
                           <label className="sr-only" htmlFor={`sheet-role-${sheet.estimateId}`}>
-                            Sheet role for {sheet.name}
+                            Estimate role for {sheet.name}
                           </label>
                           <DropdownSelect
                             id={`sheet-role-${sheet.estimateId}`}
                             className="h-6 rounded-xs border border-hairline bg-white px-1 text-secondary"
                             options={ROLE_OPTIONS}
                             value={readSheetInviteRole(sheet.estimateId)}
-                            aria-label={`Sheet role for ${sheet.name}`}
+                            aria-label={`Estimate role for ${sheet.name}`}
                             disabled={!canUseInviteDelivery}
                             ariaDisabled={canUseInviteDelivery && isPending}
                             onValueChange={(role) => updateSheetInviteRole(sheet.estimateId, role as CollaborationRole)}
@@ -594,7 +594,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                   ))
                 ) : (
                   <p className="rounded-xs border border-dashed border-hairline px-2 py-3 text-[9px] leading-3 text-tertiary">
-                    No estimate sheets yet
+                    No estimates yet
                   </p>
                 )}
               </div>
@@ -663,7 +663,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
       >
         <div className="space-y-3">
           <p className="text-[10px] leading-4 text-secondary">
-            They will lose access to this project and all estimate sheets.
+            They will lose access to this project and all estimates.
           </p>
           {pendingRemoval ? (
             <label className="flex items-center gap-2 rounded-xs border border-hairline px-2 py-1.5 text-[10px] font-medium leading-3 text-secondary">

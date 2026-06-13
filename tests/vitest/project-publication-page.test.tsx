@@ -427,7 +427,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />
       );
 
-      const tablist = screen.getByRole("tablist", { name: /estimate sheets/i });
+      const tablist = screen.getByRole("tablist", { name: /estimates/i });
       expect(tablist).toBeInTheDocument();
 
       const tabs = within(tablist).getAllByRole("tab");
@@ -498,6 +498,66 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       await user.clear(search);
       await user.type(search, "zzz");
       expect(screen.getByText('No rows match "zzz"')).toBeInTheDocument();
+    });
+
+    it("renders v1.2 estimate tabs inside the selected estimate and preserves legacy snapshots without nested tabs", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const user = userEvent.setup();
+      const v12Estimate: PublicationSnapshotEstimate = {
+        ...baseEstimate,
+        tabs: [
+          {
+            id: "tab-base",
+            name: "Base",
+            sortOrder: 0,
+            isDefault: true,
+            rowCount: 1,
+            totalCost: 2300,
+            rows: [baseEstimate.rows[0]],
+            treeNodes: [{ id: "node-base", name: "Base Area", kind: "area", tabId: "tab-base", children: [] }],
+          },
+          {
+            id: "tab-renovation",
+            name: "Renovation",
+            sortOrder: 1,
+            isDefault: false,
+            rowCount: 1,
+            totalCost: 6400,
+            rows: [
+              {
+                ...baseEstimate.rows[0],
+                id: "row-renovation",
+                description: "Renovation millwork",
+                designation: "REN-01",
+                discipline: "Joinery",
+                material: "Oak",
+                rowTotal: 6400,
+                tabId: "tab-renovation",
+              },
+            ],
+            treeNodes: [{ id: "node-renovation", name: "Renovation Area", kind: "area", tabId: "tab-renovation", children: [] }],
+          },
+        ],
+      };
+
+      const { rerender } = render(<SharePageTabs estimates={[v12Estimate]} currencyCode="PHP" token="client-token-v12-tabs" />);
+
+      const nestedTablist = screen.getByRole("tablist", { name: /main estimate tabs/i });
+      expect(within(nestedTablist).getByRole("tab", { name: "Base" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByText("Base Area").length).toBeGreaterThan(0);
+      expect(screen.queryByText("Renovation millwork")).not.toBeInTheDocument();
+
+      await user.click(within(nestedTablist).getByRole("tab", { name: "Renovation" }));
+
+      expect(within(nestedTablist).getByRole("tab", { name: "Renovation" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getAllByText("Renovation Area").length).toBeGreaterThan(0);
+      expect(screen.queryByText("Base Area")).not.toBeInTheDocument();
+      expect(screen.getAllByText(/PHP 6,400.00/).length).toBeGreaterThan(0);
+
+      rerender(<SharePageTabs estimates={[baseEstimate]} currencyCode="PHP" token="client-token-legacy-tabs" />);
+
+      expect(screen.queryByRole("tablist", { name: /main estimate tabs/i })).not.toBeInTheDocument();
+      expect(screen.getByText("Concrete works")).toBeInTheDocument();
     });
 
     it("navigates to tree nodes with CSS selector metacharacters in their snapshot ids without throwing", async () => {
@@ -632,7 +692,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(container.innerHTML).toMatch(/gradient|from-proposalPaper|to-transparent/);
     });
 
-    it("even for a single estimate sheet, renders exactly one tab + its full table content (no bypass)", async () => {
+    it("even for a single estimate, renders exactly one tab + its full table content (no bypass)", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       render(
         <SharePageTabs
@@ -642,7 +702,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />
       );
 
-      const tablist = screen.getByRole("tablist", { name: /estimate sheets/i });
+      const tablist = screen.getByRole("tablist", { name: /estimates/i });
       const tabs = within(tablist).getAllByRole("tab");
       expect(tabs).toHaveLength(1);
       expect(screen.getByRole("heading", { name: "Main Estimate" })).toBeInTheDocument();
@@ -651,7 +711,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   });
 
   describe("OpenGraph metadata on /share/[token] (P2)", () => {
-    it("generateMetadata returns title with project name, description containing sheet count, and handles image from projects.metadata (inline query path)", async () => {
+    it("generateMetadata returns title with project name, description containing estimate count, and handles image from projects.metadata (inline query path)", async () => {
       // Real exercise now that generateMetadata + inline getProjectImageUrl + service client is in page
       const pageMod = await import("@/app/share/[token]/page");
       const { generateMetadata } = pageMod;
@@ -660,7 +720,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const meta = await generateMetadata({ params: Promise.resolve({ token: "client-token" }) });
 
       expect(meta.title).toContain("Valencia Residence");
-      expect(meta.description).toContain("1 estimate sheet");
+      expect(meta.description).toContain("1 estimate");
       expect(meta.description).toContain("1 rows");
       // image may be undefined (no real supabase in this env) — contract is graceful
       expect(meta.openGraph?.title).toContain("Valencia Residence");

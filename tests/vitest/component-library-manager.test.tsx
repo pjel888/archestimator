@@ -297,7 +297,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     renderManager();
     await waitForSheet();
 
-    fireEvent.click(screen.getByRole("button", { name: "Show component sheet search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show component table search" }));
     const input = await screen.findByLabelText("Search components");
     fireEvent.change(input, { target: { value: "Stale" } });
 

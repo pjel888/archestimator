@@ -903,6 +903,41 @@ describe("AskFlipFooterAssistant", () => {
     window.history.pushState({}, "", "/");
   });
 
+  it("includes the active estimate tab id in current-route package-builder requests", async () => {
+    window.history.pushState({}, "", "/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ message: "Draft route reached." }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <>
+        <div data-estimate-tab-strip>
+          <button type="button" role="tab" aria-selected="true" data-estimate-tab-id="ffffffff-ffff-4fff-8fff-ffffffffffff">Active tab</button>
+        </div>
+        <AskFlipFooterAssistant projectName="Lewis Residence" estimateName="Initial Estimate" selectedNodeName="Master Bedroom" />
+      </>,
+    );
+    await user.click(screen.getByRole("button", { name: "Open Ask Flip" }));
+    await user.type(screen.getByPlaceholderText("Ask Flip"), "Fill this estimate with beds and water closets.");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/ai/package-builder",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"activeTabId":"ffffffff-ffff-4fff-8fff-ffffffffffff"'),
+        }),
+      );
+    });
+    window.history.pushState({}, "", "/");
+  });
+
   it("routes current estimate row update requests to package-builder only from a project estimate route", async () => {
     window.history.pushState({}, "", "/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
     const user = userEvent.setup();

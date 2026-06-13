@@ -50,17 +50,17 @@ test.describe("workshop component and template library demo smoke", () => {
 
     await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Component library workspace" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Component sheet" })).toBeVisible();
-    await expect(page.getByRole("searchbox", { name: "Search component sheet" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Component table" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search component table" })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search component library tree" })).toBeVisible();
-    await expect(page.getByLabel("Component sheet result count")).toContainText(/\d/);
+    await expect(page.getByLabel("Component table result count")).toContainText(/\d/);
     await expect(page.locator("[data-component-catalogue-card-id]").first()).toBeVisible();
     await expect(page.getByText(/^Source:/).first()).toBeVisible();
     await expect(page.getByText(/^Checked /).first()).toBeVisible();
 
-    const search = page.getByRole("searchbox", { name: "Search component sheet" });
+    const search = page.getByRole("searchbox", { name: "Search component table" });
     await search.fill("wood");
-    await expect(page.getByLabel("Component sheet result count")).toContainText(/\d/);
+    await expect(page.getByLabel("Component table result count")).toContainText(/\d/);
     await search.clear();
 
     await captureProof(page, testInfo, "component-library-demo-smoke-2026-06-02", {
@@ -69,9 +69,9 @@ test.describe("workshop component and template library demo smoke", () => {
       checkedLabels: [
         "Library",
         "Component library workspace",
-        "Search component sheet",
+        "Search component table",
         "Search component library tree",
-        "Component sheet result count",
+        "Component table result count",
         "Source",
         "Checked",
       ],
@@ -83,8 +83,8 @@ test.describe("workshop component and template library demo smoke", () => {
 
     await expect(page.getByRole("heading", { name: "Templates" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Template library workspace" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Template sheet" })).toBeVisible();
-    await expect(page.getByRole("searchbox", { name: "Search template sheet" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Template content" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search template content" })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search template library tree" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "All Templates" })).toBeVisible();
     await expect(page.getByText(/\d+ of \d+ templates/)).toBeVisible();
@@ -102,7 +102,7 @@ test.describe("workshop component and template library demo smoke", () => {
       checkedLabels: [
         "Templates",
         "Template library workspace",
-        "Search template sheet",
+        "Search template content",
         "Search template library tree",
         "All Templates",
         "Structure",

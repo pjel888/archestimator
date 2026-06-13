@@ -1,0 +1,8 @@
+label=targeted-perf-rerun
+command=bunx vitest run tests/vitest/perf --maxWorkers=1
+started=2026-06-12T09:41:48Z
+ended=2026-06-12T09:41:56Z
+exit_code=0
+timeout_seconds=600
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/targeted-perf-rerun.log

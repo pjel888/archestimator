@@ -14,15 +14,15 @@ describe("landing page below-hero interactivity", () => {
   it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
     render(<HeroSection />);
 
-    expect(screen.getByRole("heading", { name: /proposal workspace for construction estimates/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /fastest path from proposal to approval/i })).toBeInTheDocument();
     expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
       expect.arrayContaining([
-        "The proposal workspace for construction estimates.",
-        "A calmer platform for estimate handoff.",
+        "The fastest path from proposal to approval.",
+        "Estimate with Precision. Win with Clarity.",
       ]),
     );
-    expect(heroCopyVariants.map((variant) => variant.support).join(" ")).toMatch(
-      /closed-beta/i,
+    expect(heroCopyVariants.map((variant) => variant.evidenceGate).join(" ")).toMatch(
+      /closed beta/i,
     );
     expect(heroCopyVariants.map((variant) => variant.headline).join(" ")).not.toMatch(
       /smart ones|competitors are already/i,
@@ -82,16 +82,19 @@ describe("landing page below-hero interactivity", () => {
   it("renders a professional footer with grounded quote-and-proposal navigation", () => {
     render(<LandingFooter />);
 
-    const footer = screen.getByRole("contentinfo", { name: /estimate infrastructure/i });
+    const footer = screen.getByRole("contentinfo");
     expect(footer).toBeInTheDocument();
     expect(footer).toHaveAttribute("data-visual-reference", "amigo-footer");
-    expect(footer).toHaveStyle({ backgroundColor: "#aa412a" });
-    expect(screen.getByText(/Estimate infrastructure for building and handing off construction proposals/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Workspace" })).toHaveAttribute("href", "/workshop");
-    expect(screen.getByRole("link", { name: "Platform" })).toHaveAttribute("href", "#product");
-    expect(screen.getByRole("link", { name: "Contact us" })).toHaveAttribute("href", "/contact");
-    expect(screen.getByRole("link", { name: "Privacy policy" })).toHaveAttribute("href", "/privacy");
-    expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} Archestimator`))).toBeInTheDocument();
+    expect(footer).toHaveStyle({ backgroundColor: "rgb(8, 50, 65)" });
+    expect(screen.getByRole("link", { name: "Archestimator home" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.queryByRole("link", { name: "Workspace" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Platform" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Contact us" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Privacy policy" })).not.toBeInTheDocument();
+    expect(footer).not.toHaveTextContent(new RegExp(`© ${new Date().getFullYear()} Archestimator`));
     expect(footer).not.toHaveTextContent(/Trusted by|Used by|Customers include|testimonial|MVP preview|Less file hunting/i);
   });
 });

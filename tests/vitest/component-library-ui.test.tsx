@@ -3,20 +3,41 @@ import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testi
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
-import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
+import { PROJECT_SOURCE_DRAG_MIME_TYPE, type EstimateTemplate } from "@/components/workshop/component-library/templates";
 import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { useEstimateWorkshopDragState } from "@/components/workshop/estimate-workshop-drag";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import type { ReusableEstimateSource } from "@/lib/reusable-sources/types";
 
 const templateActionMocks = vi.hoisted(() => ({
+  createEstimateTemplate: vi.fn(),
+  createEstimateTemplateFromEstimateTab: vi.fn(),
+  createEstimateTemplateFromEstimateNode: vi.fn(),
   renameEstimateTemplate: vi.fn(),
   deleteEstimateTemplate: vi.fn(),
 }));
 
+const reusableSourceActionMocks = vi.hoisted(() => ({
+  listReusableProjectSources: vi.fn(),
+  listReusableProjectEstimateSources: vi.fn(),
+  getReusableEstimateOutline: vi.fn(),
+  searchReusableProjectSources: vi.fn(),
+}));
+
 vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/component-library/actions")>()),
+  createEstimateTemplate: templateActionMocks.createEstimateTemplate,
+  createEstimateTemplateFromEstimateTab: templateActionMocks.createEstimateTemplateFromEstimateTab,
+  createEstimateTemplateFromEstimateNode: templateActionMocks.createEstimateTemplateFromEstimateNode,
   renameEstimateTemplate: templateActionMocks.renameEstimateTemplate,
   deleteEstimateTemplate: templateActionMocks.deleteEstimateTemplate,
+}));
+
+vi.mock("@/lib/reusable-sources/actions", () => ({
+  getReusableEstimateOutline: reusableSourceActionMocks.getReusableEstimateOutline,
+  listReusableProjectEstimateSources: reusableSourceActionMocks.listReusableProjectEstimateSources,
+  listReusableProjectSources: reusableSourceActionMocks.listReusableProjectSources,
+  searchReusableProjectSources: reusableSourceActionMocks.searchReusableProjectSources,
 }));
 
 const sidebarSeedItems = estimateLibraryItems.slice(0, 8);
@@ -92,6 +113,10 @@ describe("component library UI", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
+    reusableSourceActionMocks.listReusableProjectSources.mockReset();
+    reusableSourceActionMocks.searchReusableProjectSources.mockReset();
   });
 
   afterEach(() => {
@@ -601,6 +626,70 @@ describe("templates tree", () => {
     },
   ];
 
+  const projectSources: ReusableEstimateSource[] = [
+    {
+      kind: "project",
+      projectId: "project-2",
+      name: "Renovation Project",
+    },
+    {
+      kind: "project-estimate",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      name: "Lobby Estimate",
+      sheetCode: "EST-002",
+    },
+    {
+      kind: "project-tab",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      name: "Lobby Main",
+    },
+    {
+      kind: "project-node",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      nodeId: "node-amenity",
+      nodeKind: "group",
+      name: "Amenity Millwork",
+    },
+  ];
+
+  const projectSourcesWithMetadata: ReusableEstimateSource[] = projectSources.map((source) => {
+    if (source.kind === "project-node") {
+      return {
+        ...source,
+        metadata: {
+          projectName: "Renovation Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+          nodePath: ["Lobby Main", "Amenity Millwork"],
+          updatedAt: "2026-06-12T08:30:00.000Z",
+          rowCount: 7,
+          totalCost: 125000,
+        },
+      };
+    }
+    if (source.kind === "project-tab") {
+      return {
+        ...source,
+        metadata: {
+          projectName: "Renovation Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+          updatedAt: "2026-06-12T08:15:00.000Z",
+          rowCount: 11,
+          totalCost: 180000,
+        },
+      };
+    }
+    return source;
+  });
+
   function createDataTransferStub() {
     const store = new Map<string, string>();
     const types: string[] = [];
@@ -624,12 +713,21 @@ describe("templates tree", () => {
 
   beforeEach(() => {
     useEstimateWorkshopDragState.setState({ activeDrag: null });
+    templateActionMocks.createEstimateTemplate.mockReset();
+    templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
+    templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
     templateActionMocks.renameEstimateTemplate.mockReset();
     templateActionMocks.deleteEstimateTemplate.mockReset();
+    reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
+    reusableSourceActionMocks.listReusableProjectSources.mockReset();
+    reusableSourceActionMocks.searchReusableProjectSources.mockReset();
   });
 
   it("renders templates as a uniform node tree with costs and no structure counts", () => {
     openTemplatesTab();
+
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
 
     // The category reads as a plain group node row: name + summed cost only.
     const categoryRow = screen.getByRole("treeitem", { name: "Rooms templates" });
@@ -735,6 +833,423 @@ describe("templates tree", () => {
     expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
   });
 
+  it("renders project-derived sources under a Projects section without hiding custom templates", () => {
+    openTemplatesTab({ projectSources });
+
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Rooms templates" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+  });
+
+  it("loads readable project sources when the Templates tab opens in an estimate context", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project-estimate"),
+    });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-2" }),
+    );
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
+  });
+
+  it("refreshes readable project sources from the Templates tab", async () => {
+    const refreshedProjectSources: ReusableEstimateSource[] = [
+      ...projectSources.filter((source) => source.kind === "project"),
+      {
+        kind: "project",
+        projectId: "project-3",
+        name: "Hotel Refresh Project",
+      },
+    ];
+    const refreshedEstimateSources: ReusableEstimateSource[] = [
+      {
+        kind: "project-estimate",
+        projectId: "project-3",
+        estimateId: "estimate-3",
+        name: "Lobby Refresh Estimate",
+        sheetCode: "EST-003",
+      },
+    ];
+    reusableSourceActionMocks.listReusableProjectSources
+      .mockResolvedValueOnce({
+        sources: projectSources.filter((source) => source.kind === "project"),
+      })
+      .mockResolvedValueOnce({ sources: refreshedProjectSources });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({ sources: refreshedEstimateSources });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh project sources" }));
+
+    await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("treeitem", { name: "Hotel Refresh Project project source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Hotel Refresh Project project source" }));
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-3" }),
+    );
+    expect(screen.getByRole("treeitem", { name: "Lobby Refresh Estimate estimate EST-003" })).toBeInTheDocument();
+  });
+
+  it("searches action-backed project sources and reveals unloaded outline matches", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    reusableSourceActionMocks.searchReusableProjectSources.mockResolvedValue({ sources: projectSources });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Amenity Millwork project group" })).not.toBeInTheDocument();
+
+    const search = openLibrarySearch();
+    fireEvent.change(search, { target: { value: "Amenity" } });
+
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledWith({ query: "Amenity" }),
+    );
+    expect(await screen.findByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+  });
+
+  it("lazy-loads an estimate outline when a project estimate expands", async () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project"),
+    });
+    reusableSourceActionMocks.listReusableProjectEstimateSources.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project-estimate"),
+    });
+    reusableSourceActionMocks.getReusableEstimateOutline.mockResolvedValue({
+      sources: projectSources.filter((source) => source.kind === "project-tab" || source.kind === "project-node"),
+    });
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    fireEvent.click(await screen.findByRole("treeitem", { name: "Renovation Project project source" }));
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.listReusableProjectEstimateSources).toHaveBeenCalledWith({ projectId: "project-2" }),
+    );
+    fireEvent.click(await screen.findByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+
+    await waitFor(() =>
+      expect(reusableSourceActionMocks.getReusableEstimateOutline).toHaveBeenCalledWith({
+        projectId: "project-2",
+        estimateId: "estimate-2",
+      }),
+    );
+    expect(await screen.findByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+  });
+
+  it("uses prop-supplied project sources without refetching on Templates tab open", () => {
+    reusableSourceActionMocks.listReusableProjectSources.mockResolvedValue({ sources: [] });
+
+    openTemplatesTab({ projectSources, projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(reusableSourceActionMocks.listReusableProjectSources).not.toHaveBeenCalled();
+    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
+  });
+
+  it("shows all project sources by default and narrows to the current project only on request", () => {
+    const mixedProjectSources: ReusableEstimateSource[] = [
+      {
+        kind: "project",
+        projectId: "project-1",
+        name: "Active Project",
+      },
+      {
+        kind: "project-estimate",
+        projectId: "project-1",
+        estimateId: "estimate-active",
+        name: "Active Estimate",
+        sheetCode: "EST-ACT",
+      },
+      ...projectSources.filter((source) => source.kind === "project" || source.kind === "project-estimate"),
+    ];
+
+    openTemplatesTab({ projectSources: mixedProjectSources, projectId: "project-1", estimateId: "estimate-1" });
+
+    expect(screen.getByRole("treeitem", { name: "Active Project project source" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All projects" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Current project only" }));
+
+    expect(screen.getByRole("button", { name: "Current project only" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("treeitem", { name: "Active Project project source" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Renovation Project project source" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "All projects" }));
+
+    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+  });
+
+  it("filters reusable source sections between custom templates and project sources", () => {
+    openTemplatesTab({ projectSources });
+
+    expect(screen.getByRole("button", { name: "All sources" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Project sources" }));
+
+    expect(screen.getByRole("button", { name: "Project sources" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Custom templates" }));
+
+    expect(screen.getByRole("button", { name: "Custom templates" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
+  });
+
+  it("drags a project tab source with the project-source payload", () => {
+    openTemplatesTab({ projectSources });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+
+    const dataTransfer = createDataTransferStub();
+    fireEvent.dragStart(tabRow, { dataTransfer });
+
+    expect(dataTransfer.setData).toHaveBeenCalledWith(
+      PROJECT_SOURCE_DRAG_MIME_TYPE,
+      JSON.stringify({
+        kind: "project-tab",
+        projectId: "project-2",
+        estimateId: "estimate-2",
+        tabId: "tab-2",
+      }),
+    );
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toEqual({
+      kind: "project-source",
+      sourceName: "Lobby Main",
+    });
+
+    fireEvent.dragEnd(tabRow, { dataTransfer });
+    expect(useEstimateWorkshopDragState.getState().activeDrag).toBeNull();
+  });
+
+  it("uses the project-source context menu seam without template management actions", async () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }), { clientX: 16, clientY: 16 });
+
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Add to Main House" }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-node",
+      nodeId: "node-amenity",
+    }));
+    expect(screen.queryByRole("menuitem", { name: "Rename" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("opens the save-as-template flow from a project node source", async () => {
+    const createdTemplate: EstimateTemplate = {
+      id: "tpl-project-source",
+      name: "Amenity Template",
+      description: "",
+      category: "Project Sources",
+      nodes: [],
+    };
+    templateActionMocks.createEstimateTemplateFromEstimateNode.mockResolvedValue({ template: createdTemplate });
+    openTemplatesTab({ projectSources, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Save as template" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "New template" });
+    expect(within(dialog).getByText("Amenity Millwork")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Template group")).toHaveValue("Project Sources");
+    fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Amenity Template" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
+
+    await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateNode).toHaveBeenCalledWith({
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      sourceNodeId: "node-amenity",
+      name: "Amenity Template",
+      category: "Project Sources",
+      description: "",
+    }));
+    expect(await screen.findByRole("treeitem", { name: "Amenity Template estimate template" })).toBeInTheDocument();
+  });
+
+  it("opens the save-as-template flow from a whole project tab source", async () => {
+    const createdTemplate: EstimateTemplate = {
+      id: "tpl-project-tab-source",
+      name: "Lobby Main Template",
+      description: "",
+      category: "Project Sources",
+      nodes: [],
+    };
+    templateActionMocks.createEstimateTemplateFromEstimateTab.mockResolvedValue({ template: createdTemplate });
+    openTemplatesTab({ projectSources, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Save as template" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "New template" });
+    expect(within(dialog).getByText("Lobby Main")).toBeInTheDocument();
+    expect(within(dialog).getByText(/Tab source/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Template group")).toHaveValue("Project Sources");
+    fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Lobby Main Template" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
+
+    await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledWith({
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      tabName: "Lobby Main",
+      name: "Lobby Main Template",
+      category: "Project Sources",
+      description: "",
+    }));
+    expect(templateActionMocks.createEstimateTemplateFromEstimateNode).not.toHaveBeenCalled();
+    expect(await screen.findByRole("treeitem", { name: "Lobby Main Template estimate template" })).toBeInTheDocument();
+  });
+
+  it("previews project-source live metadata without template management actions", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({
+      projectSources: projectSourcesWithMetadata,
+      onInsertProjectSource,
+      selectedNodeKind: "group",
+      selectedNodeName: "Main House",
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }));
+
+    const preview = screen.getByRole("region", { name: "Project source preview" });
+    expect(within(preview).getByText("Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("Live source")).toBeInTheDocument();
+    expect(within(preview).getByText("Read-through source")).toBeInTheDocument();
+    expect(within(preview).getByText("Renovation Project")).toBeInTheDocument();
+    expect(within(preview).getByText("Lobby Estimate")).toBeInTheDocument();
+    expect(within(preview).getByText("EST-002")).toBeInTheDocument();
+    expect(within(preview).getByText("Lobby Main / Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("7")).toBeInTheDocument();
+    expect(within(preview).getByText("₱125,000.00")).toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: "Rename" })).not.toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(preview).getByRole("button", { name: /Add .* Main House/ }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-node",
+      nodeId: "node-amenity",
+    }));
+  });
+
+  it("previews loaded project-source outline rows for a tab", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({
+      projectSources: projectSourcesWithMetadata,
+      onInsertProjectSource,
+      selectedNodeKind: "group",
+      selectedNodeName: "Main House",
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+
+    const preview = screen.getByRole("region", { name: "Project source preview" });
+    expect(within(preview).getByText("Source outline")).toBeInTheDocument();
+    expect(within(preview).getByText("Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("group")).toBeInTheDocument();
+  });
+
+  it("bulk-adds checked project-source targets as top-level reusable selections", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Lobby Main" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-tab",
+      tabId: "tab-2",
+    }));
+  });
+
+  it("keyboard-selects a project source for bulk insertion", () => {
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({ projectSources, onInsertProjectSource, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+    fireEvent.click(tabRow);
+    fireEvent.keyDown(tabRow, { key: " " });
+
+    expect(screen.getByRole("checkbox", { name: "Select Lobby Main" })).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
+    expect(onInsertProjectSource).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "project-tab",
+      tabId: "tab-2",
+    }));
+  });
+
+  it("searches project-source names and keeps their source ancestors visible", () => {
+    openTemplatesTab({ projectSources });
+
+    const search = openLibrarySearch();
+    fireEvent.change(search, { target: { value: "Amenity" } });
+
+    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Rooms templates" })).not.toBeInTheDocument();
+  });
+
   it("keeps rows button-free and disables context-menu insertion until a group target exists", async () => {
     openTemplatesTab({ selectedNodeKind: "area", selectedNodeName: "Kitchen" });
 
@@ -752,6 +1267,21 @@ describe("templates tree", () => {
     openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Kitchen Starter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertTemplate).toHaveBeenCalledTimes(1);
+    expect(onInsertTemplate).toHaveBeenCalledWith(expect.objectContaining({ id: "tpl-1" }));
+  });
+
+  it("keyboard-selects a custom template for bulk insertion", () => {
+    const onInsertTemplate = vi.fn(() => true);
+    openTemplatesTab({ onInsertTemplate, selectedNodeKind: "group", selectedNodeName: "Main House" });
+
+    const templateRow = screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" });
+    fireEvent.click(templateRow);
+    fireEvent.keyDown(templateRow, { key: " " });
+    expect(screen.getByRole("checkbox", { name: "Select Kitchen Starter" })).toHaveAttribute("aria-checked", "true");
+
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
     expect(onInsertTemplate).toHaveBeenCalledTimes(1);

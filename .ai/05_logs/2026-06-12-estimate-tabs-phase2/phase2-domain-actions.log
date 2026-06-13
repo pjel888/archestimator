@@ -1,0 +1,14 @@
+$ bunx vitest run tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1
+started=2026-06-12T10:36:23.156559+00:00
+ended=2026-06-12T10:36:25.642167+00:00
+exit_code=0
+timed_out=False
+
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+   Start at  18:36:23
+   Duration  1.92s (transform 161ms, setup 103ms, import 253ms, tests 80ms, environment 1.05s)

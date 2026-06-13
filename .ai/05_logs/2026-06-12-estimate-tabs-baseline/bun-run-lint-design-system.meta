@@ -1,0 +1,6 @@
+label=bun-run-lint-design-system
+command=bun run lint:design-system
+exit_code=0
+started=2026-06-12T09:28:02Z
+ended=2026-06-12T09:28:03Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/bun-run-lint-design-system.log

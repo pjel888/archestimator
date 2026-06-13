@@ -293,7 +293,7 @@ function InviteResolutionBanner({
   if (!inviteBanner || inviteBanner.kind === "none") return null;
 
   if (inviteBanner.kind === "accepted") {
-    const title = inviteBanner.scope === "estimate" ? "Sheet shared" : "Project added";
+    const title = inviteBanner.scope === "estimate" ? "Estimate shared" : "Project added";
     const acceptedDetail = inviteBanner.projectName && inviteBanner.roleLabel
       ? `You've been added as ${inviteBanner.roleLabel} to ${inviteBanner.projectName}.`
       : "The shared workspace is ready.";

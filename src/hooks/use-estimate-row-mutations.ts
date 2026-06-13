@@ -128,29 +128,29 @@ function withoutRollback<T extends { rollback?: () => void }>(input: T): Omit<T,
   return next;
 }
 
-export function useEstimateRowMutations(estimateId?: string) {
+export function useEstimateRowMutations(estimateId?: string, estimateTabId?: string) {
   const queryClient = useQueryClient();
   const { saveState, markRowDirty, markSaving, markSaved, markFailed } = useSaveState();
   const rowOperationIdsRef = useRef<Record<string, number>>({});
   const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
-  const areaTreeQueryKey = estimateId ? estimateQueryKeys.areaTree(estimateId) : undefined;
+  const treeQueryKey = estimateId ? (estimateTabId ? estimateQueryKeys.tabTree(estimateId, estimateTabId) : estimateQueryKeys.areaTree(estimateId)) : undefined;
 
   const mutationOptions = useMemo(
     () => ({
       onMutate: () => markSaving(),
       onSuccess: (_result: void, input: RollbackInput) => {
         markSaved();
-        void queryClient.invalidateQueries({ queryKey: estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
+        void queryClient.invalidateQueries({ queryKey: estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
         if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       },
       onError: (_error: Error, input: RollbackInput) => {
         input.rollback?.();
         markFailed();
-        if (areaTreeQueryKey) void queryClient.invalidateQueries({ queryKey: areaTreeQueryKey, refetchType: "none" });
+        if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "none" });
       },
     }),
-    [areaTreeQueryKey, detailQueryKey, markFailed, markSaved, markSaving, queryClient],
+    [detailQueryKey, estimateTabId, markFailed, markSaved, markSaving, queryClient, treeQueryKey],
   );
 
   const insertMutation = useMutation({
@@ -172,7 +172,7 @@ export function useEstimateRowMutations(estimateId?: string) {
     mutationFn: (input: DetachEstimateRowInput) => detachEstimateRowItemFromLibrary(withoutRollback(input)),
     onMutate: async (input): Promise<{ previousPatch?: EstimateRowItemPatch }> => {
       markSaving();
-      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
       const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
@@ -197,7 +197,7 @@ export function useEstimateRowMutations(estimateId?: string) {
       return { previousPatch };
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input) => {
-      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toDetachedRowPatch(result)) : currentTree,
       );
@@ -206,7 +206,7 @@ export function useEstimateRowMutations(estimateId?: string) {
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
     },
     onError: (_error: Error, input, context) => {
-      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       if (context?.previousPatch) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
           currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
@@ -223,7 +223,7 @@ export function useEstimateRowMutations(estimateId?: string) {
       markSaving();
       const operationId = (rowOperationIdsRef.current[input.rowId] ?? 0) + 1;
       rowOperationIdsRef.current[input.rowId] = operationId;
-      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
       const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
@@ -246,7 +246,7 @@ export function useEstimateRowMutations(estimateId?: string) {
     },
     onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
       if (rowOperationIdsRef.current[input.rowId] !== context.operationId) return;
-      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
         currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toServerRowPatch(result, input)) : currentTree,
       );
@@ -256,7 +256,7 @@ export function useEstimateRowMutations(estimateId?: string) {
     },
     onError: (_error: Error, input, context) => {
       if (!context || rowOperationIdsRef.current[input.rowId] !== context.operationId) return;
-      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
       if (context.previousPatch) {
         queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
           currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
@@ -268,8 +268,8 @@ export function useEstimateRowMutations(estimateId?: string) {
   });
 
   function getCachedRowRevision(rowId: string) {
-    if (!areaTreeQueryKey) return undefined;
-    const currentTree = queryClient.getQueryData<EstimateTreeNode[]>(areaTreeQueryKey);
+    if (!treeQueryKey) return undefined;
+    const currentTree = queryClient.getQueryData<EstimateTreeNode[]>(treeQueryKey);
     return currentTree ? findEstimateRowItemInTree(currentTree, rowId)?.rowRevision : undefined;
   }
 

@@ -22,7 +22,7 @@ function acceptedInvitePath(result: Record<string, unknown>) {
     invite: "accepted",
     scope: estimateId ? "estimate" : "project",
     targetHref,
-    targetLabel: estimateId ? "Open sheet" : "Open project",
+    targetLabel: estimateId ? "Open estimate" : "Open project",
   });
 
   return `/workshop?${params.toString()}`;

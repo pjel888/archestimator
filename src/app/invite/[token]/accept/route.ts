@@ -62,7 +62,7 @@ function buildAcceptedInviteRedirect({
   url.searchParams.set("invite", "accepted");
   url.searchParams.set("scope", estimateId ? "estimate" : "project");
   url.searchParams.set("targetHref", targetHref);
-  url.searchParams.set("targetLabel", estimateId ? "Open sheet" : "Open project");
+  url.searchParams.set("targetLabel", estimateId ? "Open estimate" : "Open project");
   if (displayContext.projectName) url.searchParams.set("projectName", displayContext.projectName);
   if (displayContext.roleLabel) url.searchParams.set("roleLabel", displayContext.roleLabel);
   return NextResponse.redirect(url);

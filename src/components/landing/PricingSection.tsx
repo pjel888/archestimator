@@ -22,7 +22,7 @@ export function PricingSection() {
                 A partnership focused on quote-to-proposal value.
               </h2>
               <p className="mt-6 max-w-[760px] text-[15px] leading-7 text-[#5f554d]">
-                Request access to the closed beta for structured quote sheets, reusable catalog logic, and connected estimate organization. Payment, checkout, and public plans are deferred until after beta.
+                Request access to the closed beta for structured estimate tabs, reusable catalog logic, and connected estimate organization. Payment, checkout, and public plans are deferred until after beta.
               </p>
               <div className="mt-8">
                 <CtaLink

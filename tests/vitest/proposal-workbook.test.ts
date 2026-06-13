@@ -228,4 +228,73 @@ describe("proposal workbook generation", () => {
       result: 21_700,
     });
   });
+
+  it("creates a tab-aware workbook with global summary and source traceability", () => {
+    const generatedAt = "2026-05-23T00:00:00.000Z";
+    const mainModel = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt });
+    const ownerModel = buildProposalExportModel({
+      metadata,
+      nodes: [
+        {
+          id: "owner-scope",
+          name: "Owner Scope",
+          kind: "area",
+          total: "₱0.00",
+          estimateRowItems: [row({ id: "owner-paint", material: "Owner Paint", quantity: 3, itemCost: 500, miscCost: 0 })],
+        },
+      ],
+      generatedAt,
+    });
+
+    const workbook = createProposalWorkbook({
+      metadata,
+      settings: mainModel.settings,
+      generatedAt,
+      tabs: [
+        { tabId: "tab-main", tabName: "Main", worksheetName: "Main", model: mainModel },
+        { tabId: "tab-owner", tabName: "Owner's / Scope", worksheetName: "Owner's Scope", model: ownerModel },
+      ],
+    });
+
+    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
+      "Summary",
+      "Main",
+      "Owner's Scope",
+      "Commercial Terms",
+      "Source Breakdown",
+    ]);
+    expect(workbook.worksheets.every((sheet) => sheet.state !== "hidden")).toBe(true);
+    expect(workbook.getWorksheet("Main")?.views[0]).toMatchObject({ state: "frozen", ySplit: 17 });
+    expect(workbook.getWorksheet("Owner's Scope")?.views[0]).toMatchObject({ state: "frozen", ySplit: 17 });
+
+    const summary = workbook.getWorksheet("Summary");
+    expect(summary?.getCell("A15").value).toBe("Main");
+    expect(summary?.getRow(16).values).toEqual([undefined, "Finishes", 1, { formula: "'Main'!H20", result: 21_700 }]);
+    expect(summary?.getCell("A17").value).toBe("Owner's / Scope");
+    expect(summary?.getRow(18).values).toEqual([undefined, "Finishes", 1, { formula: "'Owner''s Scope'!H20", result: 1_500 }]);
+    expect(summary?.getCell("B20").value).toEqual({ formula: "SUM(C16,C18)", result: 23_200 });
+    expect(summary?.getCell("B23").value).toEqual({ formula: "B20+B21+B22", result: 23_200 });
+
+    const breakdown = workbook.getWorksheet("Source Breakdown");
+    expect(breakdown?.getRow(6).values).toEqual([
+      undefined,
+      "TAB",
+      "PROPOSAL NO.",
+      "SOURCE ROW ID",
+      "AREA",
+      "AREA PATH",
+      "PARTICULARS",
+      "QTY",
+      "UNIT",
+      "MATERIAL UNIT COST",
+      "LABOR UNIT COST",
+      "MATERIAL SUBTOTAL",
+      "LABOR SUBTOTAL",
+      "CONTINGENCY / DISCOUNT",
+      "MISC / OTHER",
+      "COST AMOUNT",
+    ]);
+    expect(breakdown?.getCell("A7").value).toBe("Main");
+    expect(breakdown?.getCell("A9").value).toBe("Owner's / Scope");
+  });
 });

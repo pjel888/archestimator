@@ -1,0 +1,1240 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+ ❯ tests/vitest/public-cache-safety-harness.test.tsx (5 tests | 1 failed) 100ms
+     × renders different auth CTA markup when landing auth state is true 92ms
+ ❯ tests/vitest/public-font-lcp-audit.test.ts (2 tests | 2 failed) 15ms
+     × keeps only measured public font variables in the root layout 4ms
+     × keeps public LCP evidence image-free before adding image preloads 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/public-cache-safety-harness.test.tsx > public cache-safety proof harness > renders different auth CTA markup when landing auth state is true
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Try Workspace"
+
+Here are the accessible roles:
+
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"sticky top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 border-white/42 bg-white/62 text-[#171514] shadow-[0_1px_0_rgba(17,17,17,0.04)]"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Archestimator home":
+  [36m<a[39m
+    [33maria-label[39m=[32m"Archestimator home"[39m
+    [33mclass[39m=[32m"inline-flex items-center text-[18px] font-semibold"[39m
+    [33mhref[39m=[32m"/"[39m
+  [36m/>[39m
+
+  Name "Platform":
+  [36m<a[39m
+    [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+    [33mhref[39m=[32m"/features"[39m
+  [36m/>[39m
+
+  Name "Specialties":
+  [36m<a[39m
+    [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+    [33mhref[39m=[32m"/#method"[39m
+  [36m/>[39m
+
+  Name "Company":
+  [36m<a[39m
+    [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+    [33mhref[39m=[32m"/contact"[39m
+  [36m/>[39m
+
+  Name "Book a walkthrough":
+  [36m<a[39m
+    [33maria-label[39m=[32m"Book a walkthrough"[39m
+    [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition bg-brand-orange hover:bg-brand-orange-dark"[39m
+    [33mhref[39m=[32m"/contact"[39m
+  [36m/>[39m
+
+  Name "Log In":
+  [36m<a[39m
+    [33mclass[39m=[32m"hidden sm:inline hover:text-brand-orange"[39m
+    [33mhref[39m=[32m"/login?next=/workshop/projects"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  presentation:
+
+  Name "":
+  [36m<img[39m
+    [33malt[39m=[32m""[39m
+    [33mclass[39m=[32m"shrink-0 size-[42px]"[39m
+    [33mdata-nimg[39m=[32m"1"[39m
+    [33mdecoding[39m=[32m"async"[39m
+    [33mheight[39m=[32m"42"[39m
+    [33msrc[39m=[32m"/archestimator_logo.svg"[39m
+    [33mstyle[39m=[32m"color: transparent;"[39m
+    [33mwidth[39m=[32m"42"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  navigation:
+
+  Name "Primary":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"Primary"[39m
+    [33mclass[39m=[32m"hidden items-center gap-7 text-[12px] font-medium lg:flex text-[#2c2925]"[39m
+  [36m/>[39m
+
+  Name "Account":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"Account"[39m
+    [33mclass[39m=[32m"flex items-center gap-2 text-[12px] text-[#111111]"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Menu":
+  [36m<button[39m
+    [33maria-controls[39m=[32m"landing-mobile-menu"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold transition lg:hidden bg-white text-[#171514] hover:bg-white"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"sticky top-0 z-50 border-b backdrop-blur-2xl backdrop-saturate-150 transition-colors duration-300 border-white/42 bg-white/62 text-[#171514] shadow-[0_1px_0_rgba(17,17,17,0.04)]"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"relative flex h-[72px] w-full items-center justify-between px-6 sm:px-8 lg:px-12"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33maria-label[39m=[32m"Archestimator home"[39m
+          [33mclass[39m=[32m"inline-flex items-center text-[18px] font-semibold"[39m
+          [33mhref[39m=[32m"/"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"inline-flex min-w-0 items-center gap-2"[39m
+          [36m>[39m
+            [36m<img[39m
+              [33malt[39m=[32m""[39m
+              [33mclass[39m=[32m"shrink-0 size-[42px]"[39m
+              [33mdata-nimg[39m=[32m"1"[39m
+              [33mdecoding[39m=[32m"async"[39m
+              [33mheight[39m=[32m"42"[39m
+              [33msrc[39m=[32m"/archestimator_logo.svg"[39m
+              [33mstyle[39m=[32m"color: transparent;"[39m
+              [33mwidth[39m=[32m"42"[39m
+            [36m/>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"h-7 w-px shrink-0 bg-current/20 hidden"[39m
+            [36m/>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-sans font-normal lowercase tracking-normal min-w-0 truncate text-[17px] text-[#111111]"[39m
+            [36m>[39m
+              [0marchestimator[0m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</a>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Primary"[39m
+          [33mclass[39m=[32m"hidden items-center gap-7 text-[12px] font-medium lg:flex text-[#2c2925]"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+            [33mhref[39m=[32m"/features"[39m
+          [36m>[39m
+            [0mPlatform[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+            [33mhref[39m=[32m"/#method"[39m
+          [36m>[39m
+            [0mSpecialties[0m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"transition focus-visible:outline-none focus-visible:ring-2 hover:text-brand-orange focus-visible:ring-brand-orange"[39m
+            [33mhref[39m=[32m"/contact"[39m
+          [36m>[39m
+            [0mCompany[0m
+          [36m</a>[39m
+        [36m</nav>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Account"[39m
+          [33mclass[39m=[32m"flex items-center gap-2 text-[12px] text-[#111111]"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33maria-label[39m=[32m"Book a walkthrough"[39m
+            [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold text-white transition bg-brand-orange hover:bg-brand-orange-dark"[39m
+            [33mhref[39m=[32m"/contact"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"hidden sm:inline"[39m
+            [36m>[39m
+              [0mBook a walkthrough[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"sm:hidden"[39m
+            [36m>[39m
+              [0mBook[0m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"hidden sm:inline hover:text-brand-orange"[39m
+            [33mhref[39m=[32m"/login?next=/workshop/projects"[39m
+          [36m>[39m
+            [0mLog In[0m
+          [36m</a>[39m
+          [36m<button[39m
+            [33maria-controls[39m=[32m"landing-mobile-menu"[39m
+            [33maria-expanded[39m=[32m"false"[39m
+            [33mclass[39m=[32m"inline-flex min-h-10 items-center justify-center rounded-[6px] px-4 text-[12px] font-semibold transition lg:hidden bg-white text-[#171514] hover:bg-white"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mMenu[0m
+          [36m</button>[39m
+        [36m</nav>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"absolute left-6 right-6 top-[76px] z-50 rounded-[8px] border p-2 shadow-[0_18px_42px_rgba(37,29,22,0.12)] backdrop-blur-2xl backdrop-saturate-150 sm:left-8 sm:right-8 lg:hidden border-white/50 bg-white/72"[39m
+          [33mhidden[39m=[32m""[39m
+          [33mid[39m=[32m"landing-mobile-menu"[39m
+        [36m>[39m
+          [36m<nav[39m
+            [33maria-label[39m=[32m"Mobile primary"[39m
+            [33mclass[39m=[32m"grid gap-1"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"[39m
+              [33mhref[39m=[32m"/features"[39m
+            [36m>[39m
+              [0mPlatform[0m
+            [36m</a>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"[39m
+              [33mhref[39m=[32m"/#method"[39m
+            [36m>[39m
+              [0mSpecialties[0m
+            [36m</a>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"rounded-[6px] px-3 py-2 text-[13px] font-medium transition focus-visible:outline-none focus-visible:ring-2 text-[#2c2925] hover:bg-white focus-visible:ring-brand-orange"[39m
+              [33mhref[39m=[32m"/contact"[39m
+            [36m>[39m
+              [0mCompany[0m
+            [36m</a>[39m
+          [36m</nav>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/public-cache-safety-harness.test.tsx:94:19
+     92|     const { rerender } = render(<LandingHeader isLoggedIn={false} />);
+     93|
+     94|     expect(screen.getByRole("link", { name: "Try Workspace" })).toHave…
+       |                   ^
+     95|       "href",
+     96|       "/login?next=/workshop/projects",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/vitest/public-font-lcp-audit.test.ts > public image/font LCP audit > keeps only measured public font variables in the root layout
+AssertionError: expected 'import type { Metadata } from "next";…' not to contain 'Source_Serif_4'
+
+- Expected
++ Received
+
+- Source_Serif_4
++ import type { Metadata } from "next";
++ import { Inter, Roboto_Mono, Source_Serif_4 } from "next/font/google";
++ import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
++ import { AppProviders } from "./providers";
++ import "./globals.css";
++
++ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
++ const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"] });
++ const sourceSerif = Source_Serif_4({
++   variable: "--font-source-serif",
++   subsets: ["latin"],
++   weight: ["300", "400"],
++   style: ["normal", "italic"],
++ });
++
++ export const metadata: Metadata = {
++   title: "Archestimator | Quote, Proposal & Estimate Workspace",
++   description: "A workspace for teams that build quotes, estimates, and proposals from reusable line items, supplier context, assumptions, and document-ready handoff steps.",
++   icons: {
++     icon: [
++       { url: "/favicon_io/favicon.ico", sizes: "any" },
++       { url: "/favicon_io/favicon-32x32.png", sizes: "32x32", type: "image/png" },
++       { url: "/favicon_io/favicon-16x16.png", sizes: "16x16", type: "image/png" },
++     ],
++     apple: [{ url: "/favicon_io/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
++   },
++   manifest: "/favicon_io/site.webmanifest",
++ };
++
++ export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
++   return (
++     <html lang="en">
++       <body className={`${inter.variable} ${robotoMono.variable} ${sourceSerif.variable}`}>
++         <AppProviders>{children}</AppProviders>
++         <VercelWebAnalytics />
++       </body>
++     </html>
++   );
++ }
++
+
+ ❯ tests/vitest/public-font-lcp-audit.test.ts:18:28
+     16|     expect(rootLayout).toContain("--font-roboto-mono");
+     17|     expect(rootLayout).not.toContain("Poppins");
+     18|     expect(rootLayout).not.toContain("Source_Serif_4");
+       |                            ^
+     19|     expect(rootLayout).not.toContain("--font-poppins");
+     20|     expect(rootLayout).not.toContain("--font-source-serif");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/vitest/public-font-lcp-audit.test.ts > public image/font LCP audit > keeps public LCP evidence image-free before adding image preloads
+AssertionError: expected '@import "tailwindcss";\n@source not "…' to contain 'font-family: var(--font-inter), Arial…'
+
+- Expected
++ Received
+
+- font-family: var(--font-inter), Arial, Helvetica, sans-serif
++ @import "tailwindcss";
++ @source not "../../.next";
++ @source not "../../.ai";
++ @source not "../../.gitnexus";
++
++ :root {
++   --background: #ffffff;
++   --foreground: #3D3D3D;
++   --primary: #3D3D3D;
++   --ink: #3D3D3D;
++   --secondary: #5d5d5d;
++   --tertiary: #7f7f7f;
++   --surface: #ffffff;
++   --surface-muted: #f5f5f5;
++   --surface-warm: #f5f5f5;
++   --canvas: #f5f5f5;
++   --warm-canvas: #f5f5f5;
++   --hairline: #f2f2f2;
++   --divider: #f2f2f2;
++   --muted: #7f7f7f;
++   --accent: #3D3D3D;
++   --brand-orange: rgb(170,65,42);
++   --brand-orange-dark: rgb(140,54,35);
++   --accent-dark: #2A2A2A;
++   --accent-soft: #f5f5f5;
++   --focus: #3D3D3D;
++   --success: #15803d;
++   --success-soft: #dcfce7;
++   --warning: #b45309;
++   --warning-soft: #fef3c7;
++   --danger: #b91c1c;
++   --danger-soft: #fee2e2;
++   --proposal-paper: #fffdf8;
++   --font-sf-pro: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
++   --radius-xs: 3px;
++ }
++
++ @theme inline {
++   --color-background: var(--background);
++   --color-foreground: var(--foreground);
++   --color-primary: var(--primary);
++   --color-ink: var(--ink);
++   --color-secondary: var(--secondary);
++   --color-tertiary: var(--tertiary);
++   --color-surface: var(--surface);
++   --color-surface-muted: var(--surface-muted);
++   --color-surfaceMuted: var(--surface-muted);
++   --color-surface-warm: var(--surface-warm);
++   --color-surfaceWarm: var(--surface-warm);
++   --color-canvas: var(--canvas);
++   --color-warm-canvas: var(--warm-canvas);
++   --color-warmCanvas: var(--warm-canvas);
++   --color-hairline: var(--hairline);
++   --color-divider: var(--divider);
++   --color-muted: var(--muted);
++   --color-accent: var(--accent);
++   --color-brand-orange: var(--brand-orange);
++   --color-brand-orange-dark: var(--brand-orange-dark);
++   --color-accent-dark: var(--accent-dark);
++   --color-accentDark: var(--accent-dark);
++   --color-accent-soft: var(--accent-soft);
++   --color-accentSoft: var(--accent-soft);
++   --color-focus: var(--focus);
++   --color-success: var(--success);
++   --color-success-soft: var(--success-soft);
++   --color-successSoft: var(--success-soft);
++   --color-warning: var(--warning);
++   --color-warning-soft: var(--warning-soft);
++   --color-warningSoft: var(--warning-soft);
++   --color-danger: var(--danger);
++   --color-danger-soft: var(--danger-soft);
++   --color-dangerSoft: var(--danger-soft);
++   --color-proposal-paper: var(--proposal-paper);
++   --color-proposalPaper: var(--proposal-paper);
++   --font-sans: var(--font-sf-pro);
++   --font-mono: var(--font-roboto-mono);
++   --radius-xs: var(--radius-xs);
++ }
++
++ * {
++   box-sizing: border-box;
++ }
++
++ body {
++   min-height: 100vh;
++   background: var(--background);
++   color: var(--foreground);
++   font-family: var(--font-sf-pro);
++   font-feature-settings: "kern";
++ }
++
++ body:has([data-landing-page-root="true"]) {
++   font-family: var(--font-sf-pro);
++ }
++
++ .rough-annotation {
++   z-index: 20;
++   overflow: visible !important;
++ }
++
++ /* Sleek thin scrollbars — global default */
++ ::-webkit-scrollbar {
++   width: 5px;
++   height: 5px;
++ }
++
++ ::-webkit-scrollbar-track {
++   background: transparent;
++ }
++
++ ::-webkit-scrollbar-thumb {
++   background: var(--divider);
++   border-radius: var(--radius-xs);
++ }
++
++ ::-webkit-scrollbar-thumb:hover {
++   background: var(--muted);
++ }
++
++ html {
++   scrollbar-width: thin;
++   scrollbar-color: var(--divider) transparent;
++ }
++
++ html:has([data-workshop-page-shell-root]),
++ body:has([data-workshop-page-shell-root]) {
++   height: 100%;
++   overflow: hidden;
++ }
++
++ @layer base {
++   button,
++   input,
++   select,
++   textarea {
++     font: inherit;
++   }
++ }
++
++
++ .halftone-panel {
++   position: relative;
++   isolation: isolate;
++ }
++
++ .halftone-panel::before,
++ .halftone-panel::after {
++   content: "✱";
++   position: absolute;
++   z-index: 2;
++   color: var(--primary);
++   font-size: 12px;
++   line-height: 1;
++   font-weight: 700;
++ }
++
++ .halftone-panel::before {
++   top: 14px;
++   left: 14px;
++ }
++
++ .halftone-panel::after {
++   right: 14px;
++   bottom: 14px;
++ }
++
++ .halftone-field {
++   background-image: radial-gradient(currentColor 1px, transparent 1.25px);
++   background-size: 10px 10px;
++   color: color-mix(in srgb, var(--primary) 36%, transparent);
++ }
++
++ .arch-sketch-line {
++   stroke: currentColor;
++   stroke-linecap: round;
++   stroke-linejoin: round;
++   fill: none;
++ }
++
++ @keyframes landing-company-marquee {
++   from {
++     transform: translate3d(0, 0, 0);
++   }
++   to {
++     transform: translate3d(calc(-50% - var(--landing-company-marquee-gap) / 2), 0, 0);
++   }
++ }
++
++ .landing-company-marquee {
++   --landing-company-marquee-gap: 3rem; /* matches gap-12 */
++   animation: landing-company-marquee 68s linear infinite;
++   will-change: transform;
++ }
++
++ @media (min-width: 64rem) {
++   .landing-company-marquee {
++     --landing-company-marquee-gap: 4rem; /* matches lg:gap-16 */
++   }
++ }
++
++ .landing-company-carousel-viewport:hover .landing-company-marquee,
++ .landing-company-carousel-viewport:focus-within .landing-company-marquee {
++   animation-play-state: paused;
++ }
++
++ @keyframes landing-testimonial-crossfade {
++   0%,
++   27% {
++     opacity: 1;
++     filter: blur(0);
++     transform: translate3d(0, 0, 0);
++   }
++
++   33%,
++   94% {
++     opacity: 0;
++     filter: blur(6px);
++     transform: translate3d(0, 0.5rem, 0);
++   }
++
++   100% {
++     opacity: 1;
++     filter: blur(0);
++     transform: translate3d(0, 0, 0);
++   }
++ }
++
++ .landing-testimonial-slide {
++   grid-area: 1 / 1;
++   opacity: 0;
++   animation: landing-testimonial-crossfade 18s ease-in-out infinite;
++   will-change: opacity, filter, transform;
++ }
++
++ .landing-testimonial-slide-1 {
++   animation-delay: 0s;
++ }
++
++ .landing-testimonial-slide-2 {
++   animation-delay: -12s;
++ }
++
++ .landing-testimonial-slide-3 {
++   animation-delay: -6s;
++ }
++
++ .landing-hero-plus-grid {
++   background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2714%27%20height=%2714%27%20viewBox=%270%200%2014%2014%27%3E%3Cpath%20d=%27M7%205v4M5%207h4%27%20stroke=%27white%27%20stroke-opacity=%27.42%27%20stroke-width=%27.7%27%20stroke-linecap=%27square%27/%3E%3C/svg%3E");
++   background-repeat: repeat;
++   background-size: 14px 14px;
++   opacity: 0.48;
++   -webkit-mask-image: linear-gradient(to bottom left, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.62) 36%, rgba(0, 0, 0, 0.2) 60%, transparent 84%);
++   mask-image: linear-gradient(to bottom left, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.62) 36%, rgba(0, 0, 0, 0.2) 60%, transparent 84%);
++ }
++
++ .landing-quote-grid-paper {
++   position: relative;
++   isolation: isolate;
++   overflow: hidden;
++   background: rgb(255, 255, 255);
++   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
++ }
++
++ .landing-quote-grid-paper::before {
++   content: "";
++   position: absolute;
++   inset: 0;
++   z-index: 0;
++   pointer-events: none;
++   background-image:
++     linear-gradient(rgba(118, 126, 136, 0.08) 1px, transparent 1px),
++     linear-gradient(90deg, rgba(118, 126, 136, 0.08) 1px, transparent 1px);
++   background-size: 16px 16px;
++   opacity: 0.55;
++ }
++
++ .landing-quote-grid-paper::after {
++   content: "";
++   position: absolute;
++   inset: 0;
++   z-index: 0;
++   pointer-events: none;
++   background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.64), transparent 68%);
++ }
++
++ .landing-hero-slide {
++   opacity: 0;
++   transform: scale(1.08);
++   animation-duration: 144s, 144s;
++   animation-timing-function: linear, ease-in-out;
++   animation-iteration-count: infinite, infinite;
++   animation-fill-mode: both, both;
++   will-change: opacity, transform;
++ }
++
++ .landing-hero-slide-01 {
++   animation-delay: 0s, 0s;
++ }
++
++ .landing-hero-slide-02 {
++   animation-delay: 16s, 16s;
++ }
++
++ .landing-hero-slide-03 {
++   animation-delay: 32s, 32s;
++ }
++
++ .landing-hero-slide-04 {
++   animation-delay: 48s, 48s;
++ }
++
++ .landing-hero-slide-05 {
++   animation-delay: 64s, 64s;
++ }
++
++ .landing-hero-slide-06 {
++   animation-delay: 80s, 80s;
++ }
++
++ .landing-hero-slide-07 {
++   animation-delay: 96s, 96s;
++ }
++
++ .landing-hero-slide-08 {
++   animation-delay: 112s, 112s;
++ }
++
++ .landing-hero-slide-09 {
++   animation-delay: 128s, 128s;
++ }
++
++ .landing-hero-slide-motion-a {
++   animation-name: landing-hero-slide-fade-initial, landing-hero-kenburns-a;
++ }
++
++ .landing-hero-slide-motion-b {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-b;
++ }
++
++ .landing-hero-slide-motion-c {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-c;
++ }
++
++ .landing-hero-slide-motion-d {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-d;
++ }
++
++ .landing-hero-slide-motion-e {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-e;
++ }
++
++ .landing-hero-slide-motion-f {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-f;
++ }
++
++ .landing-hero-slide-motion-g {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-g;
++ }
++
++ .landing-hero-slide-motion-h {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-h;
++ }
++
++ .landing-hero-slide-motion-i {
++   animation-name: landing-hero-slide-fade, landing-hero-kenburns-i;
++ }
++
++ .landing-hero-flow-line {
++   position: relative;
++   min-width: clamp(0.5rem, 1.2vw, 2rem);
++   overflow: visible;
++   opacity: 0.42;
++ }
++
++ .landing-hero-flow-line::after {
++   content: "";
++   position: absolute;
++   inset-block: -1px;
++   left: -28%;
++   width: 28%;
++   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 1), transparent);
++   opacity: 0;
++   animation-duration: 20s;
++   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
++   animation-iteration-count: infinite;
++   animation-fill-mode: both;
++   will-change: opacity, transform;
++ }
++
++ .landing-hero-flow-line::before {
++   content: "";
++   position: absolute;
++   right: -0.0625rem;
++   top: 50%;
++   width: clamp(0.25rem, 0.44vw, 0.375rem);
++   height: clamp(0.25rem, 0.44vw, 0.375rem);
++   border-right: 1px solid rgba(255, 255, 255, 0.7);
++   border-top: 1px solid rgba(255, 255, 255, 0.7);
++   transform: translateY(-50%) rotate(45deg);
++   transform-origin: center;
++ }
++
++ .landing-hero-diagram-node {
++   width: clamp(6.25rem, 9vw, calc(13.0625rem * 1.25));
++   opacity: 1;
++   animation-duration: 20s;
++   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
++   animation-iteration-count: infinite;
++   animation-fill-mode: both;
++   will-change: translate;
++ }
++
++ .landing-hero-flow-stage {
++   grid-template-columns: minmax(0, 1fr) clamp(11rem, 19%, 17rem);
++ }
++
++ .landing-hero-flow-card-area {
++   container-type: inline-size;
++   min-width: 0;
++   padding-inline: clamp(0.75rem, 2vw, 3.5rem);
++ }
++
++ .landing-hero-flow-track {
++   grid-template-columns: auto minmax(0.5rem, 1fr) auto minmax(0.5rem, 1fr) auto;
++   column-gap: clamp(0.5rem, 1cqi, 0.875rem);
++ }
++
++ @supports (width: 1cqi) {
++   .landing-hero-diagram-node {
++     width: clamp(4.5rem, 24cqi, calc(13.0625rem * 1.25));
++   }
++ }
++
++ .landing-hero-diagram-title {
++   font-size: 12px;
++   text-shadow: none;
++ }
++
++ .landing-hero-diagram-node-1 {
++   animation-name: landing-hero-node-estimate-flow;
++ }
++
++ .landing-hero-diagram-node-2 {
++   animation-name: landing-hero-node-bid-flow;
++ }
++
++ .landing-hero-diagram-node-3 {
++   animation-name: landing-hero-node-win-flow;
++ }
++
++ .landing-hero-flow-line-1::after {
++   animation-name: landing-hero-flow-line-estimate-to-bid;
++ }
++
++ .landing-hero-flow-line-2::after {
++   animation-name: landing-hero-flow-line-bid-to-win;
++ }
++
++ .landing-hero-signal-row {
++   width: max-content;
++   max-width: 100%;
++   gap: clamp(0.1875rem, 0.34vw, 0.375rem);
++   white-space: nowrap;
++   font-size: clamp(0.42rem, 0.54vw, 0.66rem);
++   opacity: 0.5;
++   animation: landing-hero-signal-scan 12s ease-in-out infinite;
++ }
++
++ .landing-hero-signal-rail {
++   min-width: 0;
++   padding-inline: clamp(0.55rem, 1vw, 1.375rem) clamp(0.45rem, 0.9vw, 1.125rem);
++ }
++
++ .landing-hero-signal-row > span:first-child {
++   flex: 0 0 auto;
++   width: clamp(0.1875rem, 0.28vw, 0.375rem);
++   height: clamp(0.1875rem, 0.28vw, 0.375rem);
++ }
++
++ .landing-hero-signal-row > span:last-child {
++   white-space: nowrap;
++   overflow: visible;
++ }
++
++ .landing-hero-signal-row-1 {
++   animation-delay: 0s;
++ }
++
++ .landing-hero-signal-row-2 {
++   animation-delay: 1.2s;
++ }
++
++ .landing-hero-signal-row-3 {
++   animation-delay: 2.4s;
++ }
++
++ .landing-hero-signal-row-4 {
++   animation-delay: 3.6s;
++ }
++
++ .landing-hero-signal-row-5 {
++   animation-delay: 4.8s;
++ }
++
++ .landing-hero-signal-row-6 {
++   animation-delay: 6s;
++ }
++
++ @keyframes landing-hero-slide-fade {
++   0% {
++     opacity: 0;
++   }
++
++   1.7%,
++   11.1% {
++     opacity: 1;
++   }
++
++   12.8%,
++   100% {
++     opacity: 0;
++   }
++ }
++
++ @keyframes landing-hero-slide-fade-initial {
++   0%,
++   11.1% {
++     opacity: 1;
++   }
++
++   12.8%,
++   100% {
++     opacity: 0;
++   }
++ }
++
++ @keyframes landing-hero-kenburns-a {
++   0% {
++     transform: scale(1.08) translate3d(0, 0, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.18) translate3d(-2.2%, 1.4%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-b {
++   0% {
++     transform: scale(1.12) translate3d(1.8%, -0.8%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.07) translate3d(-1.2%, 1.8%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-c {
++   0% {
++     transform: scale(1.07) translate3d(-1.4%, 1%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.17) translate3d(2%, -1.2%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-d {
++   0% {
++     transform: scale(1.13) translate3d(0, 1.4%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.08) translate3d(2.3%, -1.6%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-e {
++   0% {
++     transform: scale(1.08) translate3d(1.5%, 0, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.16) translate3d(-1.7%, -1.5%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-f {
++   0% {
++     transform: scale(1.12) translate3d(-2%, -1%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.08) translate3d(1.7%, 1.6%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-g {
++   0% {
++     transform: scale(1.07) translate3d(0, -1.3%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.18) translate3d(-2.4%, 0.7%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-h {
++   0% {
++     transform: scale(1.14) translate3d(2.1%, 1%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.08) translate3d(-1.9%, -1.2%, 0);
++   }
++ }
++
++ @keyframes landing-hero-kenburns-i {
++   0% {
++     transform: scale(1.09) translate3d(-1.2%, -0.7%, 0);
++   }
++   12.8%,
++   100% {
++     transform: scale(1.17) translate3d(1.8%, 1.4%, 0);
++   }
++ }
++
++ @keyframes landing-hero-flow-line-estimate-to-bid {
++   0%,
++   9% {
++     transform: translate3d(0, 0, 0);
++     opacity: 0;
++   }
++
++   14% {
++     opacity: 1;
++   }
++
++   22% {
++     transform: translate3d(455%, 0, 0);
++     opacity: 0;
++   }
++
++   100% {
++     transform: translate3d(455%, 0, 0);
++     opacity: 0;
++   }
++ }
++
++ @keyframes landing-hero-flow-line-bid-to-win {
++   0%,
++   21% {
++     transform: translate3d(0, 0, 0);
++     opacity: 0;
++   }
++
++   27% {
++     opacity: 1;
++   }
++
++   35% {
++     transform: translate3d(455%, 0, 0);
++     opacity: 0;
++   }
++
++   100% {
++     transform: translate3d(455%, 0, 0);
++     opacity: 0;
++   }
++ }
++
++ @keyframes landing-hero-node-estimate-flow {
++   0%,
++   6% {
++     translate: 0 -4px;
++     filter: saturate(1.04) brightness(1.04);
++   }
++
++   14%,
++   86% {
++     translate: 0 0;
++     filter: saturate(1) brightness(1);
++   }
++
++   92%,
++   100% {
++     translate: 0 -4px;
++     filter: saturate(1.04) brightness(1.04);
++   }
++ }
++
++ @keyframes landing-hero-node-bid-flow {
++   0%,
++   19% {
++     translate: 0 0;
++     filter: saturate(1) brightness(1);
++   }
++
++   24%,
++   29% {
++     translate: 0 -4px;
++     filter: saturate(1.04) brightness(1.04);
++   }
++
++   100% {
++     translate: 0 0;
++     filter: saturate(1) brightness(1);
++   }
++ }
++
++ @keyframes landing-hero-node-win-flow {
++   0%,
++   32% {
++     translate: 0 0;
++     filter: saturate(1) brightness(1);
++   }
++
++   36%,
++   42% {
++     translate: 0 -4px;
++     filter: saturate(1.04) brightness(1.04);
++   }
++
++   100% {
++     translate: 0 0;
++     filter: saturate(1) brightness(1);
++   }
++ }
++
++ @keyframes landing-hero-signal-scan {
++   0%,
++   100% {
++     opacity: 0.46;
++     transform: translate3d(0, 0, 0);
++   }
++
++   35% {
++     opacity: 0.9;
++     transform: translate3d(-4px, 0, 0);
++   }
++ }
++
++ @media (prefers-reduced-motion: reduce) {
++   .landing-company-carousel-viewport {
++     overflow-x: auto;
++   }
++
++   .landing-company-marquee {
++     width: max-content;
++     animation: none;
++     transform: none;
++     will-change: auto;
++   }
++
++   .landing-company-marquee > [aria-hidden="true"] {
++     display: none;
++   }
++
++   .landing-testimonial-slide {
++     animation: none;
++     filter: none;
++     opacity: 0;
++     transform: none;
++     will-change: auto;
++   }
++
++   .landing-testimonial-slide:first-child {
++     opacity: 1;
++   }
++
++   .landing-hero-slide,
++   .landing-hero-diagram-node,
++   .landing-hero-flow-line::after,
++   .landing-hero-signal-row {
++     animation: none;
++     will-change: auto;
++   }
++
++   .landing-hero-slide {
++     opacity: 0;
++     transform: scale(1.08);
++   }
++
++   .landing-hero-slide-01 {
++     opacity: 1;
++   }
++
++   .landing-hero-diagram-node {
++     opacity: 1;
++     filter: none;
++   }
++
++   .landing-hero-flow-line {
++     opacity: 0.42;
++   }
++ }
++
++ @media (min-width: 64rem) {
++   html:has([data-landing-page-root="true"]),
++   body:has([data-landing-page-root="true"]) {
++     scroll-padding-top: 68px;
++     scroll-snap-type: none;
++   }
++
++   html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
++   [data-landing-snap-section="true"] {
++     scroll-margin-top: 68px;
++     scroll-snap-align: none;
++     scroll-snap-stop: normal;
++   }
++ }
++
++ @media (min-width: 64rem) and (prefers-reduced-motion: reduce) {
++   html:has([data-landing-page-root="true"]),
++   body:has([data-landing-page-root="true"]) {
++     scroll-snap-type: none;
++   }
++
++   html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
++   [data-landing-snap-section="true"] {
++     scroll-snap-align: none;
++     scroll-snap-stop: normal;
++   }
++ }
++
++ /* MotionReveal: no-JS safe, reduced-motion safe */
++ [data-motion-reveal="idle"] {
++   opacity: 1;
++   transform: none;
++ }
++
++ [data-motion-reveal="active"] {
++   opacity: 0;
++   transform: translateY(1rem);
++   transition: opacity 700ms ease-out, transform 700ms ease-out;
++ }
++
++ [data-motion-reveal="revealed"] {
++   opacity: 1;
++   transform: translateY(0);
++   transition: opacity 700ms ease-out, transform 700ms ease-out;
++ }
++
++ @media (prefers-reduced-motion: reduce) {
++   [data-motion-reveal] {
++     opacity: 1 !important;
++     transform: none !important;
++     transition: none !important;
++   }
++ }
++
++ /* Hide number input spinners for cleaner centered alignment */
++ input[type="number"]::-webkit-outer-spin-button,
++ input[type="number"]::-webkit-inner-spin-button {
++   -webkit-appearance: none;
++   margin: 0;
++ }
++ input[type="number"] {
++   -moz-appearance: textfield;
++ }
++
++ /* ─── Animation utilities (replaces tailwindcss-animate) ────────────── */
++
++ @keyframes fade-in {
++   from { opacity: 0; }
++   to { opacity: 1; }
++ }
++
++ @keyframes slide-in-from-bottom-4 {
++   from { transform: translateY(1rem); }
++   to { transform: translateY(0); }
++ }
++
++ @keyframes slide-in-from-top-1 {
++   from { transform: translateY(-0.25rem); }
++   to { transform: translateY(0); }
++ }
++
++ @keyframes scale-in {
++   from { transform: scale(0.95); opacity: 0; }
++   to { transform: scale(1); opacity: 1; }
++ }
++
++ .animate-in {
++   animation-duration: 0.3s;
++   animation-timing-function: ease-out;
++   animation-fill-mode: backwards;
++ }
++
++ .fade-in {
++   animation-name: fade-in;
++ }
++
++ .slide-in-from-bottom-4 {
++   animation-name: slide-in-from-bottom-4;
++ }
++
++ .slide-in-from-top-1 {
++   animation-name: slide-in-from-top-1;
++ }
++
++ .scale-in {
++   animation-name: scale-in;
++ }
++
++ .duration-300 { animation-duration: 0.3s; }
++ .duration-200 { animation-duration: 0.2s; }
++ .duration-150 { animation-duration: 0.15s; }
++
+
+ ❯ tests/vitest/public-font-lcp-audit.test.ts:30:21
+     28|     expect(summary.rows.some((row) => row.file.includes("home-mobile")…
+     29|     expect(rootLayout).not.toContain("preload={true}");
+     30|     expect(globals).toContain("font-family: var(--font-inter), Arial, …
+       |                     ^
+     31|   });
+     32| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 4 passed (7)
+   Start at  00:04:34
+   Duration  2.11s (transform 67ms, setup 83ms, import 906ms, tests 114ms, environment 800ms)

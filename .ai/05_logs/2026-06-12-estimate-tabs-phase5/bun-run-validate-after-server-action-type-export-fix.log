@@ -1,0 +1,745 @@
+$ bun run type-check && bun run lint && bun run lint:design-system && bun run lint:design && bun run test && bun run test:dom
+$ tsc --noEmit
+$ eslint
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/cleanup-deprecated.mjs
+  21:59  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+  21:72  warning  'statSync' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/design-parser.mjs
+  126:7   warning  'RGBA_RE' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  127:7   warning  'BOX_SHADOW_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  128:7   warning  'NAMED_RULE_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  481:10  warning  'scanInlineColors' is defined but never used         @typescript-eslint/no-unused-vars
+  492:10  warning  'parseStitchInlineGroups' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/detect-csp.mjs
+  74:7  warning  'NUXT_ROUTE_RULES_SIGNALS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/detector/browser/injected/index.mjs
+  263:11  warning  'hasSlop' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
+   835:9   warning  'rgbM' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   880:30  warning  'headingFontSize' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  1311:52  warning  'win' is defined but never used                                 @typescript-eslint/no-unused-vars
+  1440:10  warning  'buildCustomPropMap' is defined but never used                  @typescript-eslint/no-unused-vars
+  2162:10  warning  'checkElementQuality' is defined but never used                 @typescript-eslint/no-unused-vars
+  2171:10  warning  'checkElementBorders' is defined but never used                 @typescript-eslint/no-unused-vars
+  2201:10  warning  'checkElementColors' is defined but never used                  @typescript-eslint/no-unused-vars
+  2255:10  warning  'checkElementIconTile' is defined but never used                @typescript-eslint/no-unused-vars
+  2292:10  warning  'checkElementItalicSerif' is defined but never used             @typescript-eslint/no-unused-vars
+  2303:10  warning  'checkElementHeroEyebrow' is defined but never used             @typescript-eslint/no-unused-vars
+  2334:10  warning  'checkRepeatedSectionKickersFromDoc' is defined but never used  @typescript-eslint/no-unused-vars
+  2343:10  warning  'checkElementMotion' is defined but never used                  @typescript-eslint/no-unused-vars
+  2353:10  warning  'checkElementGlow' is defined but never used                    @typescript-eslint/no-unused-vars
+  2467:10  warning  'checkPageTypography' is defined but never used                 @typescript-eslint/no-unused-vars
+  2565:10  warning  'checkPageLayout' is defined but never used                     @typescript-eslint/no-unused-vars
+  2695:10  warning  'checkElementOversizedH1' is defined but never used             @typescript-eslint/no-unused-vars
+  2747:10  warning  'checkElementGptBorderShadow' is defined but never used         @typescript-eslint/no-unused-vars
+  2783:10  warning  'checkElementClippedOverflow' is defined but never used         @typescript-eslint/no-unused-vars
+  3146:11  warning  'hasSlop' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs
+  87:70  warning  'customPropMap' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/detector/rules/checks.mjs
+  265:9   warning  'rgbM' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  310:30  warning  'headingFontSize' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  741:52  warning  'win' is defined but never used                       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/is-generated.mjs
+  49:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/live-browser.js
+   2625:7   warning  'paramsPanelInner' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   5130:22  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5174:23  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5176:13  warning  'prevTarget' is assigned a value but never used              @typescript-eslint/no-unused-vars
+   6910:12  warning  'commitAcceptedVariantToDom' is defined but never used       @typescript-eslint/no-unused-vars
+   7401:12  warning  'loadPickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7405:12  warning  'savePickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7455:9   warning  'PAGE_CHAT_PROCESSING_W' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   7510:31  warning  '_theme' is defined but never used                           @typescript-eslint/no-unused-vars
+   7817:31  warning  'reason' is defined but never used                           @typescript-eslint/no-unused-vars
+   9993:31  warning  'count' is defined but never used                            @typescript-eslint/no-unused-vars
+  10225:12  warning  'highlightBold' is defined but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/live-inject.mjs
+  402:29  warning  '_syntax' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/live-server.mjs
+  690:10  warning  'rejectApplyDeferred' is defined but never used  @typescript-eslint/no-unused-vars
+  844:74  warning  'reason' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/live-wrap.mjs
+  127:5   warning  'matchedQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  313:7   warning  'outputLines' is defined but never used            @typescript-eslint/no-unused-vars
+  574:10  warning  'attrEscapeDouble' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/modern-screenshot.umd.js
+   1:16    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:597   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:647   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:744   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:818   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1355  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1612  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1910  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4308  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4705  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5212  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5403  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5458  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5465  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5781  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5882  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5977  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5984  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:6180  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8171  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8396  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8941  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:124   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:490   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:677   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:912   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2200  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2422  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2549  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2626  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2943  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:3694  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4000  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4263  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4459  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4500  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4711  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4770  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:5678  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6185  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6269  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6351  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:21    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:65    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:234   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:517   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:967   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1731  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1804  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2191  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2833  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3614  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3677  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3813  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3855  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4009  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4211  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5567  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5623  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5792  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6335  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6426  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:291   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:781   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:1010  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   9:85    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:890   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:1436  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:40    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:355   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:1075  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2002  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2052  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:3467  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/palette.mjs
+  502:8   warning  'L' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  502:11  warning  'C' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.agents/skills/impeccable/scripts/pin.mjs
+  16:70  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/cleanup-deprecated.mjs
+  21:59  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+  21:72  warning  'statSync' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/design-parser.mjs
+  126:7   warning  'RGBA_RE' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  127:7   warning  'BOX_SHADOW_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  128:7   warning  'NAMED_RULE_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  481:10  warning  'scanInlineColors' is defined but never used         @typescript-eslint/no-unused-vars
+  492:10  warning  'parseStitchInlineGroups' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/detect-csp.mjs
+  74:7  warning  'NUXT_ROUTE_RULES_SIGNALS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/detector/browser/injected/index.mjs
+  263:11  warning  'hasSlop' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
+   835:9   warning  'rgbM' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   880:30  warning  'headingFontSize' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  1311:52  warning  'win' is defined but never used                                 @typescript-eslint/no-unused-vars
+  1440:10  warning  'buildCustomPropMap' is defined but never used                  @typescript-eslint/no-unused-vars
+  2162:10  warning  'checkElementQuality' is defined but never used                 @typescript-eslint/no-unused-vars
+  2171:10  warning  'checkElementBorders' is defined but never used                 @typescript-eslint/no-unused-vars
+  2201:10  warning  'checkElementColors' is defined but never used                  @typescript-eslint/no-unused-vars
+  2255:10  warning  'checkElementIconTile' is defined but never used                @typescript-eslint/no-unused-vars
+  2292:10  warning  'checkElementItalicSerif' is defined but never used             @typescript-eslint/no-unused-vars
+  2303:10  warning  'checkElementHeroEyebrow' is defined but never used             @typescript-eslint/no-unused-vars
+  2334:10  warning  'checkRepeatedSectionKickersFromDoc' is defined but never used  @typescript-eslint/no-unused-vars
+  2343:10  warning  'checkElementMotion' is defined but never used                  @typescript-eslint/no-unused-vars
+  2353:10  warning  'checkElementGlow' is defined but never used                    @typescript-eslint/no-unused-vars
+  2467:10  warning  'checkPageTypography' is defined but never used                 @typescript-eslint/no-unused-vars
+  2565:10  warning  'checkPageLayout' is defined but never used                     @typescript-eslint/no-unused-vars
+  2695:10  warning  'checkElementOversizedH1' is defined but never used             @typescript-eslint/no-unused-vars
+  2747:10  warning  'checkElementGptBorderShadow' is defined but never used         @typescript-eslint/no-unused-vars
+  2783:10  warning  'checkElementClippedOverflow' is defined but never used         @typescript-eslint/no-unused-vars
+  3146:11  warning  'hasSlop' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs
+  87:70  warning  'customPropMap' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/detector/rules/checks.mjs
+  265:9   warning  'rgbM' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  310:30  warning  'headingFontSize' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  741:52  warning  'win' is defined but never used                       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/is-generated.mjs
+  49:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/live-browser.js
+   2625:7   warning  'paramsPanelInner' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   5130:22  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5174:23  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5176:13  warning  'prevTarget' is assigned a value but never used              @typescript-eslint/no-unused-vars
+   6910:12  warning  'commitAcceptedVariantToDom' is defined but never used       @typescript-eslint/no-unused-vars
+   7401:12  warning  'loadPickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7405:12  warning  'savePickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7455:9   warning  'PAGE_CHAT_PROCESSING_W' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   7510:31  warning  '_theme' is defined but never used                           @typescript-eslint/no-unused-vars
+   7817:31  warning  'reason' is defined but never used                           @typescript-eslint/no-unused-vars
+   9993:31  warning  'count' is defined but never used                            @typescript-eslint/no-unused-vars
+  10225:12  warning  'highlightBold' is defined but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/live-inject.mjs
+  402:29  warning  '_syntax' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/live-server.mjs
+  690:10  warning  'rejectApplyDeferred' is defined but never used  @typescript-eslint/no-unused-vars
+  844:74  warning  'reason' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/live-wrap.mjs
+  127:5   warning  'matchedQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  313:7   warning  'outputLines' is defined but never used            @typescript-eslint/no-unused-vars
+  574:10  warning  'attrEscapeDouble' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/modern-screenshot.umd.js
+   1:16    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:597   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:647   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:744   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:818   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1355  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1612  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1910  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4308  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4705  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5212  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5403  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5458  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5465  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5781  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5882  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5977  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5984  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:6180  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8171  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8396  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8941  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:124   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:490   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:677   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:912   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2200  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2422  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2549  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2626  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2943  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:3694  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4000  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4263  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4459  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4500  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4711  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4770  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:5678  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6185  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6269  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6351  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:21    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:65    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:234   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:517   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:967   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1731  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1804  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2191  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2833  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3614  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3677  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3813  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3855  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4009  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4211  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5567  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5623  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5792  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6335  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6426  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:291   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:781   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:1010  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   9:85    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:890   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:1436  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:40    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:355   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:1075  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2002  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2052  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:3467  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/palette.mjs
+  502:8   warning  'L' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  502:11  warning  'C' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.claude/skills/impeccable/scripts/pin.mjs
+  16:70  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/cleanup-deprecated.mjs
+  21:59  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+  21:72  warning  'statSync' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/design-parser.mjs
+  126:7   warning  'RGBA_RE' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  127:7   warning  'BOX_SHADOW_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  128:7   warning  'NAMED_RULE_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  481:10  warning  'scanInlineColors' is defined but never used         @typescript-eslint/no-unused-vars
+  492:10  warning  'parseStitchInlineGroups' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/detect-csp.mjs
+  74:7  warning  'NUXT_ROUTE_RULES_SIGNALS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/detector/browser/injected/index.mjs
+  263:11  warning  'hasSlop' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
+   835:9   warning  'rgbM' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   880:30  warning  'headingFontSize' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  1311:52  warning  'win' is defined but never used                                 @typescript-eslint/no-unused-vars
+  1440:10  warning  'buildCustomPropMap' is defined but never used                  @typescript-eslint/no-unused-vars
+  2162:10  warning  'checkElementQuality' is defined but never used                 @typescript-eslint/no-unused-vars
+  2171:10  warning  'checkElementBorders' is defined but never used                 @typescript-eslint/no-unused-vars
+  2201:10  warning  'checkElementColors' is defined but never used                  @typescript-eslint/no-unused-vars
+  2255:10  warning  'checkElementIconTile' is defined but never used                @typescript-eslint/no-unused-vars
+  2292:10  warning  'checkElementItalicSerif' is defined but never used             @typescript-eslint/no-unused-vars
+  2303:10  warning  'checkElementHeroEyebrow' is defined but never used             @typescript-eslint/no-unused-vars
+  2334:10  warning  'checkRepeatedSectionKickersFromDoc' is defined but never used  @typescript-eslint/no-unused-vars
+  2343:10  warning  'checkElementMotion' is defined but never used                  @typescript-eslint/no-unused-vars
+  2353:10  warning  'checkElementGlow' is defined but never used                    @typescript-eslint/no-unused-vars
+  2467:10  warning  'checkPageTypography' is defined but never used                 @typescript-eslint/no-unused-vars
+  2565:10  warning  'checkPageLayout' is defined but never used                     @typescript-eslint/no-unused-vars
+  2695:10  warning  'checkElementOversizedH1' is defined but never used             @typescript-eslint/no-unused-vars
+  2747:10  warning  'checkElementGptBorderShadow' is defined but never used         @typescript-eslint/no-unused-vars
+  2783:10  warning  'checkElementClippedOverflow' is defined but never used         @typescript-eslint/no-unused-vars
+  3146:11  warning  'hasSlop' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs
+  87:70  warning  'customPropMap' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/detector/rules/checks.mjs
+  265:9   warning  'rgbM' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  310:30  warning  'headingFontSize' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  741:52  warning  'win' is defined but never used                       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/is-generated.mjs
+  49:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/live-browser.js
+   2625:7   warning  'paramsPanelInner' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   5130:22  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5174:23  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5176:13  warning  'prevTarget' is assigned a value but never used              @typescript-eslint/no-unused-vars
+   6910:12  warning  'commitAcceptedVariantToDom' is defined but never used       @typescript-eslint/no-unused-vars
+   7401:12  warning  'loadPickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7405:12  warning  'savePickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7455:9   warning  'PAGE_CHAT_PROCESSING_W' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   7510:31  warning  '_theme' is defined but never used                           @typescript-eslint/no-unused-vars
+   7817:31  warning  'reason' is defined but never used                           @typescript-eslint/no-unused-vars
+   9993:31  warning  'count' is defined but never used                            @typescript-eslint/no-unused-vars
+  10225:12  warning  'highlightBold' is defined but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/live-inject.mjs
+  402:29  warning  '_syntax' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/live-server.mjs
+  690:10  warning  'rejectApplyDeferred' is defined but never used  @typescript-eslint/no-unused-vars
+  844:74  warning  'reason' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/live-wrap.mjs
+  127:5   warning  'matchedQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  313:7   warning  'outputLines' is defined but never used            @typescript-eslint/no-unused-vars
+  574:10  warning  'attrEscapeDouble' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/modern-screenshot.umd.js
+   1:16    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:597   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:647   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:744   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:818   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1355  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1612  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1910  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4308  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4705  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5212  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5403  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5458  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5465  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5781  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5882  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5977  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5984  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:6180  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8171  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8396  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8941  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:124   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:490   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:677   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:912   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2200  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2422  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2549  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2626  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2943  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:3694  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4000  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4263  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4459  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4500  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4711  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4770  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:5678  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6185  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6269  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6351  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:21    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:65    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:234   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:517   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:967   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1731  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1804  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2191  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2833  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3614  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3677  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3813  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3855  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4009  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4211  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5567  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5623  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5792  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6335  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6426  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:291   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:781   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:1010  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   9:85    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:890   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:1436  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:40    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:355   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:1075  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2002  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2052  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:3467  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/palette.mjs
+  502:8   warning  'L' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  502:11  warning  'C' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.cursor/skills/impeccable/scripts/pin.mjs
+  16:70  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/cleanup-deprecated.mjs
+  21:59  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+  21:72  warning  'statSync' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/design-parser.mjs
+  126:7   warning  'RGBA_RE' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  127:7   warning  'BOX_SHADOW_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  128:7   warning  'NAMED_RULE_RE' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  481:10  warning  'scanInlineColors' is defined but never used         @typescript-eslint/no-unused-vars
+  492:10  warning  'parseStitchInlineGroups' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/detect-csp.mjs
+  74:7  warning  'NUXT_ROUTE_RULES_SIGNALS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/detector/browser/injected/index.mjs
+  263:11  warning  'hasSlop' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/detector/detect-antipatterns-browser.js
+   835:9   warning  'rgbM' is assigned a value but never used                       @typescript-eslint/no-unused-vars
+   880:30  warning  'headingFontSize' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  1311:52  warning  'win' is defined but never used                                 @typescript-eslint/no-unused-vars
+  1440:10  warning  'buildCustomPropMap' is defined but never used                  @typescript-eslint/no-unused-vars
+  2162:10  warning  'checkElementQuality' is defined but never used                 @typescript-eslint/no-unused-vars
+  2171:10  warning  'checkElementBorders' is defined but never used                 @typescript-eslint/no-unused-vars
+  2201:10  warning  'checkElementColors' is defined but never used                  @typescript-eslint/no-unused-vars
+  2255:10  warning  'checkElementIconTile' is defined but never used                @typescript-eslint/no-unused-vars
+  2292:10  warning  'checkElementItalicSerif' is defined but never used             @typescript-eslint/no-unused-vars
+  2303:10  warning  'checkElementHeroEyebrow' is defined but never used             @typescript-eslint/no-unused-vars
+  2334:10  warning  'checkRepeatedSectionKickersFromDoc' is defined but never used  @typescript-eslint/no-unused-vars
+  2343:10  warning  'checkElementMotion' is defined but never used                  @typescript-eslint/no-unused-vars
+  2353:10  warning  'checkElementGlow' is defined but never used                    @typescript-eslint/no-unused-vars
+  2467:10  warning  'checkPageTypography' is defined but never used                 @typescript-eslint/no-unused-vars
+  2565:10  warning  'checkPageLayout' is defined but never used                     @typescript-eslint/no-unused-vars
+  2695:10  warning  'checkElementOversizedH1' is defined but never used             @typescript-eslint/no-unused-vars
+  2747:10  warning  'checkElementGptBorderShadow' is defined but never used         @typescript-eslint/no-unused-vars
+  2783:10  warning  'checkElementClippedOverflow' is defined but never used         @typescript-eslint/no-unused-vars
+  3146:11  warning  'hasSlop' is assigned a value but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs
+  87:70  warning  'customPropMap' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/detector/rules/checks.mjs
+  265:9   warning  'rgbM' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  310:30  warning  'headingFontSize' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  741:52  warning  'win' is defined but never used                       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/is-generated.mjs
+  49:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/live-browser.js
+   2625:7   warning  'paramsPanelInner' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   5130:22  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5174:23  warning  'why' is defined but never used                              @typescript-eslint/no-unused-vars
+   5176:13  warning  'prevTarget' is assigned a value but never used              @typescript-eslint/no-unused-vars
+   6910:12  warning  'commitAcceptedVariantToDom' is defined but never used       @typescript-eslint/no-unused-vars
+   7401:12  warning  'loadPickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7405:12  warning  'savePickPref' is defined but never used                     @typescript-eslint/no-unused-vars
+   7455:9   warning  'PAGE_CHAT_PROCESSING_W' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   7510:31  warning  '_theme' is defined but never used                           @typescript-eslint/no-unused-vars
+   7817:31  warning  'reason' is defined but never used                           @typescript-eslint/no-unused-vars
+   9993:31  warning  'count' is defined but never used                            @typescript-eslint/no-unused-vars
+  10225:12  warning  'highlightBold' is defined but never used                    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/live-inject.mjs
+  402:29  warning  '_syntax' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/live-server.mjs
+  690:10  warning  'rejectApplyDeferred' is defined but never used  @typescript-eslint/no-unused-vars
+  844:74  warning  'reason' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/live-wrap.mjs
+  127:5   warning  'matchedQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  313:7   warning  'outputLines' is defined but never used            @typescript-eslint/no-unused-vars
+  574:10  warning  'attrEscapeDouble' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/modern-screenshot.umd.js
+   1:16    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:597   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:647   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:744   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:818   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1355  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1612  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:1910  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4308  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:4705  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5212  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5403  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5458  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5465  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5781  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5882  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5977  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:5984  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:6180  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8171  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8396  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   1:8941  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:124   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:490   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:677   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:912   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2200  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2422  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2549  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2626  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:2943  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:3694  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4000  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4263  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4459  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4500  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4711  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:4770  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:5678  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6185  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6269  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   6:6351  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:21    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:65    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:234   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:517   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:967   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1731  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:1804  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2191  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:2833  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3614  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3677  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3813  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:3855  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4009  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:4211  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5344  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5567  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5623  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:5792  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6335  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   7:6426  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:291   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:781   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   8:1010  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+   9:85    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:890   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  10:1436  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:40    warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:355   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:376   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:1075  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2002  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:2052  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  14:3467  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/palette.mjs
+  502:8   warning  'L' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  502:11  warning  'C' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.github/skills/impeccable/scripts/pin.mjs
+  16:70  warning  'readdirSync' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/archestimator_pitch deck/deck-stage.js
+   638:16   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   719:18   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   741:16   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   919:94   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+   969:16   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  1088:72   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1103:147  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1228:90   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1472:86   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  1718:152  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/performance-monitor.tsx
+  17:11  warning  Unused eslint-disable directive (no problems were reported from 'no-console')
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/ui/avatar.tsx
+  33:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/ui/breadcrumbs.tsx
+  3:27  warning  'ReactNode' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/ui/data-table.tsx
+  73:3  warning  'onColumnVisibilityChange' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/ui/dropdown-menu.tsx
+  49:27  warning  '_props' is defined but never used  @typescript-eslint/no-unused-vars
+  53:28  warning  '_props' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/workshop/ProjectEstimatesTable.tsx
+  881:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/src/components/workshop/ProjectEstimatesTable.tsx:881:17
+  879 |   );
+  880 |
+> 881 |   const table = useReactTable({
+      |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  882 |     data: estimates,
+  883 |     columns,
+  884 |     state: { sorting, columnSizing },  react-hooks/incompatible-library
+
+/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/test-table.tsx
+  1:8   warning  'React' is defined but never used           @typescript-eslint/no-unused-vars
+  2:10  warning  'renderToString' is defined but never used  @typescript-eslint/no-unused-vars
+  3:10  warning  'DataTable' is defined but never used       @typescript-eslint/no-unused-vars
+
+✖ 548 problems (0 errors, 548 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
+$ node scripts/enforce-app-design-system.mjs
+App/workshop design-system enforcement passed: compact hierarchy, 12px font-size cap, SF/system stack, regular/medium weight, xs radius, zero tracking, reference tokens, and regular icons.
+$ bun x impeccable detect --strict
+Resolving dependencies
+Resolved, downloaded and extracted [2]
+Saved lockfile
+$ bun test tests/unit
+bun test v1.3.10 (30e609e0)
+
+tests/unit/reset-baseline.test.ts:
+49 |     expect(homebase).toContain("Morning");
+50 |     expect(homebase).toContain("Night");
+51 |     expect(homebase).toContain('icon: "sun"');
+52 |     expect(homebase).toContain('icon: "moon"');
+53 |     expect(homebase).toContain("w-[280px]");
+54 |     expect(homebase).toContain("inline-flex items-center gap-1.5 text-secondary");
+                          ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "inline-flex items-center gap-1.5 text-secondary"
+Received: "\"use client\";\n\nimport { useMemo, useState, useTransition } from \"react\";\nimport Link from \"next/link\";\nimport { MoonStarsIcon, SunHorizonIcon } from \"@phosphor-icons/react/dist/ssr\";\nimport { useNavigationRouter } from \"@/hooks/use-navigation-router\";\n\nimport { Button } from \"@/components/ui/button\";\nimport { acceptPendingInvitationById, signOutForPendingInvite } from \"@/lib/collaboration/pending-invite-actions\";\nimport { setProjectFavorite } from \"@/lib/workshop/actions\";\nimport type { WorkshopInviteBannerState } from \"@/lib/collaboration/workshop-pending-invite\";\nimport type {\n  WorkshopHomebaseData,\n  WorkshopPendingInviteSummary,\n  WorkshopRemovedProjectFavoriteSummary,\n} from \"@/lib/repositories/workspace-repository\";\n\ntype WorkshopHomebaseClientProps = {\n  homebase: WorkshopHomebaseData;\n  inviteBanner?: WorkshopInviteBannerState;\n  removedProjectBanner?: WorkshopRemovedProjectBannerState;\n  userDisplayName?: string | null;\n};\n\nexport type WorkshopRemovedProjectBannerState = {\n  projectId: string;\n  projectName: string | null;\n};\n\ntype WorkshopRemovedProjectNotice = WorkshopRemovedProjectFavoriteSummary & {\n  projectName: string | null;\n};\n\ntype WorkshopGreetingTone = {\n  icon: \"sun\" | \"moon\";\n  periodLabel: string;\n  greeting: string;\n};\n\nexport function WorkshopHomebaseClient({\n  homebase,\n  inviteBanner,\n  removedProjectBanner,\n  userDisplayName,\n}: WorkshopHomebaseClientProps) {\n  const router = useNavigationRouter();\n  const [pendingFavoriteKey, setPendingFavoriteKey] = useState<string | null>(null);\n  const [dismissedRemovedProjectIds, setDismissedRemovedProjectIds] = useState<Record<string, boolean>>({});\n  const [, startTransition] = useTransition();\n\n  const removedProjectNotice = useMemo(() => {\n    const byId = new Map<string, WorkshopRemovedProjectNotice>();\n    if (removedProjectBanner) {\n      byId.set(removedProjectBanner.projectId, {\n        id: removedProjectBanner.projectId,\n        name: removedProjectBanner.projectName,\n        projectName: removedProjectBanner.projectName,\n        projectCode: null,\n        favoriteCreatedAt: null,\n      });\n    }\n    for (const favorite of homebase.removedProjectFavorites) {\n      if (byId.has(favorite.id)) continue;\n      byId.set(favorite.id, {\n        ...favorite,\n        projectName: favorite.name,\n      });\n    }\n    return Array.from(byId.values()).find((notice) => !dismissedRemovedProjectIds[notice.id]) ?? null;\n  }, [dismissedRemovedProjectIds, homebase.removedProjectFavorites, removedProjectBanner]);\n\n  function removeRemovedProjectFavorite(projectId: string) {\n    setPendingFavoriteKey(`removed-project:${projectId}`);\n    startTransition(() => {\n      void setProjectFavorite({ projectId, favorite: false })\n        .then(() => {\n          setDismissedRemovedProjectIds((current) => ({ ...current, [projectId]: true }));\n          router.replace(\"/workshop\", { scroll: false });\n        })\n        .catch(() => undefined)\n        .finally(() => setPendingFavoriteKey(null));\n    });\n  }\n\n  return (\n    <div className=\"flex h-full min-h-0 w-full flex-col gap-2 bg-white p-2\">\n      <InviteResolutionBanner inviteBanner={inviteBanner} />\n      <RemovedProjectFavoriteBanner\n        notice={removedProjectNotice}\n        pending={removedProjectNotice ? pendingFavoriteKey === `removed-project:${removedProjectNotice.id}` : false}\n        onRemoveFavorite={removeRemovedProjectFavorite}\n      />\n      <PendingInvitesPanel invites={homebase.pendingInvites} />\n      <WorkshopGreeting displayName={userDisplayName} />\n    </div>\n  );\n}\n\nfunction WorkshopGreeting({ displayName }: { displayName?: string | null }) {\n  const tone = getWorkshopGreetingTone();\n  const name = formatWorkshopGreetingName(displayName);\n\n  return (\n    <section\n      className=\"flex min-h-[180px] w-full flex-1 items-start overflow-hidden bg-white px-2 py-3 text-[10px]\"\n      aria-label=\"Workshop greeting\"\n    >\n      <div className=\"grid w-[280px] max-w-full grid-cols-[36px_minmax(0,1fr)] items-start gap-2\">\n        <div className=\"flex size-9 items-center justify-center text-secondary\">\n          <GreetingIcon icon={tone.icon} label={tone.periodLabel} />\n        </div>\n        <div className=\"min-w-0\">\n          <p className=\"w-full truncate text-[10px] font-[300] leading-4 text-secondary\">{tone.greeting}</p>\n          <p className=\"mt-1 w-full truncate text-[12px] font-medium leading-4 text-ink\">{name}</p>\n        </div>\n      </div>\n    </section>\n  );\n}\n\nfunction GreetingIcon({ icon, label }: { icon: WorkshopGreetingTone[\"icon\"]; label: string }) {\n  if (icon === \"moon\") {\n    return (\n      <MoonStarsIcon className=\"size-9 shrink-0 text-[#526070]\" size={36} weight=\"regular\" role=\"img\" aria-label={label} />\n    );\n  }\n\n  return (\n    <SunHorizonIcon className=\"size-9 shrink-0 text-[#B87828]\" size={36} weight=\"regular\" role=\"img\" aria-label={label} />\n  );\n}\n\nfunction RemovedProjectFavoriteBanner({\n  notice,\n  pending,\n  onRemoveFavorite,\n}: {\n  notice: WorkshopRemovedProjectNotice | null;\n  pending: boolean;\n  onRemoveFavorite: (projectId: string) => void;\n}) {\n  if (!notice) return null;\n\n  const projectLabel = notice.projectName?.trim() || \"this project\";\n  const message = notice.projectName\n    ? `You no longer have access to ${projectLabel}. The project owner may have changed your access.`\n    : \"You no longer have access to this project. The project owner may have changed your access.\";\n\n  return (\n    <section\n      className=\"flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2\"\n      aria-label=\"Project access removed\"\n    >\n      <div className=\"min-w-0\">\n        <p className=\"text-[11px] font-medium leading-4 text-ink\">Project access removed</p>\n        <p className=\"truncate text-[9px] leading-4 text-tertiary\">{message}</p>\n      </div>\n      <Button\n        type=\"button\"\n        variant=\"secondary\"\n        size=\"sm\"\n        className=\"min-h-7 shrink-0 rounded-xs px-2 text-[10px]\"\n        disabled={pending}\n        onClick={() => onRemoveFavorite(notice.id)}\n      >\n        Remove from favorites\n      </Button>\n    </section>\n  );\n}\n\nfunction getWorkshopGreetingTone(date = new Date()): WorkshopGreetingTone {\n  const hour = date.getHours();\n  if (hour >= 5 && hour < 12) {\n    return {\n      icon: \"sun\",\n      periodLabel: \"Morning\",\n      greeting: \"Good morning\",\n    };\n  }\n  if (hour >= 12 && hour < 18) {\n    return {\n      icon: \"sun\",\n      periodLabel: \"Afternoon\",\n      greeting: \"Good afternoon\",\n    };\n  }\n  return {\n    icon: \"moon\",\n    periodLabel: \"Night\",\n    greeting: \"Good evening\",\n  };\n}\n\nfunction formatWorkshopGreetingName(displayName?: string | null) {\n  const trimmed = displayName?.trim();\n  if (!trimmed) return \"there\";\n  if (!trimmed.includes(\"@\")) return trimmed.slice(0, 48);\n  return trimmed\n    .split(\"@\")[0]\n    .replace(/[._-]+/g, \" \")\n    .trim()\n    .slice(0, 48) || \"there\";\n}\n\nfunction PendingInvitesPanel({ invites }: { invites: WorkshopPendingInviteSummary[] }) {\n  if (invites.length === 0) return null;\n  const actionableInviteCount = invites.filter((invite) => invite.state !== \"expired\").length;\n\n  return (\n    <section\n      className=\"border border-hairline bg-surfaceMuted/35 p-2\"\n      aria-label=\"Pending invites\"\n    >\n      <div className=\"mb-2 flex min-h-5 items-center justify-between gap-2\">\n        <div className=\"min-w-0\">\n          <p className=\"text-[8px] font-medium uppercase tracking-normal text-tertiary\">Shared with you</p>\n          <h2 className=\"truncate text-[12px] font-medium leading-4 text-ink\">Pending invites</h2>\n        </div>\n        <span className=\"shrink-0 rounded-xs bg-white px-1.5 py-0.5 text-[9px] font-medium leading-4 text-secondary ring-1 ring-hairline\">\n          {formatPendingInviteCount(actionableInviteCount)}\n        </span>\n      </div>\n      <div className=\"grid gap-1.5 md:grid-cols-2 xl:grid-cols-3\">\n        {invites.map((invite) => {\n          const targetName = invite.scope === \"estimate\" && invite.estimateName ? invite.estimateName : invite.projectName;\n          const isExpiredInvite = invite.state === \"expired\";\n          const expiryLabel = invite.expiresAt ? `${isExpiredInvite ? \"Expired\" : \"Expires\"} ${formatUpdatedAt(invite.expiresAt)}` : null;\n          const openedLabel = invite.lastOpenedAt ? `Opened ${formatUpdatedAt(invite.lastOpenedAt)}` : null;\n\n          return (\n            <div key={invite.id} className=\"grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 border border-hairline bg-white p-2\">\n              <div className=\"min-w-0\">\n                <p className=\"truncate text-[11px] font-medium leading-4 text-ink\">{invite.projectName}</p>\n                <span className=\"mt-0.5 flex max-w-full flex-wrap items-center gap-1\">\n                  <span className=\"inline-flex max-w-full rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-tertiary\">\n                    {invite.projectCode ?? \"No project code\"}\n                  </span>\n                  <span className=\"inline-flex max-w-full rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary\">\n                    {homebaseRoleLabels[invite.role]}\n                  </span>\n                  <span className=\"inline-flex max-w-full rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-tertiary\">\n                    <span className=\"truncate\">{invite.inviterLabel ?? \"Archestimator collaborator\"}</span>\n                  </span>\n                </span>\n                {invite.scope === \"estimate\" && invite.estimateName ? (\n                  <p className=\"truncate text-[9px] leading-4 text-secondary\">{invite.estimateName}</p>\n                ) : null}\n                {expiryLabel || openedLabel ? (\n                  <span className=\"mt-0.5 flex max-w-full flex-wrap items-center gap-1\">\n                    {expiryLabel ? <span className=\"text-[8px] leading-4 text-tertiary\">{expiryLabel}</span> : null}\n                    {openedLabel ? <span className=\"text-[8px] leading-4 text-tertiary\">{openedLabel}</span> : null}\n                  </span>\n                ) : null}\n              </div>\n              {isExpiredInvite ? (\n                <Button\n                  type=\"button\"\n                  variant=\"secondary\"\n                  size=\"sm\"\n                  className=\"min-h-7 shrink-0 rounded-xs px-2 text-[10px]\"\n                  disabled\n                >\n                  Expired\n                </Button>\n              ) : (\n                <form action={acceptPendingInvitationById} className=\"self-center\">\n                  <input type=\"hidden\" name=\"invitationId\" value={invite.id} />\n                  <Button\n                    type=\"submit\"\n                    variant=\"secondary\"\n                    size=\"sm\"\n                    className=\"min-h-7 shrink-0 rounded-xs px-2 text-[10px]\"\n                    aria-label={`Accept invite for ${targetName}`}\n                  >\n                    Accept\n                  </Button>\n                </form>\n              )}\n            </div>\n          );\n        })}\n      </div>\n    </section>\n  );\n}\n\nfunction InviteResolutionBanner({\n  inviteBanner,\n}: {\n  inviteBanner?: WorkshopInviteBannerState;\n}) {\n  if (!inviteBanner || inviteBanner.kind === \"none\") return null;\n\n  if (inviteBanner.kind === \"accepted\") {\n    const title = inviteBanner.scope === \"estimate\" ? \"Estimate shared\" : \"Project added\";\n    const acceptedDetail = inviteBanner.projectName && inviteBanner.roleLabel\n      ? `You've been added as ${inviteBanner.roleLabel} to ${inviteBanner.projectName}.`\n      : \"The shared workspace is ready.\";\n    return (\n      <section\n        className=\"flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2\"\n        aria-label={title}\n      >\n        <div className=\"min-w-0\">\n          <p className=\"text-[11px] font-medium leading-4 text-ink\">{title}</p>\n          <p className=\"truncate text-[9px] leading-4 text-tertiary\">{acceptedDetail}</p>\n        </div>\n        <Link href={inviteBanner.targetHref} className=\"shrink-0 text-[10px] font-medium leading-none text-ink underline\">\n          {inviteBanner.targetLabel}\n        </Link>\n      </section>\n    );\n  }\n\n  if (inviteBanner.kind === \"wrong-account\") {\n    const invitedEmail = inviteBanner.invitedEmail ?? \"the invited email\";\n    return (\n      <section\n        className=\"flex min-h-10 items-center justify-between gap-3 border border-hairline bg-surfaceMuted px-3 py-2\"\n        aria-label=\"Invite unavailable\"\n      >\n        <div className=\"min-w-0\">\n          <p className=\"text-[11px] font-medium leading-4 text-ink\">Invite not applied</p>\n          <p className=\"text-[9px] leading-4 text-tertiary\">\n            Sign out and continue with {invitedEmail} to accept this invite.\n          </p>\n        </div>\n        <form action={signOutForPendingInvite}>\n          <Button type=\"submit\" variant=\"secondary\" size=\"sm\" className=\"min-h-7 shrink-0 rounded-xs px-2 text-[10px]\">\n            Sign out and continue\n          </Button>\n        </form>\n      </section>\n    );\n  }\n\n  const message = inviteBanner.reason === \"expired\"\n    ? \"That invite expired. Ask the sender for a new link.\"\n    : \"That invite is no longer available.\";\n\n  return (\n    <section\n      className=\"min-h-10 border border-hairline bg-surfaceMuted px-3 py-2\"\n      aria-label=\"Invite unavailable\"\n    >\n      <p className=\"text-[11px] font-medium leading-4 text-ink\">Invite not applied</p>\n      <p className=\"text-[9px] leading-4 text-tertiary\">{message}</p>\n    </section>\n  );\n}\n\nfunction formatUpdatedAt(value: string) {\n  return new Intl.DateTimeFormat(\"en\", { month: \"short\", day: \"numeric\" }).format(new Date(value));\n}\n\nfunction formatPendingInviteCount(count: number) {\n  return `${count} pending ${count === 1 ? \"invite\" : \"invites\"}`;\n}\n\nconst homebaseRoleLabels = {\n  owner: \"Owner\",\n  admin: \"Admin\",\n  editor: \"Editor\",\n  viewer: \"Viewer\",\n} as const;\n"
+
+      at <anonymous> (/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/tests/unit/reset-baseline.test.ts:54:22)
+(fail) workshop sidebar baseline > workshop page keeps the approved sidebar shell and sparse greeting homebase [10.72ms]
+(pass) workshop sidebar baseline > main sidebar preserves SlateCamp sidebar measurements with overlay expansion [1.06ms]
+
+tests/unit/p3-shared-link-migration-red.test.ts:
+(pass) P3 Shared Link Overhaul — Database Migration Red Verification > requires the 4 new shared_link_* tables in generated Database types (RED until P3 migration + regen)
+(pass) P3 Shared Link Overhaul — Database Migration Red Verification > requires the 2 new Security Definer RPCs in generated Database types (RED until P3 migration + regen)
+
+tests/unit/tree-selection.test.ts:
+(pass) tree bulk selection utilities > selectVisibleIds returns only visible selectable ids [0.83ms]
+(pass) tree bulk selection utilities > getSelectionState reports indeterminate when only some selectable descendants are selected [0.12ms]
+(pass) tree bulk selection utilities > dedupeSelectedRoots removes descendants when an ancestor is already selected [0.11ms]
+(pass) tree bulk selection utilities > pruneSelection removes stale or nonselectable ids after refresh
+(pass) tree bulk selection utilities > toggleCascadeSelection adds or removes selectable descendants without mutating input [0.84ms]
+
+ 8 pass
+ 1 fail
+ 69 expect() calls
+Ran 9 tests across 3 files. [104.00ms]
+error: script "test" exited with code 1
+error: script "validate" exited with code 1

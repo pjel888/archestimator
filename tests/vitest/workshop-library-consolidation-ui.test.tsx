@@ -338,7 +338,7 @@ describe("workshop library consolidation UI", () => {
     await waitForLibraryWorkspace();
 
     expect(screen.queryByRole("tablist", { name: "Library views" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tablist", { name: "Component sheet tabs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "Component table tabs" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Components" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
@@ -821,7 +821,7 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
     const branch = within(sheet).getByLabelText("Fabrication component catalogue branch");
     const card = branch.querySelector('[data-component-catalogue-card-id="db-library-steel-frame"]');
     expect(card).not.toBeNull();
@@ -859,7 +859,7 @@ describe("workshop library consolidation UI", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Database Supplier" }));
 
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();

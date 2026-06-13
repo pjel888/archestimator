@@ -9,13 +9,13 @@ const evidenceSummary = readFileSync(
 );
 
 describe("public image/font LCP audit", () => {
-  it("keeps only measured public font variables in the root layout", () => {
-    expect(rootLayout).toContain("Inter");
+  it("keeps only the measured mono font variable in the root layout", () => {
     expect(rootLayout).toContain("Roboto_Mono");
-    expect(rootLayout).toContain("--font-inter");
     expect(rootLayout).toContain("--font-roboto-mono");
+    expect(rootLayout).not.toContain("Inter");
     expect(rootLayout).not.toContain("Poppins");
     expect(rootLayout).not.toContain("Source_Serif_4");
+    expect(rootLayout).not.toContain("--font-inter");
     expect(rootLayout).not.toContain("--font-poppins");
     expect(rootLayout).not.toContain("--font-source-serif");
     expect(globals).not.toContain("--font-poppins: var(--font-poppins)");
@@ -27,6 +27,7 @@ describe("public image/font LCP audit", () => {
 
     expect(summary.rows.some((row) => row.file.includes("home-mobile"))).toBe(true);
     expect(rootLayout).not.toContain("preload={true}");
-    expect(globals).toContain("font-family: var(--font-inter), Arial, Helvetica, sans-serif");
+    expect(globals).toContain('font-family: var(--font-sf-pro)');
+    expect(globals).toContain('"SF Pro Text", "SF Pro Display", -apple-system');
   });
 });

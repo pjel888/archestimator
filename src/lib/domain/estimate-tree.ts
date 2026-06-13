@@ -3,10 +3,23 @@ export type EstimateNodeKind = "group" | "area";
 export type EstimateNode = {
   id: string;
   estimateId: string;
+  estimateTabId?: string | null;
   parentId: string | null;
   kind: EstimateNodeKind;
   name: string;
   sortOrder: number;
+};
+
+export type EstimateTab = {
+  id: string;
+  estimateId: string;
+  name: string;
+  sortOrder: number;
+  isDefault: boolean;
+  archivedAt: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type EstimateRowItem = {

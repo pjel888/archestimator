@@ -1,0 +1,1 @@
+$ eslint src/app/layout.tsx tests/vitest/public-cache-safety-harness.test.tsx tests/vitest/public-font-lcp-audit.test.ts

@@ -1,5 +1,5 @@
-export function buildProposalWorkbookFilename(projectCodeOrName: string | null | undefined, estimateCodeOrName: string | null | undefined) {
-  const safeStem = [projectCodeOrName, estimateCodeOrName]
+export function buildProposalWorkbookFilename(...parts: Array<string | null | undefined>) {
+  const safeStem = parts
     .map((value) =>
       (value ?? "")
         .normalize("NFKD")

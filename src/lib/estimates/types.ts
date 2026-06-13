@@ -140,6 +140,35 @@ export type EstimateTreeNode = {
   estimateRowItems?: EstimateRowItem[];
 };
 
+export type EstimateTabSummary = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isDefault: boolean;
+  nodeCount?: number;
+  rowCount?: number;
+  totalCost?: number;
+};
+
+export type EstimateTabTree = {
+  tab: EstimateTabSummary;
+  tree: EstimateTreeNode[];
+  loadLimitState?: {
+    maxNodeCount: number | null;
+    maxRowItemCount: number | null;
+    fetchedNodeCount: number;
+    fetchedRowItemCount: number;
+    didExceedNodeLimit: boolean;
+    didExceedRowItemLimit: boolean;
+  };
+};
+
+export type EstimateWithTabs<TEstimate = unknown> = {
+  estimate: TEstimate;
+  tabs: EstimateTabSummary[];
+  defaultTabId: string;
+};
+
 export type FlatEstimateTreeNode = EstimateTreeNode & {
   depth: number;
   path: string[];

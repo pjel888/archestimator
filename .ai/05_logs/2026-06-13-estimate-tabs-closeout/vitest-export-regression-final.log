@@ -1,0 +1,9 @@
+$ bunx vitest run tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts --maxWorkers=1
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  4 passed (4)
+      Tests  22 passed (22)
+   Start at  08:32:15
+   Duration  2.73s (transform 94ms, setup 136ms, import 433ms, tests 220ms, environment 1.40s)

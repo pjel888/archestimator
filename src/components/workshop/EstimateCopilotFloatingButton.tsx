@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useRef, useState } from "react";
 import { ChatCircleDots, PaperPlaneRight, Plus, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -165,9 +165,13 @@ function shouldUseRefineMode(prompt: string, pendingDraft?: PackageDraftPreviewS
 function getRouteContextIds() {
   if (typeof window === "undefined") return {};
   const match = window.location.pathname.match(/^\/workshop\/projects\/([^/]+)(?:\/estimates\/([^/]+))?/);
+  const activeEstimateTab = document.querySelector<HTMLElement>(
+    "[data-estimate-tab-strip] [role='tab'][aria-selected='true'][data-estimate-tab-id]",
+  );
   return {
     projectId: match?.[1],
     selectedNodeId: match?.[2],
+    activeTabId: activeEstimateTab?.dataset.estimateTabId,
   };
 }
 
@@ -545,15 +549,12 @@ export function AskFlipFooterAssistant({
   const activeSession = sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
   const messages = activeSession?.messages ?? [];
 
-  const routeContext = useMemo(
-    () => ({
-      projectName,
-      estimateName,
-      selectedNodeName: selectedNodeName ?? undefined,
-      ...getRouteContextIds(),
-    }),
-    [estimateName, projectName, selectedNodeName],
-  );
+  const getCurrentRouteContext = useCallback(() => ({
+    projectName,
+    estimateName,
+    selectedNodeName: selectedNodeName ?? undefined,
+    ...getRouteContextIds(),
+  }), [estimateName, projectName, selectedNodeName]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -582,6 +583,7 @@ export function AskFlipFooterAssistant({
       const refinesPendingDraft = shouldUseRefineMode(prompt, pendingDraft);
       const revisesPendingDraft = !refinesPendingDraft && shouldRevisePendingPackageDraft(prompt, pendingDraft);
       const usesPendingDraft = refinesPendingDraft || revisesPendingDraft;
+      const routeContext = getCurrentRouteContext();
       const usePackageBuilder = usesPendingDraft || shouldUsePackageBuilder(prompt, routeContext);
       const response = await fetch(usePackageBuilder ? "/api/ai/package-builder" : "/api/ai/ask", {
         method: "POST",
@@ -732,7 +734,7 @@ export function AskFlipFooterAssistant({
           draft: packageDraft.draft,
           draftHash: packageDraft.draftHash,
           draftToken: packageDraft.draftToken,
-          routeContext,
+          routeContext: getCurrentRouteContext(),
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as PackageBuilderFeedbackResponse;

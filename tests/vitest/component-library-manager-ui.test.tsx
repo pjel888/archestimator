@@ -214,7 +214,7 @@ async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPag
 
 function getSheetContextStrip(sheet: HTMLElement) {
   const strip = sheet.querySelector('[data-component-sheet-context-strip="true"]');
-  if (!strip) throw new Error("Component sheet context strip not found");
+  if (!strip) throw new Error("Component table context strip not found");
   return strip as HTMLElement;
 }
 
@@ -225,8 +225,8 @@ function openLibraryTreeSearch() {
 }
 
 function openComponentSheetSearch() {
-  const sheet = screen.getByLabelText("Component sheet");
-  fireEvent.click(within(sheet).getByRole("button", { name: "Show component sheet search" }));
+  const sheet = screen.getByLabelText("Component table");
+  fireEvent.click(within(sheet).getByRole("button", { name: "Show component table search" }));
   return within(sheet).getByRole("searchbox", { name: "Search components" });
 }
 
@@ -285,19 +285,19 @@ describe("component library manager UI", () => {
 
     expect(screen.getByLabelText("Component library workspace")).toBeInTheDocument();
     expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
-    expect(screen.getByLabelText("Component sheet")).toBeInTheDocument();
+    expect(screen.getByLabelText("Component table")).toBeInTheDocument();
 
     const workspace = screen.getByLabelText("Component library workspace");
     const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
 
     // Persistent search inputs are retired; both panels expose magnifier disclosures instead.
     expect(screen.queryByLabelText("Search component library tree")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Search component sheet")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search component table")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search components")).not.toBeInTheDocument();
     expect(within(tree).getByRole("button", { name: "Show library folder search" })).toBeInTheDocument();
-    expect(within(sheet).getByLabelText("Component sheet tools")).toBeInTheDocument();
-    expect(within(sheet).getByRole("button", { name: "Show component sheet search" })).toBeInTheDocument();
+    expect(within(sheet).getByLabelText("Component table tools")).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Show component table search" })).toBeInTheDocument();
     expect(within(sheet).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
     const addComponentButton = within(sheet).getByRole("button", { name: "Add component" });
     expect(addComponentButton).toHaveTextContent("Add component");
@@ -323,7 +323,7 @@ describe("component library manager UI", () => {
 
     // The single-tab tablists are retired in favor of a plain-text context strip.
     expect(screen.queryByRole("tablist", { name: "Library views" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tablist", { name: "Component sheet tabs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "Component table tabs" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Components" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "All Components" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
@@ -346,7 +346,7 @@ describe("component library manager UI", () => {
     await renderLibrary();
 
     const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
     const rowGroups = Array.from(tree.querySelectorAll("ol"));
     expect(rowGroups.length).toBeGreaterThan(0);
     for (const rowGroup of rowGroups) expect(rowGroup).toHaveClass("space-y-0");
@@ -460,7 +460,7 @@ describe("component library manager UI", () => {
       ),
     });
 
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
     const contextStrip = getSheetContextStrip(sheet);
     expect(contextStrip).toHaveTextContent("All Components · 3 components");
     expect(contextStrip).toHaveTextContent("Sorted by folder order");
@@ -527,7 +527,7 @@ describe("component library manager UI", () => {
     fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Suppliers" }));
 
     const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
 
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
@@ -551,7 +551,7 @@ describe("component library manager UI", () => {
     fireEvent.click(within(viewMode).getByRole("menuitemradio", { name: "Brand" }));
 
     const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Component sheet");
+    const sheet = screen.getByLabelText("Component table");
 
     expect(screen.getByRole("button", { name: "View by: Brand" })).toHaveAttribute("aria-pressed", "false");
     expect(within(tree).getByRole("treeitem", { name: "All Brands" })).toHaveAttribute("aria-selected", "true");

@@ -1,0 +1,27 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+(node:54919) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ tests/vitest/security-findings-contracts.test.ts (23 tests | 1 failed) 28ms
+     × pins MCP tooling package specs instead of auto-resolving floating uvx packages 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/security-findings-contracts.test.ts > Codex security findings hardening contracts > pins MCP tooling package specs instead of auto-resolving floating uvx packages
+AssertionError: expected [ …(7) ] to include 'uvx --from code-review-graph==2.3.5 c…'
+ ❯ tests/vitest/security-findings-contracts.test.ts:140:26
+    138|     expect(codexConfig).toContain(`"${expectedPackage}"`);
+    139|     expect(codexConfig).not.toMatch(/^\s*"code-review-graph",\s*$/m);
+    140|     expect(hookCommands).toContain(`uvx --from ${expectedPackage} code…
+       |                          ^
+    141|     expect(hookCommands).toContain(`uvx --from ${expectedPackage} code…
+    142|     expect(hookCommands).not.toContain("code-review-graph update --ski…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+   Start at  23:32:34
+   Duration  847ms (transform 30ms, setup 57ms, import 23ms, tests 28ms, environment 526ms)
