@@ -183,6 +183,19 @@ async function assertCanManageLibraryFolders(
   if (data !== true) throw new Error("Only workspace editors/admins can manage library folders.");
 }
 
+// Library Optimization Plan P3 T17 (F19/D8): app-layer fail-fast guard mirroring
+// assertCanManageLibraryFolders, applied to every mutating component/template action so
+// a workspace viewer is denied at the app boundary (defense-in-depth on top of the RLS
+// editor-write split). The is_workspace_editor RPC returns true for editors/admins.
+async function assertCanManageLibrary(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+) {
+  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
+  if (error) throwActionError("Could not verify library access.", error);
+  if (data !== true) throw new Error("Only workspace editors/admins can manage the library.");
+}
+
 function readRequiredComponentText(value: string | undefined | null, label: string) {
   const text = String(value ?? "").trim();
   if (!text) throw new Error(`${label} is required.`);
@@ -407,6 +420,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     },
   });
   const priceOptions = input.priceOptions.map((option) => normalizePriceOptionInput({ ...option, unit: option.unit || component.unit }));
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("create_cost_library_component", {
     target_workspace_id: workspace.id,
     component: { ...component, createdBy: currentUser.userId } as Json,
@@ -426,6 +440,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
 export async function updateCostLibraryComponent(itemId: string, input: CostLibraryComponentInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("update_cost_library_component", {
     target_workspace_id: workspace.id,
     target_item_id: itemId,
@@ -443,6 +458,7 @@ export async function updateCostLibraryComponent(itemId: string, input: CostLibr
 export async function upsertCostLibraryComponentPriceOption(itemId: string, input: ComponentPriceOptionInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("upsert_cost_library_component_price_option", {
     target_workspace_id: workspace.id,
     target_item_id: itemId,
@@ -466,6 +482,7 @@ export async function changeCostLibraryComponentLifecycleState(input: {
 }) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("set_cost_library_component_lifecycle_state", {
     target_workspace_id: workspace.id,
     target_item_id: input.itemId,
@@ -522,6 +539,7 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
     requireCurrentUserContext(),
   ]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase.rpc("execute_bulk_archive_library_components", {
     target_workspace_id: workspace.id,
     target_item_ids: ids,
@@ -708,6 +726,7 @@ type EstimateNodeSubtreeRow = {
 export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -879,6 +898,7 @@ type EstimateTabTemplateNodeRow = EstimateNodeSubtreeRow & {
 export async function createEstimateTemplateFromEstimateTab(input: CreateEstimateTemplateFromTabInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
 
   const templateName = input.name.trim();
   if (!templateName) throw new Error("Template name is required.");
@@ -1055,6 +1075,7 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .update({ name: templateName })
@@ -1075,6 +1096,7 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .delete()
@@ -1102,6 +1124,7 @@ export async function createEstimateTemplate(input: { name: string; category?: s
   const templateDescription = (input.description ?? "").trim();
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data: siblingTemplates, error: sortError } = await supabase
     .from("estimate_templates")
     .select("sort_order")
@@ -1149,6 +1172,7 @@ export async function duplicateEstimateTemplate(input: { templateId: string }) {
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data: sourceTemplate, error: sourceError } = await supabase
     .from("estimate_templates")
     .select("*")
@@ -1285,6 +1309,7 @@ export async function moveEstimateTemplateToCategory(input: { templateId: string
   }
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const patch: { category: string; sort_order?: number } = { category };
   if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
   const { data: template, error } = await supabase
@@ -1311,6 +1336,7 @@ export async function renameTemplateCategory(input: { from: string; to: string }
   if (from === to) return { category: to, updatedCount: 0 };
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibrary(supabase, workspace.id);
   const { data, error } = await supabase
     .from("estimate_templates")
     .update({ category: to })
