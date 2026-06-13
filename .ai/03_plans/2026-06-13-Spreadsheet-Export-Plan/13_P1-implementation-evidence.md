@@ -1,8 +1,34 @@
-# 13 — Phase 1 Implementation Evidence & Release Gates
+# 13 — Implementation Evidence & Release Gates (P1 + P2 + P3)
 
 > **Branch:** `claude/2026-06-13-Spreadsheet-Export-Plan` (off `main` @ `7481328d`).
-> **Status:** P1 (Trust, Safety & Presentability) implemented; agent-closeable items done, live-environment gates listed below.
+> **Status:** **P1 + P2 + P3 implemented** (all agent-closeable items). Live-environment / DB-channel release gates are listed at the bottom.
 > Owner decisions D0/D7/D8 confirmed 2026-06-13 (see [`.ai/10_state/decisions.md`](../../10_state/decisions.md)).
+> **Tests:** 8 proposal-* files, **74 tests green** (was 36) on Node ≥ 20.12; `bun run type-check` + `bun run lint` (0 errors) clean throughout; one commit per task.
+
+## Phase 2 — Format fidelity & control
+
+| Task | Finding(s) | Summary |
+|---|---|---|
+| **P2-T1** | F-02/D2 | VAT (12%) + project contingency (10%) in the Summary totals (`resolveProjectCharges`, round-then-sum parity); shared `writeSummaryTotalsBlock`; INCLUDED mode; preview shows the tax-inclusive total |
+| **P2-T2+T3** | F-11/F-12/F-19, 11§C | Settings validated off the wire (rates 0–100 → **400**); **audience server-derived** from `workspace_members` (internal granted to members only, escalation-proof); `includeFormulas` real; preview Export-settings panel → download URL |
+| **P2-T4** | F-07 | Title block: Owner/Client (`projects.client_name`), contractor interim (workspace name), Project Ref/Code, Subject — DB-free; trimmed General Notes spacers to keep `DETAIL_HEADER_ROW=17` |
+| **P2-T5** | F-09 | Hierarchical numbering — per-section line restarts + division letters (A/B/C…) on section headers |
+| **P2-T6** | F-10/D3 | Cost per SQM = Grand Total / GFA from `estimates`/`projects` `.metadata.grossFloorArea` (JSONB read-side), else N/A |
+| **P2-T8** | F-21/F-32/F-33 | Formula columns derived from `BID_FORM_COLUMNS` (+guard); unified Source Breakdown builder; malformed id (22P02) → **400**; `nosniff` |
+| **P2-T7** | F-14/F-24 | Batched all-tabs fetch (`getEstimateTreesForTabs` + pure `groupEstimateTabTrees`) replacing the per-tab fan-out; early 413 via total over-fetch guard |
+
+## Phase 3 — Polish & scale
+
+| Task | Finding(s) | Summary |
+|---|---|---|
+| **P3-T3** | F-27/D6 | Canonical division order (keyword-mapped taxonomy; sections sorted, Preliminaries first) — code-only |
+| **P3-T4** | F-34/F-28 | Accounting peso numFmt (`[$₱-3409]` mask); Grand Total amount-in-words |
+| **P3-T1+T2** | F-01/F-08/F-29 | Labor/scope read-side via `estimate_row_items.metadata` (toUiRow → model); conditional LABOR disclaimer; EXCLUSIONS block for excluded scope |
+| **P3-T5** | F-34 | Explicit `maxDuration=60`; benchmark regression-gate test |
+
+> **P2/P3 DB-gated parts deferred (per plan + no DB channel):** D4 `workspace_profiles` contractor table; typed-column promotions for D1 labor / D5 scope; the optional D3 GFA column; contractor logo/branding; construction-duration data. All read-sides ship now via JSONB; the live batched-query shape (P2-T7) and RLS (P1-T8) are DB verification gates.
+
+---
 
 ## What shipped (P1)
 
