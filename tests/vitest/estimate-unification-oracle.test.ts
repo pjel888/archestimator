@@ -10,7 +10,9 @@ import { describe, expect, it } from "vitest";
 import { computeNodeTotal } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
 import { getActivityScopeKey } from "@/components/workshop/estimate-sheet/activity-history";
 import { calculateProjectChartRowTotal } from "@/lib/project-charts/aggregate-project-charts";
+import { buildShareTreeFromSnapshotNodes } from "@/lib/share/reconstruct-share-tree";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
+import type { PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
 import {
   ALL_AREA_FIXTURE,
   MIXED_FIXTURE,
@@ -83,18 +85,50 @@ describe("oracle · O5 activity-scope cache keys (V3 B2: stable across child-add
 
 // ── Scaffolded surfaces (wire at P0; recipes are exact) ──────────────────────
 
+// ── O2 share-reconstruct adapters (fixture tree → publication-snapshot inputs) ──
+// buildShareTreeFromSnapshotNodes(nodes, rows) reads only node.{id,name,kind,children}
+// and row.{nodeId,rowTotal}; the rest of the snapshot-row shape is cast away.
+function toSnapshotTreeNodes(tree: EstimateTreeNode[]): PublicationSnapshotTreeNode[] {
+  const visit = (n: EstimateTreeNode): PublicationSnapshotTreeNode =>
+    ({
+      id: n.id,
+      name: n.name,
+      kind: n.kind === "group" ? "group" : "area",
+      children: (n.children ?? []).map(visit),
+    }) as PublicationSnapshotTreeNode;
+  return tree.map(visit);
+}
+
+function toSnapshotRows(tree: EstimateTreeNode[]): PublicationSnapshotRow[] {
+  const out: PublicationSnapshotRow[] = [];
+  const visit = (n: EstimateTreeNode) => {
+    for (const row of n.estimateRowItems ?? []) {
+      out.push({
+        id: (row as { id: string }).id,
+        nodeId: n.id,
+        designation: n.name,
+        rowTotal: canonicalRowTotal(row as never),
+      } as unknown as PublicationSnapshotRow);
+    }
+    (n.children ?? []).forEach(visit);
+  };
+  tree.forEach(visit);
+  return out;
+}
+
 describe("oracle · O2 share reconstruct (P1 firewall)", () => {
-  // RECIPE:
-  //   1. Build PublicationSnapshotRow[] + snapshot nodes from the fixture tree
-  //      (mirror src/lib/publication/snapshot.ts; rows carry node_id + the cost fields;
-  //       types: src/lib/publication/types.ts).
-  //   2. Call buildShareTreeFromSnapshotNodes(...) (reconstruct-share-tree.ts:267) — the
-  //      :297 area gate is the firewall under test.
-  //   3. ALL_AREA: expect(stableStringify(shareTree)).toMatchSnapshot().
-  //   4. MIXED: every row appears in directRows of its OWNING node; rollup total = 200;
-  //      a row whose node is absent still lands in "Unassigned".
-  it.todo("ALL_AREA share tree byte-parity (snapshot)");
-  it.todo("MIXED: rows survive on every node, rollup = 200 (expected-green at P1)");
+  it("ALL_AREA share tree byte-parity (snapshot)", () => {
+    const tree = buildShareTreeFromSnapshotNodes(
+      toSnapshotTreeNodes(ALL_AREA_FIXTURE),
+      toSnapshotRows(ALL_AREA_FIXTURE),
+    );
+    expect(stableStringify(tree)).toMatchSnapshot();
+  });
+
+  // MIXED forward-proof (a non-area node that OWNS rows) is wired at P1, when the
+  // reconstruct-share-tree.ts:297 firewall is relaxed. Today the kind gate drops those
+  // rows by design, so this assertion is intentionally deferred to the P1 commit.
+  it.todo("MIXED: rows survive on a non-area node, rollup = 200 (wired at P1)");
 });
 
 describe("oracle · O3 proposal export model (P2)", () => {

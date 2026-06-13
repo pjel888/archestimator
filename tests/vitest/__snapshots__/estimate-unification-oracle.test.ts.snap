@@ -10,3 +10,104 @@ exports[`oracle · O1 totals > ALL_AREA: per-node totals are frozen (byte-parity
   "t1": 29750
 }"
 `;
+
+exports[`oracle · O2 share reconstruct (P1 firewall) > ALL_AREA share tree byte-parity (snapshot) 1`] = `
+"[
+  {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [],
+            "depth": 2,
+            "id": "share-tree-footings",
+            "kind": "area",
+            "label": "Footings",
+            "rowCount": 2,
+            "rows": [
+              {
+                "designation": "Footings",
+                "id": "r-concrete",
+                "nodeId": "footings",
+                "rowTotal": 5450
+              },
+              {
+                "designation": "Footings",
+                "id": "r-rebar",
+                "nodeId": "footings",
+                "rowTotal": 3000
+              }
+            ],
+            "total": 8450
+          }
+        ],
+        "depth": 1,
+        "id": "share-tree-sub",
+        "kind": "group",
+        "label": "Substructure",
+        "rowCount": 2,
+        "rows": [],
+        "total": 8450
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "depth": 2,
+            "id": "share-tree-gf",
+            "kind": "area",
+            "label": "Ground Floor",
+            "rowCount": 1,
+            "rows": [
+              {
+                "designation": "Ground Floor",
+                "id": "r-block-gf",
+                "nodeId": "gf",
+                "rowTotal": 4500
+              }
+            ],
+            "total": 4500
+          },
+          {
+            "children": [],
+            "depth": 2,
+            "id": "share-tree-ff",
+            "kind": "area",
+            "label": "First Floor",
+            "rowCount": 2,
+            "rows": [
+              {
+                "designation": "First Floor",
+                "id": "r-block-ff",
+                "nodeId": "ff",
+                "rowTotal": 3600
+              },
+              {
+                "designation": "First Floor",
+                "id": "r-beam",
+                "nodeId": "ff",
+                "rowTotal": 13200
+              }
+            ],
+            "total": 16800
+          }
+        ],
+        "depth": 1,
+        "id": "share-tree-super",
+        "kind": "group",
+        "label": "Superstructure",
+        "rowCount": 3,
+        "rows": [],
+        "total": 21300
+      }
+    ],
+    "depth": 0,
+    "id": "share-tree-t1",
+    "kind": "group",
+    "label": "Building",
+    "rowCount": 5,
+    "rows": [],
+    "total": 29750
+  }
+]"
+`;
