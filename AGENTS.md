@@ -26,7 +26,10 @@ Start here:
 - Do not store secrets in the repository or `.ai`.
 - Stack baseline is Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 + Supabase/Postgres.
 - Supabase/Postgres is active for Archestimator project `ebxxqidacheyapmmzavr`; never mutate unrelated provider projects such as SlateCamp.
+- Philip grants standing authorization for Archestimator Supabase/Postgres database changes during the pre-launch MVP. Agents may create, edit, and apply migrations; run scoped SQL; adjust schema, RLS, grants, RPCs, triggers, seed/test data, and generated types; and fix mistakes forward without stopping for per-change owner approval, as long as the work stays inside project `ebxxqidacheyapmmzavr`.
 - Closed-beta cost posture: keep Supabase PITR disabled unless the owner explicitly re-approves the extra cost; rely on daily physical backups plus manual logical dumps for the cheaper beta path.
+- Pre-launch MVP bias: there are no external users yet, so prefer fast, useful iteration over heavyweight regression ceremony. Use targeted validation that proves the changed behavior; reserve broad `validate`/build/manual QA loops for shared logic, auth/security, data-integrity, release, or high-blast-radius changes.
+- This standing database mandate supersedes older default owner-gated database wording unless a newer, narrower decision explicitly reintroduces a gate for a specific database action.
 - If project reality changes, update `.ai/10_state/current-state.md` and the relevant canonical doc.
 - Tool-specific adapters and model payloads must stay subordinate to
   `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and `.ai/12_agents/`.
@@ -88,7 +91,7 @@ without improving correctness.
 - Use Compound Engineering, Superpowers, OMX, or other workflow plugins as optional accelerators, not mandatory gates.
 - Use Impeccable and visual QA tooling for high-risk UI polish, design audits, or explicit visual-review tasks. Routine UI fixes should follow `DESIGN.md` and existing component patterns without loading a full design workflow.
 - Reuse existing UI primitives from `src/components/ui/` when it is practical and cheaper than duplicating behavior. Do not block small fixes on Storybook inventory work.
-- For Supabase/Postgres changes, keep the project boundary strict: Archestimator project `ebxxqidacheyapmmzavr` only, never SlateCamp or unrelated provider projects.
+- For Supabase/Postgres changes, use the standing pre-launch MVP authorization above: move quickly, keep migrations/recovery paths reviewable, document meaningful provider facts, and keep the project boundary strict: Archestimator project `ebxxqidacheyapmmzavr` only, never SlateCamp or unrelated provider projects.
 
 ## Verification Policy
 
@@ -96,7 +99,7 @@ Verification is proportional to risk:
 
 - Docs/config changes: `git diff --check` plus path/ignore checks when relevant.
 - Narrow source change: type/LSP check or targeted test for the touched behavior.
-- Shared logic, auth, database, security, or release work: targeted tests plus broader `bun run validate`/`bun run build` when meaningful.
+- Shared logic, auth, database, security, or release work: targeted tests plus broader `bun run validate`/`bun run build` only when the risk justifies the time.
 - UI behavior changes: targeted browser/manual proof when the behavior is user-visible; visual-design tooling only when the visual result is the primary deliverable.
 
 Do not claim provider, GitHub, Notion, Vercel, production, or manual proof from local-only checks. If a check is skipped, state why and what risk remains.

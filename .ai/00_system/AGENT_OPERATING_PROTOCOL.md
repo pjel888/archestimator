@@ -18,6 +18,34 @@ Use the lightest path that can satisfy the request:
 4. Verify with the narrowest evidence that proves the change.
 5. Update `.ai` state/docs only when a durable decision or project reality changes.
 
+## Pre-launch MVP database mandate
+
+Philip grants standing authorization for agents to make Archestimator
+Supabase/Postgres changes during the pre-launch MVP. Within project
+`ebxxqidacheyapmmzavr`, agents may create, edit, and apply migrations; run scoped
+SQL; change schema, RLS, grants, RPCs, functions, triggers, seed/test data, and
+generated types; and repair mistakes with follow-up migrations or patches
+without asking for per-change approval.
+
+Default posture: act, measure, and fix forward. The product has no external
+users yet, so do not treat every database or provider-facing edit as a release
+ceremony. Prefer the smallest evidence that proves the changed behavior: focused
+SQL checks, targeted tests, type generation, advisory checks, or a narrow app
+smoke. Use broad `bun run validate`, full builds, full regression suites, or
+manual QA loops only when the change touches shared logic, auth/security, RLS,
+data integrity, release readiness, or another high-blast-radius surface.
+
+Standing authorization is not a license to cross hard boundaries. Never mutate
+SlateCamp or unrelated provider projects; never store or expose secrets; never
+enable paid add-ons such as PITR without explicit reapproval; never deploy to
+production as part of database work unless the task asks for deploy; and never
+perform irreversible destructive data loss without a clear recovery path and
+explicit fresh instruction.
+
+This mandate supersedes older default owner-gated database wording in archived
+plans, run logs, or historical decisions unless a newer, narrower decision
+explicitly reintroduces a gate for a specific database action.
+
 Run a broader repo-truth pass when the task touches architecture, roadmap truth,
 provider claims, release readiness, shared APIs, migrations, auth/security, or
 ambiguous stale state. In those cases, inspect branch/status, relevant `.ai`
@@ -182,7 +210,7 @@ Default roles:
 - Respect explicit read-only/audit-only user scopes. If stale docs are found during an audit-only task, report the exact patch target instead of editing.
 - For Next.js work, read the relevant local Next.js docs under `node_modules/next/dist/docs/` before changing framework APIs or route conventions.
 - Use graph/GitNexus impact analysis for risky shared symbol/API refactors when available. For narrow local edits, focused caller/import checks are enough.
-- Archestimator Supabase/Postgres is active only for project `ebxxqidacheyapmmzavr`; never touch SlateCamp resources.
+- Archestimator Supabase/Postgres changes are pre-authorized for project `ebxxqidacheyapmmzavr` under the pre-launch MVP database mandate; never touch SlateCamp or unrelated provider resources.
 - AI capability is currently Ask-only unless Philip explicitly approves a wider slice. No Draft/Apply, write tools, retrieval/RAG, or stored conversation features may be added by implication.
 - Tool-specific adapter files (`CLAUDE.md`, `GEMINI.md`, `.agents/`,
   `.claude/`, `.codex/`, `.cursor/`, `.gemini/`, `.commandcode/`) must stay
