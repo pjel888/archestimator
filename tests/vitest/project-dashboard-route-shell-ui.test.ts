@@ -25,7 +25,10 @@ describe("project dashboard route shell UI governance", () => {
 
   it("provides a nested loading fallback for project estimate list transitions", () => {
     expect(projectEstimatesLoading).not.toBe("");
-    expect(projectEstimatesLoading).toContain("ProjectRouteContentFallback");
+    // P0-6: the list route uses a table-shaped skeleton matching the page, not the
+    // node-route ProjectRouteContentFallback (sidebar + 2-column grid + right rail).
+    expect(projectEstimatesLoading).toContain("ProjectEstimatesListSkeleton");
+    expect(projectEstimatesLoading).not.toContain("ProjectRouteContentFallback");
     expect(projectEstimatesLoading).not.toContain("WorkshopPageShell");
     expect(projectEstimatesLoading).not.toContain("cookies()");
     expect(projectEstimatesLoading).not.toContain("getCurrentUserContext");

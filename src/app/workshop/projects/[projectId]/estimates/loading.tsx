@@ -1,5 +1,5 @@
-import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
+import { ProjectEstimatesListSkeleton } from "@/components/workshop/ProjectEstimatesListSkeleton";
 
 export default function Loading() {
-  return <ProjectRouteContentFallback />;
+  return <ProjectEstimatesListSkeleton />;
 }
