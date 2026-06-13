@@ -332,6 +332,61 @@ describe("ProposalExportPreviewDialog", () => {
     }
   });
 
+  it("plumbs export settings into the download URL (P2-T2/T3)", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId="main-house"
+          nodes={nodes}
+          projectId="project-1"
+          estimateId="estimate-1"
+          proposalExportMetadata={metadata}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
+    await user.click(screen.getByText("Export settings")); // open the settings panel
+
+    const vatInput = screen.getByRole("spinbutton", { name: "VAT rate percent" });
+    await user.clear(vatInput);
+    await user.type(vatInput, "8");
+    await user.click(screen.getByRole("checkbox", { name: /Include internal Source Breakdown/i }));
+
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+      Promise.resolve(
+        new Response("xlsx", {
+          status: 200,
+          headers: {
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "content-disposition": 'attachment; filename="x.xlsx"',
+          },
+        }),
+      ),
+    );
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => "blob:mock") as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
+
+    try {
+      await user.click(screen.getByRole("button", { name: "Download editable XLSX" }));
+      await waitFor(() => {
+        const url = String(fetchMock.mock.calls.at(-1)?.[0] ?? "");
+        expect(url).toContain("vatRate=8");
+        expect(url).toContain("audience=internal");
+      });
+    } finally {
+      fetchMock.mockRestore();
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
   it("renders the route error inline (413) without saving a corrupt file", async () => {
     const user = userEvent.setup();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });

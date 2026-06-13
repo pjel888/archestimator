@@ -11,7 +11,18 @@ const mocks = vi.hoisted(() => ({
   createProposalWorkbookBuffer: vi.fn(),
   getCurrentUserContext: vi.fn(),
   checkProposalExportRateLimit: vi.fn(),
+  createSupabaseServerClient: vi.fn(),
 }));
+
+// Chainable Supabase mock for the workspace_members membership lookup (audience gate).
+function membershipClient(role: string | null) {
+  const builder = {
+    select: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
+    maybeSingle: vi.fn().mockResolvedValue({ data: role ? { role } : null }),
+  };
+  return { from: vi.fn(() => builder) };
+}
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getProjectEstimateTreeByEstimate: mocks.getProjectEstimateTreeByEstimate,
@@ -29,6 +40,10 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/publication/public-repository", () => ({
   checkProposalExportRateLimit: mocks.checkProposalExportRateLimit,
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createSupabaseServerClient: mocks.createSupabaseServerClient,
 }));
 
 const authedContext = {
@@ -85,6 +100,7 @@ describe("proposal xlsx export route", () => {
     vi.clearAllMocks();
     mocks.getCurrentUserContext.mockResolvedValue(authedContext);
     mocks.checkProposalExportRateLimit.mockResolvedValue({ allowed: true });
+    mocks.createSupabaseServerClient.mockResolvedValue(membershipClient(null));
     mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
@@ -201,6 +217,56 @@ describe("proposal xlsx export route", () => {
       retryAfter: 60,
     });
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
+  it("rejects out-of-band VAT/contingency rates with a 400 (no silent clamp)", async () => {
+    const response = await GET(
+      new Request("http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?vatRate=200"),
+      { params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }) },
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/vatRate/);
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
+  it("plumbs validated export settings into the model", async () => {
+    await GET(
+      new Request("http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?contingencyRate=5&vatRate=8&includeFormulas=false"),
+      { params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }) },
+    );
+
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ contingencyRate: 5, vatRate: 8, includeFormulas: false, audience: "client" }),
+      }),
+    );
+  });
+
+  it("ignores a client-supplied audience=internal for a non-member (no Source Breakdown exfiltration)", async () => {
+    mocks.createSupabaseServerClient.mockResolvedValueOnce(membershipClient(null)); // not a workspace member
+
+    await GET(
+      new Request("http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?audience=internal"),
+      { params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }) },
+    );
+
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({ settings: expect.objectContaining({ audience: "client" }) }),
+    );
+  });
+
+  it("grants audience=internal only to a workspace member (server-derived)", async () => {
+    mocks.createSupabaseServerClient.mockResolvedValueOnce(membershipClient("owner"));
+
+    await GET(
+      new Request("http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?audience=internal"),
+      { params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }) },
+    );
+
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({ settings: expect.objectContaining({ audience: "internal" }) }),
+    );
   });
 
   it("exports a requested active tab in the legacy four-sheet workbook shape", async () => {

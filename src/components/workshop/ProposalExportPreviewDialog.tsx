@@ -33,6 +33,17 @@ function trapFocus(container: HTMLElement, event: KeyboardEvent) {
 
 export type ProposalExportPreviewScope = "all-tabs" | "active-tab";
 
+// P2-T2/T3: the user-facing export settings. `includeInternalBreakdown` is a preference only —
+// the route gates audience=internal by workspace membership server-side.
+export type ProposalExportUserSettings = {
+  contingencyRate: number;
+  vatRate: number;
+  contingencyIncluded: boolean;
+  vatIncluded: boolean;
+  includeFormulas: boolean;
+  includeInternalBreakdown: boolean;
+};
+
 type ProposalExportPreviewScopeControls = {
   selectedScope: ProposalExportPreviewScope;
   activeTabName: string;
@@ -49,6 +60,8 @@ type ProposalExportPreviewDialogProps = {
   downloadError?: string | null;
   canDownload?: boolean;
   scopeControls?: ProposalExportPreviewScopeControls;
+  exportSettings?: ProposalExportUserSettings;
+  onExportSettingsChange?: (settings: ProposalExportUserSettings) => void;
   onRefresh: () => void;
   onClose: () => void;
 };
@@ -62,6 +75,16 @@ const previewPesoFormatter = new Intl.NumberFormat("en-PH", {
 function formatMoney(value: number) {
   return previewPesoFormatter.format(value).replace("₱", "₱ ");
 }
+
+function clampRate(raw: string, fallback: number) {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(100, Math.max(0, value));
+}
+
+const settingsCheckboxLabelClass = "flex items-center gap-1.5 text-[12px] text-secondary";
+const settingsRateInputClass =
+  "h-6 w-16 rounded-xs border border-hairline px-1.5 text-[12px] tabular-nums disabled:cursor-not-allowed disabled:opacity-50";
 
 type ExportContentSheet = { name: string; description: string; flag?: "review" | "internal" | "omitted" };
 
@@ -102,6 +125,8 @@ export function ProposalExportPreviewDialog({
   downloadError = null,
   canDownload = true,
   scopeControls,
+  exportSettings,
+  onExportSettingsChange,
   onRefresh,
   onClose,
 }: ProposalExportPreviewDialogProps) {
@@ -271,6 +296,73 @@ export function ProposalExportPreviewDialog({
                     : `Download is scoped to the active ${activeTabLabel}.`}
                 </span>
               </div>
+            ) : null}
+            {exportSettings && onExportSettingsChange ? (
+              <details className="border-b border-hairline px-3 py-2" data-testid="proposal-export-settings">
+                <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-normal text-tertiary">Export settings</summary>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <label className={settingsCheckboxLabelClass}>
+                    <span>Contingency %</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      className={settingsRateInputClass}
+                      aria-label="Contingency rate percent"
+                      value={exportSettings.contingencyIncluded ? "" : exportSettings.contingencyRate}
+                      disabled={exportSettings.contingencyIncluded}
+                      onChange={(event) => onExportSettingsChange({ ...exportSettings, contingencyRate: clampRate(event.target.value, exportSettings.contingencyRate) })}
+                    />
+                  </label>
+                  <label className={settingsCheckboxLabelClass}>
+                    <input
+                      type="checkbox"
+                      checked={exportSettings.contingencyIncluded}
+                      onChange={(event) => onExportSettingsChange({ ...exportSettings, contingencyIncluded: event.target.checked })}
+                    />
+                    <span>Contingency included in rates</span>
+                  </label>
+                  <label className={settingsCheckboxLabelClass}>
+                    <span>VAT %</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      className={settingsRateInputClass}
+                      aria-label="VAT rate percent"
+                      value={exportSettings.vatIncluded ? "" : exportSettings.vatRate}
+                      disabled={exportSettings.vatIncluded}
+                      onChange={(event) => onExportSettingsChange({ ...exportSettings, vatRate: clampRate(event.target.value, exportSettings.vatRate) })}
+                    />
+                  </label>
+                  <label className={settingsCheckboxLabelClass}>
+                    <input
+                      type="checkbox"
+                      checked={exportSettings.vatIncluded}
+                      onChange={(event) => onExportSettingsChange({ ...exportSettings, vatIncluded: event.target.checked })}
+                    />
+                    <span>VAT included in rates</span>
+                  </label>
+                  <label className={settingsCheckboxLabelClass}>
+                    <input
+                      type="checkbox"
+                      checked={exportSettings.includeFormulas}
+                      onChange={(event) => onExportSettingsChange({ ...exportSettings, includeFormulas: event.target.checked })}
+                    />
+                    <span>Live formulas</span>
+                  </label>
+                  <label className={settingsCheckboxLabelClass}>
+                    <input
+                      type="checkbox"
+                      checked={exportSettings.includeInternalBreakdown}
+                      onChange={(event) => onExportSettingsChange({ ...exportSettings, includeInternalBreakdown: event.target.checked })}
+                    />
+                    <span>Include internal Source Breakdown (members only)</span>
+                  </label>
+                </div>
+              </details>
             ) : null}
             <div className="grid grid-cols-3 border-b border-hairline bg-surfaceMuted/40 text-[12px]">
               <div className="border-r border-hairline px-3 py-2.5">

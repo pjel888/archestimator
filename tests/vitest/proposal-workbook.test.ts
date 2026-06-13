@@ -498,4 +498,22 @@ describe("proposal workbook generation", () => {
     expect(bidForm?.getCell("A20").value).toBe("2");
     expect(bidForm?.getCell("A23").value).toBe("1");
   });
+
+  it("writes static values instead of formulas when includeFormulas is false (P2-T3, F-12)", () => {
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: modelTree(),
+      settings: { audience: "internal", includeFormulas: false },
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    const workbook = createProposalWorkbook(model);
+    const bidForm = workbook.getWorksheet("Bid Form");
+    const summary = workbook.getWorksheet("Summary");
+
+    // COST TOTAL (G19) and LINE TOTAL (H19) are plain numbers, not formula objects.
+    expect(bidForm?.getCell("G19").value).toBe(950);
+    expect(bidForm?.getCell("H19").value).toBe(21_700);
+    // The Summary Grand Total is a static value too.
+    expect(summary?.getCell("B20").value).toBe(26_734.4);
+  });
 });
