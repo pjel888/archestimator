@@ -186,6 +186,21 @@ Provider, GitHub settings, Notion mutation, branch protection, paid add-ons,
 and destructive external actions are approval-gated unless Philip explicitly
 authorized the exact action in the active task and the action is not paid.
 
+Exception: Archestimator Supabase/Postgres database work in project
+`ebxxqidacheyapmmzavr` has standing pre-launch MVP authorization. Agents may run
+scoped SQL, create/apply migrations, change schema/RLS/grants/RPCs/functions,
+repair database mistakes forward, seed or adjust test data, and regenerate
+types without asking for per-change approval. Because there are no external
+users yet, the preferred posture is fast iteration with proportional validation,
+not exhaustive regression by default.
+
+This exception does not authorize unrelated provider projects, SlateCamp
+resources, secrets exposure, paid add-ons, hosting production deploys,
+GitHub/Notion mutations, or irreversible destructive data loss without explicit
+fresh instruction and a recovery plan. It supersedes older default owner-gated
+database wording unless a newer, narrower decision explicitly reintroduces a
+gate for a specific database action.
+
 Secrets must not be printed, committed, copied into `.ai`, pasted into run
 logs, or placed in prompt templates. Evidence files may record variable names,
 hashes, IDs, statuses, and sanitized metadata only.

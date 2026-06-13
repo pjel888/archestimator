@@ -1,5 +1,34 @@
 # Decisions
 
+## 2026-06-13 — Standing pre-launch MVP database autonomy
+
+**Decision:** Philip grants standing authorization for agents to make
+Archestimator Supabase/Postgres changes in project `ebxxqidacheyapmmzavr`
+during the pre-launch MVP. This includes scoped SQL, migration creation and
+apply, schema/RLS/grant/RPC/function/trigger changes, seed or test-data
+adjustments, generated type updates, and follow-up repairs when an earlier
+database change needs correction.
+
+**Rationale:** Archestimator has no external users yet. The effective path is to
+move quickly, make the database changes needed for the MVP, observe the result,
+and fix mistakes forward instead of treating every database edit as an
+owner-gated release event or broad regression exercise.
+
+**Boundaries:** The authorization is limited to Archestimator project
+`ebxxqidacheyapmmzavr`. It does not authorize SlateCamp or unrelated provider
+projects, secrets exposure, paid add-ons such as PITR, production deploys,
+GitHub/Notion/provider settings outside the database task, or irreversible
+destructive data loss without fresh explicit instruction and a recovery path.
+This decision supersedes older default owner-gated database wording in archived
+plans, run logs, or historical decisions unless a newer, narrower decision
+explicitly reintroduces a gate for a specific database action.
+
+**Validation posture:** Prefer targeted SQL checks, advisor/security checks,
+focused tests, type generation, and narrow app smoke evidence that proves the
+changed behavior. Run broad validation, builds, full regression, or manual QA
+only when the change touches shared logic, auth/security, RLS, data integrity,
+release readiness, or another high-blast-radius surface.
+
 ## 2026-06-13 — Templates owner-gated DB items applied to prod (owner-authorized)
 
 **Decision:** With owner authorization, resolve the Templates Audit owner-gated DB

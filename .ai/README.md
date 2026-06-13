@@ -39,6 +39,15 @@ This folder is the project brain. It stores product thinking, implementation pla
   persist state outside chat, and decide the next iteration. See
   `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and
   `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+- Current database mandate: during pre-launch MVP, Philip grants standing
+  authorization for agents to make Archestimator Supabase/Postgres changes in
+  project `ebxxqidacheyapmmzavr` without per-change owner approval. Move fast,
+  make useful database changes, fix mistakes forward, and validate
+  proportionally because there are no external users yet. This does not allow
+  unrelated provider projects, secrets, paid add-ons, hosting production
+  deploys, or irreversible destructive actions without explicit fresh
+  instruction. This mandate supersedes older default owner-gated database
+  wording unless a newer, narrower decision explicitly reintroduces a gate.
 - Superseded: the deleted full prototype. Do not resume old plans without explicit reapproval.
 - Storybook 10.4.2 is installed and implemented as a review surface with 60+ UI components and 85+ stories. Production app route migration, public Storybook hosting, and Supabase/provider-backed stories remain explicitly unperformed. See `.ai/10_state/decisions.md` (2026-06-07) for implementation boundaries.
 - Read first for restart: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/10_state/current-state.md`, `.ai/06_specs/feature-inventory.md`, `.ai/10_state/decisions.md`.
