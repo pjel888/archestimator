@@ -52,6 +52,8 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     pricingSource: overrides.pricingSource ?? "Supplier allowance — verify quote",
     pricingDate: overrides.pricingDate ?? "2026-05-23",
     confidence: overrides.confidence ?? "allowance",
+    laborUnitCost: overrides.laborUnitCost,
+    scopeStatus: overrides.scopeStatus,
   };
 }
 
@@ -542,5 +544,43 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("B23").value).toBe("Twenty-Six Thousand Seven Hundred Thirty-Four Pesos and 40/100");
     // Money cells use the accounting peso mask ([$₱-3409] locale token).
     expect(bidForm?.getCell("E19").numFmt).toContain("[$₱-3409]");
+  });
+
+  it("renders an EXCLUSIONS block for excluded-scope rows (P3-T2, F-29)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "area",
+            name: "Area",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "incl", material: "Floor Tile", quantity: 1, itemCost: 1_000, category: "Finishes" }),
+              row({ id: "excl", material: "Owner Fixtures", quantity: 1, itemCost: 500, category: "Finishes", scopeStatus: "by_others" }),
+            ],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    const bidForm = createProposalWorkbook(model).getWorksheet("Bid Form");
+
+    let exclusionsHeaderRow = -1;
+    bidForm?.eachRow((sheetRow, rowNumber) => {
+      if (typeof sheetRow.getCell(1).value === "string" && String(sheetRow.getCell(1).value).startsWith("EXCLUSIONS")) {
+        exclusionsHeaderRow = rowNumber;
+      }
+    });
+    expect(exclusionsHeaderRow).toBeGreaterThan(0);
+
+    const excludedItem = bidForm?.getRow(exclusionsHeaderRow + 1);
+    expect(String(excludedItem?.getCell(2).value)).toContain("Owner Fixtures");
+    expect(excludedItem?.getCell(8).value).toBe(0); // line total zeroed
+    expect(excludedItem?.getCell(9).value).toBe("BY OTHERS"); // scope label
   });
 });

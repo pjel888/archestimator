@@ -311,7 +311,7 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   const sectionRanges: BidSectionRange[] = [];
 
   model.summaryRows.forEach((summaryRow, sectionIndex) => {
-    const sectionRows = model.proposalRows.filter((proposalRow) => proposalRow.sectionKey === summaryRow.sectionKey);
+    const sectionRows = model.proposalRows.filter((proposalRow) => proposalRow.sectionKey === summaryRow.sectionKey && proposalRow.includedInTotal);
     // P2-T5/F-09: the section header carries the division letter; its rows are numbered 1..k
     // (restarting per section) by renumberProposalRows.
     const sectionRow = worksheet.addRow([`${divisionLetter(sectionIndex)}  ${summaryRow.sectionLabel}`]);
@@ -372,6 +372,31 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
       subtotalResult: summaryRow.costAmount,
     });
   });
+
+  // F-29 (P3-T2): excluded items (scope ≠ included) are listed in a dedicated EXCLUSIONS block
+  // with a zero line total, separate from the priced sections and the Grand Total.
+  const excludedRows = model.proposalRows.filter((proposalRow) => !proposalRow.includedInTotal);
+  if (excludedRows.length > 0) {
+    const exclusionsHeader = worksheet.addRow(["EXCLUSIONS — items not included in the bid total"]);
+    exclusionsHeader.font = { bold: true, size: 10, color: { argb: "FFB45309" } };
+    exclusionsHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
+    worksheet.mergeCells(exclusionsHeader.number, 1, exclusionsHeader.number, BID_FORM_COLUMNS.length);
+    excludedRows.forEach((proposalRow, index) => {
+      const row = worksheet.addRow([
+        String(index + 1),
+        proposalRow.particulars,
+        proposalRow.unit,
+        proposalRow.quantity,
+        proposalRow.materialUnitCost,
+        proposalRow.laborUnitCost,
+        roundMoney(proposalRow.materialUnitCost + proposalRow.laborUnitCost),
+        0,
+        scopeLabel(proposalRow.scopeStatus),
+        proposalRow.remarks,
+      ]);
+      styleBodyRow(row);
+    });
+  }
 
   setPrintLayout(worksheet);
   worksheet.pageSetup.printTitlesRow = `${DETAIL_HEADER_ROW}:${DETAIL_HEADER_ROW}`;
