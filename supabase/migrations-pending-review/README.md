@@ -17,6 +17,7 @@ timestamp prefix so the migration history stays canonical.
 |---|---|---|---|
 | `AC-MOD-04_shared_link_responses_recipient_set_null.sql` | AC-MOD-04 | Make a recipient hard-delete preserve their locked decision row (`recipient_id` → `ON DELETE SET NULL`) instead of CASCADE-destroying it. | Low (additive nullability; mirrors the existing `shared_link_comments` behavior) |
 | `AC-MOD-06_one_published_publication_per_project.sql` | AC-MOD-06 | Add a partial unique index so a project can never have two simultaneously-`published` publication rows (closes the rotate/create race window B). | Medium — requires de-duplicating any existing duplicates FIRST |
+| `T4-database-pass.sql` | Track T4 (DB pass) | Index hygiene (P2/P4/P5), RLS-on-events (P3), telemetry retention (P1, pg_cron), rate-limit GC (P7, pg_cron), snapshot-size guardrail (P6); OPT-7/OPT-10 noted as larger follow-ups. Each section has its own pre-flight + rollback. | Low (additive) except the P2 index drops (gated on a verified-zero-scan pre-flight) |
 
 ## Application order
 
