@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -303,10 +303,10 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(within(confirmDialog).getAllByText(/current shared link will stop working/i).length).toBeGreaterThan(0);
     await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
 
+    // AC-MOD-13 (MOD-ROTATE-PWDRAFT-01): rotation no longer threads the password draft — it passes
+    // only { projectId } so the server keeps the existing password_hash.
     expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledWith({
       projectId: "project-1",
-      password: undefined,
-      clearPassword: false,
     });
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
   });
@@ -1058,6 +1058,191 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
     });
     expect(within(dialog).getByRole("button", { name: /Send to 0 recipients/ })).toBeDisabled();
     expect(publicationActions.addSharedLinkRecipients).not.toHaveBeenCalled();
+  });
+});
+
+// AC-MOD-12 / AC-MOD-21 / AC-MOD-13 / AC-MOD-14 — feedback tone, double-submit guard,
+// rotate ignores the password draft, and the estimates dirty indicator.
+describe("ProjectPublicationHeader feedback + interaction guards (T5-7)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    publicationActions.createProjectPublication.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockReset();
+    publicationActions.republishProjectPublication.mockReset();
+    publicationActions.revokeProjectPublication.mockReset();
+    publicationActions.rotateProjectPublicationLink.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn(async () => undefined) },
+    });
+  });
+
+  // AC-MOD-12 — a thrown action error renders as a danger alert, not a neutral status.
+  it("renders a thrown action error as role=alert with danger styling", async () => {
+    publicationActions.revokeProjectPublication.mockRejectedValueOnce(new Error("Turn off failed on the server."));
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
+    const confirmDialog = screen.getByRole("dialog", { name: "Turn off shared link?" });
+    await user.click(within(confirmDialog).getByRole("button", { name: "Turn off link" }));
+
+    // The failed action surfaces as an alert in the modal body with danger styling.
+    const alert = await within(dialog).findByRole("alert");
+    expect(alert).toHaveTextContent("Turn off failed on the server.");
+    expect(alert).toHaveClass("bg-dangerSoft", "text-danger");
+  });
+
+  // AC-MOD-12 — a successful action renders neutral/status, never danger.
+  it("renders a successful action as role=status with neutral styling", async () => {
+    publicationActions.revokeProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared link turned off.",
+      clientLinkPath: null,
+    });
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Turn off shared link?" })).getByRole("button", { name: "Turn off link" }));
+
+    const status = await within(dialog).findByRole("status");
+    expect(status).toHaveTextContent("Shared link turned off.");
+    expect(status).not.toHaveClass("text-danger");
+    expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  // AC-MOD-21 — rapid double "confirm" dispatches the underlying action exactly once.
+  // Non-vacuous: a deferred-resolution mock keeps the transition pending across both clicks, and
+  // both clicks are fired synchronously (before React re-renders and removes the confirm). Without
+  // the in-flight latch + disabled guard the second click would dispatch revoke a second time.
+  it("guards the destructive confirm against double-submit (action called once)", async () => {
+    let resolveRevoke: ((value: { ok: boolean; message: string; clientLinkPath: null }) => void) | undefined;
+    publicationActions.revokeProjectPublication.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRevoke = resolve;
+        }),
+    );
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
+    const confirmDialog = screen.getByRole("dialog", { name: "Turn off shared link?" });
+    const confirmButton = within(confirmDialog).getByRole("button", { name: "Turn off link" });
+
+    // Two clicks dispatched inside a single act() — React does NOT re-render between them, so both
+    // use the same render's handler (the same `destructiveAction` closure). This reproduces the
+    // real double-click race: without the synchronous in-flight latch the second click dispatches
+    // revoke a second time. (Verified non-vacuous: removing the latch makes this assert 2 calls.)
+    act(() => {
+      confirmButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      confirmButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(publicationActions.revokeProjectPublication).toHaveBeenCalledTimes(1);
+
+    resolveRevoke?.({ ok: true, message: "Shared link turned off.", clientLinkPath: null });
+    await within(dialog).findByText("Shared link turned off.");
+    expect(publicationActions.revokeProjectPublication).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the destructive confirm button while the action is pending", async () => {
+    let resolveRevoke: (() => void) | undefined;
+    publicationActions.revokeProjectPublication.mockImplementation(
+      () => new Promise((resolve) => { resolveRevoke = () => resolve({ ok: true, message: "Off.", clientLinkPath: null }); }),
+    );
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
+    const confirmButton = within(screen.getByRole("dialog", { name: "Turn off shared link?" })).getByRole("button", {
+      name: "Turn off link",
+    });
+    await user.click(confirmButton);
+
+    // While the revoke promise is unresolved the transition stays pending → controls disable.
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Turn off shared link" })).toBeDisabled(),
+    );
+    resolveRevoke?.();
+  });
+
+  // AC-MOD-13 (MOD-ROTATE-PWDRAFT-01) — rotate ignores the unsaved password draft.
+  it("rotates with only { projectId }, ignoring an edited password draft", async () => {
+    publicationActions.rotateProjectPublicationLink.mockResolvedValueOnce({
+      ok: true,
+      message: "New shared link ready.",
+      clientLinkPath: "/share/rotated-token",
+    });
+
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // Edit the password draft on the Access tab (should NOT be threaded into rotation).
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.type(within(dialog).getByLabelText("Link password"), "draft-secret");
+
+    await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
+    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
+
+    // Only the projectId is passed — no password / clearPassword from the draft.
+    expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledWith({ projectId: "project-1" });
+    const call = publicationActions.rotateProjectPublicationLink.mock.calls[0][0];
+    expect(call).not.toHaveProperty("password");
+    expect(call).not.toHaveProperty("clearPassword");
+  });
+
+  // AC-MOD-14 (MOD-SHEET-03) — rotate confirm copy explains the estimate scope is the published one.
+  it("explains in the rotate confirm that the new link keeps the currently-published estimates", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
+
+    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    expect(within(confirmDialog).getByText(/keeps the currently-published estimates/i)).toBeInTheDocument();
+  });
+
+  // AC-MOD-14 (MOD-SHEET-02) — the dirty hint appears when the selection diverges and hides when it matches.
+  it("shows the 'Unsaved' estimates hint only when the selection diverges from the published set", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Estimates" }));
+
+    // Initially the picker matches the published selection → no dirty hint.
+    expect(within(dialog).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
+
+    // Deselect est-2 → selection diverges → hint shows.
+    const framing = within(dialog).getByRole("checkbox", { name: /S-200.*Framing/ });
+    await user.click(framing);
+    expect(within(dialog).getByText("Unsaved — Update to apply")).toBeInTheDocument();
+
+    // Re-select est-2 → matches the published set again → hint hides.
+    await user.click(framing);
+    expect(within(dialog).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
   });
 });
 

@@ -53,6 +53,9 @@ type PublicationLocalResult = {
 
 type PublicationTabId = "link" | "sheets" | "access" | "recipients" | "activity";
 type DestructivePublicationAction = "clear-password" | "revoke" | "rotate" | "regenerate";
+// AC-MOD-12: owner-action feedback carries a tone so a thrown action error renders as a
+// danger alert instead of reading like a success in the neutral status box.
+type ActionFeedback = { text: string; tone: "success" | "error" };
 const EMPTY_ESTIMATE_IDS: string[] = [];
 const SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX = "archestimator_shared_link_last_seen";
 
@@ -86,6 +89,13 @@ function dateTimeLocalValueToIso(value: string): string | null {
   const date = new Date(trimmed);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
+}
+
+// AC-MOD-14: order-insensitive equality for two string-id lists (estimate selections).
+function areStringSetsEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const seen = new Set(a);
+  return b.every((value) => seen.has(value));
 }
 
 function readPublicationStatusLabel(status: ProjectPublicationStatus | null | undefined) {
@@ -178,7 +188,9 @@ function readDestructivePublicationActionCopy(action: DestructivePublicationActi
     return {
       title: "Create new shared link?",
       description: "The current shared link will stop working.",
-      body: "The current shared link will stop working immediately. Existing recipients are kept — re-send them the new link from the Recipients tab. Password-protected links require recipients to re-enter the password.",
+      // AC-MOD-14 (MOD-SHEET-03): rotation re-publishes the currently-published estimates and
+      // existing password, not any unsaved picker/password edits — make that explicit.
+      body: "The current shared link will stop working immediately. Existing recipients are kept — re-send them the new link from the Recipients tab. The new link keeps the currently-published estimates and password; unsaved picker or password changes are not applied. Password-protected links require recipients to re-enter the password.",
       confirmLabel: "Create new link",
     };
   }
@@ -225,7 +237,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const summaryKey = readSummaryKey(summary);
   const activitySeenStorageKey = readActivitySeenStorageKey(summary, summaryKey);
   const [open, setOpen] = useState(false);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [activitySeenState, setActivitySeenState] = useState<{ storageKey: string; value: string | null }>(() => ({
     storageKey: activitySeenStorageKey,
     value: readStoredActivitySeenAt(activitySeenStorageKey),
@@ -250,6 +262,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     summaryKey,
   }));
   const [isPending, startTransition] = useTransition();
+  // AC-MOD-21: synchronous in-flight latch so a rapid double-click on the destructive confirm
+  // dispatches at most one action (the `isPending` transition flag updates a tick too late to
+  // stop a second click in the same event loop).
+  const confirmInFlightRef = useRef(false);
 
   // P1: selected estimates for the Estimates tab picker (defaults to all when estimates provided)
   const summarySelectedEstimateIds = summary?.selectedEstimateIds ?? EMPTY_ESTIMATE_IDS;
@@ -272,6 +288,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const setSelectedEstimateIds = (ids: string[]) => {
     setSelectedEstimateOverride({ ids, summaryKey });
   };
+  // AC-MOD-14 (MOD-SHEET-02): the picker is "dirty" when the owner has changed the selection on a
+  // *published* link but hasn't pressed Update yet. Compare sorted id sets (order-insensitive)
+  // against the published selection so re-selecting the same set in a different order isn't dirty.
+  const estimateSelectionDirty =
+    summary?.status === "published" &&
+    !areStringSetsEqual(selectedEstimateIds, summarySelectedEstimateIds);
 
   // P1/P4/P8: 5-tab navigation (Link / Estimates / Access / Recipients / Activity owner-only)
   const [activeTab, setActiveTab] = useState<PublicationTabId>("link");
@@ -367,22 +389,22 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
   async function copyClientLink() {
     if (!clientLinkPath) {
-      setActionMessage("Create a shared link first.");
+      setActionFeedback({ text: "Create a shared link first.", tone: "error" });
       return;
     }
 
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       await navigator.clipboard.writeText(absoluteClientLink);
-      setActionMessage("Shared link copied.");
+      setActionFeedback({ text: "Shared link copied.", tone: "success" });
     } catch {
-      setActionMessage("Copy unavailable. Select the link to copy it.");
+      setActionFeedback({ text: "Copy unavailable. Select the link to copy it.", tone: "error" });
     }
   }
 
   function openClientLink() {
     if (!clientLinkPath || typeof window === "undefined") {
-      setActionMessage("Create a shared link first.");
+      setActionFeedback({ text: "Create a shared link first.", tone: "error" });
       return;
     }
 
@@ -390,7 +412,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   }
 
   function runPublicationAction(action: () => Promise<{ ok: boolean; message: string; clientLinkPath?: string | null }>) {
-    setActionMessage(null);
+    setActionFeedback(null);
     startTransition(async () => {
       try {
         const result = await action();
@@ -417,15 +439,27 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         // revalidated summary's selection instead of showing stale pre-publish
         // edits (MOD-SHEET-01). Success path only — never in catch.
         setSelectedEstimateOverride(null);
-        setActionMessage(result.message);
+        setActionFeedback({ text: result.message, tone: "success" });
       } catch (error) {
-        setActionMessage(error instanceof Error ? error.message : "Publication update failed.");
+        // AC-MOD-12: a thrown action error renders as a danger alert, never as success.
+        setActionFeedback({
+          text: error instanceof Error ? error.message : "Publication update failed.",
+          tone: "error",
+        });
+      } finally {
+        // AC-MOD-21: release the destructive-confirm latch once the transition settles.
+        confirmInFlightRef.current = false;
       }
     });
   }
 
   function runConfirmedDestructiveAction() {
     if (!summary?.projectId || !destructiveAction) return;
+    // AC-MOD-21: synchronous double-submit guard. A rapid second click before React commits
+    // the modal-close / isPending update must not dispatch a second action. The latch is
+    // released in runPublicationAction's `finally` once the transition settles.
+    if (confirmInFlightRef.current) return;
+    confirmInFlightRef.current = true;
     const action = destructiveAction;
     setDestructiveAction(null);
 
@@ -442,13 +476,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     }
 
     if (action === "rotate") {
-      runPublicationAction(() =>
-        rotateProjectPublicationLink({
-          projectId: summary.projectId,
-          password: requirePassword && password.trim() ? password.trim() : undefined,
-          clearPassword: !requirePassword,
-        }),
-      );
+      // AC-MOD-13 (MOD-ROTATE-PWDRAFT-01): rotation re-mints the token only — it must NOT apply
+      // the unsaved Access-tab password draft. Passing just { projectId } keeps the server's
+      // existing `latest.password_hash` (the safe default); password changes flow through the
+      // Access tab + Update, never through rotation. (The confirm copy already tells recipients
+      // they must re-enter the existing password.)
+      runPublicationAction(() => rotateProjectPublicationLink({ projectId: summary.projectId }));
       return;
     }
 
@@ -503,9 +536,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           />
         ) : null}
       </button>
-      {actionMessage ? (
-        <span className="sr-only" role="status">
-          {actionMessage}
+      {actionFeedback ? (
+        <span
+          className="sr-only"
+          role={actionFeedback.tone === "error" ? "alert" : "status"}
+        >
+          {actionFeedback.text}
         </span>
       ) : null}
 
@@ -514,7 +550,12 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
         title="Shared link"
         description="View-only project page"
         onOpenChange={(next) => {
-          if (!next) setActiveTab("link");
+          if (!next) {
+            setActiveTab("link");
+            // AC-MOD-12: clear feedback in the close handler (never synchronously in an effect)
+            // so stale success/error tone doesn't persist into the next open.
+            setActionFeedback(null);
+          }
           setOpen(next);
         }}
         className="max-w-5xl"
@@ -659,7 +700,16 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
 
               {activeTab === "sheets" && (
                 <div className="space-y-2">
-                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Estimates to include</h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Estimates to include</h3>
+                    {/* AC-MOD-14 (MOD-SHEET-02): the published link still shows its saved estimates
+                        until the owner presses Update; this hint surfaces the pending change. */}
+                    {estimateSelectionDirty && (
+                      <span className="text-[9px] font-medium leading-3 text-warning" role="status">
+                        Unsaved — Update to apply
+                      </span>
+                    )}
+                  </div>
                   <SheetPickerList
                     estimates={projectEstimateSheets}
                     selectedIds={selectedEstimateIds}
@@ -754,7 +804,9 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   baseClientLink={clientLinkPath}
                   currentUserEmail={currentUserEmail}
                   projectName={null}
-                  onMessage={(m) => setActionMessage(m)}
+                  // Recipient-composer messages surface in the shared status box; treat them as
+                  // neutral/success (the composer renders its own danger states inline).
+                  onMessage={(m) => setActionFeedback(m ? { text: m, tone: "success" } : null)}
                 />
               )}
               {activeTab === "recipients" && (!summary?.publicationId || !canManagePublication) && (
@@ -874,10 +926,20 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               )}
             </div>
 
-            {actionMessage ? (
+            {actionFeedback ? (
               <div className="border-t border-hairline p-6">
-                <p className="rounded-xs bg-surfaceMuted px-2 py-1.5 text-[9px] leading-3 text-secondary" role="status">
-                  {actionMessage}
+                {/* AC-MOD-12: error feedback renders as a danger alert; success keeps the neutral
+                    status styling so a thrown action error never reads like a success. */}
+                <p
+                  className={cn(
+                    "rounded-xs px-2 py-1.5 text-[9px] leading-3",
+                    actionFeedback.tone === "error"
+                      ? "border border-dangerSoft bg-dangerSoft text-danger"
+                      : "bg-surfaceMuted text-secondary",
+                  )}
+                  role={actionFeedback.tone === "error" ? "alert" : "status"}
+                >
+                  {actionFeedback.text}
                 </p>
               </div>
             ) : null}
@@ -913,6 +975,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
               variant={destructiveAction === "revoke" || destructiveAction === "regenerate" ? "danger" : "secondary"}
               size="sm"
               className="min-h-7 rounded-xs px-2 text-[10px]"
+              disabled={isPending}
               onClick={runConfirmedDestructiveAction}
             >
               {readDestructivePublicationActionCopy(destructiveAction).confirmLabel}
