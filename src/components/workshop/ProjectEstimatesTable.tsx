@@ -27,15 +27,15 @@ import { duplicateEstimateSheet, executeBulkDeleteEstimateSheets, fetchEstimateT
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import { estimateRepository } from "@/lib/repositories/estimate-repository";
-import type { Tables } from "@/lib/supabase/types";
+import type { ProjectEstimateListRow } from "@/lib/estimates/project-estimate-list-row";
 import { cn } from "@/lib/ui/cn";
 
-export type ProjectEstimateTableRow = Tables<"estimates"> & {
-  firstNodeId?: string | null;
-  nodeCount: number;
-  rowItemCount: number;
-  totalProjectCost: number;
-};
+/**
+ * Backwards-compatible alias. The canonical, sensitive-column-free list-row
+ * contract lives in `@/lib/estimates/project-estimate-list-row`; the table no
+ * longer extends the full Supabase estimates row (finding F9 / P-1.1).
+ */
+export type ProjectEstimateTableRow = ProjectEstimateListRow;
 
 type ProjectEstimatesTableProps = {
   estimates: ProjectEstimateTableRow[];

@@ -36,11 +36,9 @@ function renderClient(estimates: ProjectEstimateTableRow[] = []) {
 function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): ProjectEstimateTableRow {
   return {
     created_at: "2026-05-19T10:00:00.000Z",
-    created_by: null,
     currency_code: "PHP",
     firstNodeId: "node-1",
     id: "estimate-1",
-    metadata: {},
     name: "Ground Floor Fit-Out",
     nodeCount: 1,
     notes: null,
