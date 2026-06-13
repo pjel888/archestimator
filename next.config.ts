@@ -113,7 +113,23 @@ const nextConfig: NextConfig = {
       },
     ];
 
-    return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders];
+    // F14 / P3-2: workshop (authenticated app) frame + sniff protection, plus a
+    // Report-Only CSP. Report-Only (not enforced) because workshop renders user
+    // content and dynamic Next chunks — measure violations via the report stream
+    // before enforcing (decision D6). No 'X-Robots-Tag' (the app is behind auth).
+    const workshopHardeningHeaders = [
+      {
+        source: "/workshop/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "Content-Security-Policy-Report-Only", value: landingReportOnlyCsp },
+        ],
+      },
+    ];
+
+    return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders, ...workshopHardeningHeaders];
   },
 };
 
