@@ -306,4 +306,28 @@ describe("proposal export model", () => {
       ["Finishes", "2"],
     ]);
   });
+
+  it("orders sections by the canonical division taxonomy, not encounter order (P3-T3, F-27)", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          // Finishes is encountered first, Preliminaries second — canonical order flips them.
+          { id: "fin", name: "Fin", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "f1", material: "Floor Tile", category: "Finishes" })] },
+          { id: "pre", name: "Pre", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "p1", material: "Mobilization", category: "General Preliminaries" })] },
+          { id: "mep", name: "Mep", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "e1", material: "Wiring", category: "Electrical Works" })] },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.summaryRows.map((summaryRow) => summaryRow.sectionLabel)).toEqual([
+      "General Preliminaries", // rank 0
+      "Finishes", // rank 4
+      "Electrical Works", // rank 8 (MEP)
+    ]);
+  });
 });
