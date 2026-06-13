@@ -255,6 +255,8 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
         estimateId: "estimate-1",
       });
     });
+    // P1 T7 (F21): the redundant pre-check resolve was removed; submit resolves exactly once.
+    expect(componentLibraryActionMocks.resolveEstimateTemplateInsertTarget).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(estimateActionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
         projectId: "project-1",
