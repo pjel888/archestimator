@@ -35,7 +35,7 @@ import { readComponentSourceUrlInput } from "./source-url";
 // a "use server" file: only async exports may be server actions).
 function revalidateTemplateSurfaces() {
   revalidatePath("/workshop/library");
-  revalidateTemplateSurfaces();
+  revalidatePath("/workshop/library/templates");
 }
 
 export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
