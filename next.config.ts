@@ -113,7 +113,52 @@ const nextConfig: NextConfig = {
       },
     ];
 
-    return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders];
+    // ── Teamspace Improvement Plan · T1.5 (security finding F8 / gap G4) ───────────
+    // Authenticated app routes /workshop/* and invite routes /invite/* previously had
+    // ZERO security headers (clickjacking + Referer-token-leak risk). We now apply the
+    // four hardening headers IMMEDIATELY (reusing `shareHardeningHeaders`):
+    //   • X-Content-Type-Options: nosniff
+    //   • X-Frame-Options: DENY              (anti-clickjacking)
+    //   • Referrer-Policy: no-referrer       (CRITICAL for /invite — raw token in URL path)
+    //   • Strict-Transport-Security (HSTS)   (force HTTPS)
+    //   (X-Robots-Tag: noindex,nofollow also rides along — both are authed/token-bearing.)
+    //
+    // CSP is shipped as Report-Only FIRST (decision D-9): we observe violations during an
+    // observation window before flipping to enforced `Content-Security-Policy`. Enforcement
+    // is DEFERRED and must be coordinated with the Shared-Link CSP-nonce work (the per-request
+    // nonce pipeline that replaces 'unsafe-inline'/'unsafe-eval') so the app and /share converge
+    // on one enforced policy. The Report-Only value reuses `landingReportOnlyCsp`, whose
+    // connect-src already allows `https://*.supabase.co wss://*.supabase.co` — required for
+    // Supabase Realtime websockets used on /workshop (presence + live cursors).
+    const appAndInviteHardening = [
+      {
+        source: "/workshop/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: landingReportOnlyCsp,
+          },
+          ...shareHardeningHeaders,
+        ],
+      },
+      {
+        source: "/invite/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: landingReportOnlyCsp,
+          },
+          ...shareHardeningHeaders,
+        ],
+      },
+    ];
+
+    return [
+      ...landingReportOnly,
+      ...sharePageEnforced,
+      ...shareApiSecurityHeaders,
+      ...appAndInviteHardening,
+    ];
   },
 };
 

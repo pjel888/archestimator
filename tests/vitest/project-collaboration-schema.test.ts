@@ -2,6 +2,14 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql", "utf8");
+const membershipGuards = readFileSync(
+  "supabase/migrations/20260614120000_teamspace_membership_atomic_guards.sql",
+  "utf8",
+);
+const rlsAuthUidPerf = readFileSync(
+  "supabase/migrations/20260614120100_teamspace_rls_authuid_perf.sql",
+  "utf8",
+);
 const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 
 describe("project and estimate sheet collaboration schema", () => {
@@ -43,6 +51,51 @@ describe("project and estimate sheet collaboration schema", () => {
     expect(migration).toContain("realtime.messages.extension = 'broadcast'");
     expect(migration).toContain("public.can_send_realtime_topic((select realtime.topic()))");
     expect(migration).toContain("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+  });
+
+  it("guards membership floors atomically with DB triggers (T1.4 / F13 / G13)", () => {
+    expect(membershipGuards).toContain(
+      "create or replace function public.enforce_workspace_owner_floor",
+    );
+    expect(membershipGuards).toContain(
+      "create or replace function public.enforce_project_manager_floor",
+    );
+    expect(membershipGuards).toContain("security definer");
+    expect(membershipGuards).toContain("set search_path = ''");
+    expect(membershipGuards).toContain("before delete or update on public.workspace_members");
+    expect(membershipGuards).toContain("before delete or update on public.project_members");
+    expect(membershipGuards).toContain(
+      "execute function public.enforce_workspace_owner_floor()",
+    );
+    expect(membershipGuards).toContain(
+      "execute function public.enforce_project_manager_floor()",
+    );
+    expect(membershipGuards).toContain("Every workspace must keep at least one owner.");
+    expect(membershipGuards).toContain("Every project must keep at least one owner or admin.");
+    expect(membershipGuards).toContain("errcode = 'P0001'");
+  });
+
+  it("wraps auth.uid() as (select auth.uid()) in collaboration RLS helpers (T2.4 / F-P5)", () => {
+    expect(rlsAuthUidPerf).toContain("(select auth.uid())");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.current_project_access_rank");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.can_access_project");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.can_edit_project");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.can_assign_project_role");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.can_access_estimate");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.can_edit_estimate");
+    expect(rlsAuthUidPerf).toContain("create or replace function public.can_assign_estimate_role");
+    expect(rlsAuthUidPerf).toContain('create policy "collaborators can view collaborator profiles" on public.profiles');
+
+    // No bare auth.uid() may remain: every executable occurrence must read (select auth.uid()).
+    // Comment lines that merely mention auth.uid() in prose are excluded so the counts compare
+    // like-for-like SQL occurrences only.
+    const sqlOnly = rlsAuthUidPerf
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("--"))
+      .join("\n");
+    const bareCount = (sqlOnly.match(/auth\.uid\(\)/g) ?? []).length;
+    const wrappedCount = (sqlOnly.match(/\(select auth\.uid\(\)\)/g) ?? []).length;
+    expect(bareCount).toBe(wrappedCount);
   });
 
   it("keeps generated Supabase types aligned with the collaboration schema", () => {
