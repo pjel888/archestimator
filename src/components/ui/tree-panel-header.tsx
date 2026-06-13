@@ -15,6 +15,7 @@ import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { TabStrip, type TabStripItem } from "@/components/ui/tab-strip";
+import { Tabs } from "@/components/ui/tabs";
 import { cn } from "@/lib/ui/cn";
 
 export type TreePanelHeaderProps = {
@@ -57,6 +58,12 @@ export type TreePanelHeaderProps = {
   activeTab?: string;
   tabsAriaLabel?: string;
   onTabChange?: (tab: string) => void;
+  /**
+   * How the tabs render. "strip" (default) is the file-folder TabStrip used by
+   * most tree panels; "tabs" is the underline Tabs used for section switchers
+   * (e.g. the estimate tree "Sheets" tab and the library Components/Templates).
+   */
+  tabVariant?: "strip" | "tabs";
   className?: string;
   /** Extra header content (e.g. a view-mode menu) inside the sticky stack. */
   children?: ReactNode;
@@ -96,6 +103,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     activeTab,
     tabsAriaLabel,
     onTabChange,
+    tabVariant = "strip",
     className,
     children,
   },
@@ -214,12 +222,28 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
         ) : null}
       </div>
       {tabs && tabs.length > 0 && activeTab !== undefined ? (
-        <TabStrip
-          tabs={tabs}
-          activeTab={activeTab}
-          ariaLabel={tabsAriaLabel ?? `${labelPrefix} views`}
-          onTabChange={onTabChange}
-        />
+        tabVariant === "tabs" ? (
+          <Tabs
+            tabs={tabs.map((tab) => ({
+              id: tab.id,
+              label: tab.label,
+              icon: tab.icon,
+              badge: typeof tab.count === "number" ? tab.count : undefined,
+            }))}
+            activeId={activeTab}
+            onChange={(id) => onTabChange?.(id)}
+            ariaLabel={tabsAriaLabel ?? `${labelPrefix} views`}
+            variant="underline"
+            className="px-2"
+          />
+        ) : (
+          <TabStrip
+            tabs={tabs}
+            activeTab={activeTab}
+            ariaLabel={tabsAriaLabel ?? `${labelPrefix} views`}
+            onTabChange={onTabChange}
+          />
+        )
       ) : null}
       {children}
     </div>
