@@ -24,13 +24,21 @@ export type TabStripProps<TTab extends string = string> = {
   className?: string;
 };
 
-const tabClassName = (isActive: boolean) =>
+/**
+ * The canonical file-folder tab styling: a tab whose active state lifts onto
+ * the white panel below it. Exported so specialized strips (e.g. the editable
+ * estimate sheet tabs) render pixel-identical tabs without re-deriving the look.
+ * Height comes from the container (`h-full`).
+ */
+export const tabStripTabClassName = (isActive: boolean) =>
   cn(
     "relative inline-flex h-full items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
     isActive
       ? "z-10 bg-white text-ink border-hairline -mb-px"
       : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline",
   );
+
+const tabClassName = tabStripTabClassName;
 
 function TabContent({ tab }: { tab: TabStripItem<string> }) {
   return (

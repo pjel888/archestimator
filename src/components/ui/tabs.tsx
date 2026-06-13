@@ -15,10 +15,12 @@ export type TabsProps = {
   onChange: (id: string) => void;
   className?: string;
   variant?: "underline" | "pills";
+  /** Accessible name for the tablist (announced by screen readers). */
+  ariaLabel?: string;
 };
 
 export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
-  ({ tabs, activeId, onChange, className, variant = "underline" }, ref) => {
+  ({ tabs, activeId, onChange, className, variant = "underline", ariaLabel }, ref) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
@@ -85,6 +87,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
             variant === "underline" ? "border-b border-divider" : "gap-1"
           )}
           role="tablist"
+          aria-label={ariaLabel}
           aria-orientation="horizontal"
         >
           {tabs.map((tab, index) => {
