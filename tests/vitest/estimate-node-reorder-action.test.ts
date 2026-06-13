@@ -851,7 +851,11 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
       from: vi.fn((table: string) => {
         throw new Error(`insertEstimateTemplateIntoEstimate must not query ${table} outside the RPC.`);
       }),
-      rpc: vi.fn(async () => ({ data: rpcResult, error: null })),
+      // U4: the app-layer can_edit_estimate gate now runs before the insert RPC.
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: rpcResult, error: null };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
@@ -870,8 +874,9 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
       },
     } as never);
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_template_into_estimate_with_history", {
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
+    expect(supabase.rpc).toHaveBeenNthCalledWith(1, "can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).toHaveBeenNthCalledWith(2, "insert_estimate_template_into_estimate_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
       target_parent_node_id: "parent-group",
@@ -892,7 +897,11 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
       from: vi.fn((table: string) => {
         throw new Error(`insertEstimateTemplateIntoEstimate must not query ${table} outside the RPC.`);
       }),
-      rpc: vi.fn(async () => ({ data: null, error: new Error("Template row items must belong to area nodes.") })),
+      // U4: can_edit_estimate passes, then the insert RPC surfaces the failure.
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: null, error: new Error("Template row items must belong to area nodes.") };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
@@ -906,8 +915,108 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
       }),
     ).rejects.toThrow("Could not insert estimate template: Template row items must belong to area nodes.");
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
     expect(supabase.from).not.toHaveBeenCalled();
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+  });
+
+  it("denies a workspace-member viewer before the insert RPC (U4 / SEC-1)", async () => {
+    const supabase = {
+      from: vi.fn((table: string) => {
+        throw new Error(`insertEstimateTemplateIntoEstimate must not query ${table} when edit is denied.`);
+      }),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: false, error: null };
+        throw new Error(`denied insert must not call ${name}`);
+      }),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
+
+    await expect(
+      insertEstimateTemplateIntoEstimate({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        targetParentNodeId: "parent-group",
+        templateId: "template-1",
+      }),
+    ).rejects.toThrow("Estimate edit access denied.");
+
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+  });
+});
+
+describe("wrapEstimateAreaAndInsertTemplate server action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
+    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+  });
+
+  it("denies a viewer before creating the wrapper group, leaving no orphan node (U4-2)", async () => {
+    const from = vi.fn((table: string) => {
+      throw new Error(`wrap must not query ${table} when edit is denied.`);
+    });
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "can_edit_estimate") return { data: false, error: null };
+      throw new Error(`denied wrap must not call ${name}`);
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const { wrapEstimateAreaAndInsertTemplate } = await import("@/lib/estimates/actions");
+
+    await expect(
+      wrapEstimateAreaAndInsertTemplate({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        areaNodeId: "area-1",
+        insert: { templateIds: ["template-1"] },
+      }),
+    ).rejects.toThrow("Estimate edit access denied.");
+
+    // The gate runs before the wrapper-group create + area reorder, so a denied
+    // viewer fires no mutating RPC and leaves no orphan group (U4-2).
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(rpc).not.toHaveBeenCalledWith("create_estimate_node_with_history", expect.anything());
+    expect(from).not.toHaveBeenCalled();
+  });
+});
+
+describe("insertEstimateTemplateNodeIntoEstimate server action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
+    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+  });
+
+  it("denies a viewer before any node/row write on the direct-call path (U4)", async () => {
+    // This path is reachable directly from the panel, not only via the gated
+    // wrap flow, so it must deny a workspace-member viewer before its create/
+    // insert RPCs (review finding: previously unguarded).
+    const from = vi.fn((table: string) => {
+      throw new Error(`insertEstimateTemplateNodeIntoEstimate must not query ${table} when edit is denied.`);
+    });
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "can_edit_estimate") return { data: false, error: null };
+      throw new Error(`denied node insert must not call ${name}`);
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const { insertEstimateTemplateNodeIntoEstimate } = await import("@/lib/estimates/actions");
+
+    await expect(
+      insertEstimateTemplateNodeIntoEstimate({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        targetParentNodeId: "parent-group",
+        templateId: "template-1",
+        templateNodeId: "template-node-1",
+      }),
+    ).rejects.toThrow("Estimate edit access denied.");
+
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(from).not.toHaveBeenCalled();
   });
 });

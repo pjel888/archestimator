@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { useToast } from "@/components/ui/toast";
 import {
   pruneSelection,
   toggleCascadeSelection,
@@ -71,6 +72,25 @@ import {
   type LibraryTreeOrder,
 } from "./tree";
 import type { ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
+
+// U1b: project-source load failures surface through the existing toast — never
+// an inline banner (which shifts the tree) and never a raw DB error shape
+// ({code,details,hint,message}). One fixed, friendly string per scope; the raw
+// error is logged to the browser console only, never to the DOM.
+type SourceErrorScope = "dataset" | "estimates" | "outline" | "search";
+
+function toUserSourceError(scope: SourceErrorScope): string {
+  switch (scope) {
+    case "dataset":
+      return "Couldn't load project sources. Try Refresh.";
+    case "estimates":
+      return "Couldn't load this project's estimates. Try Refresh.";
+    case "outline":
+      return "Couldn't load this project's outline. Try Refresh.";
+    case "search":
+      return "Couldn't search project sources. Try again.";
+  }
+}
 
 // The single create-component modal, shared with the Components page: the
 // estimate sidebar must not grow its own variant of this form.
@@ -706,15 +726,13 @@ export function EstimateRightSidebar({
   const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
   const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
-  const [projectSourcesError, setProjectSourcesError] = useState("");
   const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
   const [projectSourceSearchLoading, setProjectSourceSearchLoading] = useState(false);
-  const [projectSourceSearchError, setProjectSourceSearchError] = useState("");
   const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
   const [projectEstimateLoadedProjectIds, setProjectEstimateLoadedProjectIds] = useState<string[]>([]);
-  const [projectEstimateErrors, setProjectEstimateErrors] = useState<Record<string, string>>({});
   const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
-  const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
+  // U1b: outline/source/search failures go to this toast, not inline banners.
+  const { toast } = useToast();
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
     Array.from(new Set([
       templatesTreeSectionId("custom-templates"),
@@ -794,29 +812,26 @@ export function EstimateRightSidebar({
   const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
     if (!canLoadProjectSourcesFromActions) return Promise.resolve();
     setProjectSourcesLoading(true);
-    setProjectSourcesError("");
-    setProjectEstimateErrors({});
     setProjectEstimateLoadedProjectIds([]);
     setProjectEstimateLoadingProjectIds([]);
-    setProjectOutlineErrors({});
     setProjectOutlineLoadingEstimateIds([]);
     return listReusableProjectSources()
       .then((result) => {
         if (!isCancelled?.()) setLoadedProjectSources(result.sources);
       })
       .catch((error: unknown) => {
-        if (!isCancelled?.()) setProjectSourcesError(error instanceof Error ? error.message : "Could not load project sources.");
+        console.error("[templates] project sources load failed", error);
+        if (!isCancelled?.()) toast({ tone: "error", message: toUserSourceError("dataset") });
       })
       .finally(() => {
         if (!isCancelled?.()) setProjectSourcesLoading(false);
       });
-  }, [canLoadProjectSourcesFromActions]);
+  }, [canLoadProjectSourcesFromActions, toast]);
   const refreshProjectSources = useCallback(() => {
     setPreviewProjectSourceKey(null);
     setBulkSelectedNodeIds(new Set());
     setProjectSourceSearchResults([]);
     setProjectEstimateLoadedProjectIds([]);
-    setProjectEstimateErrors({});
     void loadProjectSources();
   }, [loadProjectSources]);
   const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
@@ -932,8 +947,6 @@ export function EstimateRightSidebar({
       setLoadedProjectSources(projectSources);
       setProjectEstimateLoadedProjectIds([]);
       setProjectEstimateLoadingProjectIds([]);
-      setProjectEstimateErrors({});
-      setProjectOutlineErrors({});
     }, 0);
     return () => {
       cancelled = true;
@@ -958,7 +971,6 @@ export function EstimateRightSidebar({
     const resetTimer = window.setTimeout(() => {
       if (cancelled) return;
       setProjectSourceSearchResults([]);
-      setProjectSourceSearchError("");
       setProjectSourceSearchLoading(false);
     }, 0);
     if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
@@ -971,7 +983,6 @@ export function EstimateRightSidebar({
       if (cancelled) return;
       setProjectSourceSearchResults([]);
       setProjectSourceSearchLoading(true);
-      setProjectSourceSearchError("");
     }, 0);
     const timer = window.setTimeout(() => {
       searchReusableProjectSources({ query: projectSourceSearchQuery })
@@ -979,7 +990,8 @@ export function EstimateRightSidebar({
           if (!cancelled) setProjectSourceSearchResults(result.sources);
         })
         .catch((error: unknown) => {
-          if (!cancelled) setProjectSourceSearchError(error instanceof Error ? error.message : "Could not search project sources.");
+          console.error("[templates] project source search failed", error);
+          if (!cancelled) toast({ tone: "error", message: toUserSourceError("search") });
         })
         .finally(() => {
           if (!cancelled) setProjectSourceSearchLoading(false);
@@ -991,7 +1003,7 @@ export function EstimateRightSidebar({
       window.clearTimeout(loadingTimer);
       window.clearTimeout(timer);
     };
-  }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery]);
+  }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery, toast]);
 
   useEffect(() => {
     const handler = (event: StorageEvent) => {
@@ -1069,18 +1081,11 @@ export function EstimateRightSidebar({
         </div>
       );
     }
-    if (projectSourcesError) {
-      return (
-        <div className="rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t load project sources. {projectSourcesError}
-        </div>
-      );
-    }
+    // U1b: load failures surface via toast, not an inline banner.
     return undefined;
-  }, [projectSourcesError, projectSourcesLoading]);
+  }, [projectSourcesLoading]);
   const templatesProjectSourceStatus = useMemo(() => {
     const projectLoadingCount = projectEstimateLoadingProjectIds.length;
-    const projectErrors = Object.values(projectEstimateErrors);
     if (projectLoadingCount > 0) {
       return (
         <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
@@ -1088,15 +1093,7 @@ export function EstimateRightSidebar({
         </div>
       );
     }
-    if (projectErrors.length > 0) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t load project estimates. {projectErrors[0]}
-        </div>
-      );
-    }
     const loadingCount = projectOutlineLoadingEstimateIds.length;
-    const errors = Object.values(projectOutlineErrors);
     if (loadingCount > 0) {
       return (
         <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
@@ -1104,15 +1101,9 @@ export function EstimateRightSidebar({
         </div>
       );
     }
-    if (errors.length > 0) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t load estimate outline. {errors[0]}
-        </div>
-      );
-    }
+    // U1b: estimate/outline load failures surface via toast, not inline banners.
     return null;
-  }, [projectEstimateErrors, projectEstimateLoadingProjectIds.length, projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
+  }, [projectEstimateLoadingProjectIds.length, projectOutlineLoadingEstimateIds.length]);
   const templatesProjectSourceSearchStatus = useMemo(() => {
     if (!projectSourceSearchQuery) return null;
     if (projectSourceSearchLoading) {
@@ -1122,15 +1113,9 @@ export function EstimateRightSidebar({
         </div>
       );
     }
-    if (projectSourceSearchError) {
-      return (
-        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
-          Couldn&apos;t search project sources. {projectSourceSearchError}
-        </div>
-      );
-    }
+    // U1b: search failures surface via toast, not an inline banner.
     return null;
-  }, [projectSourceSearchError, projectSourceSearchLoading, projectSourceSearchQuery]);
+  }, [projectSourceSearchLoading, projectSourceSearchQuery]);
   const templatesProjectSourceScopeControls = useMemo(() => {
     if (
       templateSourceFilter === "custom" ||
@@ -1727,11 +1712,6 @@ export function EstimateRightSidebar({
       setProjectEstimateLoadingProjectIds((current) =>
         current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
       );
-      setProjectEstimateErrors((current) => {
-        const next = { ...current };
-        delete next[projectSource.projectId];
-        return next;
-      });
       listReusableProjectEstimateSources({ projectId: projectSource.projectId })
         .then((result) => {
           setLoadedProjectSources((current) =>
@@ -1742,10 +1722,8 @@ export function EstimateRightSidebar({
           );
         })
         .catch((error: unknown) => {
-          setProjectEstimateErrors((current) => ({
-            ...current,
-            [projectSource.projectId]: error instanceof Error ? error.message : "Could not load project estimates.",
-          }));
+          console.error("[templates] project estimates load failed", error);
+          toast({ tone: "error", message: toUserSourceError("estimates") });
         })
         .finally(() => {
           setProjectEstimateLoadingProjectIds((current) => current.filter((projectId) => projectId !== projectSource.projectId));
@@ -1761,20 +1739,13 @@ export function EstimateRightSidebar({
     setProjectOutlineLoadingEstimateIds((current) =>
       current.includes(source.estimateId) ? current : [...current, source.estimateId],
     );
-    setProjectOutlineErrors((current) => {
-      const next = { ...current };
-      delete next[source.estimateId];
-      return next;
-    });
     getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
       .then((result) => {
         setLoadedProjectSources((current) => mergeReusableProjectSources(current, result.sources, source.estimateId));
       })
       .catch((error: unknown) => {
-        setProjectOutlineErrors((current) => ({
-          ...current,
-          [source.estimateId]: error instanceof Error ? error.message : "Could not load estimate outline.",
-        }));
+        console.error("[templates] estimate outline load failed", error);
+        toast({ tone: "error", message: toUserSourceError("outline") });
       })
       .finally(() => {
         setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
@@ -1785,6 +1756,7 @@ export function EstimateRightSidebar({
     projectEstimateLoadingProjectIds,
     projectOutlineLoadingEstimateIds,
     templatesExpandedIds,
+    toast,
   ]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
