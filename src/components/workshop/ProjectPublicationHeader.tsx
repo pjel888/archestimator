@@ -312,6 +312,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const effectiveStatus = hasLocalResult ? localResult?.status ?? "unpublished" : summary?.status ?? "unpublished";
   const effectivePasswordRequired = hasLocalResult ? localResult?.passwordRequired ?? false : summary?.passwordRequired ?? false;
   const hasLiveClientLink = effectiveStatus === "published";
+  // AC-MOD-19 (MOD-ACTIVITY-TOKEN-01): the Activity feed needs the publication token (the last
+  // path segment of the client link). A revoked/expired link has no live link path → empty token,
+  // which the feed cannot load. Derive it from the effective link so the gate below can avoid
+  // mounting the feed with a token that would only ever error.
+  const activityPublicationToken = clientLinkPath.split("/").pop() || "";
   // AC-MOD-10: an expired link keeps its stored row (status stays "published" in the DB but the
   // summary surfaces "expired"), so it can be reactivated in place. In this state the primary
   // control is a safe Reactivate, with a confirm-gated fresh-token escape hatch.
@@ -655,11 +660,40 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                 <div className="space-y-2">
                   <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link activity</h3>
                   <p className="text-[9px] text-tertiary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
-                  <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} publicationId={summary?.publicationId ?? null} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
+                  {/* AC-MOD-19 (MOD-ACTIVITY-TOKEN-01): only mount the feed for a genuinely live link
+                      with a non-empty token. A revoked/expired link has a null clientLinkPath → an
+                      empty token → loadSharedLinkActivity("") throws "not found", which the feed shows
+                      as a retryable error that always fails. Render a neutral empty state instead. */}
+                  {effectiveStatus === "published" && activityPublicationToken ? (
+                    <SharedLinkActivityFeed publicationToken={activityPublicationToken} publicationId={summary?.publicationId ?? null} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
+                  ) : (
+                    <p
+                      className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-[10px] leading-4 text-tertiary"
+                      role="status"
+                    >
+                      Activity is available while the link is live. Reactivate or create a shared link to see recipient activity.
+                    </p>
+                  )}
                 </div>
               )}
 
-              {activeTab === "link" && (
+              {activeTab === "link" && summary === null && (
+                // AC-MOD-19 (MOD-EMPTY-NOPROJECT-01): a null summary is NOT an unpublished zeroed
+                // link — there is no shareable publication context for this project yet. Render an
+                // explicit, calm info state instead of the ambiguous "Create a shared link" zeroed UI.
+                <div
+                  className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-4 text-[10px] leading-4 text-secondary"
+                  role="status"
+                >
+                  <p className="font-medium text-ink">No shareable publication yet</p>
+                  <p className="mt-1 text-tertiary">
+                    This project doesn&apos;t have a shareable client page yet. Open a project with
+                    published estimates to create and manage its shared link here.
+                  </p>
+                </div>
+              )}
+
+              {activeTab === "link" && summary !== null && (
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <ControlField

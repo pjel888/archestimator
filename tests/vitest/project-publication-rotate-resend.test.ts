@@ -673,3 +673,134 @@ describe("AC-MOD-03 resendSharedLinkRecipientEmail sends before persisting", () 
     expect(payload.delivery_status).not.toBe("pending");
   });
 });
+
+// AC-MOD-17 (MOD-ACT-04 + MOD-REC-05) — addSharedLinkRecipients must surface the inserted
+// recipient id (so a just-added chip is server-actionable without a remount) and tag a
+// unique-violation as an explicit "duplicate" status (so the UI never renders it as a green
+// "sent" chip while the headline says "No new recipients added").
+describe("AC-MOD-17 addSharedLinkRecipients surfaces inserted id + neutral duplicate status", () => {
+  const NEW_RECIPIENT_ID = "55555555-5555-4555-8555-555555555555";
+
+  async function setupAdd({ duplicate }: { duplicate: boolean }) {
+    const recorded: RecordedQuery[] = [];
+
+    vi.doMock("@/lib/auth/session", () => ({
+      requireCurrentUserContext: vi.fn().mockResolvedValue({
+        userId: "user-1",
+        role: "ceo",
+        email: "owner@example.com",
+        displayName: "Owner One",
+      }),
+    }));
+    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
+    vi.doMock("next/headers", () => ({
+      headers: vi.fn().mockResolvedValue({ get: () => "203.0.113.1" }),
+    }));
+
+    const sendEmail = vi.fn().mockResolvedValue({ ok: true, messageId: "invite-message-1" });
+    vi.doMock("@/lib/email/resend-client", () => ({
+      sendEmail,
+      readEmailDeliveryConfig: vi.fn(() => ({ configured: true })),
+    }));
+
+    vi.doMock("@/lib/publication/security", async () => {
+      const actual = await vi.importActual<typeof import("@/lib/publication/security")>(
+        "@/lib/publication/security",
+      );
+      return {
+        ...actual,
+        decryptPublicationToken: vi.fn(() => "client-token"),
+      };
+    });
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() =>
+        makeAdminClient({
+          recorded,
+          resolveResult: (query) => {
+            if (query.table === "project_publications" && query.operation === "select") {
+              return {
+                data: {
+                  id: PUBLICATION_ID,
+                  project_id: PROJECT_ID,
+                  workspace_id: WORKSPACE_ID,
+                  encrypted_token: "encrypted-token",
+                },
+                error: null,
+              };
+            }
+            if (query.table === "projects") {
+              return {
+                data: {
+                  id: PROJECT_ID,
+                  workspace_id: WORKSPACE_ID,
+                  name: "Demo Project",
+                  project_code: "P-1",
+                  client_name: "Client",
+                  location: "Site",
+                  currency_code: "USD",
+                  metadata: {},
+                },
+                error: null,
+              };
+            }
+            if (query.table === "shared_link_recipients" && query.operation === "insert") {
+              // Simulate a unique-violation (already invited) vs a fresh insert returning the id.
+              if (duplicate) {
+                return { data: null, error: { code: "23505", message: "duplicate key value" } };
+              }
+              return { data: { id: NEW_RECIPIENT_ID }, error: null };
+            }
+            return { data: null, error: null };
+          },
+        }),
+      ),
+    }));
+
+    const { addSharedLinkRecipients } = await import("@/lib/publication/actions");
+    return { addSharedLinkRecipients, recorded, sendEmail };
+  }
+
+  it("returns the inserted recipient id (and status 'sent') on a successful add", async () => {
+    const { addSharedLinkRecipients, sendEmail } = await setupAdd({ duplicate: false });
+
+    const result = await addSharedLinkRecipients({
+      publicationId: PUBLICATION_ID,
+      recipients: [{ email: "fresh@example.com" }],
+      baseClientLink: "/share/client-token",
+    });
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(result.added).toBe(1);
+    const entry = result.emailResults.find((r) => r.email === "fresh@example.com");
+    expect(entry).toBeDefined();
+    // The id flows back so a just-added chip can Resend/Remove server-side without a remount.
+    expect(entry?.id).toBe(NEW_RECIPIENT_ID);
+    expect(entry?.ok).toBe(true);
+    expect(entry?.status).toBe("sent");
+  });
+
+  it("tags a duplicate (unique violation) as status 'duplicate', not a green success", async () => {
+    const { addSharedLinkRecipients, sendEmail } = await setupAdd({ duplicate: true });
+
+    const result = await addSharedLinkRecipients({
+      publicationId: PUBLICATION_ID,
+      recipients: [{ email: "already@example.com" }],
+      baseClientLink: "/share/client-token",
+    });
+
+    // A duplicate is not a new add and never sends an email.
+    expect(result.added).toBe(0);
+    expect(sendEmail).not.toHaveBeenCalled();
+
+    const entry = result.emailResults.find((r) => r.email === "already@example.com");
+    expect(entry).toBeDefined();
+    expect(entry?.status).toBe("duplicate");
+    // ok stays true so the aggregate/added logic is unaffected, but the misleading
+    // "already invited" error string no longer drives a green "sent" chip.
+    expect(entry?.ok).toBe(true);
+    expect(entry?.error).toBeUndefined();
+    // Headline still reflects "no new recipients" for a pure-duplicate batch.
+    expect(result.message).toMatch(/No new recipients added/i);
+  });
+});

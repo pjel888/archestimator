@@ -17,6 +17,7 @@ const publicationActions = vi.hoisted(() => ({
   addSharedLinkRecipients: vi.fn(),
   createProjectPublication: vi.fn(),
   listSharedLinkRecipients: vi.fn(),
+  loadSharedLinkActivity: vi.fn(),
   readSharedLinkEmailDeliveryReadiness: vi.fn(),
   refreshProjectPublicationSummary: vi.fn(),
   removeSharedLinkRecipient: vi.fn(),
@@ -62,6 +63,7 @@ describe("ProjectPublicationHeader publication control", () => {
     publicationActions.addSharedLinkRecipients.mockReset();
     publicationActions.createProjectPublication.mockReset();
     publicationActions.listSharedLinkRecipients.mockReset();
+    publicationActions.loadSharedLinkActivity.mockReset();
     publicationActions.readSharedLinkEmailDeliveryReadiness.mockReset();
     publicationActions.refreshProjectPublicationSummary.mockReset();
     publicationActions.removeSharedLinkRecipient.mockReset();
@@ -73,6 +75,8 @@ describe("ProjectPublicationHeader publication control", () => {
       configured: true,
       message: "Email delivery is configured.",
     });
+    // Default: the owner Activity feed loader resolves empty so a mounted feed settles cleanly.
+    publicationActions.loadSharedLinkActivity.mockResolvedValue({ activities: [], hasMore: false, nextCursor: null });
     // Default: live refetch returns nothing new so the prop summary stays the source of truth.
     publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
 
@@ -1372,6 +1376,126 @@ describe("ProjectPublicationHeader password-state clarity (AC-MOD-16)", () => {
     expect(within(accessPanel).queryByText("Unsaved — Update to apply")).not.toBeInTheDocument();
     await user.type(within(dialog).getByLabelText("Link password"), "rotated-secret");
     expect(within(accessPanel).getByText("Unsaved — Update to apply")).toBeInTheDocument();
+  });
+});
+
+// AC-MOD-19 (MOD-EMPTY-NOPROJECT-01 + MOD-ACTIVITY-TOKEN-01) — empty/error states:
+//   1) a null summary shows an explicit "no shareable publication" info state, not the ambiguous
+//      published zeroed UI;
+//   2) the Activity tab only mounts the feed for a genuinely live link with a non-empty token —
+//      a revoked/expired link shows a neutral "available while live" state and never calls
+//      loadSharedLinkActivity (which would throw on the empty token and read as a failing error).
+describe("ProjectPublicationHeader empty/error states (AC-MOD-19)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    publicationActions.loadSharedLinkActivity.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockReset();
+    publicationActions.refreshProjectPublicationSummary.mockResolvedValue(null);
+    publicationActions.loadSharedLinkActivity.mockResolvedValue({ activities: [], hasMore: false, nextCursor: null });
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn(async () => undefined) },
+    });
+  });
+
+  it("renders an explicit 'no shareable publication' info state when summary is null", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={null} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    // Distinct, calm info state — NOT the unpublished zeroed link UI.
+    expect(within(dialog).getByText("No shareable publication yet")).toBeInTheDocument();
+    expect(within(dialog).getByText(/doesn't have a shareable client page yet/i)).toBeInTheDocument();
+    // The ambiguous zeroed Link input is not shown for a null summary.
+    expect(within(dialog).queryByRole("textbox", { name: "Shared link" })).not.toBeInTheDocument();
+  });
+
+  it("does NOT show the no-publication info state for a published summary (distinct from null)", async () => {
+    const user = userEvent.setup();
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    expect(within(dialog).queryByText("No shareable publication yet")).not.toBeInTheDocument();
+    // The real Link input is present for a live summary.
+    expect(within(dialog).getByRole("textbox", { name: "Shared link" })).toBeInTheDocument();
+  });
+
+  it("gates the Activity feed off for a revoked link: neutral empty state, no loadSharedLinkActivity call", async () => {
+    const user = userEvent.setup();
+    const revokedSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "revoked",
+      clientLinkPath: null,
+    };
+    render(
+      <ProjectPublicationHeader summary={revokedSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Activity" }));
+
+    // Neutral empty state explains the feed is only live-link scoped.
+    expect(within(dialog).getByText(/Activity is available while the link is live/i)).toBeInTheDocument();
+    // The feed itself never mounts (no feed/loading/error testids), so its load is never attempted.
+    // (Modal content is portalled to document.body, so query the dialog node, not the render root.)
+    expect(dialog.querySelector('[data-testid="activity-feed"]')).toBeNull();
+    expect(dialog.querySelector('[data-testid="activity-loading"]')).toBeNull();
+    expect(dialog.querySelector('[data-testid="activity-error"]')).toBeNull();
+    // Give any (incorrect) deferred feed load a chance to fire, then assert it never did.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(publicationActions.loadSharedLinkActivity).not.toHaveBeenCalled();
+  });
+
+  it("gates the Activity feed off for an expired link (null link path) too", async () => {
+    const user = userEvent.setup();
+    const expiredSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "expired",
+      clientLinkPath: null,
+      expiresAt: "2026-01-01T00:00:00.000Z",
+    };
+    render(
+      <ProjectPublicationHeader summary={expiredSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Activity" }));
+
+    expect(within(dialog).getByText(/Activity is available while the link is live/i)).toBeInTheDocument();
+    expect(dialog.querySelector('[data-testid="activity-feed"]')).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(publicationActions.loadSharedLinkActivity).not.toHaveBeenCalled();
+  });
+
+  it("still mounts the Activity feed for a genuinely live link with a non-empty token", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Activity" }));
+
+    // Positive control: a live link mounts the feed and calls the loader with the real token.
+    // Proves the gate above is non-vacuous (it CAN mount when appropriate, and the revoked/expired
+    // tests above genuinely exercise the off path rather than always being off).
+    await waitFor(() => expect(publicationActions.loadSharedLinkActivity).toHaveBeenCalled());
+    expect(publicationActions.loadSharedLinkActivity.mock.calls[0][0]).toBe("client-token");
+    // The feed component is mounted (a feed-state testid is present) and the neutral gated-off
+    // empty state is NOT shown. (Query the portalled dialog node, not the render root.)
+    await waitFor(() =>
+      expect(
+        dialog.querySelector('[data-testid="activity-feed"], [data-testid="activity-loading"]'),
+      ).not.toBeNull(),
+    );
+    expect(within(dialog).queryByText(/Activity is available while the link is live/i)).not.toBeInTheDocument();
   });
 });
 

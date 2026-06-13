@@ -38,6 +38,10 @@ type LocalRecipient = {
   displayName?: string | null;
   delivery_status: "pending" | "sent" | "bounced" | "opened" | "responded";
   email_unsubscribed_at?: string | null;
+  // AC-MOD-17 (MOD-REC-05): a server "duplicate" result is a UI-only treatment, not a real
+  // persisted delivery status, so it rides on a separate flag instead of widening the
+  // delivery_status union. The chip renders neutrally (not green "sent") when this is set.
+  isDuplicate?: boolean;
 };
 
 type SharedLinkRecipient = Awaited<ReturnType<typeof listSharedLinkRecipients>>[number];
@@ -162,13 +166,19 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
         baseClientLink,
       });
 
-      // Optimistic merge of results into chips with statuses
+      // Optimistic merge of results into chips with statuses. AC-MOD-17 (MOD-REC-05/MOD-ACT-04):
+      // map by `match.status` first so a duplicate renders neutrally (never as a green "sent"),
+      // and adopt `match.id` so a just-added chip immediately supports Resend/Remove (both require
+      // an id) without waiting for a modal remount.
       const updated = chips.map((chip) => {
         const match = result.emailResults.find((emailResult: RecipientEmailResult) => emailResult.email.toLowerCase() === chip.email.toLowerCase());
         if (match) {
+          const isDuplicate = match.status === "duplicate";
           return {
             ...chip,
-            delivery_status: match.ok ? "sent" : "pending",
+            id: match.id ?? chip.id,
+            isDuplicate,
+            delivery_status: isDuplicate ? chip.delivery_status : match.ok ? "sent" : "pending",
           } as LocalRecipient;
         }
         return chip;
@@ -178,9 +188,12 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       const existingEmails = new Set(updated.map((c) => c.email.toLowerCase()));
       for (const er of result.emailResults) {
         if (!existingEmails.has(er.email.toLowerCase())) {
+          const isDuplicate = er.status === "duplicate";
           updated.push({
+            id: er.id,
             email: er.email,
-            delivery_status: er.ok ? "sent" : "pending",
+            isDuplicate,
+            delivery_status: isDuplicate ? "pending" : er.ok ? "sent" : "pending",
           });
         }
       }
@@ -264,8 +277,13 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
       <div className="flex flex-wrap items-center gap-1 rounded-xs border border-hairline bg-white p-1 min-h-7">
         {chips.map((chip) => {
           const status = chip.delivery_status;
-          const statusLabel = chip.email_unsubscribed_at ? "unsubscribed" : status === "bounced" ? "failed" : status;
+          // AC-MOD-17 (MOD-REC-05): a duplicate is a neutral, already-invited treatment — never
+          // the green "sent" style — so it takes precedence in both the label and the class map.
+          const statusLabel = chip.isDuplicate
+            ? "already invited"
+            : chip.email_unsubscribed_at ? "unsubscribed" : status === "bounced" ? "failed" : status;
           const statusClass =
+            chip.isDuplicate ? "bg-surfaceMuted text-tertiary" :
             chip.email_unsubscribed_at ? "bg-surfaceMuted text-tertiary" :
             status === "sent" ? "bg-successSoft text-success" :
             status === "bounced" ? "bg-dangerSoft text-danger" :

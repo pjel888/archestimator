@@ -266,3 +266,76 @@ describe("RecipientEmailComposer — interaction guards (AC-MOD-13)", () => {
     expect(publicationActions.resendSharedLinkRecipientEmail).not.toHaveBeenCalled();
   });
 });
+
+// AC-MOD-17 (MOD-ACT-04 + MOD-REC-05) — after a send the merge must:
+//   1) render a duplicate result NEUTRALLY (never the green "sent" chip), and
+//   2) adopt the inserted id on a fresh success so the just-added chip's Resend/Remove
+//      controls (which require an id) appear immediately, without a modal remount.
+describe("RecipientEmailComposer — recipient-result merge (AC-MOD-17)", () => {
+  beforeEach(() => {
+    publicationActions.addSharedLinkRecipients.mockReset();
+    publicationActions.listSharedLinkRecipients.mockReset();
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockReset();
+    publicationActions.removeSharedLinkRecipient.mockReset();
+    publicationActions.resendSharedLinkRecipientEmail.mockReset();
+
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockResolvedValue({
+      configured: true,
+      message: "Email delivery is configured.",
+    });
+    publicationActions.listSharedLinkRecipients.mockResolvedValue([]);
+  });
+
+  async function typeAndSend(user: ReturnType<typeof userEvent.setup>, email: string) {
+    const emailInput = await screen.findByPlaceholderText("name@company.com, another@...");
+    await waitFor(() => expect(emailInput).not.toBeDisabled());
+    await user.type(emailInput, `${email},`);
+    expect(await screen.findByText(email)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Send to 1 recipient/ }));
+  }
+
+  it("renders a duplicate result as a neutral chip, not a green 'sent' chip", async () => {
+    publicationActions.addSharedLinkRecipients.mockResolvedValue({
+      ok: true,
+      message: "No new recipients added (duplicates or invalid).",
+      added: 0,
+      failedEmails: [],
+      emailResults: [{ email: "dupe@example.com", ok: true, status: "duplicate" }],
+    });
+    const user = userEvent.setup();
+    renderComposer();
+
+    await typeAndSend(user, "dupe@example.com");
+
+    // The duplicate status renders with the neutral treatment and the "already invited" label.
+    const badge = await screen.findByText("already invited");
+    expect(badge).toHaveClass("bg-surfaceMuted", "text-tertiary");
+    // It must NOT pick up the green success styling.
+    expect(badge).not.toHaveClass("bg-successSoft");
+    expect(badge).not.toHaveClass("text-success");
+    // And there is no green "sent" badge for this email.
+    expect(screen.queryByText(/^sent$/)).not.toBeInTheDocument();
+  });
+
+  it("adopts the inserted id on a fresh success so Resend/Remove are immediately available", async () => {
+    publicationActions.addSharedLinkRecipients.mockResolvedValue({
+      ok: true,
+      message: "Added 1 recipient(s).",
+      added: 1,
+      failedEmails: [],
+      emailResults: [{ email: "new@example.com", ok: true, id: "recipient-new", status: "sent" }],
+    });
+    const user = userEvent.setup();
+    renderComposer();
+
+    await typeAndSend(user, "new@example.com");
+
+    // The chip is now a "sent" success chip...
+    const badge = await screen.findByText("sent");
+    expect(badge).toHaveClass("bg-successSoft", "text-success");
+    // ...and because the id was adopted, the per-chip Resend/Remove controls appear (they only
+    // render for a chip with an id) — so the just-added chip is actionable without a remount.
+    expect(await screen.findByRole("button", { name: "Resend new@example.com" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove new@example.com" })).toBeInTheDocument();
+  });
+});

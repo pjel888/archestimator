@@ -930,7 +930,7 @@ export async function addSharedLinkRecipients({
   publicationId: string;
   recipients: RecipientInput[];
   baseClientLink?: string | null;
-}): Promise<{ ok: boolean; message: string; added: number; failedEmails: string[]; emailResults: Array<{ email: string; ok: boolean; error?: string }> }> {
+}): Promise<{ ok: boolean; message: string; added: number; failedEmails: string[]; emailResults: Array<{ email: string; ok: boolean; error?: string; id?: string; status?: "sent" | "pending" | "duplicate" | "failed" }> }> {
   if (!publicationId || !Array.isArray(inputs) || inputs.length === 0) {
     return { ok: false, message: "No recipients provided.", added: 0, failedEmails: [], emailResults: [] };
   }
@@ -963,10 +963,11 @@ export async function addSharedLinkRecipients({
     };
   }
 
-  const emailResults: Array<{ email: string; ok: boolean; error?: string }> = blockedSelfEmails.map((email) => ({
+  const emailResults: Array<{ email: string; ok: boolean; error?: string; id?: string; status?: "sent" | "pending" | "duplicate" | "failed" }> = blockedSelfEmails.map((email) => ({
     email,
     ok: false,
     error: selfInviteMessage,
+    status: "failed",
   }));
   let added = 0;
   const failedEmails: string[] = [...blockedSelfEmails];
@@ -1003,7 +1004,11 @@ export async function addSharedLinkRecipients({
       if (insertErr) {
         // Likely duplicate (unique constraint) — treat as non-fatal for this recipient
         if (insertErr.code === "23505" || /duplicate/i.test(insertErr.message || "")) {
-          emailResults.push({ email: r.email, ok: true, error: "already invited" });
+          // AC-MOD-17 (MOD-REC-05): a duplicate keeps ok:true so the `added`/aggregate logic is
+          // unaffected, but the explicit status lets the UI render it neutrally instead of as a
+          // misleading green "sent" chip (the old `error: "already invited"` drove a success chip
+          // while the headline said "No new recipients added").
+          emailResults.push({ email: r.email, ok: true, status: "duplicate" });
           continue;
         }
         throw insertErr;
@@ -1031,17 +1036,19 @@ export async function addSharedLinkRecipients({
             updated_at: new Date().toISOString(),
           })
           .eq("id", recipientId);
-        emailResults.push({ email: r.email, ok: true });
+        // AC-MOD-17 (MOD-ACT-04): surface the inserted recipient id (and explicit status) so a
+        // just-added chip immediately supports Resend/Remove without remounting the modal.
+        emailResults.push({ email: r.email, ok: true, id: recipientId, status: "sent" });
       } else {
         // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
         console.warn("[P4] recipient email send non-fatal failure", { email: r.email, error: sendResult.error });
-        emailResults.push({ email: r.email, ok: false, error: sendResult.error });
+        emailResults.push({ email: r.email, ok: false, error: sendResult.error, id: recipientId, status: "pending" });
         // keep pending
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "unknown error";
       failedEmails.push(r.email);
-      emailResults.push({ email: r.email, ok: false, error: msg });
+      emailResults.push({ email: r.email, ok: false, error: msg, status: "failed" });
       // Continue to next; overall add can still succeed
     }
   }
