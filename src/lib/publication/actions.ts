@@ -767,6 +767,37 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// AC-MOD-20 (MOD-REC-08): resolve a usable /share/<token> link base for recipient emails, or null.
+// The old fallback `/share/<publicationId>` built a UUID path that passes the email-links validator
+// (surface "share", token non-empty) but can never RESOLVE (it is not a token_hash), so the recipient
+// gets a dead 404 link. That only happens when the encrypted token can't be decrypted (e.g. secret
+// rotation), but when it does we must NOT email a dead URL — we abort the send instead. A bare-UUID
+// share token is treated as unusable so a stale `/share/<uuid>` value never sneaks through.
+function resolveRecipientShareLinkBase(
+  baseClientLink: string | null | undefined,
+  clientLinkPath: string | null | undefined,
+): string | null {
+  for (const candidate of [baseClientLink, clientLinkPath]) {
+    const trimmed = candidate?.trim();
+    if (!trimmed) continue;
+    const shareToken = readShareLinkToken(trimmed);
+    if (shareToken && !isUuid(shareToken)) return trimmed;
+  }
+  return null;
+}
+
+function readShareLinkToken(linkBase: string): string | null {
+  let pathname: string;
+  try {
+    // Absolute URLs and bare paths both yield a /share/<token> pathname here.
+    pathname = /^[a-z][a-z\d+.-]*:\/\//i.test(linkBase) ? new URL(linkBase).pathname : new URL(linkBase, "http://local").pathname;
+  } catch {
+    return null;
+  }
+  const [surface, token] = pathname.split("/").filter(Boolean);
+  return surface === "share" && token ? token : null;
+}
+
 function getClientIp(headersList: HeaderReader) {
   const forwardedFor = headersList.get("x-forwarded-for");
   if (forwardedFor) return forwardedFor.split(",")[0]?.trim() || "unknown";
@@ -1003,6 +1034,26 @@ export async function addSharedLinkRecipients({
     if (proj?.name) projectName = proj.name;
   } catch { /* non-fatal */ }
 
+  // AC-MOD-20 (MOD-REC-08): resolve the share link base ONCE up front. The old per-recipient
+  // fallback `/share/${publicationId}` emailed a dead 404 link whenever the encrypted token
+  // couldn't be decrypted (e.g. secret rotation). If the base is unusable, do NOT insert+email
+  // recipients against a dead link — short-circuit the whole batch with a clear ok:false so no
+  // recipient rows are created against a link that cannot resolve.
+  const linkBase = resolveRecipientShareLinkBase(baseClientLink, pubCtx.clientLinkPath);
+  if (!linkBase) {
+    const unresolvableMessage = "Could not resolve the shared link. No recipients were added and no email was sent.";
+    return {
+      ok: false,
+      message: blockedSelfEmails.length > 0 ? `${unresolvableMessage} ${selfInviteMessage}` : unresolvableMessage,
+      added: 0,
+      failedEmails: [...failedEmails, ...allowedRecipients.map((r) => r.email)],
+      emailResults: [
+        ...emailResults,
+        ...allowedRecipients.map((r) => ({ email: r.email, ok: false, error: unresolvableMessage, status: "failed" as const })),
+      ],
+    };
+  }
+
   for (const r of allowedRecipients) {
     try {
       // Generate unique raw token for this recipient (never stored; only hash)
@@ -1038,7 +1089,6 @@ export async function addSharedLinkRecipients({
       added++;
       const recipientId = insertedRecipient.id;
 
-      const linkBase = baseClientLink || pubCtx.clientLinkPath || `/share/${publicationId}`; // fallback
       const sendResult = await sendSharedLinkRecipientInvitationEmail({
         linkBase,
         projectName,
@@ -1125,9 +1175,18 @@ export async function resendSharedLinkRecipientEmail({
     return { ok: false, message: "Recipient has unsubscribed from follow-up emails for this shared link." };
   }
 
+  // AC-MOD-20 (MOD-REC-08): resolve a usable /share/<token> link base BEFORE generating or sending.
+  // If neither baseClientLink nor the decrypted clientLinkPath yields a resolvable share link
+  // (e.g. the encrypted token can't be decrypted after secret rotation), abort the resend instead
+  // of emailing a dead `/share/<publicationId>` URL. Aborting before the send keeps the prior
+  // recipient_token_hash / delivery_status untouched (consistent with MOD-REC-02's send-before-persist).
+  const linkBase = resolveRecipientShareLinkBase(baseClientLink, pubCtx.clientLinkPath);
+  if (!linkBase) {
+    return { ok: false, message: "Could not resolve the shared link to resend. No email was sent." };
+  }
+
   const rawToken = createPublicationToken();
   const tokenHash = hashPublicationToken(rawToken, readPublicationTokenHashSecret());
-  const linkBase = baseClientLink || pubCtx.clientLinkPath || `/share/${publicationId}`;
 
   // MOD-REC-02: generate token -> SEND -> persist only on success. We must send the email with
   // the new rawToken BEFORE overwriting recipient_token_hash so a send failure leaves the
