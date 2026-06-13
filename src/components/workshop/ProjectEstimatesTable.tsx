@@ -321,7 +321,7 @@ function ProjectEstimateEditableTextCell({
         estimateId: estimate.id,
         ...(field === "sheetCode" ? { sheetCode: nextValue } : field === "notes" ? { notes: nextValue || null } : { name: nextValue }),
       })
-        .then((updatedEstimate) => {
+        .then(({ estimate: updatedEstimate }) => {
           setDraft(field === "sheetCode" ? updatedEstimate.sheet_code : field === "notes" ? (updatedEstimate.notes ?? "") : updatedEstimate.name);
           setStatus("saved");
           router.refresh();
@@ -437,7 +437,7 @@ function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectE
         estimateId: estimate.id,
         projectBudget: nextBudget,
       })
-        .then((updatedEstimate) => {
+        .then(({ estimate: updatedEstimate }) => {
           setDraft(formatBudgetInput(updatedEstimate.project_budget));
           setStatus("saved");
           router.refresh();

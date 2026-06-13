@@ -139,7 +139,7 @@ describe("project estimates table inline editing", () => {
 
   it("saves an inline estimate name edit once when Enter blurs the field", async () => {
     const updatedEstimate = makeEstimate({ name: "Updated Estimate" });
-    actionMocks.updateEstimateDetails.mockResolvedValue(updatedEstimate);
+    actionMocks.updateEstimateDetails.mockResolvedValue({ estimate: updatedEstimate });
     const user = userEvent.setup();
 
     renderTable();
@@ -173,7 +173,7 @@ describe("project estimates table inline editing", () => {
 
   it("saves an inline project budget edit per estimate sheet", async () => {
     const updatedEstimate = makeEstimate({ project_budget: 6500 });
-    actionMocks.updateEstimateDetails.mockResolvedValue(updatedEstimate);
+    actionMocks.updateEstimateDetails.mockResolvedValue({ estimate: updatedEstimate });
     const user = userEvent.setup();
 
     renderTable();
@@ -193,7 +193,7 @@ describe("project estimates table inline editing", () => {
 
   it("saves an inline notes edit per estimate sheet", async () => {
     const updatedEstimate = makeEstimate({ notes: "Client requested alternate finish" });
-    actionMocks.updateEstimateDetails.mockResolvedValue(updatedEstimate);
+    actionMocks.updateEstimateDetails.mockResolvedValue({ estimate: updatedEstimate });
     const user = userEvent.setup();
 
     renderTable();

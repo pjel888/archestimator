@@ -89,6 +89,24 @@ export function buildProjectEstimateListRow(
   summary: ProjectEstimateListRowSummary,
 ): ProjectEstimateListRow {
   return {
+    ...projectEstimateListRowSource(estimate),
+    firstNodeId: summary.firstNodeId,
+    nodeCount: summary.nodeCount,
+    rowItemCount: summary.rowItemCount,
+    totalProjectCost: summary.totalProjectCost,
+  };
+}
+
+/**
+ * Project just the canonical estimate scalar fields, dropping any sensitive
+ * columns the source object may carry. Used as the reconciliation payload for
+ * scalar-only mutations (rename/notes/budget/auto-code) where the optimistic
+ * store preserves its existing summary fields.
+ */
+export function projectEstimateListRowSource(
+  estimate: ProjectEstimateListRowSource,
+): ProjectEstimateListRowSource {
+  return {
     id: estimate.id,
     project_id: estimate.project_id,
     name: estimate.name,
@@ -98,9 +116,5 @@ export function buildProjectEstimateListRow(
     project_budget: estimate.project_budget,
     created_at: estimate.created_at,
     updated_at: estimate.updated_at,
-    firstNodeId: summary.firstNodeId,
-    nodeCount: summary.nodeCount,
-    rowItemCount: summary.rowItemCount,
-    totalProjectCost: summary.totalProjectCost,
   };
 }

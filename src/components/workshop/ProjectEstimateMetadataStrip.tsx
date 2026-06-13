@@ -146,7 +146,7 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
         estimateId: metadata.estimateId,
         name: nextName,
       })
-        .then((updatedEstimate) => {
+        .then(({ estimate: updatedEstimate }) => {
           setDraft(updatedEstimate.name);
           setStatus("saved");
           dispatchProjectEstimateMetadataChange({
