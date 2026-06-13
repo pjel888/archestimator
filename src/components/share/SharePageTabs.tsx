@@ -282,7 +282,17 @@ export default function SharePageTabs({
     );
   }, [activeContentRows, activeGridSearch]);
 
-  if (estimates.length === 0) return null;
+  if (estimates.length === 0) {
+    // AC-UX-08: never a silent null — show a visible, calm empty state.
+    return (
+      <div
+        role="status"
+        className="rounded-xs border border-dashed border-hairline bg-white p-4 text-center text-[13px] leading-[18px] tracking-normal text-tertiary"
+      >
+        No estimates are included in this shared proposal yet.
+      </div>
+    );
+  }
 
   const activeEstimate = wouldBeActive ?? estimates[0];
   const activeEstimateMetaText = [activeEstimate.sheetCode, activeEstimateTab ? `Tab ${activeEstimateTab.name}` : null]
@@ -291,17 +301,47 @@ export default function SharePageTabs({
 
   return (
     <div className="space-y-3">
-      {/* Active estimate summary — shows current sheet name + total above tabs */}
-      <div className="flex items-end justify-between gap-3">
-        <div>
+      {/* Active estimate summary — sheet name + total, with the view-mode toggle consolidated
+          onto this row (UX-15: no separate full-width Tree/Grid strip). */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <h2 className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">{activeEstimate.name}</h2>
           {activeEstimateMetaText ? (
             <p className="text-[13px] leading-[18px] tracking-normal text-tertiary">{activeEstimateMetaText}</p>
           ) : null}
         </div>
-        <p className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">
-          {formatMoney(activeContentTotal, currencyCode)}
-        </p>
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <p className="text-[15px] font-medium leading-[20px] tracking-normal text-ink">
+            {formatMoney(activeContentTotal, currencyCode)}
+          </p>
+          <div
+            role="tablist"
+            aria-label="Estimate view mode"
+            className="flex items-center gap-0 rounded-xs border border-hairline bg-white"
+            onKeyDown={handleSubTabKeyDown}
+          >
+            {(["tree", "grid"] as const).map((mode) => {
+              const isActive = currentView === mode;
+              const label = mode === "tree" ? "Tree View" : "Grid Preview";
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`share-estimate-panel-${activeEstimate.id}`}
+                  tabIndex={isActive ? 0 : -1}
+                  className={`rounded-xs px-2.5 py-1 text-[12px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                    isActive ? "bg-surfaceMuted text-ink" : "text-tertiary hover:text-ink"
+                  }`}
+                  onClick={() => setViewForCurrentSheet(mode)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* P1/P5 polish: Per-sheet donut chart. compact variant ensures full callout visibility
@@ -405,36 +445,6 @@ export default function SharePageTabs({
         </div>
       ) : null}
 
-      {/* P2: Sub-tab bar (Tree View | Grid Preview) — below main tabs, above content */}
-      <div
-        role="tablist"
-        aria-label="Estimate view mode"
-        className="flex h-8 items-center gap-0 border-b border-hairline bg-white text-[13px] font-medium tracking-normal"
-        onKeyDown={handleSubTabKeyDown}
-      >
-        {(["tree", "grid"] as const).map((mode) => {
-          const isActive = currentView === mode;
-          const label = mode === "tree" ? "Tree View" : "Grid Preview";
-          return (
-            <button
-              key={mode}
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={`view-${mode}-${activeEstimate.id}`}
-              tabIndex={isActive ? 0 : -1}
-              className={`px-3 py-0.5 rounded-xs border transition-colors ${
-                isActive
-                  ? "bg-surfaceMuted text-ink border-hairline"
-                  : "text-tertiary hover:text-ink border-transparent hover:border-hairline"
-              }`}
-              onClick={() => setViewForCurrentSheet(mode)}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Active tab panel — encapsulates the original estimate card + table exactly */}
       <div
         id={`share-estimate-panel-${activeEstimate.id}`}
@@ -462,9 +472,9 @@ export default function SharePageTabs({
                 <thead className="bg-surfaceMuted text-[12px] uppercase tracking-normal text-tertiary">
                   <tr>
                     <th className="px-3 py-2 font-medium">Description</th>
-                    <th className="px-3 py-2 font-medium">Discipline</th>
-                    <th className="px-3 py-2 font-medium">Qty</th>
-                    <th className="px-3 py-2 font-medium">Unit</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Discipline</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Qty</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Unit</th>
                     <th className="px-3 py-2 text-right font-medium">Total</th>
                   </tr>
                 </thead>
@@ -492,9 +502,9 @@ export default function SharePageTabs({
                             <span>{row.description}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-secondary">{row.discipline}</td>
-                        <td className="px-3 py-2 text-secondary">{row.quantity}</td>
-                        <td className="px-3 py-2 text-secondary">{row.unit}</td>
+                        <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.discipline}</td>
+                        <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.quantity}</td>
+                        <td className="hidden px-3 py-2 text-secondary sm:table-cell">{row.unit}</td>
                         <td className="px-3 py-2 text-right font-medium text-ink">
                           {formatMoney(row.rowTotal, currencyCode)}
                         </td>
@@ -503,7 +513,7 @@ export default function SharePageTabs({
                   }) : (
                     <tr className="border-t border-hairline">
                       <td colSpan={5} className="px-3 py-4 text-center text-[13px] leading-[18px] tracking-normal text-tertiary">
-                        {`No rows match ${JSON.stringify(activeGridSearch.trim())}`}
+                        {`No rows match "${activeGridSearch.trim()}"`}
                       </td>
                     </tr>
                   )}

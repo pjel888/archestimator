@@ -615,7 +615,10 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
         />
       );
 
-      const tabs = screen.getAllByRole("tab");
+      // Scope to the Estimates tablist: the Tree/Grid view-mode toggle is now a separate
+      // tablist consolidated onto the heading row (UX-15), so a global tab query is ambiguous.
+      const estimatesTablist = screen.getByRole("tablist", { name: /estimates/i });
+      const tabs = within(estimatesTablist).getAllByRole("tab");
       tabs[0].focus();
       expect(tabs[0]).toHaveFocus();
 
