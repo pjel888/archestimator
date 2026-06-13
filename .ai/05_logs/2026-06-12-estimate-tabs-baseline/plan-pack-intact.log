@@ -1,0 +1,19 @@
+
+>>> [2026-06-12T09:27:59Z] find .ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates -maxdepth 1 -type f -name '*.md' | sort && test $(find .ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ') = 17
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/00_INDEX.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/01_CURRENT_STATE_AUDIT.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/02_TARGET_ARCHITECTURE.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/03_DATABASE_MIGRATION_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/04_DOMAIN_AND_REPOSITORY_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/05_ESTIMATE_TABS_UI_UX_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/06_TEMPLATES_PANEL_UNIFICATION_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/07_XLSX_EXPORT_TABS_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/08_ACCESS_SECURITY_RLS_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/09_TEST_AND_VALIDATION_PLAN.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/10_IMPLEMENTATION_PHASES.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/11_RISK_REGISTER.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/12_OPEN_QUESTIONS_AND_DECISIONS.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/13_REQUIREMENTS_TRACEABILITY_MATRIX.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/14_IMPLEMENTATION_HANDOFF.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/15_REVIEW_CHECKLIST.md
+.ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates/16_COMPLETION_AUDIT.md

@@ -149,7 +149,7 @@ export default async function AboutPage() {
             Join our early-access program
           </h2>
           <p className="mt-4 text-[15px] leading-6 text-white/60">
-            Open a workspace today to test our structured quote sheets, reusable catalog, and estimator grid.
+            Open a workspace today to test our structured estimate tabs, reusable catalog, and estimator grid.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link

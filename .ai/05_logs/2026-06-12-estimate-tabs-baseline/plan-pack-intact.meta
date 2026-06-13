@@ -1,0 +1,6 @@
+label=plan-pack-intact
+command=find .ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates -maxdepth 1 -type f -name '*.md' | sort && test $(find .ai/03_plans/2026-06-12-Projects-Auto-Added-To-Templates -maxdepth 1 -type f -name '*.md' | wc -l | tr -d ' ') = 17
+exit_code=0
+started=2026-06-12T09:27:59Z
+ended=2026-06-12T09:27:59Z
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline/plan-pack-intact.log

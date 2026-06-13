@@ -49,6 +49,7 @@ export type PackageBuilderCompactEstimate = {
   nodeCount: number;
   rowCount: number;
   firstNodeId: string | null;
+  activeTabId?: string | null;
 };
 
 export type PackageBuilderCompactTreeNode = {
@@ -291,6 +292,7 @@ function compactEstimate(input: {
   nodeCount: number;
   rowCount: number;
   firstNodeId: string | null;
+  activeTabId?: string | null;
 }): PackageBuilderCompactEstimate {
   return {
     id: input.estimate.id,
@@ -301,6 +303,7 @@ function compactEstimate(input: {
     nodeCount: input.nodeCount,
     rowCount: input.rowCount,
     firstNodeId: input.firstNodeId,
+    activeTabId: input.activeTabId ?? null,
   };
 }
 
@@ -504,6 +507,7 @@ type AiEstimateNodeSearchRow = {
   kind: "group" | "area";
   name: string;
   sort_order: number;
+  estimate_tab_id?: string | null;
 };
 
 type AiEstimateRowSearchRow = {
@@ -651,21 +655,27 @@ async function readScopedEstimateTree({
   projectId,
   estimateId,
   selectedNodeId,
+  activeTabId,
 }: {
   projectId: string;
   estimateId: string | null;
   selectedNodeId: string | null;
+  activeTabId: string | null;
 }) {
   const supabase = await createSupabaseServerClient();
   let resolvedEstimateId = estimateId;
+  let resolvedActiveTabId = activeTabId;
   if (!resolvedEstimateId && selectedNodeId) {
     const { data: selectedNode, error: selectedNodeError } = await supabase
       .from("estimate_nodes")
-      .select("id, estimate_id")
+      .select("id, estimate_id, estimate_tab_id")
       .eq("id", selectedNodeId)
       .maybeSingle();
     if (selectedNodeError) throw selectedNodeError;
     resolvedEstimateId = typeof selectedNode?.estimate_id === "string" ? selectedNode.estimate_id : null;
+    if (!resolvedActiveTabId && typeof selectedNode?.estimate_tab_id === "string") {
+      resolvedActiveTabId = selectedNode.estimate_tab_id;
+    }
   }
   if (!resolvedEstimateId) {
     return {
@@ -694,11 +704,14 @@ async function readScopedEstimateTree({
     };
   }
 
+  const nodesQuery = supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, estimate_tab_id, parent_id, kind, name, sort_order")
+    .eq("estimate_id", estimate.id);
+  if (resolvedActiveTabId) nodesQuery.eq("estimate_tab_id", resolvedActiveTabId);
+
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, parent_id, kind, name, sort_order")
-      .eq("estimate_id", estimate.id)
+    nodesQuery
       .order("sort_order", { ascending: true })
       .limit(DEFAULT_TREE_LIMIT),
     supabase
@@ -712,7 +725,9 @@ async function readScopedEstimateTree({
   if (rowsResult.error) throw rowsResult.error;
 
   const nodes = (nodesResult.data ?? []) as AiEstimateNodeSearchRow[];
-  const rows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
+  const scopedNodeIds = new Set(nodes.map((node) => node.id));
+  const allRows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
+  const rows = resolvedActiveTabId ? allRows.filter((row) => scopedNodeIds.has(row.node_id)) : allRows;
   const compacted = compactEstimateTree({ nodes, rows });
   const compactEstimateSummary = compactEstimate({
     estimate: estimate as AiEstimateSearchRow,
@@ -720,6 +735,7 @@ async function readScopedEstimateTree({
     nodeCount: nodes.length,
     rowCount: rows.length,
     firstNodeId: selectedNodeId && nodes.some((node) => node.id === selectedNodeId) ? selectedNodeId : compacted.tree[0]?.id ?? null,
+    activeTabId: resolvedActiveTabId,
   });
 
   return {
@@ -1303,6 +1319,7 @@ export async function readPackageBuilderTools(
   const projectId = readRouteId(input.routeContext, "projectId");
   const estimateId = readRouteId(input.routeContext, "estimateId");
   const selectedNodeId = readRouteId(input.routeContext, "selectedNodeId");
+  const activeTabId = readRouteId(input.routeContext, "activeTabId");
   let projectSummary: PackageBuilderCompactProject | null = null;
   let projectEstimates: PackageBuilderCompactEstimate[] = [];
   let estimateSummary: PackageBuilderCompactEstimate | null = null;
@@ -1343,6 +1360,7 @@ export async function readPackageBuilderTools(
       projectId,
       estimateId: estimateSummary?.id ?? estimateId,
       selectedNodeId,
+      activeTabId,
     });
     if (treeResult.estimate) estimateSummary = treeResult.estimate;
     estimateTree = treeResult.tree;
@@ -1352,7 +1370,7 @@ export async function readPackageBuilderTools(
       toolName: "read_estimate_summary",
       sourceTables: ["estimates"],
       rowCount: treeResult.estimate ? 1 : 0,
-      filter: { projectId, estimateId: treeResult.estimate?.id ?? estimateSummary?.id, selectedNodeId },
+      filter: { projectId, estimateId: treeResult.estimate?.id ?? estimateSummary?.id, selectedNodeId, activeTabId: treeResult.estimate?.activeTabId ?? activeTabId },
       safeSummary: "Read compact estimate summary for package context.",
     }));
     auditEvents.push(createAuditEvent({
@@ -1360,7 +1378,7 @@ export async function readPackageBuilderTools(
       toolName: "read_estimate_tree",
       sourceTables: ["estimate_nodes"],
       rowCount: treeResult.nodeRowsRead,
-      filter: { projectId, estimateId: treeResult.estimate?.id ?? estimateSummary?.id, selectedNodeId },
+      filter: { projectId, estimateId: treeResult.estimate?.id ?? estimateSummary?.id, selectedNodeId, activeTabId: treeResult.estimate?.activeTabId ?? activeTabId },
       safeSummary: "Read compact estimate tree for package context.",
     }));
     auditEvents.push(createAuditEvent({
@@ -1368,7 +1386,7 @@ export async function readPackageBuilderTools(
       toolName: "read_area_rows",
       sourceTables: ["estimate_row_items"],
       rowCount: treeResult.areaRowsRead,
-      filter: { projectId, estimateId: treeResult.estimate?.id ?? estimateSummary?.id, selectedNodeId },
+      filter: { projectId, estimateId: treeResult.estimate?.id ?? estimateSummary?.id, selectedNodeId, activeTabId: treeResult.estimate?.activeTabId ?? activeTabId },
       safeSummary: "Read compact Area Node row summaries for package context.",
     }));
   }

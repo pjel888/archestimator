@@ -19,6 +19,10 @@ export type EstimateWorkshopDrag =
       templateName: string;
       /** Set for single-template drags; category drags carry their ids in the dataTransfer payload. */
       templateId?: string;
+    }
+  | {
+      kind: "project-source";
+      sourceName: string;
     };
 
 type EstimateWorkshopDragState = {

@@ -30,23 +30,29 @@ function readTextFilesRecursively(directory: string): string[] {
 }
 
 describe("landing page company proof and Lenis integration", () => {
-  it("keeps the locked hero first and inserts the company proof carousel before the product showcase", () => {
+  it("keeps the locked hero first and preserves the simplified launch sequence", () => {
     const page = readProjectFile("src/app/page.tsx");
 
     expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
     expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
       page.indexOf("<HeroSection"),
     );
-    expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
+    expect(page.indexOf("<SecondaryClaimSection />")).toBeGreaterThan(
       page.indexOf("<CompanyProofCarouselSection />"),
+    );
+    expect(page.indexOf("<FinalCTASection />")).toBeGreaterThan(
+      page.indexOf("<SecondaryClaimSection />"),
     );
     expect(page.indexOf("<LandingFooter />")).toBeGreaterThan(
       page.indexOf("<FinalCTASection />"),
     );
     expect(page).toContain("LandingSmoothScrollProvider");
+    expect(page).not.toContain("<ProductShowcaseSection />");
+    expect(page).not.toContain("<PricingSection />");
+    expect(page).not.toContain("<FAQSection />");
   });
 
-  it("marks company carousel data as placeholder scaffolding instead of real social proof", () => {
+  it("keeps company proof data fail-closed while the public section remains empty", () => {
     const data = readProjectFile(
       "src/components/landing/company-proof-data.ts",
     );
@@ -60,11 +66,11 @@ describe("landing page company proof and Lenis integration", () => {
     expect(data).toContain(
       "Real customer proof will replace this rail before any public trust claim",
     );
-    expect(section).toContain("getRenderableCompanyProofItems");
-    expect(section).toContain("data-company-proof-state={proofState}");
-    expect(section).toContain(
-      'data-placeholder={item.isPlaceholder ? "true" : undefined}',
-    );
+    expect(section).toContain('data-company-proof-state="empty"');
+    expect(section).not.toContain("getRenderableCompanyProofItems");
+    expect(section).not.toContain("placeholderCompanyProof");
+    expect(section).not.toContain("permissionConfirmed");
+    expect(section).not.toContain("data-placeholder=");
     expect(section).not.toContain("Pause rail");
     expect(section).not.toContain("Resume rail");
     expect(section).not.toMatch(/Trusted by|Used by|Customers include/);
@@ -122,53 +128,37 @@ describe("landing page company proof and Lenis integration", () => {
   it("keeps landing header hash links pointed at rendered below-hero sections", () => {
     const header = readProjectFile("src/components/landing/LandingHeader.tsx");
     const landingSources = [
-      readProjectFile("src/components/landing/HeroSection.tsx"),
-      readProjectFile("src/components/landing/ProductShowcaseSection.tsx"),
       readProjectFile("src/components/landing/SecondaryClaimSection.tsx"),
-      readProjectFile("src/components/landing/SolutionSection.tsx"),
-      readProjectFile("src/components/landing/PricingSection.tsx"),
-      readProjectFile("src/components/landing/FAQSection.tsx"),
       readProjectFile("src/components/landing/FinalCTASection.tsx"),
-      readProjectFile("src/components/landing/LandingFooter.tsx"),
     ].join("\n");
-    const hashHrefs = [...header.matchAll(/href: "#([^"]+)"/g)].map(
+    const hashHrefs = Array.from(
+      header.matchAll(/href: "#([^"]+)"/g),
       (match) => match[1],
+    ).filter(
+      (hash): hash is string => typeof hash === "string",
     );
 
-    expect(hashHrefs).toEqual([
-      "product",
-      "method",
-      "solutions",
-      "insights",
-      "contact",
-    ]);
+    expect(hashHrefs).toEqual(["method", "contact"]);
     for (const hash of hashHrefs) {
       expect(landingSources).toMatch(new RegExp(`id=['\"]${hash}['\"]`));
     }
   });
 
-  it("uses CSS marquee motion with reduced-motion fallback inside a light full-width rail", () => {
+  it("uses CSS testimonial motion with reduced-motion fallback after removing the empty logo rail", () => {
     const section = readProjectFile(
       "src/components/landing/CompanyProofCarouselSection.tsx",
     );
     const globals = readProjectFile("src/app/globals.css");
 
-    expect(section).toContain("landing-company-carousel-viewport");
-    expect(section).toContain("w-full overflow-hidden border-y");
-    expect(section).toContain("bg-[#f8f6f1]");
-    expect(section).not.toContain("landing-company-marquee-paused");
+    expect(section).not.toContain("landing-company-carousel-viewport");
+    expect(section).toContain("landing-testimonial-rotator");
+    expect(section).toContain('aria-label="Closed beta testimonial carousel"');
+    expect(section).not.toContain("landing-company-marquee");
     expect(section).not.toContain("useState");
-    expect(section).not.toContain('aria-controls="company-proof-rail"');
-    expect(section).not.toContain("aria-pressed=");
-    expect(section).not.toContain("data-company-proof-paused");
-    expect(section).toContain('aria-hidden={duplicate ? "true" : undefined}');
-    expect(globals).toContain("@keyframes landing-company-marquee");
-    expect(globals).toContain("--landing-company-marquee-gap");
-    expect(globals).not.toContain("landing-company-marquee-paused");
-    expect(globals).not.toContain("data-company-proof-paused");
-    expect(globals).toContain(
-      '.landing-company-marquee > [aria-hidden="true"]',
-    );
+    expect(globals).not.toContain("@keyframes landing-company-marquee");
+    expect(globals).not.toContain("landing-company-marquee");
+    expect(globals).toContain("@keyframes landing-testimonial-crossfade");
+    expect(globals).toContain(".landing-testimonial-slide:first-child");
     expect(globals).toContain("prefers-reduced-motion: reduce");
     expect(globals).toContain("animation: none");
   });
@@ -184,7 +174,7 @@ describe("landing page company proof and Lenis integration", () => {
     const packageJson = readProjectFile("package.json");
 
     expect(packageJson).toContain('"lenis"');
-    expect(layout).toContain('import "lenis/dist/lenis.css";');
+    expect(layout).not.toContain('import "lenis/dist/lenis.css";');
     expect(homePage).toContain("<LandingSmoothScrollProvider>");
     expect(publicShell).not.toContain("LandingSmoothScrollProvider");
     expect(publicShell).toContain('<main data-landing-page-root="true">');

@@ -1,0 +1,6 @@
+
+>>> [2026-06-12T09:27:59Z] git status --short --branch
+## feat/estimate-tabs-phase0-baseline...origin/main
+?? .ai/05_logs/2026-06-12-estimate-tabs-baseline/
+?? .ai/05_logs/2026-06-12-estimate-tabs-implementation-ledger.md
+?? .ai/05_logs/2026-06-12-estimate-tabs-phase0-implementation-run.md

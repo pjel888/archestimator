@@ -1,0 +1,4 @@
+command=node_repl browser bootstrap + curl localhost auth smoke
+exit_code=blocked
+log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/browser-visual-proof-blocker.log
+timestamp=2026-06-12T11:10:10Z

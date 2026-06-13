@@ -1,0 +1,8 @@
+label=targeted-estimate-characterization-rerun
+command=bunx vitest run tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-tree-context-menu.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx --maxWorkers=1
+started=2026-06-12T09:41:28Z
+ended=2026-06-12T09:41:48Z
+exit_code=0
+timeout_seconds=1200
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/targeted-estimate-characterization-rerun.log

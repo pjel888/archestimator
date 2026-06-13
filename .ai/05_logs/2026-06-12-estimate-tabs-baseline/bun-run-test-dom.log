@@ -1,0 +1,5 @@
+
+>>> [2026-06-12T09:32:52Z] bun run test:dom
+$ vitest run --maxWorkers=1
+/bin/bash: vitest: command not found
+error: script "test:dom" exited with code 127

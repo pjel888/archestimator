@@ -1,0 +1,5 @@
+
+>>> [2026-06-12T09:32:53Z] bun run build
+$ next build
+/bin/bash: next: command not found
+error: script "build" exited with code 127

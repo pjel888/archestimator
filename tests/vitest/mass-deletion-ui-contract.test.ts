@@ -2,15 +2,15 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("mass deletion UI contract", () => {
-  it("wires estimate sheets to preview-first row and bulk delete controls", () => {
+  it("wires estimates to preview-first row and bulk delete controls", () => {
     const table = readFileSync("src/components/workshop/ProjectEstimatesTable.tsx", "utf8");
 
     expect(table).toContain("previewBulkDeleteEstimateSheets");
     expect(table).toContain("executeBulkDeleteEstimateSheets");
     expect(table).toContain("BulkDestructivePreviewModal");
-    expect(table).toContain("DELETE SHEET");
-    expect(table).toContain("DELETE ${deleteEstimateTargetIds.length} SHEETS");
-    expect(table).toContain("Delete selected sheets");
+    expect(table).toContain("DELETE ESTIMATE");
+    expect(table).toContain("DELETE ${deleteEstimateTargetIds.length} ESTIMATES");
+    expect(table).toContain("Delete selected estimates");
     expect(table).not.toContain("Delete action is not wired yet");
   });
 

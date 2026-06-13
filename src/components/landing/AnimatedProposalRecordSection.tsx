@@ -88,7 +88,7 @@ const flowSteps: ProposalRecordStep[] = [
   {
     id: "estimate",
     label: "Estimate",
-    body: "Scope, quantities, rates, and assumptions in one structured sheet.",
+    body: "Scope, quantities, rates, and assumptions in one structured estimate tab.",
     positionClassName: styles.estimateCard,
     delay: 720,
     color: ORANGE,

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   makeBenchmarkModel,
+  makeTabbedBenchmarkModel,
   makeProposalRow,
   parseRowCounts,
   runBenchmark,
+  runTabbedBenchmark,
   toMiB,
 } from "../../scripts/benchmark-proposal-workbook";
 
@@ -54,5 +56,21 @@ describe("proposal workbook benchmark fixture", () => {
     expect(run.durationMs).toBeGreaterThanOrEqual(0);
     expect(run.bufferBytes).toBeGreaterThan(0);
     expect(run.bufferMiB).toBe(toMiB(run.bufferBytes));
+  });
+
+  it("builds a self-consistent tabbed benchmark fixture", async () => {
+    const model = makeTabbedBenchmarkModel(2, 3);
+
+    expect(model.metadata.estimateSheetCode).toBe("BENCH-2x3");
+    expect(model.tabs).toHaveLength(2);
+    expect(model.tabs[0]?.worksheetName).toBe("Benchmark Tab 1");
+    expect(model.tabs[1]?.model.proposalRows).toHaveLength(3);
+
+    const run = await runTabbedBenchmark(2, 3);
+    expect(run.tabCount).toBe(2);
+    expect(run.rowsPerTab).toBe(3);
+    expect(run.rowCount).toBe(6);
+    expect(run.sourceBreakdownRowCount).toBe(6);
+    expect(run.bufferBytes).toBeGreaterThan(0);
   });
 });

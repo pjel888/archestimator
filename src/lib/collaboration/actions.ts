@@ -193,7 +193,7 @@ async function readEstimateActorRank(context: ProjectAccessContext, estimateId: 
 }
 
 async function assertEstimateAccessManager(projectId: string, estimateId: string): Promise<EstimateAccessContext> {
-  assertUuid(estimateId, "Estimate sheet");
+  assertUuid(estimateId, "Estimate");
   const projectContext = await assertProjectAccessManager(projectId);
   const { data: estimate, error: estimateError } = await projectContext.admin
     .from("estimates")
@@ -203,10 +203,10 @@ async function assertEstimateAccessManager(projectId: string, estimateId: string
     .maybeSingle();
 
   if (estimateError) throw estimateError;
-  if (!estimate) throw new Error("Estimate sheet was not found.");
+  if (!estimate) throw new Error("Estimate was not found.");
 
   const estimateActorRank = await readEstimateActorRank(projectContext, estimate.id);
-  if (estimateActorRank < managerRank) throw new Error("Only sheet owners and admins can manage this sheet.");
+  if (estimateActorRank < managerRank) throw new Error("Only estimate owners and admins can manage this estimate.");
 
   return {
     ...projectContext,
@@ -670,8 +670,8 @@ export async function inviteEstimateSheetCollaborator({
     return {
       ok: true,
       message: inviteLink
-        ? "Existing user added to this sheet. Copy invite link to let them confirm access."
-        : "User added directly. They can access this estimate sheet now.",
+        ? "Existing user added to this estimate. Copy invite link to let them confirm access."
+        : "User added directly. They can access this estimate now.",
       invitePath: inviteLink?.invitePath,
     };
   }
@@ -679,7 +679,7 @@ export async function inviteEstimateSheetCollaborator({
   if (!inviteEntryEnabled || !invitation || !inviteLink) {
     return {
       ok: false,
-      message: "Link-based sheet invites are unavailable. Enable project invite entry before inviting new users.",
+      message: "Link-based estimate invites are unavailable. Enable project invite entry before inviting new users.",
     };
   }
 
@@ -735,7 +735,7 @@ export async function inviteEstimateSheetCollaborator({
   });
 
   revalidateCollaborationRoutes(context.project.id);
-  return { ok: true, message: "Sheet invite email sent.", invitePath: inviteLink.invitePath };
+  return { ok: true, message: "Estimate invite email sent.", invitePath: inviteLink.invitePath };
 }
 
 export async function copyProjectInviteLink({
@@ -1028,5 +1028,5 @@ export async function setEstimateSheetAccessMode({
   if (error) throw error;
 
   revalidateCollaborationRoutes(context.project.id);
-  return { ok: true, message: inheritProjectAccess ? "Sheet now inherits project access." : "Sheet access is now restricted." };
+  return { ok: true, message: inheritProjectAccess ? "Estimate now inherits project access." : "Estimate access is now restricted." };
 }

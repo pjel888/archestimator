@@ -13,7 +13,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
+import type { PublicationSnapshotEstimate, PublicationSnapshotEstimateTab } from "@/lib/publication/types";
 
 import Image from "next/image";
 
@@ -53,6 +53,14 @@ function findShareTreeNodeElement(root: HTMLElement | null, nodeId: string) {
   return [...nodes].find((node) => node.getAttribute("data-share-tree-node-id") === nodeId) ?? null;
 }
 
+function getOrderedEstimateTabs(estimate: PublicationSnapshotEstimate | undefined): PublicationSnapshotEstimateTab[] {
+  return [...(estimate?.tabs ?? [])].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+}
+
+function getDefaultEstimateTabId(tabs: PublicationSnapshotEstimateTab[]): string | null {
+  return tabs.find((tab) => tab.isDefault)?.id ?? tabs[0]?.id ?? null;
+}
+
 export default function SharePageTabs({
   estimates,
   currencyCode,
@@ -68,12 +76,14 @@ export default function SharePageTabs({
   // P2: Sub-tab view mode per sheet (Tree View | Grid Preview)
   const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
   const [gridSearchByEstimateId, setGridSearchByEstimateId] = useState<Record<string, string>>({});
+  const [estimateTabOverrides, setEstimateTabOverrides] = useState<Record<string, string>>({});
 
   const fallbackActiveId = estimates[0]?.id ?? "";
   const activeId = activeIdOverride && estimates.some((estimate) => estimate.id === activeIdOverride) ? activeIdOverride : fallbackActiveId;
   const currentView = sheetViews[activeId] ?? "tree";
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const estimateTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const setViewForCurrentSheet = (view: "tree" | "grid") => {
     if (activeId) {
@@ -181,35 +191,103 @@ export default function SharePageTabs({
   // All hooks must be called unconditionally at the top (rules of hooks).
   const wouldBeActiveId = activeId || (estimates[0]?.id ?? "");
   const wouldBeActive = estimates.find((e) => e.id === wouldBeActiveId) ?? estimates[0];
+  const activeEstimateTabs = useMemo(() => getOrderedEstimateTabs(wouldBeActive), [wouldBeActive]);
+  const activeEstimateTabId =
+    wouldBeActive && activeEstimateTabs.some((tab) => tab.id === estimateTabOverrides[wouldBeActive.id])
+      ? estimateTabOverrides[wouldBeActive.id]
+      : getDefaultEstimateTabId(activeEstimateTabs);
+  const activeEstimateTab = activeEstimateTabs.find((tab) => tab.id === activeEstimateTabId) ?? null;
+  const activeContentRows = useMemo(
+    () => activeEstimateTab?.rows ?? wouldBeActive?.rows ?? [],
+    [activeEstimateTab?.rows, wouldBeActive?.rows],
+  );
+  const activeContentTreeNodes = activeEstimateTab?.treeNodes ?? wouldBeActive?.treeNodes;
+  const activeContentTotal = activeEstimateTab?.totalCost ?? wouldBeActive?.totalCost ?? 0;
+  const activeContentLabel = activeEstimateTab ? `${wouldBeActive?.name ?? "Estimate"} · ${activeEstimateTab.name}` : wouldBeActive?.name ?? "Estimate";
+  const gridSearchKey = wouldBeActive ? (activeEstimateTab ? `${wouldBeActive.id}:${activeEstimateTab.id}` : wouldBeActive.id) : "";
+
+  const updateActiveEstimateTab = useCallback(
+    (id: string) => {
+      if (!wouldBeActive || !id || id === activeEstimateTabId) return;
+      setEstimateTabOverrides((prev) => ({ ...prev, [wouldBeActive.id]: id }));
+    },
+    [activeEstimateTabId, wouldBeActive],
+  );
+
+  const handleEstimateTabKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+      const len = activeEstimateTabs.length;
+      if (len <= 1) return;
+
+      let nextIndex = index;
+
+      switch (e.key) {
+        case "ArrowRight":
+          e.preventDefault();
+          nextIndex = (index + 1) % len;
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          nextIndex = (index - 1 + len) % len;
+          break;
+        case "Home":
+          e.preventDefault();
+          nextIndex = 0;
+          break;
+        case "End":
+          e.preventDefault();
+          nextIndex = len - 1;
+          break;
+        case "Enter":
+        case " ":
+          e.preventDefault();
+          {
+            const selectedTab = activeEstimateTabs[index];
+            if (selectedTab) updateActiveEstimateTab(selectedTab.id);
+          }
+          return;
+        default:
+          return;
+      }
+
+      const nextTab = activeEstimateTabs[nextIndex];
+      if (!nextTab) return;
+      updateActiveEstimateTab(nextTab.id);
+      estimateTabRefs.current[nextIndex]?.focus();
+    },
+    [activeEstimateTabs, updateActiveEstimateTab],
+  );
 
   const donutBuckets = useMemo(
-    () => (wouldBeActive ? aggregateRowsByDiscipline(wouldBeActive.rows) : []),
-    [wouldBeActive]
+    () => aggregateRowsByDiscipline(activeContentRows),
+    [activeContentRows]
   );
 
   const treeNodes = useMemo(() => {
     if (!wouldBeActive) return [];
-    const raw = getBestShareTree(wouldBeActive.rows, wouldBeActive.treeNodes);
+    const raw = getBestShareTree(activeContentRows, activeContentTreeNodes);
     if (raw.length === 0) return raw;
     // Virtual root (per clarified target A): provides "complete hierarchy" context in Tree View + floating nav
     // even when designation data in snapshot is relative/shallow (e.g. starts at "Balcony" for some Lewis publishes).
     // Reconstruction itself remains pure (fidelity tests + other snapshots unaffected).
-    return wrapTreeWithRoot(raw, wouldBeActive.name || "Estimate", wouldBeActive.totalCost);
-  }, [wouldBeActive]);
-  const activeGridSearch = wouldBeActive ? gridSearchByEstimateId[wouldBeActive.id] ?? "" : "";
+    return wrapTreeWithRoot(raw, activeContentLabel, activeContentTotal);
+  }, [activeContentLabel, activeContentRows, activeContentTotal, activeContentTreeNodes, wouldBeActive]);
+  const activeGridSearch = gridSearchKey ? gridSearchByEstimateId[gridSearchKey] ?? "" : "";
   const filteredRows = useMemo(() => {
-    if (!wouldBeActive) return [];
     const normalizedQuery = activeGridSearch.trim().toLowerCase();
-    if (!normalizedQuery) return wouldBeActive.rows;
-    return wouldBeActive.rows.filter((row) =>
+    if (!normalizedQuery) return activeContentRows;
+    return activeContentRows.filter((row) =>
       [row.description, row.designation, row.material, row.discipline]
         .some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
-  }, [activeGridSearch, wouldBeActive]);
+  }, [activeContentRows, activeGridSearch]);
 
   if (estimates.length === 0) return null;
 
   const activeEstimate = wouldBeActive ?? estimates[0];
+  const activeEstimateMetaText = [activeEstimate.sheetCode, activeEstimateTab ? `Tab ${activeEstimateTab.name}` : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="space-y-3">
@@ -217,12 +295,12 @@ export default function SharePageTabs({
       <div className="flex items-end justify-between gap-3">
         <div>
           <h2 className="text-[12px] font-medium leading-4 text-ink">{activeEstimate.name}</h2>
-          {activeEstimate.sheetCode ? (
-            <p className="text-[10px] leading-3 text-tertiary">{activeEstimate.sheetCode}</p>
+          {activeEstimateMetaText ? (
+            <p className="text-[10px] leading-3 text-tertiary">{activeEstimateMetaText}</p>
           ) : null}
         </div>
         <p className="text-[12px] font-medium leading-4 text-ink">
-          {formatMoney(activeEstimate.totalCost, currencyCode)}
+          {formatMoney(activeContentTotal, currencyCode)}
         </p>
       </div>
 
@@ -231,9 +309,9 @@ export default function SharePageTabs({
           layout without clipping or excessive page scroll. Workshop charts unchanged. */}
       <CostDonutChart
         buckets={donutBuckets}
-        total={activeEstimate.totalCost}
+        total={activeContentTotal}
         currencyCode={currencyCode}
-        label={`${activeEstimate.name} cost breakdown`}
+        label={`${activeContentLabel} cost breakdown`}
         compact
       />
 
@@ -242,7 +320,7 @@ export default function SharePageTabs({
         <div
           ref={scrollRef}
           role="tablist"
-          aria-label="Estimate sheets"
+          aria-label="Estimates"
           className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
           style={{ scrollbarWidth: "thin" }}
         >
@@ -287,6 +365,41 @@ export default function SharePageTabs({
           className={`pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-surfaceMuted to-transparent transition-opacity ${canScrollRight ? "opacity-100" : "opacity-0"}`}
         />
       </div>
+
+      {activeEstimateTabs.length > 1 ? (
+        <div
+          role="tablist"
+          aria-label={`${activeEstimate.name} tabs`}
+          className="flex h-7 items-center gap-0 overflow-x-auto border-b border-hairline bg-white text-[10px] font-medium"
+        >
+          {activeEstimateTabs.map((tab, index) => {
+            const isActive = tab.id === activeEstimateTabId;
+            return (
+              <button
+                key={tab.id}
+                id={`share-estimate-tab-${activeEstimate.id}-${tab.id}`}
+                ref={(el) => {
+                  estimateTabRefs.current[index] = el;
+                }}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`share-estimate-panel-${activeEstimate.id}`}
+                tabIndex={isActive ? 0 : -1}
+                className={`h-full flex-shrink-0 rounded-xs border px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                  isActive
+                    ? "bg-surfaceMuted text-ink border-hairline"
+                    : "text-tertiary hover:text-ink border-transparent hover:border-hairline"
+                }`}
+                onClick={() => updateActiveEstimateTab(tab.id)}
+                onKeyDown={(event) => handleEstimateTabKeyDown(event, index)}
+              >
+                {tab.name}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {/* P2: Sub-tab bar (Tree View | Grid Preview) — below main tabs, above content */}
       <div
@@ -334,7 +447,7 @@ export default function SharePageTabs({
                 value={activeGridSearch}
                 onChange={(event) => {
                   const next = event.target.value;
-                  setGridSearchByEstimateId((prev) => ({ ...prev, [activeEstimate.id]: next }));
+                  setGridSearchByEstimateId((prev) => ({ ...prev, [gridSearchKey || activeEstimate.id]: next }));
                 }}
                 placeholder="Filter rows"
                 className="h-7 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus"

@@ -19,6 +19,7 @@ describe("project collaboration summary contract", () => {
     expect(workspaceRepository).toContain('projectChannel: `project:${projectId}`');
     expect(workspaceRepository).toContain('estimateChannelPrefix: "estimate:"');
     expect(projectLayout).toContain("getProjectCollaborationSummary(projectId)");
-    expect(projectLayout).toContain("collaborationSummary={collaborationSummary}");
+    expect(projectLayout).toContain("actions={");
+    expect(projectLayout).toContain("<ProjectTeamspaceHeader summary={collaborationSummary} />");
   });
 });

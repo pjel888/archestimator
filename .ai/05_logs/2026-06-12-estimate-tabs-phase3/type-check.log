@@ -1,0 +1,5 @@
+cwd=/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+timestamp=2026-06-12T11:08:00Z
+command=bun run type-check
+
+$ tsc --noEmit

@@ -1,0 +1,74 @@
+[
+  {
+    "label": "type-check-after-lint-fix",
+    "command": "bun run type-check",
+    "started": "2026-06-12T10:38:31.223390+00:00",
+    "ended": "2026-06-12T10:38:39.977505+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/type-check-after-lint-fix.log"
+  },
+  {
+    "label": "phase2-domain-actions",
+    "command": "bunx vitest run tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/estimate-tabs-domain.test.ts --maxWorkers=1",
+    "started": "2026-06-12T10:36:23.156559+00:00",
+    "ended": "2026-06-12T10:36:25.642167+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/phase2-domain-actions.log"
+  },
+  {
+    "label": "postgres-rls-pg15-local",
+    "command": "POSTGRES_BIN_DIR=/opt/homebrew/bin bun run prove:estimate-tabs-rls",
+    "started": "2026-06-12T10:36:25.642477+00:00",
+    "ended": "2026-06-12T10:36:30.091154+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/postgres-rls-pg15-local.log"
+  },
+  {
+    "label": "targeted-estimate-characterization",
+    "command": "bunx vitest run tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-tree-context-menu.test.tsx tests/vitest/estimate-template-drop-zones.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx --maxWorkers=1",
+    "started": "2026-06-12T10:36:30.091462+00:00",
+    "ended": "2026-06-12T10:36:49.625748+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/targeted-estimate-characterization.log"
+  },
+  {
+    "label": "targeted-perf",
+    "command": "bunx vitest run tests/vitest/perf --maxWorkers=1",
+    "started": "2026-06-12T10:36:49.626112+00:00",
+    "ended": "2026-06-12T10:36:56.194770+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/targeted-perf.log"
+  },
+  {
+    "label": "targeted-export-regression",
+    "command": "bunx vitest run tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts --maxWorkers=1",
+    "started": "2026-06-12T10:36:56.195120+00:00",
+    "ended": "2026-06-12T10:36:59.124852+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/targeted-export-regression.log"
+  },
+  {
+    "label": "build-after-lint-fix",
+    "command": "bun run build",
+    "started": "2026-06-12T10:39:18.141847+00:00",
+    "ended": "2026-06-12T10:39:35.228504+00:00",
+    "exit_code": 0,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/build-after-lint-fix.log"
+  },
+  {
+    "label": "lint-after-lint-fix",
+    "command": "bun run lint",
+    "started": "2026-06-12T10:38:39.977994+00:00",
+    "ended": "2026-06-12T10:39:00.635218+00:00",
+    "exit_code": 1,
+    "timed_out": false,
+    "log": ".ai/05_logs/2026-06-12-estimate-tabs-phase2/lint-after-lint-fix.log"
+  }
+]

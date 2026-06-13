@@ -1,0 +1,12 @@
+cwd=/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+timestamp=2026-06-12T11:07:43Z
+command=bunx vitest run tests/vitest/estimate-tab-strip.test.tsx tests/vitest/estimate-tabs-domain.test.ts tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-cursor-broadcast-throttle.test.ts --maxWorkers=1
+
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  4 passed (4)
+      Tests  20 passed (20)
+   Start at  19:07:44
+   Duration  4.41s (transform 263ms, setup 125ms, import 1.82s, tests 435ms, environment 1.32s)

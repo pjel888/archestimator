@@ -109,7 +109,7 @@ function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataS
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Could not rename estimate sheet.";
+  return error instanceof Error ? error.message : "Could not rename estimate.";
 }
 
 function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata | null }) {
@@ -134,7 +134,7 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
 
     if (!nextName) {
       setStatus("error");
-      setErrorMessage("Estimate sheet name is required.");
+      setErrorMessage("Estimate name is required.");
       return;
     }
 
@@ -192,7 +192,7 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
       <input
         aria-describedby={errorMessage ? errorId : undefined}
         aria-invalid={status === "error" ? "true" : undefined}
-        aria-label="Estimate sheet name"
+        aria-label="Estimate name"
         className={cn(
           "h-7 min-w-0 max-w-[320px] rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
           status === "error" && "border-danger bg-dangerSoft/40",
@@ -205,8 +205,8 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
           if (errorMessage) setErrorMessage(null);
         }}
         onKeyDown={handleKeyDown}
-        placeholder="Estimate sheet name"
-        title="Rename estimate sheet. Press Enter or leave the field to save. Press Esc to cancel."
+        placeholder="Estimate name"
+        title="Rename estimate. Press Enter or leave the field to save. Press Esc to cancel."
         value={draft}
       />
       {status === "saving" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-tertiary">Saving</span> : null}

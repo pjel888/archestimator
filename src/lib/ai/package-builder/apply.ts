@@ -1014,6 +1014,7 @@ async function applyFillCurrentEstimateDraft({
         initial_sort_order: node.sortOrder,
         acting_user_id: input.userContext.userId,
         correlation_id: correlationId,
+        ...(target.activeTabId ? { target_tab_id: target.activeTabId } : {}),
       });
       if (error) throw new Error(`Package Apply failed: ${error.message}`);
       const result = parseEstimateNodeCreateResult(data);

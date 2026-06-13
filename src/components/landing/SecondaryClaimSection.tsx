@@ -17,7 +17,7 @@ export function SecondaryClaimSection() {
               Workflows designed for every estimating specialty.
             </h2>
             <p className="mx-auto mt-5 max-w-[600px] text-[15px] leading-7 text-[#5f554d]">
-              Every team names scope differently. Archestimator gives the quote enough structure to carry rooms, assemblies, supplier context, allowances, and revisions without flattening the work into one brittle spreadsheet.
+              Every team names scope differently. Archestimator gives the estimate enough structure to carry rooms, assemblies, supplier context, allowances, and revisions without flattening the work into one brittle spreadsheet.
             </p>
           </div>
         </MotionReveal>

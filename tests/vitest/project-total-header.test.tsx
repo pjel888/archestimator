@@ -37,7 +37,7 @@ describe("ProjectTotalHeader", () => {
   it("shows an empty budget health meter before estimate rows contribute cost", () => {
     renderProjectTotalHeader();
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
     const health = header.querySelector("[data-budget-health-state]");
     const meter = within(header).getByRole("meter", { name: "Budget health" });
 
@@ -51,7 +51,7 @@ describe("ProjectTotalHeader", () => {
   it("keeps total values stronger than compact labels and budget health metadata", () => {
     renderProjectTotalHeader();
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
 
     expect(within(header).getByText("₱ 1,000,000.00")).toHaveClass("text-[12px]");
     expect(within(header).getByText("Project budget")).toHaveClass("text-[8px]");
@@ -64,7 +64,7 @@ describe("ProjectTotalHeader", () => {
 
     act(() => dispatchProjectTotalChange(750_000));
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
     const health = header.querySelector("[data-budget-health-state]");
     const meter = within(header).getByRole("meter", { name: "Budget health" });
     const fill = header.querySelector("[data-budget-health-fill]");
@@ -84,7 +84,7 @@ describe("ProjectTotalHeader", () => {
 
     act(() => dispatchProjectTotalChange(1_250_000));
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
     const health = header.querySelector("[data-budget-health-state]");
     const meter = within(header).getByRole("meter", { name: "Budget health" });
     const overflow = header.querySelector("[data-budget-health-overflow]");
@@ -108,7 +108,7 @@ describe("ProjectTotalHeader", () => {
 
     act(() => dispatchProjectTotalChange(450_000));
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
     const meter = within(header).getByRole("meter", { name: "Budget health" });
 
     expect(header.querySelector("[data-budget-health-state]")).toHaveAttribute("data-budget-health-state", "missing");
@@ -123,23 +123,23 @@ describe("ProjectTotalHeader", () => {
 
     renderProjectTotalHeader();
 
-    expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Estimate running totals")).not.toBeInTheDocument();
   });
 
-  it("reacts to active estimate sheet budget changes", () => {
+  it("reacts to active estimate budget changes", () => {
     renderProjectTotalHeader(1_000_000);
 
     act(() => dispatchProjectTotalChange(900_000));
     act(() => dispatchProjectBudgetChange(800_000));
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
 
     expect(header.querySelector("[data-budget-health-state]")).toHaveAttribute("data-budget-health-state", "danger");
     expect(within(header).getByText("₱ 100K over · 113% used")).toBeInTheDocument();
     expect(within(header).getByText("₱ 800,000.00")).toBeInTheDocument();
   });
 
-  it("hydrates the active estimate sheet budget when metadata publishes during layout", () => {
+  it("hydrates the active estimate budget when metadata publishes during layout", () => {
     render(
       <div className="h-14 w-[640px]">
         <ProjectTotalHeader projectId="project-1" plannedBudget={0} />
@@ -154,7 +154,7 @@ describe("ProjectTotalHeader", () => {
       </div>,
     );
 
-    const header = screen.getByLabelText("Sheet running totals");
+    const header = screen.getByLabelText("Estimate running totals");
 
     expect(within(header).getByText("₱ 2,000,000.00")).toBeInTheDocument();
     expect(header.querySelector("[data-budget-health-state]")).toHaveAttribute("data-budget-health-state", "empty");

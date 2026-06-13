@@ -4,10 +4,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { createProposalWorkbookBuffer } from "../src/lib/proposal-export/create-proposal-workbook";
-import type { ProposalExportModel, ProposalExportRow, ProposalSourceBreakdownRow, ProposalSummaryRow } from "../src/lib/proposal-export/types";
+import { buildUniqueWorksheetNames } from "../src/lib/proposal-export/worksheet-name";
+import type { ProposalExportModel, ProposalExportRow, ProposalSourceBreakdownRow, ProposalSummaryRow, ProposalTabbedWorkbookModel } from "../src/lib/proposal-export/types";
 
 type BenchmarkRun = {
   rowCount: number;
+  tabCount?: number;
+  rowsPerTab?: number;
   sourceBreakdownRowCount: number;
   summaryRowCount: number;
   durationMs: number;
@@ -204,6 +207,45 @@ export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
   };
 }
 
+export function makeTabbedBenchmarkModel(tabCount: number, rowsPerTab: number): ProposalTabbedWorkbookModel {
+  if (!Number.isInteger(tabCount) || tabCount <= 0) throw new Error("tabCount must be a positive integer.");
+  if (!Number.isInteger(rowsPerTab) || rowsPerTab <= 0) throw new Error("rowsPerTab must be a positive integer.");
+
+  const generatedAt = new Date().toISOString();
+  const baseModel = makeBenchmarkModel(rowsPerTab);
+  const tabNames = buildUniqueWorksheetNames(Array.from({ length: tabCount }, (_, index) => ({
+    id: `benchmark-tab-${index + 1}`,
+    name: `Benchmark Tab ${index + 1}`,
+  })));
+
+  return {
+    metadata: {
+      ...baseModel.metadata,
+      estimateName: `${tabCount} Tab Export Fixture`,
+      estimateSheetCode: `BENCH-${tabCount}x${rowsPerTab}`,
+    },
+    settings: baseModel.settings,
+    generatedAt,
+    tabs: tabNames.map((tabName, index) => {
+      const model = makeBenchmarkModel(rowsPerTab);
+      return {
+        tabId: tabName.id,
+        tabName: tabName.name,
+        worksheetName: tabName.worksheetName,
+        model: {
+          ...model,
+          metadata: {
+            ...model.metadata,
+            estimateName: `Benchmark Tab ${index + 1}`,
+            estimateSheetCode: `BENCH-${index + 1}`,
+          },
+          generatedAt,
+        },
+      };
+    }),
+  };
+}
+
 export async function runBenchmark(rowCount: number): Promise<BenchmarkRun> {
   const model = makeBenchmarkModel(rowCount);
   const startedAt = performance.now();
@@ -215,6 +257,27 @@ export async function runBenchmark(rowCount: number): Promise<BenchmarkRun> {
     rowCount,
     sourceBreakdownRowCount: model.sourceBreakdownRows.length,
     summaryRowCount: model.summaryRows.length,
+    durationMs,
+    bufferBytes: buffer.byteLength,
+    bufferMiB: toMiB(buffer.byteLength),
+    ...memory,
+  };
+}
+
+export async function runTabbedBenchmark(tabCount: number, rowsPerTab: number): Promise<BenchmarkRun> {
+  const model = makeTabbedBenchmarkModel(tabCount, rowsPerTab);
+  const startedAt = performance.now();
+  const buffer = await createProposalWorkbookBuffer(model);
+  const durationMs = round(performance.now() - startedAt);
+  const memory = getMemoryUsage();
+  const rowCount = tabCount * rowsPerTab;
+
+  return {
+    rowCount,
+    tabCount,
+    rowsPerTab,
+    sourceBreakdownRowCount: rowCount,
+    summaryRowCount: model.tabs.reduce((total, tab) => total + tab.model.summaryRows.length, 0),
     durationMs,
     bufferBytes: buffer.byteLength,
     bufferMiB: toMiB(buffer.byteLength),

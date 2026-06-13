@@ -3,10 +3,10 @@ import { SectionIntro } from "./SectionIntro";
 
 const featureBlocks = [
   {
-    title: "Structured Quote Sheets",
-    body: "Stop forcing itemized sales and estimating work into a flat sheet. Build quotes around scope, package, location, supplier, component, and line item.",
+    title: "Structured Estimate Tabs",
+    body: "Stop forcing itemized sales and estimating work into a flat spreadsheet. Build estimates around scope, package, location, supplier, component, and line item.",
     cards: [
-      ["Quote Workspace", "Keep the sheet structure, selected scope, line items, and running totals visible in one working surface."],
+      ["Estimate Workspace", "Keep the estimate structure, active tab, selected scope, line items, and running totals visible in one working surface."],
       ["Scope-targeted insertion", "Add rows and catalog items to the exact package, room, area, or sales scope they belong to instead of cleaning up misplaced lines later."],
       ["Assumptions beside prices", "Keep notes, scope status, and commercial context close to the numbers that depend on them."],
     ],
@@ -36,7 +36,7 @@ const featureBlocks = [
     title: "Proposal Comparisons",
     body: "Compare alternates, revisions, supplier packages, and value options inside one workspace, then show the price difference clearly.",
     cards: [
-      ["Multiple quote sheets", "Keep baseline, revised, and alternate quotes under the same workspace instead of scattering options across files."],
+      ["Multiple estimate tabs", "Keep baseline, revised, and alternate estimate tabs under the same workspace instead of scattering options across files."],
       ["Visual Cost Breakdowns", "Show buyers or clients where the price moved by area, category, supplier, scope, or revision."],
       ["Proposal-Ready Outputs", "Carry inclusions, exclusions, assumptions, allowances, and commercial terms toward client-ready output before export."],
     ],
@@ -44,7 +44,7 @@ const featureBlocks = [
   },
   {
     title: "Spreadsheet And Document Handoff",
-    body: "Prepare quote sheets and proposal packages for Excel and document handoff so buyers, clients, and internal reviewers can review, approve, and archive the work.",
+    body: "Prepare estimates and proposal packages for Excel and document handoff so buyers, clients, and internal reviewers can review, approve, and archive the work.",
     cards: [
       ["Excel handoff", "Move line items, quantities, unit rates, subtotals, and totals into the spreadsheet format teams already use."],
       ["Document packages", "Future document packages should preserve the proposal structure, assumptions, inclusions, exclusions, and commercial terms."],

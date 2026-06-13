@@ -56,11 +56,17 @@ const ACTIVITY_FILTER_EVENT_TYPES = [
   { value: "node_renamed", label: "Node renamed" },
   { value: "tree_reordered", label: "Tree reordered" },
   { value: "node_deleted_with_children", label: "Node deleted" },
-  { value: "sheet_code_updated", label: "Sheet code" },
-  { value: "sheet_metadata_updated", label: "Sheet metadata" },
+  { value: "sheet_code_updated", label: "Estimate code" },
+  { value: "sheet_metadata_updated", label: "Estimate metadata" },
+  { value: "tab_created", label: "Tab created" },
+  { value: "tab_renamed", label: "Tab renamed" },
+  { value: "tab_reordered", label: "Tab reordered" },
+  { value: "tab_duplicated", label: "Tab duplicated" },
+  { value: "tab_archived", label: "Tab archived" },
+  { value: "tab_deleted", label: "Tab deleted" },
 ] as const;
 
-const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Sheets" }];
+const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Tabs" }];
 
 export type FlattenedEstimateRow = {
   item: EstimateRowItem;
@@ -187,13 +193,19 @@ function getLegacyEventAccessibilityLabel(eventType: string) {
     row_deleted: "Row deleted",
     tree_reordered: "Tree reordered",
     template_inserted: "Template inserted",
-    sheet_code_updated: "Sheet code updated",
-    sheet_metadata_updated: "Sheet metadata updated",
+    sheet_code_updated: "Estimate code updated",
+    sheet_metadata_updated: "Estimate metadata updated",
     sheet_version_created: "Version snapshot created",
     sheet_restored_as_copy: "Version restored as copy",
     node_created: "Node created",
     node_renamed: "Node renamed",
     node_deleted_with_children: "Area deleted",
+    tab_created: "Tab created",
+    tab_renamed: "Tab renamed",
+    tab_reordered: "Tabs reordered",
+    tab_duplicated: "Tab duplicated",
+    tab_archived: "Tab archived",
+    tab_deleted: "Tab deleted",
   };
   return labels[eventType] ?? "Activity recorded";
 }
@@ -240,7 +252,7 @@ function getEventSummary(event: EstimateSheetHistoryEvent) {
   if (activity.changes?.length) return activity.changes.map((change) => change.label.toLowerCase()).join(", ");
   if (activity.summary) return activity.summary;
   if (activity.target.secondaryLabel) return activity.target.secondaryLabel;
-  return activity.target.label || "Estimate sheet activity";
+  return activity.target.label || "Estimate activity";
 }
 
 const componentImageFallbacks: Record<string, string> = {
@@ -423,7 +435,7 @@ function getAuditChangeDetails(event: EstimateSheetHistoryEvent): AuditChangeDet
     return [
       { kind: "note", label: "Node", value: readStringValue(payload.name, "New area") },
       { kind: "note", label: "Kind", value: humanizeAuditValue(readStringValue(payload.kind, "node")) },
-      { kind: "note", label: "Parent", value: readStringValue(payload.parentId, "Sheet root") },
+      { kind: "note", label: "Parent", value: readStringValue(payload.parentId, "Tab root") },
     ];
   }
 
@@ -529,7 +541,7 @@ function getAuditTargetLabel(event: EstimateSheetHistoryEvent) {
   const material = formatAuditMaterialName(readStringValue(event.rowContext.material));
   if (material) return material;
   if (event.estimateNodeId) return "selected node";
-  return "the estimate sheet";
+  return "the estimate";
 }
 
 function getAuditDetailSentence(detail: AuditChangeDetail) {
@@ -1310,8 +1322,8 @@ function getActivityEmptyCopy(scope: EstimateActivityScope) {
   }
 
   return {
-    label: "No sheet activity yet",
-    description: "Estimate edits, row changes, and sheet metadata updates will appear here.",
+    label: "No activity yet in this estimate",
+    description: "Estimate edits, tab row changes, and metadata updates will appear here.",
   };
 }
 
@@ -1549,8 +1561,8 @@ export function ActivityHistoryModal({
   const nextCursor = getActivityCursorForScope(scope, historyData);
   const emptyCopy = getActivityEmptyCopy(scope);
   const loadMoreLabel = getActivityLoadMoreLabel(scope);
-  const selectedLabel = selectedScopeItem?.label ?? metadata?.estimateName ?? "Estimate sheet";
-  const selectedEyebrow = selectedScopeItem?.eyebrow ?? metadata?.estimateSheetCode ?? "Sheet";
+  const selectedLabel = selectedScopeItem?.label ?? metadata?.estimateName ?? "Estimate";
+  const selectedEyebrow = selectedScopeItem?.eyebrow ?? metadata?.estimateSheetCode ?? "Estimate";
   const selectedDescription = selectedScopeItem?.description ?? "";
   const filtersActive = hasActivityFilters(activityFilters);
   const advancedFiltersActive = hasAdvancedActivityFilters(activityFilters);
@@ -1580,7 +1592,7 @@ export function ActivityHistoryModal({
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-hairline bg-white px-4">
           <div className="min-w-0">
             <p className="text-[11px] font-medium text-ink">Activity History</p>
-            <p className="truncate text-[8px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate sheet"}</p>
+            <p className="truncate text-[8px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate"}</p>
           </div>
           <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Activity History" onClick={onClose}>
             <X size={13} weight="regular" aria-hidden="true" />

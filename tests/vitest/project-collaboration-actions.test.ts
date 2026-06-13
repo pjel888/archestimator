@@ -69,9 +69,9 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("Invitation created. Share the invite link manually.");
     expect(actions).toContain("[collaboration] invite email delivery failed");
     expect(actions).toContain("User added directly. They can access the project now.");
-    expect(actions).toContain("User added directly. They can access this estimate sheet now.");
+    expect(actions).toContain("User added directly. They can access this estimate now.");
     expect(actions).toContain("Link-based invites are unavailable. Enable project invite entry before inviting new users.");
-    expect(actions).toContain("Link-based sheet invites are unavailable. Enable project invite entry before inviting new users.");
+    expect(actions).toContain("Link-based estimate invites are unavailable. Enable project invite entry before inviting new users.");
     expect(actions).toContain("const inviteEntryEnabled = isProjectInviteEntryEnabled()");
     expect(actions).toContain("if (!inviteEntryEnabled || !invitation || !inviteLink)");
     expect(actions).toContain("Invite email resend is disabled until email delivery is explicitly enabled.");
@@ -98,7 +98,7 @@ describe("project collaboration management actions", () => {
     expect(actions).not.toContain('accepted_via: "invite_route"');
   });
 
-  it("keeps role and sheet access mutations behind server-side manager checks", () => {
+  it("keeps role and estimate access mutations behind server-side manager checks", () => {
     expect(actions).toContain("assertProjectAccessManager");
     expect(actions).toContain("updateProjectCollaboratorRole");
     expect(actions).toContain("removeProjectCollaborator");
@@ -110,7 +110,7 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("Cannot assign a role above your own access level.");
   });
 
-  it("wires the modal to invite, role, share-link, and per-sheet access controls", () => {
+  it("wires the modal to invite, role, share-link, and per-estimate access controls", () => {
     expect(header).toContain("inviteProjectCollaborator");
     expect(header).toContain("updateProjectCollaboratorRole");
     expect(header).toContain("setEstimateSheetAccessMode");

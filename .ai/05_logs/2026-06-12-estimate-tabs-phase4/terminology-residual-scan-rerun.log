@@ -1,0 +1,351 @@
+# Phase 4 residual terminology scan rerun
+2026-06-12T11:27:52Z
+
+## Exact legacy user-facing copy table patterns (expected: no output)
+src/components/workshop/WorkshopPageShell.tsx:144:              aria-label="Sheet running totals"
+
+## Source broad residual sheet terms
+src/lib/share/reconstruct-share-tree.ts:368: * context (e.g. estimate sheet name as top level) even when snapshot row designations produce
+src/components/share/SharePageTabs.tsx:69:  const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
+src/components/share/SharePageTabs.tsx:78:  const setViewForCurrentSheet = (view: "tree" | "grid") => {
+src/components/share/SharePageTabs.tsx:80:      setSheetViews(prev => ({ ...prev, [activeId]: view }));
+src/components/share/SharePageTabs.tsx:95:      setViewForCurrentSheet(next);
+src/components/share/SharePageTabs.tsx:313:              onClick={() => setViewForCurrentSheet(mode)}
+src/components/share/ShareEstimateTreePanel.tsx:25: * Mirrors the visual shell of the workshop EstimateSheetTree sidebar:
+src/components/landing/FeaturesSection.tsx:6:    title: "Structured Quote Sheets",
+src/lib/proposal-export/types.ts:14:  estimateSheetCode: string;
+src/lib/proposal-export/types.ts:24:  includeSourceBreakdownSheet: boolean;
+src/lib/proposal-export/build-proposal-export-model.ts:28:  includeSourceBreakdownSheet: true,
+src/lib/proposal-export/create-proposal-workbook.ts:396:  if (model.settings.includeSourceBreakdownSheet) {
+src/lib/estimates/tree-hierarchy.ts:58: * First node to land on when opening an estimate sheet: the first area in
+src/lib/repositories/workspace-repository.ts:15:  EstimateSheetAccessMode,
+src/lib/repositories/workspace-repository.ts:124:type EstimateSheetMemberRow = Pick<Tables<"estimate_sheet_members">, "estimate_id" | "project_id" | "role" | "user_id">;
+src/lib/repositories/workspace-repository.ts:125:type EstimateSheetAccessSettingsRow = Pick<Tables<"estimate_sheet_access_settings">, "estimate_id" | "inherit_project_access">;
+src/lib/repositories/workspace-repository.ts:152:  sheetMembers: EstimateSheetMemberRow[];
+src/lib/repositories/workspace-repository.ts:259:async function readOptionalEstimateSheetMembers(
+src/lib/repositories/workspace-repository.ts:262:): Promise<EstimateSheetMemberRow[]> {
+src/lib/repositories/workspace-repository.ts:278:async function readOptionalEstimateSheetAccessSettings(
+src/lib/repositories/workspace-repository.ts:281:): Promise<EstimateSheetAccessSettingsRow[]> {
+src/lib/repositories/workspace-repository.ts:741:  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
+src/lib/repositories/workspace-repository.ts:912:  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
+src/lib/repositories/workspace-repository.ts:1122:    readOptionalEstimateSheetMembers(supabase, estimateIds),
+src/lib/repositories/workspace-repository.ts:1123:    readOptionalEstimateSheetAccessSettings(supabase, estimateIds),
+src/lib/repositories/workspace-repository.ts:1185:  const currentUserSheetRoleByEstimateId = new Map<string, CollaborationRole>();
+src/lib/repositories/workspace-repository.ts:1189:      currentUserSheetRoleByEstimateId.set(member.estimate_id, member.role);
+src/lib/repositories/workspace-repository.ts:1196:  const estimateSheets = (estimates ?? []).map((estimate) => {
+src/lib/repositories/workspace-repository.ts:1199:    const accessMode: EstimateSheetAccessMode = inheritsProjectAccess
+src/lib/repositories/workspace-repository.ts:1211:      canManageAccess: canManageAccess || canManageCollaborationRole(currentUserSheetRoleByEstimateId.get(estimate.id) ?? "viewer"),
+src/lib/repositories/workspace-repository.ts:1233:    estimateSheets,
+src/lib/repositories/workspace-repository.ts:1387:export async function listProjectEstimateSheets(projectId: string): Promise<Array<{ id: string; name: string; sheetCode: string | null }>> {
+src/lib/publication/types.ts:4:export type ProjectEstimateSheet = {
+src/lib/ai/package-builder/draft.ts:2323:  const estimateSheetCode = intent === "create_library_component"
+src/lib/ai/package-builder/draft.ts:2349:      sheetCode: estimateSheetCode,
+src/lib/estimates/actions.ts:114:export type BulkDeleteEstimateSheetsInput = {
+src/lib/estimates/actions.ts:119:export type ExecuteBulkDeleteEstimateSheetsInput = BulkDeleteEstimateSheetsInput & {
+src/lib/estimates/actions.ts:124:export type DeleteEstimateSheetInput = {
+src/lib/estimates/actions.ts:131:export type EstimateSheetHistoryCursor = {
+src/lib/estimates/actions.ts:136:type EstimateSheetHistoryReadScope = "sheet" | "row" | "node" | "both";
+src/lib/estimates/actions.ts:138:type FetchEstimateSheetVersionControlInput = {
+src/lib/estimates/actions.ts:149:  sheetCursor?: EstimateSheetHistoryCursor | null;
+src/lib/estimates/actions.ts:150:  rowCursor?: EstimateSheetHistoryCursor | null;
+src/lib/estimates/actions.ts:151:  nodeCursor?: EstimateSheetHistoryCursor | null;
+src/lib/estimates/actions.ts:152:  scope?: EstimateSheetHistoryReadScope;
+src/lib/estimates/actions.ts:155:export type EstimateSheetHistoryEvent = {
+src/lib/estimates/actions.ts:173:export type EstimateSheetVersionControlData = {
+src/lib/estimates/actions.ts:174:  events: EstimateSheetHistoryEvent[];
+src/lib/estimates/actions.ts:175:  rowEvents: EstimateSheetHistoryEvent[];
+src/lib/estimates/actions.ts:176:  nodeEvents: EstimateSheetHistoryEvent[];
+src/lib/estimates/actions.ts:177:  nextCursor: EstimateSheetHistoryCursor | null;
+src/lib/estimates/actions.ts:178:  rowNextCursor: EstimateSheetHistoryCursor | null;
+src/lib/estimates/actions.ts:179:  nodeNextCursor: EstimateSheetHistoryCursor | null;
+src/lib/estimates/actions.ts:479:function normalizeHistoryEvent(row: Tables<"estimate_sheet_events">, actorLabels = new Map<string, string>()): EstimateSheetHistoryEvent {
+src/lib/estimates/actions.ts:500:function normalizeHistoryCursor(cursor: EstimateSheetHistoryCursor | null | undefined, label: string): EstimateSheetHistoryCursor | null {
+src/lib/estimates/actions.ts:513:function buildHistoryCursorFilter(cursor: EstimateSheetHistoryCursor) {
+src/lib/estimates/actions.ts:565:function normalizeActivityReadFilters(input: FetchEstimateSheetVersionControlInput): ActivityReadFilters {
+src/lib/estimates/actions.ts:848:async function insertEstimateWithSheetCodeFallback(
+src/lib/estimates/actions.ts:904:type DuplicateEstimateSheetInput = {
+src/lib/estimates/actions.ts:971:function getNextGeneratedSheetCode(existingCodes: string[]) {
+src/lib/estimates/actions.ts:983:async function generateNextEstimateSheetCode(
+src/lib/estimates/actions.ts:994:  let candidate = getNextGeneratedSheetCode(existingCodes);
+src/lib/estimates/actions.ts:997:    candidate = getNextGeneratedSheetCode([...existingCodes, candidate]);
+src/lib/estimates/actions.ts:1003:async function assertEstimateSheetCodeIsAvailable(
+src/lib/estimates/actions.ts:1010:  const normalizedSheetCode = sheetCode.trim().toLocaleLowerCase();
+src/lib/estimates/actions.ts:1012:    (estimate) => estimate.id !== currentEstimateId && estimate.sheetCode.trim().toLocaleLowerCase() === normalizedSheetCode,
+src/lib/estimates/actions.ts:1062:  await assertEstimateSheetCodeIsAvailable(supabase, project.id, sheetCode);
+src/lib/estimates/actions.ts:1064:  const estimate = await insertEstimateWithSheetCodeFallback(
+src/lib/estimates/actions.ts:1217:export async function fetchEstimateSheetVersionControl({
+src/lib/estimates/actions.ts:1232:}: FetchEstimateSheetVersionControlInput): Promise<EstimateSheetVersionControlData> {
+src/lib/estimates/actions.ts:1249:  const shouldFetchSheetEvents = scope === "sheet" || scope === "both";
+src/lib/estimates/actions.ts:1254:  const normalizedSheetCursor = shouldFetchSheetEvents ? normalizeHistoryCursor(sheetCursor, "Sheet activity") : null;
+src/lib/estimates/actions.ts:1259:  const sheetEventsPromise = shouldFetchSheetEvents
+src/lib/estimates/actions.ts:1269:      if (normalizedSheetCursor) {
+src/lib/estimates/actions.ts:1270:        sheetEventsQuery = sheetEventsQuery.or(buildHistoryCursorFilter(normalizedSheetCursor));
+src/lib/estimates/actions.ts:1497:  const requestedSheetCode = readOptionalText(formData, "sheetCode") ?? readOptionalText(formData, "revisionLabel");
+src/lib/estimates/actions.ts:1498:  const sheetCode = requestedSheetCode ?? (await generateNextEstimateSheetCode(supabase, project.id));
+src/lib/estimates/actions.ts:1512:export async function createEstimateSheetDraft(projectId: string) {
+src/lib/estimates/actions.ts:1518:  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
+src/lib/estimates/actions.ts:1532:export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput) {
+src/lib/estimates/actions.ts:1550:  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
+src/lib/estimates/actions.ts:1551:  const duplicatedEstimate = await insertEstimateWithSheetCodeFallback(
+src/lib/estimates/actions.ts:1648:export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateSheetsInput): Promise<BulkActionPreviewResult> {
+src/lib/estimates/actions.ts:1689:export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEstimateSheetsInput): Promise<BulkActionExecutionResult> {
+src/lib/estimates/actions.ts:1756:export async function deleteEstimateSheet(input: DeleteEstimateSheetInput): Promise<BulkActionExecutionResult> {
+src/lib/estimates/actions.ts:1757:  return executeBulkDeleteEstimateSheets({
+src/lib/estimates/actions.ts:1781:    await assertEstimateSheetCodeIsAvailable(supabase, project.id, sheetCode, input.estimateId);
+src/lib/estimates/actions.ts:1812:export async function regenerateEstimateSheetCode(input: { projectId: string; estimateId: string }) {
+src/lib/estimates/actions.ts:1818:  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id, input.estimateId);
+src/lib/component-library/actions.ts:19:  listProjectEstimateSheets,
+src/lib/component-library/actions.ts:1121:    accessibleProjects.map((item) => listProjectEstimateSheets(item.project.id)),
+src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts:76:      estimateSheetCode: result.estimate.sheet_code,
+src/lib/component-library/unit-options.ts:45:  { value: "sheet", label: "sheet", description: "Sheet material" },
+src/lib/component-library/category-taxonomy.v2.json:179:      "children": ["Below-Grade Waterproofing", "Wet-Area Waterproofing", "Roof Waterproofing", "Liquid Membranes", "Sheet Membranes", "Waterstops"]
+src/components/workshop/ProjectTotalHeader.tsx:89:function useProjectBudget(plannedBudget: number, isEstimateSheetRoute: boolean) {
+src/components/workshop/ProjectTotalHeader.tsx:91:    isEstimateSheetRoute ? subscribeToProjectBudgetChange : subscribeToInactiveProjectBudgetChange,
+src/components/workshop/ProjectTotalHeader.tsx:92:    () => (isEstimateSheetRoute ? getActiveEstimateProjectBudget(plannedBudget) : plannedBudget),
+src/components/workshop/ProjectTotalHeader.tsx:207:  const isEstimateSheetRoute = projectId
+src/components/workshop/ProjectTotalHeader.tsx:210:  const budget = useProjectBudget(plannedBudget, isEstimateSheetRoute);
+src/components/workshop/ProjectTotalHeader.tsx:216:    if (!isEstimateSheetRoute) return;
+src/components/workshop/ProjectTotalHeader.tsx:225:  }, [isEstimateSheetRoute]);
+src/components/workshop/ProjectTotalHeader.tsx:227:  if (!isEstimateSheetRoute) return null;
+src/app/workshop/projects/[projectId]/layout.tsx:14:  listProjectEstimateSheets,
+src/app/workshop/projects/[projectId]/layout.tsx:25:  const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
+src/app/workshop/projects/[projectId]/layout.tsx:29:        listProjectEstimateSheets(projectId),
+src/app/workshop/projects/[projectId]/layout.tsx:59:            projectEstimateSheets={projectEstimateSheets}
+src/components/workshop/ProjectEstimatesClient.tsx:12:import { createEstimateSheetDraft } from "@/lib/estimates/actions";
+src/components/workshop/ProjectEstimatesClient.tsx:20:function filterEstimateSheets(estimates: ProjectEstimateTableRow[], query: string) {
+src/components/workshop/ProjectEstimatesClient.tsx:36:  const filteredEstimates = useMemo(() => filterEstimateSheets(estimates, searchQuery), [estimates, searchQuery]);
+src/components/workshop/ProjectEstimatesClient.tsx:41:  function handleCreateEstimateSheet() {
+src/components/workshop/ProjectEstimatesClient.tsx:48:    void createEstimateSheetDraft(projectId)
+src/components/workshop/ProjectEstimatesClient.tsx:77:            onClick: handleCreateEstimateSheet,
+src/components/workshop/ProjectEstimatesClient.tsx:109:                  onClick={handleCreateEstimateSheet}
+src/lib/collaboration/actions.ts:599:export async function inviteEstimateSheetCollaborator({
+src/lib/collaboration/actions.ts:993:async function upsertSheetOwnerBeforeRestricting(context: EstimateAccessContext) {
+src/lib/collaboration/actions.ts:1007:export async function setEstimateSheetAccessMode({
+src/lib/collaboration/actions.ts:1017:  if (!inheritProjectAccess) await upsertSheetOwnerBeforeRestricting(context);
+src/components/workshop/ProjectPublicationHeader.tsx:24:import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
+src/components/workshop/ProjectPublicationHeader.tsx:29:  projectEstimateSheets?: ProjectEstimateSheet[];
+src/components/workshop/ProjectPublicationHeader.tsx:144:export function ProjectPublicationHeader({ summary, currentUserEmail = null, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
+src/components/workshop/ProjectPublicationHeader.tsx:165:    const allEstimateIds = projectEstimateSheets.map((estimate) => estimate.id);
+src/components/workshop/ProjectPublicationHeader.tsx:171:  }, [projectEstimateSheets, summary?.status, summarySelectedEstimateIds]);
+src/components/workshop/ProjectPublicationHeader.tsx:475:                  <SheetPickerList
+src/components/workshop/ProjectPublicationHeader.tsx:476:                    estimates={projectEstimateSheets}
+src/components/workshop/ProjectPublicationHeader.tsx:482:                  {!hasSelectedEstimates && projectEstimateSheets.length > 0 && (
+src/components/workshop/ProjectPublicationHeader.tsx:658:/* P1: SheetPickerList — compact, a11y, keyboard-friendly picker for estimates.
+src/components/workshop/ProjectPublicationHeader.tsx:662:export type SheetPickerListProps = {
+src/components/workshop/ProjectPublicationHeader.tsx:663:  estimates: ProjectEstimateSheet[];
+src/components/workshop/ProjectPublicationHeader.tsx:670:export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "aria-label": ariaLabel = "Select estimates to include in shared link" }: SheetPickerListProps) {
+src/lib/collaboration/types.ts:15:export type EstimateSheetAccessMode = "inherits-project" | "sheet-overrides" | "restricted";
+src/lib/collaboration/types.ts:17:export type EstimateSheetAccessSummary = {
+src/lib/collaboration/types.ts:21:  accessMode: EstimateSheetAccessMode;
+src/lib/collaboration/types.ts:45:  estimateSheets: EstimateSheetAccessSummary[];
+src/components/workshop/EstimateSheetContent.tsx:19:import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+src/components/workshop/EstimateSheetContent.tsx:36:import { reportEstimateSheetContentRender } from "./estimate-sheet-render-probe";
+src/components/workshop/EstimateSheetContent.tsx:66:  EstimateSheetExpansionContext,
+src/components/workshop/EstimateSheetContent.tsx:87:import { EstimateSheetBranch } from "./estimate-sheet/rows/branch";
+src/components/workshop/EstimateSheetContent.tsx:117:type EstimateSheetContentProps = {
+src/components/workshop/EstimateSheetContent.tsx:401:      eyebrow: metadata?.estimateSheetCode ?? "Estimate",
+src/components/workshop/EstimateSheetContent.tsx:449:function EstimateSheetHeader({
+src/components/workshop/EstimateSheetContent.tsx:454:  onOpenSheetActivity,
+src/components/workshop/EstimateSheetContent.tsx:462:  onOpenSheetActivity?: (opener: HTMLElement) => void;
+src/components/workshop/EstimateSheetContent.tsx:485:            onClick: onOpenSheetActivity
+src/components/workshop/EstimateSheetContent.tsx:486:              ? function openSheetActivity(event?: unknown) {
+src/components/workshop/EstimateSheetContent.tsx:488:                onOpenSheetActivity(target instanceof HTMLElement ? target : document.body);
+src/components/workshop/EstimateSheetContent.tsx:508:function estimateSheetRowMatchesQuery(item: EstimateRowItem, normalizedQuery: string) {
+src/components/workshop/EstimateSheetContent.tsx:517:function filterEstimateSheetNode(node: EstimateTreeNode, query: string): EstimateTreeNode | null {
+src/components/workshop/EstimateSheetContent.tsx:527:      estimateSheetRowMatchesQuery(item, normalizedQuery),
+src/components/workshop/EstimateSheetContent.tsx:546:function EstimateSheetCursorLayer({
+src/components/workshop/EstimateSheetContent.tsx:641:export function EstimateSheetContent({
+src/components/workshop/EstimateSheetContent.tsx:662:}: EstimateSheetContentProps) {
+src/components/workshop/EstimateSheetContent.tsx:663:  reportEstimateSheetContentRender();
+src/components/workshop/EstimateSheetContent.tsx:668:  // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
+src/components/workshop/EstimateSheetContent.tsx:702:  const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
+src/components/workshop/EstimateSheetContent.tsx:746:      estimateSheetCode: estimateId,
+src/components/workshop/EstimateSheetContent.tsx:771:  const [sheetSearchQuery, setSheetSearchQuery] = useState("");
+src/components/workshop/EstimateSheetContent.tsx:775:  const displayedSheetNode = useMemo(
+src/components/workshop/EstimateSheetContent.tsx:776:    () => (selectedNode && sheetSearchActive ? filterEstimateSheetNode(selectedNode, sheetSearchQuery) : selectedNode),
+src/components/workshop/EstimateSheetContent.tsx:802:  const visibleSheetRowIds = useMemo(() => {
+src/components/workshop/EstimateSheetContent.tsx:804:    if (!displayedSheetNode) return rowIds;
+src/components/workshop/EstimateSheetContent.tsx:809:    visit(displayedSheetNode);
+src/components/workshop/EstimateSheetContent.tsx:811:  }, [displayedSheetNode]);
+src/components/workshop/EstimateSheetContent.tsx:821:        const next = new Set([...current].filter((rowId) => visibleSheetRowIds.has(rowId)));
+src/components/workshop/EstimateSheetContent.tsx:828:  }, [visibleSheetRowIds]);
+src/components/workshop/EstimateSheetContent.tsx:988:    fetchEstimateSheetVersionControl({
+src/components/workshop/EstimateSheetContent.tsx:1070:    fetchEstimateSheetVersionControl({
+src/components/workshop/EstimateSheetContent.tsx:1697:            <EstimateSheetHeader
+src/components/workshop/EstimateSheetContent.tsx:1702:              onOpenSheetActivity={openActivityHistory}
+src/components/workshop/EstimateSheetContent.tsx:1704:              onSearchQueryChange={setSheetSearchQuery}
+src/components/workshop/EstimateSheetContent.tsx:1713:            <EstimateSheetHeader
+src/components/workshop/EstimateSheetContent.tsx:1718:              onOpenSheetActivity={openActivityHistory}
+src/components/workshop/EstimateSheetContent.tsx:1720:              onSearchQueryChange={setSheetSearchQuery}
+src/components/workshop/EstimateSheetContent.tsx:1727:                <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
+src/components/workshop/EstimateSheetContent.tsx:1728:                {displayedSheetNode ? (
+src/components/workshop/EstimateSheetContent.tsx:1729:                <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
+src/components/workshop/EstimateSheetContent.tsx:1730:                  <EstimateSheetBranch
+src/components/workshop/EstimateSheetContent.tsx:1731:                    node={displayedSheetNode}
+src/components/workshop/EstimateSheetContent.tsx:1753:                </EstimateSheetExpansionContext.Provider>
+src/components/workshop/EstimateSheetContent.tsx:1779:            <EstimateSheetHeader
+src/components/workshop/EstimateSheetContent.tsx:1784:              onOpenSheetActivity={openActivityHistory}
+src/components/workshop/EstimateSheetContent.tsx:1786:              onSearchQueryChange={setSheetSearchQuery}
+src/components/workshop/EstimateSheetContent.tsx:1789:              <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
+src/components/workshop/EstimateSheetTree.tsx:54:type EstimateSheetTreeProps = {
+src/components/workshop/EstimateSheetTree.tsx:231:export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
+src/components/workshop/ProjectEstimatesTable.tsx:24:import { duplicateEstimateSheet, executeBulkDeleteEstimateSheets, fetchEstimateTree, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
+src/components/workshop/ProjectEstimatesTable.tsx:208:    void duplicateEstimateSheet({ projectId, estimateId: estimate.id })
+src/components/workshop/ProjectEstimatesTable.tsx:522:function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: ProjectEstimateTableRow; projectId: string }) {
+src/components/workshop/ProjectEstimatesTable.tsx:530:      void regenerateEstimateSheetCode({ projectId, estimateId: estimate.id })
+src/components/workshop/ProjectEstimatesTable.tsx:564:ProjectEstimateSheetCodeCell.displayName = "ProjectEstimateSheetCodeCell";
+src/components/workshop/ProjectEstimatesTable.tsx:695:      void previewBulkDeleteEstimateSheets({ projectId, estimateIds: uniqueEstimateIds })
+src/components/workshop/ProjectEstimatesTable.tsx:719:      void executeBulkDeleteEstimateSheets({
+src/components/workshop/ProjectEstimatesTable.tsx:785:        cell: ({ row }) => <ProjectEstimateSheetCodeCell estimate={row.original} projectId={projectId} />,
+src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx:48:    estimateSheetCode: estimate.sheet_code,
+src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx:58:    estimateSheetCode: estimate.sheet_code,
+src/components/ui/dropdown-popup.tsx:13: * ancestors (the estimate sheet's section wrappers) and paints at the menu
+src/components/workshop/estimate-sheet-render-probe.ts:3:type EstimateSheetRenderProbe = (tableNodeId: string) => void;
+src/components/workshop/estimate-sheet-render-probe.ts:5:let activeProbe: EstimateSheetRenderProbe | null = null;
+src/components/workshop/estimate-sheet-render-probe.ts:7:export function setEstimateSheetRenderProbe(probe: EstimateSheetRenderProbe | null) {
+src/components/workshop/estimate-sheet-render-probe.ts:17:export function setEstimateSheetContentRenderProbe(probe: (() => void) | null) {
+src/components/workshop/estimate-sheet-render-probe.ts:21:export function reportEstimateSheetContentRender() {
+src/components/workshop/estimate-workshop-drag.ts:11: * The estimate sheet and the left tree read it to reveal their drop zones
+src/components/workshop/WorkshopHomebaseClient.tsx:296:    const title = inviteBanner.scope === "estimate" ? "Sheet shared" : "Project added";
+src/components/workshop/NewProjectForm.tsx:6:import { createEstimateSheetDraft } from "@/lib/estimates/actions";
+src/components/workshop/NewProjectForm.tsx:125:      await createEstimateSheetDraft(project.id);
+src/components/ui/overlays/sheet-drawer.tsx:20:export type SheetSide = "right" | "left" | "bottom";
+src/components/ui/overlays/sheet-drawer.tsx:21:export type SheetSize = "narrow" | "md" | "wide" | "full";
+src/components/ui/overlays/sheet-drawer.tsx:23:export type SheetProps = {
+src/components/ui/overlays/sheet-drawer.tsx:30:  side?: SheetSide;
+src/components/ui/overlays/sheet-drawer.tsx:31:  size?: SheetSize;
+src/components/ui/overlays/sheet-drawer.tsx:40:const horizontalSizeClasses: Record<SheetSize, string> = {
+src/components/ui/overlays/sheet-drawer.tsx:47:const bottomSizeClasses: Record<SheetSize, string> = {
+src/components/ui/overlays/sheet-drawer.tsx:54:const rootPositionClasses: Record<SheetSide, string> = {
+src/components/ui/overlays/sheet-drawer.tsx:60:export function Sheet({
+src/components/ui/overlays/sheet-drawer.tsx:75:}: SheetProps) {
+src/components/ui/overlays/sheet-drawer.tsx:118:export function Drawer(props: SheetProps) {
+src/components/ui/overlays/sheet-drawer.tsx:119:  return <Sheet {...props} />;
+src/components/ui/overlays/sheet-drawer.tsx:122:export function SidePanel(props: SheetProps) {
+src/components/ui/overlays/sheet-drawer.tsx:123:  return <Sheet {...props} modal={props.modal ?? false} withScrim={props.withScrim ?? false} />;
+src/components/ui/overlays/sheet-drawer.tsx:126:export function InspectorDrawer(props: SheetProps) {
+src/components/ui/overlays/sheet-drawer.tsx:127:  return <Sheet {...props} side={props.side ?? "right"} size={props.size ?? "wide"} modal={props.modal ?? false} withScrim={props.withScrim ?? false} />;
+src/components/workshop/estimate-sheet/rows/row-table.tsx:48:// identity-stable (useStableCallback in EstimateSheetContent) — a changed
+src/components/workshop/estimate-tree-data.ts:212:  row({ id: "lib-apo-vinyl-roll-flooring", material: "APO Vinyl Roll Flooring", description: "Sheet vinyl/roll flooring allowance for rental, utility, or budget interior areas; includes material only, with seams and adhesive verified per room.", supplier: "APO Floors / PH flooring dealers", source: "supplier", unit: "sqm", itemCost: 680, quantity: 1, miscCost: 260, category: "Finishes", discipline: "Architectural", designation: "Floor Finish", tags: ["flooring", "vinyl roll", "sheet vinyl", "apo"], pricingSource: "PH vinyl flooring dealer allowance — verify APO/current supplier quote", pricingDate: "2026-05-18" }),
+src/components/workshop/estimate-sheet/rows/branch.tsx:18:import { useEstimateSheetExpansion } from "./expansion";
+src/components/workshop/estimate-sheet/rows/branch.tsx:25:export type EstimateSheetBranchProps = {
+src/components/workshop/estimate-sheet/rows/branch.tsx:57:export type SheetMutationHandlers = Pick<
+src/components/workshop/estimate-sheet/rows/branch.tsx:58:  EstimateSheetBranchProps,
+src/components/workshop/estimate-sheet/rows/branch.tsx:73:export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+src/components/workshop/estimate-sheet/rows/branch.tsx:74:  const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
+src/components/workshop/estimate-sheet/rows/branch.tsx:215:              <EstimateSheetBranch
+src/components/workshop/ProjectMiniSidebar.tsx:21:  const estimateSheetPathPrefix = `/workshop/projects/${projectId}/estimates/`;
+src/components/workshop/ProjectMiniSidebar.tsx:22:  const isEstimateSheetRoute = Boolean(pathname?.startsWith(estimateSheetPathPrefix));
+src/components/workshop/ProjectMiniSidebar.tsx:44:  if (isEstimateSheetRoute) return null;
+src/components/workshop/WorkshopPageShell.tsx:144:              aria-label="Sheet running totals"
+src/components/ui/index.tsx:75:export { Drawer, InspectorDrawer, Sheet, SidePanel } from "./overlays/sheet-drawer";
+src/components/ui/index.tsx:76:export type { SheetProps, SheetSide, SheetSize } from "./overlays/sheet-drawer";
+src/components/workshop/estimate-sheet/rows/expansion.ts:5:export type EstimateSheetExpansionContextValue = {
+src/components/workshop/estimate-sheet/rows/expansion.ts:10:export const EstimateSheetExpansionContext = createContext<EstimateSheetExpansionContextValue | null>(null);
+src/components/workshop/estimate-sheet/rows/expansion.ts:12:export function useEstimateSheetExpansion() {
+src/components/workshop/estimate-sheet/rows/expansion.ts:13:  const context = useContext(EstimateSheetExpansionContext);
+src/components/workshop/estimate-sheet/rows/expansion.ts:14:  if (!context) throw new Error("useEstimateSheetExpansion must be used inside EstimateSheetExpansionContext.Provider");
+src/components/workshop/library/EditComponentDrawer.tsx:8:import { Sheet } from "@/components/ui/overlays/sheet-drawer";
+src/components/workshop/library/EditComponentDrawer.tsx:182:    <Sheet
+src/components/workshop/library/EditComponentDrawer.tsx:283:    </Sheet>
+src/components/workshop/estimate-sheet/activity-history.tsx:12:import { fetchEstimateSheetVersionControl, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+src/components/workshop/estimate-sheet/activity-history.tsx:201:function composeEstimateHistoryActivity(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:205:function getEventLabel(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:225:function isBlankEstimateRowAuditEvent(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:238:function getEventSummary(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:301:function shouldRenderRowHistoryComponent(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:390:function getOrderedAuditFields(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:396:function getAuditChangeDetails(event: EstimateSheetHistoryEvent): AuditChangeDetail[] {
+src/components/workshop/estimate-sheet/activity-history.tsx:480:function getAuditComponentSnapshots(event: EstimateSheetHistoryEvent): AuditComponentSnapshot[] {
+src/components/workshop/estimate-sheet/activity-history.tsx:509:function getHistoryChangeLabel(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:515:function getActorLabel(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:528:function getAuditTargetLabel(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:540:function getAuditEventDescription(event: EstimateSheetHistoryEvent) {
+src/components/workshop/estimate-sheet/activity-history.tsx:544:function getAuditSupportingSummary(event: EstimateSheetHistoryEvent, summary: string, description: string) {
+src/components/workshop/estimate-sheet/activity-history.tsx:717:  event: EstimateSheetHistoryEvent;
+src/components/workshop/estimate-sheet/activity-history.tsx:800:  | { kind: "event"; event: EstimateSheetHistoryEvent }
+src/components/workshop/estimate-sheet/activity-history.tsx:801:  | { kind: "group"; correlationId: string; events: EstimateSheetHistoryEvent[] };
+src/components/workshop/estimate-sheet/activity-history.tsx:808:function groupActivityEvents(events: EstimateSheetHistoryEvent[]): GroupedActivityEventItem[] {
+src/components/workshop/estimate-sheet/activity-history.tsx:839:function groupActivityTimelineByDay(events: EstimateSheetHistoryEvent[]): ActivityTimelineDayGroup[] {
+src/components/workshop/estimate-sheet/activity-history.tsx:867:  events: EstimateSheetHistoryEvent[];
+src/components/workshop/estimate-sheet/activity-history.tsx:908:  events: EstimateSheetHistoryEvent[];
+src/components/workshop/estimate-sheet/activity-history.tsx:914:  nextCursor?: EstimateSheetVersionControlData["nextCursor"];
+src/components/workshop/estimate-sheet/activity-history.tsx:1078:  const [events, setEvents] = useState<EstimateSheetHistoryEvent[]>([]);
+src/components/workshop/estimate-sheet/activity-history.tsx:1079:  const [nextCursor, setNextCursor] = useState<EstimateSheetVersionControlData["rowNextCursor"]>(null);
+src/components/workshop/estimate-sheet/activity-history.tsx:1086:  const loadRowActivity = useCallback((cursor?: EstimateSheetVersionControlData["rowNextCursor"]) => {
+src/components/workshop/estimate-sheet/activity-history.tsx:1098:    fetchEstimateSheetVersionControl({
+src/components/workshop/estimate-sheet/activity-history.tsx:1285:function getActivityEventsForScope(scope: EstimateActivityScope, historyData: EstimateSheetVersionControlData | null) {
+src/components/workshop/estimate-sheet/activity-history.tsx:1291:function getActivityCursorForScope(scope: EstimateActivityScope, historyData: EstimateSheetVersionControlData | null) {
+src/components/workshop/estimate-sheet/activity-history.tsx:1534:  historyData: EstimateSheetVersionControlData | null;
+src/components/workshop/estimate-sheet/activity-history.tsx:1553:  const selectedEyebrow = selectedScopeItem?.eyebrow ?? metadata?.estimateSheetCode ?? "Estimate";
+src/components/workshop/estimate-sheet/activity-history.tsx:1583:            <p className="truncate text-[8px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate"}</p>
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:31:export type TemplateSheetHandlers = {
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:60:function filterTemplateSheetNode(node: EstimateTreeNode, query: string): EstimateTreeNode | null {
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:99:  onUpdateRow: TemplateSheetHandlers["onUpdateRow"];
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:100:  onRemoveRow: TemplateSheetHandlers["onRemoveRow"];
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:225:  onAddAllowanceRow: TemplateSheetHandlers["onAddAllowanceRow"];
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:250:function TemplateSheetBranch({
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:261:  handlers: TemplateSheetHandlers;
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:275:  // drag store empties (same idiom as the estimate sheet's drop targets).
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:412:            <TemplateSheetBranch
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:474:export function TemplateEditorSheet({
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:481:  handlers: TemplateSheetHandlers;
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:490:        .map((node) => filterTemplateSheetNode(node, searchQuery))
+src/components/workshop/library/template-editor/TemplateEditorSheet.tsx:628:              <TemplateSheetBranch
+src/components/workshop/ProposalExportPreviewDialog.tsx:122:                <p className="mt-0.5 truncate font-medium text-ink">{model.metadata.estimateSheetCode} · {model.metadata.estimateName}</p>
+src/components/workshop/library/template-editor/TemplateEditorClient.tsx:23:import { TemplateEditorSheet, type TemplateSheetHandlers } from "./TemplateEditorSheet";
+src/components/workshop/library/template-editor/TemplateEditorClient.tsx:160:  const sheetHandlers: TemplateSheetHandlers = useMemo(
+src/components/workshop/library/template-editor/TemplateEditorClient.tsx:240:      <TemplateEditorSheet template={template} selectedNodeId={selectedNodeId} handlers={sheetHandlers} />
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:123:type SheetStatus =
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:156:function itemMatchesSheetQuery(item: EstimateRowItem, query: string): boolean {
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:748:function ComponentLibrarySheet({
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:779:  status: SheetStatus;
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:826:    () => facetedItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:995:function ComponentLibrarySheetPanel({
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1026:  status: SheetStatus;
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1038:      <ComponentLibrarySheet
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1089:  const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1174:    setSheetStatus({ state: "saved", message: "Component saved." });
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1202:    setSheetStatus({ state: "saved", message: "Component updated." });
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1252:        setSheetStatus({
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1332:          setSheetStatus({ state: "saved", message: `${archivedIds.length} component${archivedIds.length === 1 ? "" : "s"} archived.` });
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx:1448:          <ComponentLibrarySheetPanel
+src/components/workshop/ProjectTeamspaceHeader.tsx:12:  inviteEstimateSheetCollaborator,
+src/components/workshop/ProjectTeamspaceHeader.tsx:17:  setEstimateSheetAccessMode,
+src/components/workshop/ProjectTeamspaceHeader.tsx:126:  const [sheetInviteEmailById, setSheetInviteEmailById] = useState<Record<string, string>>({});
+src/components/workshop/ProjectTeamspaceHeader.tsx:127:  const [sheetInviteRoleById, setSheetInviteRoleById] = useState<Record<string, CollaborationRole>>({});
+src/components/workshop/ProjectTeamspaceHeader.tsx:289:  function readSheetInviteRole(estimateId: string) {
+src/components/workshop/ProjectTeamspaceHeader.tsx:293:  function updateSheetInviteEmail(estimateId: string, email: string) {
+src/components/workshop/ProjectTeamspaceHeader.tsx:294:    setSheetInviteEmailById((current) => ({ ...current, [estimateId]: email }));
+src/components/workshop/ProjectTeamspaceHeader.tsx:297:  function updateSheetInviteRole(estimateId: string, role: CollaborationRole) {
+src/components/workshop/ProjectTeamspaceHeader.tsx:298:    setSheetInviteRoleById((current) => ({ ...current, [estimateId]: role }));
+src/components/workshop/ProjectTeamspaceHeader.tsx:301:  function handleSheetInviteSubmit(estimateId: string, event: FormEvent<HTMLFormElement>) {
+src/components/workshop/ProjectTeamspaceHeader.tsx:311:      const result = await inviteEstimateSheetCollaborator({
+src/components/workshop/ProjectTeamspaceHeader.tsx:315:        role: readSheetInviteRole(estimateId),
+src/components/workshop/ProjectTeamspaceHeader.tsx:317:      if (result.ok) updateSheetInviteEmail(estimateId, "");
+src/components/workshop/ProjectTeamspaceHeader.tsx:518:                {activeSummary.estimateSheets.length ? (
+src/components/workshop/ProjectTeamspaceHeader.tsx:519:                  activeSummary.estimateSheets.map((sheet) => (
+src/components/workshop/ProjectTeamspaceHeader.tsx:536:                                  setEstimateSheetAccessMode({
+src/components/workshop/ProjectTeamspaceHeader.tsx:554:                          onSubmit={(event) => handleSheetInviteSubmit(sheet.estimateId, event)}
+src/components/workshop/ProjectTeamspaceHeader.tsx:567:                            onChange={(event) => updateSheetInviteEmail(sheet.estimateId, event.target.value)}
+src/components/workshop/ProjectTeamspaceHeader.tsx:570:                            Sheet role for {sheet.name}
+src/components/workshop/ProjectTeamspaceHeader.tsx:576:                            value={readSheetInviteRole(sheet.estimateId)}
+src/components/workshop/ProjectTeamspaceHeader.tsx:577:                            aria-label={`Sheet role for ${sheet.name}`}
+src/components/workshop/ProjectTeamspaceHeader.tsx:580:                            onValueChange={(role) => updateSheetInviteRole(sheet.estimateId, role as CollaborationRole)}
+src/components/workshop/EstimateWorkspaceClient.tsx:18:const EstimateSheetTree = dynamic(() =>
+src/components/workshop/EstimateWorkspaceClient.tsx:19:  import("./EstimateSheetTree").then((module) => module.EstimateSheetTree),
+src/components/workshop/EstimateWorkspaceClient.tsx:25:const EstimateSheetContent = dynamic(() =>
+src/components/workshop/EstimateWorkspaceClient.tsx:26:  import("./EstimateSheetContent").then((module) => module.EstimateSheetContent),
+src/components/workshop/EstimateWorkspaceClient.tsx:99:      <EstimateSheetTree
+src/components/workshop/EstimateWorkspaceClient.tsx:108:      <EstimateSheetContent
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:19:  estimateSheetCode: string;
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:58:  const { projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget } = metadata;
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:63:    const previousEstimateSheetRoute = workshopCanvas?.dataset.estimateSheetRoute;
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:65:    if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = "true";
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:67:    dispatchProjectEstimateMetadataChange({ projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget });
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:71:      if (previousEstimateSheetRoute) {
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:72:        if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = previousEstimateSheetRoute;
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:74:        delete workshopCanvas.dataset.estimateSheetRoute;
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:85:  }, [projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget]);
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:106:      <EstimateSheetNameCell key={estimateNameKey} metadata={metadata} />
+src/components/workshop/ProjectEstimateMetadataStrip.tsx:115:function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata | null }) {

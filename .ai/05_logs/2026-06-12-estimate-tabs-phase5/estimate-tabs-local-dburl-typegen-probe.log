@@ -1,0 +1,39 @@
+file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.omx/tmp/generate-estimate-tabs-local-types-probe.mjs:53
+    throw new Error(`Command failed: ${command} ${args.join(" ")}\n${result.stdout}\n${result.stderr}${log}`);
+          ^
+
+Error: Command failed: supabase gen types --db-url postgresql://postgres@127.0.0.1:57099/postgres --schema public
+
+Connecting to 127.0.0.1 57099
+failed to inspect docker image: Cannot connect to the Docker daemon at unix:///Users/philiplewis/.docker/run/docker.sock. Is the docker daemon running?
+Docker Desktop is a prerequisite for local development. Follow the official docs to install: https://docs.docker.com/desktop
+
+Postgres log:
+2026-06-13 00:36:41.565 PST [82197] LOG:  starting PostgreSQL 15.17 (Homebrew) on aarch64-apple-darwin25.2.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit
+2026-06-13 00:36:41.566 PST [82197] LOG:  listening on IPv4 address "127.0.0.1", port 57099
+2026-06-13 00:36:41.566 PST [82197] LOG:  listening on Unix socket "/tmp/.s.PGSQL.57099"
+2026-06-13 00:36:41.568 PST [82200] LOG:  database system was shut down at 2026-06-13 00:36:41 PST
+2026-06-13 00:36:41.570 PST [82197] LOG:  database system is ready to accept connections
+2026-06-13 00:36:44.085 PST [82474] ERROR:  Estimate edit access denied.
+2026-06-13 00:36:44.085 PST [82474] CONTEXT:  PL/pgSQL function assert_can_edit_estimate_for_history(uuid,uuid,uuid) line 12 at RAISE
+	PL/pgSQL function create_estimate_tab_with_history(uuid,uuid,text,uuid,uuid) line 10 at assignment
+2026-06-13 00:36:44.085 PST [82474] STATEMENT:
+	    begin;
+	    set local role authenticated;
+	    set local "request.jwt.claim.sub" = '22222222-2222-4222-8222-222222222222';
+	    set local "request.jwt.claim.role" = 'authenticated';
+
+	    select public.create_estimate_tab_with_history('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Viewer Forbidden', '22222222-2222-4222-8222-222222222222', gen_random_uuid());
+
+	    commit;
+
+
+    at run (file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.omx/tmp/generate-estimate-tabs-local-types-probe.mjs:53:11)
+    at file:///Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/.omx/tmp/generate-estimate-tabs-local-types-probe.mjs:316:26
+    at ModuleJob.run (node:internal/modules/esm/module_job:430:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v25.8.0
+
+--- generated marker grep ---

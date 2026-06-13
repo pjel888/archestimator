@@ -465,17 +465,15 @@ describe("estimate sheet version control server actions", () => {
   it("keeps hardcoded history RPC names aligned with generated Supabase function types", () => {
     const actionsSource = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
     const generatedTypesSource = readFileSync(join(process.cwd(), "src/lib/supabase/types.ts"), "utf8");
-    const rpcNames = Array.from(actionsSource.matchAll(/asEstimateHistoryRpcClient\(supabase\)\.rpc\("([^"]+)"/g))
+    const rpcNames = Array.from(actionsSource.matchAll(/supabase\.rpc\("([^"]+_with_history|update_estimate_details_with_history)"/g))
       .map((match) => match[1])
       .sort();
-    const unionNames = Array.from(actionsSource.matchAll(/\|\s*"([^"]+_with_history|update_estimate_details_with_history|delete_estimate_node_with_history)"/g))
-      .map((match) => match[1]);
 
     const uniqueRpcNames = Array.from(new Set(rpcNames));
 
     expect(uniqueRpcNames.length).toBeGreaterThan(0);
+    expect(actionsSource).not.toContain("asEstimateHistoryRpcClient");
     for (const rpcName of uniqueRpcNames) {
-      expect(unionNames).toContain(rpcName);
       expect(generatedTypesSource).toContain(`${rpcName}: {`);
     }
   });
@@ -498,6 +496,8 @@ describe("estimate sheet version control server actions", () => {
     expect(actionsSource).toContain("scope?: EstimateSheetHistoryReadScope;");
     expect(actionsSource).toContain("export type EstimateSheetVersionControlData = {");
     expect(actionsSource).toContain("events: EstimateSheetHistoryEvent[];");
+    expect(actionsSource).toContain("estimateTabId: string | null;");
+    expect(actionsSource).toContain("actor_user_id, estimate_tab_id, target_row_id");
     expect(actionsSource).toContain("rowEvents: EstimateSheetHistoryEvent[];");
     expect(actionsSource).toContain("nodeEvents: EstimateSheetHistoryEvent[];");
     expect(actionsSource).toContain("nextCursor: EstimateSheetHistoryCursor | null;");
@@ -520,6 +520,7 @@ describe("estimate sheet version control server actions", () => {
         event_source: "server_action",
         created_at: "2026-05-24T03:00:00.000Z",
         actor_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        estimate_tab_id: "tab-main",
         target_row_id: "row-1",
         estimate_node_id: "node-1",
         row_context: {},
@@ -536,6 +537,7 @@ describe("estimate sheet version control server actions", () => {
         event_source: "server_action",
         created_at: "2026-05-24T02:00:00.000Z",
         actor_user_id: null,
+        estimate_tab_id: "tab-main",
         target_row_id: "row-2",
         estimate_node_id: "node-1",
         row_context: {},
@@ -574,6 +576,7 @@ describe("estimate sheet version control server actions", () => {
       "created_at.lt.2026-05-24T04:00:00.000Z,and(created_at.eq.2026-05-24T04:00:00.000Z,id.lt.aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa)",
     );
     expect(result.events).toHaveLength(1);
+    expect(result.events[0]?.estimateTabId).toBe("tab-main");
     expect(result.nextCursor).toEqual({
       createdAt: "2026-05-24T03:00:00.000Z",
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -968,6 +971,6 @@ describe("estimate sheet version control server actions", () => {
         createdAt: "not-a-date",
         id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       },
-    })).rejects.toThrow("Sheet activity cursor timestamp is invalid.");
+    })).rejects.toThrow("Estimate activity cursor timestamp is invalid.");
   });
 });

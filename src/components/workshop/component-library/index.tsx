@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, PlusSquare, SquaresFour, StackPlus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Plus, PlusSquare, SquaresFour, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -19,6 +19,21 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import {
+  getReusableEstimateOutline,
+  listReusableProjectEstimateSources,
+  listReusableProjectSources,
+  searchReusableProjectSources,
+} from "@/lib/reusable-sources/actions";
+import type {
+  ProjectEstimateReusableSource,
+  ProjectNodeReusableSource,
+  ProjectReusableSource,
+  ProjectReusableEstimateSource,
+  ProjectSourceInsertTarget,
+  ReusableEstimateSource,
+  ReusableSourceLiveMetadata,
+} from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
@@ -31,6 +46,7 @@ import { NewTemplateModal } from "./NewTemplateModal";
 import {
   CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT,
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  PROJECT_SOURCE_DRAG_MIME_TYPE,
   type CreateEstimateTemplateFromNodeEventDetail,
   type EstimateTemplate,
 } from "./templates";
@@ -44,11 +60,13 @@ import {
   findLibrarySiblingOrder,
   findNode,
   getAllNodeIds,
+  getCheckedProjectSourceTargets,
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,
   LibraryTree,
   TemplatesTree,
   templatesTreeCategoryId,
+  templatesTreeSectionId,
   type LibraryTreeNode,
   type LibraryTreeOrder,
 } from "./tree";
@@ -85,8 +103,14 @@ const LIBRARY_TREE_TABS = [
   { id: "templates", label: "Templates" },
 ] as const;
 
+const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
+const PROJECT_SOURCE_NODE_PREFIX = "source-project-";
+const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
+
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
+type ProjectSourceScope = "all" | "current-project";
+type TemplateSourceFilter = "all" | "custom" | "projects";
 
 function getComponentTreeTab(mode: ComponentViewMode): EstimateComponentTreeTab {
   if (mode === "brand") return "brands";
@@ -219,6 +243,246 @@ function PreviewPanel({
   );
 }
 
+type ProjectSourcePreviewContext = {
+  projectName: string | null;
+  estimateName: string | null;
+  sheetCode: string | null;
+  tabName: string | null;
+  nodePath: string[];
+  updatedAt: string | null;
+  rowCount: number | null;
+  totalCost: number | null;
+};
+
+function isProjectReusableEstimateSource(source: ReusableEstimateSource): source is ProjectReusableEstimateSource {
+  return source.kind !== "custom-template";
+}
+
+function isProjectSourceInsertTarget(source: ProjectReusableEstimateSource): source is ProjectSourceInsertTarget {
+  return source.kind === "project-tab" || source.kind === "project-node";
+}
+
+function getProjectSourceTypeLabel(source: ProjectReusableEstimateSource) {
+  if (source.kind === "project") return "Project";
+  if (source.kind === "project-estimate") return "Estimate";
+  if (source.kind === "project-tab") return "Tab";
+  return source.nodeKind === "group" ? "Group" : "Area";
+}
+
+function findProjectSourceByKey(sources: ReusableEstimateSource[], key: string | null): ProjectReusableEstimateSource | null {
+  if (!key) return null;
+  return sources.find(
+    (source): source is ProjectReusableEstimateSource =>
+      isProjectReusableEstimateSource(source) && reusableProjectSourceKey(source) === key,
+  ) ?? null;
+}
+
+function formatPreviewDate(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function getProjectSourcePreviewContext(
+  source: ProjectReusableEstimateSource,
+  sources: ReusableEstimateSource[],
+): ProjectSourcePreviewContext {
+  const metadata: ReusableSourceLiveMetadata = source.metadata ?? {};
+  const estimateId =
+    source.kind === "project-estimate" || source.kind === "project-tab" || source.kind === "project-node"
+      ? source.estimateId
+      : null;
+  const tabId = source.kind === "project-tab" || source.kind === "project-node" ? source.tabId : null;
+  const projectSource = sources.find(
+    (candidate): candidate is ProjectReusableEstimateSource =>
+      isProjectReusableEstimateSource(candidate) &&
+      candidate.kind === "project" &&
+      candidate.projectId === source.projectId,
+  );
+  const estimateSource = estimateId
+    ? sources.find(
+        (candidate): candidate is ProjectEstimateReusableSource =>
+          candidate.kind === "project-estimate" && candidate.estimateId === estimateId,
+      )
+    : null;
+  const tabSource = tabId
+    ? sources.find(
+        (candidate): candidate is ProjectReusableEstimateSource =>
+          isProjectReusableEstimateSource(candidate) &&
+          candidate.kind === "project-tab" &&
+          candidate.tabId === tabId,
+      )
+    : null;
+  const tabName =
+    metadata.tabName ??
+    (source.kind === "project-tab" ? source.name : null) ??
+    (tabSource?.kind === "project-tab" ? tabSource.name : null);
+  const nodePath =
+    metadata.nodePath ??
+    (source.kind === "project-node" ? [tabName, source.name].filter((value): value is string => Boolean(value)) : []);
+
+  return {
+    projectName: metadata.projectName ?? projectSource?.name ?? null,
+    estimateName: metadata.estimateName ?? (source.kind === "project-estimate" ? source.name : estimateSource?.name ?? null),
+    sheetCode: metadata.sheetCode ?? (source.kind === "project-estimate" ? source.sheetCode : estimateSource?.sheetCode ?? null),
+    tabName,
+    nodePath,
+    updatedAt: metadata.updatedAt ?? null,
+    rowCount: metadata.rowCount ?? null,
+    totalCost: metadata.totalCost ?? null,
+  };
+}
+
+type ProjectSourcePreviewOutlineRow = {
+  id: string;
+  label: string;
+  meta: string;
+};
+
+function getProjectSourcePreviewOutlineRows(
+  source: ProjectReusableEstimateSource,
+  sources: ReusableEstimateSource[],
+): ProjectSourcePreviewOutlineRow[] {
+  const projectSources = sources.filter(isProjectReusableEstimateSource);
+  switch (source.kind) {
+    case "project":
+      return projectSources
+        .filter((candidate): candidate is ProjectEstimateReusableSource => candidate.kind === "project-estimate" && candidate.projectId === source.projectId)
+        .map((candidate) => ({
+          id: reusableProjectSourceKey(candidate),
+          label: candidate.name,
+          meta: "estimate",
+        }));
+    case "project-estimate":
+      return projectSources
+        .filter((candidate): candidate is ProjectSourceInsertTarget => candidate.kind === "project-tab" && candidate.estimateId === source.estimateId)
+        .map((candidate) => ({
+          id: reusableProjectSourceKey(candidate),
+          label: candidate.name,
+          meta: "tab",
+        }));
+    case "project-tab":
+      return projectSources
+        .filter((candidate): candidate is ProjectNodeReusableSource => candidate.kind === "project-node" && candidate.tabId === source.tabId)
+        .map((candidate) => ({
+          id: reusableProjectSourceKey(candidate),
+          label: candidate.name,
+          meta: candidate.nodeKind,
+        }));
+    case "project-node":
+      return [];
+    default: {
+      const unreachable: never = source;
+      return unreachable;
+    }
+  }
+}
+
+function ProjectSourcePreviewPanel({
+  source,
+  sources,
+  onClose,
+  onAdd,
+  addDisabled,
+  addLabel,
+}: {
+  source: ProjectReusableEstimateSource;
+  sources: ReusableEstimateSource[];
+  onClose: () => void;
+  onAdd: (source: ProjectSourceInsertTarget) => void;
+  addDisabled: boolean;
+  addLabel: string;
+}) {
+  const context = getProjectSourcePreviewContext(source, sources);
+  const outlineRows = getProjectSourcePreviewOutlineRows(source, sources);
+  const nodePathText = context.nodePath.length ? context.nodePath.join(" / ") : null;
+  const updatedAtText = formatPreviewDate(context.updatedAt);
+  const detailRows = [
+    context.projectName ? { label: "Project", value: context.projectName } : null,
+    context.estimateName ? { label: "Estimate", value: context.estimateName } : null,
+    context.sheetCode ? { label: "Estimate code", value: context.sheetCode } : null,
+    context.tabName ? { label: "Tab", value: context.tabName } : null,
+    nodePathText ? { label: "Node path", value: nodePathText } : null,
+    updatedAtText ? { label: "Last updated", value: updatedAtText } : null,
+    context.rowCount !== null ? { label: "Rows", value: String(context.rowCount) } : null,
+    context.totalCost !== null ? { label: "Total", value: pesoFormatter.format(context.totalCost) } : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row));
+  const insertable = isProjectSourceInsertTarget(source);
+
+  return (
+    <div className="shrink-0 border-t border-hairline bg-white" role="region" aria-label="Project source preview">
+      <div className="flex items-start gap-2 p-2">
+        <div className="flex size-14 shrink-0 items-center justify-center border border-hairline bg-accent-soft text-accent">
+          <StackSimple size={18} weight="regular" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-1">
+            <div className="min-w-0">
+              <h3 className="truncate text-[11px] font-medium text-ink">{source.name}</h3>
+              <p className="text-[9px] font-medium text-tertiary">{getProjectSourceTypeLabel(source)} source</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 shrink-0 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              aria-label="Close project source preview"
+              onClick={onClose}
+            >
+              <X size={11} />
+            </Button>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <Badge size="xs" tone="info">Live source</Badge>
+            <Badge size="xs">Read-through source</Badge>
+          </div>
+        </div>
+      </div>
+      <div className="px-2 pb-2">
+        {detailRows.length ? (
+          <dl className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-1 text-[9px] leading-4">
+            {detailRows.map((row) => (
+              <div key={row.label} className="contents">
+                <dt className="text-tertiary">{row.label}</dt>
+                <dd className="min-w-0 truncate font-medium text-ink" title={row.value}>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-[9px] leading-4 text-tertiary">
+            Live project metadata will appear here when this source supplies it.
+          </p>
+        )}
+        {outlineRows.length ? (
+          <div className="mt-2 border border-hairline bg-surfaceMuted/20 p-2">
+            <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Source outline</p>
+            <ul className="mt-1 grid gap-1">
+              {outlineRows.map((row) => (
+                <li key={row.id} className="flex min-w-0 items-center justify-between gap-2 text-[9px] leading-4">
+                  <span className="min-w-0 truncate font-medium text-ink">{row.label}</span>
+                  <span className="shrink-0 text-tertiary">{row.meta}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <div className="mt-2">
+          {insertable ? (
+            <Button onClick={() => onAdd(source)} disabled={addDisabled} aria-label={addLabel} title={addLabel} className="h-6 min-h-6 w-full text-[9px]">
+              {addDisabled ? "Select group" : "Add to estimate"}
+            </Button>
+          ) : (
+            <p className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[9px] leading-4 text-tertiary">
+              Expand this source to choose a tab or group/area before inserting it.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Sidebar ─── */
 
 type EstimateRightSidebarProps = {
@@ -236,6 +500,8 @@ type EstimateRightSidebarProps = {
   nodes?: EstimateTreeNode[];
   initialLibraryItems?: EstimateRowItem[];
   templates?: EstimateTemplate[];
+  projectSources?: ReusableEstimateSource[];
+  onInsertProjectSource?: (source: ProjectSourceInsertTarget) => boolean | void;
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrand[];
@@ -281,6 +547,112 @@ function componentToForm(item: EstimateRowItem): NewComponentFormType {
   };
 }
 
+function reusableProjectSourceKey(source: ReusableEstimateSource) {
+  if (source.kind === "custom-template") return `custom-template:${source.template.id}`;
+  if (source.kind === "project") return `project:${source.projectId}`;
+  if (source.kind === "project-estimate") return `project-estimate:${source.estimateId}`;
+  if (source.kind === "project-tab") return `project-tab:${source.tabId}`;
+  return `project-node:${source.nodeId}`;
+}
+
+function mergeReusableProjectSources(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ReusableEstimateSource[],
+  outlineEstimateId: string,
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) {
+    if ((source.kind === "project-tab" || source.kind === "project-node") && source.estimateId === outlineEstimateId) {
+      continue;
+    }
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  for (const source of incomingSources) {
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  return Array.from(sourcesByKey.values());
+}
+
+function mergeReusableProjectEstimateSources(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ProjectEstimateReusableSource[],
+  projectId: string,
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) {
+    if (source.kind !== "custom-template" && source.projectId === projectId && source.kind !== "project") continue;
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  for (const source of incomingSources) {
+    sourcesByKey.set(reusableProjectSourceKey(source), source);
+  }
+  return Array.from(sourcesByKey.values());
+}
+
+function mergeReusableSourcesByKey(
+  currentSources: ReusableEstimateSource[],
+  incomingSources: ProjectReusableEstimateSource[],
+) {
+  const sourcesByKey = new Map<string, ReusableEstimateSource>();
+  for (const source of currentSources) sourcesByKey.set(reusableProjectSourceKey(source), source);
+  for (const source of incomingSources) sourcesByKey.set(reusableProjectSourceKey(source), source);
+  return Array.from(sourcesByKey.values());
+}
+
+function findProjectEstimateSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectEstimateReusableSource | null {
+  if (!nodeId.startsWith(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX)) return null;
+  const estimateId = nodeId.slice(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX.length);
+  return sources.find(
+    (source): source is ProjectEstimateReusableSource => source.kind === "project-estimate" && source.estimateId === estimateId,
+  ) ?? null;
+}
+
+function findProjectSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectReusableSource | null {
+  if (!nodeId.startsWith(PROJECT_SOURCE_NODE_PREFIX)) return null;
+  const projectId = nodeId.slice(PROJECT_SOURCE_NODE_PREFIX.length);
+  return sources.find((source): source is ProjectReusableSource => source.kind === "project" && source.projectId === projectId) ?? null;
+}
+
+function hasReusableProjectEstimates(sources: ReusableEstimateSource[], projectId: string) {
+  return sources.some((source) => source.kind === "project-estimate" && source.projectId === projectId);
+}
+
+function hasReusableEstimateOutline(sources: ReusableEstimateSource[], estimateId: string) {
+  return sources.some((source) =>
+    (source.kind === "project-tab" || source.kind === "project-node") && source.estimateId === estimateId,
+  );
+}
+
+function sourceBelongsToProject(source: ReusableEstimateSource, projectId: string) {
+  return source.kind === "custom-template" || source.projectId === projectId;
+}
+
+function projectNodeSourceToTemplateSourceNode(source: ProjectNodeReusableSource): EstimateTreeNode {
+  return {
+    id: source.nodeId,
+    name: source.name,
+    kind: source.nodeKind,
+    total: "",
+    children: [],
+    estimateRowItems: [],
+  };
+}
+
+function projectSourceToTemplateSourceNode(source: ProjectSourceInsertTarget, projectSources: ReusableEstimateSource[]): EstimateTreeNode {
+  if (source.kind === "project-node") return projectNodeSourceToTemplateSourceNode(source);
+  const children = projectSources
+    .filter((candidate): candidate is ProjectNodeReusableSource => candidate.kind === "project-node" && candidate.tabId === source.tabId)
+    .map((nodeSource) => projectNodeSourceToTemplateSourceNode(nodeSource));
+  return {
+    id: source.tabId,
+    name: source.name,
+    kind: "group",
+    total: "",
+    children,
+    estimateRowItems: [],
+  };
+}
+
 export function EstimateRightSidebar({
   onInsertComponent,
   onInsertTemplate,
@@ -295,6 +667,8 @@ export function EstimateRightSidebar({
   nodes,
   initialLibraryItems = estimateLibraryItems,
   templates = [],
+  projectSources = EMPTY_REUSABLE_PROJECT_SOURCES,
+  onInsertProjectSource,
   categoryTree = componentCategoryTree,
   suppliers = [],
   brands = [],
@@ -328,12 +702,30 @@ export function EstimateRightSidebar({
   // Like libraryItems, the template list seeds from the server prop once and
   // then evolves locally (created templates append without a route refresh).
   const [templateList, setTemplateList] = useState<EstimateTemplate[]>(templates);
+  const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
+  const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
+  const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
+  const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
+  const [projectSourcesError, setProjectSourcesError] = useState("");
+  const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
+  const [projectSourceSearchLoading, setProjectSourceSearchLoading] = useState(false);
+  const [projectSourceSearchError, setProjectSourceSearchError] = useState("");
+  const [projectEstimateLoadingProjectIds, setProjectEstimateLoadingProjectIds] = useState<string[]>([]);
+  const [projectEstimateLoadedProjectIds, setProjectEstimateLoadedProjectIds] = useState<string[]>([]);
+  const [projectEstimateErrors, setProjectEstimateErrors] = useState<Record<string, string>>({});
+  const [projectOutlineLoadingEstimateIds, setProjectOutlineLoadingEstimateIds] = useState<string[]>([]);
+  const [projectOutlineErrors, setProjectOutlineErrors] = useState<Record<string, string>>({});
   const [templatesExpandedIds, setTemplatesExpandedIds] = useState<string[]>(() =>
-    Array.from(new Set(templates.map((template) => templatesTreeCategoryId(template.category)))),
+    Array.from(new Set([
+      templatesTreeSectionId("custom-templates"),
+      templatesTreeSectionId("projects"),
+      ...templates.map((template) => templatesTreeCategoryId(template.category)),
+    ])),
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+  const [previewProjectSourceKey, setPreviewProjectSourceKey] = useState<string | null>(null);
   const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [customOrderByViewMode, setCustomOrderByViewMode] = useState<Record<ComponentViewMode, LibraryTreeOrder>>(
@@ -345,6 +737,7 @@ export function EstimateRightSidebar({
   // "Save as template" from the sheets tree targets the right-clicked node
   // instead of the current selection; categories prefill from their menu.
   const [templateSourceNodeId, setTemplateSourceNodeId] = useState<string | null>(null);
+  const [templateSourceProjectSource, setTemplateSourceProjectSource] = useState<ProjectSourceInsertTarget | null>(null);
   const [templateDefaultCategory, setTemplateDefaultCategory] = useState<string | null>(null);
   const [renameTemplateTarget, setRenameTemplateTarget] = useState<EstimateTemplate | null>(null);
   const [renameTemplateName, setRenameTemplateName] = useState("");
@@ -397,6 +790,38 @@ export function EstimateRightSidebar({
     setShowNewComponent(false);
     resetComponentForm();
   }, [form, resetComponentForm]);
+  const canLoadProjectSourcesFromActions = Boolean(projectId && estimateId && projectSources.length === 0);
+  const loadProjectSources = useCallback((isCancelled?: () => boolean) => {
+    if (!canLoadProjectSourcesFromActions) return Promise.resolve();
+    setProjectSourcesLoading(true);
+    setProjectSourcesError("");
+    setProjectEstimateErrors({});
+    setProjectEstimateLoadedProjectIds([]);
+    setProjectEstimateLoadingProjectIds([]);
+    setProjectOutlineErrors({});
+    setProjectOutlineLoadingEstimateIds([]);
+    return listReusableProjectSources()
+      .then((result) => {
+        if (!isCancelled?.()) setLoadedProjectSources(result.sources);
+      })
+      .catch((error: unknown) => {
+        if (!isCancelled?.()) setProjectSourcesError(error instanceof Error ? error.message : "Could not load project sources.");
+      })
+      .finally(() => {
+        if (!isCancelled?.()) setProjectSourcesLoading(false);
+      });
+  }, [canLoadProjectSourcesFromActions]);
+  const refreshProjectSources = useCallback(() => {
+    setPreviewProjectSourceKey(null);
+    setBulkSelectedNodeIds(new Set());
+    setProjectSourceSearchResults([]);
+    setProjectEstimateLoadedProjectIds([]);
+    setProjectEstimateErrors({});
+    void loadProjectSources();
+  }, [loadProjectSources]);
+  const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
+    ? searchQuery.trim()
+    : "";
 
   useEffect(() => {
     // Stored values must be read synchronously: the prefs-persist effect below
@@ -483,12 +908,13 @@ export function EstimateRightSidebar({
         else if (showNewComponent) closeNewComponent();
         else if (searchQuery) setSearchQuery("");
         else if (searchOpen) setSearchOpen(false);
+        else if (previewProjectSourceKey) setPreviewProjectSourceKey(null);
         else if (previewItemId) setPreviewItemId(null);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, deleteTemplateTarget, previewItemId, renameTemplateTarget, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
+  }, [addComponentOpen, bulkDeleteConfirmOpen, closeNewComponent, deleteCandidate, deleteTemplateTarget, previewItemId, previewProjectSourceKey, renameTemplateTarget, searchOpen, searchQuery, showNewComponent, viewModeMenuOpen]);
 
   useEffect(() => {
     if (!viewModeMenuOpen) return;
@@ -498,6 +924,74 @@ export function EstimateRightSidebar({
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [viewModeMenuOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      setLoadedProjectSources(projectSources);
+      setProjectEstimateLoadedProjectIds([]);
+      setProjectEstimateLoadingProjectIds([]);
+      setProjectEstimateErrors({});
+      setProjectOutlineErrors({});
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [projectSources]);
+
+  useEffect(() => {
+    if (activeTab !== "templates" || !canLoadProjectSourcesFromActions || loadedProjectSources.length > 0) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) void loadProjectSources(() => cancelled);
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources, loadedProjectSources.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const resetTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      setProjectSourceSearchResults([]);
+      setProjectSourceSearchError("");
+      setProjectSourceSearchLoading(false);
+    }, 0);
+    if (!canLoadProjectSourcesFromActions || !projectSourceSearchQuery) {
+      return () => {
+        cancelled = true;
+        window.clearTimeout(resetTimer);
+      };
+    }
+    const loadingTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      setProjectSourceSearchResults([]);
+      setProjectSourceSearchLoading(true);
+      setProjectSourceSearchError("");
+    }, 0);
+    const timer = window.setTimeout(() => {
+      searchReusableProjectSources({ query: projectSourceSearchQuery })
+        .then((result) => {
+          if (!cancelled) setProjectSourceSearchResults(result.sources);
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) setProjectSourceSearchError(error instanceof Error ? error.message : "Could not search project sources.");
+        })
+        .finally(() => {
+          if (!cancelled) setProjectSourceSearchLoading(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(resetTimer);
+      window.clearTimeout(loadingTimer);
+      window.clearTimeout(timer);
+    };
+  }, [canLoadProjectSourcesFromActions, projectSourceSearchQuery]);
 
   useEffect(() => {
     const handler = (event: StorageEvent) => {
@@ -531,12 +1025,192 @@ export function EstimateRightSidebar({
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, searchQuery), [treeNodes, searchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
-  const templatesSelectionNodes = useMemo(() => buildTemplatesSelectionNodes(templateList), [templateList]);
-  const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
-  const templatesAllNodeIds = useMemo(
-    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(templateList)),
-    [templateList],
+  const visibleProjectSources = useMemo(() => {
+    if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
+    return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
+  }, [loadedProjectSources, projectId, projectSourceScope]);
+  const visibleProjectSourceSearchResults = useMemo(() => {
+    if (!projectSourceSearchQuery) return [];
+    if (projectSourceScope !== "current-project" || !projectId) return projectSourceSearchResults;
+    return projectSourceSearchResults.filter((source) => sourceBelongsToProject(source, projectId));
+  }, [projectId, projectSourceScope, projectSourceSearchQuery, projectSourceSearchResults]);
+  const searchableProjectSources = useMemo(
+    () => projectSourceSearchQuery && visibleProjectSourceSearchResults.length > 0
+      ? mergeReusableSourcesByKey(visibleProjectSources, visibleProjectSourceSearchResults)
+      : visibleProjectSources,
+    [projectSourceSearchQuery, visibleProjectSourceSearchResults, visibleProjectSources],
   );
+  const visibleTemplateList = useMemo(
+    () => (templateSourceFilter === "projects" ? [] : templateList),
+    [templateList, templateSourceFilter],
+  );
+  const visibleTemplateProjectSources = useMemo(
+    () => (templateSourceFilter === "custom" ? [] : searchableProjectSources),
+    [searchableProjectSources, templateSourceFilter],
+  );
+  const templatesSelectionNodes = useMemo(
+    () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources),
+    [visibleTemplateList, visibleTemplateProjectSources],
+  );
+  const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
+  const previewProjectSource = useMemo(
+    () => findProjectSourceByKey(visibleTemplateProjectSources, previewProjectSourceKey),
+    [previewProjectSourceKey, visibleTemplateProjectSources],
+  );
+  const templatesAllNodeIds = useMemo(
+    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(visibleTemplateList, visibleTemplateProjectSources)),
+    [visibleTemplateList, visibleTemplateProjectSources],
+  );
+  const templatesProjectSourceEmptyState = useMemo(() => {
+    if (projectSourcesLoading) {
+      return (
+        <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Loading project sources…
+        </div>
+      );
+    }
+    if (projectSourcesError) {
+      return (
+        <div className="rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t load project sources. {projectSourcesError}
+        </div>
+      );
+    }
+    return undefined;
+  }, [projectSourcesError, projectSourcesLoading]);
+  const templatesProjectSourceStatus = useMemo(() => {
+    const projectLoadingCount = projectEstimateLoadingProjectIds.length;
+    const projectErrors = Object.values(projectEstimateErrors);
+    if (projectLoadingCount > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Loading {projectLoadingCount === 1 ? "project estimates" : `${projectLoadingCount} project estimate lists`}…
+        </div>
+      );
+    }
+    if (projectErrors.length > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t load project estimates. {projectErrors[0]}
+        </div>
+      );
+    }
+    const loadingCount = projectOutlineLoadingEstimateIds.length;
+    const errors = Object.values(projectOutlineErrors);
+    if (loadingCount > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Loading {loadingCount === 1 ? "estimate outline" : `${loadingCount} estimate outlines`}…
+        </div>
+      );
+    }
+    if (errors.length > 0) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t load estimate outline. {errors[0]}
+        </div>
+      );
+    }
+    return null;
+  }, [projectEstimateErrors, projectEstimateLoadingProjectIds.length, projectOutlineErrors, projectOutlineLoadingEstimateIds.length]);
+  const templatesProjectSourceSearchStatus = useMemo(() => {
+    if (!projectSourceSearchQuery) return null;
+    if (projectSourceSearchLoading) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
+          Searching project sources…
+        </div>
+      );
+    }
+    if (projectSourceSearchError) {
+      return (
+        <div className="mb-2 rounded-xs border border-dashed border-danger/30 bg-danger/5 p-2 text-[10px] leading-4 text-danger">
+          Couldn&apos;t search project sources. {projectSourceSearchError}
+        </div>
+      );
+    }
+    return null;
+  }, [projectSourceSearchError, projectSourceSearchLoading, projectSourceSearchQuery]);
+  const templatesProjectSourceScopeControls = useMemo(() => {
+    if (
+      templateSourceFilter === "custom" ||
+      !projectId ||
+      loadedProjectSources.every((source) => source.kind === "custom-template")
+    ) return null;
+    return (
+      <div className="mb-2 flex gap-1" role="group" aria-label="Project source scope">
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          aria-pressed={projectSourceScope === "all"}
+          className="min-h-6 min-w-0 flex-1 px-2 py-1"
+          onClick={() => setProjectSourceScope("all")}
+        >
+          All projects
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          aria-pressed={projectSourceScope === "current-project"}
+          className="min-h-6 min-w-0 flex-1 px-2 py-1"
+          onClick={() => setProjectSourceScope("current-project")}
+        >
+          Current project only
+        </Button>
+      </div>
+    );
+  }, [loadedProjectSources, projectId, projectSourceScope, templateSourceFilter]);
+  const templatesProjectSourceRefreshControl = useMemo(() => {
+    if (templateSourceFilter === "custom" || !canLoadProjectSourcesFromActions) return null;
+    return (
+      <div className="mb-2 flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          className="min-h-6 px-2 py-1"
+          disabled={projectSourcesLoading}
+          onClick={refreshProjectSources}
+        >
+          Refresh project sources
+        </Button>
+      </div>
+    );
+  }, [canLoadProjectSourcesFromActions, projectSourcesLoading, refreshProjectSources, templateSourceFilter]);
+  const handleTemplateSourceFilterChange = useCallback((nextFilter: TemplateSourceFilter) => {
+    setTemplateSourceFilter(nextFilter);
+    setBulkSelectedNodeIds(new Set());
+    if (nextFilter === "custom") setPreviewProjectSourceKey(null);
+  }, []);
+  const templatesSourceFilterControls = useMemo(() => {
+    const hasCustomTemplates = templateList.length > 0;
+    const hasProjectSources = loadedProjectSources.some((source) => source.kind !== "custom-template") || projectSourcesLoading;
+    if (!hasCustomTemplates || !hasProjectSources) return null;
+    const filters: Array<{ id: TemplateSourceFilter; label: string }> = [
+      { id: "all", label: "All sources" },
+      { id: "custom", label: "Custom templates" },
+      { id: "projects", label: "Project sources" },
+    ];
+    return (
+      <div className="mb-2 flex gap-1" role="group" aria-label="Reusable source filter">
+        {filters.map((filter) => (
+          <Button
+            key={filter.id}
+            type="button"
+            variant="outline"
+            size="xs"
+            aria-pressed={templateSourceFilter === filter.id}
+            className="min-h-6 min-w-0 flex-1 px-2 py-1"
+            onClick={() => handleTemplateSourceFilterChange(filter.id)}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+    );
+  }, [handleTemplateSourceFilterChange, loadedProjectSources, projectSourcesLoading, templateList.length, templateSourceFilter]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -555,10 +1229,15 @@ export function EstimateRightSidebar({
   // Cascade selections resolve to top-most insertable units: whole
   // templates, group/area subtrees, and bare component rows.
   const bulkTemplateUnits = useMemo(
-    () => getCheckedTemplateUnits(templateList, bulkSelectedNodeIds),
-    [bulkSelectedNodeIds, templateList],
+    () => getCheckedTemplateUnits(visibleTemplateList, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, visibleTemplateList],
   );
   const bulkTemplateUnitCount = bulkTemplateUnits.templates.length + bulkTemplateUnits.templateNodes.length;
+  const bulkProjectSourceTargets = useMemo(
+    () => getCheckedProjectSourceTargets(visibleTemplateProjectSources, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, visibleTemplateProjectSources],
+  );
+  const bulkProjectSourceTargetCount = bulkProjectSourceTargets.length;
 
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
@@ -679,6 +1358,25 @@ export function EstimateRightSidebar({
     [canInsertTemplate, effectiveTemplateTargetName, onInsertTemplateNode],
   );
 
+  const addProjectSource = useCallback(
+    (source: ProjectSourceInsertTarget) => {
+      if (!canInsertTemplate) {
+        setLastActionMessage("Select a Group Node before adding project sources.");
+        return false;
+      }
+
+      const didInsert = onInsertProjectSource ? onInsertProjectSource(source) !== false : false;
+      if (!didInsert) {
+        setLastActionMessage(`${source.name} was not inserted. Select a Group Node and try again.`);
+        return false;
+      }
+
+      setLastActionMessage(`${source.name} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      return true;
+    },
+    [canInsertTemplate, effectiveTemplateTargetName, onInsertProjectSource],
+  );
+
   const duplicateItem = useCallback((item: EstimateRowItem) => {
     const now = new Date().toISOString();
     setLibraryItems((items) => [
@@ -705,11 +1403,20 @@ export function EstimateRightSidebar({
   }, []);
 
   const startNewTemplate = useCallback(() => {
+    setTemplateSourceProjectSource(null);
     setAddTemplateOpen(true);
   }, []);
 
   const startNewTemplateInCategory = useCallback((category: string) => {
+    setTemplateSourceProjectSource(null);
     setTemplateDefaultCategory(category);
+    setAddTemplateOpen(true);
+  }, []);
+
+  const startNewTemplateFromProjectSource = useCallback((source: ProjectSourceInsertTarget) => {
+    setTemplateSourceNodeId(null);
+    setTemplateSourceProjectSource(source);
+    setTemplateDefaultCategory("Project Sources");
     setAddTemplateOpen(true);
   }, []);
 
@@ -717,6 +1424,7 @@ export function EstimateRightSidebar({
     setAddTemplateOpen(open);
     if (!open) {
       setTemplateSourceNodeId(null);
+      setTemplateSourceProjectSource(null);
       setTemplateDefaultCategory(null);
     }
   }, []);
@@ -728,6 +1436,7 @@ export function EstimateRightSidebar({
       const detail = (event as CustomEvent<Partial<CreateEstimateTemplateFromNodeEventDetail>>).detail;
       if (typeof detail?.sourceNodeId !== "string" || !detail.sourceNodeId) return;
       setTemplateSourceNodeId(detail.sourceNodeId);
+      setTemplateSourceProjectSource(null);
       setAddTemplateOpen(true);
     }
     window.addEventListener(CREATE_ESTIMATE_TEMPLATE_FROM_NODE_EVENT, handleCreateTemplateFromNode);
@@ -735,15 +1444,22 @@ export function EstimateRightSidebar({
   }, []);
 
   const templateModalSourceNode = useMemo(() => {
+    if (templateSourceProjectSource) {
+      return projectSourceToTemplateSourceNode(templateSourceProjectSource, loadedProjectSources);
+    }
     if (templateSourceNodeId) {
       return nodes?.length ? findEstimateNode(nodes, templateSourceNodeId) ?? null : null;
     }
     return selectedTargetNode;
-  }, [nodes, selectedTargetNode, templateSourceNodeId]);
+  }, [loadedProjectSources, nodes, selectedTargetNode, templateSourceNodeId, templateSourceProjectSource]);
+  const templateModalProjectId = templateSourceProjectSource?.projectId ?? projectId;
+  const templateModalEstimateId = templateSourceProjectSource?.estimateId ?? estimateId;
+  const templateModalSourceTab = templateSourceProjectSource?.kind === "project-tab" ? templateSourceProjectSource : null;
 
   const handleComponentCreated = useCallback((item: EstimateRowItem) => {
     setLibraryItems((items) => [item, ...items.filter((entry) => entry.id !== item.id)]);
     setPreviewItemId(item.id);
+    setPreviewProjectSourceKey(null);
     setLastActionMessage(`${getComponentName(item)} created in the component library.`);
     onLibraryDataChanged?.();
   }, [onLibraryDataChanged]);
@@ -751,7 +1467,11 @@ export function EstimateRightSidebar({
   const handleTemplateCreated = useCallback((template: EstimateTemplate) => {
     setTemplateList((current) => [...current.filter((entry) => entry.id !== template.id), template]);
     setActiveTab("templates");
-    setTemplatesExpandedIds((current) => Array.from(new Set([...current, templatesTreeCategoryId(template.category)])));
+    setTemplatesExpandedIds((current) => Array.from(new Set([
+      ...current,
+      templatesTreeSectionId("custom-templates"),
+      templatesTreeCategoryId(template.category),
+    ])));
     setLastActionMessage(`${template.name} saved to templates.`);
     onLibraryDataChanged?.();
   }, [onLibraryDataChanged]);
@@ -840,6 +1560,7 @@ export function EstimateRightSidebar({
       setShowNewComponent(false);
       resetComponentForm();
       setPreviewItemId(nextComponent.id);
+      setPreviewProjectSourceKey(null);
       setLastActionMessage(`${getComponentName(nextComponent)} ${editItemId ? "updated" : "created"}.`);
       if (addNow) addComponent(nextComponent);
       onLibraryDataChanged?.();
@@ -871,6 +1592,8 @@ export function EstimateRightSidebar({
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
+    setPreviewProjectSourceKey(null);
+    setTemplateSourceFilter("all");
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, []);
@@ -881,6 +1604,7 @@ export function EstimateRightSidebar({
     setSearchQuery("");
     setSearchOpen(false);
     setPreviewItemId(null);
+    setPreviewProjectSourceKey(null);
     setViewModeMenuOpen(false);
     setBulkSelectedNodeIds(new Set());
   }, []);
@@ -927,12 +1651,24 @@ export function EstimateRightSidebar({
       templateNodes.forEach(({ template, node }) => {
         if (addTemplateNode(template, node)) insertedCount += 1;
       });
+      bulkProjectSourceTargets.forEach((source) => {
+        if (addProjectSource(source)) insertedCount += 1;
+      });
     }
     if (items.length > 0 && insertLibraryItems(items)) insertedCount += items.length;
     if (insertedCount === 0) return;
-    if (insertedCount > 1) setLastActionMessage(`${insertedCount} template selections added.`);
+    if (insertedCount > 1) setLastActionMessage(`${insertedCount} reusable selections added.`);
     clearBulkSelection();
-  }, [addTemplate, addTemplateNode, bulkTemplateUnits, canInsertTemplate, clearBulkSelection, insertLibraryItems]);
+  }, [
+    addProjectSource,
+    addTemplate,
+    addTemplateNode,
+    bulkProjectSourceTargets,
+    bulkTemplateUnits,
+    canInsertTemplate,
+    clearBulkSelection,
+    insertLibraryItems,
+  ]);
 
   const handleConfirmBulkDelete = useCallback(() => {
     if (bulkSelectedItems.length === 0) {
@@ -976,10 +1712,80 @@ export function EstimateRightSidebar({
   }, [activeTab, componentViewMode]);
 
   const handleTemplatesToggle = useCallback((nodeId: string) => {
+    const isExpanded = templatesExpandedIds.includes(nodeId);
     setTemplatesExpandedIds((current) =>
       current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
     );
-  }, []);
+    if (isExpanded) return;
+
+    const projectSource = findProjectSourceByNodeId(loadedProjectSources, nodeId);
+    if (projectSource) {
+      if (hasReusableProjectEstimates(loadedProjectSources, projectSource.projectId)) return;
+      if (projectEstimateLoadedProjectIds.includes(projectSource.projectId)) return;
+      if (projectEstimateLoadingProjectIds.includes(projectSource.projectId)) return;
+
+      setProjectEstimateLoadingProjectIds((current) =>
+        current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
+      );
+      setProjectEstimateErrors((current) => {
+        const next = { ...current };
+        delete next[projectSource.projectId];
+        return next;
+      });
+      listReusableProjectEstimateSources({ projectId: projectSource.projectId })
+        .then((result) => {
+          setLoadedProjectSources((current) =>
+            mergeReusableProjectEstimateSources(current, result.sources, projectSource.projectId),
+          );
+          setProjectEstimateLoadedProjectIds((current) =>
+            current.includes(projectSource.projectId) ? current : [...current, projectSource.projectId],
+          );
+        })
+        .catch((error: unknown) => {
+          setProjectEstimateErrors((current) => ({
+            ...current,
+            [projectSource.projectId]: error instanceof Error ? error.message : "Could not load project estimates.",
+          }));
+        })
+        .finally(() => {
+          setProjectEstimateLoadingProjectIds((current) => current.filter((projectId) => projectId !== projectSource.projectId));
+        });
+      return;
+    }
+
+    const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
+    if (!source) return;
+    if (hasReusableEstimateOutline(loadedProjectSources, source.estimateId)) return;
+    if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
+
+    setProjectOutlineLoadingEstimateIds((current) =>
+      current.includes(source.estimateId) ? current : [...current, source.estimateId],
+    );
+    setProjectOutlineErrors((current) => {
+      const next = { ...current };
+      delete next[source.estimateId];
+      return next;
+    });
+    getReusableEstimateOutline({ projectId: source.projectId, estimateId: source.estimateId })
+      .then((result) => {
+        setLoadedProjectSources((current) => mergeReusableProjectSources(current, result.sources, source.estimateId));
+      })
+      .catch((error: unknown) => {
+        setProjectOutlineErrors((current) => ({
+          ...current,
+          [source.estimateId]: error instanceof Error ? error.message : "Could not load estimate outline.",
+        }));
+      })
+      .finally(() => {
+        setProjectOutlineLoadingEstimateIds((current) => current.filter((estimateId) => estimateId !== source.estimateId));
+      });
+  }, [
+    loadedProjectSources,
+    projectEstimateLoadedProjectIds,
+    projectEstimateLoadingProjectIds,
+    projectOutlineLoadingEstimateIds,
+    templatesExpandedIds,
+  ]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
@@ -1027,6 +1833,37 @@ export function EstimateRightSidebar({
       const dragGhost = document.createElement("div");
       dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
       dragGhost.textContent = `${templateNode.name} · template ${templateNode.kind === "group" ? "group" : "area"}`;
+      document.body.appendChild(dragGhost);
+      event.dataTransfer.setDragImage(dragGhost, 12, 12);
+      window.setTimeout(() => dragGhost.remove(), 0);
+    },
+    [],
+  );
+
+  const handleProjectSourceDragStart = useCallback(
+    (event: React.DragEvent<HTMLElement>, source: ProjectSourceInsertTarget) => {
+      event.dataTransfer.effectAllowed = "copy";
+      const payload = source.kind === "project-node"
+        ? {
+            kind: "project-node",
+            projectId: source.projectId,
+            estimateId: source.estimateId,
+            tabId: source.tabId,
+            nodeId: source.nodeId,
+          }
+        : {
+            kind: "project-tab",
+            projectId: source.projectId,
+            estimateId: source.estimateId,
+            tabId: source.tabId,
+          };
+      event.dataTransfer.setData(PROJECT_SOURCE_DRAG_MIME_TYPE, JSON.stringify(payload));
+      event.dataTransfer.setData("text/plain", source.name);
+      beginEstimateWorkshopDrag({ kind: "project-source", sourceName: source.name });
+
+      const dragGhost = document.createElement("div");
+      dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
+      dragGhost.textContent = `${source.name} · project source`;
       document.body.appendChild(dragGhost);
       event.dataTransfer.setDragImage(dragGhost, 12, 12);
       window.setTimeout(() => dragGhost.remove(), 0);
@@ -1119,29 +1956,46 @@ export function EstimateRightSidebar({
         <div className="min-h-0 flex-1 overflow-auto">
           <div className={cn("p-2", bulkSelectionCount > 0 && "pb-16")}>
             {activeTab === "templates" ? (
-              <TemplatesTree
-                templates={templateList}
-                searchQuery={searchQuery}
-                expandedNodeIds={templatesExpandedIds}
-                onToggle={handleTemplatesToggle}
-                canInsertTemplate={canInsertTemplate}
-                templateTargetName={effectiveTemplateTargetName || "selected group"}
-                onAddTemplate={addTemplate}
-                onAddTemplateNode={addTemplateNode}
-                onTemplateDragStart={handleTemplateDragStart}
-                onCategoryDragStart={handleCategoryDragStart}
-                onTemplateNodeDragStart={handleTemplateNodeDragStart}
-                onRenameTemplate={startRenameTemplate}
-                onDeleteTemplate={startDeleteTemplate}
-                onCreateTemplate={startNewTemplateInCategory}
-                componentAddDisabled={!canInsert}
-                componentAddLabel={targetLabel}
-                onAddComponent={(item) => addComponent(item)}
-                onItemDragStart={handleItemDragStart}
-                selectable
-                checkedIds={bulkSelectedIds}
-                onCheckToggle={handleBulkCheckToggle}
-              />
+              <>
+                {templatesProjectSourceStatus}
+                {templatesProjectSourceSearchStatus}
+                {templatesSourceFilterControls}
+                {templatesProjectSourceScopeControls}
+                {templatesProjectSourceRefreshControl}
+                <TemplatesTree
+                  templates={visibleTemplateList}
+                  projectSources={visibleTemplateProjectSources}
+                  searchQuery={searchQuery}
+                  expandedNodeIds={templatesExpandedIds}
+                  onToggle={handleTemplatesToggle}
+                  canInsertTemplate={canInsertTemplate}
+                  templateTargetName={effectiveTemplateTargetName || "selected group"}
+                  onAddTemplate={addTemplate}
+                  onAddTemplateNode={addTemplateNode}
+                  onTemplateDragStart={handleTemplateDragStart}
+                  onCategoryDragStart={handleCategoryDragStart}
+                  onTemplateNodeDragStart={handleTemplateNodeDragStart}
+                  onAddProjectSource={addProjectSource}
+                  onProjectSourceDragStart={handleProjectSourceDragStart}
+                  onPreviewProjectSource={(source) => {
+                    setPreviewItemId(null);
+                    setPreviewProjectSourceKey(reusableProjectSourceKey(source));
+                  }}
+                  onClearProjectSourcePreview={() => setPreviewProjectSourceKey(null)}
+                  onSaveProjectSourceAsTemplate={startNewTemplateFromProjectSource}
+                  onRenameTemplate={startRenameTemplate}
+                  onDeleteTemplate={startDeleteTemplate}
+                  onCreateTemplate={startNewTemplateInCategory}
+                  componentAddDisabled={!canInsert}
+                  componentAddLabel={targetLabel}
+                  onAddComponent={(item) => addComponent(item)}
+                  onItemDragStart={handleItemDragStart}
+                  selectable
+                  checkedIds={bulkSelectedIds}
+                  onCheckToggle={handleBulkCheckToggle}
+                  emptyState={templatesProjectSourceEmptyState}
+                />
+              </>
             ) : (
               <LibraryTree
                 nodes={filteredTreeNodes}
@@ -1150,7 +2004,10 @@ export function EstimateRightSidebar({
                 searchQuery={searchQuery}
                 onToggle={handleToggleNode}
                 onItemAdd={(item) => { if (item) addComponent(item); }}
-                onItemPreview={(itemId) => setPreviewItemId(itemId)}
+                onItemPreview={(itemId) => {
+                  setPreviewProjectSourceKey(null);
+                  setPreviewItemId(itemId);
+                }}
                 onItemEdit={startEditComponent}
                 onItemDuplicate={duplicateItem}
                 onItemToggleFavorite={toggleFavorite}
@@ -1181,7 +2038,7 @@ export function EstimateRightSidebar({
                     label: "Add selected to estimate",
                     icon: <Plus size={12} weight="regular" />,
                     disabled:
-                      (!canInsertTemplate || bulkTemplateUnitCount === 0) &&
+                      (!canInsertTemplate || (bulkTemplateUnitCount === 0 && bulkProjectSourceTargetCount === 0)) &&
                       (!canInsert || bulkTemplateUnits.items.length === 0),
                     onClick: handleBulkAddSelectedTemplates,
                   },
@@ -1222,6 +2079,21 @@ export function EstimateRightSidebar({
           />
         ) : null}
 
+        {previewProjectSource ? (
+          <ProjectSourcePreviewPanel
+            source={previewProjectSource}
+            sources={visibleTemplateProjectSources}
+            onClose={() => setPreviewProjectSourceKey(null)}
+            onAdd={addProjectSource}
+            addDisabled={!canInsertTemplate}
+            addLabel={
+              canInsertTemplate
+                ? `Add to ${effectiveTemplateTargetName || "selected group"}`
+                : "Select a Group Node before adding project sources"
+            }
+          />
+        ) : null}
+
         {/* Create flow: the shared Components-page modal. */}
         {addComponentOpen ? (
           <AddComponentModal
@@ -1243,10 +2115,11 @@ export function EstimateRightSidebar({
           <NewTemplateModal
             open={addTemplateOpen}
             onOpenChange={handleAddTemplateOpenChange}
-            mode={templateCreateMode}
-            projectId={projectId}
-            estimateId={estimateId}
+            mode={templateModalSourceTab ? "estimate-tab" : templateSourceProjectSource ? "estimate-node" : templateCreateMode}
+            projectId={templateModalProjectId}
+            estimateId={templateModalEstimateId}
             sourceNode={templateModalSourceNode}
+            sourceTabId={templateModalSourceTab?.tabId}
             existingCategories={Array.from(new Set(templateList.map((template) => template.category))).sort()}
             defaultCategory={templateDefaultCategory ?? undefined}
             onCreated={handleTemplateCreated}

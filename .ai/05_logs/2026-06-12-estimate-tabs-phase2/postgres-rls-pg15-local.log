@@ -1,0 +1,8 @@
+$ POSTGRES_BIN_DIR=/opt/homebrew/bin bun run prove:estimate-tabs-rls
+started=2026-06-12T10:36:25.642477+00:00
+ended=2026-06-12T10:36:30.091154+00:00
+exit_code=0
+timed_out=False
+
+$ node scripts/prove-estimate-tabs-postgres.mjs
+estimate-tabs local Postgres proof passed

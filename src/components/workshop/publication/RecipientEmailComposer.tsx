@@ -21,7 +21,7 @@ import {
  * - Status chips: Pending / Sent / Bounced / Opened (small rounded-xs badges)
  * - SF Pro stack via parent, ≤12px (text-[10px]/ [9px]), rounded-xs, hairline borders, min-h-7
  * - No secrets; uses provided server actions.
- * - Backwards: does not affect Link/Sheets/Access flows.
+ * - Backwards: does not affect Link/Estimates/Access flows.
  */
 export type RecipientEmailComposerProps = {
   publicationId: string;

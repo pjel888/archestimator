@@ -26,9 +26,12 @@ const routeProjectId = "11111111-1111-4111-8111-111111111111";
 const routeEstimateId = "22222222-2222-4222-8222-222222222222";
 const routeGroupNodeId = "33333333-3333-4333-8333-333333333333";
 const routeAreaNodeId = "44444444-4444-4444-8444-444444444444";
+const routeActiveTabId = "12121212-1212-4121-8121-121212121212";
+const routeOtherTabId = "34343434-3434-4343-8343-343434343434";
 const selectedRouteEstimateId = "66666666-6666-4666-8666-666666666666";
 const selectedRouteGroupNodeId = "77777777-7777-4777-8777-777777777777";
 const selectedRouteAreaNodeId = "88888888-8888-4888-8888-888888888888";
+const selectedRouteActiveTabId = "56565656-5656-4565-8565-565656565656";
 const otherProjectId = "99999999-9999-4999-8999-999999999999";
 const otherEstimateId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const otherAreaNodeId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -369,7 +372,7 @@ function makeSelectedNodeRouteReadClient(observed: {
             if (table === "estimate_nodes") {
               return {
                 data: filters.eq.id === selectedRouteAreaNodeId
-                  ? { id: selectedRouteAreaNodeId, estimate_id: selectedRouteEstimateId }
+                  ? { id: selectedRouteAreaNodeId, estimate_id: selectedRouteEstimateId, estimate_tab_id: selectedRouteActiveTabId }
                   : null,
                 error: null,
               };
@@ -387,23 +390,23 @@ function makeSelectedNodeRouteReadClient(observed: {
             if (table === "estimates") return { data: [routeEstimate, selectedEstimate], error: null };
             if (table === "estimate_nodes" && columns.includes("parent_id")) {
               const estimateIds = filters.in.estimate_id ?? (filters.eq.estimate_id ? [filters.eq.estimate_id as string] : []);
+              const activeTabFilter = filters.eq.estimate_tab_id as string | undefined;
               if (estimateIds.includes(selectedRouteEstimateId)) {
-                return {
-                  data: [
-                    { id: selectedRouteGroupNodeId, estimate_id: selectedRouteEstimateId, parent_id: null, kind: "group", name: "House", sort_order: 0 },
-                    { id: selectedRouteAreaNodeId, estimate_id: selectedRouteEstimateId, parent_id: selectedRouteGroupNodeId, kind: "area", name: "Selected Bedroom", sort_order: 0 },
-                  ],
-                  error: null,
-                };
+                const nodes = [
+                  { id: selectedRouteGroupNodeId, estimate_id: selectedRouteEstimateId, estimate_tab_id: selectedRouteActiveTabId, parent_id: null, kind: "group", name: "House", sort_order: 0 },
+                  { id: selectedRouteAreaNodeId, estimate_id: selectedRouteEstimateId, estimate_tab_id: selectedRouteActiveTabId, parent_id: selectedRouteGroupNodeId, kind: "area", name: "Selected Bedroom", sort_order: 0 },
+                  { id: "99999999-8888-4888-8888-999999999999", estimate_id: selectedRouteEstimateId, estimate_tab_id: routeOtherTabId, parent_id: null, kind: "group", name: "Other Selected Tab", sort_order: 1 },
+                ];
+                return { data: nodes.filter((node) => !activeTabFilter || node.estimate_tab_id === activeTabFilter), error: null };
               }
               if (estimateIds.includes(routeEstimateId)) {
-                return {
-                  data: [
-                    { id: routeGroupNodeId, estimate_id: routeEstimateId, parent_id: null, kind: "group", name: "Prior House", sort_order: 0 },
-                    { id: routeAreaNodeId, estimate_id: routeEstimateId, parent_id: routeGroupNodeId, kind: "area", name: "Prior Bedroom", sort_order: 0 },
-                  ],
-                  error: null,
-                };
+                const nodes = [
+                  { id: routeGroupNodeId, estimate_id: routeEstimateId, estimate_tab_id: routeActiveTabId, parent_id: null, kind: "group", name: "Active House", sort_order: 0 },
+                  { id: routeAreaNodeId, estimate_id: routeEstimateId, estimate_tab_id: routeActiveTabId, parent_id: routeGroupNodeId, kind: "area", name: "Active Bedroom", sort_order: 0 },
+                  { id: "abababab-abab-4aba-8aba-abababababab", estimate_id: routeEstimateId, estimate_tab_id: routeOtherTabId, parent_id: null, kind: "group", name: "Other Tab", sort_order: 1 },
+                  { id: "cdcdcdcd-cdcd-4cdc-8cdc-cdcdcdcdcdcd", estimate_id: routeEstimateId, estimate_tab_id: routeOtherTabId, parent_id: "abababab-abab-4aba-8aba-abababababab", kind: "area", name: "Other Bedroom", sort_order: 0 },
+                ];
+                return { data: nodes.filter((node) => !activeTabFilter || node.estimate_tab_id === activeTabFilter), error: null };
               }
               return { data: [], error: null };
             }
@@ -452,6 +455,32 @@ function makeSelectedNodeRouteReadClient(observed: {
                     contingency_percentage: 0,
                     misc_cost: 0,
                     row_revision: 5,
+                    source_library_item_id: null,
+                  },
+                  {
+                    id: "dddddddd-7777-4ddd-8ddd-dddddddd7777",
+                    estimate_id: routeEstimateId,
+                    node_id: routeAreaNodeId,
+                    material: "Active tab bed",
+                    quantity: 1,
+                    unit: "pc",
+                    unit_cost: 12_000,
+                    contingency_percentage: 0,
+                    misc_cost: 0,
+                    row_revision: 2,
+                    source_library_item_id: null,
+                  },
+                  {
+                    id: "eeeeeeee-7777-4eee-8eee-eeeeeeee7777",
+                    estimate_id: routeEstimateId,
+                    node_id: "cdcdcdcd-cdcd-4cdc-8cdc-cdcdcdcdcdcd",
+                    material: "Other tab bed",
+                    quantity: 1,
+                    unit: "pc",
+                    unit_cost: 99_000,
+                    contingency_percentage: 0,
+                    misc_cost: 0,
+                    row_revision: 2,
                     source_library_item_id: null,
                   },
                 ],
@@ -1216,6 +1245,32 @@ describe("AI package-builder read tools", () => {
       "read_estimate_tree",
       "read_area_rows",
       "search_historical_estimate_rows",
+    ]));
+  });
+
+  it("scopes current-route package reads to the active estimate tab when provided", async () => {
+    const observed = { filters: [] as Array<{ table: string; method: string; column?: string; value?: unknown }> };
+    createSupabaseServerClient.mockResolvedValue(makeSelectedNodeRouteReadClient(observed));
+
+    const result = await readPackageBuilderTools({
+      runId: "66666666-6666-4666-8666-666666666666",
+      userContext,
+      message: "Fill this active tab with bedroom rows.",
+      routeContext: { projectId: routeProjectId, estimateId: routeEstimateId, activeTabId: routeActiveTabId },
+    });
+
+    expect(result.estimateSummary).toEqual(expect.objectContaining({
+      id: routeEstimateId,
+      firstNodeId: routeGroupNodeId,
+      activeTabId: routeActiveTabId,
+    }));
+    expect(result.estimateTree).toEqual([
+      { id: routeGroupNodeId, name: "Active House", kind: "group", path: ["Active House"], rowCount: 0 },
+      { id: routeAreaNodeId, name: "Active Bedroom", kind: "area", path: ["Active House", "Active Bedroom"], rowCount: 1 },
+    ]);
+    expect(result.areaRows.map((row) => row.material)).toEqual(["Active tab bed"]);
+    expect(observed.filters).toEqual(expect.arrayContaining([
+      { table: "estimate_nodes", method: "eq", column: "estimate_tab_id", value: routeActiveTabId },
     ]));
   });
 

@@ -5,6 +5,7 @@ import type { EstimateTemplate } from "@/lib/component-library/estimate-template
 export type { EstimateTemplate, EstimateTemplateSummary } from "@/lib/component-library/estimate-templates";
 
 export const ESTIMATE_TEMPLATE_DRAG_MIME_TYPE = "application/x-archestimator-estimate-template";
+export const PROJECT_SOURCE_DRAG_MIME_TYPE = "application/x-archestimator-project-source";
 
 /**
  * Window event for surfaces that can target a template drop but do not own
@@ -55,6 +56,10 @@ export type EstimateTemplateDragPayload =
   | { kind: "templates"; templateIds: string[] }
   | { kind: "template-node"; templateId: string; templateNodeId: string };
 
+export type ProjectSourceDragPayload =
+  | { kind: "project-tab"; projectId: string; estimateId: string; tabId: string }
+  | { kind: "project-node"; projectId: string; estimateId: string; tabId: string; nodeId: string };
+
 export function readEstimateTemplateDragPayload(rawPayload: string): EstimateTemplateDragPayload | null {
   if (!rawPayload) return null;
   try {
@@ -75,6 +80,34 @@ export function readEstimateTemplateDragPayload(rawPayload: string): EstimateTem
   } catch {
     // Malformed payloads from other surfaces are ignored.
   }
+  return null;
+}
+
+function readNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+export function readProjectSourceDragPayload(rawPayload: string): ProjectSourceDragPayload | null {
+  if (!rawPayload) return null;
+  try {
+    const parsed = JSON.parse(rawPayload) as {
+      kind?: unknown;
+      projectId?: unknown;
+      estimateId?: unknown;
+      tabId?: unknown;
+      nodeId?: unknown;
+    };
+    const projectId = readNonEmptyString(parsed.projectId);
+    const estimateId = readNonEmptyString(parsed.estimateId);
+    const tabId = readNonEmptyString(parsed.tabId);
+    if (!projectId || !estimateId || !tabId) return null;
+    if (parsed.kind === "project-tab") return { kind: "project-tab", projectId, estimateId, tabId };
+    if (parsed.kind === "project-node") {
+      const nodeId = readNonEmptyString(parsed.nodeId);
+      if (!nodeId) return null;
+      return { kind: "project-node", projectId, estimateId, tabId, nodeId };
+    }
+  } catch {}
   return null;
 }
 

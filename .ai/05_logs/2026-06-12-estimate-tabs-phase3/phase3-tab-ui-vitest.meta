@@ -1,0 +1,4 @@
+command=bunx vitest run tests/vitest/estimate-tab-strip.test.tsx tests/vitest/estimate-tabs-domain.test.ts tests/vitest/estimate-sheet-tree-dom.test.tsx tests/vitest/estimate-cursor-broadcast-throttle.test.ts --maxWorkers=1
+exit_code=0
+log=.ai/05_logs/2026-06-12-estimate-tabs-phase3/phase3-tab-ui-vitest.log
+timestamp=2026-06-12T11:07:48Z

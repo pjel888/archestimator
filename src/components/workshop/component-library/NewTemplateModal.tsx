@@ -6,7 +6,11 @@ import { Cube, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { ControlInput, ControlTextarea } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
-import { createEstimateTemplate, createEstimateTemplateFromEstimateNode } from "@/lib/component-library/actions";
+import {
+  createEstimateTemplate,
+  createEstimateTemplateFromEstimateNode,
+  createEstimateTemplateFromEstimateTab,
+} from "@/lib/component-library/actions";
 import type { EstimateTreeNode } from "../estimate-tree-data";
 import type { EstimateTemplate } from "./templates";
 
@@ -41,32 +45,21 @@ export type NewTemplateModalProps = {
   onOpenChange: (open: boolean) => void;
   projectId?: string;
   estimateId?: string;
-  /** The estimate node whose subtree the template captures. */
   sourceNode: EstimateTreeNode | null;
+  sourceTabId?: string;
   existingCategories: string[];
-  /** Pre-filled category, e.g. when creating from a category's context menu. */
   defaultCategory?: string;
   onCreated: (template: EstimateTemplate) => void;
-  /**
-   * "estimate-node" (default) saves a selected estimate node's subtree;
-   * "scratch" creates an empty template with no estimate context (the
-   * Templates browse flow) — its structure is built in the template editor.
-   */
-  mode?: "estimate-node" | "scratch";
+  mode?: "estimate-node" | "estimate-tab" | "scratch";
 };
 
-/**
- * Saves the currently selected estimate node (group or area) as a reusable
- * template. Mirrors the user model: a template *is* a group node or an area
- * node at its top level, with everything nested inside it. In "scratch" mode
- * it instead creates an empty template straight in the library.
- */
 export function NewTemplateModal({
   open,
   onOpenChange,
   projectId,
   estimateId,
   sourceNode,
+  sourceTabId,
   existingCategories,
   defaultCategory,
   onCreated,
@@ -81,7 +74,12 @@ export function NewTemplateModal({
 
   const summary = useMemo(() => (sourceNode ? summarizeSourceNode(sourceNode) : null), [sourceNode]);
   const scratchMode = mode === "scratch";
-  const canSubmit = scratchMode ? !pending : Boolean(sourceNode && projectId && estimateId && !pending);
+  const tabMode = mode === "estimate-tab";
+  const canSubmit = scratchMode
+    ? !pending
+    : tabMode
+      ? Boolean(sourceNode && projectId && estimateId && sourceTabId && !pending)
+      : Boolean(sourceNode && projectId && estimateId && !pending);
 
   const resetForm = useCallback(() => {
     setName("");
@@ -102,6 +100,7 @@ export function NewTemplateModal({
   const handleSubmit = useCallback(async () => {
     if (pending) return;
     if (!scratchMode && (!sourceNode || !projectId || !estimateId)) return;
+    if (tabMode && !sourceTabId) return;
     if (!name.trim()) {
       setError("Template name is required.");
       return;
@@ -110,25 +109,40 @@ export function NewTemplateModal({
     setPending(true);
     setError("");
     try {
-      const { template } = scratchMode
-        ? await createEstimateTemplate({ name, category, description })
-        : await createEstimateTemplateFromEstimateNode({
-            projectId: projectId!,
-            estimateId: estimateId!,
-            sourceNodeId: sourceNode!.id,
-            name,
-            category,
-            description,
-          });
+      let result: { template: EstimateTemplate };
+      if (scratchMode) {
+        result = await createEstimateTemplate({ name, category, description });
+      } else if (tabMode) {
+        if (!sourceNode || !projectId || !estimateId || !sourceTabId) return;
+        result = await createEstimateTemplateFromEstimateTab({
+          projectId,
+          estimateId,
+          tabId: sourceTabId,
+          tabName: sourceNode.name,
+          name,
+          category,
+          description,
+        });
+      } else {
+        if (!sourceNode || !projectId || !estimateId) return;
+        result = await createEstimateTemplateFromEstimateNode({
+          projectId,
+          estimateId,
+          sourceNodeId: sourceNode.id,
+          name,
+          category,
+          description,
+        });
+      }
       resetForm();
       onOpenChange(false);
-      onCreated(template);
+      onCreated(result.template);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Could not create the template.");
     } finally {
       setPending(false);
     }
-  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, scratchMode, sourceNode]);
+  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, scratchMode, sourceNode, sourceTabId, tabMode]);
 
   return (
     <Modal
@@ -137,7 +151,9 @@ export function NewTemplateModal({
       description={
         scratchMode
           ? "Create an empty template in the library. Open it to build its structure."
-          : "Save the selected estimate node and everything inside it as a reusable template."
+          : tabMode
+            ? "Save the selected project tab and everything inside it as a reusable template."
+            : "Save the selected estimate node and everything inside it as a reusable template."
       }
       closeLabel="Cancel template creation"
       className="max-w-md"
@@ -158,7 +174,7 @@ export function NewTemplateModal({
             <div className="min-w-0 flex-1">
               <p className="truncate text-[10px] font-medium text-ink">{sourceNode.name}</p>
               <p className="text-[9px] leading-3 text-tertiary">
-                {sourceNode.kind === "group" ? "Group node" : "Area node"} · {summary.groupCount} groups · {summary.areaCount} areas · {summary.rowCount} rows
+                {tabMode ? "Tab source" : sourceNode.kind === "group" ? "Group node" : "Area node"} · {summary.groupCount} groups · {summary.areaCount} areas · {summary.rowCount} rows
               </p>
             </div>
           </div>

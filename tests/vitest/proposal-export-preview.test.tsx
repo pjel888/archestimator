@@ -76,6 +76,7 @@ describe("ProposalExportPreviewDialog", () => {
     const user = userEvent.setup();
     const onRefresh = vi.fn();
     const onClose = vi.fn();
+    const onScopeChange = vi.fn();
     const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
 
     render(
@@ -84,6 +85,12 @@ describe("ProposalExportPreviewDialog", () => {
         model={model}
         isStale
         downloadHref="/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx"
+        scopeControls={{
+          selectedScope: "all-tabs",
+          activeTabName: "Main",
+          tabCount: 2,
+          onScopeChange,
+        }}
         onRefresh={onRefresh}
         onClose={onClose}
       />,
@@ -96,6 +103,9 @@ describe("ProposalExportPreviewDialog", () => {
       "w-[min(1360px,98vw)]",
     );
     expect(screen.getByText("Read-only Excel preview")).toBeInTheDocument();
+    expect(screen.getByText("This preview consolidates identical items across rooms/areas within each tab.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Main tab/i })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Preview is stale. Refresh to rebuild from current sheet rows.")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "PARTICULARS" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "Porcelain Tile — Supply and install porcelain floor tile" })).toBeInTheDocument();
@@ -112,6 +122,9 @@ describe("ProposalExportPreviewDialog", () => {
     expect(downloadLink).toHaveClass("h-7", "gap-1", "text-[9px]", "font-medium", "leading-none", "bg-primary", "text-white");
     expect(screen.getByTestId("proposal-preview-refresh-label")).toHaveClass("text-[9px]", "font-medium", "leading-none");
     expect(screen.getByTestId("proposal-preview-download-label")).toHaveClass("text-[9px]", "font-medium", "leading-none");
+
+    await user.click(screen.getByRole("button", { name: /Main tab/i }));
+    expect(onScopeChange).toHaveBeenCalledWith("active-tab");
 
     await user.click(refreshButton);
     expect(onRefresh).toHaveBeenCalledTimes(1);
@@ -147,6 +160,49 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByRole("link", { name: "Download editable XLSX" })).toHaveAttribute(
       "href",
       "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx",
+    );
+  });
+
+  it("defaults multi-tab preview downloads to all-tabs export and lets users switch to the active-tab route", async () => {
+    const user = userEvent.setup();
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId="main-house"
+          nodes={nodes}
+          projectId="project-1"
+          estimateId="estimate-1"
+          estimateTabs={[
+            { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
+            { id: "tab-owner", name: "Owner Option", sortOrder: 10, isDefault: false },
+          ]}
+          activeTabId="tab-main"
+          dataTabId="tab-main"
+          initialTabId="tab-main"
+          proposalExportMetadata={metadata}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
+
+    expect(screen.getByText("XLSX export includes all tabs by default. Use the preview scope chips to download all tabs or just the active tab.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("link", { name: "Download editable XLSX" })).toHaveAttribute(
+      "href",
+      "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx",
+    );
+
+    await user.click(screen.getByRole("button", { name: /Main tab/i }));
+
+    expect(screen.getByRole("button", { name: /Main tab/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("link", { name: "Download editable XLSX" })).toHaveAttribute(
+      "href",
+      "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx?tab=tab-main",
     );
   });
 });

@@ -1,0 +1,8 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+
+ Test Files  8 passed (8)
+      Tests  103 passed (103)
+   Start at  21:19:52
+   Duration  54.38s (transform 850ms, setup 236ms, import 5.46s, tests 45.15s, environment 2.55s)

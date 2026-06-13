@@ -21,7 +21,7 @@ describe("estimate bootstrap UI governance", () => {
     expect(projectEstimatesClient).toContain("ProjectEstimatesTable");
     expect(projectEstimatesClient).toContain("HeaderIconToolbar");
     expect(projectEstimatesClient).toContain("SearchInput");
-    expect(projectEstimatesClient).toContain("Search Estimate Sheets");
+    expect(projectEstimatesClient).toContain("Search Estimates");
     expect(estimatesPage).not.toContain("NewEstimateForm");
     expect(estimatesPage).not.toContain("EstimateListCard");
     expect(projectEstimatesTable).toContain('type ProjectEstimateTableRow = Tables<"estimates"> &');

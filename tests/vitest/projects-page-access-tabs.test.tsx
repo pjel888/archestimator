@@ -231,7 +231,7 @@ describe("ProjectsPageClient access tabs", () => {
     expect(within(panel).getByText("Shared Sheet Tower")).toBeInTheDocument();
     expect(within(panel).getByText("Pending Museum Wing")).toBeInTheDocument();
     expect(within(panel).getByText("Shared project")).toBeInTheDocument();
-    expect(within(panel).getByText("Sheet-only")).toBeInTheDocument();
+    expect(within(panel).getByText("Estimate-only")).toBeInTheDocument();
     expect(within(panel).getByText("Pending invite")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
   });

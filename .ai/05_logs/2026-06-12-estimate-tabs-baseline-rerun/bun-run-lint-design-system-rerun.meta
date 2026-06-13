@@ -1,0 +1,8 @@
+label=bun-run-lint-design-system-rerun
+command=bun run lint:design-system
+started=2026-06-12T09:37:07Z
+ended=2026-06-12T09:37:08Z
+exit_code=0
+timeout_seconds=300
+timed_out=false
+log=.ai/05_logs/2026-06-12-estimate-tabs-baseline-rerun/bun-run-lint-design-system-rerun.log

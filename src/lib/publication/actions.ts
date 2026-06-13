@@ -68,6 +68,14 @@ type EstimateNodeSource = {
   parent_id: string | null;
   sort_order: number;
   estimate_id: string;
+  estimate_tab_id: string;
+};
+type EstimateTabSource = {
+  id: string;
+  name: string;
+  sort_order: number;
+  estimate_id: string;
+  is_default: boolean;
 };
 type LatestPublication = Pick<
   Tables<"project_publications">,
@@ -355,10 +363,11 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
   const estimateIds = estimateRows.map((estimate) => estimate.id);
   const rowsByEstimateId = new Map<string, EstimateRowSource[]>();
 
-  const nodesByEstimateId = new Map<string, { id: string; name: string; kind: string; parent_id: string | null; sort_order: number }[]>();
+  const nodesByEstimateId = new Map<string, EstimateNodeSource[]>();
+  const tabsByEstimateId = new Map<string, EstimateTabSource[]>();
 
   if (estimateIds.length) {
-    const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }] = await Promise.all([
+    const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
       context.admin
         .from("estimate_row_items")
         .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, source_snapshot")
@@ -366,13 +375,20 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
         .order("sort_order", { ascending: true }),
       context.admin
         .from("estimate_nodes")
-        .select("id, estimate_id, name, kind, parent_id, sort_order")
+        .select("id, estimate_id, estimate_tab_id, name, kind, parent_id, sort_order")
         .in("estimate_id", estimateIds)
+        .order("sort_order", { ascending: true }),
+      context.admin
+        .from("estimate_tabs")
+        .select("id, estimate_id, name, sort_order, is_default")
+        .in("estimate_id", estimateIds)
+        .is("archived_at", null)
         .order("sort_order", { ascending: true }),
     ]);
 
     if (rowsError) throw rowsError;
     if (nodesError) throw nodesError;
+    if (tabsError) throw tabsError;
 
     for (const row of (rows ?? []) as EstimateRowSource[]) {
       const current = rowsByEstimateId.get(row.estimate_id) ?? [];
@@ -384,6 +400,12 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       const current = nodesByEstimateId.get(node.estimate_id) ?? [];
       current.push(node);
       nodesByEstimateId.set(node.estimate_id, current);
+    }
+
+    for (const tab of (tabs ?? []) as EstimateTabSource[]) {
+      const current = tabsByEstimateId.get(tab.estimate_id) ?? [];
+      current.push(tab);
+      tabsByEstimateId.set(tab.estimate_id, current);
     }
   }
 
@@ -431,6 +453,13 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
         kind: normalizeEstimateTreeNodeKind(node.kind) ?? "group",
         parentId: node.parent_id,
         sortOrder: node.sort_order,
+        estimateTabId: node.estimate_tab_id,
+      })),
+      tabs: (tabsByEstimateId.get(estimate.id) ?? []).map((tab) => ({
+        id: tab.id,
+        name: tab.name,
+        sortOrder: tab.sort_order,
+        isDefault: tab.is_default,
       })),
     })),
   });

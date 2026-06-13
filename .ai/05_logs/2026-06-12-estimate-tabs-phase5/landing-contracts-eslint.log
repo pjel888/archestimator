@@ -1,0 +1,1 @@
+$ eslint tests/vitest/landing-amigo-redesign.test.tsx tests/vitest/landing-interactivity.test.tsx tests/vitest/landing-company-proof.test.ts

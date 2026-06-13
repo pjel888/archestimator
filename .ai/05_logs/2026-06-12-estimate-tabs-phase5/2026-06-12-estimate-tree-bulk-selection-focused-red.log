@@ -1,0 +1,42 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates
+
+stderr | tests/vitest/estimate-tree-bulk-selection.test.tsx > estimate tree bulk selection > checkbox click selects a node without navigating or changing route selection
+An update to EstimateSheetTree inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ❯ tests/vitest/estimate-tree-bulk-selection.test.tsx (4 tests | 1 failed) 243ms
+     × checkbox click selects a node without navigating or changing route selection 103ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/estimate-tree-bulk-selection.test.tsx > estimate tree bulk selection > checkbox click selects a node without navigating or changing route selection
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  /1\s*node selected/
+Received:
+  Clear selectionDelete selected1
+ ❯ tests/vitest/estimate-tree-bulk-selection.test.tsx:96:18
+     94|     expect(routerMock.push).not.toHaveBeenCalled();
+     95|     const dock = screen.getByRole("region", { name: "Bulk action toolb…
+     96|     expect(dock).toHaveTextContent(/1\s*node selected/);
+       |                  ^
+     97|     expect(within(dock).getByRole("button", { name: "Delete selected" …
+     98|     expect(within(dock).getByRole("button", { name: "Clear selection" …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  23:23:47
+   Duration  2.04s (transform 171ms, setup 59ms, import 1.13s, tests 243ms, environment 510ms)
