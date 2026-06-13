@@ -256,12 +256,16 @@ describe("TemplateEditorClient", () => {
     expect(screen.getByDisplayValue("Floor drain allowance")).toBeInTheDocument();
   });
 
-  it("adds a group from the sheet toolbar via prompt", async () => {
-    vi.spyOn(window, "prompt").mockReturnValue("Second Bathroom");
+  it("adds a group from the sheet toolbar via the DS name dialog", async () => {
+    // P1 T8 (F22): native window.prompt was replaced with an in-DS dialog.
     renderEditor(buildTemplate());
 
     const sheet = screen.getByRole("region", { name: "Template content" });
     fireEvent.click(within(sheet).getByRole("button", { name: "Add group" }));
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Group name"), { target: { value: "Second Bathroom" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
       expect(actionMocks.createEstimateTemplateNode).toHaveBeenCalledWith({
@@ -350,10 +354,13 @@ describe("TemplateEditorClient", () => {
   });
 
   it("deletes a node after confirmation", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    // P1 T8 (F22): native window.confirm was replaced with a destructive DS dialog.
     renderEditor(buildTemplate());
 
     fireEvent.click(screen.getByRole("button", { name: "Delete area Toilet + Bath" }));
+    // Destructive ConfirmDialog renders role="alertdialog".
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(actionMocks.deleteEstimateTemplateNode).toHaveBeenCalledWith({
