@@ -10,6 +10,7 @@ import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { normalizeEstimateTreeNodeKind, selectFirstEstimateNodeIds } from "@/lib/estimates/tree-hierarchy";
+import { traced } from "@/lib/perf/server-timing";
 import { isMissingColumnError, isMissingRelationError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { listProjectEstimateSheetsForProject, type ProjectEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type {
@@ -1416,11 +1417,13 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data: estimates, error } = await supabase
-    .from("estimates")
-    .select("*")
-    .eq("project_id", project.id)
-    .order("updated_at", { ascending: false });
+  const { data: estimates, error } = await traced("listProjectEstimates.estimates", async () =>
+    supabase
+      .from("estimates")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("updated_at", { ascending: false }),
+  );
 
   if (error) throw error;
 
@@ -1436,15 +1439,19 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   }
 
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, kind, parent_id, sort_order")
-      .in("estimate_id", estimateIds)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("estimate_row_items")
-      .select("estimate_id, quantity, unit_cost, contingency_percentage, misc_cost")
-      .in("estimate_id", estimateIds),
+    traced("listProjectEstimates.nodes", async () =>
+      supabase
+        .from("estimate_nodes")
+        .select("id, estimate_id, kind, parent_id, sort_order")
+        .in("estimate_id", estimateIds)
+        .order("sort_order", { ascending: true }),
+    ),
+    traced("listProjectEstimates.rowItems", async () =>
+      supabase
+        .from("estimate_row_items")
+        .select("estimate_id, quantity, unit_cost, contingency_percentage, misc_cost")
+        .in("estimate_id", estimateIds),
+    ),
   ]);
 
   if (nodesResult.error) throw nodesResult.error;
