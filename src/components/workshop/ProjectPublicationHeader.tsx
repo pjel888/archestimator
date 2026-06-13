@@ -36,6 +36,13 @@ type PasswordDraft = {
   summaryKey: string;
 };
 
+// AC-MOD-10: owner-set link expiry, tracked as a draft like the password (keyed by
+// summaryKey, reset on action success). `value` is a datetime-local string ("" = no expiry).
+type ExpiryDraft = {
+  value: string;
+  summaryKey: string;
+};
+
 type PublicationLocalResult = {
   clientLinkPath: string | null;
   passwordRequired: boolean;
@@ -45,7 +52,7 @@ type PublicationLocalResult = {
 };
 
 type PublicationTabId = "link" | "sheets" | "access" | "recipients" | "activity";
-type DestructivePublicationAction = "clear-password" | "revoke" | "rotate";
+type DestructivePublicationAction = "clear-password" | "revoke" | "rotate" | "regenerate";
 const EMPTY_ESTIMATE_IDS: string[] = [];
 const SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX = "archestimator_shared_link_last_seen";
 
@@ -58,6 +65,27 @@ function formatDate(value: string | null) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+// AC-MOD-10: a stored ISO expiry → the value a <input type="datetime-local"> expects
+// (local wall-clock "YYYY-MM-DDTHH:mm", no seconds/zone). Empty string when there is no
+// expiry or the stored value is unparseable.
+function isoToDateTimeLocalValue(iso: string | null | undefined) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// The inverse: a datetime-local value → an ISO string for the server, or null when the
+// owner cleared the field (no expiry). Unparseable input is treated as "no expiry".
+function dateTimeLocalValueToIso(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
 }
 
 function readPublicationStatusLabel(status: ProjectPublicationStatus | null | undefined) {
@@ -155,6 +183,15 @@ function readDestructivePublicationActionCopy(action: DestructivePublicationActi
     };
   }
 
+  if (action === "regenerate") {
+    return {
+      title: "Create a brand-new shared link?",
+      description: "All existing recipient links will stop working.",
+      body: "A new token is minted and all existing recipient links will stop working immediately. Prefer Reactivate link to keep the same URL and password. Continue only if you intend to distribute a fresh link.",
+      confirmLabel: "Create new link",
+    };
+  }
+
   if (action === "clear-password") {
     return {
       title: "Clear shared-link password?",
@@ -207,6 +244,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     requirePassword: Boolean(summary?.passwordRequired),
     summaryKey,
   }));
+  // AC-MOD-10: owner-set expiry draft (datetime-local string; "" = no expiry).
+  const [expiryDraft, setExpiryDraft] = useState<ExpiryDraft>(() => ({
+    value: isoToDateTimeLocalValue(summary?.expiresAt),
+    summaryKey,
+  }));
   const [isPending, startTransition] = useTransition();
 
   // P1: selected estimates for the Estimates tab picker (defaults to all when estimates provided)
@@ -239,11 +281,19 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const hasPasswordDraft = passwordDraft.summaryKey === summaryKey;
   const requirePassword = hasPasswordDraft ? passwordDraft.requirePassword : Boolean(summary?.passwordRequired);
   const password = hasPasswordDraft ? passwordDraft.password : "";
+  // AC-MOD-10: effective expiry input value (draft for this summary, else stored expiry).
+  const hasExpiryDraft = expiryDraft.summaryKey === summaryKey;
+  const expiryInputValue = hasExpiryDraft ? expiryDraft.value : isoToDateTimeLocalValue(summary?.expiresAt);
+  const expiresAtForAction = dateTimeLocalValueToIso(expiryInputValue);
   const clientLinkPath = hasLocalResult ? localResult?.clientLinkPath ?? "" : summary?.clientLinkPath ?? "";
   const canManagePublication = summary?.canManagePublication ?? false;
   const effectiveStatus = hasLocalResult ? localResult?.status ?? "unpublished" : summary?.status ?? "unpublished";
   const effectivePasswordRequired = hasLocalResult ? localResult?.passwordRequired ?? false : summary?.passwordRequired ?? false;
   const hasLiveClientLink = effectiveStatus === "published";
+  // AC-MOD-10: an expired link keeps its stored row (status stays "published" in the DB but the
+  // summary surfaces "expired"), so it can be reactivated in place. In this state the primary
+  // control is a safe Reactivate, with a confirm-gated fresh-token escape hatch.
+  const isExpiredLink = effectiveStatus === "expired";
   // MOD-ACT-03: the live-refetched metadata supersedes the prop summary ONLY for the
   // activity/metadata displays + dot. Status, clientLinkPath, and the optimistic lifecycle
   // reconcile above keep using `summary`/`localResult`, so this stays isolated from AC-MOD-05.
@@ -360,6 +410,9 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           requirePassword: result.clientLinkPath === null ? false : requirePassword,
           summaryKey,
         });
+        // AC-MOD-10: drop the expiry draft on success so the input re-syncs to the freshly
+        // revalidated summary's stored expiry (mirrors the password-draft reset).
+        setExpiryDraft({ value: "", summaryKey: "" });
         // Clear the Estimates-picker override so it re-syncs to the freshly
         // revalidated summary's selection instead of showing stale pre-publish
         // edits (MOD-SHEET-01). Success path only — never in catch.
@@ -394,6 +447,24 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
           projectId: summary.projectId,
           password: requirePassword && password.trim() ? password.trim() : undefined,
           clearPassword: !requirePassword,
+        }),
+      );
+      return;
+    }
+
+    if (action === "regenerate") {
+      // AC-MOD-10: deliberate fresh-token mint (breaks existing recipient links). Only reached
+      // from the expired-state "Create new link instead" path, behind this confirm. A brand-new
+      // link must start LIVE, so we never carry a stale already-past expiry forward — only a
+      // future expiry is honored; otherwise the new link starts with no expiry.
+      const freshExpiresAt =
+        expiresAtForAction && Date.parse(expiresAtForAction) > Date.now() ? expiresAtForAction : null;
+      runPublicationAction(() =>
+        createProjectPublication({
+          projectId: summary.projectId,
+          selectedEstimateIds,
+          password: requirePassword ? password.trim() : undefined,
+          expiresAt: freshExpiresAt,
         }),
       );
       return;
@@ -630,6 +701,40 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                       />
                     </ControlField>
                   ) : null}
+                  {/* AC-MOD-10: owner-set expiry. Empty = no expiry. Applied on Generate/Update. */}
+                  <ControlField
+                    label="Link expiry"
+                    helperText={
+                      expiresAtForAction
+                        ? "Recipients lose access after this time. Clear the field for no expiry."
+                        : "No expiry — the link stays live until you turn it off or rotate it."
+                    }
+                    className="max-w-sm"
+                  >
+                    <div className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1">
+                      <ControlInput
+                        id="project-publication-expiry"
+                        className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
+                        aria-label="Link expiry"
+                        type="datetime-local"
+                        value={expiryInputValue}
+                        onChange={(event) =>
+                          setExpiryDraft({ value: event.currentTarget.value, summaryKey })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-7 rounded-xs px-2 text-[10px]"
+                        aria-label="Clear link expiry"
+                        disabled={!expiryInputValue}
+                        onClick={() => setExpiryDraft({ value: "", summaryKey })}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </ControlField>
                 </div>
               )}
 
@@ -652,64 +757,111 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
             {/* Link controls — always visible below tabs so Generate can be disabled from Estimates tab state */}
             <div className="border-t border-hairline p-6">
               <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Link controls</h3>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label={hasLiveClientLink ? "Update shared page" : "Generate shared link"}
-                  disabled={generateDisabled}
-                  onClick={() => {
-                    if (!summary?.projectId) return;
-                    if (hasLiveClientLink && effectivePasswordRequired && !requirePassword) {
-                      setDestructiveAction("clear-password");
-                      return;
-                    }
-                    runPublicationAction(() =>
-                      hasLiveClientLink
-                        ? republishProjectPublication({
+              {isExpiredLink ? (
+                <>
+                  <p className="mt-2 text-[9px] leading-3 text-tertiary">
+                    This link has expired. Reactivate it to keep the same URL and password, or create a brand-new link.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {/* AC-MOD-10: safe primary — reactivate in place (same token + password, clears expiry). */}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="min-h-7 rounded-xs px-2 text-[10px]"
+                      aria-label="Reactivate link"
+                      disabled={!canManagePublication || !summary?.projectId || isPending || !hasSelectedEstimates}
+                      onClick={() => {
+                        if (!summary?.projectId) return;
+                        runPublicationAction(() =>
+                          republishProjectPublication({
                             projectId: summary.projectId,
                             selectedEstimateIds,
-                            password: requirePassword && password.trim() ? password.trim() : undefined,
-                            clearPassword: !requirePassword,
-                          })
-                        : createProjectPublication({
-                            projectId: summary.projectId,
-                            selectedEstimateIds,
-                            password: requirePassword ? password.trim() : undefined,
+                            expiresAt: null,
                           }),
-                    );
-                  }}
-                >
-                  <ArrowClockwise size={11} aria-hidden="true" />
-                  {hasLiveClientLink ? "Update shared page" : "Generate shared link"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label="Create new shared link"
-                  disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending || passwordRequiredForSubmit}
-                  onClick={() => setDestructiveAction("rotate")}
-                >
-                  <LinkBreak size={11} aria-hidden="true" />
-                  New link
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label="Turn off shared link"
-                  disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending}
-                  onClick={() => setDestructiveAction("revoke")}
-                >
-                  <Prohibit size={11} aria-hidden="true" />
-                  Turn off link
-                </Button>
-              </div>
+                        );
+                      }}
+                    >
+                      <ArrowClockwise size={11} aria-hidden="true" />
+                      Reactivate link
+                    </Button>
+                    {/* Confirm-gated fresh-token mint — breaks existing recipient links. */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-7 rounded-xs px-2 text-[10px]"
+                      aria-label="Create new link instead"
+                      disabled={!canManagePublication || !summary?.projectId || isPending || !hasSelectedEstimates}
+                      onClick={() => setDestructiveAction("regenerate")}
+                    >
+                      <LinkBreak size={11} aria-hidden="true" />
+                      Create new link instead
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="min-h-7 rounded-xs px-2 text-[10px]"
+                    aria-label={hasLiveClientLink ? "Update shared page" : "Generate shared link"}
+                    disabled={generateDisabled}
+                    onClick={() => {
+                      if (!summary?.projectId) return;
+                      if (hasLiveClientLink && effectivePasswordRequired && !requirePassword) {
+                        setDestructiveAction("clear-password");
+                        return;
+                      }
+                      runPublicationAction(() =>
+                        hasLiveClientLink
+                          ? republishProjectPublication({
+                              projectId: summary.projectId,
+                              selectedEstimateIds,
+                              password: requirePassword && password.trim() ? password.trim() : undefined,
+                              clearPassword: !requirePassword,
+                              expiresAt: expiresAtForAction,
+                            })
+                          : createProjectPublication({
+                              projectId: summary.projectId,
+                              selectedEstimateIds,
+                              password: requirePassword ? password.trim() : undefined,
+                              expiresAt: expiresAtForAction,
+                            }),
+                      );
+                    }}
+                  >
+                    <ArrowClockwise size={11} aria-hidden="true" />
+                    {hasLiveClientLink ? "Update shared page" : "Generate shared link"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-7 rounded-xs px-2 text-[10px]"
+                    aria-label="Create new shared link"
+                    disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending || passwordRequiredForSubmit}
+                    onClick={() => setDestructiveAction("rotate")}
+                  >
+                    <LinkBreak size={11} aria-hidden="true" />
+                    New link
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    className="min-h-7 rounded-xs px-2 text-[10px]"
+                    aria-label="Turn off shared link"
+                    disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending}
+                    onClick={() => setDestructiveAction("revoke")}
+                  >
+                    <Prohibit size={11} aria-hidden="true" />
+                    Turn off link
+                  </Button>
+                </div>
+              )}
             </div>
 
             {actionMessage ? (
@@ -748,7 +900,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
             </Button>
             <Button
               type="button"
-              variant={destructiveAction === "revoke" ? "danger" : "secondary"}
+              variant={destructiveAction === "revoke" || destructiveAction === "regenerate" ? "danger" : "secondary"}
               size="sm"
               className="min-h-7 rounded-xs px-2 text-[10px]"
               onClick={runConfirmedDestructiveAction}
