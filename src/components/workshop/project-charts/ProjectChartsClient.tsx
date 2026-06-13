@@ -1,38 +1,42 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Plus, X } from "@phosphor-icons/react/dist/ssr";
-import { useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { Plus } from "@phosphor-icons/react/dist/ssr";
+import { useEffect, useMemo, useState } from "react";
 
-import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
-import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { buildProjectChartSeries, getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
+import { buildProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
 import type { ProjectChartGroupingMode, ProjectChartsData } from "@/lib/project-charts/types";
-import { cn } from "@/lib/ui/cn";
 
-import { ProjectChartBucketTable } from "./ProjectChartBucketTable";
-import { ProjectCostDonutChart } from "./ProjectCostDonutChart";
+import { ProjectComparisonHeader } from "./ProjectComparisonHeader";
+import { ProjectComparisonTable } from "./ProjectComparisonTable";
+import { ProjectCompositionBars } from "./ProjectCompositionBars";
+import { ProjectVarianceSpine } from "./ProjectVarianceSpine";
 
-const ProjectCostBubbleChart = dynamic(() =>
-  import("./ProjectCostBubbleChart").then((module) => module.ProjectCostBubbleChart),
+// The donut is demoted to an optional single-estimate "Share view" and is now
+// dynamic-imported so its d3-shape dependency only loads when that view is opened
+// (`01` PERF-5, `08`). The default comparison views ship no d3 at all.
+const ProjectCostDonutChart = dynamic(
+  () => import("./ProjectCostDonutChart").then((module) => module.ProjectCostDonutChart),
   {
     loading: () => (
       <div
-        className="flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground"
+        className="flex min-h-[280px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground"
         role="status"
-        aria-label="Loading bubble chart"
+        aria-label="Loading share view"
       >
-        Loading chart
+        Loading share view
       </div>
     ),
   },
 );
-
-type PreloadableChart = typeof ProjectCostBubbleChart & {
-  preload?: () => Promise<unknown> | void;
-};
 
 type ProjectChartsClientProps = {
   data: ProjectChartsData;
@@ -41,277 +45,303 @@ type ProjectChartsClientProps = {
   initialGroupingMode: ProjectChartGroupingMode;
 };
 
-const GROUPING_OPTIONS: Array<{ value: ProjectChartGroupingMode; label: string }> = [
-  { value: "space", label: "Space" },
-  { value: "category", label: "Category" },
-  { value: "supplier", label: "Suppliers" },
-];
-
-const CHART_VIEW_OPTIONS = [
-  { value: "donut", label: "Donut Chart" },
-  { value: "bubble", label: "Bubble Chart" },
-] as const;
+type ChartViewMode = "variance" | "composition" | "share";
 
 const MAX_CHART_COLUMNS = 3;
-type ChartViewMode = (typeof CHART_VIEW_OPTIONS)[number]["value"];
+const GROUPING_OPTIONS = [
+  { value: "space", label: "Space" },
+  { value: "category", label: "Category" },
+  { value: "supplier", label: "Supplier" },
+] as const satisfies ReadonlyArray<{ value: ProjectChartGroupingMode; label: string }>;
+
+const COMPARISON_TABLE_ID = "project-charts-comparison-table";
 
 export function ProjectChartsClient({
   data,
   initialLeftEstimateId,
+  initialRightEstimateId,
   initialGroupingMode,
 }: ProjectChartsClientProps) {
   const defaultPair = getProjectChartDefaultPair(data.estimateOptions);
+  const existingIds = useMemo(() => new Set(data.estimateOptions.map((estimate) => estimate.id)), [data.estimateOptions]);
+
   const [groupingMode, setGroupingMode] = useState<ProjectChartGroupingMode>(initialGroupingMode);
-  const [chartViewMode, setChartViewMode] = useState<ChartViewMode>("donut");
-  const [chartEstimateIds, setChartEstimateIds] = useState(() =>
-    [initialLeftEstimateId ?? defaultPair.leftEstimateId ?? data.estimateOptions[0]?.id].filter(Boolean) as string[],
+  const [selectedEstimateIds, setSelectedEstimateIds] = useState<string[]>(() => {
+    const seed = [
+      initialLeftEstimateId ?? defaultPair.leftEstimateId,
+      initialRightEstimateId ?? defaultPair.rightEstimateId,
+    ].filter((id): id is string => Boolean(id) && existingIds.has(id as string));
+    return [...new Set(seed)].slice(0, MAX_CHART_COLUMNS);
+  });
+  const [baselineEstimateId, setBaselineEstimateId] = useState<string | null>(
+    () => selectedEstimateIds[0] ?? null,
   );
-  const estimateOptions = data.estimateOptions.map((estimate) => ({
-    value: estimate.id,
-    label: estimate.name,
-  }));
-  const chartLimit = Math.min(MAX_CHART_COLUMNS, data.estimateOptions.length);
-  const canAddChart = chartEstimateIds.length < chartLimit;
-
-  const chartColumns = useMemo(
-    () =>
-      chartEstimateIds
-        .map((estimateId) => {
-          const estimate = data.estimateOptions.find((candidate) => candidate.id === estimateId);
-          if (!estimate) return null;
-
-          return {
-            estimate,
-            series: buildProjectChartSeries({
-              estimates: data.estimateOptions,
-              rows: data.rowFacts,
-              nodes: data.nodeFacts,
-              categoryNodes: data.categoryNodeFacts,
-              suppliers: data.supplierFacts,
-              groupingMode,
-              estimateId,
-            }),
-          };
-        })
-        .filter(Boolean),
-    [chartEstimateIds, data, groupingMode],
+  const [viewMode, setViewMode] = useState<ChartViewMode>(() =>
+    selectedEstimateIds.length >= 2 ? "variance" : "composition",
   );
+  const [hoverBucketId, setHoverBucketId] = useState<string | null>(null);
+  const [pinnedBucketId, setPinnedBucketId] = useState<string | null>(null);
 
-  const bodyState = getBodyState(data);
-
-  function addChart() {
-    if (!canAddChart) return;
-
-    const nextEstimate = data.estimateOptions.find((estimate) => !chartEstimateIds.includes(estimate.id)) ?? data.estimateOptions[0];
-    if (!nextEstimate) return;
-
-    setChartEstimateIds((current) => [...current, nextEstimate.id].slice(0, MAX_CHART_COLUMNS));
-  }
-
-  function updateChartEstimate(index: number, estimateId: string) {
-    setChartEstimateIds((current) => current.map((id, currentIndex) => (currentIndex === index ? estimateId : id)));
-  }
-
-  function removeChart(index: number) {
-    setChartEstimateIds((current) => (current.length <= 1 ? current : current.filter((_, currentIndex) => currentIndex !== index)));
-  }
-
-  function selectChartViewMode(nextMode: ChartViewMode) {
-    if (nextMode === "bubble") {
-      void (ProjectCostBubbleChart as PreloadableChart).preload?.();
+  // Keep the baseline pointed at a still-selected estimate.
+  useEffect(() => {
+    if (selectedEstimateIds.length === 0) return;
+    if (!baselineEstimateId || !selectedEstimateIds.includes(baselineEstimateId)) {
+      setBaselineEstimateId(selectedEstimateIds[0]);
     }
-    setChartViewMode(nextMode);
+  }, [selectedEstimateIds, baselineEstimateId]);
+
+  const view = useMemo(
+    () =>
+      buildProjectChartComparisonView({
+        estimates: data.estimateOptions,
+        rows: data.rowFacts,
+        nodes: data.nodeFacts,
+        categoryNodes: data.categoryNodeFacts,
+        suppliers: data.supplierFacts,
+        groupingMode,
+        estimateIds: selectedEstimateIds,
+        baselineEstimateId,
+      }),
+    [data, groupingMode, selectedEstimateIds, baselineEstimateId],
+  );
+
+  const hasComparison = Boolean(view.comparandEstimateId);
+  const effectiveViewMode: ChartViewMode = !hasComparison && viewMode === "variance" ? "composition" : viewMode;
+  const activeBucketId = pinnedBucketId ?? hoverBucketId;
+
+  const shareEstimateId = baselineEstimateId ?? selectedEstimateIds[0] ?? null;
+  const shareSeries = useMemo(
+    () =>
+      effectiveViewMode === "share" && shareEstimateId
+        ? buildProjectChartSeries({
+            estimates: data.estimateOptions,
+            rows: data.rowFacts,
+            nodes: data.nodeFacts,
+            categoryNodes: data.categoryNodeFacts,
+            suppliers: data.supplierFacts,
+            groupingMode,
+            estimateId: shareEstimateId,
+          })
+        : null,
+    [effectiveViewMode, shareEstimateId, data, groupingMode],
+  );
+
+  const canAddEstimate = selectedEstimateIds.length < Math.min(MAX_CHART_COLUMNS, data.estimateOptions.length);
+
+  function addEstimate() {
+    const next = data.estimateOptions.find((estimate) => !selectedEstimateIds.includes(estimate.id));
+    if (!next) return;
+    setSelectedEstimateIds((current) => [...current, next.id].slice(0, MAX_CHART_COLUMNS));
   }
+
+  function removeEstimate(estimateId: string) {
+    setSelectedEstimateIds((current) => (current.length <= 1 ? current : current.filter((id) => id !== estimateId)));
+  }
+
+  function setActiveBucket(bucketId: string | null) {
+    setHoverBucketId(bucketId);
+  }
+
+  function togglePin(bucketId: string) {
+    setPinnedBucketId((current) => (current === bucketId ? null : bucketId));
+  }
+
+  const viewOptions = (hasComparison
+    ? [
+        { value: "variance", label: "Variance" },
+        { value: "composition", label: "Composition" },
+        { value: "share", label: "Share" },
+      ]
+    : [
+        { value: "composition", label: "Composition" },
+        { value: "share", label: "Share" },
+      ]) as ReadonlyArray<{ value: ChartViewMode; label: string }>;
+
+  const estimateSelectOptions = selectedEstimateIds
+    .map((id) => data.estimateOptions.find((estimate) => estimate.id === id))
+    .filter((estimate): estimate is NonNullable<typeof estimate> => Boolean(estimate))
+    .map((estimate) => ({ value: estimate.id, label: estimate.name }));
+
+  const showEmpty = data.estimateOptions.length === 0;
 
   return (
     <section data-project-charts-page className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0">
-        <div className="flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1">
-          <SegmentedToolbarLabel label="Group By">
-            <div role="group" aria-label="Group chart costs by" className="grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5">
-              {GROUPING_OPTIONS.map((option) => (
-                <SegmentedToolbarButton
-                  key={option.value}
-                  isActive={groupingMode === option.value}
-                  label={option.label}
-                  onClick={() => setGroupingMode(option.value)}
+      <div className="flex shrink-0 flex-col gap-2 border-b border-hairline px-3 py-2">
+        <ProjectComparisonHeader view={view} projectName={data.projectName} />
+
+        {!showEmpty ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="project-charts-controls">
+            <ControlField label="Break down by">
+              <SegmentedControl
+                ariaLabel="Break down by"
+                options={GROUPING_OPTIONS}
+                value={groupingMode}
+                onValueChange={setGroupingMode}
+              />
+            </ControlField>
+
+            {selectedEstimateIds.length >= 2 ? (
+              <ControlField label="Baseline">
+                <DropdownSelect
+                  aria-label="Baseline estimate"
+                  options={estimateSelectOptions}
+                  value={baselineEstimateId ?? undefined}
+                  onValueChange={setBaselineEstimateId}
                 />
-              ))}
-            </div>
-          </SegmentedToolbarLabel>
-          <SegmentedToolbarLabel label="View By">
-            <div role="group" aria-label="Chart visualization type" className="grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5">
-              {CHART_VIEW_OPTIONS.map((option) => (
-                <SegmentedToolbarButton
-                  key={option.value}
-                  isActive={chartViewMode === option.value}
-                  label={option.label}
-                  onClick={() => selectChartViewMode(option.value)}
-                />
-              ))}
-            </div>
-          </SegmentedToolbarLabel>
-        </div>
-        <HeaderIconToolbar
-          ariaLabel="Project chart tools"
-          labelPrefix="chart"
-          showDefaultActions={false}
-          addActions={[
-            {
-              label: "Add chart",
-              visibleLabel: "Add chart",
-              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
-              onClick: addChart,
-              disabled: !canAddChart,
-            },
-          ]}
-        />
-        {data.requiresSelectedPair ? (
-          <p className="basis-full px-1 pb-2 text-[10px] text-muted-foreground">
-            Large project mode loads selected comparisons only.
-          </p>
+              </ControlField>
+            ) : null}
+
+            <ControlField label="Estimates">
+              <div className="flex flex-wrap items-center gap-1">
+                {selectedEstimateIds.map((id) => {
+                  const estimate = data.estimateOptions.find((option) => option.id === id);
+                  if (!estimate) return null;
+                  return (
+                    <Chip
+                      key={id}
+                      active={id === baselineEstimateId}
+                      removable={selectedEstimateIds.length > 1}
+                      onRemove={() => removeEstimate(id)}
+                      removeLabel={`Remove ${estimate.name}`}
+                      onClick={() => setBaselineEstimateId(id)}
+                    >
+                      {estimate.name}
+                    </Chip>
+                  );
+                })}
+                {canAddEstimate ? (
+                  <Button variant="outline" size="xs" onClick={addEstimate} className="min-w-0">
+                    <Plus size={12} weight="regular" aria-hidden="true" />
+                    Add estimate
+                  </Button>
+                ) : null}
+              </div>
+            </ControlField>
+
+            <ControlField label="View">
+              <SegmentedControl
+                ariaLabel="Chart view"
+                options={viewOptions}
+                value={effectiveViewMode}
+                onValueChange={(next) => setViewMode(next)}
+              />
+            </ControlField>
+          </div>
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto p-1">
-        {bodyState ? (
-          <EmptyState title={bodyState.title} description={bodyState.description} />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3" data-testid="project-charts-body">
+        {showEmpty ? (
+          <EmptyState
+            title="No estimates yet"
+            description="Create at least two estimates to compare project costs."
+            action={<CreateEstimateLink projectId={data.projectId} />}
+          />
         ) : (
-          <div
-            className="grid gap-3"
-            style={{ gridTemplateColumns: `repeat(${Math.max(1, chartColumns.length)}, minmax(220px, 1fr))` }}
-          >
-            {chartColumns.map((column, index) => {
-              if (!column) return null;
-              const currencyCode = column.estimate.currencyCode ?? "PHP";
+          <>
+            {data.requiresSelectedPair ? (
+              <Banner
+                tone="warning"
+                title="Showing only the estimates you picked"
+                description="This project is large, so totals are limited to the estimates selected above."
+              />
+            ) : null}
 
-              return (
-                <section
-                  key={`${index}-${column.estimate.id}`}
-                  className="min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"
-                  data-testid="project-chart-column"
-                >
-                  <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2">
-                    <div className="min-w-0 flex-1">
-                      <DropdownSelect
-                        aria-label={`Chart ${index + 1} estimate`}
-                        data-testid={`chart-estimate-trigger-${index}`}
-                        className="border-b-0 hover:border-transparent"
-                        options={estimateOptions}
-                        value={column.estimate.id}
-                        onValueChange={(estimateId) => {
-                          updateChartEstimate(index, estimateId);
-                          // Committing remounts the column (its key carries the
-                          // estimate id), which unmounts this trigger; re-find
-                          // the replacement so keyboard users keep their place.
-                          requestAnimationFrame(() => {
-                            // Restore only if focus actually fell to body —
-                            // never steal it from wherever the user moved.
-                            if (document.activeElement !== document.body) return;
-                            document
-                              .querySelector<HTMLElement>(`[data-testid="chart-estimate-trigger-${index}"]`)
-                              ?.focus();
-                          });
-                        }}
-                      />
-                    </div>
-                    <p className="justify-self-center text-[10px] font-medium tabular-nums text-foreground" data-testid={`chart-${index + 1}-total`}>
-                      {formatMoney(column.series.total, currencyCode)}
-                    </p>
-                    <div className="justify-self-end">
-                      {chartColumns.length > 1 ? (
-                        <Button
-                          aria-label={`Remove chart ${index + 1}`}
-                          className="size-6 rounded-xs"
-                          onClick={() => removeChart(index)}
-                          size="icon-sm"
-                          variant="ghost"
-                        >
-                          <X size={11} weight="regular" />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                  {chartViewMode === "donut" ? (
-                    <ProjectCostDonutChart
-                      buckets={column.series.buckets}
-                      currencyCode={currencyCode}
-                      label={`${column.series.estimateName} ${groupingMode} cost distribution`}
-                      total={column.series.total}
-                    />
-                  ) : (
-                    <ProjectCostBubbleChart
-                      buckets={column.series.buckets}
-                      currencyCode={currencyCode}
-                      label={`${column.series.estimateName} ${groupingMode} bubble cost distribution`}
-                      total={column.series.total}
-                    />
-                  )}
-                  <ProjectChartBucketTable currencyCode={currencyCode} groupingLabel={getGroupingLabel(groupingMode)} series={column.series} />
-                </section>
-              );
-            })}
-          </div>
+            {!hasComparison ? (
+              <Banner
+                tone="info"
+                title="Add a second estimate to compare costs"
+                description="A cost comparison needs at least two estimates. Showing this estimate on its own."
+                actions={<CreateEstimateLink projectId={data.projectId} />}
+              />
+            ) : null}
+
+            {effectiveViewMode === "variance" ? (
+              <ProjectVarianceSpine
+                view={view}
+                tableId={COMPARISON_TABLE_ID}
+                activeBucketId={activeBucketId}
+                onActiveBucketChange={setActiveBucket}
+                onTogglePin={togglePin}
+              />
+            ) : null}
+
+            {effectiveViewMode === "composition" ? (
+              <ProjectCompositionBars
+                view={view}
+                activeBucketId={activeBucketId}
+                onActiveBucketChange={setActiveBucket}
+                onTogglePin={togglePin}
+              />
+            ) : null}
+
+            {effectiveViewMode === "share" && shareSeries ? (
+              <section
+                aria-label={`${shareSeries.estimateName} share of cost by ${groupingMode}. A data table with the same figures follows.`}
+                aria-describedby={COMPARISON_TABLE_ID}
+                className="rounded-xs border border-hairline bg-white p-3"
+                data-testid="project-share-view"
+              >
+                <ProjectCostDonutChart
+                  buckets={shareSeries.buckets}
+                  currencyCode={view.currencyCode}
+                  label={`${shareSeries.estimateName} ${groupingMode} cost distribution`}
+                  total={shareSeries.total}
+                  compact
+                />
+              </section>
+            ) : null}
+
+            {/* Secondary band: composition alongside the detail table when variance is primary. */}
+            {effectiveViewMode === "variance" ? (
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <ProjectCompositionBars
+                  view={view}
+                  activeBucketId={activeBucketId}
+                  onActiveBucketChange={setActiveBucket}
+                  onTogglePin={togglePin}
+                />
+                <ProjectComparisonTable
+                  view={view}
+                  id={COMPARISON_TABLE_ID}
+                  activeBucketId={activeBucketId}
+                  onActiveBucketChange={setActiveBucket}
+                  onTogglePin={togglePin}
+                />
+              </div>
+            ) : (
+              <ProjectComparisonTable
+                view={view}
+                id={COMPARISON_TABLE_ID}
+                activeBucketId={activeBucketId}
+                onActiveBucketChange={setActiveBucket}
+                onTogglePin={togglePin}
+              />
+            )}
+          </>
         )}
       </div>
     </section>
   );
 }
 
-function getBodyState(data: ProjectChartsData): { title: string; description: string } | null {
-  if (data.estimateOptions.length === 0) {
-    return {
-      title: "No estimates yet",
-      description: "Create at least two estimates before comparing project cost distributions.",
-    };
-  }
-
-  return null;
-}
-
-function formatMoney(value: number, currencyCode: string) {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: currencyCode,
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function getGroupingLabel(groupingMode: ProjectChartGroupingMode) {
-  return GROUPING_OPTIONS.find((option) => option.value === groupingMode)?.label ?? "Group";
-}
-
-function SegmentedToolbarLabel({ label, children }: { label: string; children: ReactNode }) {
+function ControlField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground">
-        {label}
-      </span>
+    <div className="flex items-center gap-1.5">
+      <span className="shrink-0 text-[9px] font-medium uppercase tracking-normal text-tertiary">{label}</span>
       {children}
     </div>
   );
 }
 
-function SegmentedToolbarButton({
-  isActive,
-  label,
-  onClick,
-}: {
-  isActive: boolean;
-  label: string;
-  onClick: () => void;
-}) {
+function CreateEstimateLink({ projectId }: { projectId: string }) {
   return (
-    <button
-      type="button"
-      aria-pressed={isActive}
-      onClick={onClick}
-      className={cn(
-        "h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-        isActive ? "bg-white text-ink shadow-sm" : "text-tertiary hover:bg-white/70 hover:text-ink",
-      )}
+    <Link
+      href={`/workshop/projects/${projectId}/estimates`}
+      className="inline-flex min-h-7 items-center gap-1 rounded-xs border border-divider bg-surface px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus motion-reduce:transition-none"
     >
-      {label}
-    </button>
+      <Plus size={12} weight="regular" aria-hidden="true" />
+      Create estimate
+    </Link>
   );
 }
