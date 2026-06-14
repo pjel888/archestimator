@@ -40,8 +40,16 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
   );
   const currentUserEmail = currentCollaborator?.email ?? null;
 
+  // Render inside a SINGLE wrapper element that mirrors `ProjectHeaderChromeSkeleton`
+  // exactly. The fallback and the resolved chrome must occupy the *same* number of
+  // top-level DOM nodes in the toolbar row, otherwise the streaming Suspense swap
+  // shifts the following siblings (notification bell + settings) by one slot and
+  // React reports a hydration mismatch (server rendered the settings <button> where
+  // the client expects the notification <div>). One wrapper = one slot, always,
+  // which also isolates any per-child node-count variation (publication state,
+  // cursor overlay) from the toolbar siblings.
   return (
-    <>
+    <div className="flex items-center gap-1">
       <ProjectPublicationHeader
         summary={publicationSummary}
         currentUserEmail={currentUserEmail}
@@ -57,19 +65,25 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
         userId={collaborationSummary?.currentUserId ?? null}
         displayName={currentCollaborator?.displayName ?? null}
       />
-    </>
+    </div>
   );
 }
 
 /**
- * Suspense fallback sized to roughly match the settled header chrome so streaming
- * it in does not shift the toolbar (CLS).
+ * Suspense fallback for `ProjectChromeAsync`. MUST mirror the resolved chrome's
+ * outer shape: a single `flex items-center gap-1` wrapper holding the toolbar's
+ * icon buttons. Keeping the fallback and the resolved content at the same single
+ * top-level node count is what prevents the streaming swap from shifting the
+ * notification/settings siblings and triggering a hydration mismatch. The two
+ * size-10 placeholders are sized to the real toolbar buttons so the swap also
+ * avoids layout shift (CLS).
  */
 export function ProjectHeaderChromeSkeleton() {
   return (
-    <div className="flex items-center gap-2" aria-hidden="true" data-testid="project-header-chrome-skeleton">
-      <Skeleton className="h-7 w-24 rounded-sm" />
-      <Skeleton className="h-7 w-7 rounded-full" />
+    <div className="flex items-center gap-1" aria-hidden="true" data-testid="project-header-chrome-skeleton">
+      <Skeleton className="size-10 rounded-xs" />
+      <Skeleton className="size-10 rounded-xs" />
     </div>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { isProjectPageCursorsEnabled } from "@/lib/collaboration/feature-flags";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { routeToActiveSurface } from "@/lib/collaboration/presence-surface";
@@ -36,8 +37,13 @@ export function ProjectCursorLayer({
   const pathname = usePathname();
   const surface = routeToActiveSurface(pathname);
   const flagEnabled = isProjectPageCursorsEnabled();
+  const hydrated = useIsHydrated();
+  // `window.matchMedia` is browser-only — reading it in render makes the server
+  // (always false) disagree with the client. Gate on hydration so `enabled`
+  // (which controls whether this layer renders any DOM) is identical server-side
+  // and on the first client render; the coarse-pointer check applies post-commit.
   const isCoarsePointer =
-    typeof window !== "undefined" && window.matchMedia
+    hydrated && typeof window !== "undefined" && window.matchMedia
       ? window.matchMedia("(pointer: coarse)").matches
       : false;
   const enabled = flagEnabled && surface === "overview" && Boolean(projectId && userId) && !isCoarsePointer;

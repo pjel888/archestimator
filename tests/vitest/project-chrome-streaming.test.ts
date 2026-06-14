@@ -34,4 +34,21 @@ describe("project header chrome streaming (F5 / P1-2)", () => {
     expect(chrome).toContain("<ProjectCursorLayer");
     expect(layout).not.toContain("<ProjectCursorLayer");
   });
+
+  // Regression guard for the hydration mismatch where the server rendered the
+  // settings <button> at the slot the client expected the notification <div>.
+  // Root cause: the resolved chrome returned a multi-node fragment while the
+  // Suspense fallback was a single node, so the streaming swap shifted the
+  // toolbar siblings by one. Both the resolved chrome and its fallback must
+  // occupy exactly ONE top-level node (a `flex items-center gap-1` wrapper).
+  it("keeps the streamed chrome and its skeleton at one top-level node (hydration safety)", () => {
+    // Resolved chrome wraps its header components in a single element...
+    expect(chrome).toContain('<div className="flex items-center gap-1">');
+    // ...and must NOT return a bare multi-node fragment again.
+    expect(chrome).not.toMatch(/return\s*\(\s*<>/);
+    // The fallback skeleton mirrors that single-wrapper shape.
+    expect(chrome).toMatch(
+      /ProjectHeaderChromeSkeleton[\s\S]*?className="flex items-center gap-1"[\s\S]*?data-testid="project-header-chrome-skeleton"/,
+    );
+  });
 });

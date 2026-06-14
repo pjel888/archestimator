@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/ui/cn";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import {
   createProjectPublication,
   refreshProjectPublicationSummary,
@@ -236,6 +237,7 @@ function readServerOrigin() {
 export function ProjectPublicationHeader({ summary, currentUserEmail = null, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
   const summaryKey = readSummaryKey(summary);
   const activitySeenStorageKey = readActivitySeenStorageKey(summary, summaryKey);
+  const hydrated = useIsHydrated();
   const [open, setOpen] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [activitySeenState, setActivitySeenState] = useState<{ storageKey: string; value: string | null }>(() => ({
@@ -339,7 +341,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   const activitySeenAt = activitySeenState.storageKey === activitySeenStorageKey
     ? activitySeenState.value
     : readStoredActivitySeenAt(activitySeenStorageKey);
-  const hasHeaderActivity = hasLiveClientLink && isPublicationActivityUnseen(latestActivityAt, activitySeenAt);
+  // `activitySeenAt` comes from localStorage (null on the server, a timestamp on
+  // the client), so the unseen-activity dot would render on the server but not on
+  // the client → hydration mismatch. Gate on hydration: no dot on the server or
+  // first client render; the real unseen state resolves post-commit.
+  const hasHeaderActivity = hydrated && hasLiveClientLink && isPublicationActivityUnseen(latestActivityAt, activitySeenAt);
   const latestRecipientOpen = canManagePublication ? metadataSource?.latestRecipientOpen ?? null : null;
   const latestAnonymousOpenedAt = metadataSource?.latestOpenedAt ?? null;
   // MOD-MET-02: "last opened" must reflect the genuinely most-recent open. When an anonymous
