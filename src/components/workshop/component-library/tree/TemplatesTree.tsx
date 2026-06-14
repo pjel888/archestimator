@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 import {
+  Buildings,
   CaretDown,
   CaretRight,
   Circle,
@@ -11,6 +12,7 @@ import {
   Plus,
   StackPlus,
   StackSimple,
+  Table,
   Trash,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -290,7 +292,7 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
       ariaLabel: `${project.source.name} project source`,
       isLeaf: false,
       selectable: false,
-      icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+      icon: <Buildings size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       data: { templatesNode: { type: "project", source: project.source } satisfies TemplatesTreeDatum },
       children: Array.from(project.estimates.values())
         .sort((left, right) => left.source.name.localeCompare(right.source.name))
@@ -300,7 +302,7 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
           ariaLabel: estimate.source.sheetCode ? `${estimate.source.name} estimate ${estimate.source.sheetCode}` : `${estimate.source.name} estimate`,
           isLeaf: false,
           selectable: false,
-          icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+          icon: <Table size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
           data: { templatesNode: { type: "project-estimate", source: estimate.source } satisfies TemplatesTreeDatum },
           children: Array.from(estimate.tabs.values())
             .sort((left, right) => left.source.name.localeCompare(right.source.name))
@@ -310,7 +312,9 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
               ariaLabel: `${tab.source.name} project tab source`,
               isLeaf: tab.nodes.length === 0,
               selectable: true,
-              icon: <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+              // Follow the estimate-tree node cue: a dot, muted on a tab (a
+              // grouping page, not a component-bearing node).
+              accent: false,
               data: { templatesNode: { type: "project-tab", source: tab.source } satisfies TemplatesTreeDatum },
               children: tab.nodes
                 .sort((left, right) => left.name.localeCompare(right.name))
@@ -320,7 +324,9 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
                   ariaLabel: `${node.name} project area`,
                   isLeaf: true,
                   selectable: true,
-                  icon: <NodeKindIcon />,
+                  // Same dot cue as the estimate-tree left sidebar: orange when
+                  // the area directly holds components (rowCount), muted otherwise.
+                  accent: (node.metadata?.rowCount ?? 0) > 0,
                   data: { templatesNode: { type: "project-node", source: node } satisfies TemplatesTreeDatum },
                 })),
             })),
