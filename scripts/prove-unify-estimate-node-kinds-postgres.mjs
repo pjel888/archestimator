@@ -11,7 +11,7 @@
 //   • rows-on-(former-group) and child-under-(former-area) are now ACCEPTED
 //   • cycle / cross-tab / missing-parent / orphan-row are STILL REJECTED (I1/I2/I3)
 //   • the integrity assertion block passes on all-area data
-//   • the RPC kind-guard STILL blocks row writes (the Phase-5 write-freeze)
+//   • the RPC kind-guard is relaxed so row writes into any node are accepted
 //
 // Run:  POSTGRES_BIN_DIR=/opt/homebrew/opt/postgresql@17/bin \
 //         node scripts/prove-unify-estimate-node-kinds-postgres.mjs
@@ -31,10 +31,7 @@ const dataDir = join(tempRoot, "data");
 const logFile = join(tempRoot, "postgres.log");
 const port = String(57432 + Math.floor(Math.random() * 1000));
 const tabsMigration = "20260612094734_estimate_tabs_foundation.sql";
-const unifyMigration = join(
-  repoRoot,
-  ".ai/03_plans/2026-06-13-Estimate-Tree-Single-Node-Unification/08_unify_estimate_node_kinds.P5.sql",
-);
+const p5Migration = "20260614003639_unify_estimate_node_kinds.sql";
 let serverStarted = false;
 
 const ids = {
@@ -46,6 +43,9 @@ const ids = {
   rootNode: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", // group (root)
   areaNode: "ffffffff-ffff-4fff-8fff-ffffffffffff", // area (child of root)
   rowItem: "99999999-9999-4999-8999-999999999999", // row on areaNode
+  template: "77777777-7777-4777-8777-777777777777",
+  templateNode: "88888888-8888-4888-8888-888888888888",
+  templateRow: "66666666-6666-4666-8666-666666666666",
 };
 
 function run(command, args, options = {}) {
@@ -85,12 +85,6 @@ function applySqlFile(path) {
 
 function quote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
-}
-
-function assertScalar(sql, expected, label) {
-  const actual = runPsql(sql).stdout.trim();
-  if (actual !== String(expected)) throw new Error(`✗ ${label}: expected ${expected}, received ${actual || "<empty>"}`);
-  console.log(`✓ ${label}`);
 }
 
 function assertOk(sql, label) {
@@ -182,6 +176,9 @@ try {
   const migrationFiles = readdirSync(migrationDir).filter((f) => f.endsWith(".sql")).sort();
   const tabsIndex = migrationFiles.indexOf(tabsMigration);
   if (tabsIndex === -1) throw new Error(`${tabsMigration} not found.`);
+  const p5Index = migrationFiles.indexOf(p5Migration);
+  if (p5Index === -1) throw new Error(`${p5Migration} not found.`);
+  if (p5Index <= tabsIndex) throw new Error(`${p5Migration} must sort after ${tabsMigration}.`);
 
   for (const file of migrationFiles.slice(0, tabsIndex)) applySqlFile(join(migrationDir, file));
 
@@ -204,7 +201,7 @@ try {
     values (${quote(ids.rowItem)}, ${quote(ids.estimate)}, ${quote(ids.areaNode)}, 0, 'Material', 'Row', 'Supplier', 'unit', 1, 10, '{}'::jsonb) on conflict (id) do nothing;
   `);
 
-  for (const file of migrationFiles.slice(tabsIndex)) applySqlFile(join(migrationDir, file));
+  for (const file of migrationFiles.slice(tabsIndex, p5Index)) applySqlFile(join(migrationDir, file));
 
   const tabId = runPsql(`select estimate_tab_id from public.estimate_nodes where id = ${quote(ids.rootNode)};`).stdout.trim();
   if (!tabId) throw new Error("setup: rootNode estimate_tab_id was not backfilled.");
@@ -222,10 +219,8 @@ try {
     "PRE: child under an AREA node rejected (validate_estimate_node_tree hierarchy)",
   );
 
-  console.log("\n── Applying relax-only migration (08_unify_estimate_node_kinds.P5.sql) ──");
-  const applyOut = applySqlFile(unifyMigration);
-  const noticeLine = (applyOut.stderr || "").split("\n").find((l) => l.includes("Integrity assertions"));
-  console.log("  migration applied; " + (noticeLine ? noticeLine.trim() : "(integrity NOTICE not captured in stderr)"));
+  console.log("\n── Applying P5/P6 migration chain ──");
+  for (const file of migrationFiles.slice(p5Index)) applySqlFile(join(migrationDir, file));
 
   console.log("\n── POST-migration: relaxation holds, invariants preserved ──");
   assertOk(
@@ -260,15 +255,41 @@ try {
     "POST: orphan row (bad node_id) still REJECTED (relaxed orphan guard)",
   );
 
-  console.log("\n── POST-migration: Phase-5 RPC write-freeze still holds ──");
-  assertFailure(
+  console.log("\n── POST-migration: Phase-6 RPC write-enable holds ──");
+  assertOk(
     asUserSql(
       ids.userOwner,
       `select public.insert_estimate_row_item_with_history(
          ${quote(ids.project)}, ${quote(ids.estimate)}, ${quote(ids.rootNode)},
          '{"material":"X","unit":"unit","quantity":1,"unitCost":1}'::jsonb, ${quote(ids.userOwner)}, gen_random_uuid());`,
     ),
-    "POST: insert_estimate_row_item_with_history onto a GROUP node STILL rejected (RPC guard intact in P5 → writes withheld)",
+    "POST: insert_estimate_row_item_with_history onto a row-owning node now ACCEPTED (RPC guard relaxed)",
+  );
+  assertOk(
+    `insert into public.estimate_templates (id, workspace_id, name, category, sort_order, metadata, created_by)
+     values (${quote(ids.template)}, ${quote(ids.workspace)}, 'P6 Template Harness', 'Harness', 0, '{}'::jsonb, ${quote(ids.userOwner)});
+     insert into public.estimate_template_nodes (id, template_id, parent_id, kind, name, sort_order, metadata)
+     values (${quote(ids.templateNode)}, ${quote(ids.template)}, null, 'area', 'Template root area', 0, '{}'::jsonb);
+     insert into public.estimate_template_row_items (id, template_id, template_node_id, sort_order, material, description, supplier, unit, quantity, unit_cost, metadata)
+     values (${quote(ids.templateRow)}, ${quote(ids.template)}, ${quote(ids.templateNode)}, 0, 'Template row', 'P6 proof', 'Harness', 'unit', 1, 1, '{}'::jsonb);`,
+    "POST: area-root estimate template fixture now ACCEPTED",
+  );
+  assertOk(
+    asUserSql(
+      ids.userOwner,
+      `select public.insert_estimate_template_into_estimate_with_history(
+         ${quote(ids.project)}, ${quote(ids.estimate)}, ${quote(ids.areaNode)}, ${quote(ids.template)}, ${quote(ids.userOwner)}, gen_random_uuid());`,
+    ),
+    "POST: insert_estimate_template_into_estimate_with_history into a row-owning node now ACCEPTED (inner RPC guard relaxed)",
+  );
+  assertOk(
+    asUserSql(
+      ids.userOwner,
+      `select public.insert_estimate_subtree_into_estimate_with_history(
+         ${quote(ids.project)}, ${quote(ids.estimate)}, ${quote(ids.areaNode)},
+         ${quote(ids.estimate)}, ${quote(ids.areaNode)}, ${quote(tabId)}, ${quote(ids.userOwner)}, gen_random_uuid());`,
+    ),
+    "POST: insert_estimate_subtree_into_estimate_with_history into a row-owning node now ACCEPTED (inner RPC guard relaxed)",
   );
 
   console.log("\n✅ unify-estimate-node-kinds local Postgres proof passed");
