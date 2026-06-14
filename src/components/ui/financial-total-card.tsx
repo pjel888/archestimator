@@ -19,7 +19,7 @@ export function FinancialTotalCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-xs p-[16px] tracking-normal",
+        "flex flex-col rounded-xs p-4 tracking-normal",
         variant === "primary"
           ? "bg-primary text-white"
           : "border border-hairline bg-surface text-ink",
@@ -27,13 +27,27 @@ export function FinancialTotalCard({
       )}
       {...props}
     >
-      <div className="text-[12px] font-medium">{label}</div>
-      <div className="mt-1 text-[12px] font-medium tabular-nums">{value}</div>
+      <div
+        className={cn(
+          "text-[10px] font-medium uppercase tracking-wider",
+          variant === "primary" ? "text-white/70" : "text-tertiary"
+        )}
+      >
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-1 font-semibold tabular-nums leading-tight",
+          variant === "primary" ? "text-[28px]" : "text-[24px]"
+        )}
+      >
+        {value}
+      </div>
       {sublabel && (
         <div
           className={cn(
             "mt-1 text-[10px]",
-            variant === "primary" ? "text-white/80" : "text-muted"
+            variant === "primary" ? "text-white/70" : "text-muted"
           )}
         >
           {sublabel}
