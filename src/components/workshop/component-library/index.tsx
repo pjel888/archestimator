@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, PlusSquare, SquaresFour, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { FunnelSimple, Plus, PlusSquare, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
+import { ADD_BUTTON_CLASSNAME, ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -42,7 +43,6 @@ import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type Esti
 import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { ComponentViewControls, type ComponentViewMode } from "../component-library-manager/LibraryFolderTree";
-import { COMPONENT_VIEW_MODES } from "../component-library-manager/library-folder-tree-shared";
 import { NewComponentForm } from "./NewComponentForm";
 import { NewTemplateModal } from "./NewTemplateModal";
 import {
@@ -1270,6 +1270,7 @@ function EstimateRightSidebarBase({
           }}
           aria-label="Reusable source filter"
           className="w-full"
+          variant="boxed"
         />
       </div>
     );
@@ -1982,43 +1983,59 @@ function EstimateRightSidebarBase({
           searchOpen={searchOpen}
           onSearchOpenChange={setSearchOpen}
           searchInputRef={searchRef}
-          leadingActions={[
-            {
-              label: `View by: ${COMPONENT_VIEW_MODES.find((item) => item.id === componentViewMode)?.label ?? "Default"}`,
-              icon: <SquaresFour size={12} weight="regular" aria-hidden="true" />,
-              onClick: () => setViewModeMenuOpen((current) => !current),
-              pressed: viewModeMenuOpen,
-              disabled: activeTab !== "components",
-            },
-          ]}
-          leadingActionsLabel="Component tree view mode"
-          addActions={[
-            {
-              label: "Add Component",
-              icon: <PlusSquare size={13} weight="regular" aria-hidden="true" />,
-              onClick: startNewComponent,
-            },
-            {
-              label: "Add Template",
-              icon: <StackPlus size={13} weight="regular" aria-hidden="true" />,
-              onClick: startNewTemplate,
-            },
-          ]}
+          showDefaultActions={false}
+          addActions={[]}
           tabs={LIBRARY_TREE_TABS}
           activeTab={activeTab}
           tabVariant="tabs"
           tabsAriaLabel="Library sections"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
-        >
+        />
+
+        {/* Under-tabs toolbar row: Filter · View-by · Add (D7).
+            Wrapped in `relative` so the View-by popover anchors to this row. */}
+        <div className="relative">
+          <div
+            role="toolbar"
+            aria-label="Library tools"
+            className="flex h-[38px] min-h-[38px] items-center gap-1 border-b border-hairline bg-white px-2 py-0"
+          >
+            {/* Filter — wired in Phase D1; inert placeholder trigger for now */}
+            <ToolbarIconButton label="Filter library" onClick={undefined} aria-pressed={false}>
+              <FunnelSimple size={13} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+            {/* View-by — relocated grouping control */}
+            <ToolbarIconButton
+              label="View by"
+              onClick={() => setViewModeMenuOpen((current) => !current)}
+              aria-expanded={viewModeMenuOpen}
+              disabled={activeTab !== "components"}
+            >
+              <Rows size={13} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+            <div className="ml-auto flex items-center gap-1">
+              {activeTab === "components" ? (
+                <ToolbarIconButton label="Add Component" onClick={startNewComponent} className={ADD_BUTTON_CLASSNAME}>
+                  <PlusSquare size={13} weight="regular" aria-hidden="true" />
+                </ToolbarIconButton>
+              ) : (
+                <ToolbarIconButton label="Add Template" onClick={startNewTemplate} className={ADD_BUTTON_CLASSNAME}>
+                  <StackPlus size={13} weight="regular" aria-hidden="true" />
+                </ToolbarIconButton>
+              )}
+            </div>
+          </div>
+          {/* View-by popover — positioned absolute relative to this wrapper div,
+              top-full places it just below the 38px toolbar row. */}
           {activeTab === "components" && viewModeMenuOpen ? (
             <ComponentViewControls
               mode={componentViewMode}
               ariaLabel="Component view mode"
               onModeChange={handleComponentViewModeChange}
-              className="top-[40px]"
+              className="top-full"
             />
           ) : null}
-        </TreePanelHeader>
+        </div>
 
         {/* Scrollable tree with a floating bulk-action dock */}
         <div className="relative flex min-h-0 flex-1 flex-col">
