@@ -9,13 +9,17 @@ import { Circle } from "@phosphor-icons/react/dist/ssr";
 export const STICKY_HEADER_H = 40;
 export const STICKY_THEAD_H = 40;
 
-export function groupGap(depth: number, usesSiblingGroupRhythm = false) {
-  // Single depth-driven rhythm. Spacing no longer forks on node kind (one
-  // node type); the sibling-rhythm flag still tightens nested siblings.
-  if (depth > 0 && !usesSiblingGroupRhythm) return "mt-0";
-  if (depth === 0) return "mt-0";
-  if (depth === 1) return "mt-5";
-  return "mt-4";
+// Depth-driven inter-node rhythm, token-aligned to DESIGN.md spacing
+// (sm:8 / md:12 / lg:20). The gap DECREASES with depth so nesting reads as a
+// hierarchy: top-level siblings breathe, deep siblings sit tighter. The root
+// (depth 0) carries no top margin (its container owns the outer gap). Purely
+// depth-driven now — the old usesSiblingGroupRhythm flag was never threaded
+// through the recursion, so the depth>0 branches were dead (always mt-0).
+export function groupGap(depth: number) {
+  if (depth <= 0) return "mt-0";
+  if (depth === 1) return "mt-5"; // lg = 20px
+  if (depth === 2) return "mt-3"; // md = 12px
+  return "mt-2";                  // sm = 8px
 }
 
 export function getNodeCode(parentCode: string, siblingIndex: number): string {
