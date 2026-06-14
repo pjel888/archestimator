@@ -194,7 +194,11 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
         aria-invalid={status === "error" ? "true" : undefined}
         aria-label="Estimate name"
         className={cn(
-          "h-7 min-w-0 max-w-[320px] rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
+          // Req 14: grow with content (field-sizing-content), no width clip, and no
+          // resting/hover/focus border. The border stays `transparent` (not removed)
+          // so the error state below can recolor it to danger without a layout shift;
+          // focus shows only the soft-accent background as the edit affordance.
+          "h-7 min-w-0 max-w-full field-sizing-content rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:bg-accentSoft disabled:opacity-60",
           status === "error" && "border-danger bg-dangerSoft/40",
         )}
         disabled={!metadata || isPending}
