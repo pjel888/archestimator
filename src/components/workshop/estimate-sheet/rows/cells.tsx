@@ -148,10 +148,10 @@ export function EstimateMaterialCell({
     event.dataTransfer.setData(ESTIMATE_COMPONENT_DRAG_MIME_TYPE, JSON.stringify({ rowItemId: item.id, item } satisfies EstimateComponentDragPayload));
   }
 
-  function handleComponentDragEnd(event: DragEvent<HTMLButtonElement>) {
-    if (event.dataTransfer.dropEffect === "move") return;
-    onClearComponent();
-  }
+  // No onDragEnd clear: a cancelled or failed drag must NOT delete the
+  // component (OD-14). A real move is committed by the target cell's drop, which
+  // calls moveRowComponent -> it clears the source itself. The ONLY destructive
+  // removal is the explicit Delete action below.
 
   if (isBlankEstimateRowItem(item)) {
     return (
@@ -246,7 +246,6 @@ export function EstimateMaterialCell({
           draggable
           onClick={(event: MouseEvent<HTMLButtonElement>) => event.stopPropagation()}
           onDragStart={handleComponentDragStart}
-          onDragEnd={handleComponentDragEnd}
         >
           <DotsSixVertical size={11} weight="regular" aria-hidden="true" />
         </Button>
