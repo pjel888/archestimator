@@ -5,6 +5,10 @@ import type { ComponentProps } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+// Req 1 / D2: "Activity" + "Preview Excel Export" moved to the project chrome
+// header (`EstimateHeaderActions`), fed by the page via a shared store. Render it
+// alongside the sheet so the relocated buttons are reachable here.
+import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
@@ -35,6 +39,7 @@ function renderEstimateSheet(selectedNodeId: string, props: Partial<ComponentPro
   return render(
     <QueryClientProvider client={queryClient}>
       <EstimateSheetContent selectedNodeId={selectedNodeId} renderSidebar={false} {...props} />
+      <EstimateHeaderActions />
     </QueryClientProvider>,
   );
 }
@@ -690,8 +695,13 @@ describe("estimate sheet cost inputs", () => {
     expect(within(sheetTools).getByRole("button", { name: "Collapse all tab" })).toHaveAttribute("title", "Collapse all tab");
     expect(within(sheetTools).getByRole("button", { name: "Expand all tab" })).toHaveAttribute("title", "Expand all tab");
     expect(within(sheetTools).queryByRole("button", { name: "Add tab" })).not.toBeInTheDocument();
-    expect(within(sheetTools).getByRole("button", { name: "Activity" })).toHaveAttribute("title", "Activity");
-    expect(within(sheetTools).getByRole("button", { name: "Preview Excel Export" })).toHaveAttribute("title", "Preview Excel Export");
+    // C1/Req 1: Activity + Preview Excel Export relocated to the project chrome
+    // header (EstimateHeaderActions) — no longer inside the sheet's Tab tools.
+    expect(within(sheetTools).queryByRole("button", { name: "Activity" })).not.toBeInTheDocument();
+    expect(within(sheetTools).queryByRole("button", { name: "Preview Excel Export" })).not.toBeInTheDocument();
+    // They remain reachable, with their accessible names preserved, in the chrome.
+    expect(screen.getByRole("button", { name: "Activity" })).toHaveAttribute("title", "Activity");
+    expect(screen.getByRole("button", { name: "Preview Excel Export" })).toHaveAttribute("title", "Preview Excel Export");
 
     fireEvent.click(showSearchButton);
     const searchPanel = within(actionHeader).getByRole("search");

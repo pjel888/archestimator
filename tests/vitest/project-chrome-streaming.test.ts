@@ -35,6 +35,14 @@ describe("project header chrome streaming (F5 / P1-2)", () => {
     expect(layout).not.toContain("<ProjectCursorLayer");
   });
 
+  // Req 1 / D2: the relocated estimate "Activity" + "Preview Excel Export"
+  // triggers mount inside the same single chrome wrapper, beside Share. The
+  // component renders nothing until the estimate page registers into the shared
+  // store, so it is hydration-safe inside this slot.
+  it("mounts the relocated estimate header actions inside the chrome wrapper", () => {
+    expect(chrome).toContain("<EstimateHeaderActions />");
+  });
+
   // Regression guard for the hydration mismatch where the server rendered the
   // settings <button> at the slot the client expected the notification <div>.
   // Root cause: the resolved chrome returned a multi-node fragment while the
