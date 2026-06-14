@@ -76,8 +76,10 @@ describe("estimate sheet version control UI", () => {
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     const scopeSearch = within(sheetDialog).getByRole("searchbox", { name: "Search Tree" });
     expect(scopeSearch).toBeInTheDocument();
-    expect(within(sheetDialog).getByRole("button", { name: "Filter tree" })).toBeInTheDocument();
-    expect(within(sheetDialog).getByRole("button", { name: "Group tree" })).toBeInTheDocument();
+    // A4/D8: the activity scope tree wires no Filter/Group handlers, so those
+    // dead no-op buttons are now handler-gated away (Expand/Collapse remain).
+    expect(within(sheetDialog).queryByRole("button", { name: "Filter tree" })).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByRole("button", { name: "Group tree" })).not.toBeInTheDocument();
     expect(within(sheetDialog).getByRole("button", { name: "Expand all tree" })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
     // P4: one disabled "Add Area" replaces the disabled "Add Group" + "Add Node".

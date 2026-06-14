@@ -684,8 +684,9 @@ describe("estimate sheet cost inputs", () => {
     const showSearchButton = within(sheetTools).getByRole("button", { name: "Show tab search" });
     expect(showSearchButton).toHaveAttribute("title", "Show tab search");
     expect(showSearchButton).toHaveAttribute("aria-expanded", "false");
-    expect(within(sheetTools).getByRole("button", { name: "Filter tab" })).toHaveAttribute("title", "Filter tab");
-    expect(within(sheetTools).getByRole("button", { name: "Group tab" })).toHaveAttribute("title", "Group tab");
+    // A4/D8: handler-gated — re-wired in Phase D
+    expect(within(sheetTools).queryByRole("button", { name: "Filter tab" })).toBeNull();
+    expect(within(sheetTools).queryByRole("button", { name: "Group tab" })).toBeNull();
     expect(within(sheetTools).getByRole("button", { name: "Collapse all tab" })).toHaveAttribute("title", "Collapse all tab");
     expect(within(sheetTools).getByRole("button", { name: "Expand all tab" })).toHaveAttribute("title", "Expand all tab");
     expect(within(sheetTools).queryByRole("button", { name: "Add tab" })).not.toBeInTheDocument();
