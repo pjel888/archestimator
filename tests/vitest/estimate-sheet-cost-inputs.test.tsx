@@ -689,9 +689,9 @@ describe("estimate sheet cost inputs", () => {
     const showSearchButton = within(sheetTools).getByRole("button", { name: "Show tab search" });
     expect(showSearchButton).toHaveAttribute("title", "Show tab search");
     expect(showSearchButton).toHaveAttribute("aria-expanded", "false");
-    // A4/D8: handler-gated — re-wired in Phase D
-    expect(within(sheetTools).queryByRole("button", { name: "Filter tab" })).toBeNull();
-    expect(within(sheetTools).queryByRole("button", { name: "Group tab" })).toBeNull();
+    // D2/Req 10 (middle): Filter (filterSlot) + Group (onGroup) are now wired and present.
+    expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Group tab" })).toBeInTheDocument();
     expect(within(sheetTools).getByRole("button", { name: "Collapse all tab" })).toHaveAttribute("title", "Collapse all tab");
     expect(within(sheetTools).getByRole("button", { name: "Expand all tab" })).toHaveAttribute("title", "Expand all tab");
     expect(within(sheetTools).queryByRole("button", { name: "Add tab" })).not.toBeInTheDocument();
@@ -753,5 +753,130 @@ describe("estimate sheet cost inputs", () => {
     });
     expect(screen.getAllByLabelText("HEMLINGBY Loveseat replaceable estimate component").length).toBeGreaterThan(1);
     expect(screen.getAllByLabelText("HEMLINGBY Loveseat quantity").some((input) => (input as HTMLInputElement).value === "7")).toBe(true);
+  });
+});
+
+// D2 / Req 10 (middle sheet): faceted FILTER + within-area GROUP/SORT, composed
+// into displayedSheetNode only — the area hierarchy is preserved (no flatten),
+// and no group-header rows are added (out of scope for the row renderer).
+describe("estimate sheet filter + group/sort (D2)", () => {
+  function makeFilterGroupTree(): EstimateTreeNode[] {
+    function fgRow(
+      id: string,
+      material: string,
+      supplier: string,
+      category: string,
+      itemCost: number,
+    ): import("@/components/workshop/estimate-tree-data").EstimateRowItem {
+      return {
+        id,
+        material,
+        description: material,
+        supplier,
+        source: "library",
+        unit: "pc",
+        itemCost,
+        quantity: 1,
+        subTotal: itemCost,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 0,
+        totalItemCosts: itemCost,
+        category,
+        pricingSource: "fixture",
+        pricingDate: "2026-06-14",
+      };
+    }
+    return [
+      {
+        id: "fg-group",
+        name: "FG Group",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "fg-area-1",
+            name: "FG Area 1",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              fgRow("fg-r1", "Zinc Panel", "Acme Supply", "Zeta Cat", 100),
+              fgRow("fg-r2", "Brass Fitting", "Beta Supply", "Alpha Cat", 900),
+              fgRow("fg-r3", "Copper Wire", "Acme Supply", "Mid Cat", 500),
+            ],
+            children: [],
+          },
+          {
+            id: "fg-area-2",
+            name: "FG Area 2",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [fgRow("fg-r4", "Other Item", "Gamma Supply", "Other Cat", 50)],
+            children: [],
+          },
+        ],
+      },
+    ];
+  }
+
+  // Document-wide row order, de-duplicated (a row renders several cells, each
+  // carrying data-estimate-row-id) and restricted to a known set of row ids so
+  // a single area's ordering can be asserted regardless of DOM nesting.
+  function rowOrder(only: string[]): string[] {
+    const seen: string[] = [];
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("[data-estimate-row-id]"))) {
+      const id = el.getAttribute("data-estimate-row-id") ?? "";
+      if (only.includes(id) && !seen.includes(id)) seen.push(id);
+    }
+    return seen;
+  }
+
+  it("renders a Filter button and a Group button on the middle Tab tools header", () => {
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
+    expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Group tab" })).toBeInTheDocument();
+  });
+
+  it("selecting a supplier facet hides non-matching rows but keeps the area", () => {
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
+
+    // Baseline: all four rows present across the two areas.
+    expect(screen.getByLabelText("Select Zinc Panel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Select Brass Fitting")).toBeInTheDocument();
+    expect(screen.getByLabelText("Select Other Item")).toBeInTheDocument();
+
+    fireEvent.click(within(sheetTools).getByRole("button", { name: "Filter sheet" }));
+    // Acme Supply matches fg-r1 + fg-r3 (both in Area 1); Area 2 has no Acme row.
+    fireEvent.click(screen.getByLabelText("Supplier Acme Supply"));
+
+    // Matching rows survive; non-matching rows are pruned.
+    expect(screen.getByLabelText("Select Zinc Panel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Select Copper Wire")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Select Brass Fitting")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Select Other Item")).not.toBeInTheDocument();
+
+    // Hierarchy preserved: Area 1 still renders.
+    expect(screen.getAllByText("FG Area 1").length).toBeGreaterThan(0);
+  });
+
+  it("choosing Group → Category reorders rows within an area without flattening", () => {
+    renderEstimateSheet("fg-group", { nodes: makeFilterGroupTree() });
+    const sheetTools = within(screen.getByLabelText("Tab controls")).getByLabelText("Tab tools");
+
+    const area1 = ["fg-r1", "fg-r2", "fg-r3"];
+    // Default order: r1 (Zeta Cat), r2 (Alpha Cat), r3 (Mid Cat).
+    expect(rowOrder(area1)).toEqual(["fg-r1", "fg-r2", "fg-r3"]);
+
+    fireEvent.click(within(sheetTools).getByRole("button", { name: "Group tab" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Category" }));
+
+    // Category-grouped order (alpha by category): Alpha Cat (r2), Mid Cat (r3), Zeta Cat (r1).
+    expect(rowOrder(area1)).toEqual(["fg-r2", "fg-r3", "fg-r1"]);
+
+    // Area 2 still exists as its own area (no flatten across areas).
+    expect(screen.getAllByText("FG Area 2").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Select Other Item")).toBeInTheDocument();
   });
 });
