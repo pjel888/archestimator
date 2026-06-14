@@ -1,13 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { canNestEstimateNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 const ESTIMATE_TREE_NODE_KINDS = ["group", "area"] as const satisfies readonly EstimateTreeNodeKind[];
-
-function toSqlList(values: readonly string[]) {
-  return values.map((value) => `'${value}'`).join(", ");
-}
 
 function readMigration(suffix: string) {
   const migrationFile = readdirSync("supabase/migrations").find((file) => file.endsWith(suffix));
@@ -73,21 +69,30 @@ describe("Supabase performance migrations", () => {
     expect(migration).toContain("validate constraint estimate_nodes_active_kind_check");
   });
 
-  it("keeps database hierarchy enforcement aligned with the TypeScript tree matrix", () => {
+  // The original two-kind migration is a HISTORICAL artifact and still encodes
+  // the old hierarchy literally (root -> group, group -> group|area, no area
+  // parents). The TS helper (canNestEstimateNodeKind) that mirrored it is gone
+  // in P6, so this asserts the historical SQL with literal values instead of
+  // reconstructing it from the (deleted) helper.
+  it("keeps the HISTORICAL two-kind hierarchy block literal in its original migration", () => {
     const migration = readMigration("_enforce_two_kind_estimate_nodes.sql");
-    const rootChildKinds = ESTIMATE_TREE_NODE_KINDS.filter((kind) => canNestEstimateNodeKind(kind, null));
-    const folderParentKinds = ESTIMATE_TREE_NODE_KINDS.filter((parentKind) =>
-      ESTIMATE_TREE_NODE_KINDS.some((childKind) => canNestEstimateNodeKind(childKind, parentKind)),
-    );
-    const folderChildKinds = ESTIMATE_TREE_NODE_KINDS.filter((childKind) =>
-      folderParentKinds.every((parentKind) => canNestEstimateNodeKind(childKind, parentKind)),
-    );
+    expect(migration).toContain("child.parent_id is null and child.kind in ('group')");
+    expect(migration).toContain("parent.kind in ('group') and child.kind in ('group', 'area')");
+  });
 
-    expect(rootChildKinds).toEqual(["group"]);
-    expect(folderParentKinds).toEqual(["group"]);
-    expect(folderChildKinds).toEqual(["group", "area"]);
-    expect(ESTIMATE_TREE_NODE_KINDS.filter((childKind) => canNestEstimateNodeKind(childKind, "area"))).toEqual([]);
-    expect(migration).toContain(`child.parent_id is null and child.kind in (${toSqlList(rootChildKinds)})`);
-    expect(migration).toContain(`parent.kind in (${toSqlList(folderParentKinds)}) and child.kind in (${toSqlList(folderChildKinds)})`);
+  // P6 single-node model: the unify migration RELAXED that hierarchy — any node
+  // may parent any node — while PRESERVING cross-tab isolation and cycle
+  // detection. This is the positive one-kind contract that replaces the old
+  // helper-derived assertion (the I1/I2 regression guard from the plan).
+  it("relaxes the two-kind hierarchy in the unify migration while preserving cross-tab + cycle", () => {
+    const unify = readMigration("_unify_estimate_node_kinds.sql");
+    // Hierarchy block removed from BOTH the validator and the reorder RPC.
+    expect(unify).not.toContain("child.parent_id is null and child.kind in ('group')");
+    expect(unify).not.toContain("parent.kind in ('group') and child.kind in ('group', 'area')");
+    // Cross-tab (I2) and cycle (I1) invariants are preserved by name.
+    expect(unify).toContain("parent from another tab");
+    expect(unify).toContain("creates a cycle");
+    // The active-kind CHECK is kept (kind stays a vestigial label).
+    expect(ESTIMATE_TREE_NODE_KINDS).toEqual(["group", "area"]);
   });
 });

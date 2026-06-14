@@ -193,7 +193,10 @@ describe("reorderEstimateTreeNodes server action", () => {
     });
   });
 
-  it("rejects Area Nodes as parents and Area Nodes at the estimate root before the RPC", async () => {
+  it("allows an area under an area and an area at the estimate root (P6 single-node model)", async () => {
+    // Pre-P6 these two moves were rejected client-side with
+    // "area nodes cannot be placed under …" before the RPC. Any node may now
+    // parent any node, so the server action hands both straight to the RPC.
     const supabase = makeSupabase({
       nodes: [
         { id: "living", kind: "area", estimate_id: "estimate-1", parent_id: "ground-floor" },
@@ -203,17 +206,17 @@ describe("reorderEstimateTreeNodes server action", () => {
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
-    await expect(
-      reorderEstimateTreeNodes("project-1", "estimate-1", {
-        updates: [{ id: "living", parentId: "kitchen", sortOrder: 10 }],
-      }),
-    ).rejects.toThrow("area nodes cannot be placed under area.");
-    await expect(
-      reorderEstimateTreeNodes("project-1", "estimate-1", {
-        updates: [{ id: "kitchen", parentId: null, sortOrder: 10 }],
-      }),
-    ).rejects.toThrow("area nodes cannot be placed under estimate root.");
-    expect(supabase.rpc).not.toHaveBeenCalled();
+    await reorderEstimateTreeNodes("project-1", "estimate-1", {
+      updates: [{ id: "living", parentId: "kitchen", sortOrder: 10 }],
+    });
+    await reorderEstimateTreeNodes("project-1", "estimate-1", {
+      updates: [{ id: "kitchen", parentId: null, sortOrder: 10 }],
+    });
+
+    const reorderCalls = supabase.rpc.mock.calls.filter(([fn]) => fn === "reorder_estimate_nodes_with_history");
+    expect(reorderCalls).toHaveLength(2);
+    expect(reorderCalls[0][1]).toMatchObject({ move_updates: [{ id: "living", parent_id: "kitchen", sort_order: 10 }] });
+    expect(reorderCalls[1][1]).toMatchObject({ move_updates: [{ id: "kitchen", parent_id: null, sort_order: 10 }] });
   });
 
   it("treats legacy organizing estimate-node kinds as group nodes during the remote migration transition", async () => {
@@ -945,42 +948,6 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
     expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
-  });
-});
-
-describe("wrapEstimateAreaAndInsertTemplate server action", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
-    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
-  });
-
-  it("denies a viewer before creating the wrapper group, leaving no orphan node (U4-2)", async () => {
-    const from = vi.fn((table: string) => {
-      throw new Error(`wrap must not query ${table} when edit is denied.`);
-    });
-    const rpc = vi.fn(async (name: string) => {
-      if (name === "can_edit_estimate") return { data: false, error: null };
-      throw new Error(`denied wrap must not call ${name}`);
-    });
-    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
-    const { wrapEstimateAreaAndInsertTemplate } = await import("@/lib/estimates/actions");
-
-    await expect(
-      wrapEstimateAreaAndInsertTemplate({
-        projectId: "project-1",
-        estimateId: "estimate-1",
-        areaNodeId: "area-1",
-        insert: { templateIds: ["template-1"] },
-      }),
-    ).rejects.toThrow("Estimate edit access denied.");
-
-    // The gate runs before the wrapper-group create + area reorder, so a denied
-    // viewer fires no mutating RPC and leaves no orphan group (U4-2).
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
-    expect(rpc).not.toHaveBeenCalledWith("create_estimate_node_with_history", expect.anything());
-    expect(from).not.toHaveBeenCalled();
   });
 });
 

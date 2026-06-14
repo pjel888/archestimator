@@ -16,11 +16,10 @@ import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-librar
 import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
-import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateUiStore } from "@/stores/estimate-ui-store";
-import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
-import { getEstimateWrapGroupName } from "@/lib/estimates/tree-hierarchy";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -36,7 +35,6 @@ import {
   INSERT_ESTIMATE_TEMPLATE_EVENT,
   INSERT_PROJECT_SOURCE_EVENT,
   type EstimateTemplate,
-  type EstimateTemplateDragPayload,
   type InsertEstimateTemplateEventDetail,
   type InsertProjectSourceEventDetail,
 } from "./component-library/templates";
@@ -346,42 +344,6 @@ function cloneTemplateNodesForEstimate(nodes: EstimateTreeNode[]): EstimateTreeN
   }
 
   return nodes.map(cloneNode);
-}
-
-/**
- * Replaces an area node in place with a wrapper group holding the area and
- * the dropped template roots — the optimistic mirror of
- * wrapEstimateAreaAndInsertTemplate.
- */
-function wrapAreaNodeWithGroup(nodes: EstimateTreeNode[], areaNodeId: string, groupId: string, groupName: string, templateNodes: EstimateTreeNode[]): EstimateTreeNode[] {
-  return nodes.map((node) => {
-    if (node.id === areaNodeId) {
-      return {
-        id: groupId,
-        name: groupName,
-        kind: "group",
-        total: "₱0.00",
-        children: [node, ...templateNodes],
-      } satisfies EstimateTreeNode;
-    }
-    return {
-      ...node,
-      children: node.children ? wrapAreaNodeWithGroup(node.children, areaNodeId, groupId, groupName, templateNodes) : node.children,
-    };
-  });
-}
-
-/**
- * Reveals a freshly created group in the left tree. When no explicit
- * expansion is stored, the tree already expands every folder row by default,
- * so only an existing explicit list needs the new id appended.
- */
-function expandTreeNodeForEstimate(estimateId: string | undefined, nodeId: string) {
-  if (!estimateId) return;
-  const state = useEstimateWorkspaceState.getState();
-  const expanded = state.expandedNodeIdsByEstimateId[estimateId];
-  if (!expanded || expanded.includes(nodeId)) return;
-  state.setExpandedNodeIds(estimateId, [...expanded, nodeId]);
 }
 
 function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNodeId: string, templateNodes: EstimateTreeNode[]): EstimateTreeNode[] {
@@ -1076,23 +1038,14 @@ export function EstimateSheetContent({
   }, []);
   const clearRowSelection = useCallback(() => setBulkSelectedRowIds(new Set()), []);
   const bulkSelectedRowCount = bulkSelectedRowIds.size;
-  const insertTargetNodeId = selectedNode?.kind === "area" ? selectedNode.id : "";
-  const selectedNodePath = useMemo(
-    () => (resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId) : []),
-    [estimateTree, resolvedSelectedNodeId],
-  );
-  const templateTargetParentNode = useMemo(() => {
-    if (selectedNode?.kind === "group") return selectedNode;
-    return [...selectedNodePath].reverse().find((node) => node.kind === "group") ?? null;
-  }, [selectedNode, selectedNodePath]);
+  // P6 single-node model: a row OR a template/subtree inserts directly into ANY
+  // selected node — no kind gate, no ancestor-group resolution, no area-wrap.
+  const insertTargetNodeId = selectedNode?.id ?? "";
+  const templateTargetParentNode = selectedNode ?? null;
   const canInsertIntoSelectedNode = Boolean(insertTargetNodeId);
-  // With an area selected, template adds wrap the area in a new group
-  // instead of targeting an ancestor group.
-  const canInsertTemplateIntoSelectedNode = selectedNode?.kind === "area" || Boolean(templateTargetParentNode);
-  const insertionTargetLabel = selectedNode?.kind === "area" ? selectedNode.name : "selected area";
-  const templateInsertionTargetLabel = selectedNode?.kind === "area"
-    ? `a new ${getEstimateWrapGroupName(selectedNode.name)}`
-    : templateTargetParentNode?.name ?? "selected group";
+  const canInsertTemplateIntoSelectedNode = Boolean(templateTargetParentNode);
+  const insertionTargetLabel = selectedNode?.name ?? "selected area";
+  const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected area";
   const projectTotal = useMemo(
     () => estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0),
     [editableRows, estimateTree],
@@ -1550,8 +1503,9 @@ export function EstimateSheetContent({
 
   const insertTemplateIntoParent = useStableCallback(
     (targetParentNodeId: string, template: EstimateTemplate) => {
+      // P6: a template inserts as a child of ANY existing node (no group gate).
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (targetParentNode?.kind !== "group") return false;
+      if (!targetParentNode) return false;
 
       const previousTree = estimateTree;
       const previousRows = editableRows;
@@ -1642,97 +1596,23 @@ export function EstimateSheetContent({
     [insertTemplatesIntoParent, templateById],
   );
 
-  // A template dropped on an area cannot nest inside it (areas take no child
-  // nodes), so the drop wraps the area and the template content in a new
-  // group occupying the area's slot. Selection follows the new group: the
-  // sheet re-scopes and the left tree highlights it through the shared
-  // workspace selection.
-  const wrapAreaAndInsertTemplates = useStableCallback(
-    (areaNodeId: string, payload: EstimateTemplateDragPayload): boolean => {
-      const areaNode = findEstimateNode(estimateTree, areaNodeId);
-      if (areaNode?.kind !== "area") return false;
-
-      let optimisticTemplateNodes: EstimateTreeNode[];
-      if (payload.kind === "template-node") {
-        const template = templateById.get(payload.templateId);
-        const templateNode = template ? findEstimateNode(template.nodes, payload.templateNodeId) : null;
-        if (!templateNode) return false;
-        optimisticTemplateNodes = cloneTemplateNodesForEstimate([templateNode]);
-      } else {
-        const payloadTemplates = payload.templateIds
-          .map((templateId) => templateById.get(templateId))
-          .filter((template): template is EstimateTemplate => Boolean(template));
-        if (payloadTemplates.length === 0) return false;
-        optimisticTemplateNodes = cloneTemplateNodesForEstimate(payloadTemplates.flatMap((template) => template.nodes));
-      }
-
-      const previousTree = estimateTree;
-      const previousRows = editableRows;
-      const rollbackRevision = getEstimateTreeRevision();
-      const optimisticGroupId = `optimistic-group-${createEstimateRowItemId()}`;
-      const groupName = getEstimateWrapGroupName(areaNode.name);
-      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
-      const nextRevision = setEstimateTree((current) => wrapAreaNodeWithGroup(current, areaNodeId, optimisticGroupId, groupName, optimisticTemplateNodes));
-      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
-      setSelectedNodeId(optimisticGroupId);
-      expandTreeNodeForEstimate(estimateId, optimisticGroupId);
-
-      if (projectId && estimateId) {
-        const reselectWrapGroup = (nodeId: string) => {
-          // Only steer selection if the user is still on the wrap group.
-          const currentSelection = useEstimateWorkspaceState.getState().selectedNodeIdByEstimateId[estimateId];
-          if (currentSelection === optimisticGroupId) setSelectedNodeId(nodeId);
-        };
-        wrapEstimateAreaAndInsertTemplate({
-          projectId,
-          estimateId,
-          areaNodeId,
-          insert: payload.kind === "template-node"
-            ? { templateId: payload.templateId, templateNodeId: payload.templateNodeId }
-            : { templateIds: payload.templateIds },
-          targetTabId: dataTabId,
-        })
-          .then((result) => {
-            // INS-1/INS-4: reconcile only when our optimistic revision still
-            // stands; steering selection to the server group only makes sense
-            // once that server tree is actually applied.
-            if (getEstimateTreeRevision() === nextRevision) {
-              setEstimateTree(() => result.tree);
-              expandTreeNodeForEstimate(estimateId, result.newGroupNodeId);
-              reselectWrapGroup(result.newGroupNodeId);
-            }
-          })
-          .catch((error: unknown) => {
-            console.error("[estimate] template wrap insert failed", error);
-            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
-            reselectWrapGroup(areaNodeId);
-          });
-      }
-
-      return true;
-    },
-  );
-
   const insertTemplateIntoSelectedGroup = useCallback(
     (template: EstimateTemplate) => {
-      if (selectedNode?.kind === "area") {
-        return wrapAreaAndInsertTemplates(selectedNode.id, { kind: "templates", templateIds: [template.id] });
-      }
+      // P6: insert directly into the selected node (any kind), no area-wrap.
       if (!templateTargetParentNode) return false;
       return insertTemplateIntoParent(templateTargetParentNode.id, template);
     },
-    [insertTemplateIntoParent, selectedNode, templateTargetParentNode, wrapAreaAndInsertTemplates],
+    [insertTemplateIntoParent, templateTargetParentNode],
   );
 
-  // U2: insert a project-derived source (whole tab / group / area subtree) under a
-  // target GROUP. Non-optimistic — the server copies the subtree via the hardened
-  // RPC and returns the refreshed tree. (Area targets need a wrap flow like
-  // templates; not wired in this pass — the panel/drop gate to group targets.)
+  // U2: insert a project-derived source (whole tab / node subtree) as a child of
+  // a target node. Non-optimistic — the server copies the subtree via the
+  // hardened RPC and returns the refreshed tree. P6: any node is a valid target
+  // (no group gate); the relaxed insert_estimate_subtree RPC accepts it.
   const insertProjectSourceIntoParentById = useStableCallback(
     (targetParentNodeId: string, source: { projectId: string; estimateId: string; tabId: string; nodeId: string | null }) => {
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (targetParentNode?.kind !== "group") return false;
+      if (!targetParentNode) return false;
       if (!projectId || !estimateId) return false;
 
       insertProjectSourceIntoEstimate({
@@ -1776,13 +1656,14 @@ export function EstimateSheetContent({
     [insertProjectSourceIntoParentById, templateTargetParentNode],
   );
 
-  // Inserts ONE node of a template (a group or area inside it) with its
-  // subtree. Same optimistic shape as whole-template insertion; the server
-  // recreates the subtree through the history-aware node/row RPCs.
+  // Inserts ONE node of a template (any node inside it) with its subtree. Same
+  // optimistic shape as whole-template insertion; the server recreates the
+  // subtree through the history-aware node/row RPCs. P6: any node is a valid
+  // target (no group gate).
   const insertTemplateNodeIntoParent = useStableCallback(
     (targetParentNodeId: string, template: EstimateTemplate, templateNode: EstimateTreeNode) => {
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (targetParentNode?.kind !== "group") return false;
+      if (!targetParentNode) return false;
 
       const previousTree = estimateTree;
       const previousRows = editableRows;
@@ -1831,13 +1712,11 @@ export function EstimateSheetContent({
 
   const insertTemplateNodeIntoSelectedGroup = useCallback(
     (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
-      if (selectedNode?.kind === "area") {
-        return wrapAreaAndInsertTemplates(selectedNode.id, { kind: "template-node", templateId: template.id, templateNodeId: templateNode.id });
-      }
+      // P6: insert directly into the selected node (any kind), no area-wrap.
       if (!templateTargetParentNode) return false;
       return insertTemplateNodeIntoParent(templateTargetParentNode.id, template, templateNode);
     },
-    [insertTemplateNodeIntoParent, selectedNode, templateTargetParentNode, wrapAreaAndInsertTemplates],
+    [insertTemplateNodeIntoParent, templateTargetParentNode],
   );
 
   const insertBlankRow = useCallback(
@@ -1882,24 +1761,14 @@ export function EstimateSheetContent({
     return () => window.removeEventListener("archestimator:add-library-item", handleSidebarAdd);
   }, [insertLibraryItem, insertTargetNodeId]);
 
-  // Template drops on the left estimate tree arrive here: that panel can
-  // target a group or area row but the optimistic insert + rollback flow
-  // lives in this component. Category drags carry several template ids;
-  // dragging a node from inside a template carries that node's id. Area
-  // targets wrap the area and the payload in a new group.
+  // Template drops on the left estimate tree arrive here: that panel can target
+  // ANY node row, but the optimistic insert + rollback flow lives in this
+  // component. Category drags carry several template ids; dragging a node from
+  // inside a template carries that node's id. P6: every target inserts directly
+  // (no area-wrap branch).
   useEffect(() => {
     function handleInsertTemplateEvent(event: Event) {
-      const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { targetParentNodeId?: string; wrapAreaNodeId?: string; templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
-      if (typeof detail?.wrapAreaNodeId === "string") {
-        if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
-          wrapAreaAndInsertTemplates(detail.wrapAreaNodeId, { kind: "template-node", templateId: detail.templateId, templateNodeId: detail.templateNodeId });
-          return;
-        }
-        if (!Array.isArray(detail.templateIds)) return;
-        const wrapTemplateIds = detail.templateIds.filter((templateId): templateId is string => typeof templateId === "string" && templateId.length > 0);
-        if (wrapTemplateIds.length > 0) wrapAreaAndInsertTemplates(detail.wrapAreaNodeId, { kind: "templates", templateIds: wrapTemplateIds });
-        return;
-      }
+      const detail = (event as CustomEvent<Partial<InsertEstimateTemplateEventDetail> & { targetParentNodeId?: string; templateId?: string; templateNodeId?: string; templateIds?: unknown }>).detail;
       if (typeof detail?.targetParentNodeId !== "string") return;
       if (typeof detail.templateId === "string" && typeof detail.templateNodeId === "string") {
         insertTemplateNodeIntoParentById(detail.targetParentNodeId, detail.templateId, detail.templateNodeId);
@@ -1911,7 +1780,7 @@ export function EstimateSheetContent({
     }
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-  }, [insertTemplatesIntoParentById, insertTemplateNodeIntoParentById, wrapAreaAndInsertTemplates]);
+  }, [insertTemplatesIntoParentById, insertTemplateNodeIntoParentById]);
 
   // U2: a project source dropped onto a group row hands the insert over here (the
   // sheet owns the tree + the action), mirroring the template-drop event flow.
@@ -2163,7 +2032,6 @@ export function EstimateSheetContent({
                     onInsertLibraryItem={insertLibraryItem}
                     onInsertTemplates={insertTemplatesIntoParentById}
                     onInsertTemplateNode={insertTemplateNodeIntoParentById}
-                    onWrapAreaWithTemplate={wrapAreaAndInsertTemplates}
                     onAddBlankRow={insertBlankRow}
                     onReplaceRowItem={replaceRowItem}
                     onDeleteRowItem={deleteRowItem}

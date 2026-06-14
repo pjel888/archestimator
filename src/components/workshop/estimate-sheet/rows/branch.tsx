@@ -17,7 +17,7 @@ import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
 import { NodeIcon, STICKY_HEADER_H, STICKY_THEAD_H, getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
-import { ComponentDropTarget, EmptyNodeMessage, TemplateDropZone } from "./drop-zones";
+import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
 
 export type BreadcrumbNode = { id: string; name: string };
@@ -31,8 +31,6 @@ export type EstimateSheetBranchProps = {
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onInsertTemplates: (targetParentNodeId: string, templateIds: string[]) => void;
   onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
-  /** Root-level area sheets only: a template drop wraps the area and the payload in a new group. */
-  onWrapAreaWithTemplate?: (areaNodeId: string, payload: EstimateTemplateDragPayload) => void;
   onAddBlankRow: (targetNodeId: string) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
@@ -77,7 +75,7 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false, stickyTop = 0 }: EstimateSheetBranchProps) {
+export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false, stickyTop = 0 }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -88,20 +86,18 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   const hasChildren = childAreas.length > 0;
   const hasOwnRows = estimateRowItems.length > 0;
   const hasContents = hasChildren || hasOwnRows;
-  const isGroup = node.kind === "group";
-  const hasMixedChildKinds = childAreas.some((child) => child.kind === "group") && childAreas.some((child) => child.kind === "area");
   const leftIndent = Math.min(depth * 32, 192);
   const total = computeNodeTotal(node, editableRows);
-  const showBreadcrumbs = !collapsed && !isGroup && ancestorPath.length > 0;
+  const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
   // Own-rows <thead> pins directly below this node's header; children pin below
   // both this header and (when present) this node's own-rows header so no two
   // sticky layers share a top offset.
   const ownRowsStickyTop = stickyTop + STICKY_HEADER_H;
   const childStickyTop = ownRowsStickyTop + (hasOwnRows ? STICKY_THEAD_H : 0);
-  // Areas cannot take child nodes, so a template dropped on an area-scoped
-  // sheet root wraps the area and the template in a new group instead.
-  const isWrapTarget = !isGroup && depth === 0 && Boolean(onWrapAreaWithTemplate);
-  const canReceiveTemplates = isGroup || isWrapTarget;
+  // P6 single-node model: every node is a first-class area that can hold rows
+  // AND child sub-areas, so a template/subtree drops directly into ANY node —
+  // there is no area-wrap path anymore.
+  const canReceiveTemplates = true;
   // L7 accessible name: announce the node's dual content. "{name}, area
   // {, N rows}{, M sub-areas}" — clauses omitted when zero.
   const headerAriaLabel = [
@@ -125,10 +121,9 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     event.dataTransfer.dropEffect = "copy";
   }
 
-  // Groups stop enter/leave propagation so an ancestor group's highlight
-  // turns off while the pointer is over a nested group (where the drop would
-  // actually land). Areas let the events bubble: hovering an area highlights
-  // the ancestor group that would receive the template.
+  // Every node is now a direct drop target, so each stops enter/leave
+  // propagation: an ancestor's highlight turns off while the pointer is over a
+  // nested node (where the drop actually lands).
   function handleTemplateDragEnter(event: DragEvent<HTMLElement>) {
     if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
     event.stopPropagation();
@@ -142,10 +137,6 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   }
 
   function applyTemplateDropPayload(payload: EstimateTemplateDragPayload) {
-    if (isWrapTarget) {
-      onWrapAreaWithTemplate?.(node.id, payload);
-      return;
-    }
     if (payload.kind === "template-node") {
       onInsertTemplateNode(node.id, payload.templateId, payload.templateNodeId);
       return;
@@ -167,8 +158,10 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     <section
       className={cn(
         groupGap(depth, usesSiblingGroupRhythm),
-        !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20"),
-        templateDragActive && canReceiveTemplates && templateDragOverCount > 0 && "bg-surfaceWarm/30",
+        // One node chrome for every node (single-node model): a bordered,
+        // muted-surface card; only the root gets the xs corner radius.
+        depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20",
+        templateDragActive && templateDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
       onDragOver={handleTemplateDragOver}
@@ -176,7 +169,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
       onDragLeave={handleTemplateDragLeave}
       onDrop={handleTemplateDrop}
     >
-      <div className={cn("sticky z-[20]", !isGroup && "bg-white")} style={{ top: stickyTop }}>
+      <div className="sticky z-[20] bg-white" style={{ top: stickyTop }}>
         <div
           className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses())}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
@@ -272,17 +265,17 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
             onToggleRowSelection={onToggleRowSelection}
             onToggleRowsSelection={onToggleRowsSelection}
           />
-          {/* Add-row / drag-a-component strip. Always present (every node can
-              hold rows); the empty-leaf "Add a row" state lives here. */}
-          {!(hasChildren && !hasOwnRows) ? (
-            <ComponentDropTarget
-              nodeId={node.id}
-              nodeName={node.name}
-              empty={!hasContents}
-              onInsertLibraryItem={onInsertLibraryItem}
-              onAddBlankRow={onAddBlankRow}
-            />
-          ) : null}
+          {/* Add-row / drag-a-component strip. Always present on EVERY node —
+              P6 lets any node hold rows even when it already has child
+              sub-areas — so a quiet "Add row" affordance is always available,
+              and the empty node's "Add a row or a sub-area" state lives here. */}
+          <ComponentDropTarget
+            nodeId={node.id}
+            nodeName={node.name}
+            empty={!hasContents}
+            onInsertLibraryItem={onInsertLibraryItem}
+            onAddBlankRow={onAddBlankRow}
+          />
           {/* Child sub-areas LAST (depth+1), pinned below this node's sticky
               header (and own-rows thead when present). */}
           {childAreas.map((child, childIndex) => {
@@ -312,24 +305,18 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}
                 depth={depth + 1}
-                usesSiblingGroupRhythm={hasMixedChildKinds}
                 stickyTop={childStickyTop}
               />
             );
           })}
-          {/* Unified empty state (L5). An empty leaf shows "Add a row" via the
-              strip above. An empty container (a legacy group today — no rows,
-              no children) shows the truthful "Add a sub-area" line instead — no
-              affordance that does not yet work (mixed creation is P6). */}
-          {isGroup && !hasContents ? <EmptyNodeMessage templateDragActive={templateDragActive} /> : null}
-          {canReceiveTemplates && templateDragActive ? (
+          {/* Unified empty state (L5/P6). Every empty node now offers BOTH
+              creatable paths (a row OR a sub-area) through ComponentDropTarget's
+              empty state above — the promise gap held in P4 is closed, so the
+              separate group-only "Add a sub-area" message is gone. */}
+          {templateDragActive ? (
             <TemplateDropZone
               nodeId={node.id}
-              label={
-                isWrapTarget
-                  ? `Drop ${activeTemplateName || "template"} here to group it with ${node.name}`
-                  : `Drop ${activeTemplateName || "template"} into ${node.name}`
-              }
+              label={`Drop ${activeTemplateName || "template"} into ${node.name}`}
               onDropPayload={applyTemplateDropPayload}
             />
           ) : null}

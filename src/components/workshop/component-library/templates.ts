@@ -13,6 +13,9 @@ export const PROJECT_SOURCE_DRAG_MIME_TYPE = "application/x-archestimator-projec
  */
 export const INSERT_ESTIMATE_TEMPLATE_EVENT = "archestimator:insert-estimate-template";
 
+// Single-node model (P6): a template (or one of its nodes) inserts directly as
+// a child of ANY target node — there is no area-wrap path anymore, so the only
+// targeting field is `targetParentNodeId`.
 export type InsertEstimateTemplateEventDetail =
   | {
       targetParentNodeId: string;
@@ -20,16 +23,6 @@ export type InsertEstimateTemplateEventDetail =
     }
   | {
       targetParentNodeId: string;
-      templateId: string;
-      templateNodeId: string;
-    }
-  | {
-      /** Area target: the sheet wraps this area and the payload in a new group. */
-      wrapAreaNodeId: string;
-      templateIds: string[];
-    }
-  | {
-      wrapAreaNodeId: string;
       templateId: string;
       templateNodeId: string;
     };

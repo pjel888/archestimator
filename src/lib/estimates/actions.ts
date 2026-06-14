@@ -8,12 +8,8 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
-  canNestEstimateNodeKind,
-  getEstimateNodeNestingError,
-  getEstimateWrapGroupName,
   normalizeEstimateTreeNodeKind,
   selectFirstEstimateNodeIds,
-  type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
 import {
   buildProjectEstimateListRow,
@@ -1413,16 +1409,12 @@ export async function reorderEstimateTreeNodes(
       throw new Error("Estimate tree nodes cannot be moved across tabs.");
     }
 
-    const nodeKind = normalizeEstimateTreeNodeKind(node.kind);
-    if (!nodeKind) throw new Error("Unsupported estimate node kind.");
-
-    let parentKind: EstimateTreeNodeKind | null = null;
-    if (parentNode) {
-      parentKind = normalizeEstimateTreeNodeKind(parentNode.kind);
-      if (!parentKind) throw new Error("Unsupported estimate node kind.");
-    }
-
-    if (!canNestEstimateNodeKind(nodeKind, parentKind)) throw new Error(getEstimateNodeNestingError(nodeKind, parentKind));
+    // P6 single-node model: any node may parent any node. The kind label is no
+    // longer a nesting discriminant, so the only structural rules left here are
+    // same-estimate ownership (above) and cross-tab isolation (above); cycle
+    // detection is enforced by the DB reorder RPC.
+    if (!normalizeEstimateTreeNodeKind(node.kind)) throw new Error("Unsupported estimate node kind.");
+    if (parentNode && !normalizeEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
   }
 
   const moveUpdates = input.updates.map((update) => ({
@@ -2005,7 +1997,6 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   const parentId = readOptionalText(formData, "parentId");
   const estimateTabId = readOptionalText(formData, "estimateTabId");
   if (parentId) assertNotOptimisticEstimateNodeId(parentId, "Parent estimate node");
-  let parentKind: EstimateTreeNodeKind | null = null;
 
   const { data: estimate, error: estimateError } = await supabase
     .from("estimates")
@@ -2028,12 +2019,10 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
 
     if (parentError) throw parentError;
     if (!parentNode) throw new Error("Parent estimate node not found in the current project.");
-    parentKind = normalizeEstimateTreeNodeKind(parentNode.kind);
-    if (!parentKind) throw new Error("Unsupported estimate node kind.");
-  }
-
-  if (!canNestEstimateNodeKind(kind, parentKind)) {
-    throw new Error(getEstimateNodeNestingError(kind, parentKind));
+    // P6 single-node model: any node may parent any node, so there is no
+    // parent-kind nesting rule to enforce. We still normalize to reject a DB
+    // row carrying an unknown/legacy-unmappable kind.
+    if (!normalizeEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
   }
 
   const siblingQuery = supabase
@@ -2502,135 +2491,26 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   return { tree, insertedRootNodeId };
 }
 
-type WrapEstimateAreaAndInsertTemplateInput = {
-  projectId: string;
-  estimateId: string;
-  areaNodeId: string;
-  insert:
-    | { templateIds: string[] }
-    | { templateId: string; templateNodeId: string };
-  // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
-  targetTabId?: string;
-};
-
-type WrapEstimateAreaAndInsertTemplateResult = {
-  tree: EstimateTreeNode[];
-  newGroupNodeId: string;
-};
-
-/**
- * Template drop on an area node: areas cannot take child nodes, so this
- * creates a wrapper group in the area's slot, moves the area inside it, and
- * inserts the template content as the area's new siblings. Composed from the
- * history-aware RPCs; a mid-way failure leaves the already-created nodes
- * visible and deletable rather than rolling back (same contract as
- * insertEstimateTemplateNodeIntoEstimate).
- */
-export async function wrapEstimateAreaAndInsertTemplate({
-  projectId,
-  estimateId,
-  areaNodeId,
-  insert,
-  targetTabId,
-}: WrapEstimateAreaAndInsertTemplateInput): Promise<WrapEstimateAreaAndInsertTemplateResult> {
-  assertNotOptimisticEstimateNodeId(areaNodeId, "Estimate area node");
-  if ("templateIds" in insert && insert.templateIds.length === 0) throw new Error("At least one estimate template is required.");
-
-  const { project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) throw new Error("Project not found in the current workspace.");
-
-  const supabase = await createSupabaseServerClient();
-  const currentUser = await requireCurrentUserContext();
-  // U4-2: assert edit access at the very top — before the wrapper-group create
-  // and the area reorder below — so a denied viewer leaves no orphan group.
-  await assertCanEditEstimate(supabase, estimateId);
-
-  const { data: areaNode, error: areaError } = await supabase
-    .from("estimate_nodes")
-    .select("id, kind, name, parent_id, sort_order, estimates!inner(project_id)")
-    .eq("id", areaNodeId)
-    .eq("estimate_id", estimateId)
-    .eq("kind", "area")
-    .eq("estimates.project_id", project.id)
-    .maybeSingle();
-  if (areaError) throw areaError;
-  if (!areaNode) throw new Error("Area node not found in the current estimate.");
-  if (!areaNode.parent_id) throw new Error("Area node has no parent group to wrap under.");
-
-  const { data: groupResult, error: groupError } = await supabase.rpc("create_estimate_node_with_history", {
-    target_project_id: project.id,
-    target_estimate_id: estimateId,
-    parent_node_id: areaNode.parent_id,
-    node_kind: "group",
-    node_name: getEstimateWrapGroupName(areaNode.name),
-    initial_sort_order: areaNode.sort_order,
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
-  });
-  if (groupError) throw new Error(`Could not create the wrapper group: ${groupError.message}`);
-  const groupResultRecord = readJsonRecord(groupResult);
-  const groupResultPayload = readJsonRecord(groupResultRecord.payload);
-  const newGroupNodeId = typeof groupResultRecord.nodeId === "string"
-    ? groupResultRecord.nodeId
-    : typeof groupResultPayload.nodeId === "string"
-      ? groupResultPayload.nodeId
-      : "";
-  if (!newGroupNodeId) throw new Error("Estimate node history RPC did not return the created wrapper group id.");
-
-  const { error: moveError } = await supabase.rpc("reorder_estimate_nodes_with_history", {
-    target_estimate_id: estimateId,
-    move_updates: [{ id: areaNodeId, parent_id: newGroupNodeId, sort_order: 0 }],
-    acting_user_id: currentUser.userId,
-    correlation_id: randomUUID(),
-  });
-  if (moveError) throw new Error(`Could not move the area into the wrapper group: ${moveError.message}`);
-
-  if ("templateNodeId" in insert) {
-    await insertEstimateTemplateNodeIntoEstimate({
-      projectId,
-      estimateId,
-      targetParentNodeId: newGroupNodeId,
-      templateId: insert.templateId,
-      templateNodeId: insert.templateNodeId,
-      targetTabId,
-    });
-  } else {
-    for (const templateId of insert.templateIds) {
-      const { error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
-        target_project_id: project.id,
-        target_estimate_id: estimateId,
-        target_parent_node_id: newGroupNodeId,
-        source_template_id: templateId,
-        acting_user_id: currentUser.userId,
-        correlation_id: randomUUID(),
-      });
-      if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
-    }
-  }
-
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
-  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after grouping the area.");
-
-  return { tree, newGroupNodeId };
-}
-
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem, mutationId }: InsertEstimateRowItemFromLibraryInput) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
+  // P6 single-node model: a row may be inserted into ANY node, not only the
+  // former "area" kind. We still scope the target to a node that exists in this
+  // estimate/project; the relaxed insert_estimate_row_item_with_history RPC
+  // enforces the existence/orphan invariant server-side.
   const { data: targetNode, error: nodeError } = await supabase
     .from("estimate_nodes")
     .select("id, estimate_id, kind, estimates!inner(project_id)")
     .eq("id", targetNodeId)
     .eq("estimate_id", estimateId)
-    .eq("kind", "area")
     .eq("estimates.project_id", project.id)
     .maybeSingle();
 
   if (nodeError) throw nodeError;
-  if (!targetNode) throw new Error("Target estimate area not found in the current project.");
+  if (!targetNode) throw new Error("Target estimate node not found in the current project.");
 
   const { data: existingRows, error: rowsError } = await supabase
     .from("estimate_row_items")

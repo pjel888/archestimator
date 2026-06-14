@@ -2,9 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { findEstimateNode, sampleEstimateTree, validateEstimateTreeHierarchy, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import {
-  canNestEstimateNodeKind,
-  getEstimateNodeDisplayKind,
-  isEstimateGroupNodeKind,
   isEstimateTreeNodeKind,
   normalizeEstimateTreeNodeKind,
   type EstimateTreeNodeKind,
@@ -30,13 +27,6 @@ describe("estimate tree hierarchy", () => {
     expect(activeNodeKinds).toEqual(["group", "area"]);
     expect(activeNodeKinds.every((kind) => isEstimateTreeNodeKind(kind))).toBe(true);
     expect(legacyTechnicalKinds.map((kind) => isEstimateTreeNodeKind(kind))).toEqual([false, false, false, false, false]);
-  });
-
-  it("uses one Group Node concept for every non-area hierarchy label", () => {
-    expect(getEstimateNodeDisplayKind("group")).toBe("group");
-    expect(isEstimateGroupNodeKind("group")).toBe(true);
-    expect(getEstimateNodeDisplayKind("area")).toBe("area");
-    expect(isEstimateGroupNodeKind("area")).toBe(false);
   });
 
   it("normalizes legacy organizing kinds to group during the remote migration transition", () => {
@@ -66,14 +56,10 @@ describe("estimate tree hierarchy", () => {
     expect(siteWorks?.children?.some((node) => node.kind === "area")).toBe(true);
   });
 
-  it("allows root -> group and group -> group|area while blocking area parents", () => {
-    expect(canNestEstimateNodeKind("group", null)).toBe(true);
-    expect(canNestEstimateNodeKind("area", null)).toBe(false);
-    expect(canNestEstimateNodeKind("group", "group")).toBe(true);
-    expect(canNestEstimateNodeKind("area", "group")).toBe(true);
-    expect(canNestEstimateNodeKind("group", "area")).toBe(false);
-    expect(canNestEstimateNodeKind("area", "area")).toBe(false);
-  });
+  // P6 single-node model: the kind-based nesting helper (canNestEstimateNodeKind)
+  // is deleted — any node may parent any node. Nesting acceptance is now proven
+  // behaviorally in estimate-tree-reorder.test.ts (evaluateEstimateTreeDrop) and
+  // estimate-mixed-content.test.tsx; only cycle/self-drop/cross-tab remain.
 
   it("keeps all sample tree technical kinds limited to group and area", () => {
     expect(Array.from(collectNodeKinds(sampleEstimateTree)).sort()).toEqual(["area", "group"]);

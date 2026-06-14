@@ -166,6 +166,14 @@ export interface TreeProps {
   draggable?: boolean;
   selectable?: boolean;
   expandable?: boolean;
+  /**
+   * Allow "inside" (containment) drops on leaf rows, not just folders. Leaves
+   * normally only accept before/after band drops; set this when any node can
+   * gain children (e.g. the unified estimate tree, where a childless node can
+   * still receive a dropped node, template, or subtree). Defaults to false so
+   * existing consumers keep folder-only containment.
+   */
+  allowInsideOnLeaves?: boolean;
   /** Extra MIME type stamped on drag data, for cross-surface drop targeting. */
   dragDataType?: string;
   /**
@@ -512,6 +520,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       draggable = false,
       selectable = false,
       expandable = true,
+      allowInsideOnLeaves = false,
       dragDataType,
       externalDrop,
       rootDropZones,
@@ -694,7 +703,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         types: readonly string[]
       ): { id: string; position: TreeDropPosition } | null => {
         if (!externalDrop) return null;
-        const banded = readDropPositionFromEvent(event, flat.isFolder);
+        const banded = readDropPositionFromEvent(event, flat.isFolder || allowInsideOnLeaves);
         const candidates: TreeDropPosition[] = banded === "inside" ? ["inside"] : [banded, "inside"];
         for (const position of candidates) {
           if (externalDrop.canDrop(types, flat.id, position, flat.node)) {
@@ -703,7 +712,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         }
         return null;
       },
-      [externalDrop]
+      [externalDrop, allowInsideOnLeaves]
     );
 
     // External drags end outside this tree's rows (drop elsewhere, Escape),
@@ -745,14 +754,14 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
      */
     const resolveDropIntent = useCallback(
       (flat: FlatNode, event: DragEvent<HTMLElement>): { id: string; position: TreeDropPosition } => {
-        const position = readDropPositionFromEvent(event, flat.isFolder);
+        const position = readDropPositionFromEvent(event, flat.isFolder || allowInsideOnLeaves);
         const firstChildId = flat.node.children?.[0]?.id;
         if (position === "after" && flat.isFolder && flat.isExpanded && firstChildId) {
           return { id: firstChildId, position: "before" };
         }
         return { id: flat.id, position };
       },
-      []
+      [allowInsideOnLeaves]
     );
 
     const isDropIntentForRow = useCallback(

@@ -48,10 +48,6 @@ export type EstimateTree = {
   rows: EstimateRowItem[];
 };
 
-export function canNodeReceiveRows(kind: EstimateNodeKind) {
-  return kind === "area";
-}
-
 export function getNodeById(nodes: EstimateNode[], nodeId: string) {
   return nodes.find((node) => node.id === nodeId) ?? null;
 }
