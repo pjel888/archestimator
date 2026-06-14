@@ -1,9 +1,11 @@
 # Estimate-Tree Single-Node Unification — Implementation Ledger
 
 **Date:** 2026-06-14
-**Branch:** `2026-06-13-Estimate-Tree-Single-Node-Unification` (worktree retained — work intentionally incomplete)
+**Branch:** `2026-06-13-Estimate-Tree-Single-Node-Unification` (retained)
 **Plan:** `.ai/03_plans/2026-06-13-Estimate-Tree-Single-Node-Unification/`
-**Landed on `origin/main`:** commits `7127e976` (P0), `1b7cd161` (P1), `667a1bb1` (P2-export), `1eb7195f` (P3-crash-safety) — ff-pushed; main worktree fast-forwarded to `1eb7195f`.
+**Landed on `origin/main`:** P0–P6 complete (final tip `bf05415e`). **P5 + P6 migrations APPLIED to prod.**
+
+> **⚠️ UPDATE 2026-06-14 — NOW COMPLETE (P0–P6); supersedes the "corridor-only / staged" framing below.** After the initial reversible corridor (P0–P4, production no-ops) the owner came online and supervised the irreversible step. **P5 relax-only migration** (`20260614003639_unify_estimate_node_kinds`) and **P6 RPC-guard relaxation** (`enable_estimate_node_mixed_writes_p6`) were both APPLIED to prod `ebxxqidacheyapmmzavr` (recorded in remote migration history), and the **UI write-enable** landed (wrap machinery + all client kind-guards deleted; single "Add Area" creates a child area of any node; insertion targets any node; cycle/cross-tab/self-drop still rejected). Each apply followed: pre-flight 0 mixed nodes → rollback artifact captured (`scripts/sql/unify-rollback-pre-apply.sql`; P6 = original guarded RPC defs) → local PG17 prove-harness green → applied via MCP → post-verified (5 fns relaxed, P5 guards intact then P6 dropped, data unchanged 139/114/10/16, advisors 0 ERROR, gen-types no-op). **Point of no return crossed** (first mixed save makes the pre-apply dump stale → forward-fix only; reads already kind-agnostic per P1–P3). P7 dead-code removed except still-wired `correctKinds`. Owner decisions: Q-1 "Area", Q-3 window=now. A concurrent Templates-Panel change conflicted on 3 files and was merged keeping both intents. See also `…-P5-apply.md`. The phase-by-phase detail below remains accurate for *what each phase did*; only the "staged/not-done" status is superseded.
 
 ---
 
