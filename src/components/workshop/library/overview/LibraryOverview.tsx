@@ -66,8 +66,8 @@ function RecentTemplateRow({
   onOpen: (templateId: string) => void;
 }) {
   const counts = [
-    pluralize(template.groupCount, "group"),
-    pluralize(template.areaCount, "area"),
+    // One node type: groups + areas read as a single "area" count.
+    pluralize(template.groupCount + template.areaCount, "area"),
     pluralize(template.rowCount, "row"),
   ].join(" · ");
 

@@ -341,7 +341,7 @@ function TemplateSheetBranch({
       onDrop={handleNodeDrop}
     >
       <div
-        className={cn("group/node flex h-9 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
+        className={cn("group/node flex h-9 items-center gap-2 px-1", nodeHeaderClasses())}
         style={{ paddingLeft: `${leftIndent + 8}px` }}
       >
         <Button
@@ -355,10 +355,10 @@ function TemplateSheetBranch({
           <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
         </Button>
         <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
-          <NodeIcon kind={node.kind} />
+          <NodeIcon />
         </span>
         <p
-          className={cn("min-w-0 flex-1", nodeNameClasses(node.kind))}
+          className={cn("min-w-0 flex-1", nodeNameClasses())}
           onDoubleClick={() => handlers.onRenameNode(node)}
           title="Double-click to rename"
         >
@@ -403,7 +403,7 @@ function TemplateSheetBranch({
             <Trash size={12} weight="regular" aria-hidden="true" />
           </Button>
         </span>
-        <span className={nodeTotalClasses(node.kind)}>{pesoFormatter.format(total)}</span>
+        <span className={nodeTotalClasses()}>{pesoFormatter.format(total)}</span>
       </div>
 
       {!collapsed ? (

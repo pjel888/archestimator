@@ -16,8 +16,8 @@ import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
-import { NodeIcon, getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
-import { ComponentDropTarget, EmptyGroupMessage, TemplateDropZone } from "./drop-zones";
+import { NodeIcon, STICKY_HEADER_H, STICKY_THEAD_H, getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
+import { ComponentDropTarget, EmptyNodeMessage, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
 
 export type BreadcrumbNode = { id: string; name: string };
@@ -47,6 +47,13 @@ export type EstimateSheetBranchProps = {
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
   depth?: number;
   usesSiblingGroupRhythm?: boolean;
+  /**
+   * Accumulated sticky offset (px) for this node's header. The root passes 0;
+   * each level adds its parent header height plus the parent's own-rows
+   * <thead> height (when the parent has own rows) so nested sticky layers
+   * stack instead of colliding at top-0. See node-visuals STICKY_* consts.
+   */
+  stickyTop?: number;
 };
 
 /**
@@ -70,23 +77,38 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false, stickyTop = 0 }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
-  const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
-  const canReceiveRows = true;
+  // Containment is derived from CHILDREN, not kind: a node is a leaf iff it has
+  // no child sub-areas. The disclosure caret, aria-expanded, and the rows-vs
+  // -sub-areas distinction all key off this.
+  const hasChildren = childAreas.length > 0;
+  const hasOwnRows = estimateRowItems.length > 0;
+  const hasContents = hasChildren || hasOwnRows;
   const isGroup = node.kind === "group";
   const hasMixedChildKinds = childAreas.some((child) => child.kind === "group") && childAreas.some((child) => child.kind === "area");
   const leftIndent = Math.min(depth * 32, 192);
   const total = computeNodeTotal(node, editableRows);
-  const displayKind = isGroup ? "group" : "area";
   const showBreadcrumbs = !collapsed && !isGroup && ancestorPath.length > 0;
+  // Own-rows <thead> pins directly below this node's header; children pin below
+  // both this header and (when present) this node's own-rows header so no two
+  // sticky layers share a top offset.
+  const ownRowsStickyTop = stickyTop + STICKY_HEADER_H;
+  const childStickyTop = ownRowsStickyTop + (hasOwnRows ? STICKY_THEAD_H : 0);
   // Areas cannot take child nodes, so a template dropped on an area-scoped
   // sheet root wraps the area and the template in a new group instead.
   const isWrapTarget = !isGroup && depth === 0 && Boolean(onWrapAreaWithTemplate);
   const canReceiveTemplates = isGroup || isWrapTarget;
+  // L7 accessible name: announce the node's dual content. "{name}, area
+  // {, N rows}{, M sub-areas}" — clauses omitted when zero.
+  const headerAriaLabel = [
+    `${node.name}, area`,
+    hasOwnRows ? `${estimateRowItems.length} ${estimateRowItems.length === 1 ? "row" : "rows"}` : null,
+    hasChildren ? `${childAreas.length} ${childAreas.length === 1 ? "sub-area" : "sub-areas"}` : null,
+  ].filter(Boolean).join(", ");
   const activeDrag = useEstimateWorkshopDrag();
   const templateDragActive = activeDrag?.kind === "estimate-template";
   const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
@@ -144,7 +166,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   return (
     <section
       className={cn(
-        groupGap(depth, node.kind, usesSiblingGroupRhythm),
+        groupGap(depth, usesSiblingGroupRhythm),
         !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20"),
         templateDragActive && canReceiveTemplates && templateDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
@@ -154,38 +176,50 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
       onDragLeave={handleTemplateDragLeave}
       onDrop={handleTemplateDrop}
     >
-      <div className={cn("sticky top-0 z-[20]", !isGroup && "bg-white")}>
+      <div className={cn("sticky z-[20]", !isGroup && "bg-white")} style={{ top: stickyTop }}>
         <div
-          className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
+          className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses())}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
         >
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name} ${displayKind}`}
-            aria-expanded={!collapsed}
-            className="size-6 rounded-xs p-0 text-tertiary"
-            onClick={() =>
-              setCollapsedNodeIds((prev) => {
-                const next = new Set(prev);
-                if (next.has(node.id)) next.delete(node.id);
-                else next.add(node.id);
-                return next;
-              })
-            }
-          >
-            <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
-          </Button>
+          {/* L7 dual-content announcement as a real (visually-hidden) text
+              node — kept off the section's aria-label so it doesn't duplicate
+              the node-name labelled region. "{name}, area{, N rows}{, M
+              sub-areas}". */}
+          <span className="sr-only">{headerAriaLabel}</span>
+          {hasChildren ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name}`}
+              aria-expanded={!collapsed}
+              className="size-6 rounded-xs p-0 text-tertiary"
+              onClick={() =>
+                setCollapsedNodeIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(node.id)) next.delete(node.id);
+                  else next.add(node.id);
+                  return next;
+                })
+              }
+            >
+              <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
+            </Button>
+          ) : (
+            // Reserve the caret slot so leaf names stay aligned with parents.
+            // Non-focusable, no aria-expanded — a leaf must not advertise
+            // expandability (L7).
+            <span className="size-6 shrink-0" aria-hidden="true" />
+          )}
           <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
-            <NodeIcon kind={node.kind} />
+            <NodeIcon />
           </span>
           <div className="min-w-0 flex-1">
             {nodeCode && (
               <p className="text-[8px] font-sans leading-none tabular-nums text-tertiary">{nodeCode}</p>
             )}
-            <p className={nodeNameClasses(node.kind)}>{node.name}</p>
+            <p className={nodeNameClasses()}>{node.name}</p>
           </div>
-          <span className={nodeTotalClasses(node.kind)}>{pesoFormatter.format(total)}</span>
+          <span className={nodeTotalClasses()}>{pesoFormatter.format(total)}</span>
         </div>
 
         {showBreadcrumbs && (
@@ -207,7 +241,50 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
       </div>
 
       {!collapsed ? (
-        <div className={cn(isGroup ? "space-y-1" : "space-y-4", !showBreadcrumbs && "mt-1")}>
+        <div className={cn("space-y-4", !showBreadcrumbs && "mt-1")}>
+          {/* Rows-first (L1): a node renders its OWN rows + add-row strip
+              directly under its header, ABOVE its child sub-areas, so clicking
+              a node shows its own numbers before an arbitrarily deep subtree. */}
+          {hasOwnRows && hasChildren ? (
+            // "Own items" eyebrow (L4) — shown only when a node has BOTH rows
+            // and children, to disambiguate this node's own rows from the
+            // first child's rows. Doubles as the L7 screen-reader boundary.
+            <p className="text-[9px] font-medium leading-3 text-tertiary" style={{ paddingLeft: `${leftIndent + 8}px` }} data-estimate-own-items-label>
+              Own items
+            </p>
+          ) : null}
+          <EstimateRowItemsTable
+            items={estimateRowItems}
+            editableRows={editableRows}
+            setEditableRows={setEditableRows}
+            targetNodeId={node.id}
+            stickyTop={ownRowsStickyTop}
+            onInsertLibraryItem={onInsertLibraryItem}
+            onReplaceRowItem={onReplaceRowItem}
+            onDeleteRowItem={onDeleteRowItem}
+            onUpdateRowItem={onUpdateRowItem}
+            onMarkRowDirty={onMarkRowDirty}
+            onOpenRowDetails={onOpenRowDetails}
+            onClearRowComponent={onClearRowComponent}
+            onRequestProjectSpecific={onRequestProjectSpecific}
+            onMoveRowComponent={onMoveRowComponent}
+            selectedRowIds={selectedRowIds}
+            onToggleRowSelection={onToggleRowSelection}
+            onToggleRowsSelection={onToggleRowsSelection}
+          />
+          {/* Add-row / drag-a-component strip. Always present (every node can
+              hold rows); the empty-leaf "Add a row" state lives here. */}
+          {!(hasChildren && !hasOwnRows) ? (
+            <ComponentDropTarget
+              nodeId={node.id}
+              nodeName={node.name}
+              empty={!hasContents}
+              onInsertLibraryItem={onInsertLibraryItem}
+              onAddBlankRow={onAddBlankRow}
+            />
+          ) : null}
+          {/* Child sub-areas LAST (depth+1), pinned below this node's sticky
+              header (and own-rows thead when present). */}
           {childAreas.map((child, childIndex) => {
             const childCode = getNodeCode(nodeCode, childIndex);
             const childPath = [...ancestorPath, { id: node.id, name: node.name }];
@@ -236,37 +313,15 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
                 onToggleRowsSelection={onToggleRowsSelection}
                 depth={depth + 1}
                 usesSiblingGroupRhythm={hasMixedChildKinds}
+                stickyTop={childStickyTop}
               />
             );
           })}
-          <EstimateRowItemsTable
-            items={estimateRowItems}
-            editableRows={editableRows}
-            setEditableRows={setEditableRows}
-            targetNodeId={node.id}
-            onInsertLibraryItem={onInsertLibraryItem}
-            onReplaceRowItem={onReplaceRowItem}
-            onDeleteRowItem={onDeleteRowItem}
-            onUpdateRowItem={onUpdateRowItem}
-            onMarkRowDirty={onMarkRowDirty}
-            onOpenRowDetails={onOpenRowDetails}
-            onClearRowComponent={onClearRowComponent}
-            onRequestProjectSpecific={onRequestProjectSpecific}
-            onMoveRowComponent={onMoveRowComponent}
-            selectedRowIds={selectedRowIds}
-            onToggleRowSelection={onToggleRowSelection}
-            onToggleRowsSelection={onToggleRowsSelection}
-          />
-          {canReceiveRows ? (
-            <ComponentDropTarget
-              nodeId={node.id}
-              nodeName={node.name}
-              empty={!hasContents}
-              onInsertLibraryItem={onInsertLibraryItem}
-              onAddBlankRow={onAddBlankRow}
-            />
-          ) : null}
-          {isGroup && !hasContents ? <EmptyGroupMessage templateDragActive={templateDragActive} /> : null}
+          {/* Unified empty state (L5). An empty leaf shows "Add a row" via the
+              strip above. An empty container (a legacy group today — no rows,
+              no children) shows the truthful "Add a sub-area" line instead — no
+              affordance that does not yet work (mixed creation is P6). */}
+          {isGroup && !hasContents ? <EmptyNodeMessage templateDragActive={templateDragActive} /> : null}
           {canReceiveTemplates && templateDragActive ? (
             <TemplateDropZone
               nodeId={node.id}

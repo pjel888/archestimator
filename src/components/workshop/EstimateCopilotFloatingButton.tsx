@@ -334,7 +334,7 @@ function PackageDraftPreview({
           <div className="mt-1 space-y-1">
             {draft.treeDraft.slice(0, 8).map((node) => (
               <div key={node.clientDraftId} className="flex items-center gap-1 text-[10px] leading-4 text-ink">
-                <span className="text-tertiary">{node.kind === "group" ? "Group" : "Area"}</span>
+                <span className="text-tertiary">Area</span>
                 <span className="truncate">{node.name}</span>
               </div>
             ))}

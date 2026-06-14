@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { FolderSimple, MapPin, Package, X } from "@phosphor-icons/react/dist/ssr";
+import { Circle, Package, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { TREE_ROW_ICON_SIZE } from "@/components/ui/tree";
@@ -14,11 +14,9 @@ import {
 } from "@/components/workshop/component-library/templates";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 
-function NodeKindIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  if (kind === "group") {
-    return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
-  }
-  return <MapPin size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+// One neutral node glyph for every node (single-node model).
+function NodeKindIcon() {
+  return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function StructureOutlineNode({ node, depth }: { node: EstimateTreeNode; depth: number }) {
@@ -29,7 +27,7 @@ function StructureOutlineNode({ node, depth }: { node: EstimateTreeNode; depth: 
         style={{ paddingLeft: `${depth * 12}px` }}
         data-template-preview-node={node.id}
       >
-        <NodeKindIcon kind={node.kind} />
+        <NodeKindIcon />
         <span className="min-w-0 flex-1 truncate text-[10px] leading-4 text-ink">{node.name}</span>
         <span className="shrink-0 text-[9px] leading-3 tabular-nums text-tertiary">
           {pesoFormatter.format(computeTemplateNodeTotal(node))}
@@ -126,7 +124,7 @@ export function TemplatePreviewDock({ template, onClose, onOpenTemplate, onInser
               template.nodes.map((node) => <StructureOutlineNode key={node.id} node={node} depth={0} />)
             ) : (
               <li className="py-1 text-[10px] leading-4 text-tertiary">
-                No structure yet. Open the template to add groups and areas.
+                No structure yet. Open the template to add Areas.
               </li>
             )}
           </ul>

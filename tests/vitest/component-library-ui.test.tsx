@@ -592,7 +592,8 @@ describe("component library UI", () => {
     });
 
     expect(await screen.findByText("Powder Room")).toBeInTheDocument();
-    expect(screen.getByText(/Area node · 0 groups · 1 area · 0 rows/)).toBeInTheDocument();
+    // P4: one node type — "Area · N sub-areas · M rows" (a leaf area: 0 of each).
+    expect(screen.getByText(/Area · 0 sub-areas · 0 rows/)).toBeInTheDocument();
   });
 });
 
@@ -847,7 +848,7 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
   });
 
   it("loads readable project sources when the Templates tab opens in an estimate context", async () => {
@@ -919,7 +920,7 @@ describe("templates tree", () => {
     openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
 
     expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
-    expect(screen.queryByRole("treeitem", { name: "Amenity Millwork project group" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Amenity Millwork project area" })).not.toBeInTheDocument();
 
     const search = openLibrarySearch();
     fireEvent.change(search, { target: { value: "Amenity" } });
@@ -927,7 +928,7 @@ describe("templates tree", () => {
     await waitFor(() =>
       expect(reusableSourceActionMocks.searchReusableProjectSources).toHaveBeenCalledWith({ query: "Amenity" }),
     );
-    expect(await screen.findByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+    expect(await screen.findByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
   });
 
   it("lazy-loads an estimate outline when a project estimate expands", async () => {
@@ -957,7 +958,7 @@ describe("templates tree", () => {
     );
     expect(await screen.findByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
   });
 
   // Fires a hover on the content area of a tree row (where the prefetch handler
@@ -1139,7 +1140,7 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }), { clientX: 16, clientY: 16 });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }), { clientX: 16, clientY: 16 });
 
     fireEvent.click(await screen.findByRole("menuitem", { name: "Add to Main House" }));
 
@@ -1165,7 +1166,7 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }), { clientX: 16, clientY: 16 });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }), { clientX: 16, clientY: 16 });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Save as template" }));
 
     const dialog = await screen.findByRole("dialog", { name: "New template" });
@@ -1233,7 +1234,7 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project group" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }));
 
     const preview = screen.getByRole("region", { name: "Project source preview" });
     expect(within(preview).getByText("Amenity Millwork")).toBeInTheDocument();
@@ -1324,7 +1325,7 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project group" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Rooms templates" })).not.toBeInTheDocument();
   });
 

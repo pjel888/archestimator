@@ -93,24 +93,25 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(document.documentElement.style.getPropertyValue("--estimate-tree-panel-width")).toBe("300px");
   });
 
-  it("renders direct Add Group and Add Node tools without tiny plus icon overlays", () => {
+  it("renders a single icon-only Add Area tool (no Group/Node split) without plus overlays", () => {
     const { container } = renderTree();
 
     expect(screen.queryByRole("heading", { name: "Tree" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search Tree")).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Search Tree")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show tree search" })).toBeInTheDocument();
+    // P4: one neutral "Add Area" replaces the old "Add Group" + "Add Node" pair.
     expect(
       Array.from(screen.getByLabelText("Tree tools").querySelectorAll("button")).map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Show tree search", "Filter tree", "Group tree", "Expand all tree", "Collapse all tree", "Add Group", "Add Node"]);
+    ).toEqual(["Show tree search", "Filter tree", "Group tree", "Expand all tree", "Collapse all tree", "Add Area"]);
     expect(screen.getByRole("button", { name: "Expand all tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Group" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Node" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Group" })).not.toHaveTextContent("Add Group");
-    expect(screen.getByRole("button", { name: "Add Node" })).not.toHaveTextContent("Add Node");
-    expect(screen.getByRole("button", { name: "Add Group" }).querySelectorAll("svg")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "Add Node" }).querySelectorAll("svg")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Node" })).not.toBeInTheDocument();
+    // Icon-only (no visible text), single glyph.
+    expect(screen.getByRole("button", { name: "Add Area" })).not.toHaveTextContent("Add Area");
+    expect(screen.getByRole("button", { name: "Add Area" }).querySelectorAll("svg")).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Add tree" })).not.toBeInTheDocument();
     expect(screen.queryByRole("toolbar", { name: "Bulk actions" })).not.toBeInTheDocument();
 
@@ -123,60 +124,57 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(screen.queryByRole("search")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search Tree")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
 
     expect(screen.queryByRole("dialog", { name: "Add estimate tree node" })).not.toBeInTheDocument();
     expect(container.querySelector("[role='dialog']")).toBeNull();
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
   });
 
-  it("optimistically shows a new Group Node immediately and mirrors it into the tree cache", () => {
+  it("optimistically shows a new Area immediately and mirrors it into the tree cache", () => {
     actionMocks.createEstimateNode.mockReturnValue(new Promise(() => {}));
+    // With a group selected, Add Area creates an `area` child (write-valid).
     const { queryClient } = renderTree(sampleEstimateTree, "main-house");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
 
-    expect(getOptimisticTreeRow("group")).toBeInTheDocument();
-    expect(screen.getByLabelText("Rename New Group")).toHaveValue("New Group");
-    expect(screen.getByRole("status")).toHaveTextContent("Adding Group");
+    expect(getOptimisticTreeRow("area")).toBeInTheDocument();
+    expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
+    expect(screen.getByRole("status")).toHaveTextContent("Adding area");
     expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
     const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
-    expect(JSON.stringify(optimisticTree)).toContain("New Group");
+    expect(JSON.stringify(optimisticTree)).toContain("New Area");
   });
 
-  it("rolls back an optimistic Add Node when the server action fails", async () => {
+  it("rolls back an optimistic Add Area when the server action fails", async () => {
     actionMocks.createEstimateNode.mockRejectedValue(new Error("Create failed"));
     renderTree(sampleEstimateTree, "main-house");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Node" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
 
     expect(getOptimisticTreeRow("area")).toBeInTheDocument();
-    expect(screen.getByLabelText("Rename New Area Node")).toHaveValue("New Area Node");
+    expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
     expect(await screen.findByText("Create failed")).toBeInTheDocument();
     await waitFor(() => expect(document.querySelector(`[data-estimate-tree-node-id^="optimistic-area-"]`)).toBeNull());
   });
 
-  it("adds Group Nodes and Area Nodes inside the selected Group Node", async () => {
+  it("adds an Area child under the selected group, no kind choice or gate", async () => {
+    // Selecting a group, Add Area creates an `area` child named "New Area".
     renderTree(sampleEstimateTree, "main-house");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
-    let formData = submittedCreateFormData();
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    const formData = submittedCreateFormData();
     expect(actionMocks.createEstimateNode).toHaveBeenLastCalledWith("project-1", "estimate-1", expect.any(FormData));
-    expect(formData.get("kind")).toBe("group");
-    expect(formData.get("name")).toBe("New Group");
-    expect(formData.get("parentId")).toBe("main-house");
-
-    // The new group becomes the selection, so the next Area Node nests inside
-    // it once its create resolves to a server id.
-    fireEvent.click(screen.getByRole("button", { name: "Add Node" }));
-    await waitFor(() => expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(2));
-    formData = submittedCreateFormData();
     expect(formData.get("kind")).toBe("area");
-    expect(formData.get("name")).toBe("New Area Node");
-    expect(String(formData.get("parentId"))).toMatch(/^server-group-/);
+    expect(formData.get("name")).toBe("New Area");
+    expect(formData.get("parentId")).toBe("main-house");
+    expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
   });
 
-  it("adds root Group Nodes and blocks Area Nodes when no Group Node is selected", () => {
+  it("Add Area creates a write-valid root node when no group is selected (no error)", () => {
+    // An area is selected (not a group). The single Add Area must NOT error
+    // ("select a group first" is gone) — it falls back to a write-valid root
+    // create. Internally that is a `group`; the user only ever sees "Area".
     renderTree([
       {
         id: "general-requirements",
@@ -195,29 +193,22 @@ describe("estimate sheet tree add-node toolbar flow", () => {
       },
     ], "mobilization");
 
-    // Area Nodes stay blocked while no Group Node is selected.
-    fireEvent.click(screen.getByRole("button", { name: "Add Node" }));
-    expect(screen.getByText("you must select a group first before adding an area node")).toBeInTheDocument();
-    expect(actionMocks.createEstimateNode).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
-    const groupFormData = submittedCreateFormData();
-    expect(groupFormData.get("kind")).toBe("group");
-    expect(groupFormData.get("parentId")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    expect(screen.queryByText("you must select a group first before adding an area node")).not.toBeInTheDocument();
+    const formData = submittedCreateFormData();
+    expect(formData.get("parentId")).toBeNull();
+    expect(formData.get("name")).toBe("New Area");
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
   });
 
-  it("allows a root Group Node from an empty tree and blocks a root Area Node", () => {
+  it("Add Area creates a write-valid root node from an empty tree (no error)", () => {
     renderTree([], null);
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Node" }));
-    expect(screen.getByText("you must select a group first before adding an area node")).toBeInTheDocument();
-    expect(actionMocks.createEstimateNode).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
-    const groupFormData = submittedCreateFormData();
-    expect(groupFormData.get("kind")).toBe("group");
-    expect(groupFormData.get("parentId")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    expect(screen.queryByText("you must select a group first before adding an area node")).not.toBeInTheDocument();
+    const formData = submittedCreateFormData();
+    expect(formData.get("parentId")).toBeNull();
+    expect(formData.get("name")).toBe("New Area");
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
   });
 });

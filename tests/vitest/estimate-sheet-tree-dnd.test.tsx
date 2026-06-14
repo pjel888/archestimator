@@ -504,41 +504,43 @@ describe("estimate sheet tree drag/drop", () => {
     });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saving tree order"));
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
-    expect(document.querySelector('[data-tree-row^="optimistic-group-"]')).not.toBeNull();
-    expect(screen.getByLabelText("Rename New Group")).toHaveValue("New Group");
+    // Single "Add Area"; ground-floor (a group) is selected → an area child.
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+    expect(document.querySelector('[data-tree-row^="optimistic-area-"]')).not.toBeNull();
+    expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
 
     await act(async () => {
       pending.resolve({ tree: confirmedTree() });
       await pending.promise;
     });
 
-    expect(document.querySelector('[data-tree-row^="optimistic-group-"]')).not.toBeNull();
-    expect(screen.getByLabelText("Rename New Group")).toHaveValue("New Group");
-    expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).toContain("New Group");
+    expect(document.querySelector('[data-tree-row^="optimistic-area-"]')).not.toBeNull();
+    expect(screen.getByLabelText("Rename New Area")).toHaveValue("New Area");
+    expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).toContain("New Area");
   });
 
-  it("appends an optimistic Add Group row after area siblings and keeps that slot on settle", async () => {
-    const pending = deferred<{ nodeId: string; name: string; kind: "group"; parentId: string }>();
+  it("appends an optimistic Add Area row after sibling areas and keeps that slot on settle", async () => {
+    const pending = deferred<{ nodeId: string; name: string; kind: "area"; parentId: string }>();
     actionMocks.createEstimateNode.mockReturnValue(pending.promise);
     renderTree(fixtureTree(), "ground-floor");
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+    // ground-floor (a group) is selected → Add Area creates an `area` child.
+    fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
 
-    // Position is the contract: the removed groups-before-areas rule would
-    // hoist the new group above kitchen/living, then snap on settle.
+    // Position is the contract: the new node appends after its siblings
+    // (kitchen/living) and keeps that slot on settle — no kind re-sorting.
     const optimisticIds = renderedIds();
-    const optimisticRow = optimisticIds.find((id) => id?.startsWith("optimistic-group-"));
+    const optimisticRow = optimisticIds.find((id) => id?.startsWith("optimistic-area-"));
     expect(optimisticRow).toBeTruthy();
     expect(optimisticIds).toEqual(["project-scope", "ground-floor", "kitchen", "living", optimisticRow, "site-works", "front-yard"]);
 
     await act(async () => {
-      pending.resolve({ nodeId: "server-group-1", name: "New Group", kind: "group", parentId: "ground-floor" });
+      pending.resolve({ nodeId: "server-area-1", name: "New Area", kind: "area", parentId: "ground-floor" });
       await pending.promise;
     });
 
     await waitFor(() =>
-      expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "server-group-1", "site-works", "front-yard"]),
+      expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "server-area-1", "site-works", "front-yard"]),
     );
   });
 

@@ -420,10 +420,11 @@ describe("estimate sheet cost inputs", () => {
       </QueryClientProvider>,
     );
 
-    const lotHeader = screen.getByRole("button", { name: "Collapse Lot group" }).closest("div");
-    if (!lotHeader) throw new Error("Expected Lot group header to render.");
-    expect(lotHeader).toHaveClass("bg-neutral-50");
-    expect(lotHeader).not.toHaveClass("bg-surfaceMuted");
+    // P4: one neutral node chrome + caret aria without the kind word, and a
+    // single depth-driven rhythm (no group-vs-area header tint).
+    const lotHeader = screen.getByRole("button", { name: "Collapse Lot" }).closest("div");
+    if (!lotHeader) throw new Error("Expected Lot header to render.");
+    expect(lotHeader).not.toHaveClass("bg-neutral-50");
     expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-4");
     expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-4");
   });

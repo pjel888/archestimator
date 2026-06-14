@@ -27,7 +27,8 @@ function formatCount(count: number, noun: string) {
 
 function formatTemplateStructureCounts(template: EstimateTemplate) {
   const summary = summarizeEstimateTemplate(template);
-  return `${formatCount(summary.groupCount, "group")} · ${formatCount(summary.areaCount, "area")} · ${formatCount(summary.rowCount, "row")}`;
+  // One node type: groups + areas read as a single "areas" count.
+  return `${formatCount(summary.groupCount + summary.areaCount, "area")} · ${formatCount(summary.rowCount, "row")}`;
 }
 
 function getTemplateChips(template: EstimateTemplate) {

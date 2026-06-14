@@ -51,13 +51,14 @@ describe("NewTemplateModal", () => {
     renderModal();
 
     expect(screen.getByText("Kitchen Wing")).toBeInTheDocument();
-    expect(screen.getByText(/Group node · 1 group · 1 area · 0 rows/)).toBeInTheDocument();
+    // P4: one node type — "Area · N sub-areas · M rows" (no group/area split).
+    expect(screen.getByText(/Area · 1 sub-area · 0 rows/)).toBeInTheDocument();
   });
 
   it("disables saving and explains when no estimate node is selected", () => {
     renderModal({ sourceNode: null });
 
-    expect(screen.getByText(/Select a Group or Area Node in the estimate tree first/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select an Area in the estimate tree first/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save template" })).toBeDisabled();
   });
 

@@ -139,7 +139,7 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(screen.queryByText(/Drag and drop estimate component/i)).not.toBeInTheDocument();
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
     expect(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" })).toBeInTheDocument();
-    expect(screen.getByText(/No nodes in this group yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/No sub-areas yet/i)).toBeInTheDocument();
   });
 
   it("reveals component drop zones only while a library-item drag is active", () => {
@@ -160,7 +160,7 @@ describe("estimate sheet drag-aware drop zones", () => {
 
     expect(screen.queryByText(/Drag and drop estimate component/i)).not.toBeInTheDocument();
     // Empty-group guidance steps aside for the live drop target.
-    expect(screen.queryByText(/No nodes in this group yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No sub-areas yet/i)).not.toBeInTheDocument();
     expect(screen.getByText("Drop Kitchen Starter into Lot")).toBeInTheDocument();
 
     const annexZoneLabel = screen.getByText("Drop Kitchen Starter into Annex");

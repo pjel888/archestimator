@@ -479,7 +479,7 @@ function buildActivityScopeTreeItems({
       depth,
       kind: isGroup ? "group" : "area",
       label: node.name,
-      eyebrow: `${nodeCode} ${isGroup ? "Group Node" : "Area Node"}`,
+      eyebrow: `${nodeCode} Area`,
       description: isGroup ? "Includes descendant node and row activity" : pathLabel,
       total: computeNodeTotal(node, editableRows),
       row: null,
@@ -2130,11 +2130,11 @@ export function EstimateSheetContent({
                     <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty tab</p>
                     <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">This tab is empty</h2>
                     <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                      Add a group to start the tree, or drag a template or project content here.
+                      Add an Area to start, or drag a template or project content here.
                     </p>
                     {canEditEstimate ? (
                       <div className="mt-3 flex justify-center gap-2">
-                        <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Group</Button>
+                        <Button type="button" variant="secondary" size="xs" onClick={requestRootGroupCreate}>Add Area</Button>
                         <Button type="button" variant="ghost" size="xs" onClick={openTemplateBrowser}>Browse templates</Button>
                       </div>
                     ) : null}
@@ -2144,7 +2144,7 @@ export function EstimateSheetContent({
                     <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
                     <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>
                     <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                      This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
+                      This estimate is empty. Add an Area, then add cost rows to it.
                     </p>
                   </>
                 )}

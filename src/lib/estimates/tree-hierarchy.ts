@@ -2,6 +2,14 @@ export type EstimateTreeNodeKind = "group" | "area";
 export type EstimateTreeGroupNodeKind = "group";
 export type EstimateTreeDisplayNodeKind = EstimateTreeNodeKind;
 
+/**
+ * The single user-facing name for every estimate tree node. The unification
+ * collapses the old "Group Node" / "Area Node" split into one concept the
+ * user reads as an "Area" — the internal `kind` discriminant stays only as a
+ * vestigial write-path label (see the unification plan, P4/P6 split).
+ */
+export const ESTIMATE_NODE_DISPLAY_NAME = "Area";
+
 const LEGACY_ESTIMATE_GROUP_NODE_KINDS = new Set(["lot", "general", "structure", "level", "assembly"]);
 
 export function isEstimateTreeNodeKind(value: string): value is EstimateTreeNodeKind {

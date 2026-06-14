@@ -23,9 +23,14 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("nodes: EstimateTreeNode[]");
     expect(estimateTree).toContain('from "@/components/ui/tree"');
     expect(estimateTree).not.toContain("react-complex-tree");
+    // `isEstimateGroupNodeKind` / `selectedGroupId` stay (vestigial write-path
+    // gates kept until the P6 write-enable). The old "select a group first"
+    // error path was removed by the single-"Add Area" flow (P4) — the create
+    // flow no longer errors; that behavior is covered by the DOM tests in
+    // estimate-tree-modal.test.tsx (single Add Area, no gate).
     expect(estimateTree).toContain("isEstimateGroupNodeKind");
     expect(estimateTree).toContain("selectedGroupId");
-    expect(estimateTree).toContain("you must select a group first before adding an area node");
+    expect(estimateTree).not.toContain("you must select a group first before adding an area node");
     expect(estimateTree).toContain("renderRow={renderEstimateTreeRowLabel}");
     expect(estimateTree).toContain("currentId={activeSelectedNodeId}");
     expect(estimateTree).toContain("onCheckboxToggle={handleCheckboxToggle}");
@@ -59,7 +64,10 @@ describe("live estimate node route", () => {
     expect(estimateTree).not.toContain("MoveEstimateNodeForm");
     expect(estimateTree).not.toContain("Move node");
     expect(estimateTree).not.toContain("ArrowsOutSimple");
-    expect(estimateTree).toContain("FolderSimple");
+    // One neutral node glyph (Circle) replaces the FolderSimple/MapPin
+    // group-vs-area split (P4 single-node model).
+    expect(estimateTree).toContain("Circle");
+    expect(estimateTree).not.toContain("FolderSimple");
     expect(estimateTree).not.toContain("HouseLine");
     expect(estimateTree).not.toContain("Stack,");
     expect(estimateTree).toContain("StackPlus");
@@ -136,7 +144,11 @@ describe("live estimate node route", () => {
 
   it("opens empty estimates by estimate id instead of looping back to the estimate list", () => {
     expect(readFileSync("src/components/workshop/EstimateListCard.tsx", "utf8")).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
-    expect(estimateTree).toContain("This estimate has no tree nodes yet");
+    // Empty-tree copy de-kinded by P4 ("Add a Group Node or Area Node" → one
+    // kind-neutral line). Asserts the empty state still renders, with the new
+    // single-node copy.
+    expect(estimateTree).toContain("This estimate is empty. Add an area to begin.");
+    expect(estimateTree).not.toContain("This estimate has no tree nodes yet");
     expect(estimateTree).toContain("selectedNodeId: string | null");
     expect(estimateContent).toContain("selectedNodeId: string | null");
     expect(estimateContent).toContain("No estimate tree yet");

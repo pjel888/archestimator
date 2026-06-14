@@ -29,6 +29,13 @@ export type EstimateRowItemsTableProps = {
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   targetNodeId: string;
+  /**
+   * Sticky offset (px) for this table's <thead>. In the rows-first mixed
+   * layout the column header must pin BELOW its owning node header rather than
+   * at top-0, or a deeper branch header and this thead collide. Defaults to 0
+   * (a top-level / single-node sheet behaves as before).
+   */
+  stickyTop?: number;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
@@ -51,6 +58,7 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
   if (
     prev.items !== next.items ||
     prev.targetNodeId !== next.targetNodeId ||
+    prev.stickyTop !== next.stickyTop ||
     prev.setEditableRows !== next.setEditableRows ||
     prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
     prev.onReplaceRowItem !== next.onReplaceRowItem ||
@@ -78,6 +86,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   editableRows,
   setEditableRows,
   targetNodeId,
+  stickyTop = 0,
   onInsertLibraryItem,
   onReplaceRowItem,
   onDeleteRowItem,
@@ -148,7 +157,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   return (
     <div className="overflow-hidden border border-hairline bg-white" onDragOver={handleDragOver} onDrop={handleDrop}>
       <table className="w-full border-collapse text-[10px] text-ink">
-        <thead className="sticky top-0 z-10 bg-white text-left text-[10px] font-medium text-ink">
+        <thead className="sticky z-10 bg-white text-left text-[10px] font-medium text-ink" style={{ top: stickyTop }}>
           <tr className={cn("grid min-h-10 border-b border-hairline", rowColumns)}>
             <th className="flex items-center justify-center border-r border-hairline text-[9px] font-sans text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">

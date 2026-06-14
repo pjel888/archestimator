@@ -255,19 +255,26 @@ describe("estimate sheet tree DOM integration", () => {
     expect(oversized).toHaveLength(0);
   });
 
-  it("shows a nesting affordance when dragging a node over the middle of a valid Group Node", () => {
+  it("shows a nesting affordance when dragging a node over the middle of a node with children", () => {
+    // P4: leaf/folder is derived from CHILDREN, not kind. The "inside" band
+    // shows over a node that has child sub-areas (ground-floor here). An empty
+    // node (e.g. the empty group `alternates`) is now a leaf and no longer
+    // offers the internal-drag "inside" band — a deliberate consequence of the
+    // children-based leaf rule, flagged for browser review.
     renderTree();
 
-    const kitchen = treeNodeButton("kitchen");
-    const alternates = treeNodeButton("alternates");
+    // phase-two (a top-level node) dragged over the middle of ground-floor (a
+    // node with children) → valid nest, "inside" band lights up.
+    const phaseTwo = treeNodeButton("phase-two");
+    const groundFloor = treeNodeButton("ground-floor");
     const dataTransfer = mockDataTransfer();
-    setMiddleDropRect(alternates);
+    setMiddleDropRect(groundFloor);
 
-    fireEvent.dragStart(kitchen, { dataTransfer });
-    expect(dataTransfer.setData).toHaveBeenCalledWith("application/x-archestimator-estimate-tree-item", "kitchen");
-    fireEvent.dragOver(alternates, { clientY: 14, dataTransfer });
+    fireEvent.dragStart(phaseTwo, { dataTransfer });
+    expect(dataTransfer.setData).toHaveBeenCalledWith("application/x-archestimator-estimate-tree-item", "phase-two");
+    fireEvent.dragOver(groundFloor, { clientY: 14, dataTransfer });
 
-    expect(treeNodeButton("alternates")).toHaveClass("bg-surfaceMuted");
+    expect(treeNodeButton("ground-floor")).toHaveClass("bg-surfaceMuted");
   });
 
   it("accepts sidebar template drags on group rows and hands the insert to the sheet", () => {

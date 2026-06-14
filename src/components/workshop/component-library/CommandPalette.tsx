@@ -130,7 +130,7 @@ export function CommandPalette({
         </div>
 
         <div className={cn("border-b border-hairline px-3 py-2 text-[10px] font-medium", canInsert ? "text-success" : "text-warning")}>
-          {canInsert ? `Ready to insert into ${targetLabel}` : "Select an Area Node before inserting components"}
+          {canInsert ? `Ready to insert into ${targetLabel}` : "Select an Area before inserting components"}
         </div>
 
         <div className="max-h-[50vh] overflow-auto p-1">

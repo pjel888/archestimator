@@ -80,8 +80,10 @@ describe("estimate sheet version control UI", () => {
     expect(within(sheetDialog).getByRole("button", { name: "Group tree" })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("button", { name: "Expand all tree" })).toBeInTheDocument();
     expect(within(sheetDialog).getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
-    expect(within(sheetDialog).getByRole("button", { name: "Add Group" })).toBeDisabled();
-    expect(within(sheetDialog).getByRole("button", { name: "Add Node" })).toBeDisabled();
+    // P4: one disabled "Add Area" replaces the disabled "Add Group" + "Add Node".
+    expect(within(sheetDialog).getByRole("button", { name: "Add Area" })).toBeDisabled();
+    expect(within(sheetDialog).queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByRole("button", { name: "Add Node" })).not.toBeInTheDocument();
     expect(within(sheetDialog).getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
     const scopeTree = within(sheetDialog).getByRole("tree", { name: "Activity scope tree" });
     expect(scopeTree).toBeInTheDocument();
