@@ -202,11 +202,11 @@ describe("estimate sheet tree DOM integration", () => {
     ).toBeTruthy();
   });
 
-  it("renders the estimate tree under the shared Sheets tab", () => {
+  it("renders the estimate tree under the shared Sheet Tree tab", () => {
     renderTree();
 
     expect(screen.getByRole("tablist", { name: "Estimate sheets" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Sheet Tree" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("scopes the drag/select rail reveal to the whole sidebar, not just the rows", () => {
@@ -239,20 +239,19 @@ describe("estimate sheet tree DOM integration", () => {
     expect(routerMock.push).not.toHaveBeenCalled();
   });
 
-  it("renders row icons at the shared tree icon scale used by the right-sidebar trees", () => {
+  it("keeps row icons within the shared tree icon scale (no oversized svg)", () => {
     renderTree();
 
-    // 12px everywhere (TREE_ROW_ICON_SIZE): the sheets tree must not read
-    // "bigger" than the components/templates trees. Structural svgs (grip,
-    // caret) size via classes, so the explicitly 12px-wide svg is the node
-    // icon — and no row svg may exceed it.
-    expect(treeNodeButton("project-scope").querySelectorAll('svg[width="12"]').length).toBeGreaterThan(0);
-    expect(treeNodeButton("kitchen").querySelectorAll('svg[width="12"]').length).toBeGreaterThan(0);
-    const oversized = Array.from(treeNodeButton("kitchen").querySelectorAll("svg")).filter((svg) => {
-      const width = Number.parseFloat(svg.getAttribute("width") ?? "0");
-      return Number.isFinite(width) && width > 12;
-    });
-    expect(oversized).toHaveLength(0);
+    // The per-node circle was removed; the occupancy cue is now the disclosure
+    // caret / static caret marker, sized via classes like the other trees. No
+    // row svg may read "bigger" than the 12px shared scale.
+    for (const id of ["project-scope", "kitchen"]) {
+      const oversized = Array.from(treeNodeButton(id).querySelectorAll("svg")).filter((svg) => {
+        const width = Number.parseFloat(svg.getAttribute("width") ?? "0");
+        return Number.isFinite(width) && width > 12;
+      });
+      expect(oversized).toHaveLength(0);
+    }
   });
 
   it("shows a nesting affordance when dragging a node over the middle of a node with children", () => {

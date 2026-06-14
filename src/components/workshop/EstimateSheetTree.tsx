@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowCounterClockwise,
   Check,
-  Circle,
   FunnelSimple,
+  Log,
   PencilSimple,
   StackPlus,
   Trash,
@@ -22,7 +22,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
   dedupeSelectedRoots,
@@ -67,7 +67,7 @@ type EstimateSheetTreeProps = {
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
-const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheets" }] as const;
+const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheet Tree" }] as const;
 
 type ReorderStatus =
   | { state: "idle" }
@@ -80,19 +80,8 @@ type ReorderStatus =
 // neutral node glyph for every node — containment is shown by the disclosure
 // caret (rendered only when the node has children), not by a folder-vs-pin
 // distinction that no longer exists under the single-node model.
-function NodeIcon({ occupied }: { occupied: boolean }) {
-  return (
-    <Circle
-      size={TREE_ROW_ICON_SIZE}
-      weight="regular"
-      className={cn("shrink-0", occupied ? "text-orange-600" : "text-tertiary")}
-      aria-hidden="true"
-    />
-  );
-}
-
 function AddTreeActionIcon() {
-  return <Circle size={13} weight="regular" aria-hidden="true" />;
+  return <Log size={13} weight="regular" aria-hidden="true" />;
 }
 
 function cloneEstimateTreeNode(node: EstimateTreeNode): EstimateTreeNode {
@@ -182,12 +171,15 @@ function buildUiTreeModel(nodes: EstimateTreeNode[]): UiTreeModel {
     // any node can nest (single-node model).
     const isFolder = Boolean(node.children?.length);
     if (isFolder) folderIds.add(node.id);
+    // "Occupied" = the area directly holds components (row items). The orange
+    // accent now lives on the disclosure caret (folders) or a static caret
+    // marker (leaves) instead of a separate node icon — see ui/tree.tsx.
     const occupied = (node.estimateRowItems?.length ?? 0) > 0;
     return {
       id: node.id,
       label: node.name,
       isLeaf: !isFolder,
-      icon: <NodeIcon occupied={occupied} />,
+      accent: occupied,
       children: node.children?.map(toUiNode),
       data: { node },
     };
@@ -1190,7 +1182,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           {
             id: "add-area-inside",
             label: "Add area inside",
-            icon: <Circle size={12} weight="regular" aria-hidden="true" />,
+            icon: <Log size={12} weight="regular" aria-hidden="true" />,
             onSelect: () => {
               armContextMenuRenameHandoff();
               handleAddTreeNode(contextMenuNode.id);

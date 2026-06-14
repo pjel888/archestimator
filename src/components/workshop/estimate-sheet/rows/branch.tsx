@@ -16,7 +16,7 @@ import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
-import { NodeIcon, getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
+import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
 
@@ -183,7 +183,9 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
               size="icon-sm"
               aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name}`}
               aria-expanded={!collapsed}
-              className="size-6 rounded-xs p-0 text-tertiary"
+              // The caret carries the "has components" cue (orange) now that the
+              // node icon is gone: orange iff this node directly holds row items.
+              className={cn("size-6 rounded-xs p-0", hasOwnRows ? "text-orange-600" : "text-tertiary")}
               onClick={() =>
                 setCollapsedNodeIds((prev) => {
                   const next = new Set(prev);
@@ -202,9 +204,6 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
             // must not advertise expandability (L7).
             <span className="size-6 shrink-0" aria-hidden="true" />
           )}
-          <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
-            <NodeIcon />
-          </span>
           <div className="min-w-0 flex-1">
             {nodeCode && (
               <p className="text-[8px] font-sans leading-none tabular-nums text-tertiary">{nodeCode}</p>

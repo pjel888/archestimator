@@ -69,35 +69,35 @@ function renderTree(nodes: EstimateTreeNode[], selectedNodeId: string | null = "
 }
 
 /**
- * Return the Circle SVG icon inside the named tree row.
- * SVG elements have `className` as an SVGAnimatedString — use `.baseVal` for the string value.
+ * The "has components" cue now lives on the disclosure caret column (the node
+ * circle was removed): an occupied node renders an orange caret (interactive for
+ * folders, a static marker for leaves). Returns true iff the row has an
+ * orange-tinted caret SVG.
  */
-function getRowIconClass(nodeId: string): string {
+function rowHasOrangeCaret(nodeId: string): boolean {
   const row = document.querySelector(`[data-tree-row="${nodeId}"]`);
   if (!row) throw new Error(`Tree row for node "${nodeId}" not found in DOM.`);
-  const svg = row.querySelector<SVGElement>("svg[aria-hidden='true']");
-  if (!svg) throw new Error(`No aria-hidden SVG icon found in row for node "${nodeId}".`);
-  return svg.getAttribute("class") ?? svg.className.baseVal ?? "";
+  return Array.from(row.querySelectorAll("svg")).some(
+    (svg) => (svg.getAttribute("class") ?? svg.className.baseVal ?? "").includes("text-orange-600"),
+  );
 }
 
-describe("estimate tree node icon occupancy (B1, Req 4)", () => {
+describe("estimate tree node occupancy cue (orange caret, Req 4)", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
   });
 
-  it("renders an orange icon for a node that directly holds items", () => {
+  it("renders an orange caret for a leaf node that directly holds components", () => {
     renderTree(iconTestTree());
-    expect(getRowIconClass("filled-node")).toMatch(/text-orange-600/);
+    expect(rowHasOrangeCaret("filled-node")).toBe(true);
   });
 
-  it("renders a tertiary (muted) icon for a node with no direct items", () => {
+  it("renders no orange caret for a node with no direct components", () => {
     renderTree(iconTestTree());
-    const cls = getRowIconClass("empty-node");
-    expect(cls).toMatch(/text-tertiary/);
-    expect(cls).not.toMatch(/text-orange-600/);
+    expect(rowHasOrangeCaret("empty-node")).toBe(false);
   });
 
-  it("does not show orange for a node whose CHILDREN have items but the node itself does not (D3: direct-only, O(1))", () => {
+  it("does not orange a parent whose CHILDREN have components but itself does not (direct-only)", () => {
     const parentWithItemOnlyInChild: EstimateTreeNode[] = [
       {
         id: "parent-node",
@@ -119,16 +119,11 @@ describe("estimate tree node icon occupancy (B1, Req 4)", () => {
     ];
     renderTree(parentWithItemOnlyInChild, "parent-node");
 
-    // Parent row is present in the DOM
-    const parentCls = getRowIconClass("parent-node");
-    expect(parentCls).toMatch(/text-tertiary/);
-    expect(parentCls).not.toMatch(/text-orange-600/);
+    // Parent (folder, no direct components) → caret present but NOT orange.
+    expect(rowHasOrangeCaret("parent-node")).toBe(false);
 
-    // Ensure the child row is visible — expand if collapsed, or it may already be expanded
     const parentRow = document.querySelector(`[data-tree-row="parent-node"]`);
     if (!parentRow) throw new Error("parent-node row not found");
-
-    // If child is not yet in DOM, click the expand/collapse toggle in the parent row
     if (!document.querySelector(`[data-tree-row="child-node"]`)) {
       const toggleBtn = parentRow.querySelector<HTMLElement>(
         "button[aria-label='Expand'], button[aria-label='Collapse']",
@@ -137,15 +132,14 @@ describe("estimate tree node icon occupancy (B1, Req 4)", () => {
       toggleBtn.click();
     }
 
-    const childCls = getRowIconClass("child-node");
-    expect(childCls).toMatch(/text-orange-600/);
+    // Child (leaf, has components) → orange caret marker.
+    expect(rowHasOrangeCaret("child-node")).toBe(true);
   });
 
-  it("renders an orange 'Add Area' toolbar button (D1: ADD_BUTTON_CLASSNAME applied)", () => {
+  it("renders an orange 'Add Area' toolbar button (icon swap to Log keeps the orange styling)", () => {
     renderTree(iconTestTree());
     const addAreaBtn = screen.getByRole("button", { name: "Add Area" });
     expect(addAreaBtn).toBeInTheDocument();
-    // ADD_BUTTON_CLASSNAME injects orange-* Tailwind classes onto the button element
     expect(addAreaBtn.className).toMatch(/orange/);
   });
 });
