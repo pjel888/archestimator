@@ -2,8 +2,10 @@
 
 **Date:** 2026-06-14
 **Surface:** `http://localhost:3000/workshop/projects/{projectId}` — the project **Dashboard** tab
-**Type:** Planning / readiness / audit only. **No code was written.**
+**Type:** Planning / readiness / audit, then implementation. Phase A + Phase B code changes landed; see `04` and `05`.
 **Effort:** ultracode — 6 parallel codebase readers + 2 external researchers → 3 route-compared design directions → 2 adversarial critics + a judge panel (14 agents, ~730k tokens), then synthesized by hand.
+
+> **2026-06-14 cockpit revision:** Philip is not satisfied with this pack as the final UX/UI plan. Treat `00`-`05` as the cost-first foundation and read `06-cockpit-revision-plan.md` plus `.ai/13_research/2026-06-14-project-dashboard-ux-research.md` before any further implementation. The next target is not another generic dashboard polish pass; it is a compact contractor project cockpit with recent estimate sheets, selectable estimate-sheet cost donuts, proposal readiness, risk states, and curated activity.
 
 ---
 
@@ -34,8 +36,16 @@ Three directions were generated and scored. The judge picked **D1 (KPI-First Min
 | **`01-research-and-benchmarking.md`** | External research: the market gap (no incumbent does cost-first project home well), vital-vs-noise information, donut appropriateness rules, and activity-feed UX — with sources. |
 | **`02-design-directions-and-decision.md`** | The 3 route-compared directions, the scorecard, the two-critic disagreement, and the chosen "Honest Hero" design with an ASCII layout. |
 | **`03-implementation-plan.md`** | The implementation-ready plan: requirements (R1–R14), key technical decisions (KTD-1–8), Mermaid data-flow/decision diagrams, 11 implementation units (U1–U11) with files + test scenarios, phased delivery, risks, scope boundaries, and open questions. |
+| **`04-live-audit-and-revised-implementation-plan.md`** | Live browser audit findings that the original plan missed (donut rendering bug, hero hierarchy, density) and the revised implementation plan. |
+| **`05-implementation-notes.md`** | What was changed, which files were touched, validation results, and residual risks. |
+| **`06-cockpit-revision-plan.md`** | The newer plan layer that addresses Philip's dissatisfaction: recent estimate sheets, selectable estimate-sheet donut, selected bucket details, proposal readiness, needs-attention states, and stricter visual constraints. |
+| **`07-requirement-coverage-and-evidence-matrix.md`** | Requirement-by-requirement coverage audit tying the requested dashboard cockpit features to source evidence, external research, acceptance criteria, and remaining open decisions. |
+| **`08-decision-brief-for-next-implementation-pass.md`** | Resolved decision contract for selected estimate URL state, bucket drilldown, proposal readiness, activity inclusion, `delafuentehouse` proof, visual constraints, and future tests. |
+| **`09-screen-spec-and-test-contract.md`** | Screen-level UX/UI contract for the Project Cockpit: zones, interactions, low-data states, data contract additions, test rewrites, and visual QA gates. |
+| **`10-no-code-readiness-audit.md`** | Final no-code readiness audit separating implementation-ready planning from pending authenticated browser proof. |
+| **`11-implementation-goal-prompt.md`** | Standalone implementation goal and prompt for a codebase AI to build the Project Cockpit from the finalized plan pack. |
 
-**Start with `03` if you just want to build it.** Read `00`→`02` for the why.
+**Start with `06`, then `07`, then `08`, then `09`, then `10`, then `11`, for the next design direction.** Read `03` only for the original cost-first implementation plan, and `04`→`05` for what the current dirty worktree says was already built.
 
 ---
 
@@ -52,7 +62,7 @@ Three directions were generated and scored. The judge picked **D1 (KPI-First Min
 
 - **Cost half — high confidence.** Every data source was verified by file/line; the only new backend is one well-scoped query. The feasibility skeptic confirmed it is "genuinely free."
 - **Activity half — medium confidence.** The gaps are real and named (no `project_id`, unaudited project edits, no collaboration composer, no actor→name resolver confirmed). It is correctly flag-gated so it cannot block the valuable cost work. Three integration assumptions (Compare URL params, actor-name resolver, feature-flag mechanism) must be confirmed during implementation — they are listed as dependencies, not hand-waved.
-- **Design — high confidence, adversarially earned.** The chosen design exists *because* two critics attacked the obvious winner and forced the blockers into the open. The biggest residual risk is donut callout legibility at the real cell width (U6), which the mandatory data table mitigates regardless.
+- **Design — high confidence, adversarially earned.** The chosen design exists *because* two critics attacked the obvious winner and forced the blockers into the open. The live audit discovered a critical donut rendering bug in `CostDonutChart.hideCallouts` that the original plan missed; it was fixed by centering the arc geometry on the chart centre.
 
 ---
 

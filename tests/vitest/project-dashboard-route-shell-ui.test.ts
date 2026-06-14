@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  projectDashboardPage,
   projectEstimateNodePage,
   estimateWorkspaceClient,
   projectEstimatesLoading,
@@ -58,5 +59,15 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectTotalHeader).toContain("formatPeso(budget)");
     expect(projectEstimateMetadataStrip).toContain("dispatchProjectBudgetChange(projectBudget ?? 0)");
     expect(projectDashboardClient).not.toContain("dispatchProjectBudgetChange");
+  });
+
+  it("keeps the project cockpit URL-state contract on the route page", () => {
+    expect(projectDashboardPage).toContain("searchParams");
+    expect(projectDashboardPage).toContain("readFirstSearchParam(resolvedSearchParams.estimate)");
+    expect(projectDashboardPage).toContain("readFirstSearchParam(resolvedSearchParams.mode)");
+    expect(projectDashboardPage).toContain("getProjectDashboardSummary(projectId, { selectedEstimateId, selectedGroupingMode })");
+    expect(projectDashboardClient).toContain("selectedGroupingMode={summary.selectedGroupingMode}");
+    expect(projectDashboardClient).toContain("selectedEstimateId={selectedEstimate.id}");
+    expect(projectDashboardClient).toContain("estimateSheets={summary.estimateSheets}");
   });
 });

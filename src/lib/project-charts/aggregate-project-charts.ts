@@ -54,6 +54,13 @@ type BucketAccumulator = {
   label: string;
   total: number;
   rowCount: number;
+  sourceNodeId?: string | null;
+};
+
+type ResolvedBucket = {
+  id: string;
+  label: string;
+  sourceNodeId?: string | null;
 };
 
 type SpaceNodeAccumulator = {
@@ -126,8 +133,12 @@ function buildSeries(
       label: bucket.label,
       total: 0,
       rowCount: 0,
+      sourceNodeId: bucket.sourceNodeId,
     };
 
+    if (existing.sourceNodeId !== bucket.sourceNodeId) {
+      existing.sourceNodeId = null;
+    }
     existing.total += total;
     existing.rowCount += 1;
     rawBuckets.set(bucket.id, existing);
@@ -160,7 +171,7 @@ function buildSeries(
   };
 }
 
-function resolveBucket(input: ProjectChartsAggregationBase, lookups: BucketLookups, row: ProjectChartRowFact) {
+function resolveBucket(input: ProjectChartsAggregationBase, lookups: BucketLookups, row: ProjectChartRowFact): ResolvedBucket {
   if (input.groupingMode === "space") {
     return resolveSpaceBucket(lookups.nodeById, row);
   }
@@ -172,7 +183,7 @@ function resolveBucket(input: ProjectChartsAggregationBase, lookups: BucketLooku
   return resolveSupplierBucket(lookups.supplierById, row);
 }
 
-function resolveSpaceBucket(nodeById: Map<string, ProjectChartNodeFact>, row: ProjectChartRowFact) {
+function resolveSpaceBucket(nodeById: Map<string, ProjectChartNodeFact>, row: ProjectChartRowFact): ResolvedBucket {
   // Kind-agnostic OWN-node bucketing: attribute the row to the node that
   // directly owns it, not to the highest "Area" ancestor. On real all-area
   // data (rows live only on area leaves) the owning node IS the highest-area
@@ -182,6 +193,7 @@ function resolveSpaceBucket(nodeById: Map<string, ProjectChartNodeFact>, row: Pr
   return {
     id: own ? normalizeBucketId("space", own.name) : "unassigned-space",
     label: own?.name ?? "Unassigned space",
+    sourceNodeId: own?.id ?? null,
   };
 }
 
@@ -333,7 +345,7 @@ function buildSpaceTableRows(
   }));
 }
 
-function resolveCategoryBucket(nodeById: Map<string, ProjectChartCategoryNodeFact>, row: ProjectChartRowFact) {
+function resolveCategoryBucket(nodeById: Map<string, ProjectChartCategoryNodeFact>, row: ProjectChartRowFact): ResolvedBucket {
   let current = row.categoryNodeId ? nodeById.get(row.categoryNodeId) : undefined;
   let topCategory: ProjectChartCategoryNodeFact | undefined;
 
@@ -355,7 +367,7 @@ function resolveCategoryBucket(nodeById: Map<string, ProjectChartCategoryNodeFac
   };
 }
 
-function resolveSupplierBucket(supplierById: Map<string, ProjectChartSupplierFact>, row: ProjectChartRowFact) {
+function resolveSupplierBucket(supplierById: Map<string, ProjectChartSupplierFact>, row: ProjectChartRowFact): ResolvedBucket {
   const supplier =
     (row.supplierId ? supplierById.get(row.supplierId) : undefined) ??
     (row.sourceSupplierId ? supplierById.get(row.sourceSupplierId) : undefined);
