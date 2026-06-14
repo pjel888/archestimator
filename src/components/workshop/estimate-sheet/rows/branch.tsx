@@ -159,9 +159,12 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     <section
       className={cn(
         groupGap(depth),
-        // One node chrome for every node (single-node model): a bordered,
-        // muted-surface card; only the root gets the xs corner radius.
-        depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20",
+        // Node>row>component hierarchy reads via ONE frame, not concentric
+        // borders (UX-4 / OD-7): only the root carries the bordered card; nested
+        // nodes drop the competing border and step in with a tonal surface +
+        // indent + groupGap. The row table keeps its own border, so each node's
+        // data grid stays framed at every depth.
+        depth > 0 ? "bg-surfaceMuted/30" : "rounded-xs border border-hairline bg-surfaceMuted/20",
         templateDragActive && templateDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
