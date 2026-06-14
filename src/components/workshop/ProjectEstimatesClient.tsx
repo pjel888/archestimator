@@ -7,8 +7,7 @@ import { FileText, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
-import { SearchInput } from "@/components/ui/search-input";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
 import { createEstimateSheetDraft } from "@/lib/estimates/actions";
 import type { ProjectEstimateListRow } from "@/lib/estimates/project-estimate-list-row";
@@ -116,20 +115,13 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-white" aria-label={`${projectName} estimates`}>
-      <div className="flex shrink-0 items-center gap-2 bg-white">
-        <SearchInput
-          placeholder="Search Estimates"
-          aria-label="Search Estimates"
-          wrapperClassName="w-full"
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.currentTarget.value)}
-          onClear={() => setSearchQuery("")}
-        />
-      </div>
-
-      <HeaderIconToolbar
+      <TreePanelHeader
         ariaLabel="Project estimate tools"
         labelPrefix="estimates"
+        searchValue={searchQuery}
+        onSearchValueChange={setSearchQuery}
+        searchPlaceholder="Search Estimates"
+        searchLabel="Search Estimates"
         addActions={[
           {
             label: isCreating ? "Creating estimate" : "Create Estimate",

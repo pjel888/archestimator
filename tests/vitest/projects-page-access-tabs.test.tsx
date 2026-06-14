@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -260,7 +260,8 @@ describe("ProjectsPageClient access tabs", () => {
       />,
     );
 
-    await user.type(screen.getByRole("searchbox", { name: "Search projects" }), "clinic");
+    await user.click(screen.getByRole("button", { name: "Show projects search" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "clinic" } });
 
     expect(within(getActivePanel()).getByText("No projects match your search")).toBeInTheDocument();
     expect(within(getActivePanel()).queryByText("Shared Clinic")).not.toBeInTheDocument();

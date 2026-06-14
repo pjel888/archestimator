@@ -19,8 +19,7 @@ describe("estimate bootstrap UI governance", () => {
   it("renders live Supabase estimate cards and project estimate navigation", () => {
     expect(estimatesPage).toContain("ProjectEstimatesClient");
     expect(projectEstimatesClient).toContain("ProjectEstimatesTable");
-    expect(projectEstimatesClient).toContain("HeaderIconToolbar");
-    expect(projectEstimatesClient).toContain("SearchInput");
+    expect(projectEstimatesClient).toContain("TreePanelHeader");
     expect(projectEstimatesClient).toContain("Search Estimates");
     expect(estimatesPage).not.toContain("NewEstimateForm");
     expect(estimatesPage).not.toContain("EstimateListCard");
