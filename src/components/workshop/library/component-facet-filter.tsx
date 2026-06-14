@@ -222,9 +222,12 @@ export function ComponentFacetFilterPopover({
       triggerLabel={filterActive ? `Filter components (${activeCount} active)` : "Filter components"}
       trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
       triggerVariant="ghost"
-      // Always a square icon button matching the other toolbar icons (size-6),
-      // like the sheet + tree filter triggers. Active state reads from the
-      // muted fill, not a width change; the count lives in the trigger label.
+      // icon-sm gives a clean square icon base (grid place-items-center, p-0);
+      // without it the Button falls back to the default md size whose horizontal
+      // padding makes the trigger a rectangle. Matches the sheet + tree filters.
+      triggerSize="icon-sm"
+      // size-6 squares it to the View-by / Add toolbar icons (overrides icon-sm's
+      // size-8). Active state reads from the muted fill, not a width change.
       triggerClassName={cn(
         "size-6 rounded-xs p-0",
         filterActive ? "bg-surfaceMuted text-ink" : "text-tertiary",
