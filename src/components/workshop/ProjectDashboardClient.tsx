@@ -7,7 +7,15 @@ import { ChartPieSlice, ClipboardText, ListChecks } from "@phosphor-icons/react/
 import { ControlInput } from "@/components/ui/control-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { updateProjectDetails } from "@/lib/projects/actions";
+import type { ActivityViewModel } from "@/lib/activity/types";
 import type { Json, Tables } from "@/lib/supabase/types";
+import type { ProjectDashboardSummary } from "@/lib/workshop/dashboard-types";
+
+import { DashboardCostMix } from "./dashboard/DashboardCostMix";
+import { DashboardEstimateList } from "./dashboard/DashboardEstimateList";
+import { DashboardReadinessPanel } from "./dashboard/DashboardReadinessPanel";
+import { DashboardWorkSummary } from "./dashboard/DashboardWorkSummary";
+import { ProjectActivityList } from "./dashboard/ProjectActivityList";
 
 type ProjectMetadata = {
   projectImageUrl?: string;
@@ -23,6 +31,10 @@ type ProjectDashboardClientProps = {
     projectCode: string;
     currencyCode: string;
   };
+  /** Server-assembled cost overview; null/empty renders the first-run next-step panel. */
+  summary?: ProjectDashboardSummary | null;
+  /** Curated activity rows (flag-gated); null when the feature flag is off. */
+  activity?: ActivityViewModel[] | null;
 };
 
 function readProjectMetadata(value: Json): ProjectMetadata {
@@ -34,7 +46,7 @@ function readProjectMetadata(value: Json): ProjectMetadata {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
@@ -120,7 +132,7 @@ function AutoSubmitForm({
   );
 }
 
-export function ProjectDashboardClient({ project, fallback }: ProjectDashboardClientProps) {
+export function ProjectDashboardClient({ project, fallback, summary, activity }: ProjectDashboardClientProps) {
   const metadata = useMemo(() => readProjectMetadata(project?.metadata ?? null), [project?.metadata]);
   const name = project?.name ?? fallback.name;
   const client = project?.client_name ?? fallback.client;
@@ -128,6 +140,8 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
   const projectCode = project?.project_code ?? fallback.projectCode;
   const projectId = project?.id ?? fallback.id;
   const projectRoute = `/workshop/projects/${projectId}`;
+  const selectedEstimate = summary?.selectedEstimate ?? null;
+  const hasOverview = Boolean(selectedEstimate) && (summary?.estimateCount ?? 0) > 0;
 
   return (
     <section className="flex h-full min-h-0 justify-start bg-white" aria-label={`${name} project information`}>
@@ -171,33 +185,71 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
           </div>
         </AutoSubmitForm>
       </aside>
-      <main className="min-h-0 flex-1 overflow-auto p-2" aria-label="Project dashboard next steps">
-        <EmptyState
-          icon={<ClipboardText size={18} weight="regular" aria-hidden="true" />}
-          title="Build this project from estimates"
-          description="Open the estimate list to create your first sheet, use Charts to review cost mix, or return to Projects when you are choosing another job."
-          action={
-            <div className="flex flex-wrap items-center justify-center gap-1">
-              <ProjectDashboardLink
-                href={`${projectRoute}/estimates`}
-                label="Open estimates"
-                icon={<ListChecks size={12} weight="regular" aria-hidden="true" />}
+      {hasOverview && selectedEstimate && summary ? (
+        <main className="min-h-0 flex-1 overflow-auto p-3" aria-label="Project cockpit">
+          <div className="grid max-w-6xl grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="flex min-w-0 flex-col gap-3">
+              <DashboardWorkSummary
+                projectId={projectId}
+                selectedEstimate={selectedEstimate}
+                estimateCount={summary.estimateCount}
+                rollup={summary.rollup}
+                groupingMode={summary.selectedGroupingMode}
               />
-              <ProjectDashboardLink
-                href={`${projectRoute}/charts`}
-                label="View charts"
-                icon={<ChartPieSlice size={12} weight="regular" aria-hidden="true" />}
+              <DashboardEstimateList
+                projectId={projectId}
+                selectedEstimateId={selectedEstimate.id}
+                selectedGroupingMode={summary.selectedGroupingMode}
+                estimateSheets={summary.estimateSheets}
+                totalEstimateCount={summary.estimateCount}
               />
-              <ProjectDashboardLink
-                href="/workshop/projects"
-                label="All projects"
-                icon={<ClipboardText size={12} weight="regular" aria-hidden="true" />}
-              />
+              <ProjectActivityList activities={activity ?? null} />
             </div>
-          }
-          className="h-full bg-white"
-        />
-      </main>
+            <div className="flex min-w-0 flex-col gap-3">
+              {summary.costMix ? (
+                <DashboardCostMix
+                  projectId={projectId}
+                  selectedEstimate={selectedEstimate}
+                  estimateSheets={summary.estimateSheets}
+                  selectedGroupingMode={summary.selectedGroupingMode}
+                  series={summary.costMix.series}
+                  currencyCode={summary.costMix.currencyCode}
+                  truncated={summary.costMix.truncated}
+                />
+              ) : null}
+              <DashboardReadinessPanel readiness={summary.readiness} risks={summary.risks} />
+            </div>
+          </div>
+        </main>
+      ) : (
+        <main className="min-h-0 flex-1 overflow-auto p-2" aria-label="Project dashboard next steps">
+          <EmptyState
+            icon={<ClipboardText size={18} weight="regular" aria-hidden="true" />}
+            title="Build this project from estimates"
+            description="Open the estimate list to create your first sheet, use Charts to review cost mix, or return to Projects when you are choosing another job."
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-1">
+                <ProjectDashboardLink
+                  href={`${projectRoute}/estimates`}
+                  label="Open estimates"
+                  icon={<ListChecks size={12} weight="regular" aria-hidden="true" />}
+                />
+                <ProjectDashboardLink
+                  href={`${projectRoute}/charts`}
+                  label="View charts"
+                  icon={<ChartPieSlice size={12} weight="regular" aria-hidden="true" />}
+                />
+                <ProjectDashboardLink
+                  href="/workshop/projects"
+                  label="All projects"
+                  icon={<ClipboardText size={12} weight="regular" aria-hidden="true" />}
+                />
+              </div>
+            }
+            className="h-full bg-white"
+          />
+        </main>
+      )}
     </section>
   );
 }

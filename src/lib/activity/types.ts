@@ -117,6 +117,16 @@ export type SharedLinkActivityInput = {
   recipientDisplayName?: string | null;
 };
 
+export type CollaborationActivityInput = {
+  id: string;
+  /** e.g. invite_email_attempted | role_changed | member_removed | project_metadata_updated. */
+  eventType: string;
+  createdAt: string;
+  actorUserId?: string | null;
+  actorLabel?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
 export type ComposeActivityOptions = {
   visibility?: ActivityVisibility;
   audience?: ActivityAudience;

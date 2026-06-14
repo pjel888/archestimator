@@ -2,7 +2,7 @@ import { DECISION_ACTIONS, ESTIMATE_EVENT_ACTIONS } from "./activity-copy-dictio
 import { createFallbackActivityViewModel, safeCompose } from "./activity-fallback";
 import { filterActivityForVisibility } from "./activity-visibility";
 import { formatActivityActor, formatActivityFieldLabel, formatActivityValue, stripUnsafeText } from "./activity-formatters";
-import type { ActivityChange, ActivityFact, ActivitySource, ActivityTarget, ActivityViewModel, ComposeActivityOptions, EstimateActivityInput, SharedLinkActivityInput } from "./types";
+import type { ActivityAction, ActivityChange, ActivityFact, ActivitySource, ActivityTarget, ActivityViewModel, CollaborationActivityInput, ComposeActivityOptions, EstimateActivityInput, SharedLinkActivityInput } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -237,4 +237,75 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
     });
     return audience === "client" ? filterActivityForVisibility([base], "client")[0] ?? createFallbackActivityViewModel(item.id, item.created_at) : base;
   }, createFallbackActivityViewModel(item.id, item.created_at, item.type)) as ActivityViewModel;
+}
+
+const COLLABORATION_EVENT_ACTIONS: Record<string, ActivityAction> = {
+  invite_email_attempted: "invited",
+  role_changed: "changed",
+  member_removed: "removed",
+  project_metadata_updated: "changed",
+};
+
+function collaborationActionAndTitle(
+  event: CollaborationActivityInput,
+  actorName: string,
+): { action: ActivityAction; title: string } {
+  const metadata = isRecord(event.metadata) ? event.metadata : {};
+  switch (event.eventType) {
+    case "invite_email_attempted":
+      return { action: "invited", title: `${actorName} invited a collaborator.` };
+    case "role_changed":
+      return { action: "changed", title: `${actorName} changed a collaborator's role.` };
+    case "member_removed":
+      return { action: "removed", title: `${actorName} removed a collaborator.` };
+    case "project_metadata_updated": {
+      const changed = Array.isArray(metadata.changed_fields) ? metadata.changed_fields.map(String) : [];
+      if (changed.length === 1 && changed[0] === "name") {
+        return { action: "renamed", title: `${actorName} renamed the project.` };
+      }
+      const fieldList = changed.map((field) => formatActivityFieldLabel(field).toLowerCase()).join(", ");
+      return {
+        action: COLLABORATION_EVENT_ACTIONS[event.eventType] ?? "recorded",
+        title: fieldList ? `${actorName} updated project ${fieldList}.` : `${actorName} updated project details.`,
+      };
+    }
+    default:
+      return { action: COLLABORATION_EVENT_ACTIONS[event.eventType] ?? "recorded", title: "Activity recorded." };
+  }
+}
+
+/**
+ * Compose a collaboration / project-metadata audit event into the shared activity
+ * view-model (R11). Renders invites, role changes, removals, and project edits as
+ * actor · verb · object, reusing the same actor formatting and XSS-safe sanitizer
+ * as the estimate and shared-link composers so the project feed reads as one
+ * surface (R14).
+ */
+export function composeCollaborationActivity(
+  event: CollaborationActivityInput,
+  opts: ComposeActivityOptions = {},
+): ActivityViewModel {
+  return safeCompose(() => {
+    const audience = opts.audience ?? "owner";
+    const visibility = opts.visibility ?? "owner";
+    const actor = formatActivityActor(event.actorUserId, event.actorLabel, audience);
+    const { action, title } = collaborationActionAndTitle(event, actor.displayName);
+
+    const base: ActivityViewModel = sanitizeViewModel({
+      id: event.id,
+      source: "system",
+      audience,
+      visibility,
+      action,
+      occurredAt: event.createdAt,
+      actor,
+      target: { kind: "system", label: "Project" },
+      title,
+      raw: audience === "client" ? undefined : { id: event.id, eventType: event.eventType, payload: event.metadata ?? undefined },
+    });
+
+    return audience === "client"
+      ? filterActivityForVisibility([base], "client")[0] ?? createFallbackActivityViewModel(event.id, event.createdAt, event.eventType)
+      : base;
+  }, createFallbackActivityViewModel(event.id, event.createdAt, event.eventType)) as ActivityViewModel;
 }
