@@ -83,21 +83,19 @@ describe("estimate mixed-content layout (P4)", () => {
     renderSheet(mixedTree(), "building-a");
 
     const buildingSection = screen.getByLabelText("Building A");
-    const ownItemsLabel = within(buildingSection).getByText("Own items");
     const ownRowCell = within(buildingSection).getByText("HEMLINGBY Loveseat");
     const childSection = screen.getByLabelText("Kitchen");
 
-    // DOM order: Own-items label → own-rows table → child sub-area section.
-    expect(ownItemsLabel.compareDocumentPosition(ownRowCell) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // DOM order: this node's own-rows table → child sub-area section. The
+    // rows-first order alone disambiguates own rows from children — no label.
     expect(ownRowCell.compareDocumentPosition(childSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("shows the 'Own items' label only when a node has BOTH rows and children", () => {
+  it("renders no 'Own items' EMC label (rows-first DOM order disambiguates instead)", () => {
     const { unmount } = renderSheet(mixedTree(), "building-a");
-    expect(within(screen.getByLabelText("Building A")).getByText("Own items")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Building A")).queryByText("Own items")).not.toBeInTheDocument();
     unmount();
 
-    // A leaf (rows, no children) needs no disambiguation → no label.
     renderSheet(leafTree(), "pantry");
     expect(screen.queryByText("Own items")).not.toBeInTheDocument();
   });

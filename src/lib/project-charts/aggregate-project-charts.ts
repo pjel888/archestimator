@@ -295,6 +295,10 @@ function buildSpaceTableRows(
 
       // A container that ALSO directly owns rows gets an explicit "Own items"
       // leaf so its own money is visible and counted, not merged into a child.
+      // NOTE: this charts "Own items" leaf is money-attribution (a mixed node's
+      // own rows must surface exactly once). It is a SEPARATE surface from the
+      // EMC visual eyebrow removed in the EMC plan (branch.tsx). Do NOT delete
+      // it on an "Own items" grep — project-charts-aggregation.test.ts pins it.
       if (own) {
         rows.push({
           id: `area:${child.id}:own`,

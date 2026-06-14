@@ -240,15 +240,11 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
         <div className={cn("space-y-4", !showBreadcrumbs && "mt-1")}>
           {/* Rows-first (L1): a node renders its OWN rows + add-row strip
               directly under its header, ABOVE its child sub-areas, so clicking
-              a node shows its own numbers before an arbitrarily deep subtree. */}
-          {hasOwnRows && hasChildren ? (
-            // "Own items" eyebrow (L4) — shown only when a node has BOTH rows
-            // and children, to disambiguate this node's own rows from the
-            // first child's rows. Doubles as the L7 screen-reader boundary.
-            <p className="text-[9px] font-medium leading-3 text-tertiary" style={{ paddingLeft: `${leftIndent + 8}px` }} data-estimate-own-items-label>
-              Own items
-            </p>
-          ) : null}
+              a node shows its own numbers before an arbitrarily deep subtree.
+              The rows-first order plus each child's own caret demarcates a
+              node's own rows from its children — no "Own items" eyebrow needed.
+              Screen readers get the same disambiguation from headerAriaLabel
+              ("{name}, area, N rows, M sub-areas") rendered sr-only above. */}
           <EstimateRowItemsTable
             items={estimateRowItems}
             editableRows={editableRows}
