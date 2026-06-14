@@ -323,6 +323,32 @@ describe("DropdownSelect", () => {
     expect(labelables[0]).toHaveAttribute("data-slot", "dropdown-select-trigger");
   });
 
+  it('default (no variant) trigger contains underline classes and not boxed classes', () => {
+    render(<ControlledHarness />);
+    const combobox = trigger();
+    expect(combobox.className).toContain('h-5');
+    expect(combobox.className).toContain('border-b');
+    expect(combobox.className).toContain('bg-transparent');
+    expect(combobox.className).not.toContain('h-10');
+    expect(combobox.className).not.toContain('bg-white');
+  });
+
+  it('boxed variant trigger has boxed classes and does not have underline-specific classes', () => {
+    render(
+      <DropdownSelect
+        options={MODE_OPTIONS}
+        value="contingency"
+        variant="boxed"
+        aria-label="Adjustment type"
+      />,
+    );
+    const combobox = trigger();
+    expect(combobox.className).toContain('h-10');
+    expect(combobox.className).toContain('border-hairline');
+    expect(combobox.className).toContain('bg-white');
+    expect(combobox.className).not.toContain('h-5');
+  });
+
   it("hard disabled is unfocusable; ariaDisabled stays focusable but ignores activation", () => {
     const onValueChange = vi.fn();
     const { rerender } = render(
