@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { STICKY_HEADER_H } from "@/components/workshop/estimate-sheet/rows/node-visuals";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 vi.mock("@/lib/auth/session", () => ({ getCurrentUserContext: vi.fn(async () => null) }));
@@ -193,27 +192,29 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(screen.getByRole("button", { name: /Collapse Building A|Expand Building A/ })).toBeInTheDocument();
   });
 
-  it("keeps a nested node's breadcrumb OUT of the sticky header so it can't clip the table thead (OD-20)", () => {
+  it("makes ONLY the displayed (depth-0) node header sticky — nested headers are not (no cascade)", () => {
     renderSheet(mixedTree(), "building-a");
-    const kitchenSection = screen.getByLabelText("Kitchen");
-    const stickyHeader = kitchenSection.querySelector(".sticky") as HTMLElement;
-    expect(stickyHeader).not.toBeNull();
-    const breadcrumb = screen.getByLabelText("Kitchen breadcrumbs");
-    // If the breadcrumb lives inside the sticky header it inflates the sticky
-    // height past STICKY_HEADER_H (40px) and covers the own-rows thead that pins
-    // at stickyTop + 40. It must be a normal (scrolling) band outside sticky.
-    expect(stickyHeader.contains(breadcrumb)).toBe(false);
+    // The displayed node header is the single frozen layer: pinned at the top.
+    const building = screen.getByLabelText("Building A");
+    const buildingSticky = building.querySelector(".sticky") as HTMLElement | null;
+    expect(buildingSticky).not.toBeNull();
+    expect(buildingSticky?.className).toContain("top-0");
+    // A nested node header is NOT sticky — no accumulated offsets, so nothing
+    // can pin at a depth-scaled top and overlap/clip a nested first row.
+    const kitchen = screen.getByLabelText("Kitchen");
+    expect(kitchen.querySelector(".sticky")).toBeNull();
   });
 
-  it("offsets the own-rows sticky thead below the node header (sticky cascade)", () => {
+  it("renders NO sticky table thead — column headers scroll with their table and never cover the first row", () => {
     renderSheet(mixedTree(), "building-a");
-
-    const buildingSection = screen.getByLabelText("Building A");
-    const thead = buildingSection.querySelector("thead");
-    expect(thead).not.toBeNull();
-    // The own-rows <thead> pins below the (top-level, stickyTop=0) header, i.e.
-    // exactly the header height — never at top-0 where it would collide.
-    expect((thead as HTMLElement).style.top).toBe(`${STICKY_HEADER_H}px`);
+    const building = screen.getByLabelText("Building A");
+    const theads = building.querySelectorAll("thead");
+    expect(theads.length).toBeGreaterThan(0);
+    theads.forEach((thead) => {
+      expect(thead.className).not.toContain("sticky");
+      // No inline sticky offset that could pin the header over the rows.
+      expect((thead as HTMLElement).style.top).toBe("");
+    });
   });
 
   it("renders no phantom row-reorder handle (false 'Drag material' affordance removed, Req 4/D5)", () => {
