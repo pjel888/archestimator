@@ -7,6 +7,23 @@ import { Button } from "@/components/ui/button";
 import { ToolbarTooltip } from "@/components/ui/toolbar-tooltip";
 import { cn } from "@/lib/ui/cn";
 
+/**
+ * Shared light-orange "Add" affordance for the Estimate Sheet page.
+ *
+ * Named DESIGN.md exception (approved 2026-06-14): the estimate-sheet "add"
+ * buttons (Add Area, Add tab, Add Component/Template) use a light-orange tint
+ * to disambiguate the primary add action among co-located neutral toolbar
+ * icons. Reuses the Tailwind `orange-*` scale already used at
+ * projects-page-client.tsx:371. Tailwind v4 has no default button cursor, so
+ * `cursor-pointer` is explicit. Does NOT apply to in-row "Add row"
+ * (QuietAddRowButton stays low-emphasis).
+ */
+export const ADD_BUTTON_CLASSNAME =
+  "bg-orange-100 text-orange-700 " +
+  "hover:bg-orange-200 hover:text-orange-800 " +
+  "focus-visible:bg-orange-200 focus-visible:text-orange-800 " +
+  "cursor-pointer";
+
 type ToolbarIconButtonProps = Omit<ComponentProps<typeof Button>, "children" | "size"> & {
   label: string;
   children: ReactNode;

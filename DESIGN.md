@@ -498,6 +498,23 @@ Do not over-round estimating, financial, or proposal surfaces. The product shoul
 - App primary actions use strong neutral (`#292929`) for Create, Add selected item, Duplicate revision, Issue proposal, and Export while preserving clear text/ink hierarchy.
 - Destructive actions use danger styling and confirmation.
 
+#### Named app exception: estimate-sheet "Add" affordances (approved 2026-06-14)
+
+The "add" icon buttons on the Estimate Sheet page — Add Area (left tree),
+Add tab (middle), Add Component / Add Template (right sidebar) — use a
+light-orange affordance instead of strong neutral:
+
+- resting:  `bg-orange-100` `text-orange-700`
+- hover:    `bg-orange-200` `text-orange-800`  (+ focus-visible mirror)
+- cursor:   pointer (explicit — Tailwind v4 has no default)
+
+Rationale: the estimate sheet has many co-located neutral toolbar icons;
+the orange tint disambiguates the primary "add" action. This is the only
+app-chrome orange-button exception. Reuses the Tailwind `orange-*` scale
+already used at `projects-page-client.tsx:371`. Centralized as
+`ADD_BUTTON_CLASSNAME` (`src/components/ui/toolbar-icon-button.tsx`).
+Does NOT apply to in-row "Add row" (`QuietAddRowButton` stays low-emphasis).
+
 ### Navigation
 
 - Use Intercom-like compact top nav on public pages.
