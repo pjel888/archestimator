@@ -90,6 +90,7 @@ export type ProjectChartBucket = {
   rowCount: number;
   color: string;
   isOther?: boolean;
+  sourceNodeId?: string | null;
 };
 
 export type ProjectChartTableRow = {

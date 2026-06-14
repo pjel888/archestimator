@@ -296,11 +296,19 @@ export async function updateProjectDetails(formData: FormData) {
 
   const { data: existing, error: loadError } = await supabase
     .from("projects")
-    .select("metadata")
+    .select("name, client_name, location, project_code, currency_code, metadata")
     .eq("id", projectId)
     .single();
 
   if (loadError) throw loadError;
+
+  const changedFields = diffProjectMetadataFields(existing, {
+    name,
+    client_name: clientName,
+    location,
+    project_code: projectCode,
+    currency_code: currencyCode,
+  });
 
   const metadata = asProjectMetadata(existing.metadata);
   const nextMetadata = { ...metadata };
@@ -348,6 +356,43 @@ export async function updateProjectDetails(formData: FormData) {
     await removeStoredProjectImagePaths(supabase, getProjectImageStoragePaths(metadata));
   }
 
+  // Audit the edit so "Project renamed/…" rows can surface in the project
+  // activity feed (R11). Best-effort: a failed event must never fail the save.
+  await emitProjectMetadataUpdatedEvent(projectId, changedFields);
+
   revalidatePath("/workshop/projects");
   revalidatePath(`/workshop/projects/${projectId}`);
+}
+
+const PROJECT_METADATA_AUDIT_FIELDS = ["name", "client_name", "location", "project_code", "currency_code"] as const;
+type ProjectMetadataAuditField = (typeof PROJECT_METADATA_AUDIT_FIELDS)[number];
+type ProjectMetadataValues = Record<ProjectMetadataAuditField, string | null>;
+
+/** Compare previous vs incoming project fields; returns the names that changed. */
+function diffProjectMetadataFields(
+  previous: Partial<ProjectMetadataValues>,
+  next: ProjectMetadataValues,
+): ProjectMetadataAuditField[] {
+  const normalize = (value: string | null | undefined) => (value == null ? "" : String(value));
+  return PROJECT_METADATA_AUDIT_FIELDS.filter((field) => normalize(previous[field]) !== normalize(next[field]));
+}
+
+/** Insert a `project_metadata_updated` audit event (reuses `collaboration_audit_events`, which already carries `project_id`). */
+async function emitProjectMetadataUpdatedEvent(projectId: string, changedFields: ProjectMetadataAuditField[]) {
+  if (changedFields.length === 0) return; // no-op save → no event
+  try {
+    const currentUser = await requireCurrentUserContext();
+    const admin = createSupabaseServiceRoleClient();
+    const { error } = await admin.from("collaboration_audit_events").insert({
+      actor_user_id: currentUser.userId,
+      project_id: projectId,
+      event_type: "project_metadata_updated",
+      metadata: { changed_fields: changedFields } as Json,
+    });
+    if (error) {
+      console.warn("[projects] metadata audit event skipped", { projectId });
+    }
+  } catch {
+    console.warn("[projects] metadata audit event skipped", { projectId });
+  }
 }
