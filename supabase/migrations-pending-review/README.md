@@ -18,6 +18,9 @@ timestamp prefix so the migration history stays canonical.
 | `AC-MOD-04_shared_link_responses_recipient_set_null.sql` | AC-MOD-04 | Make a recipient hard-delete preserve their locked decision row (`recipient_id` → `ON DELETE SET NULL`) instead of CASCADE-destroying it. | Low (additive nullability; mirrors the existing `shared_link_comments` behavior) |
 | `AC-MOD-06_one_published_publication_per_project.sql` | AC-MOD-06 | Add a partial unique index so a project can never have two simultaneously-`published` publication rows (closes the rotate/create race window B). | Medium — requires de-duplicating any existing duplicates FIRST |
 | `T4-database-pass.sql` | Track T4 (DB pass) | Index hygiene (P2/P4/P5), RLS-on-events (P3), telemetry retention (P1, pg_cron), rate-limit GC (P7, pg_cron), snapshot-size guardrail (P6); OPT-7/OPT-10 noted as larger follow-ups. Each section has its own pre-flight + rollback. | Low (additive) except the P2 index drops (gated on a verified-zero-scan pre-flight) |
+| `deferred/20260528103341_ai_package_builder_memory.sql` | Database Migration Check | Package-builder memory table/RLS surface. | Deferred while `AI_PACKAGE_BUILDER_MEMORY_ENABLED` remains default-off and provider table is absent. |
+| `deferred/20260614021500_get_project_chart_buckets_rpc.sql` | Database Migration Check | Future chart bucket push-down RPC. | Deferred while charts use the proven server-side JS reducer. Needs explicit public/anon execute revokes before apply. |
+| `superseded/20260611031500_estimate_node_sibling_order_stored.sql` | Database Migration Check | Old sibling-order RPC rewrite. | Superseded by the live 9-argument tab-aware `create_estimate_node_with_history`; do not apply as-is. |
 
 ## Application order
 
