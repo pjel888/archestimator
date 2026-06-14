@@ -494,7 +494,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           <span className="shrink-0 mr-1.5 flex items-center" aria-hidden="true">
             <span
               data-occupancy-dot=""
-              className={cn("size-1.5 rounded-full", node.accent ? "bg-orange-600" : "bg-tertiary")}
+              className={cn("size-[3px] rounded-full opacity-50", node.accent ? "bg-orange-600" : "bg-tertiary")}
             />
           </span>
         ) : node.icon ? (
