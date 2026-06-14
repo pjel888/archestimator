@@ -53,6 +53,9 @@ export type DropdownSelectProps = {
   ariaDisabled?: boolean;
   align?: DropdownPopupAlign;
   side?: DropdownPopupSide;
+  /** Controls trigger appearance. "underline" (default) keeps the current hairline-underline look;
+   *  "boxed" renders a full-height bordered input-style trigger. */
+  variant?: "underline" | "boxed";
   className?: string;
   panelClassName?: string;
   id?: string;
@@ -98,6 +101,7 @@ export function DropdownSelect({
   ariaDisabled,
   align = "start",
   side = "bottom",
+  variant = "underline",
   className,
   panelClassName,
   id,
@@ -348,7 +352,10 @@ export function DropdownSelect({
         data-testid={dataTestId}
         data-placeholder={selectedOption ? undefined : "true"}
         className={cn(
-          "inline-flex h-5 w-full min-w-0 items-center justify-between gap-1 border-0 border-b border-hairline bg-transparent pl-0 pr-0.5 text-left !text-[9px] font-medium leading-3 text-ink outline-none transition hover:border-tertiary focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50",
+          "inline-flex items-center justify-between rounded-xs transition",
+          variant === "underline"
+            ? "h-5 w-full min-w-0 gap-1 border-0 border-b border-hairline bg-transparent pl-0 pr-0.5 text-left !text-[9px] font-medium leading-3 text-ink outline-none hover:border-tertiary focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-50"
+            : "h-10 w-full border border-hairline bg-white px-2 text-[10px] hover:border-tertiary focus-visible:border-accent focus-visible:outline-none",
           ariaDisabled && "opacity-50",
           invalid && "border-danger",
           !selectedOption && "text-tertiary",
@@ -365,7 +372,7 @@ export function DropdownSelect({
         onKeyDown={handleTriggerKeyDown}
       >
         <span className="truncate">{triggerLabel}</span>
-        <CaretDown size={8} weight="regular" aria-hidden="true" className="shrink-0 text-tertiary" />
+        <CaretDown size={variant === "boxed" ? 12 : 8} weight="regular" aria-hidden="true" className="shrink-0 text-tertiary" />
       </button>
       {name ? (
         <select
