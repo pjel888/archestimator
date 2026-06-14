@@ -1204,74 +1204,32 @@ describe("templates tree", () => {
     expect(screen.queryByRole("menuitem", { name: "Delete" })).not.toBeInTheDocument();
   });
 
-  it("opens the save-as-template flow from a project node source", async () => {
-    const createdTemplate: EstimateTemplate = {
-      id: "tpl-project-source",
-      name: "Amenity Template",
-      description: "",
-      category: "Project Sources",
-      nodes: [],
-    };
-    templateActionMocks.createEstimateTemplateFromEstimateNode.mockResolvedValue({ template: createdTemplate });
+  it("keeps a project node source read-only: insert is offered, no 'Save as template' creation", async () => {
     openTemplatesTab({ projectSources, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Save as template" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "New template" });
-    expect(within(dialog).getByText("Amenity Millwork")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Template category")).toHaveValue("Project Sources");
-    fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Amenity Template" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
-
-    await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateNode).toHaveBeenCalledWith({
-      projectId: "project-2",
-      estimateId: "estimate-2",
-      sourceNodeId: "node-amenity",
-      name: "Amenity Template",
-      category: "Project Sources",
-      description: "",
-    }));
-    expect(await screen.findByRole("treeitem", { name: "Amenity Template estimate template" })).toBeInTheDocument();
+    // Pulling the source into the current estimate is allowed (the drag-drop
+    // equivalent)...
+    expect(await screen.findByRole("menuitem", { name: /^Add to / })).toBeInTheDocument();
+    // ...but a browsed project-as-template can't be mutated/created from here.
+    expect(screen.queryByRole("menuitem", { name: "Save as template" })).not.toBeInTheDocument();
+    expect(templateActionMocks.createEstimateTemplateFromEstimateNode).not.toHaveBeenCalled();
   });
 
-  it("opens the save-as-template flow from a whole project tab source", async () => {
-    const createdTemplate: EstimateTemplate = {
-      id: "tpl-project-tab-source",
-      name: "Lobby Main Template",
-      description: "",
-      category: "Project Sources",
-      nodes: [],
-    };
-    templateActionMocks.createEstimateTemplateFromEstimateTab.mockResolvedValue({ template: createdTemplate });
+  it("keeps a project tab source read-only: no 'Save as template' creation", async () => {
     openTemplatesTab({ projectSources, selectedNodeKind: "group", selectedNodeName: "Main House" });
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }), { clientX: 16, clientY: 16 });
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Save as template" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "New template" });
-    expect(within(dialog).getByText("Lobby Main")).toBeInTheDocument();
-    expect(within(dialog).getByText(/Tab source/)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Template category")).toHaveValue("Project Sources");
-    fireEvent.change(within(dialog).getByLabelText("Template name"), { target: { value: "Lobby Main Template" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save template" }));
-
-    await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledWith({
-      projectId: "project-2",
-      estimateId: "estimate-2",
-      tabId: "tab-2",
-      tabName: "Lobby Main",
-      name: "Lobby Main Template",
-      category: "Project Sources",
-      description: "",
-    }));
-    expect(templateActionMocks.createEstimateTemplateFromEstimateNode).not.toHaveBeenCalled();
-    expect(await screen.findByRole("treeitem", { name: "Lobby Main Template estimate template" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: /^Add to / })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Save as template" })).not.toBeInTheDocument();
+    expect(templateActionMocks.createEstimateTemplateFromEstimateTab).not.toHaveBeenCalled();
   });
 
   it("previews project-source live metadata without template management actions", () => {

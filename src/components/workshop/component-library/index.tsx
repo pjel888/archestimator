@@ -1516,13 +1516,6 @@ function EstimateRightSidebarBase({
     setAddTemplateOpen(true);
   }, []);
 
-  const startNewTemplateFromProjectSource = useCallback((source: ProjectSourceInsertTarget) => {
-    setTemplateSourceNodeId(null);
-    setTemplateSourceProjectSource(source);
-    setTemplateDefaultCategory("Project Sources");
-    setAddTemplateOpen(true);
-  }, []);
-
   const handleAddTemplateOpenChange = useCallback((open: boolean) => {
     setAddTemplateOpen(open);
     if (!open) {
@@ -2116,7 +2109,6 @@ function EstimateRightSidebarBase({
                     setPreviewProjectSourceKey(reusableProjectSourceKey(source));
                   }}
                   onClearProjectSourcePreview={() => setPreviewProjectSourceKey(null)}
-                  onSaveProjectSourceAsTemplate={startNewTemplateFromProjectSource}
                   onRenameTemplate={startRenameTemplate}
                   onDeleteTemplate={startDeleteTemplate}
                   onCreateTemplate={startNewTemplateInCategory}
