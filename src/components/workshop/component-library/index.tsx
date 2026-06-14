@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { FunnelSimple, Plus, PlusSquare, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Plus, PlusSquare, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -43,6 +43,14 @@ import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type Esti
 import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { ComponentViewControls, type ComponentViewMode } from "../component-library-manager/LibraryFolderTree";
+import {
+  buildComponentFacetOptions,
+  componentMatchesFacets,
+  ComponentFacetFilterPopover,
+  countActiveComponentFacets,
+  EMPTY_COMPONENT_FACET_FILTERS,
+  type ComponentFacetFilters,
+} from "@/components/workshop/library/component-facet-filter";
 import { NewComponentForm } from "./NewComponentForm";
 import { NewTemplateModal } from "./NewTemplateModal";
 import {
@@ -1131,11 +1139,21 @@ function EstimateRightSidebarBase({
   const favoriteIds = useMemo(() => libraryItems.filter((item) => item.isFavorite).map((item) => item.id), [libraryItems]);
   const componentTreeTab = getComponentTreeTab(componentViewMode);
 
+  // D1: Facet filter state — mirrors ComponentLibraryManager wiring.
+  const [facetFilters, setFacetFilters] = useState<ComponentFacetFilters>(() => EMPTY_COMPONENT_FACET_FILTERS);
+  const facetOptions = useMemo(() => buildComponentFacetOptions(libraryItems), [libraryItems]);
+  const activeFacetCount = useMemo(() => countActiveComponentFacets(facetFilters), [facetFilters]);
+  // Facets apply to the components list only; templates have their own list.
+  const facetFilteredItems = useMemo(
+    () => (activeFacetCount === 0 ? libraryItems : libraryItems.filter((item) => componentMatchesFacets(item, facetFilters))),
+    [activeFacetCount, facetFilters, libraryItems],
+  );
+
   const treeNodes = useMemo(() => {
     if (activeTab === "templates") return [];
-    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, libraryItems, favoriteIds, recentIds, { categoryTree, suppliers, brands });
+    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands });
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
-  }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, favoriteIds, libraryItems, recentIds, suppliers]);
+  }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, facetFilteredItems, favoriteIds, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
@@ -2000,10 +2018,12 @@ function EstimateRightSidebarBase({
             aria-label="Library tools"
             className="flex h-[38px] min-h-[38px] items-center gap-1 border-b border-hairline bg-white px-2 py-0"
           >
-            {/* Filter — wired in Phase D1; inert placeholder trigger for now */}
-            <ToolbarIconButton label="Filter library" onClick={undefined} aria-pressed={false}>
-              <FunnelSimple size={13} weight="regular" aria-hidden="true" />
-            </ToolbarIconButton>
+            {/* D1: Facet filter — components only; templates-tab faceting is out of scope. */}
+            <ComponentFacetFilterPopover
+              options={facetOptions}
+              filters={facetFilters}
+              onFiltersChange={setFacetFilters}
+            />
             {/* View-by — relocated grouping control */}
             <ToolbarIconButton
               label="View by"
