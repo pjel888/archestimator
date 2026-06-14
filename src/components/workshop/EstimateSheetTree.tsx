@@ -14,6 +14,7 @@ import {
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { Button } from "@/components/ui/button";
+import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ControlInput } from "@/components/ui/control-input";
@@ -77,8 +78,15 @@ type ReorderStatus =
 // neutral node glyph for every node — containment is shown by the disclosure
 // caret (rendered only when the node has children), not by a folder-vs-pin
 // distinction that no longer exists under the single-node model.
-function NodeIcon() {
-  return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+function NodeIcon({ occupied }: { occupied: boolean }) {
+  return (
+    <Circle
+      size={TREE_ROW_ICON_SIZE}
+      weight="regular"
+      className={cn("shrink-0", occupied ? "text-orange-600" : "text-tertiary")}
+      aria-hidden="true"
+    />
+  );
 }
 
 function AddTreeActionIcon() {
@@ -172,11 +180,12 @@ function buildUiTreeModel(nodes: EstimateTreeNode[]): UiTreeModel {
     // any node can nest (single-node model).
     const isFolder = Boolean(node.children?.length);
     if (isFolder) folderIds.add(node.id);
+    const occupied = (node.estimateRowItems?.length ?? 0) > 0;
     return {
       id: node.id,
       label: node.name,
       isLeaf: !isFolder,
-      icon: <NodeIcon />,
+      icon: <NodeIcon occupied={occupied} />,
       children: node.children?.map(toUiNode),
       data: { node },
     };
@@ -1343,6 +1352,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
               label: "Add Area",
               icon: <AddTreeActionIcon />,
               onClick: () => handleAddArea(),
+              className: ADD_BUTTON_CLASSNAME,
             },
           ]}
           tabs={ESTIMATE_TREE_TABS}
