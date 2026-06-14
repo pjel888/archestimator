@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, PlusSquare, SquaresFour, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
@@ -753,7 +753,7 @@ function projectSourceToTemplateSourceNode(source: ProjectSourceInsertTarget, pr
   };
 }
 
-export function EstimateRightSidebar({
+function EstimateRightSidebarBase({
   onInsertComponent,
   onInsertTemplate,
   onInsertTemplateNode,
@@ -838,6 +838,12 @@ export function EstimateRightSidebar({
     ])),
   );
   const [searchQuery, setSearchQuery] = useState("");
+  // PERF-3: the text input stays bound to the immediate searchQuery (responsive
+  // typing), but the expensive in-memory tree filtering/rebuilds read the
+  // deferred value so a keystroke doesn't synchronously rebuild the whole tree.
+  // The server-side project-source search keeps using the immediate value (it
+  // has its own 250ms debounce).
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [searchOpen, setSearchOpen] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [previewProjectSourceKey, setPreviewProjectSourceKey] = useState<string | null>(null);
@@ -1131,7 +1137,7 @@ export function EstimateRightSidebar({
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
   }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, favoriteIds, libraryItems, recentIds, suppliers]);
 
-  const filteredTreeNodes = useMemo(() => filterTree(treeNodes, searchQuery), [treeNodes, searchQuery]);
+  const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
   const visibleProjectSources = useMemo(() => {
@@ -1165,10 +1171,6 @@ export function EstimateRightSidebar({
   const previewProjectSource = useMemo(
     () => findProjectSourceByKey(visibleTemplateProjectSources, previewProjectSourceKey),
     [previewProjectSourceKey, visibleTemplateProjectSources],
-  );
-  const templatesAllNodeIds = useMemo(
-    () => getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(visibleTemplateList, visibleTemplateProjectSources)),
-    [visibleTemplateList, visibleTemplateProjectSources],
   );
   const templatesProjectSourceEmptyState = useMemo(() => {
     if (projectSourcesLoading) {
@@ -1752,14 +1754,17 @@ export function EstimateRightSidebar({
 
   const handleExpandAll = useCallback(() => {
     if (activeTab === "templates") {
-      setTemplatesExpandedIds(templatesAllNodeIds);
+      // PERF-4: build the id list lazily on click. buildTemplatesTreeNodes
+      // allocates a full JSX-bearing tree; doing it every render (the old
+      // templatesAllNodeIds memo) was pure waste since only Expand-all reads it.
+      setTemplatesExpandedIds(getTemplatesTreeAllNodeIds(buildTemplatesTreeNodes(visibleTemplateList, visibleTemplateProjectSources)));
       return;
     }
     setExpandedNodeIdsByViewMode((current) => ({
       ...current,
       [componentViewMode]: getAllNodeIds(treeNodes),
     }));
-  }, [activeTab, componentViewMode, templatesAllNodeIds, treeNodes]);
+  }, [activeTab, componentViewMode, treeNodes, visibleTemplateList, visibleTemplateProjectSources]);
 
   const handleCollapseAll = useCallback(() => {
     if (activeTab === "templates") {
@@ -2028,7 +2033,7 @@ export function EstimateRightSidebar({
                 <TemplatesTree
                   templates={visibleTemplateList}
                   projectSources={visibleTemplateProjectSources}
-                  searchQuery={searchQuery}
+                  searchQuery={deferredSearchQuery}
                   expandedNodeIds={templatesExpandedIds}
                   onToggle={handleTemplatesToggle}
                   loadingProjectIds={skeletonProjectIds}
@@ -2067,7 +2072,7 @@ export function EstimateRightSidebar({
                 nodes={filteredTreeNodes}
                 selectedNodeId={previewItemId}
                 expandedNodeIds={expandedNodeIdsByViewMode[componentViewMode]}
-                searchQuery={searchQuery}
+                searchQuery={deferredSearchQuery}
                 onToggle={handleToggleNode}
                 onItemAdd={(item) => { if (item) addComponent(item); }}
                 onItemPreview={(itemId) => {
@@ -2362,3 +2367,10 @@ export function EstimateRightSidebar({
     </ResizableSidePanel>
   );
 }
+
+// PERF-5: the sidebar lives inside the high-churn estimate sheet. Its props are
+// referentially stable across cell edits and selection-stable renders (query
+// data, ?? fallbacks reusing existing refs, useCallback/useStableCallback
+// handlers; primitive/string props are value-compared by Object.is), so
+// memoizing skips its large derivation block when unrelated sheet state changes.
+export const EstimateRightSidebar = memo(EstimateRightSidebarBase);

@@ -13,6 +13,14 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 
 ---
 
+## 2026-06-14 — Templates Panel: comprehensive fix pass landed; deferred backlog filed
+
+Estimate-sheet **right sidebar** (templates + reusable sources + insert flows). Comprehensive audit (5 parallel agents) → fixes → adversarial code review. **Landed on local `main` worktree (UNPUSHED):** RS-1 (non-default-tab insert showed wrong tab), INS-1/2/4 (lost inserts on category drop → batched action; silent failures → toasts; edit-clobber), and perf (precomputed totals, deferred search, `React.memo` sidebar, `refetchType:"none"`, removed duplicate tree build). tsc + eslint + targeted vitest green. DB/RPC layer audited = **fully applied on hosted, no drift** (corrects the stale "estimate_tabs unapplied / insert path unbuilt" assumption — see `.ai/10_state/` and the templates-projects-auto-added memory).
+- **Deferred backlog (implementation-ready):** `.ai/03_plans/2026-06-14-Templates-Panel-Followups/` — PERF-1 lazy template nodes, INS-3 atomic insert/wrap, RS-2/3/4 reusable-source query perf, RS-5/6 + error taxonomy, and a future-improvements file (hover-prefetch, shared-Tree memoization/virtualization, DB index hygiene, regression tests).
+- **Recommended next:** hover-prefetch the lite library query (PERF-2, infra already exists) + regression tests for RS-1/INS-1.
+
+---
+
 ## 2026-06-14 — Estimate-Tree Single-Node Unification: reversible corridor IMPLEMENTED; irreversible migration STAGED
 
 Plan `.ai/03_plans/2026-06-13-Estimate-Tree-Single-Node-Unification/` (**NOT archived** — work intentionally incomplete). Branch `2026-06-13-Estimate-Tree-Single-Node-Unification` (worktree retained). Ledger: `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md`.

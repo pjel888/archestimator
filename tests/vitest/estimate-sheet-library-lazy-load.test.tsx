@@ -166,9 +166,11 @@ describe("component library lazy load (U4)", () => {
     // Wiring contract: server-confirmed sidebar mutations must mark the
     // lazy dataset stale, or remounts re-seed from pre-mutation cache.
     const sheetSource = readFileSync(path.join(process.cwd(), "src/components/workshop/EstimateSheetContent.tsx"), "utf8");
-    // U18/U19: invalidation now uses the shared key constant (non-exact, so it
-    // covers both the lite panel key and the full editor key).
-    expect(sheetSource).toContain("queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY })");
+    // U18/U19: invalidation uses the shared key constant (non-exact, so it
+    // covers both the lite panel key and the full editor key). PERF-7: with
+    // refetchType "none" it marks the heavy lite dataset stale without eagerly
+    // refetching while the panel is open (local optimistic state is correct).
+    expect(sheetSource).toContain('queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "none" })');
     expect(sheetSource).toContain("onLibraryDataChanged={handleLibraryDataChanged}");
 
     const sidebarSource = readFileSync(path.join(process.cwd(), "src/components/workshop/component-library/index.tsx"), "utf8");

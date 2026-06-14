@@ -18,7 +18,7 @@ import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hoo
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateUiStore } from "@/stores/estimate-ui-store";
-import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, wrapEstimateAreaAndInsertTemplate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { getEstimateWrapGroupName } from "@/lib/estimates/tree-hierarchy";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
@@ -925,9 +925,12 @@ export function EstimateSheetContent({
   // Library mutations in the sidebar update its local state; the lazy query
   // cache must also be marked stale or remounts re-seed from pre-mutation data.
   // Non-exact invalidation on the shared prefix covers both the lite (panel) and
-  // full (editor) datasets.
+  // full (editor) datasets. PERF-7: refetchType "none" marks the heavy lite
+  // dataset stale without eagerly refetching it while the panel is open — the
+  // sidebar's local optimistic state is already correct, and the next cold mount
+  // reseeds fresh. Avoids a full-library refetch after common in-panel actions.
   const handleLibraryDataChanged = useStableCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "none" });
   });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
@@ -1565,24 +1568,78 @@ export function EstimateSheetContent({
           estimateId,
           targetParentNodeId,
           templateId: template.id,
+          targetTabId: dataTabId,
         })
           .then((result) => {
-            setEstimateTreeData(() => result.tree);
+            // INS-1: only reconcile when no later optimistic update superseded
+            // ours, so a concurrent insert's stale snapshot can't clobber newer
+            // state. INS-4: setEstimateTree bumps the editable-rows skip ref so
+            // the server tree doesn't overwrite an in-flight cell edit.
+            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
           })
-          .catch(() => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision));
+          .catch((error: unknown) => {
+            console.error("[estimate] template insert failed", error);
+            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
+            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
+          });
       }
 
       return true;
     },
   );
 
-  const insertTemplateIntoParentById = useCallback(
-    (targetParentNodeId: string, templateId: string) => {
-      const template = templateById.get(templateId);
-      if (!template) return false;
-      return insertTemplateIntoParent(targetParentNodeId, template);
+  // INS-1: insert one or many templates under a group through the batched
+  // server action — one optimistic update + one round-trip — so a category
+  // drop can't lose templates to a concurrent-insert tree-read race. A single
+  // template still routes through the efficient single-insert path.
+  const insertTemplatesIntoParent = useStableCallback(
+    (targetParentNodeId: string, templates: EstimateTemplate[]) => {
+      if (templates.length === 0) return false;
+      if (templates.length === 1) return insertTemplateIntoParent(targetParentNodeId, templates[0]);
+
+      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
+      if (targetParentNode?.kind !== "group") return false;
+
+      const previousTree = estimateTree;
+      const previousRows = editableRows;
+      const rollbackRevision = getEstimateTreeRevision();
+      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
+      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
+      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
+      setSelectedNodeId(targetParentNodeId);
+
+      if (projectId && estimateId) {
+        insertEstimateTemplatesIntoEstimate({
+          projectId,
+          estimateId,
+          targetParentNodeId,
+          templateIds: templates.map((template) => template.id),
+          targetTabId: dataTabId,
+        })
+          .then((result) => {
+            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+          })
+          .catch((error: unknown) => {
+            console.error("[estimate] template batch insert failed", error);
+            toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
+            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
+          });
+      }
+
+      return true;
     },
-    [insertTemplateIntoParent, templateById],
+  );
+
+  const insertTemplatesIntoParentById = useCallback(
+    (targetParentNodeId: string, templateIds: string[]) => {
+      const templates = templateIds
+        .map((templateId) => templateById.get(templateId))
+        .filter((template): template is EstimateTemplate => Boolean(template));
+      if (templates.length === 0) return false;
+      return insertTemplatesIntoParent(targetParentNodeId, templates);
+    },
+    [insertTemplatesIntoParent, templateById],
   );
 
   // A template dropped on an area cannot nest inside it (areas take no child
@@ -1633,13 +1690,21 @@ export function EstimateSheetContent({
           insert: payload.kind === "template-node"
             ? { templateId: payload.templateId, templateNodeId: payload.templateNodeId }
             : { templateIds: payload.templateIds },
+          targetTabId: dataTabId,
         })
           .then((result) => {
-            setEstimateTreeData(() => result.tree);
-            expandTreeNodeForEstimate(estimateId, result.newGroupNodeId);
-            reselectWrapGroup(result.newGroupNodeId);
+            // INS-1/INS-4: reconcile only when our optimistic revision still
+            // stands; steering selection to the server group only makes sense
+            // once that server tree is actually applied.
+            if (getEstimateTreeRevision() === nextRevision) {
+              setEstimateTree(() => result.tree);
+              expandTreeNodeForEstimate(estimateId, result.newGroupNodeId);
+              reselectWrapGroup(result.newGroupNodeId);
+            }
           })
-          .catch(() => {
+          .catch((error: unknown) => {
+            console.error("[estimate] template wrap insert failed", error);
+            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
             restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
             reselectWrapGroup(areaNodeId);
           });
@@ -1675,9 +1740,19 @@ export function EstimateSheetContent({
         targetEstimateId: estimateId,
         targetParentNodeId,
         source,
+        targetTabId: dataTabId,
       })
         .then((result) => {
-          setEstimateTreeData(() => result.tree);
+          // This insert is NON-optimistic: nothing is added to the tree before
+          // the RPC, so the server tree is authoritative and applied directly.
+          // We deliberately do NOT add the template inserts' revision guard here
+          // — those keep their optimistic tree when the guard skips, but here a
+          // skip would drop the inserted source entirely. INS-4: setEstimateTree
+          // bumps the editable-rows skip ref so applying the tree doesn't clobber
+          // an in-flight cell edit. (Concurrent BULK source inserts clobbering
+          // one another is tracked separately as RS-6 — the fix there is to
+          // serialize the bulk loop, not to guard this single insert.)
+          setEstimateTree(() => result.tree);
         })
         .catch((error: unknown) => {
           console.error("[estimate] project source insert failed", error);
@@ -1725,11 +1800,18 @@ export function EstimateSheetContent({
           targetParentNodeId,
           templateId: template.id,
           templateNodeId: templateNode.id,
+          targetTabId: dataTabId,
         })
           .then((result) => {
-            setEstimateTreeData(() => result.tree);
+            // INS-1/INS-4: reconcile only when our optimistic revision still
+            // stands, and via setEstimateTree so in-flight edits survive.
+            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
           })
-          .catch(() => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision));
+          .catch((error: unknown) => {
+            console.error("[estimate] template node insert failed", error);
+            toast({ tone: "error", message: "Couldn't insert the template. Try again." });
+            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
+          });
       }
 
       return true;
@@ -1824,13 +1906,12 @@ export function EstimateSheetContent({
         return;
       }
       if (!Array.isArray(detail.templateIds)) return;
-      for (const templateId of detail.templateIds) {
-        if (typeof templateId === "string" && templateId) insertTemplateIntoParentById(detail.targetParentNodeId, templateId);
-      }
+      const templateIds = detail.templateIds.filter((templateId): templateId is string => typeof templateId === "string" && templateId.length > 0);
+      if (templateIds.length > 0) insertTemplatesIntoParentById(detail.targetParentNodeId, templateIds);
     }
     window.addEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
     return () => window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, handleInsertTemplateEvent);
-  }, [insertTemplateIntoParentById, insertTemplateNodeIntoParentById, wrapAreaAndInsertTemplates]);
+  }, [insertTemplatesIntoParentById, insertTemplateNodeIntoParentById, wrapAreaAndInsertTemplates]);
 
   // U2: a project source dropped onto a group row hands the insert over here (the
   // sheet owns the tree + the action), mirroring the template-drop event flow.
@@ -2080,7 +2161,7 @@ export function EstimateSheetContent({
                     editableRows={editableRows}
                     setEditableRows={setEditableRows}
                     onInsertLibraryItem={insertLibraryItem}
-                    onInsertTemplate={insertTemplateIntoParentById}
+                    onInsertTemplates={insertTemplatesIntoParentById}
                     onInsertTemplateNode={insertTemplateNodeIntoParentById}
                     onWrapAreaWithTemplate={wrapAreaAndInsertTemplates}
                     onAddBlankRow={insertBlankRow}
