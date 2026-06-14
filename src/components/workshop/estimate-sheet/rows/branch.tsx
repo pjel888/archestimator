@@ -16,7 +16,7 @@ import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
-import { NodeIcon, STICKY_HEADER_H, STICKY_THEAD_H, getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
+import { NodeIcon, getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
 
@@ -44,13 +44,6 @@ export type EstimateSheetBranchProps = {
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
   depth?: number;
-  /**
-   * Accumulated sticky offset (px) for this node's header. The root passes 0;
-   * each level adds its parent header height plus the parent's own-rows
-   * <thead> height (when the parent has own rows) so nested sticky layers
-   * stack instead of colliding at top-0. See node-visuals STICKY_* consts.
-   */
-  stickyTop?: number;
 };
 
 /**
@@ -74,7 +67,7 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, stickyTop = 0 }: EstimateSheetBranchProps) {
+export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0 }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -90,11 +83,12 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   const leftIndent = Math.min(depth * 16, 96);
   const total = computeNodeTotal(node, editableRows);
   const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
-  // Own-rows <thead> pins directly below this node's header; children pin below
-  // both this header and (when present) this node's own-rows header so no two
-  // sticky layers share a top offset.
-  const ownRowsStickyTop = stickyTop + STICKY_HEADER_H;
-  const childStickyTop = ownRowsStickyTop + (hasOwnRows ? STICKY_THEAD_H : 0);
+  // Sticky model: ONLY the displayed (depth-0) node header is sticky, pinned at
+  // the top of the scroll container. Nested node headers and every table <thead>
+  // are NON-sticky. Accumulated multi-level sticky offsets (40 -> 80 -> 120 ...)
+  // pinned theads at the bottom of small nested tables and clipped first rows;
+  // a single non-accumulated sticky layer cannot collide, clip, or overlap.
+  const isStickyHeader = depth === 0;
   // P6 single-node model: every node is a first-class area that can hold rows
   // AND child sub-areas, so a template/subtree drops directly into ANY node —
   // there is no area-wrap path anymore.
@@ -173,7 +167,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
       onDragLeave={handleTemplateDragLeave}
       onDrop={handleTemplateDrop}
     >
-      <div className="sticky z-[20] bg-white" style={{ top: stickyTop }}>
+      <div className={cn("bg-white", isStickyHeader && "sticky top-0 z-[20]")}>
         <div
           className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses())}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
@@ -223,10 +217,8 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
 
       {!collapsed ? (
         <div className="mt-1 space-y-2">
-          {/* Breadcrumb path band (L?) — a NORMAL scrolling band, NOT inside the
-              sticky header: keeping it sticky inflated the header past
-              STICKY_HEADER_H (40px) and covered the own-rows thead pinned at
-              stickyTop+40 (OD-20). It's contextual-on-arrival and scrolls away. */}
+          {/* Breadcrumb path band — a normal scrolling band in the node body.
+              It is contextual-on-arrival and scrolls away. */}
           {showBreadcrumbs && (
             <div
               className="flex items-center gap-1 truncate text-[8px] text-muted"
@@ -255,7 +247,6 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
             editableRows={editableRows}
             setEditableRows={setEditableRows}
             targetNodeId={node.id}
-            stickyTop={ownRowsStickyTop}
             onInsertLibraryItem={onInsertLibraryItem}
             onReplaceRowItem={onReplaceRowItem}
             onDeleteRowItem={onDeleteRowItem}
@@ -309,7 +300,6 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}
                 depth={depth + 1}
-                stickyTop={childStickyTop}
               />
             );
           })}

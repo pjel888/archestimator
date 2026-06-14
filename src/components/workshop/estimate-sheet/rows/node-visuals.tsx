@@ -1,14 +1,5 @@
 import { Circle } from "@phosphor-icons/react/dist/ssr";
 
-// Sticky-stacking constants for the rows-first mixed-content layout. The node
-// header and a node's own-rows <thead> are both sticky, so a child header must
-// pin BELOW its ancestor's header (and that ancestor's own-rows header, when
-// present) instead of colliding at the same top offset. These heights are the
-// rendered pixel heights of the two sticky layers; the branch recurses a
-// depth-accumulated offset built from them (see branch.tsx).
-export const STICKY_HEADER_H = 40;
-export const STICKY_THEAD_H = 40;
-
 // Depth-driven inter-node rhythm, token-aligned to DESIGN.md spacing
 // (sm:8 / md:12 / lg:20). The gap DECREASES with depth so nesting reads as a
 // hierarchy: top-level siblings breathe, deep siblings sit tighter. The root
