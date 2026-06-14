@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -143,7 +143,12 @@ try {
   `;
   runPsql(bootstrapSql);
 
-  const migration = readFileSync(join(repoRoot, "supabase/migrations/20260606090000_notification_system.sql"), "utf8");
+  const notificationMigration = readdirSync(join(repoRoot, "supabase/migrations"))
+    .filter((file) => file.endsWith("_notification_system.sql"))
+    .sort()
+    .at(-1);
+  if (!notificationMigration) throw new Error("Notification system migration not found.");
+  const migration = readFileSync(join(repoRoot, "supabase/migrations", notificationMigration), "utf8");
   const migrationPath = join(tempRoot, "notification-system.sql");
   writeFileSync(migrationPath, migration);
   run(psql, [

@@ -72,6 +72,17 @@ export const EMPTY_PACKAGE_BUILDER_MEMORY_PREFERENCES: PackageBuilderMemoryPrefe
   sourceRowCount: 0,
 };
 
+let memorySchemaAvailability: Promise<boolean> | null = null;
+
+export async function hasPackageBuilderMemorySchema() {
+  memorySchemaAvailability ??= (async () => {
+    const supabase = await createSupabaseServerClient() as unknown as GenericSupabaseClient;
+    const { error } = await supabase.from("ai_package_builder_memory_preferences").select("id").limit(1);
+    return !error;
+  })();
+  return memorySchemaAvailability;
+}
+
 function normalizeLabel(value: string) {
   return value.trim().replace(/\s+/g, " ").slice(0, 160);
 }
