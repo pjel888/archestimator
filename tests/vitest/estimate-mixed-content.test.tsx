@@ -100,6 +100,15 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(screen.queryByText("Own items")).not.toBeInTheDocument();
   });
 
+  it("uses the tightened in-node cluster gap (space-y-2), not space-y-4 (Req 2)", () => {
+    renderSheet(leafTree(), "pantry");
+    const section = screen.getByLabelText("Pantry");
+    // The table/add-row strip/children cluster reads as one node (sm=8px gap);
+    // node separation is carried by the inter-node groupGap, not this gap.
+    expect(section.querySelector(".space-y-2")).not.toBeNull();
+    expect(section.querySelector(".space-y-4")).toBeNull();
+  });
+
   it("renders a disclosure caret + aria-expanded on any node with contents (rows OR children)", () => {
     renderSheet(mixedTree(), "building-a");
 
