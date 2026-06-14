@@ -95,7 +95,7 @@ describe("estimate tree bulk selection", () => {
     expect(treeNode("living")).not.toHaveAttribute("aria-current");
     expect(routerMock.push).not.toHaveBeenCalled();
     const dock = await screen.findByRole("region", { name: "Bulk action toolbar" });
-    await waitFor(() => expect(within(dock).getByLabelText("1 node selected")).toHaveTextContent("1"));
+    await waitFor(() => expect(within(dock).getByLabelText("1 Area selected")).toHaveTextContent("1"));
     expect(within(dock).getByRole("button", { name: "Delete selected" })).toBeInTheDocument();
     expect(within(dock).getByRole("button", { name: "Clear selection" })).toBeInTheDocument();
   });
@@ -144,7 +144,7 @@ describe("estimate tree bulk selection", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Living Area" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete selected" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Delete 1 selected node" });
+    const dialog = screen.getByRole("dialog", { name: "Delete 1 selected Area" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["living"]));
@@ -172,7 +172,7 @@ describe("estimate tree bulk selection", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Ground Floor" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete selected" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Delete 3 selected nodes" });
+    const dialog = screen.getByRole("dialog", { name: "Delete 3 selected Areas" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(actionMocks.deleteEstimateNodesBulk).toHaveBeenCalledWith("project-1", "estimate-1", ["ground-floor"]));

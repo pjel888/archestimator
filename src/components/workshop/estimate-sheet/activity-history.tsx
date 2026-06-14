@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CaretDown, Cube, FolderSimple, FunnelSimple, MapPin, Plus, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Circle, Cube, FolderSimple, FunnelSimple, Plus, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput } from "@/components/ui/control-input";
@@ -11,10 +11,9 @@ import { SearchInput } from "@/components/ui/search-input";
 import { composeEstimateActivity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } from "@/lib/activity";
 import { fetchEstimateSheetVersionControl, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
-import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
-import type { EstimateRowItem, EstimateTreeNode } from "../estimate-tree-data";
+import type { EstimateRowItem } from "../estimate-tree-data";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "../tree-visual-style";
 import { WorkshopTreeRow, WorkshopTreeTabs, type WorkshopTreeTabItem } from "../workshop-tree";
 
@@ -134,11 +133,10 @@ export function isBlankEstimateRowItem(item: EstimateRowItem) {
   );
 }
 
-function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : MapPin;
+function AddTreeActionIcon() {
   return (
     <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
-      <Icon size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
+      <Circle size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
       <Plus size={8} weight="regular" className="absolute right-0 top-0" />
     </span>
   );
@@ -1316,8 +1314,8 @@ function getActivityEmptyCopy(scope: EstimateActivityScope) {
 
   if (scope.mode === "node") {
     return {
-      label: "No node activity yet",
-      description: scope.includeDescendants ? "Node and descendant row activity will appear here." : "Node changes and row edits in this Area Node will appear here.",
+      label: "No activity yet for this Area",
+      description: scope.includeDescendants ? "Activity for this Area and everything inside it will appear here." : "Changes and row edits in this Area will appear here.",
     };
   }
 
@@ -1440,13 +1438,8 @@ function ActivityScopeTree({
           onCollapseAll={collapseAllScopes}
           addActions={[
             {
-              label: "Add Group",
-              icon: <AddTreeActionIcon kind="group" />,
-              disabled: true,
-            },
-            {
-              label: "Add Node",
-              icon: <AddTreeActionIcon kind="area" />,
+              label: "Add Area",
+              icon: <AddTreeActionIcon />,
               disabled: true,
             },
           ]}
@@ -1503,8 +1496,8 @@ function ActivityScopeTree({
                   )}
                   <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
                     {item.kind === "sheet" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
-                    {item.kind === "group" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
-                    {item.kind === "area" ? <MapPin size={12} weight="regular" aria-hidden="true" /> : null}
+                    {/* group and area collapse to one neutral node glyph */}
+                    {item.kind === "group" || item.kind === "area" ? <Circle size={12} weight="regular" aria-hidden="true" /> : null}
                     {item.kind === "row" ? <span className="font-sans text-[12px] font-medium" aria-hidden="true">#</span> : null}
                   </span>
                   <span className="min-w-0 truncate text-left">{item.label}</span>

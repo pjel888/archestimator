@@ -132,7 +132,8 @@ describe("LibraryOverview", () => {
     const templateRow = document.querySelector('[data-library-overview-recent-template="tpl-1"]');
     expect(templateRow).not.toBeNull();
     expect(within(templateRow as HTMLElement).getByText("Powder Room Basic")).toBeInTheDocument();
-    expect(within(templateRow as HTMLElement).getByText("1 group · 1 area · 4 rows")).toBeInTheDocument();
+    // P4: groups + areas collapse to one "areas" count (1 group + 1 area = 2).
+    expect(within(templateRow as HTMLElement).getByText("2 areas · 4 rows")).toBeInTheDocument();
     expect(within(templateRow as HTMLElement).getByText("Residential Rooms")).toBeInTheDocument();
     expect(within(templateRow as HTMLElement).getByText("₱61,150.00")).toBeInTheDocument();
 

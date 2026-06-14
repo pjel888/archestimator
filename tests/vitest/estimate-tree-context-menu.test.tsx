@@ -339,12 +339,15 @@ describe("estimate tree context menu", () => {
     replaceStateSpy.mockRestore();
   });
 
-  it("opens full CRUD actions for Group Node and Area Node right-clicks without routing", async () => {
+  it("opens full CRUD actions with a single Add-area-inside item, without routing", async () => {
     renderTree();
 
     await openContextMenu("ground-floor");
-    expect(screen.getByRole("menuitem", { name: "New Group inside" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "New Area Node inside" })).toBeInTheDocument();
+    // P4: the old "New Group inside" / "New Area Node inside" pair collapses to
+    // one "Add area inside" item.
+    expect(screen.getByRole("menuitem", { name: "Add area inside" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "New Group inside" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "New Area Node inside" })).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Save as template" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
@@ -352,30 +355,31 @@ describe("estimate tree context menu", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     await openContextMenu("kitchen");
-    // Areas cannot nest nodes, so the create actions stay group-only.
-    expect(screen.queryByRole("menuitem", { name: "New Group inside" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("menuitem", { name: "New Area Node inside" })).not.toBeInTheDocument();
+    // The create action stays on nodes that can take a child under the current
+    // write model (a group) so the affordance is never shown where it would
+    // throw; it appears on every node with the P6 write-enable.
+    expect(screen.queryByRole("menuitem", { name: "Add area inside" })).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Save as template" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
     expect(routerMock.push).not.toHaveBeenCalled();
   });
 
-  it("creates an Area Node under the right-clicked group, not the current selection", async () => {
+  it("creates an Area under the right-clicked group, not the current selection", async () => {
     const pendingCreate = deferred<{ nodeId: string }>();
     actionMocks.createEstimateNode.mockReturnValue(pendingCreate.promise);
     renderTree();
 
-    await chooseMenuItem("ground-floor", "New Area Node inside");
+    await chooseMenuItem("ground-floor", "Add area inside");
 
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
     const [, , formData] = actionMocks.createEstimateNode.mock.calls[0];
     expect(formData.get("kind")).toBe("area");
-    expect(formData.get("name")).toBe("New Area Node");
+    expect(formData.get("name")).toBe("New Area");
     expect(formData.get("parentId")).toBe("ground-floor");
     // The optimistic node opens straight into inline rename (the row arrives
     // with the next query-cache notification).
-    expect(await screen.findByLabelText("Rename New Area Node")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Rename New Area")).toBeInTheDocument();
 
     await act(async () => {
       pendingCreate.resolve({ nodeId: "server-new-area" });
@@ -649,16 +653,17 @@ describe("estimate tree context menu", () => {
     await chooseMenuItem("kitchen", "Delete");
 
     expect(screen.getByRole("dialog", { name: "Delete Kitchen" })).toBeInTheDocument();
-    expect(screen.getByText("This removes the area and its estimate rows.")).toBeInTheDocument();
+    // P4: one kind-neutral delete-confirm description for every node.
+    expect(screen.getByText("This removes the Area, every Area inside it, and all their cost rows.")).toBeInTheDocument();
     expect(treeNodeButton("kitchen")).toHaveTextContent("Kitchen");
     expect(actionMocks.deleteEstimateNode).not.toHaveBeenCalled();
   });
 
-  it("Group Node delete confirmation warns about child groups, child areas, and descendant rows", async () => {
+  it("delete confirmation uses the unified Area description for a node with children", async () => {
     renderTree();
     await chooseMenuItem("ground-floor", "Delete");
 
-    expect(screen.getByText("This removes the group, child groups, child areas, and descendant estimate rows.")).toBeInTheDocument();
+    expect(screen.getByText("This removes the Area, every Area inside it, and all their cost rows.")).toBeInTheDocument();
   });
 
   it("confirmed Group Node delete removes descendant rows before the server action resolves", async () => {

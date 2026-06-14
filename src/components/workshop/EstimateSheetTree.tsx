@@ -5,9 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowCounterClockwise,
   Check,
-  FolderSimple,
-  MapPin,
-  FolderSimplePlus,
+  Circle,
   PencilSimple,
   StackPlus,
   Trash,
@@ -22,7 +20,7 @@ import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
-import { getEstimateNodeDisplayKind, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
   dedupeSelectedRoots,
@@ -76,17 +74,16 @@ type ReorderStatus =
   | { state: "error"; message: string };
 
 // Same icon scale as the right-sidebar trees: every tree panel renders row
-// icons at the shared TREE_ROW_ICON_SIZE so no panel reads "bigger".
-function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  if (getEstimateNodeDisplayKind(kind) === "group") {
-    return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
-  }
-  return <MapPin size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+// icons at the shared TREE_ROW_ICON_SIZE so no panel reads "bigger". One
+// neutral node glyph for every node — containment is shown by the disclosure
+// caret (rendered only when the node has children), not by a folder-vs-pin
+// distinction that no longer exists under the single-node model.
+function NodeIcon() {
+  return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
-function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : MapPin;
-  return <Icon size={13} weight="regular" aria-hidden="true" />;
+function AddTreeActionIcon() {
+  return <Circle size={13} weight="regular" aria-hidden="true" />;
 }
 
 function cloneEstimateTreeNode(node: EstimateTreeNode): EstimateTreeNode {
@@ -165,13 +162,17 @@ function buildUiTreeModel(nodes: EstimateTreeNode[]): UiTreeModel {
   const folderIds = new Set<string>();
 
   function toUiNode(node: EstimateTreeNode): UiTreeNode {
-    const isFolder = isEstimateGroupNodeKind(node.kind);
+    // Leaf vs container is derived from CHILDREN, not kind: a node that has
+    // child sub-areas is expandable; a node with none is a leaf. On all-area
+    // trees this matches the old kind-based result, and it stays correct once
+    // any node can nest (single-node model).
+    const isFolder = Boolean(node.children?.length);
     if (isFolder) folderIds.add(node.id);
     return {
       id: node.id,
       label: node.name,
       isLeaf: !isFolder,
-      icon: <NodeIcon kind={node.kind} />,
+      icon: <NodeIcon />,
       children: node.children?.map(toUiNode),
       data: { node },
     };
@@ -199,7 +200,8 @@ function filterEstimateTreeNodes(nodes: EstimateTreeNode[], query: string): Esti
 
 function collectEstimateFolderIds(nodes: EstimateTreeNode[], into: string[] = []): string[] {
   for (const node of nodes) {
-    if (isEstimateGroupNodeKind(node.kind)) into.push(node.id);
+    // Expandable === has children (kind-agnostic), matching buildUiTreeModel.
+    if (node.children?.length) into.push(node.id);
     if (node.children?.length) collectEstimateFolderIds(node.children, into);
   }
   return into;
@@ -646,14 +648,17 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
   const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"], parentGroupIdOverride?: string) => {
     // Context-menu creates target the right-clicked group; header buttons
-    // fall back to the current selection.
+    // fall back to the current selection. Callers (handleAddArea / the
+    // context menu) only ever pass a write-valid (kind, parent) pair — an
+    // `area` always with a group parent, a root create always as `group` —
+    // so the old "select a group first" error path is gone: every create
+    // succeeds. Internal `kind` stays the write-path discriminant; the user
+    // only ever sees "Area".
     const targetParentGroupId = parentGroupIdOverride ?? selectedGroupId;
-    if (kind === "area" && !targetParentGroupId) {
-      setReorderStatus({ state: "error", message: "you must select a group first before adding an area node" });
-      return;
-    }
 
-    const nodeName = kind === "group" ? "New Group" : "New Area Node";
+    // One user-facing name for every node. The internal kind still drives the
+    // write path, but the placeholder the user names is always "New Area".
+    const nodeName = "New Area";
     const optimisticNodeId = makeOptimisticTreeNodeId(kind);
     const optimisticNode = createOptimisticEstimateTreeNode(kind, optimisticNodeId, nodeName);
     const nextNodes = insertLocalEstimateTreeNode(localNodes, targetParentGroupId, optimisticNode);
@@ -670,7 +675,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     setEditingNodeId(optimisticNodeId);
     setEditingNodeName(nodeName);
     setEditingNodeError(null);
-    setReorderStatus({ state: "saving", message: kind === "group" ? "Adding Group" : "Adding Node" });
+    setReorderStatus({ state: "saving", message: "Adding area" });
 
     function createOnServer(serverParentId: string | null) {
       const formData = new FormData();
@@ -719,7 +724,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           setSelectedNodeId(serverNodeId);
           syncEstimateRouteUrl(serverNodeId);
         }
-        setReorderStatus({ state: "saved", message: kind === "group" ? "Group added" : "Node added" });
+        setReorderStatus({ state: "saved", message: "Area added" });
       })
       .catch((error: unknown) => {
         unstable_rethrow(error);
@@ -749,16 +754,30 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     syncEstimateRouteUrl,
   ]);
 
+  // The single "Add Area" affordance. Type no longer exists for the user, but
+  // the write path is unchanged in P4: an `area` requires a group parent and a
+  // root create must be a `group`. So this routes to the write-valid internal
+  // kind for the current selection — a child `area` when a group is selected,
+  // a root `group` otherwise — while the user only ever sees "Area". Removing
+  // the kind choice (and the create flow being able to add under any node)
+  // ships with the write-enable in P6.
+  const handleAddArea = useCallback((parentGroupIdOverride?: string) => {
+    const targetParentGroupId = parentGroupIdOverride ?? selectedGroupId;
+    handleAddTreeNode(targetParentGroupId ? "area" : "group", targetParentGroupId ?? undefined);
+  }, [handleAddTreeNode, selectedGroupId]);
+
   useEffect(() => {
     function handleRequestedTreeNodeCreate(event: Event) {
       const detail = (event as CustomEvent<Partial<RequestEstimateTreeNodeCreateEventDetail>>).detail;
+      // Legacy create event still carries a kind ("group" from the empty-tab
+      // "Add Area" button → root create). Route it through the single flow.
       if (detail?.kind !== "group" && detail?.kind !== "area") return;
-      handleAddTreeNode(detail.kind);
+      handleAddArea();
     }
 
     window.addEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handleRequestedTreeNodeCreate);
     return () => window.removeEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handleRequestedTreeNodeCreate);
-  }, [handleAddTreeNode]);
+  }, [handleAddArea]);
 
   // Focus from the ref callback: the rename editor for a just-created node
   // mounts a render after the focus effect fires, so timer-based focusing
@@ -1118,28 +1137,24 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     const nodeIsPendingCreate = isOptimisticEstimateNodeId(contextMenuNode.id);
 
     return [
+      // One unconditional-looking "Add area inside" replaces the old
+      // New Group/New Area pair. It stays gated to nodes that can take a child
+      // under the CURRENT write model (a group) so the affordance is never
+      // shown where it would throw server-side; making it appear on every node
+      // ships with the write-enable (P6). The item creates an `area` child.
       ...(nodeIsGroup
         ? [
             {
               id: "create-nodes",
               items: [
                 {
-                  id: "new-group-inside",
-                  label: "New Group inside",
-                  icon: <FolderSimplePlus size={12} weight="regular" aria-hidden="true" />,
+                  id: "add-area-inside",
+                  label: "Add area inside",
+                  icon: <Circle size={12} weight="regular" aria-hidden="true" />,
                   onSelect: () => {
                     armContextMenuRenameHandoff();
-                    handleAddTreeNode("group", contextMenuNode.id);
+                    handleAddTreeNode("area", contextMenuNode.id);
                   },
-                },
-                {
-                  id: "new-area-inside",
-                  label: "New Area Node inside",
-                  icon: <MapPin size={12} weight="regular" aria-hidden="true" />,
-                    onSelect: () => {
-                      armContextMenuRenameHandoff();
-                      handleAddTreeNode("area", contextMenuNode.id);
-                    },
                 },
               ],
             },
@@ -1307,11 +1322,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     resetRenameNode,
   ]);
 
-  const deleteTargetDisplayKind = deleteTargetNode ? getEstimateNodeDisplayKind(deleteTargetNode.kind) : null;
   const deleteConfirmationDescription = deleteTargetNode
-    ? deleteTargetDisplayKind === "group"
-      ? "This removes the group, child groups, child areas, and descendant estimate rows."
-      : "This removes the area and its estimate rows."
+    ? "This removes the Area, every Area inside it, and all their cost rows."
     : "";
 
   return (
@@ -1327,7 +1339,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       >
         {/* group/tree on the panel widens the rail-reveal scope: rows keep
             their drag/select space while the pointer or focus is anywhere in
-            this sidebar (header tools included), so reaching for Add Group or
+            this sidebar (header tools included), so reaching for Add Area or
             search no longer shifts the tree back and forth. */}
         <div className="group/tree flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
         <TreePanelHeader
@@ -1342,14 +1354,9 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           searchLabel="Search Tree"
           addActions={[
             {
-              label: "Add Group",
-              icon: <AddTreeActionIcon kind="group" />,
-              onClick: () => handleAddTreeNode("group"),
-            },
-            {
-              label: "Add Node",
-              icon: <AddTreeActionIcon kind="area" />,
-              onClick: () => handleAddTreeNode("area"),
+              label: "Add Area",
+              icon: <AddTreeActionIcon />,
+              onClick: () => handleAddArea(),
             },
           ]}
           tabs={ESTIMATE_TREE_TABS}
@@ -1363,7 +1370,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           <div className={cn("px-2 pb-2 pt-0", bulkSelectionCount > 0 && "pb-16")}>
           {localNodes.length === 0 ? (
             <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
-              This estimate has no tree nodes yet. Add a Group Node or Area Node to begin rebuilding the estimate structure.
+              This estimate is empty. Add an area to begin.
             </div>
           ) : uiTreeNodes.length === 0 ? (
             <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
@@ -1424,7 +1431,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           placement="bottom-dock"
           dockTo="container"
           selectedCount={bulkSelectionCount}
-          selectedLabel={bulkSelectionCount === 1 ? "node selected" : "nodes selected"}
+          selectedLabel={bulkSelectionCount === 1 ? "Area selected" : "Areas selected"}
           onClear={clearBulkSelection}
           actions={[
             {
@@ -1441,8 +1448,8 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       </ResizableSidePanel>
       <Modal
         open={bulkDeleteConfirmOpen}
-        title={`Delete ${bulkSelectionCount} selected ${bulkSelectionCount === 1 ? "node" : "nodes"}`}
-        description="This removes selected nodes, descendant groups, child areas, and descendant estimate rows."
+        title={`Delete ${bulkSelectionCount} selected ${bulkSelectionCount === 1 ? "Area" : "Areas"}`}
+        description="This removes the selected Areas, every Area inside them, and all their cost rows."
         onOpenChange={(open) => {
           if (!open && !bulkDeletePending) setBulkDeleteConfirmOpen(false);
         }}
@@ -1451,7 +1458,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       >
         <div className="space-y-3">
           <p className="text-[10px] leading-4 text-tertiary">
-            {bulkSelectionCount} {bulkSelectionCount === 1 ? "node is" : "nodes are"} selected. Overlapping child selections are deduplicated before deletion.
+            {bulkSelectionCount} {bulkSelectionCount === 1 ? "Area is" : "Areas are"} selected. Overlapping child selections are deduplicated before deletion.
           </p>
           <div className="flex justify-end gap-2">
             <Button
@@ -1477,7 +1484,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       </Modal>
       <Modal
         open={Boolean(deleteTargetNode)}
-        title={deleteTargetNode ? `Delete ${deleteTargetNode.name}` : "Delete node"}
+        title={deleteTargetNode ? `Delete ${deleteTargetNode.name}` : "Delete Area"}
         description={deleteConfirmationDescription}
         onOpenChange={handleDeleteModalOpenChange}
         closeLabel="Cancel delete"

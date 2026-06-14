@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { Cube, FolderSimple } from "@phosphor-icons/react/dist/ssr";
+import { Circle } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput, ControlTextarea } from "@/components/ui/control-input";
@@ -34,14 +34,16 @@ function pluralize(count: number, noun: string) {
 }
 
 function summarizeSourceNode(node: EstimateTreeNode) {
-  const summary = { groupCount: 0, areaCount: 0, rowCount: 0 };
-  function visit(current: EstimateTreeNode) {
-    if (current.kind === "group") summary.groupCount += 1;
-    else summary.areaCount += 1;
+  // One node type: count every node as an "area", plus child sub-areas and
+  // rows. The old group/area split is gone from this summary.
+  const summary = { nodeCount: 0, subAreaCount: 0, rowCount: 0 };
+  function visit(current: EstimateTreeNode, isRoot: boolean) {
+    summary.nodeCount += 1;
+    if (!isRoot) summary.subAreaCount += 1;
     summary.rowCount += current.estimateRowItems?.length ?? 0;
-    current.children?.forEach(visit);
+    current.children?.forEach((child) => visit(child, false));
   }
-  visit(node);
+  visit(node, true);
   return summary;
 }
 
@@ -170,22 +172,18 @@ export function NewTemplateModal({
         {scratchMode ? null : sourceNode && summary ? (
           <div className="flex items-center gap-2 border border-hairline bg-surfaceMuted/30 p-2">
             <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
-              {sourceNode.kind === "group" ? (
-                <FolderSimple size={14} weight="regular" aria-hidden="true" />
-              ) : (
-                <Cube size={14} weight="regular" aria-hidden="true" />
-              )}
+              <Circle size={14} weight="regular" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[10px] font-medium text-ink">{sourceNode.name}</p>
               <p className="text-[9px] leading-3 text-tertiary">
-                {tabMode ? "Tab source" : sourceNode.kind === "group" ? "Group node" : "Area node"} · {pluralize(summary.groupCount, "group")} · {pluralize(summary.areaCount, "area")} · {pluralize(summary.rowCount, "row")}
+                {tabMode ? "Tab source" : "Area"} · {pluralize(summary.subAreaCount, "sub-area")} · {pluralize(summary.rowCount, "row")}
               </p>
             </div>
           </div>
         ) : (
           <p className="border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-            Select a Group or Area Node in the estimate tree first — the template captures that node and everything inside it.
+            Select an Area in the estimate tree first — the template captures that Area and everything inside it.
           </p>
         )}
 

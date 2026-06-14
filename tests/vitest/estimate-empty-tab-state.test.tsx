@@ -51,18 +51,22 @@ describe("new-tab empty state", () => {
     renderEmptyTab({ canEditEstimate: true });
 
     expect(screen.getByRole("heading", { name: "This tab is empty" })).toBeInTheDocument();
-    expect(screen.getByText("Add a group to start the tree, or drag a template or project content here.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Group" })).toBeInTheDocument();
+    // P4: empty-tab copy + button de-kinded to "Area".
+    expect(screen.getByText("Add an Area to start, or drag a template or project content here.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Group" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Browse templates" })).toBeInTheDocument();
   });
 
-  it("Add Group from the empty state requests a root group create in the active (new) tab", () => {
+  it("Add Area from the empty state requests a write-valid root create in the active (new) tab", () => {
     const createRequests: Array<{ kind?: string }> = [];
     const handler = (event: Event) => createRequests.push((event as CustomEvent<{ kind?: string }>).detail);
     window.addEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handler);
     try {
       renderEmptyTab({ canEditEstimate: true });
-      fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
+      // Root create stays write-valid (internal kind "group"); the tree's event
+      // handler routes it through the single Add Area flow.
       expect(createRequests).toEqual([{ kind: "group" }]);
     } finally {
       window.removeEventListener(REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT, handler);

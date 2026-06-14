@@ -357,7 +357,8 @@ function getProjectSourceTypeLabel(source: ProjectReusableEstimateSource) {
   if (source.kind === "project") return "Project";
   if (source.kind === "project-estimate") return "Estimate";
   if (source.kind === "project-tab") return "Tab";
-  return source.nodeKind === "group" ? "Group" : "Area";
+  // One node type — every estimate node is an "Area".
+  return "Area";
 }
 
 function findProjectSourceByKey(sources: ReusableEstimateSource[], key: string | null): ProjectReusableEstimateSource | null {
@@ -1335,7 +1336,7 @@ export function EstimateRightSidebar({
   const insertLibraryItems = useCallback(
     (itemsToInsert: EstimateRowItem[], sourceItems = itemsToInsert) => {
       if (!canInsert) {
-        setLastActionMessage("Select an Area Node before adding library components.");
+        setLastActionMessage("Select an Area before adding library components.");
         return false;
       }
       if (!itemsToInsert.length) return false;
@@ -1348,7 +1349,7 @@ export function EstimateRightSidebar({
       });
 
       if (!insertedItems.length) {
-        setLastActionMessage(`${itemsToInsert.length === 1 ? getComponentName(itemsToInsert[0]) : "Selected components"} was not inserted. Select an Area Node and try again.`);
+        setLastActionMessage(`${itemsToInsert.length === 1 ? getComponentName(itemsToInsert[0]) : "Selected components"} was not inserted. Select an Area and try again.`);
         return false;
       }
 
@@ -1381,7 +1382,7 @@ export function EstimateRightSidebar({
   const addTemplate = useCallback(
     (template: EstimateTemplate) => {
       if (!canInsertTemplate) {
-        setLastActionMessage("Select a Group Node before adding estimate templates.");
+        setLastActionMessage("Select an Area before adding estimate templates.");
         return false;
       }
 
@@ -1389,7 +1390,7 @@ export function EstimateRightSidebar({
         ? onInsertTemplate(template) !== false
         : window.dispatchEvent(new CustomEvent("archestimator:add-estimate-template", { detail: template }));
       if (!didInsert) {
-        setLastActionMessage(`${template.name} was not inserted. Select a Group Node and try again.`);
+        setLastActionMessage(`${template.name} was not inserted. Select an Area and try again.`);
         return false;
       }
 
@@ -1402,13 +1403,13 @@ export function EstimateRightSidebar({
   const addTemplateNode = useCallback(
     (template: EstimateTemplate, templateNode: EstimateTreeNode) => {
       if (!canInsertTemplate) {
-        setLastActionMessage("Select a Group Node before adding template nodes.");
+        setLastActionMessage("Select an Area before adding template nodes.");
         return false;
       }
 
       const didInsert = onInsertTemplateNode ? onInsertTemplateNode(template, templateNode) !== false : false;
       if (!didInsert) {
-        setLastActionMessage(`${templateNode.name} was not inserted. Select a Group Node and try again.`);
+        setLastActionMessage(`${templateNode.name} was not inserted. Select an Area and try again.`);
         return false;
       }
 
@@ -1421,13 +1422,13 @@ export function EstimateRightSidebar({
   const addProjectSource = useCallback(
     (source: ProjectSourceInsertTarget) => {
       if (!canInsertTemplate) {
-        setLastActionMessage("Select a Group Node before adding project sources.");
+        setLastActionMessage("Select an Area before adding project sources.");
         return false;
       }
 
       const didInsert = onInsertProjectSource ? onInsertProjectSource(source) !== false : false;
       if (!didInsert) {
-        setLastActionMessage(`${source.name} was not inserted. Select a Group Node and try again.`);
+        setLastActionMessage(`${source.name} was not inserted. Select an Area and try again.`);
         return false;
       }
 
@@ -1894,7 +1895,7 @@ export function EstimateRightSidebar({
 
       const dragGhost = document.createElement("div");
       dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
-      dragGhost.textContent = `${templateNode.name} · template ${templateNode.kind === "group" ? "group" : "area"}`;
+      dragGhost.textContent = `${templateNode.name} · template area`;
       document.body.appendChild(dragGhost);
       event.dataTransfer.setDragImage(dragGhost, 12, 12);
       window.setTimeout(() => dragGhost.remove(), 0);
@@ -2154,7 +2155,7 @@ export function EstimateRightSidebar({
             addLabel={
               canInsertTemplate
                 ? `Add to ${effectiveTemplateTargetName || "selected group"}`
-                : "Select a Group Node before adding project sources"
+                : "Select an Area before adding project sources"
             }
           />
         ) : null}

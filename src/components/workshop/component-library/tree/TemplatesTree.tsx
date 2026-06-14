@@ -4,8 +4,8 @@ import { useCallback, useMemo, useState, type DragEvent } from "react";
 import {
   CaretDown,
   CaretRight,
+  Circle,
   FolderSimple,
-  MapPin,
   Package,
   PencilSimple,
   Plus,
@@ -127,18 +127,16 @@ function getTemplatesTreeDatum(node: UiTreeNode): TemplatesTreeDatum | undefined
   return node.data?.templatesNode as TemplatesTreeDatum | undefined;
 }
 
-function NodeKindIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  if (kind === "group") {
-    return <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
-  }
-  return <MapPin size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
+// One neutral node glyph for every estimate node (single-node model).
+function NodeKindIcon() {
+  return <Circle size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
 function TemplateRootIcon({ template }: { template: EstimateTemplate }) {
-  // A template reads as the node it inserts: group icon for a group-rooted
-  // template, cube for an area-rooted one, a stack when roots are mixed.
+  // A single-root template reads as the one node it inserts (the neutral node
+  // glyph); a template with multiple roots reads as a stack.
   const rootKinds = getTemplateRootKinds(template);
-  if (rootKinds.length === 1) return <NodeKindIcon kind={rootKinds[0]} />;
+  if (rootKinds.length === 1) return <NodeKindIcon />;
   return <StackSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />;
 }
 
@@ -162,9 +160,9 @@ function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNo
   return {
     id: templateInnerNodeId(template.id, node.id),
     label: node.name,
-    ariaLabel: `${node.name} template ${node.kind}`,
+    ariaLabel: `${node.name} template area`,
     isLeaf: childNodes.length === 0 && rowNodes.length === 0,
-    icon: <NodeKindIcon kind={node.kind} />,
+    icon: <NodeKindIcon />,
     children: [...childNodes, ...rowNodes],
     data: { templatesNode: { type: "template-node", template, node } satisfies TemplatesTreeDatum },
   };
@@ -319,10 +317,10 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
                 .map((node) => ({
                   id: projectSourceTreeItemId(node),
                   label: node.name,
-                  ariaLabel: `${node.name} project ${node.nodeKind}`,
+                  ariaLabel: `${node.name} project area`,
                   isLeaf: true,
                   selectable: true,
-                  icon: <NodeKindIcon kind={node.nodeKind} />,
+                  icon: <NodeKindIcon />,
                   data: { templatesNode: { type: "project-node", source: node } satisfies TemplatesTreeDatum },
                 })),
             })),
@@ -808,7 +806,7 @@ export function TemplatesTree({
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
-              disabledReason: "Select a Group Node before adding this template.",
+              disabledReason: "Select an Area before adding this template.",
               onSelect: () => onAddTemplate(datum.template),
             },
             ...toggleItem,
@@ -853,7 +851,7 @@ export function TemplatesTree({
               label: canInsertTemplate ? `Add to ${templateTargetName}` : "Add to estimate",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate,
-              disabledReason: "Select a Group Node before adding this node.",
+              disabledReason: "Select an Area before adding this node.",
               onSelect: () => onAddTemplateNode(datum.template, datum.node),
             },
             ...toggleItem,
@@ -871,7 +869,7 @@ export function TemplatesTree({
               label: componentAddDisabled ? "Add component" : componentAddLabel,
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: componentAddDisabled,
-              disabledReason: "Select an Area Node before adding this component.",
+              disabledReason: "Select an Area before adding this component.",
               onSelect: () => onAddComponent(datum.item),
             },
           ],
@@ -889,7 +887,7 @@ export function TemplatesTree({
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || !onAddProjectSource,
               disabledReason: !canInsertTemplate
-                ? "Select a Group Node before adding this source."
+                ? "Select an Area before adding this source."
                 : "Project source insertion is not wired in this surface yet.",
               onSelect: () => onAddProjectSource?.(datum.source),
             },
@@ -934,7 +932,7 @@ export function TemplatesTree({
                 : "Add all to estimate",
               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               disabled: !canInsertTemplate || categoryTemplates.length === 0,
-              disabledReason: "Select a Group Node before adding these templates.",
+              disabledReason: "Select an Area before adding these templates.",
               onSelect: () => categoryTemplates.forEach((template) => onAddTemplate(template)),
             },
             ...toggleItem,
@@ -1035,7 +1033,7 @@ export function TemplatesTree({
       <>
         {emptyState ?? (
           <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-[10px] leading-4 text-tertiary">
-            No templates yet. Select a Group or Area Node in the estimate tree, then use Add Template to save its structure for reuse.
+            No templates yet. Select an Area in the estimate tree, then use Add Template to save its structure for reuse.
           </div>
         )}
       </>

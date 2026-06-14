@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Cube, FolderSimplePlus, PencilSimple, StackPlus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { Circle, PencilSimple, StackPlus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent } from "@/components/ui/action-menu";
 import {
@@ -129,8 +129,7 @@ export const TreeCrudPattern: Story = {
               {
                 id: "create",
                 items: [
-                  { id: "new-group", label: "New Group inside", icon: <FolderSimplePlus size={12} weight="regular" />, onSelect: () => {} },
-                  { id: "new-area", label: "New Area Node inside", icon: <Cube size={12} weight="regular" />, onSelect: () => {} },
+                  { id: "add-area-inside", label: "Add area inside", icon: <Circle size={12} weight="regular" />, onSelect: () => {} },
                 ],
               },
               {

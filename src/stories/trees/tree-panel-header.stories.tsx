@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { Cube, FolderSimple, FunnelSimple, Package, Plus } from "@phosphor-icons/react";
+import { Circle, Cube, FolderSimple, FunnelSimple, Package, Plus } from "@phosphor-icons/react";
 
 import { Checkbox, Tree, TreePanelHeader, type TreeNode } from "@/components/ui";
 import { FilterPopover } from "@/components/ui/overlays/popover";
@@ -89,13 +89,8 @@ function PanelPreview({
               ]
             : [
                 {
-                  label: "Add Group",
-                  icon: <FolderSimple size={13} weight="regular" aria-hidden="true" />,
-                  onClick: () => {},
-                },
-                {
-                  label: "Add Node",
-                  icon: <Cube size={13} weight="regular" aria-hidden="true" />,
+                  label: "Add Area",
+                  icon: <Circle size={13} weight="regular" aria-hidden="true" />,
                   onClick: () => {},
                 },
               ]
