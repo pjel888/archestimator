@@ -732,6 +732,34 @@ export function TemplatesTree({
     [filteredTemplates],
   );
 
+  // UI-1/UI-2: template, category, and node cost totals used to be recomputed
+  // inline for every visible row on every render — each a full recursive walk of
+  // the template — and the shared Tree rebuilds row props each render so the row
+  // memo never holds. Precompute them once per filtered-template change; rows
+  // read the cached values. These totals depend only on template structure, not
+  // on selection/expansion/search-reveal, so the maps are safe to memoize here.
+  const templateTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const template of filteredTemplates) totals.set(template.id, summarizeEstimateTemplate(template).total);
+    return totals;
+  }, [filteredTemplates]);
+  const categoryTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const template of filteredTemplates) {
+      totals.set(template.category, (totals.get(template.category) ?? 0) + (templateTotals.get(template.id) ?? 0));
+    }
+    return totals;
+  }, [filteredTemplates, templateTotals]);
+  const templateNodeTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    const visit = (node: EstimateTreeNode) => {
+      totals.set(node.id, computeTemplateNodeTotal(node));
+      node.children?.forEach(visit);
+    };
+    for (const template of filteredTemplates) template.nodes.forEach(visit);
+    return totals;
+  }, [filteredTemplates]);
+
   const handleCanDrag = useCallback((node: UiTreeNode) => {
     const datum = getTemplatesTreeDatum(node);
     return datum?.type !== "section"
@@ -972,21 +1000,13 @@ export function TemplatesTree({
         );
       }
       if (datum?.type === "category") {
-        return (
-          <TemplateNodeRowContent
-            label={datum.category}
-            total={templatesByCategory(datum.category).reduce(
-              (sum, template) => sum + summarizeEstimateTemplate(template).total,
-              0,
-            )}
-          />
-        );
+        return <TemplateNodeRowContent label={datum.category} total={categoryTotals.get(datum.category) ?? 0} />;
       }
       if (datum?.type === "template") {
-        return <TemplateNodeRowContent label={datum.template.name} total={summarizeEstimateTemplate(datum.template).total} />;
+        return <TemplateNodeRowContent label={datum.template.name} total={templateTotals.get(datum.template.id) ?? summarizeEstimateTemplate(datum.template).total} />;
       }
       if (datum?.type === "template-node") {
-        return <TemplateNodeRowContent label={datum.node.name} total={computeTemplateNodeTotal(datum.node)} />;
+        return <TemplateNodeRowContent label={datum.node.name} total={templateNodeTotals.get(datum.node.id) ?? computeTemplateNodeTotal(datum.node)} />;
       }
       if (datum?.type === "template-row") {
         return <TemplateComponentRowContent item={datum.item} />;
@@ -1025,7 +1045,7 @@ export function TemplatesTree({
       }
       return <span className="min-w-0 flex-1 truncate">{treeNode.label}</span>;
     },
-    [onPrefetchNode, templatesByCategory],
+    [onPrefetchNode, categoryTotals, templateTotals, templateNodeTotals],
   );
 
   if (templates.length === 0 && projectSources.length === 0) {
@@ -1049,7 +1069,14 @@ export function TemplatesTree({
   }
 
   return (
-    <ContextMenu onOpenChange={setContextMenuOpen}>
+    <ContextMenu
+      onOpenChange={(open) => {
+        setContextMenuOpen(open);
+        // UI-7: clear the right-clicked node id on close so contextMenuGroups
+        // doesn't keep recomputing against (or briefly re-show) a stale row.
+        if (!open) setContextMenuNodeId(null);
+      }}
+    >
       <ContextMenuTrigger asChild>
         <div
           className="block w-full"

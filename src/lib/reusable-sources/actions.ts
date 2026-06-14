@@ -380,7 +380,12 @@ export async function insertProjectSourceIntoEstimate(
   if (copyError) throw new Error(`Could not insert project source: ${copyError.message}`);
 
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
-  const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(input.targetProjectId, input.targetEstimateId);
+  // RS-1: refresh the tab the user is editing (not the default tab), so a
+  // non-default-tab insert returns that tab's tree. Legacy estimates pass no
+  // targetTabId and fall back to the default/whole-estimate loader.
+  const { project, estimate, tree } = input.targetTabId
+    ? await getEstimateTabTree(input.targetProjectId, input.targetEstimateId, input.targetTabId)
+    : await getProjectEstimateTreeByEstimate(input.targetProjectId, input.targetEstimateId);
   if (!project || !estimate) throw new Error("Estimate not found after inserting the project source.");
   return { tree, insertedRootNodeIds };
 }

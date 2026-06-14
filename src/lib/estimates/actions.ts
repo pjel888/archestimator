@@ -61,11 +61,24 @@ type InsertEstimateTemplateIntoEstimateInput = {
   estimateId: string;
   targetParentNodeId: string;
   templateId: string;
+  // RS-1: the tab the insert targets. When set, the refreshed tree is loaded
+  // for THIS tab (not the default one), so a non-default-tab insert returns the
+  // tab the user is actually editing. Omitted for legacy (no-tab) estimates.
+  targetTabId?: string;
 };
 
 type InsertEstimateTemplateIntoEstimateResult = {
   tree: EstimateTreeNode[];
   insertedRootNodeIds: string[];
+};
+
+type InsertEstimateTemplatesIntoEstimateInput = {
+  projectId: string;
+  estimateId: string;
+  targetParentNodeId: string;
+  templateIds: string[];
+  // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
+  targetTabId?: string;
 };
 
 type UpdateEstimateRowItemInput = {
@@ -2205,11 +2218,30 @@ export async function deleteEstimateNodesBulk(
   };
 }
 
+// RS-1: refresh the tree for the SPECIFIC tab an insert targeted. The estimate
+// sheet's tree cache is keyed per tab, so returning the default tab's tree (the
+// old behavior) replaced a non-default tab's view with the wrong content. When
+// targetTabId is set we load that tab; legacy (no-tab) estimates pass undefined
+// and fall back to the default/whole-estimate loader.
+async function refreshInsertedEstimateTree(
+  projectId: string,
+  estimateId: string,
+  targetTabId: string | undefined,
+) {
+  if (targetTabId) {
+    const { project, estimate, tree } = await getEstimateTabTree(projectId, estimateId, targetTabId);
+    return { project, estimate, tree };
+  }
+  const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(projectId, estimateId);
+  return { project, estimate, tree };
+}
+
 export async function insertEstimateTemplateIntoEstimate({
   projectId,
   estimateId,
   targetParentNodeId,
   templateId,
+  targetTabId,
 }: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -2232,8 +2264,52 @@ export async function insertEstimateTemplateIntoEstimate({
   if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
 
   const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
+
+  return { tree, insertedRootNodeIds };
+}
+
+/**
+ * INS-1: inserts several templates under one group in a SINGLE server action.
+ * A category drop carries many template ids; dispatching one action per id ran
+ * N concurrent inserts whose post-insert tree reads raced — a snapshot taken
+ * before a sibling committed dropped that sibling from the view (last-writer
+ * wins). Looping the RPC sequentially here (each awaits the previous, like the
+ * area-wrap flow) and refreshing once means one coherent tree comes back.
+ */
+export async function insertEstimateTemplatesIntoEstimate({
+  projectId,
+  estimateId,
+  targetParentNodeId,
+  templateIds,
+  targetTabId,
+}: InsertEstimateTemplatesIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
+  if (templateIds.length === 0) throw new Error("At least one estimate template is required.");
+
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const currentUser = await requireCurrentUserContext();
+  await assertCanEditEstimate(supabase, estimateId);
+
+  const insertedRootNodeIds: string[] = [];
+  for (const templateId of templateIds) {
+    const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
+      target_project_id: project.id,
+      target_estimate_id: estimateId,
+      target_parent_node_id: targetParentNodeId,
+      source_template_id: templateId,
+      acting_user_id: currentUser.userId,
+      correlation_id: randomUUID(),
+    });
+    if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
+    insertedRootNodeIds.push(...readInsertedRootNodeIds(copyResult));
+  }
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the templates.");
 
   return { tree, insertedRootNodeIds };
 }
@@ -2244,6 +2320,8 @@ type InsertEstimateTemplateNodeIntoEstimateInput = {
   targetParentNodeId: string;
   templateId: string;
   templateNodeId: string;
+  // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
+  targetTabId?: string;
 };
 
 type InsertEstimateTemplateNodeIntoEstimateResult = {
@@ -2272,6 +2350,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   targetParentNodeId,
   templateId,
   templateNodeId,
+  targetTabId,
 }: InsertEstimateTemplateNodeIntoEstimateInput): Promise<InsertEstimateTemplateNodeIntoEstimateResult> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -2417,7 +2496,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   const insertedRootNodeId = createdNodeIdByTemplateNodeId.get(sourceNode.id);
   if (!insertedRootNodeId) throw new Error("Template node insertion did not produce a root node.");
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template node.");
 
   return { tree, insertedRootNodeId };
@@ -2430,6 +2509,8 @@ type WrapEstimateAreaAndInsertTemplateInput = {
   insert:
     | { templateIds: string[] }
     | { templateId: string; templateNodeId: string };
+  // RS-1: see InsertEstimateTemplateIntoEstimateInput.targetTabId.
+  targetTabId?: string;
 };
 
 type WrapEstimateAreaAndInsertTemplateResult = {
@@ -2450,6 +2531,7 @@ export async function wrapEstimateAreaAndInsertTemplate({
   estimateId,
   areaNodeId,
   insert,
+  targetTabId,
 }: WrapEstimateAreaAndInsertTemplateInput): Promise<WrapEstimateAreaAndInsertTemplateResult> {
   assertNotOptimisticEstimateNodeId(areaNodeId, "Estimate area node");
   if ("templateIds" in insert && insert.templateIds.length === 0) throw new Error("At least one estimate template is required.");
@@ -2510,6 +2592,7 @@ export async function wrapEstimateAreaAndInsertTemplate({
       targetParentNodeId: newGroupNodeId,
       templateId: insert.templateId,
       templateNodeId: insert.templateNodeId,
+      targetTabId,
     });
   } else {
     for (const templateId of insert.templateIds) {
@@ -2525,7 +2608,7 @@ export async function wrapEstimateAreaAndInsertTemplate({
     }
   }
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after grouping the area.");
 
   return { tree, newGroupNodeId };

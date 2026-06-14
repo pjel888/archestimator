@@ -29,7 +29,7 @@ export type EstimateSheetBranchProps = {
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
-  onInsertTemplate: (targetParentNodeId: string, templateId: string) => void;
+  onInsertTemplates: (targetParentNodeId: string, templateIds: string[]) => void;
   onInsertTemplateNode: (targetParentNodeId: string, templateId: string, templateNodeId: string) => void;
   /** Root-level area sheets only: a template drop wraps the area and the payload in a new group. */
   onWrapAreaWithTemplate?: (areaNodeId: string, payload: EstimateTemplateDragPayload) => void;
@@ -64,7 +64,7 @@ export type EstimateSheetBranchProps = {
 export type SheetMutationHandlers = Pick<
   EstimateSheetBranchProps,
   | "onInsertLibraryItem"
-  | "onInsertTemplate"
+  | "onInsertTemplates"
   | "onInsertTemplateNode"
   | "onAddBlankRow"
   | "onReplaceRowItem"
@@ -77,7 +77,7 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false, stickyTop = 0 }: EstimateSheetBranchProps) {
+export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onWrapAreaWithTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false, stickyTop = 0 }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -150,7 +150,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
       onInsertTemplateNode(node.id, payload.templateId, payload.templateNodeId);
       return;
     }
-    payload.templateIds.forEach((templateId) => onInsertTemplate(node.id, templateId));
+    onInsertTemplates(node.id, payload.templateIds);
   }
 
   function handleTemplateDrop(event: DragEvent<HTMLElement>) {
@@ -297,7 +297,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
                 editableRows={editableRows}
                 setEditableRows={setEditableRows}
                 onInsertLibraryItem={onInsertLibraryItem}
-                onInsertTemplate={onInsertTemplate}
+                onInsertTemplates={onInsertTemplates}
                 onInsertTemplateNode={onInsertTemplateNode}
                 onAddBlankRow={onAddBlankRow}
                 onReplaceRowItem={onReplaceRowItem}

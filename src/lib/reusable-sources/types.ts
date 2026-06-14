@@ -70,6 +70,10 @@ export type InsertProjectSourceIntoEstimateInput = {
   targetEstimateId: string;
   targetParentNodeId: string;
   source: { projectId: string; estimateId: string; tabId: string; nodeId?: string | null };
+  // RS-1: the tab the insert targets in the *target* estimate. When set, the
+  // refreshed tree is loaded for THIS tab so a non-default-tab insert returns
+  // the tab the user is editing. Omitted for legacy (no-tab) estimates.
+  targetTabId?: string;
 };
 
 export type InsertProjectSourceIntoEstimateResult = {
