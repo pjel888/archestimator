@@ -42,6 +42,8 @@ export interface TreeNode {
    * caret slot. Trees that don't set this render the default (muted) caret.
    */
   accent?: boolean;
+  /** Extra classes applied to this node's row container. */
+  rowClassName?: string;
   data?: Record<string, unknown>;
 }
 
@@ -208,6 +210,8 @@ export interface TreeProps {
   railsPinned?: boolean;
   /** Custom content for the label area of the default row. */
   renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
+  /** Horizontal indent applied per depth level. Defaults to `TREE_INDENT_STEP`. */
+  indentStep?: number;
   /** Full row control: replaces the default row entirely. Spread `rowProps` onto your row element. */
   renderItem?: (state: TreeItemState, rowProps: TreeRowDomProps) => ReactNode;
 }
@@ -354,6 +358,7 @@ interface DefaultTreeRowProps {
   nodeDraggable: boolean;
   /** Keep the affordance rails open (e.g. while a selection exists). */
   railsPinned: boolean;
+  indentStep: number;
   onCheckboxClick: (nodeId: string, event: MouseEvent<HTMLSpanElement>) => void;
   renderRow?: (node: TreeNode, depth: number, isSelected: boolean, isExpanded: boolean) => ReactNode;
 }
@@ -366,6 +371,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
   expandable,
   nodeDraggable,
   railsPinned,
+  indentStep,
   onCheckboxClick,
   renderRow,
 }: DefaultTreeRowProps) {
@@ -380,6 +386,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           // inside an ancestor that also uses the plain `group` class.
           "group/tree-row flex min-h-7 items-center px-1 text-[10px] text-ink tracking-normal transition-colors outline-none",
           "border border-transparent",
+          node.rowClassName,
           (isSelected || isCurrent) && "bg-accentSoft",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
@@ -461,7 +468,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
             aria-hidden="true"
             data-tree-indent
             className="shrink-0"
-            style={{ width: `${depth * TREE_INDENT_STEP}px` }}
+            style={{ width: `${depth * indentStep}px` }}
           />
         )}
 
@@ -494,7 +501,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           <span className="shrink-0 mr-1.5 flex items-center" aria-hidden="true">
             <span
               data-occupancy-dot=""
-              className={cn("size-[3px] rounded-full opacity-50", node.accent ? "bg-orange-600" : "bg-tertiary")}
+              className={cn("size-[3px] rounded-xs opacity-50", node.accent ? "bg-orange-600" : "bg-tertiary")}
             />
           </span>
         ) : node.icon ? (
@@ -545,6 +552,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       emptyState,
       railsPinned = false,
       renderRow,
+      indentStep = TREE_INDENT_STEP,
       renderItem,
     },
     ref
@@ -1168,6 +1176,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
               expandable={expandable}
               nodeDraggable={isNodeDraggable(flat.node)}
               railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+              indentStep={indentStep}
               onCheckboxClick={handleCheckboxClick}
               renderRow={renderRow}
             />

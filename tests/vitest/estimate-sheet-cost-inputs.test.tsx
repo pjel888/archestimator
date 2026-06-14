@@ -305,6 +305,11 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
     expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
+    expect(
+      within(livingAreaSection)
+        .getByRole("row", { name: /Materials Qty Subtotal Adjustment Misc Cost Total Item Cost/ })
+        .querySelector("svg"),
+    ).toBeNull();
   });
 
   it("centers subtotal, adjustment, and misc cost row values", () => {
@@ -379,10 +384,10 @@ describe("estimate sheet cost inputs", () => {
     expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
   });
 
-  it("keeps area breadcrumb spacing symmetrical above and below the trail", () => {
+  it("keeps area breadcrumbs as a compact node-body trail", () => {
     renderEstimateSheet("living-area");
 
-    expect(screen.getByLabelText("Living Area breadcrumbs")).toHaveClass("my-1");
+    expect(screen.getByLabelText("Living Area breadcrumbs")).toHaveClass("flex", "items-center", "gap-1");
   });
 
   it("uses group row rhythm when group and area nodes are siblings", () => {
@@ -430,8 +435,8 @@ describe("estimate sheet cost inputs", () => {
     const lotHeader = screen.getByRole("button", { name: "Collapse Lot" }).closest("div");
     if (!lotHeader) throw new Error("Expected Lot header to render.");
     expect(lotHeader).not.toHaveClass("bg-neutral-50");
-    expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-4");
-    expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-4");
+    expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-3");
+    expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-3");
   });
 
   it("keeps compact spacing when a group contains only area nodes", () => {
@@ -482,8 +487,8 @@ describe("estimate sheet cost inputs", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByLabelText("2-Car Parking")).toHaveClass("mt-0");
-    expect(screen.getByLabelText("Living Room")).toHaveClass("mt-0");
+    expect(screen.getByLabelText("2-Car Parking")).toHaveClass("mt-2");
+    expect(screen.getByLabelText("Living Room")).toHaveClass("mt-2");
     expect(screen.getByLabelText("Living Room")).not.toHaveClass("mt-4");
   });
 
@@ -587,7 +592,7 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("living-area");
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
-    const rowDragIcon = screen.getByLabelText("Drag material Hardwood Oak Flooring");
+    const rowDragIcon = screen.getByLabelText("Drag component Hardwood Oak Flooring");
     expect(materialCell).not.toHaveAttribute("draggable", "true");
     expect(within(materialCell).getByText("Hardwood Oak Flooring")).toBeInTheDocument();
     expect(within(materialCell).getByText("₱ 1,200.00")).toBeInTheDocument();
@@ -654,7 +659,7 @@ describe("estimate sheet cost inputs", () => {
     expect(within(targetRow as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
   });
 
-  it("treats dragging a component away from row items as deleting only the component", async () => {
+  it("treats a cancelled component drag as non-destructive", async () => {
     renderEstimateSheet("living-area");
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
@@ -665,7 +670,8 @@ describe("estimate sheet cost inputs", () => {
     fireEvent.dragStart(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" }), { dataTransfer });
     fireEvent.dragEnd(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" }), { dataTransfer });
 
-    expect(within(row as HTMLElement).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
+    expect(within(row as HTMLElement).queryByLabelText("Drag or add a component here empty estimate component slot")).not.toBeInTheDocument();
   });
 
   it("removes the active group context and moves the project total out of the estimate footer", () => {
