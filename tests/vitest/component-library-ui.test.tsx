@@ -95,7 +95,7 @@ function renderSidebar(props: ComponentProps<typeof EstimateRightSidebar> = {}) 
 }
 
 function openComponentViewMenu() {
-  fireEvent.click(screen.getByRole("button", { name: /View by:/ }));
+  fireEvent.click(screen.getByRole("button", { name: "View by" }));
   return screen.getByRole("menu", { name: "Component view mode" });
 }
 
@@ -195,32 +195,45 @@ describe("component library UI", () => {
     expect(screen.queryByText(/\d+ components?/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand all library tree" })).toHaveAttribute("title", "Expand all library tree");
     expect(screen.getByRole("button", { name: "Collapse all library tree" })).toHaveAttribute("title", "Collapse all library tree");
-    expect(screen.getByRole("button", { name: "Add Component" })).toHaveAttribute("title", "Add Component");
+
+    // Top header (Library tree tools toolbar) has only search + expand/collapse —
+    // no Filter, no Group, no View-by, no Add buttons.
     expect(
       Array.from(screen.getByLabelText("Library tree tools").querySelectorAll("button")).map((button) =>
         button.getAttribute("aria-label"),
       ),
     ).toEqual([
       "Show library tree search",
-      "Filter library tree",
-      "Group library tree",
       "Expand all library tree",
       "Collapse all library tree",
-      "View by: Default",
-      "Add Component",
-      "Add Template",
     ]);
+    expect(screen.queryByRole("button", { name: "Filter library tree" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Group library tree" })).not.toBeInTheDocument();
     expect(screen.queryByText("Price range")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Group library by")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Sort library")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Export components" })).not.toBeInTheDocument();
 
+    // The sticky header keeps exactly 2 children (toolbar wrapper + tabs) whether
+    // or not the view-by popover is open — the popover is now an external sibling.
     const stickyHeader = screen.getByLabelText("Library tree tools").closest(".sticky");
     expect(stickyHeader?.children).toHaveLength(2); // toolbar + search disclosure, tabs
     expect(container.querySelector(".min-h-0.flex-1.overflow-auto > .h-8.w-full.bg-white")).toBeNull();
+
+    // The new under-tabs toolbar row has Filter, View-by, and Add buttons.
+    const toolsRow = screen.getByRole("toolbar", { name: "Library tools" });
+    expect(toolsRow).toBeInTheDocument();
+    expect(within(toolsRow).getByRole("button", { name: "Filter library" })).toBeInTheDocument();
+    expect(within(toolsRow).getByRole("button", { name: "View by" })).toBeInTheDocument();
+    expect(within(toolsRow).getByRole("button", { name: "Add Component" })).toHaveAttribute("title", "Add Component");
+    expect(screen.queryByRole("button", { name: "Group library tree" })).not.toBeInTheDocument();
+
+    // View-by popover opens below the new row (external sibling, not inside sticky).
     expect(screen.queryByRole("menu", { name: "Component view mode" })).not.toBeInTheDocument();
     openComponentViewMenu();
-    expect(stickyHeader?.children).toHaveLength(3); // toolbar + search disclosure, tabs, view menu
+    expect(screen.getByRole("menu", { name: "Component view mode" })).toBeInTheDocument();
+    // Sticky header child count is unchanged by the popover opening.
+    expect(stickyHeader?.children).toHaveLength(2);
   });
 
   it("matches the component library route navigation contract", () => {
@@ -354,10 +367,11 @@ describe("component library UI", () => {
 
     renderSidebar();
     // First render matches SSR output: stored prefs only apply after mount.
-    expect(screen.getByRole("button", { name: "View by: Default" })).toBeInTheDocument();
+    // The "Default" mode means the Suppliers tree grouping is not yet active.
+    expect(screen.queryByRole("treeitem", { name: "All Suppliers" })).not.toBeInTheDocument();
 
-    expect(await screen.findByRole("button", { name: "View by: Suppliers" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "All Suppliers" })).toBeInTheDocument();
+    // After mount the stored "suppliers" pref hydrates and the tree regroups.
+    expect(await screen.findByRole("treeitem", { name: "All Suppliers" })).toBeInTheDocument();
     expect(JSON.parse(window.localStorage.getItem(LIBRARY_PREFS_KEY) ?? "{}").componentViewMode).toBe("suppliers");
   });
 
