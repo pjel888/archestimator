@@ -69,32 +69,31 @@ function renderTree(nodes: EstimateTreeNode[], selectedNodeId: string | null = "
 }
 
 /**
- * The "has components" cue now lives on the disclosure caret column (the node
- * circle was removed): an occupied node renders an orange caret (interactive for
- * folders, a static marker for leaves). Returns true iff the row has an
- * orange-tinted caret SVG.
+ * The "has components" cue is an occupancy dot (after the caret, before the
+ * label) — the node circle was removed. Returns true iff the row's dot is
+ * orange (occupied) rather than muted.
  */
-function rowHasOrangeCaret(nodeId: string): boolean {
+function rowDotIsOrange(nodeId: string): boolean {
   const row = document.querySelector(`[data-tree-row="${nodeId}"]`);
   if (!row) throw new Error(`Tree row for node "${nodeId}" not found in DOM.`);
-  return Array.from(row.querySelectorAll("svg")).some(
-    (svg) => (svg.getAttribute("class") ?? svg.className.baseVal ?? "").includes("text-orange-600"),
-  );
+  const dot = row.querySelector("[data-occupancy-dot]");
+  if (!dot) throw new Error(`No occupancy dot found in row for node "${nodeId}".`);
+  return (dot.getAttribute("class") ?? "").includes("bg-orange-600");
 }
 
-describe("estimate tree node occupancy cue (orange caret, Req 4)", () => {
+describe("estimate tree node occupancy cue (orange dot, Req 4)", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
   });
 
-  it("renders an orange caret for a leaf node that directly holds components", () => {
+  it("renders an orange dot for a leaf node that directly holds components", () => {
     renderTree(iconTestTree());
-    expect(rowHasOrangeCaret("filled-node")).toBe(true);
+    expect(rowDotIsOrange("filled-node")).toBe(true);
   });
 
-  it("renders no orange caret for a node with no direct components", () => {
+  it("renders a muted dot for a node with no direct components", () => {
     renderTree(iconTestTree());
-    expect(rowHasOrangeCaret("empty-node")).toBe(false);
+    expect(rowDotIsOrange("empty-node")).toBe(false);
   });
 
   it("does not orange a parent whose CHILDREN have components but itself does not (direct-only)", () => {
@@ -119,8 +118,8 @@ describe("estimate tree node occupancy cue (orange caret, Req 4)", () => {
     ];
     renderTree(parentWithItemOnlyInChild, "parent-node");
 
-    // Parent (folder, no direct components) → caret present but NOT orange.
-    expect(rowHasOrangeCaret("parent-node")).toBe(false);
+    // Parent (folder, no direct components) → muted dot.
+    expect(rowDotIsOrange("parent-node")).toBe(false);
 
     const parentRow = document.querySelector(`[data-tree-row="parent-node"]`);
     if (!parentRow) throw new Error("parent-node row not found");
@@ -132,8 +131,8 @@ describe("estimate tree node occupancy cue (orange caret, Req 4)", () => {
       toggleBtn.click();
     }
 
-    // Child (leaf, has components) → orange caret marker.
-    expect(rowHasOrangeCaret("child-node")).toBe(true);
+    // Child (leaf, has components) → orange dot.
+    expect(rowDotIsOrange("child-node")).toBe(true);
   });
 
   it("renders an orange 'Add Area' toolbar button (icon swap to Log keeps the orange styling)", () => {

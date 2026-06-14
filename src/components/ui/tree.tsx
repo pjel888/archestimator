@@ -478,29 +478,28 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
             {isExpanded ? (
-              <CaretDown weight="regular" className={cn("h-2.5 w-2.5", node.accent ? "text-orange-600" : "text-tertiary")} />
+              <CaretDown weight="regular" className="h-2.5 w-2.5 text-tertiary" />
             ) : (
-              <CaretRight weight="regular" className={cn("h-2.5 w-2.5", node.accent ? "text-orange-600" : "text-tertiary")} />
+              <CaretRight weight="regular" className="h-2.5 w-2.5 text-tertiary" />
             )}
           </button>
         )}
 
-        {expandable && !isFolder && (
-          node.accent ? (
-            // Leaf area that holds components: a static (non-interactive) orange
-            // caret marker stands in for the disclosure caret it can't have, so
-            // the "has components" cue lives in the caret column on every row.
-            <span className="shrink-0 mr-0.5 flex h-3.5 w-3.5 items-center justify-center" aria-hidden="true">
-              <CaretRight weight="regular" className="h-2.5 w-2.5 text-orange-600" />
-            </span>
-          ) : (
-            <span className="w-4 shrink-0" />
-          )
-        )}
+        {expandable && !isFolder && <span className="w-4 shrink-0" />}
 
-        {node.icon && (
+        {node.accent !== undefined ? (
+          // Occupancy dot (after the caret, before the label): orange iff this
+          // node directly holds components, muted otherwise. Renders on every
+          // row — folder or leaf — so the cue lives in one consistent column.
+          <span className="shrink-0 mr-1.5 flex items-center" aria-hidden="true">
+            <span
+              data-occupancy-dot=""
+              className={cn("size-1.5 rounded-full", node.accent ? "bg-orange-600" : "bg-tertiary")}
+            />
+          </span>
+        ) : node.icon ? (
           <span className="shrink-0 mr-1.5 flex items-center">{node.icon}</span>
-        )}
+        ) : null}
 
         {renderRow ? (
           renderRow(node, depth, isSelected, isExpanded)
