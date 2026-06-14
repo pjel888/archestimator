@@ -11,7 +11,7 @@ For this startup, the decision has two gates:
 1. **Start implementation gate:** can be lighter if the work is reversible, default-off, and aimed at a core future bottleneck.
 2. **Default-on gate:** stays strict and requires before/after browser proof plus interaction QA.
 
-That means it can be reasonable to implement shared tree virtualization now behind a flag, even if the proof is not strong enough to turn it on by default. The center row-table path should still require stronger proof because it has much higher correctness risk.
+That means it can be reasonable to implement shared tree and EMC branch/section virtualization now behind flags, even if the proof is not strong enough to turn them on by default. The EMC row-table body path should still require a table/focus spike because it has higher editing correctness risk.
 
 ## What to measure in the browser
 
@@ -27,6 +27,7 @@ Measure these surfaces separately:
 | --- | --- | --- |
 | left tree | mounted `[data-tree-row]` count, tree expand/collapse timing | expand deep nodes, Arrow/Home/End, context menu |
 | right library/templates trees | mounted `[data-tree-row]` count, search result mount count | search, expand project sources, drag into sheet |
+| EMC branch sections | mounted center node sections, branch height, logical visible node count | scroll long BOQ, collapse/expand, template/component drops |
 | center row tables | mounted `[data-estimate-row-id]` count, table body size | scroll long area, edit top/middle/bottom rows |
 | whole route | total DOM nodes, long tasks, React commit duration | load, scroll, search, edit |
 
@@ -119,8 +120,10 @@ These are planning thresholds, not hard product law.
 | --- | --- |
 | do not implement yet | no high row counts, no rendering long tasks, or slow path is data/network/state churn |
 | implement shared tree route behind default-off flag | high or growing tree row counts, core workflow relevance, shared insertion point, and bounded rollback |
+| implement EMC branch route behind default-off flag | expected large BOQ center hierarchy, core workflow relevance, branch fallback retained, and bounded rollback |
 | enable tree locally/staging | virtual path passes activation, focus, DnD, ARIA, search, and no-blank-gap browser checks |
-| implement row-table route | row-table body is the dominant browser bottleneck and table/focus spike passes |
+| enable EMC locally/staging | virtual path passes activation, mixed-content, collapse/search, drops, sticky header, and no-blank-gap browser checks |
+| implement EMC row-table body route | row-table body is large enough to matter and table/focus spike passes |
 | turn any route on by default | before/after browser proof improves the failing metric, normal fixtures do not regress, and rollback flag is tested |
 
 ## AI-startup decision adjustment
@@ -144,11 +147,14 @@ Do not lower the bar to **ship default-on**. Lost edits, broken DnD, or inaccess
 The best startup-biased route is:
 
 1. Use the browser count/profile pass in `12_browser_count_profile_report.md` as the current measured baseline.
-2. Implement shared `Tree` virtualization behind a default-off flag.
-3. Enable left `EstimateSheetTree` locally/staging first.
-4. Enable right trees only after mixed-height browser proof.
-5. Leave center row-table virtualization for a later spike unless a larger-fixture browser trace clearly identifies it as the dominant bottleneck.
+2. Treat expected production-scale BOQ nesting as the reason to plan shared `Tree` and EMC virtualization now.
+3. Implement shared `Tree` virtualization behind a default-off flag when implementation starts.
+4. Implement EMC branch/section virtualization behind a default-off flag when implementation starts.
+5. Enable left `EstimateSheetTree` locally/staging first for shared Tree proof.
+6. Enable EMC locally/staging with large BOQ fixtures for center-surface proof.
+7. Enable right trees only after mixed-height browser proof.
+8. Keep EMC row-table body virtualization as a spike-backed sub-route when large node row bodies make it worthwhile.
 
-This gives the team reusable future infrastructure without prematurely risking estimate editing correctness.
+This gives the team reusable future infrastructure without pretending the sidebars are the only scale problem.
 
-The measured pass is not strong enough to turn virtualization on by default. It is strong enough to justify reversible, default-off shared tree infrastructure because the current app mounts all inspected logical rows, the tree abstraction is central, and the row-table route remains gated.
+The measured pass is not strong enough to turn virtualization on by default. It is strong enough, combined with expected production BOQ scale, to justify reversible, default-off shared Tree and EMC infrastructure.

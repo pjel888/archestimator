@@ -1,30 +1,32 @@
 # Implementation Routes
 
-Status: second-pass route map. This document does not authorize implementation by itself.
+Status: second-pass route map with 2026-06-15 product-scale correction. This document does not authorize implementation by itself.
 
 ## Route recommendation
 
-The first browser count/profile pass is captured in `12_browser_count_profile_report.md`. It did not prove a high-confidence current DOM/windowing bottleneck, but it did show non-virtualized full mounting on the inspected row surfaces.
+The first browser count/profile pass is captured in `12_browser_count_profile_report.md`. It did not prove a high-confidence current DOM/windowing bottleneck on the sample route, but it did show non-virtualized full mounting on the inspected row surfaces.
 
-The next implementation route is Route G: proactive shared `Tree` virtualization behind a default-off flag. This is not a default-on shipping decision.
+2026-06-15 correction: the sample route is not representative enough to decide whether shared Tree or EMC virtualization is worth planning. The product premise is that live Archestimator users can create deeply nested BOQs, EMC branch hierarchies, and reusable project-source trees with hundreds or thousands of visible nodes/rows. Therefore the next implementation routes to plan are Route G and Route H behind default-off flags. This is not a default-on shipping decision.
 
-Use these route rules for later passes:
+Use these route rules for later row-table or default-on decisions:
 
-- If tree DOM dominates, take Route B, then Route C.
-- If row-table DOM dominates, take Route D only after Route E proves table/focus semantics.
-- If the evidence is mixed but startup-bias criteria pass, take Route G.
-- If the evidence is mixed and startup-bias criteria fail, stop after Route A and do not add the dependency yet.
+- If tree DOM dominates in a larger fixture, Route G can graduate into Route B then C for default-on readiness.
+- If EMC branch/section DOM dominates, take Route H.
+- If EMC row-table DOM dominates, take Route D only after Route E proves table/focus semantics.
+- If row-table evidence is mixed, keep row-table gated and continue Tree work only.
+- If Tree interaction proof fails, stop before enablement and keep the non-virtual path.
 
-Default implementation bias, unless Gate 0 contradicts it: shared Tree first, left tree consumer second, right tree consumers third, center row-table last. The row-table route should jump ahead only when browser evidence proves the center sheet body is the dominant bottleneck.
+Default implementation routes: shared Tree and EMC are both planned. Shared Tree starts with the left tree consumer; EMC starts with branch/section virtualization and uses row-table virtualization when large nodes make table bodies expensive. Row-table implementation should still pass a table/focus spike before enablement.
 
 ## Route A - Baseline-only first
 
-Purpose: prove whether virtualization is the right cost to pay.
+Purpose: record baseline evidence and thresholds. Route A no longer blocks planning the shared Tree route; it blocks default-on rollout and row-table virtualization.
 
 Prerequisites:
 
-- large fixtures for `500+` center sheet rows
 - large fixtures for `1,000+` visible tree rows
+- large fixtures for `1,000+` visible EMC branch nodes where practical
+- large fixtures for `500+` center sheet rows if evaluating EMC row-table virtualization
 - browser trace or Playwright script on the actual estimate route
 
 Steps:
@@ -34,13 +36,13 @@ Steps:
 3. Record DOM counts for left tree, right tree, and center row tables.
 4. Record edit latency near top, middle, and bottom rows.
 5. Record tree expand/collapse and right-panel search responsiveness.
-6. Decide the first enabled surface or stop.
+6. Decide rollout threshold, default-on readiness, or row-table stop/continue.
 
 Pros:
 
-- no speculative dependency
 - no behavior change
-- prevents optimizing the wrong bottleneck
+- prevents default-on rollout without proof
+- prevents applying the row-table route to the wrong bottleneck
 
 Cons:
 
@@ -49,7 +51,8 @@ Cons:
 
 Exit gate:
 
-- named first surface with saved before metrics, or documented stop decision
+- saved before metrics and threshold notes
+- documented stop decision only for default-on rollout or row-table route
 
 Rollback:
 
@@ -61,9 +64,9 @@ Purpose: add virtual rendering to the shared `Tree` primitive without enabling a
 
 Prerequisites:
 
-- Gate 0 proves tree DOM/windowing is the primary bottleneck
 - route keeps `Tree` non-virtual behavior as the default
 - tests cover virtual-path activation before mounted row counts
+- production-scale nested Tree usage remains an accepted product constraint
 
 Steps:
 
@@ -139,11 +142,11 @@ Rollback:
 
 ## Route D - Row-table-first
 
-Purpose: virtualize center estimate row bodies when the center sheet is the proven bottleneck.
+Purpose: virtualize EMC row bodies when large center sheet row tables are a proven or expected product-scale bottleneck.
 
 Prerequisites:
 
-- Gate 0 proves row-table DOM dominates
+- a larger-fixture browser pass proves row-table DOM dominates
 - Route E settles table body strategy first
 - row-id focus helpers are planned before the virtual body ships
 - browser evidence accounts for the existing `content-visibility: auto` row optimization, so the route is not justified by row count alone
@@ -257,12 +260,13 @@ Rollback:
 
 ## Route G - Startup-bias proactive shared tree
 
-Purpose: spend a small amount of reversible engineering effort now to create a shared virtual tree primitive that can save future performance work, without claiming it should be default-on yet.
+Purpose: plan reversible engineering work now to create a shared virtual tree primitive for expected production-scale nested BOQs, without claiming it should be default-on yet.
 
 Use this route when:
 
 - tree surfaces are core to the app experience
 - the shared `Tree` is already the central insertion point
+- expected production projects can produce hundreds or thousands of visible tree rows
 - the implementation can remain default-off behind `NEXT_PUBLIC_TREE_VIRTUALIZATION`
 - browser evidence is suggestive but not strong enough to justify default-on
 - row-table evidence is not strong enough to justify the high-risk center-sheet route
@@ -271,9 +275,10 @@ Steps:
 
 1. Add dependency and default-off tree flag.
 2. Add shared `Tree` virtual mode without enabling consumers by default.
-3. Add virtual-path activation tests, focus tests, DnD tests, and ARIA tests.
-4. Enable only in local/staging for browser proof.
-5. Keep default-off until before/after browser evidence proves benefit and no interaction regressions.
+3. Cover all current `Tree` consumers in the plan: estimate sheet, right component tree, templates/project sources, library folders, templates browse, template editor, and Storybook.
+4. Add virtual-path activation tests, focus tests, DnD tests, and ARIA tests.
+5. Enable only in local/staging for browser proof.
+6. Keep default-off until before/after browser evidence proves benefit and no interaction regressions.
 
 Pros:
 
@@ -297,22 +302,69 @@ Rollback:
 
 - keep flag off, stop passing `virtualization`, or remove the dormant path before release
 
+## Route H - EMC branch/section virtualization
+
+Purpose: plan reversible engineering work now to virtualize the center Estimate Master Column hierarchy for production-scale BOQs, without claiming it should be default-on yet.
+
+Use this route when:
+
+- the center EMC can contain hundreds or thousands of visible branch/node sections
+- the recursive `EstimateSheetBranch` path mounts too much center content
+- users need fast center scroll and expand/collapse through large BOQs
+- implementation can remain default-off behind `NEXT_PUBLIC_EMC_VIRTUALIZATION`
+- row-table body virtualization can remain a separate sub-route when a single node owns many rows
+
+Steps:
+
+1. Add default-off EMC virtualization flag.
+2. Add a logical expanded-node stream for EMC sections.
+3. Extract branch header/body rendering so recursive and virtual paths share behavior.
+4. Add dynamic-measure virtual section rendering with stable node IDs.
+5. Preserve rows-first ordering, collapse/search, sticky displayed header, template/component drops, add-row strips, totals, and breadcrumbs.
+6. Add virtual-path activation tests before mounted-count tests.
+7. Keep default-off until browser proof shows faster center scroll/load without lost focus or visual gaps.
+
+Pros:
+
+- directly targets the center surface users stare at most
+- handles many nested BOQ nodes even when row tables are individually small
+- complements shared Tree virtualization instead of competing with it
+
+Cons:
+
+- higher layout risk than sidebar Tree virtualization
+- dynamic section heights require measurement
+- sticky header, drop zones, and edit focus need real browser proof
+
+Exit gate:
+
+- non-virtual EMC path remains behavior-identical with flag off
+- virtual path is testable and locally usable
+- browser proof shows no blank gaps, no sticky collisions, and no lost edit focus
+
+Rollback:
+
+- keep `NEXT_PUBLIC_EMC_VIRTUALIZATION=false`
+- keep recursive `EstimateSheetBranch` rendering as fallback
+
 ## Route decision table
 
 | Evidence after Gate 0 | Primary route | Fallback route | Do not do |
 | --- | --- | --- | --- |
-| left/right tree DOM dominates | B then C | F if activation proof is weak | D in same PR |
-| center row-table DOM dominates | E then D | F if metrics are noisy | B in same PR |
+| production-scale tree usage is expected | G, then B/C implementation details | F for stronger instrumentation | default-on without proof |
+| production-scale EMC usage is expected | H, with D/E as row-table sub-route | F for stronger instrumentation | default-on without proof |
+| left/right tree DOM dominates in large fixture | B then C | F if activation proof is weak | D in same PR |
+| center EMC branch DOM dominates | H | F if metrics are noisy | row-table-only |
+| center row-table DOM dominates | E then D | F if metrics are noisy | table route without focus spike |
 | both dominate clearly | choose the worse surface first | second surface in later PR | dual-surface shipping PR |
-| neither dominates, startup-bias criteria pass | G | F then A again | row-table-first |
-| neither dominates, startup-bias criteria fail | stop after A | B1 memoization or other measured fixes | dependency install |
+| neither dominates on sample, but product-scale Tree premise holds | G | larger Tree fixture | row-table-first |
+| neither dominates and product-scale Tree premise is later rejected | stop after A | B1 memoization or other measured fixes | dependency install |
 | browser signal is inconclusive | F then A again | targeted spike | default-on virtualization |
 
 ## Stop conditions
 
 Stop the implementation route and return to planning if:
 
-- Gate 0 cannot identify a DOM/windowing bottleneck
 - the virtual path cannot be proven active in tests
 - tree focus still depends on an already-mounted offscreen target
 - right-panel rows clip or overlap without a measurement strategy

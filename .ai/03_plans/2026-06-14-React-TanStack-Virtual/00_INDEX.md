@@ -30,14 +30,18 @@ Do not ship both tracks in one implementation PR. Baseline first, then enable on
 - `10_second_pass_review_report.md` - second-pass findings, document changes, and readiness verdict.
 - `11_browser_evidence_and_startup_decision.md` - third-pass evidence protocol and AI-startup decision threshold.
 - `12_browser_count_profile_report.md` - real-route browser count/profile results and implementation recommendation.
+- `13_shared_tree_virtualization_implementation_plan.md` - planning-only overall implementation plan for shared Tree virtualization across all current consumers.
+- `14_emc_virtualization_implementation_plan.md` - planning-only implementation plan for Estimate Master Column branch/row virtualization.
 
 ## Second-pass strategy update
 
-The second pass tightened the plan around three gates:
+The second pass originally tightened the plan around three gates:
 
-1. Gate 0 must prove a DOM/windowing bottleneck before adding the dependency.
+1. Former Gate 0 required proving a DOM/windowing bottleneck before adding the dependency.
 2. Tree virtualization and row-table virtualization remain separate routes with separate flags, tests, and rollout decisions.
 3. Any virtualization test must first prove the virtual path is active; otherwise a fallback path, collapsed fixture, or jsdom-only scroll assertion can create false confidence.
+
+The 2026-06-15 correction supersedes item 1 for shared Tree planning only: expected production-scale nested BOQs justify planning and implementing the shared Tree path behind a default-off flag. Browser proof still blocks default-on rollout and the separate center row-table route.
 
 ## Third-pass strategy update
 
@@ -46,7 +50,17 @@ Gate 0 now has two thresholds:
 1. Evidence to start a reversible implementation can be lighter because this is a core workflow and the team can move quickly with AI-assisted development.
 2. Evidence to turn virtualization on by default remains strict: browser before/after proof, interaction QA, and rollback proof.
 
-The first real-route browser count/profile pass is now captured in `12_browser_count_profile_report.md`. It shows non-virtualized full mounting, but the current fixture is still too small to prove an immediate DOM/windowing bottleneck. The startup-biased recommendation is to proceed only with shared `Tree` virtualization behind a default-off flag, and keep center row-table virtualization gated behind a larger fixture or spike.
+The first real-route browser count/profile pass is now captured in `12_browser_count_profile_report.md`. It shows non-virtualized full mounting, but the current fixture is too small to represent expected production BOQ scale.
+
+2026-06-15 correction: do not use the current sample project as the deciding factor for whether shared Tree virtualization is worth planning. The product expectation is that live users can create thousands of nested nodes across project BOQs, library folders, templates, and reusable project sources. That production-scale premise is enough to plan a full shared `Tree` virtualization implementation now, as long as implementation remains reversible and default-off until browser proof is stronger.
+
+The updated planning recommendation is:
+
+1. Plan shared `Tree` virtualization as a first implementation track.
+2. Plan EMC virtualization as a first-class implementation track too, covering the center Estimate Master Column branch hierarchy and row bodies.
+3. Cover every current `Tree` consumer, not only the estimate sheet.
+4. Preserve non-virtual paths and keep default-on rollout gated.
+5. Keep shared Tree and EMC flags separate so either can ship, pause, or roll back independently.
 
 ## Key local evidence
 

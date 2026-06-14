@@ -49,9 +49,12 @@ Existing performance evidence:
 
 Recommended EMC insertion point:
 
-- First virtualize row bodies inside `EstimateRowItemsTable`.
-- Keep recursive branch rendering stable.
-- Keep branch headers, add/drop strips, breadcrumbs, and child areas outside the row-table virtualizer in the first implementation.
+- Plan two EMC insertion points:
+  - branch/section virtualization around the recursive `EstimateSheetBranch` hierarchy for many visible nodes
+  - row-body virtualization inside `EstimateRowItemsTable` for one node with many row items
+- Keep recursive branch rendering as the default fallback while the virtual branch path matures.
+- Keep branch headers, add/drop strips, breadcrumbs, row tables, and child areas behavior-identical across the recursive and virtual paths.
+- Do not assume row-table-only virtualization solves EMC scale; a BOQ with many small nested nodes needs branch/section virtualization too.
 
 ## Shared tree primitive
 
@@ -149,6 +152,8 @@ Missing tests:
 - virtualized `Tree` renders only a window and preserves ARIA metadata
 - virtualized `Tree` keyboard navigation scrolls offscreen rows into view before focus
 - virtualized `Tree` DnD before/after/inside bands work at the first and last rendered rows
+- virtualized EMC branch stream renders only a window while preserving rows-first mixed-content layout
+- virtualized EMC branch stream preserves collapse/search, template drops, add-row strips, and the single sticky header rule
 - row-table virtual body keeps a focused edited row mounted or restores focus safely
 - offscreen row selection persists
 - remote cursor for offscreen row falls back without re-rendering sheet content

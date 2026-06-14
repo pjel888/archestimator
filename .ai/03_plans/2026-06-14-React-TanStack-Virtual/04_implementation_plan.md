@@ -4,16 +4,24 @@ This is a handoff plan. Do not implement until the owner starts the implementati
 
 Second-pass route map: see `08_implementation_routes.md`. Third-pass evidence protocol: see `11_browser_evidence_and_startup_decision.md`.
 
-## Phase 0 - Baseline and dependency decision
+## Phase 0 - Product-scale baseline and rollout decision
 
-Goal: decide whether to start a reversible virtualization implementation, which surface to start with, and what proof is required before enabling it.
+Goal: record baseline evidence and rollout thresholds for an already-planned shared Tree virtualization implementation.
+
+2026-06-15 correction: do not let the current sample project veto the Tree or EMC plan. The owner has clarified that production users are expected to create deeply nested BOQ structures with potentially thousands of nodes. The implementation plan should therefore accommodate full shared Tree virtualization and EMC virtualization now, while still requiring browser proof before any default-on rollout.
 
 Tasks:
 
+- [x] Record the first real-route count/profile pass in `12_browser_count_profile_report.md`.
+- [x] Record the product-scale decision adjustment in `13_shared_tree_virtualization_implementation_plan.md`.
+- [x] Record the EMC virtualization plan in `14_emc_virtualization_implementation_plan.md`.
 - [ ] Create or reuse large fixtures for:
-  - `500+` estimate row items in the center sheet
   - `1,000+` visible left tree rows
   - `1,000+` visible right component/template rows
+  - `1,000+` visible EMC branch nodes where practical
+  - `500+` EMC row items distributed across nested nodes
+  - `1,000+` library folder/template-editor rows where practical
+  - `500+` estimate row items in one center-sheet node for the row-table sub-track
 - [ ] Run existing jsdom perf profile:
 
 ```bash
@@ -36,14 +44,18 @@ http://localhost:3000/workshop/projects/22222222-2222-4222-8222-222222222222/est
   - initial render time
   - scroll long tasks
   - DOM node count
-  - edit latency in a row near top, middle, bottom
   - tree expand/collapse responsiveness
+  - EMC expand/collapse and center-scroll responsiveness
   - right panel search responsiveness
+  - DnD/context-menu/focus responsiveness across virtual boundaries
+  - edit latency in EMC rows near top, middle, bottom
 - [ ] Decide first enabled surface:
-  - if tree DOM count dominates, start with shared `Tree`
-  - if row-table DOM count dominates, start with `EstimateRowItemsTable`
-  - if neither dominates but the startup-bias criteria in `11_browser_evidence_and_startup_decision.md` pass, choose the proactive shared-tree route only
-  - if neither dominates and startup-bias criteria do not pass, stop and do not add the dependency yet
+  - shared `Tree` is the planned implementation route
+  - left `EstimateSheetTree` is the first consumer proof
+  - right `LibraryTree` and `TemplatesTree` follow after left-tree proof
+  - EMC branch/section virtualization is a planned track and can run after or in parallel with shared Tree if fixtures show it is the larger user-facing win
+  - EMC row-table virtualization is planned as a sub-track when large nodes make row bodies expensive
+  - library-management/template-editor consumers follow after the shared path is stable
 - [ ] Record the chosen route from `08_implementation_routes.md`.
 - [ ] Record the blast-radius checklist items from `07_blast_radius_map.md` that apply to the chosen route.
 - [ ] Record whether the decision is:
@@ -54,10 +66,10 @@ http://localhost:3000/workshop/projects/22222222-2222-4222-8222-222222222222/est
 
 Exit criteria:
 
-- `@tanstack/react-virtual` is justified for at least one named surface or for the proactive shared-tree route.
-- The first implementation surface is chosen.
+- `@tanstack/react-virtual` is planned for shared Tree and EMC virtualization because production-scale nested BOQs are expected.
+- The first implementation surfaces are shared `Tree` and EMC; sequencing depends on fixture/profile priority, with separate flags.
 - Before metrics are saved in `.omx/artifacts/perf/tanstack-virtual/`.
-- A stop decision is written if browser evidence and startup-bias criteria do not justify reversible implementation.
+- A stop decision is written only if the Tree architecture cannot preserve focus, DnD, context menu, ARIA, and rollback contracts.
 - Default-on remains blocked until before/after browser evidence proves the enabled virtual path helps.
 
 ## Phase 1 - Add dependency and flags
@@ -75,6 +87,9 @@ bun add @tanstack/react-virtual
 ```ts
 export const ENABLE_TREE_VIRTUALIZATION =
   process.env.NEXT_PUBLIC_TREE_VIRTUALIZATION === "true";
+
+export const ENABLE_EMC_VIRTUALIZATION =
+  process.env.NEXT_PUBLIC_EMC_VIRTUALIZATION === "true";
 
 export const ENABLE_ESTIMATE_ROW_VIRTUALIZATION =
   process.env.NEXT_PUBLIC_ESTIMATE_ROW_VIRTUALIZATION === "true";
@@ -96,7 +111,7 @@ Exit criteria:
 
 ## Phase 2A - Shared Tree virtual mode
 
-Do this phase if Gate 0 identifies tree DOM rendering as the first bottleneck.
+This is the primary implementation phase. It is not blocked on the current small sample project because production-scale nested trees are expected. It remains default-off until proof is strong enough to enable.
 
 Files:
 
@@ -157,6 +172,10 @@ Files:
 - `src/components/workshop/component-library/tree/LibraryTree.tsx`
 - `src/components/workshop/component-library/tree/TemplatesTree.tsx`
 - `src/components/workshop/component-library/index.tsx`
+- `src/components/workshop/component-library-manager/LibraryFolderTree.tsx`
+- `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx`
+- `src/components/workshop/library/template-editor/TemplateStructureTree.tsx`
+- `src/stories/trees/tree.stories.tsx`
 
 Tasks:
 
@@ -177,17 +196,20 @@ Tasks:
 
 - [ ] Run left tree browser QA before enabling right trees.
 - [ ] Enable `LibraryTree` and `TemplatesTree` after shared tests pass.
-- [ ] For templates rows with variable height, use `measureElement` if visual QA shows row clipping or scroll drift.
+- [ ] Enable `LibraryFolderTree`, `TemplatesBrowseManager`, and `TemplateStructureTree` only after the estimate-sheet and right-panel trees prove the shared path.
+- [ ] Update Storybook examples so reviewers can inspect virtual and non-virtual Tree modes side by side.
+- [ ] For templates/project-source rows with variable height, use `measureElement` if visual QA shows row clipping or scroll drift.
 
 Exit criteria:
 
 - Left tree can be enabled alone.
 - Right library/templates trees can be enabled separately.
+- Lower-traffic management/editor trees are covered by tests or explicitly deferred with rationale.
 - Rollback is a flag flip.
 
 ## Phase 3A - Estimate row-table virtual body
 
-Do this phase if Gate 0 identifies row-table body DOM rendering as the first bottleneck.
+Do this phase as part of the EMC track when a large node can own enough row items for table-body DOM to matter. This is no longer excluded from planning; it is default-off and separately proven because table/focus semantics are high risk.
 
 Files:
 
@@ -256,6 +278,50 @@ Exit criteria:
 
 - Virtual row-table can be enabled without enabling tree virtualization.
 - Rollback is a flag flip.
+
+## Phase 3C - EMC branch/section virtualization
+
+Do this phase for the center Estimate Master Column when large BOQs create many visible node sections, even if each individual row table is not huge.
+
+Files:
+
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `src/components/workshop/estimate-sheet/rows/branch.tsx`
+- `src/components/workshop/estimate-sheet/rows/row-table.tsx`
+- `src/components/workshop/estimate-sheet/rows/expansion.ts`
+- `src/components/workshop/estimate-sheet-render-probe.ts`
+- `tests/vitest/estimate-mixed-content.test.tsx`
+- `tests/vitest/perf/estimate-sheet-render-baseline.test.tsx`
+- `tests/vitest/perf/estimate-sheet-render-relief.test.tsx`
+
+Tasks:
+
+- [ ] Add `NEXT_PUBLIC_EMC_VIRTUALIZATION`, default-off.
+- [ ] Add a logical flattener for the expanded EMC node hierarchy using stable `node.id` keys.
+- [ ] Extract branch header/body rendering so recursive and virtual paths share behavior.
+- [ ] Add virtual EMC section path using dynamic measurement.
+- [ ] Preserve rows-first order: node header, own rows/add-row/drop zone, then child nodes as later logical sections.
+- [ ] Preserve collapse/search behavior from `useEstimateSheetExpansion`.
+- [ ] Preserve template/component drop targets and edge auto-scroll.
+- [ ] Preserve the single sticky displayed-node header behavior.
+- [ ] Add virtual-path activation markers and tests before asserting mounted section counts.
+
+Verification:
+
+```bash
+bunx vitest run tests/vitest/estimate-mixed-content.test.tsx --maxWorkers=1
+bunx vitest run tests/vitest/perf/estimate-sheet-render-baseline.test.tsx tests/vitest/perf/estimate-sheet-render-relief.test.tsx --maxWorkers=1
+bun run type-check
+bunx eslint src/components/workshop/EstimateSheetContent.tsx src/components/workshop/estimate-sheet/rows/branch.tsx src/components/workshop/estimate-sheet/rows/row-table.tsx
+git diff --check
+```
+
+Exit criteria:
+
+- EMC virtual path can be enabled independently from shared Tree virtualization.
+- Mixed-content layout, rows-first ordering, collapse, search, drops, add-row, and sticky header behavior remain intact.
+- Browser proof shows fewer mounted center sections or rows on a large fixture without blank gaps or lost edit focus.
+- Rollback is `NEXT_PUBLIC_EMC_VIRTUALIZATION=false`.
 
 ## Phase 4 - Browser QA and rollout
 

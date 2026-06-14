@@ -105,7 +105,7 @@ That is meaningful shape evidence: as logical row count grows, DOM count is expe
 
 ## What This Does Not Prove
 
-This pass does not prove an immediate high-confidence DOM/windowing bottleneck:
+This pass does not prove an immediate high-confidence DOM/windowing bottleneck on the current sample route:
 
 - the fixture is small relative to BOQ-scale estimates
 - the left tree has very little scroll overflow
@@ -114,19 +114,19 @@ This pass does not prove an immediate high-confidence DOM/windowing bottleneck:
 - the first scroll timings may include browser focus/wheel startup overhead and should not be treated as pure React render time
 - the reload timing is not enough to separate route loading, data work, hydration, layout, images, and DOM size
 
-So the evidence is medium for future risk, not high proof that virtualization is the current dominant bottleneck.
+So the browser evidence is medium for future risk, not high proof that virtualization is the current dominant bottleneck on the sample route. That does not invalidate planning shared Tree virtualization for expected production-scale nested BOQs.
 
 ## Decision
 
-Use the startup-biased threshold to start only the low-risk shared route:
+Use the startup-biased and product-scale threshold to plan both shared Tree and EMC routes:
 
 1. Proceed with Route G: proactive shared `Tree` virtualization behind a default-off flag.
-2. Keep the non-virtual tree path as the default and as the rollback path.
-3. Enable only local/staging proof after virtual-path activation tests pass.
-4. Do not start center row-table virtualization from this evidence alone.
-5. Require a larger fixture and a table/focus spike before any row-table implementation route.
+2. Proceed with Route H: proactive EMC branch/section virtualization behind a default-off flag.
+3. Keep non-virtual Tree and EMC paths as defaults and rollback paths.
+4. Enable only local/staging proof after virtual-path activation tests pass.
+5. Treat EMC row-table body virtualization as a spike-backed sub-route for large row bodies, not as the only center-sheet virtualization route.
 
-This is the right compromise for an AI-driven startup: build the reusable, reversible infrastructure where the abstraction is shared and the blast radius can be contained, but do not risk estimate editing correctness until the center-sheet evidence is stronger.
+This is the right compromise for an AI-driven startup: build the reusable, reversible infrastructure for both side trees and the center EMC surface, but do not risk default-on estimate editing behavior until browser proof is stronger.
 
 ## Next Evidence Pass
 

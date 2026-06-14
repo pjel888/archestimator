@@ -4,6 +4,8 @@
 
 The Estimate Sheet Page is mission-critical for the MVP. The center sheet, left sheet tree, and right components/templates panel all have unbounded "render every visible row" paths. Recent work removed major edit-path recomputation, so the next likely scale ceiling is mounted DOM and initial render/scroll work on large estimates and large reusable-source libraries.
 
+2026-06-15 product-scale correction: the current sample project is not the deciding basis for shared Tree or EMC virtualization. Archestimator's expected live usage includes deeply nested BOQs, reusable project-source trees, custom template trees, library folder structures, and center Estimate Master Column (EMC) branch hierarchies that can plausibly reach hundreds or thousands of visible nodes/rows. That production premise is sufficient to plan both shared Tree and EMC virtualization now, provided runtime exposure remains reversible and default-off until proven.
+
 TanStack Virtual is a good fit because it is headless. It calculates the visible range, but we keep ownership of the scroll container, markup, row styling, ARIA, drag/drop, and editing model. That matters for Archestimator because the UI is not a generic feed. It has editable tables, sticky node headers, tree DnD, context menus, bulk selection, and collaboration cursors.
 
 ## North star
@@ -12,6 +14,7 @@ For large estimates and large libraries, mounted row count should be bounded by 
 
 - editing rows keeps focus, dirty state, blur-save, row details, keyboard navigation, and selection
 - left and right trees preserve roving focus, search reveal, current row, checkbox cascade, DnD bands, external drops, context menus, and ARIA metadata
+- EMC branch sections preserve collapse/expand, rows-first ordering, sticky top header behavior, template/component drops, add-row strips, breadcrumbs, and node totals
 - collaboration cursors stay isolated from row/table re-renders and degrade gracefully for offscreen rows
 - small and normal closed-beta estimates do not regress
 
@@ -65,4 +68,4 @@ From TanStack Virtual docs:
 
 ## Strategic choice
 
-Adopt the dependency in a dedicated implementation phase only after Gate 0 measurement. Philip has signaled the product direction is "we should use this", so the plan treats the dependency as product-approved in principle, but still requires surface-by-surface evidence before enabling it on mission-critical UI.
+Plan shared Tree virtualization and EMC virtualization as implementation tracks behind default-off flags. Browser evidence is still required before default-on rollout. The center row-table body route remains a distinct sub-track inside EMC because table/focus semantics carry higher correctness risk than branch-section windowing.

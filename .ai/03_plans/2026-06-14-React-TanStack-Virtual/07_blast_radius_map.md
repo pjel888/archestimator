@@ -1,6 +1,6 @@
 # Blast Radius Map
 
-Status: second-pass planning. This document maps what can break if `@tanstack/react-virtual` is introduced.
+Status: second-pass planning with 2026-06-15 product-scale correction. This document maps what can break if `@tanstack/react-virtual` is introduced.
 
 ## Executive blast-radius verdict
 
@@ -16,12 +16,14 @@ Virtualization changes these assumptions:
 
 The safest plan is still split-route delivery:
 
-1. measure first
-2. ship no source behavior with flags off
-3. virtualize only one surface at a time
-4. keep non-virtual render paths intact until after closed-beta proof
+1. plan shared Tree virtualization for expected production-scale nested BOQs
+2. plan EMC branch/section virtualization for expected production-scale center BOQs
+3. ship no runtime behavior change with flags off
+4. enable only one surface/consumer at a time
+5. keep non-virtual render paths intact until after closed-beta proof
+6. keep EMC row-table body virtualization separately flagged from EMC branch virtualization
 
-Second-pass architectural status: `WATCH`. The plan is structurally sound, but the flags are not safe to turn on until offscreen focus/scroll handling is explicit and right-panel row-height behavior has browser proof.
+Architectural status: `PROCEED WITH SHARED TREE AND EMC PLANS`. The plan is structurally sound for planning and default-off implementation. The flags are not safe to turn on by default until offscreen focus/scroll handling is explicit and browser proof covers Tree, EMC branch sections, and row-table behavior.
 
 ## Asymmetric risk summary
 
@@ -30,14 +32,16 @@ Second-pass architectural status: `WATCH`. The plan is structurally sound, but t
 | Shared `Tree` | broadest integration risk | one primitive change touches left tree, right library tree, and templates tree |
 | Left `EstimateSheetTree` | best first consumer proof | combines rename, rails, context menu, DnD, selection, and current-row behavior |
 | Right library/templates trees | moderate integration risk with height risk | mixed-height rows, skeletons, and search-expanded hierarchies may need `measureElement` or larger estimates |
-| Center row table | highest correctness risk | editing, blur-save, index focus, pending focus, sticky geometry, and remote cursors all cross the virtual boundary |
+| EMC branch/section stream | high layout and interaction risk | mixed-content ordering, collapse/search, drop zones, sticky header, and dynamic section heights cross the virtual boundary |
+| Center row table | highest editing correctness risk | editing, blur-save, index focus, pending focus, sticky geometry, and remote cursors all cross the virtual boundary |
 
 ## Blast-radius boundaries
 
 | Boundary | In scope | Out of scope for first implementation PR |
 | --- | --- | --- |
 | Shared tree rendering | `Tree` virtual mode behind prop/flag | replacing all tree rendering with a new tree component |
-| Estimate row tables | row-body virtual mode behind prop/flag | whole-page virtualization across areas and sub-areas |
+| EMC branch sections | center branch/section virtual mode behind flag | deleting the recursive fallback before proof |
+| Estimate row tables | row-body virtual mode behind prop/flag | coupling table body virtualization to EMC branch virtualization without separate proof |
 | Focus recovery | scroll-to-logical-row before DOM focus | broad keyboard navigation rewrite |
 | Collaboration cursors | mounted-row anchor plus offscreen fallback | forcing local scroll to remote cursor locations |
 | Performance evidence | browser trace plus mounted DOM counts | relying on jsdom timing alone |
@@ -51,6 +55,10 @@ Second-pass architectural status: `WATCH`. The plan is structurally sound, but t
 | Left sheet tree | `src/components/workshop/EstimateSheetTree.tsx` | mounted row exists for current item, context menu item, DnD item, and inline rename | lost rename draft, wrong drop target, wrong current-row rail | browser proof on the estimate route plus tree DnD/context-menu tests |
 | Right library tree | `src/components/workshop/component-library/tree/LibraryTree.tsx` | search-expanded project sources render as normal tree rows | search can reveal many logical rows while only a window mounts | search + drag-to-sheet proof with bounded mounted row count |
 | Right templates tree | `src/components/workshop/component-library/tree/TemplatesTree.tsx` | template rows can be taller and source hierarchy remains visible | variable row height can clip or drift during scroll | narrow-panel browser proof; `measureElement` if clipping appears |
+| Library folder manager tree | `src/components/workshop/component-library-manager/LibraryFolderTree.tsx` | folder/component rows are always mounted after filtering | folder management can inherit shared focus, DnD, and selection regressions | include in Tier 3 rollout after left/right panel proof |
+| Templates browse manager tree | `src/components/workshop/library/templates-browse/TemplatesBrowseManager.tsx` | custom template trees render every expanded row | lower-traffic route can still regress context menu and reorder | Tier 3 browser/test proof |
+| Template editor structure tree | `src/components/workshop/library/template-editor/TemplateStructureTree.tsx` | editing tree rows are mounted synchronously | reorder/delete context menu can target an unmounted row | Tier 3 browser/test proof |
+| EMC branch/section hierarchy | `src/components/workshop/EstimateSheetContent.tsx`, `src/components/workshop/estimate-sheet/rows/branch.tsx` | recursive branch rendering mounts every expanded visible node section | rows-first order, collapse/search, sticky header, drop targets, and dynamic section heights can regress | branch-stream activation tests, mixed-content tests, browser scroll/drop proof |
 | Center row table | `src/components/workshop/estimate-sheet/rows/row-table.tsx` | native table body maps every row item | absolute rows or wrappers can break table semantics, sticky columns, and row heights | spike before main route; accessibility and visual proof |
 | Cell focus helpers | `src/components/workshop/estimate-sheet/rows/cells.tsx` | focus can query by `data-estimate-row-index` | stale index or unmounted target loses edit focus | row-id focus helper; top/middle/bottom edit proof |
 | Sheet content cursor/focus | `src/components/workshop/EstimateSheetContent.tsx` | pending focus and cursor anchoring can query mounted row DOM | offscreen target can fail or retry without mounting | offscreen fallback test; no forced local scroll |
@@ -61,8 +69,9 @@ Second-pass architectural status: `WATCH`. The plan is structurally sound, but t
 1. Solve Tree scroll-to-target before focusing offscreen rows. The current Tree focus model is mount-dependent; virtualization will expose that immediately.
 2. Prove left `EstimateSheetTree` first if the tree route wins Gate 0. It is the strongest consumer because it exercises rename, DnD, rails, context menu, and selection together.
 3. Treat right trees as a separate consumer rollout even though they share `Tree`. Their row content is mixed-height and can include loading skeletons, so a fixed `28px` estimate may be too optimistic.
-4. Keep center row-table virtualization last unless Gate 0 proves it is the dominant bottleneck. It already uses `content-visibility: auto` and intrinsic sizing, so row count alone is not enough proof.
-5. Do not enable row-table virtualization until row-id-based scroll/focus and offscreen cursor fallback are designed.
+4. Plan EMC branch/section virtualization as its own center-surface route; do not assume shared Tree virtualization solves the center sheet.
+5. Keep EMC row-table virtualization separately proven unless a large single-node row fixture proves it is needed. It already uses `content-visibility: auto` and intrinsic sizing, so row count alone is not enough proof.
+6. Do not enable row-table virtualization until row-id-based scroll/focus and offscreen cursor fallback are designed.
 
 ## Contract map
 
@@ -79,6 +88,7 @@ Risk:
 Proof:
 
 - virtual tree rows preserve `data-tree-row`
+- virtual EMC sections preserve node ids and section labels
 - virtual estimate rows preserve `data-estimate-row-id`
 - selected ids survive row unmount/remount
 
@@ -95,6 +105,7 @@ Risk:
 Proof:
 
 - tree focus tests cross virtual boundaries
+- EMC branch focus/drop tests cross virtual boundaries
 - estimate cell focus tests edit top, middle, and bottom rows after scroll
 - collapse moves focus to the surviving logical parent
 
@@ -168,7 +179,7 @@ Proof:
 ## Do-not-touch list for first implementation
 
 - Do not replace the shared `Tree` API with a separate virtual-tree-only component.
-- Do not virtualize both tree and row-table routes in the same implementation PR.
+- Do not virtualize shared Tree, EMC branch sections, and EMC row-table bodies in the same implementation PR unless explicitly scoped with separate flags and proof.
 - Do not remove non-virtual row rendering until flags have survived closed-beta proof.
 - Do not make virtualization default-on in the first PR.
 - Do not use jsdom timing as the main performance proof.
@@ -187,11 +198,13 @@ Proof:
 
 ## Implementation order bias
 
-Default bias, unless Gate 0 contradicts it:
+Default bias after the 2026-06-15 product-scale correction:
 
 1. shared Tree primitive
 2. left `EstimateSheetTree` consumer
-3. right library/templates consumers with row-height proof
-4. center row-table only after a table/focus spike
+3. EMC branch/section virtual route
+4. right library/templates consumers with row-height proof
+5. lower-traffic shared Tree consumers
+6. EMC row-table only after a table/focus spike
 
-This is a bias, not a rule. If browser evidence shows the center sheet row body is the dominant bottleneck, run the row-table spike before tree work.
+The current plan should not exclude EMC merely because the sample project is small. EMC branch/section virtualization is planned; EMC row-table virtualization needs the additional table/focus spike because it is the highest editing correctness-risk surface.
