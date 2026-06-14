@@ -1,0 +1,7 @@
+$ bun test tests/unit
+bun test v1.3.14 (d1632b29)
+
+ 9 pass
+ 0 fail
+ 120 expect() calls
+Ran 9 tests across 3 files. [93.00ms]

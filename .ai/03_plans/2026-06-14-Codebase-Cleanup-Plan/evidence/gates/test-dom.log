@@ -1,0 +1,105 @@
+$ vitest run --maxWorkers=1
+
+ RUN  v4.1.7 /Users/philiplewis/Documents/archestimator
+
+(node:43003) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ❯ tests/vitest/estimate-sheet-version-control-ui.test.tsx (22 tests | 1 failed) 2523ms
+     × opens node activity for the selected node without named-version controls 85ms
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+ ❯ tests/vitest/proposal-export-preview.test.tsx (11 tests | 1 failed) 881ms
+     × surfaces export validation notes in the contents summary (P1-T2, F-20) 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/estimate-sheet-version-control-ui.test.tsx > estimate sheet version control UI > opens node activity for the selected node without named-version controls
+AssertionError: expected last "vi.fn()" call to have been called with [ ObjectContaining{…} ]
+
+- Expected
++ Received
+
+  [
+    {
++     "dateFrom": undefined,
++     "dateTo": undefined,
+      "estimateId": "estimate-1",
+-     "includeDescendants": false,
++     "eventLimit": 50,
++     "eventTypes": undefined,
++     "includeDescendants": true,
+      "nodeId": "living-area",
+      "projectId": "project-1",
++     "rowId": undefined,
+      "scope": "node",
++     "search": undefined,
+    },
+  ]
+
+ ❯ tests/vitest/estimate-sheet-version-control-ui.test.tsx:1013:58
+    1011|     expect(within(nodeActivityCard).getByText("Philip Lewis")).toBeInT…
+    1012|     expect(within(nodeDialog).queryByRole("tab", { name: "Versions" })…
+    1013|     expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLas…
+       |                                                          ^
+    1014|       projectId: "project-1",
+    1015|       estimateId: "estimate-1",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/vitest/proposal-export-preview.test.tsx > ProposalExportPreviewDialog > surfaces export validation notes in the contents summary (P1-T2, F-20)
+TestingLibraryElementError: Unable to find an element with the text: /Rows on group node/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<details[39m
+  [33mclass[39m=[32m"mt-3 border-t border-hairline pt-2"[39m
+  [33mdata-testid[39m=[32m"proposal-validation-issues"[39m
+  [33mopen[39m=[32m""[39m
+[36m>[39m
+  [36m<summary[39m
+    [33mclass[39m=[32m"cursor-pointer text-[12px] font-medium text-amber-700"[39m
+  [36m>[39m
+    [0m1[0m
+    [0m export [0m
+    [0mnote[0m
+    [0m to review[0m
+  [36m</summary>[39m
+  [36m<ul[39m
+    [33mclass[39m=[32m"mt-1.5 flex flex-col gap-1"[39m
+  [36m>[39m
+    [36m<li[39m
+      [33mclass[39m=[32m"flex items-start gap-2 text-[12px] leading-5 text-secondary"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33maria-hidden[39m=[32m"true"[39m
+        [33mclass[39m=[32m"mt-0.5 inline-block size-1.5 shrink-0 rounded-full bg-sky-500"[39m
+      [36m/>[39m
+      [36m<span>[39m
+        [0mCurrent estimate rows do not yet separate material and labor unit costs. Existing item cost is exported as material unit cost, labor is exported as 0, and misc cost is shown separately.[0m
+      [36m</span>[39m
+    [36m</li>[39m
+  [36m</ul>[39m
+[36m</details>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/proposal-export-preview.test.tsx:189:27
+    187|
+    188|     const issues = screen.getByTestId("proposal-validation-issues");
+    189|     expect(within(issues).getByText(/Rows on group node/i)).toBeInTheD…
+       |                           ^
+    190|     expect(within(issues).getByText(/do not yet separate material and …
+    191|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 293 passed | 1 skipped (296)
+      Tests  2 failed | 2190 passed | 3 skipped | 5 todo (2200)
+   Start at  07:50:54
+   Duration  308.36s (transform 3.68s, setup 8.93s, import 59.40s, tests 100.72s, environment 100.98s)
+
+error: script "test:dom" exited with code 1

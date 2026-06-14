@@ -1,0 +1,84 @@
+$ next build
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · optimizePackageImports
+  · staleTimes
+
+  Creating an optimized production build ...
+(node:46511) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:46513) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✓ Compiled successfully in 8.2s
+  Running TypeScript ...
+  Finished TypeScript in 11.7s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/35) ...
+  Generating static pages using 7 workers (8/35) 
+  Generating static pages using 7 workers (17/35) 
+  Generating static pages using 7 workers (26/35) 
+✓ Generating static pages using 7 workers (35/35) in 227ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /about
+├ ƒ /api/ai/ask
+├ ƒ /api/ai/package-builder
+├ ƒ /api/component-library/attachments
+├ ƒ /api/component-library/images
+├ ƒ /api/health
+├ ƒ /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
+├ ƒ /api/projects/images
+├ ƒ /api/share/[token]
+├ ƒ /api/share/[token]/activity
+├ ƒ /api/share/[token]/comment
+├ ƒ /api/share/[token]/decision
+├ ƒ /api/share/[token]/events
+├ ƒ /api/share/[token]/password
+├ ƒ /api/share/[token]/session
+├ ƒ /api/share/[token]/unsubscribe
+├ ƒ /api/webhooks/resend
+├ ƒ /auth/callback
+├ ƒ /beta/access-required
+├ ƒ /contact
+├ ƒ /features
+├ ƒ /invite/[token]
+├ ƒ /invite/[token]/accept
+├ ƒ /invite/[token]/continue
+├ ƒ /invite/[token]/sign-out
+├ ƒ /login
+├ ƒ /pricing
+├ ƒ /privacy
+├ ƒ /share/[token]
+├ ƒ /terms
+├ ƒ /workshop
+├ ƒ /workshop/components
+├ ƒ /workshop/feedback
+├ ƒ /workshop/library
+├ ƒ /workshop/library/components
+├ ƒ /workshop/library/templates
+├ ƒ /workshop/library/templates/[templateId]
+├ ƒ /workshop/onboarding
+├ ƒ /workshop/pending-invite
+├ ƒ /workshop/projects
+├ ƒ /workshop/projects/[projectId]
+├ ƒ /workshop/projects/[projectId]/charts
+├ ƒ /workshop/projects/[projectId]/estimates
+├ ƒ /workshop/projects/[projectId]/estimates/[nodeId]
+├ ƒ /workshop/settings
+├ ƒ /workshop/settings/beta-users
+├ ƒ /workshop/settings/feedback
+├ ƒ /workshop/settings/profile
+├ ƒ /workshop/settings/workspace
+├ ƒ /workshop/templates
+└ ƒ /workshop/terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

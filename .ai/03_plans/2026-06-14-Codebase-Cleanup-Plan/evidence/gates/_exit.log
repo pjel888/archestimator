@@ -1,0 +1,6 @@
+type-check exit=0
+lint exit=1
+lint:design-system exit=1
+test exit=0
+test:dom exit=1
+build exit=0
