@@ -106,12 +106,12 @@ on public.notification_definitions
 for select
 to authenticated
 using (
-  auth.uid() is not null
+  (select auth.uid()) is not null
   and exists (
     select 1
     from public.notification_deliveries deliveries
     where deliveries.notification_id = notification_definitions.id
-      and deliveries.user_id = auth.uid()
+      and deliveries.user_id = (select auth.uid())
   )
 );
 
@@ -120,7 +120,7 @@ create policy "users can read own notification deliveries"
 on public.notification_deliveries
 for select
 to authenticated
-using (auth.uid() is not null and user_id = auth.uid());
+using ((select auth.uid()) is not null and user_id = (select auth.uid()));
 
 revoke all on table public.notification_definitions from public, anon, authenticated;
 revoke all on table public.notification_deliveries from public, anon, authenticated;
