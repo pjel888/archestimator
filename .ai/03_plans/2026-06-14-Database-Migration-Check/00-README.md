@@ -1,7 +1,41 @@
 # Database Migration Check
 
 Date: 2026-06-14  
-Scope: planning and audit only. No application code, migrations, or Supabase provider state were changed.
+Original scope: planning and audit only. No application code, migrations, or
+Supabase provider state were changed during the audit pass.
+Current status: the follow-up implementation pass below supersedes that original
+scope statement for closeout purposes.
+
+## Implementation Addendum — 2026-06-14
+
+The follow-up implementation pass has been completed. Provider state was changed
+inside the authorized Archestimator Supabase project `ebxxqidacheyapmmzavr`:
+
+- `delete_library_folder` applied as provider migration `20260614125239`.
+- Notification schema/RLS applied as provider migration `20260614125313`.
+- Local migration filenames reconciled to provider-recorded versions for known
+  timestamp aliases.
+- Deferred or stale SQL moved out of `supabase/migrations/`.
+- Linked generated types refreshed and type-check restored.
+- Supabase CLI upgraded to `2.106.0`; linked migration status and official
+  advisors were rerun.
+- Focused advisor hardening applied as provider migration `20260614140923`,
+  clearing the mutable-search-path and auth-RLS-initplan advisor classes and
+  reducing broad security-definer execute grants.
+- Suspicious local `osascript` persistence was investigated. User-writable
+  dotfiles were quarantined, but the root-owned LaunchDaemon requires macOS
+  administrator removal.
+
+Closeout evidence:
+
+- `evidence/provider-before.md`
+- `evidence/provider-after.md`
+- `evidence/migration-ledger-map.md`
+- `evidence/implementation-closeout-log.md`
+- `evidence/supabase-advisors-after-cli-upgrade.md`
+- `evidence/supabase-advisors-after-hardening.md`
+- `evidence/security-performance-hardening-log.md`
+- `evidence/local-machine-security-pass.md`
 
 ## Verdict
 

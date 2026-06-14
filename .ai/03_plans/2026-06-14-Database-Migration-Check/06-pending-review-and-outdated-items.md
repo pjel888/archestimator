@@ -1,5 +1,10 @@
 # Pending Review And Outdated Items
 
+> Implementation status, 2026-06-14: pending-review status is now split between
+> the existing root files, `deferred/`, and `superseded/`. See
+> `supabase/migrations-pending-review/README.md` and
+> `evidence/migration-ledger-map.md` for the current placement.
+
 ## Pending-Review SQL Folder
 
 `supabase/migrations-pending-review/` contains:
@@ -46,7 +51,7 @@ Current changelog review produced these relevant items:
 
 | Item | Archestimator impact |
 | --- | --- |
-| Supabase CLI `v2.106.0` current | Installed CLI is `2.98.2`; update before repair work |
+| Supabase CLI `v2.106.0` current | Resolved 2026-06-14; local CLI now reports `2.106.0` and linked advisors run |
 | Data API / GraphQL auto-exposure behavior change | Important because `public` is exposed and table grants are broad |
 | pg_graphql 1.6 introspection default disabled | Not currently applicable because `pg_graphql` is not installed |
 | Postgres 14 support ends July 1, 2026 | Not applicable; project is Postgres 17 |

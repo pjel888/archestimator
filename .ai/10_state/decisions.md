@@ -1,5 +1,92 @@
 # Decisions
 
+## 2026-06-14 — Supabase advisor hardening uses scoped fixes, not blind grant revokes
+
+**Decision:** Apply the deterministic Supabase advisor fixes immediately and
+defer grant changes that could alter anonymous/public RLS behavior until a
+policy-surface audit proves they are safe.
+
+**Applied:** Migrations `20260614140923_harden_security_advisor_findings`,
+`20260614143000_harden_non_public_helper_execute`,
+`20260614144000_consolidate_low_risk_permissive_policies`,
+`20260614144136_command_split_core_public_policies`,
+`20260614144359_command_split_remaining_public_policies`,
+`20260614144712_narrow_private_rls_policies_to_authenticated`, and
+`20260614152946_explicit_internal_table_deny_policies` were applied to
+project `ebxxqidacheyapmmzavr` and recorded in remote migration history. They
+set explicit `public, pg_temp` search paths on the three advisor-flagged
+ordinary functions, rewrite the 13 remaining advisor-flagged RLS policies to
+initplan-style `auth.uid()`/`auth.jwt()`, revoke broad execute from
+trigger/helper functions, remove anonymous execute from authenticated-only RPCs,
+remove inherited `PUBLIC`/`anon` execute from non-public helper functions,
+consolidate simple duplicate policy groups, split broad `ALL` policies into
+command-specific policies, narrow private app RLS policies to `authenticated`,
+add explicit restrictive deny-all policies to internal server-mediated tables,
+and preserve the anonymous invite resolver as the only intentional anon RPC.
+
+**Result:** Official advisors now report `function_search_path_mutable = 0` and
+`auth_rls_initplan = 0`. Security-definer execute warnings dropped from
+`32 -> 1` for anon and `75 -> 71` for authenticated. Multiple permissive policy
+warnings dropped from `169 -> 0`. The security dashboard's five
+`rls_enabled_no_policy` INFO findings are resolved. Leaked-password protection
+is enabled through the Management API helper, so security advisors now report
+`72` WARN and `0` INFO.
+
+**Deferred:** `resolve_collaboration_invitation` remains anonymous-callable for
+the public invite flow. Broad policy helpers such as `can_access_project`,
+`can_access_estimate`, and `is_workspace_member` need a separate policy-surface
+audit before more execute revokes. Leaked-password protection is an Auth
+settings action, not SQL; current Supabase docs place it under Auth password
+security and note it is available on Pro Plan and above. Continuation proof
+confirmed the linked organization is Pro and the current Management API field is
+`password_hibp_enabled` on `PATCH /v1/projects/{ref}/config/auth`; Philip later
+ran the repo helper and it verified `password_hibp_enabled=true`. Do not use
+`supabase config push` for this setting because the local `config.toml` is a dev
+config and the CLI path syncs broader Auth settings. The remaining anon SECURITY
+DEFINER warning is `resolve_collaboration_invitation(text)` and is kept for the
+public invite landing page. Authenticated SECURITY DEFINER warnings remain for
+app-facing RPCs and helper predicates; a blanket private-schema / public-wrapper
+migration was rejected as unsafe. Future cleanup should only convert pure read
+endpoints to `SECURITY INVOKER` after caller-RLS proof.
+
+**Directive:** Keep using reviewed SQL/migrations plus provider proof. Do not
+run blind `supabase db push --linked`, do not run `supabase config push` against
+hosted Auth config from the local dev TOML, and do not mass-revoke or mass-wrap
+security-definer helper execute just to reduce advisor counts.
+
+## 2026-06-14 — Database migration ledger repair uses provider-recorded truth
+
+**Decision:** The Database Migration Check repair reconciles local migration
+filenames to the linked provider's recorded versions instead of preserving old
+local-only timestamp aliases. The provider is project `ebxxqidacheyapmmzavr`.
+
+**Applied:** `delete_library_folder` and notification schema/RLS were applied to
+provider as new Supabase MCP migration-history rows:
+`20260614125239` / `20260605113000_transactional_library_folder_delete` and
+`20260614125313` / `20260606090000_notification_system`. Local files now use
+those provider versions. Notification RLS predicates use `(select auth.uid())`
+to match the applied provider policy bodies.
+
+**Deferred/superseded:** AI package-builder memory and chart bucket RPC are moved
+to `supabase/migrations-pending-review/deferred/`; stale sibling-order rewrite is
+moved to `supabase/migrations-pending-review/superseded/`. AC-MOD pending-review
+SQL and T4 remain outside canonical migrations. AI package-builder memory is
+runtime-guarded by a schema-availability probe, so the env flag alone cannot
+activate reads/writes against a missing table. The seed/data repair files that
+remain local-only require scoped provider-data review before any apply.
+
+**Types:** `src/lib/supabase/types.ts` is refreshed from linked provider typegen.
+Keep non-schema helper exports (`requiredSupabaseEnv`, `hasSupabaseBrowserEnv`)
+outside the schema contract. Nullable RPC-argument compatibility patches are
+allowed where Supabase typegen emits nullable SQL arguments as non-null strings.
+
+**Directive:** Do not run blind `supabase db push --linked` while documented
+deferred/local-only items exist. `supabase migration list --linked` currently has
+no remote-only rows after reconciliation, but `20260520100459`, `20260605123000`,
+and `20260605131500` remain intentionally local-only. The accepted path is probe,
+apply one reviewed migration or replacement, verify provider effect, regenerate
+types if relevant, then update `evidence/migration-ledger-map.md`.
+
 ## 2026-06-14 — Estimates List Page performance optimization
 
 **Decision:** Implemented the Estimates-List plan with these resolved choices:

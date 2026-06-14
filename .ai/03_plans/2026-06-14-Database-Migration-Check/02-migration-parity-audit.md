@@ -1,5 +1,9 @@
 # Migration Parity Audit
 
+> Implementation status, 2026-06-14: this is the pre-repair ledger snapshot.
+> Known timestamp aliases were reconciled locally to the provider-recorded
+> versions. Current ledger truth lives in `evidence/migration-ledger-map.md`.
+
 ## Inventory
 
 | Surface | Count / status |
