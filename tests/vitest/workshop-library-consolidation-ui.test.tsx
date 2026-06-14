@@ -5,7 +5,6 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
-import type { DraggingPosition, TreeItem, TreeItemIndex, TreeViewState } from "react-complex-tree";
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
@@ -20,6 +19,23 @@ function renderLibraryShell(element: ReactNode) {
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+// jsdom has no DataTransfer; the shared tree only needs setData/getData plus the
+// effect/types fields it writes during an HTML5 drag.
+function createDragDataTransfer() {
+  const store: Record<string, string> = {};
+  return {
+    setData: (type: string, value: string) => {
+      store[type] = value;
+    },
+    getData: (type: string) => store[type] ?? "",
+    setDragImage: () => {},
+    clearData: () => {},
+    dropEffect: "none",
+    effectAllowed: "all",
+    types: [] as string[],
+  };
 }
 
 async function waitForLibraryWorkspace() {
@@ -55,32 +71,6 @@ const navigationMocks = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
-type CapturedFolderTreeItemData = {
-  kind: "folder" | "component";
-  folderId: string | null;
-  label: string;
-  item?: EstimateRowItem;
-  parentFolderId?: string;
-};
-
-type CapturedFolderEnvironmentProps = {
-  items: Record<TreeItemIndex, TreeItem<CapturedFolderTreeItemData>>;
-  getItemTitle: (item: TreeItem<CapturedFolderTreeItemData>) => string;
-  viewState?: TreeViewState;
-  canDragAndDrop?: boolean;
-  canReorderItems?: boolean;
-  canDropOnFolder?: boolean;
-  canDropOnNonFolder?: boolean;
-  canDropBelowOpenFolders?: boolean;
-  canDropAt?: (items: TreeItem<CapturedFolderTreeItemData>[], target: DraggingPosition) => boolean;
-  onDrop?: (items: TreeItem<CapturedFolderTreeItemData>[], target: DraggingPosition) => void | Promise<void>;
-  onPrimaryAction?: (item: TreeItem<CapturedFolderTreeItemData>) => void;
-};
-
-const rctHarness = vi.hoisted(() => ({
-  lastEnvironmentProps: null as CapturedFolderEnvironmentProps | null,
-}));
-
 vi.mock("@/lib/component-library/actions", () => actionMocks);
 
 vi.mock("next/navigation", () => ({
@@ -88,53 +78,6 @@ vi.mock("next/navigation", () => ({
     refresh: navigationMocks.refresh,
   }),
   useSearchParams: () => new URLSearchParams(),
-}));
-
-vi.mock("react-complex-tree", () => ({
-  InteractionMode: { ClickArrowToExpand: "ClickArrowToExpand" },
-  ControlledTreeEnvironment: (props: CapturedFolderEnvironmentProps & { children: React.ReactNode }) => {
-    rctHarness.lastEnvironmentProps = props;
-    return <div data-rct-environment="true">{props.children}</div>;
-  },
-  Tree: ({ rootItem, treeLabel }: { rootItem: TreeItemIndex; treeLabel: string }) => {
-    const environment = rctHarness.lastEnvironmentProps;
-    if (!environment) return null;
-    const selectedItems = new Set(environment.viewState?.["library-folder-tree"]?.selectedItems?.map(String) ?? []);
-    const expandedItems = new Set(environment.viewState?.["library-folder-tree"]?.expandedItems?.map(String) ?? []);
-
-    function renderChildren(parentId: TreeItemIndex): React.ReactNode {
-      const parent = environment.items[parentId];
-      return (
-        <ol>
-          {(parent?.children ?? []).map((childId) => {
-            const child = environment.items[childId];
-            return (
-              <li key={String(childId)}>
-                <button
-                  type="button"
-                  role="treeitem"
-                  aria-label={environment.getItemTitle(child)}
-                  aria-selected={selectedItems.has(String(childId))}
-                  aria-expanded={child?.children?.length ? expandedItems.has(String(childId)) : undefined}
-                  data-library-folder-node-id={String(childId)}
-                  onClick={() => environment.onPrimaryAction?.(child)}
-                >
-                  {environment.getItemTitle(child)}
-                </button>
-                {child?.children?.length ? renderChildren(childId) : null}
-              </li>
-            );
-          })}
-        </ol>
-      );
-    }
-
-    return (
-      <div role="tree" aria-label={treeLabel}>
-        {renderChildren(rootItem)}
-      </div>
-    );
-  },
 }));
 
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
@@ -279,7 +222,6 @@ describe("workshop library consolidation UI", () => {
     actionMocks.moveCostLibraryComponentToFolder.mockResolvedValue(undefined);
     navigationMocks.refresh.mockReset();
     vi.spyOn(window, "confirm").mockReturnValue(false);
-    rctHarness.lastEnvironmentProps = null;
   });
 
   it("uses /workshop/library as the canonical route and redirects the retired components and templates routes", () => {
@@ -364,7 +306,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(viewMode).getByRole("menuitemradio", { name: "Brand" })).toHaveAttribute("aria-checked", "false");
 
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
@@ -406,7 +348,7 @@ describe("workshop library consolidation UI", () => {
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Supplier Review Folder", { placement: "top" }));
     expect(promptSpy).toHaveBeenCalledWith("Folder name");
     await waitFor(() => expect(screen.getByRole("button", { name: "View by: Default" })).toHaveAttribute("aria-pressed", "false"));
-    expect(screen.getByRole("treeitem", { name: "Supplier Review Folder" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("treeitem", { name: "Supplier Review Folder" })).toHaveAttribute("aria-current", "page");
     promptSpy.mockRestore();
   });
 
@@ -444,7 +386,7 @@ describe("workshop library consolidation UI", () => {
 
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith(null, "Root First", { placement: "top" }));
     expect(promptSpy).toHaveBeenCalledWith("Folder name");
-    await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Root First" })).toHaveAttribute("aria-selected", "true"));
+    await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Root First" })).toHaveAttribute("aria-current", "page"));
     const folderLabels = within(dialog).getAllByRole("treeitem").map((item) => item.getAttribute("aria-label") ?? item.textContent ?? "");
     expect(folderLabels.indexOf("Root First")).toBeLessThan(folderLabels.indexOf("Fabrication"));
     promptSpy.mockRestore();
@@ -535,12 +477,12 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     modalViewMode = openAddComponentViewMenu(dialog);
     fireEvent.click(within(modalViewMode).getByRole("menuitemradio", { name: "Default" }));
-    expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "false");
+    expect(within(dialog).getByRole("treeitem", { name: "Fabrication" })).not.toHaveAttribute("aria-current", "page");
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("No folder selected")).toBeInTheDocument();
     expect(dialog.querySelector("label label")).toBeNull();
     expect(within(dialog).queryByLabelText("Kind")).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("treeitem", { name: "Details" }));
-    expect(within(dialog).getByRole("treeitem", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getByRole("treeitem", { name: "Details" })).toHaveAttribute("aria-current", "page");
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Details")).toHaveClass("font-medium");
     fireEvent.click(within(dialog).getByRole("treeitem", { name: "Fabrication" }));
     const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Acoustics");
@@ -559,7 +501,7 @@ describe("workshop library consolidation UI", () => {
     await waitFor(() => expect(actionMocks.createLibraryFolder).toHaveBeenCalledWith("folder-fabrication", "Acoustics"));
     expect(promptSpy).toHaveBeenCalledWith("Folder name");
     promptSpy.mockRestore();
-    await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Acoustics" })).toHaveAttribute("aria-selected", "true"));
+    await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Acoustics" })).toHaveAttribute("aria-current", "page"));
     expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Acoustics")).toHaveClass("font-medium");
 
     const nameInput = within(dialog).getByLabelText("Name");
@@ -874,7 +816,7 @@ describe("workshop library consolidation UI", () => {
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
   });
 
-  it("uses the shared drag/drop tree environment for editable library folders", async () => {
+  it("reorders library folders by dragging a folder row on the shared tree", async () => {
     renderLibraryShell(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -885,36 +827,25 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const environment = rctHarness.lastEnvironmentProps;
-    expect(environment).toMatchObject({
-      canDragAndDrop: true,
-      canReorderItems: true,
-      canDropOnFolder: true,
-      canDropOnNonFolder: false,
-      canDropBelowOpenFolders: true,
-    });
+    const tree = await screen.findByRole("tree", { name: "Library folders" });
+    const detailsRow = tree.querySelector('[data-tree-row="folder:folder-details"]') as HTMLElement;
+    const allComponentsRow = tree.querySelector('[data-tree-row="folder:all-components"]') as HTMLElement;
+    expect(detailsRow).not.toBeNull();
+    expect(allComponentsRow).not.toBeNull();
+    expect(detailsRow).toHaveAttribute("draggable", "true");
 
-    const detailItem = environment?.items["folder:folder-details"];
-    expect(detailItem).toBeDefined();
-    expect(environment?.canDropAt?.([detailItem!], {
-      targetType: "between-items",
-      parentItem: "library-folder-tree-root",
-      childIndex: 0,
-      linearIndex: 0,
-    })).toBe(true);
-
-    await environment?.onDrop?.([detailItem!], {
-      targetType: "between-items",
-      parentItem: "library-folder-tree-root",
-      childIndex: 0,
-      linearIndex: 0,
-    });
+    // Drop the nested "Details" folder onto the "All Components" root → it lifts
+    // out to the top level (parent_id null) and reorderLibraryFolders persists it.
+    const dataTransfer = createDragDataTransfer();
+    fireEvent.dragStart(detailsRow, { dataTransfer });
+    fireEvent.dragOver(allComponentsRow, { dataTransfer });
+    fireEvent.drop(allComponentsRow, { dataTransfer });
 
     await waitFor(() => {
       expect(actionMocks.reorderLibraryFolders).toHaveBeenCalledWith({
         updates: expect.arrayContaining([
-          expect.objectContaining({ id: "folder-details", parentId: null, sortOrder: 10 }),
-          expect.objectContaining({ id: "folder-fabrication", parentId: null, sortOrder: 20 }),
+          expect.objectContaining({ id: "folder-details", parentId: null }),
+          expect.objectContaining({ id: "folder-fabrication", parentId: null }),
         ]),
       });
     });
@@ -931,24 +862,18 @@ describe("workshop library consolidation UI", () => {
     );
     await waitForLibraryWorkspace();
 
-    const environment = rctHarness.lastEnvironmentProps;
-    const componentItem = Object.values(environment?.items ?? {}).find(
-      (item) => item.data.kind === "component" && item.data.item?.id === "db-library-steel-frame",
-    );
-    expect(componentItem).toBeDefined();
-    expect(componentItem?.canMove).toBe(true);
+    const tree = await screen.findByRole("tree", { name: "Library folders" });
+    const componentRow = tree.querySelector('[data-tree-row$=":db-library-steel-frame"]') as HTMLElement;
+    const detailsRow = tree.querySelector('[data-tree-row="folder:folder-details"]') as HTMLElement;
+    expect(componentRow).not.toBeNull();
+    expect(componentRow).toHaveAttribute("draggable", "true");
+    expect(detailsRow).not.toBeNull();
 
-    const dropTarget: DraggingPosition = {
-      targetType: "item",
-      treeId: "library-folder-tree",
-      targetItem: "folder:folder-details",
-      parentItem: "folder:folder-fabrication",
-      linearIndex: 2,
-      depth: 1,
-    };
-    expect(environment?.canDropAt?.([componentItem!], dropTarget)).toBe(true);
-
-    await environment?.onDrop?.([componentItem!], dropTarget);
+    // A component dropped on any band of a folder row moves into that folder.
+    const dataTransfer = createDragDataTransfer();
+    fireEvent.dragStart(componentRow, { dataTransfer });
+    fireEvent.dragOver(detailsRow, { dataTransfer });
+    fireEvent.drop(detailsRow, { dataTransfer });
 
     await waitFor(() =>
       expect(actionMocks.moveCostLibraryComponentToFolder).toHaveBeenCalledWith({

@@ -240,21 +240,23 @@ function openComponentSheetSearch() {
 }
 
 function getLibraryFolderButton(name: string) {
-  const matches = screen.getAllByLabelText(name);
-  const folderButton = matches.find((element) => element.hasAttribute("data-library-folder-node-id"));
+  const matches = screen.getAllByRole("treeitem", { name });
+  const folderButton = matches.find((element) => (element.getAttribute("data-tree-row") ?? "").startsWith("folder:"));
   if (!folderButton) throw new Error(`Library folder button not found: ${name}`);
   return folderButton;
 }
 
 function getLibraryFolderButtonWithin(scope: HTMLElement, name: string) {
-  const matches = within(scope).getAllByLabelText(name);
-  const folderButton = matches.find((element) => element.hasAttribute("data-library-folder-node-id"));
+  const matches = within(scope).getAllByRole("treeitem", { name });
+  const folderButton = matches.find((element) => (element.getAttribute("data-tree-row") ?? "").startsWith("folder:"));
   if (!folderButton) throw new Error(`Library folder button not found: ${name}`);
   return folderButton;
 }
 
 function getLibraryFolderArrowWithin(scope: HTMLElement, folderId: string) {
-  const arrow = scope.querySelector(`[data-library-folder-arrow-id="folder:${folderId}"]`);
+  const row = scope.querySelector(`[data-tree-row="folder:${folderId}"]`);
+  if (!row) throw new Error(`Library folder row not found: ${folderId}`);
+  const arrow = within(row as HTMLElement).queryByRole("button", { name: /Collapse|Expand/ });
   if (!arrow) throw new Error(`Library folder arrow not found: ${folderId}`);
   return arrow as HTMLElement;
 }
@@ -356,11 +358,10 @@ describe("component library manager UI", () => {
 
     const tree = screen.getByLabelText("Component library tree");
     const sheet = screen.getByLabelText("Component table");
-    const rowGroups = Array.from(tree.querySelectorAll("ol"));
-    expect(rowGroups.length).toBeGreaterThan(0);
-    for (const rowGroup of rowGroups) expect(rowGroup).toHaveClass("space-y-0");
+    const folderTree = within(tree).getByRole("tree", { name: "Library folders" });
+    expect(folderTree).toHaveClass("space-y-0");
 
-    expect(within(tree).getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
+    expect(within(tree).getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-current", "page");
     expect(within(tree).getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-expanded", "true");
     expect(getLibraryFolderButton("Details")).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
@@ -410,8 +411,9 @@ describe("component library manager UI", () => {
     expect(within(emptyBranch).queryByText("Empty folder")).not.toBeInTheDocument();
     expect(within(fabricationBranch).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(fabricationBranch).getByText("Database Brand")).toBeInTheDocument();
-    expect(tree.querySelector('[data-library-folder-arrow-id="folder:folder-empty-child"]')).toBeNull();
-    expect(tree.querySelector('[data-library-folder-arrow-spacer-id="folder:folder-empty-child"]')).not.toBeNull();
+    const emptyFolderRow = tree.querySelector('[data-tree-row="folder:folder-empty-child"]');
+    expect(emptyFolderRow).not.toBeNull();
+    expect(within(emptyFolderRow as HTMLElement).queryByRole("button", { name: /Collapse|Expand/ })).toBeNull();
     const detailsCard = detailsBranch.querySelector('[data-component-catalogue-card-id="db-library-custom-cabinet-pull"]');
     const emptyRow = emptyBranch.querySelector('[data-component-catalogue-empty-row="true"]');
     expect(detailsCard).not.toBeNull();
