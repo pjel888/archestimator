@@ -177,7 +177,12 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
 
   return (
     <div ref={ref} className={cn("sticky top-0 z-20 shrink-0 border-b border-hairline bg-white", className)}>
-      <div ref={searchRootRef} className="relative">
+      {/* Req 3: the bottom border also sits on the toolbar row (search/filter/expand)
+          itself — so it shows directly under the icon row on every panel, including
+          tabbed panels where the tabs render below this row inside the same header.
+          On tab-less panels this coincides with the root border (same edge → one
+          hairline); on tabbed panels it delineates the icon row above the tabs. */}
+      <div ref={searchRootRef} className="relative border-b border-hairline">
         <HeaderIconToolbar
           ariaLabel={ariaLabel}
           labelPrefix={labelPrefix}
