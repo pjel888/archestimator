@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
@@ -56,6 +57,14 @@ function leafTree(): EstimateTreeNode[] {
   ];
 }
 
+// A truly-empty node: no rows, no children. Under P6 this is the only
+// non-collapsible node — it keeps the inert reserved caret slot for alignment.
+function emptyTree(): EstimateTreeNode[] {
+  return [
+    { id: "empty-area", name: "Empty Area", kind: "area", total: "₱0.00", estimateRowItems: [], children: [] },
+  ];
+}
+
 function renderSheet(nodes: EstimateTreeNode[], selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
@@ -93,21 +102,88 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(screen.queryByText("Own items")).not.toBeInTheDocument();
   });
 
-  it("renders a disclosure caret + aria-expanded only on a node with children", () => {
+  it("renders a disclosure caret + aria-expanded on any node with contents (rows OR children)", () => {
     renderSheet(mixedTree(), "building-a");
 
-    // Parent has a caret/disclosure with aria-expanded.
+    // Parent (rows + children) has a caret/disclosure with aria-expanded.
     const parentToggle = screen.getByRole("button", { name: /Collapse Building A|Expand Building A/ });
-    expect(parentToggle).toHaveAttribute("aria-expanded");
+    expect(parentToggle).toHaveAttribute("aria-expanded", "true");
 
-    // Leaf child renders no disclosure button and advertises no expandability.
+    // A rows-only child is now collapsible: it advertises a caret + aria-expanded.
     const kitchenSection = screen.getByLabelText("Kitchen");
-    expect(within(kitchenSection).queryByRole("button", { name: /Collapse Kitchen|Expand Kitchen/ })).not.toBeInTheDocument();
-    // The leaf's sticky header carries no aria-expanded (row-cell comboboxes
-    // below it legitimately do, so scope the check to the header).
-    const kitchenHeader = kitchenSection.querySelector(".sticky");
-    expect(kitchenHeader).not.toBeNull();
-    expect((kitchenHeader as HTMLElement).querySelector("[aria-expanded]")).toBeNull();
+    const kitchenToggle = within(kitchenSection).getByRole("button", { name: /Collapse Kitchen|Expand Kitchen/ });
+    expect(kitchenToggle).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("renders no disclosure caret on a truly-empty node (no rows, no children)", () => {
+    renderSheet(emptyTree(), "empty-area");
+    const section = screen.getByLabelText("Empty Area");
+    expect(within(section).queryByRole("button", { name: /Collapse Empty Area|Expand Empty Area/ })).not.toBeInTheDocument();
+    const header = section.querySelector(".sticky");
+    expect(header).not.toBeNull();
+    // The inert reserved slot keeps alignment but advertises no expandability.
+    expect((header as HTMLElement).querySelector("[aria-expanded]")).toBeNull();
+  });
+
+  it("toggles a rows-only node via keyboard and keeps focus on the disclosure button", async () => {
+    const user = userEvent.setup();
+    renderSheet(mixedTree(), "building-a");
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const kitchenToggle = within(kitchenSection).getByRole("button", { name: /Collapse Kitchen|Expand Kitchen/ });
+    expect(kitchenToggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(kitchenSection).queryByRole("table")).not.toBeNull();
+
+    kitchenToggle.focus();
+    await user.keyboard("{Enter}");
+    expect(kitchenToggle).toHaveFocus();
+    expect(kitchenToggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(kitchenSection).queryByRole("table")).toBeNull();
+
+    await user.keyboard(" ");
+    expect(kitchenToggle).toHaveFocus();
+    expect(kitchenToggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(kitchenSection).queryByRole("table")).not.toBeNull();
+  });
+
+  it("collapse-all hides the rows-only table; the rows-only node re-expands independently", async () => {
+    const user = userEvent.setup();
+    renderSheet(mixedTree(), "building-a");
+
+    await user.click(screen.getByRole("button", { name: "Collapse all tab" }));
+    // The top-level node collapses, unmounting its body (own table + children).
+    expect(within(screen.getByLabelText("Building A")).queryByRole("table")).toBeNull();
+
+    // Re-expand the parent: its rows-only child surfaces, still collapsed —
+    // proof that collapse-all reached the rows-only node (per-node caret + bulk
+    // surface are consistent now that the caret keys off hasContents).
+    await user.click(within(screen.getByLabelText("Building A")).getByRole("button", { name: /Expand Building A/ }));
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const kitchenToggle = within(kitchenSection).getByRole("button", { name: /Expand Kitchen/ });
+    expect(kitchenToggle).toHaveAttribute("aria-expanded", "false");
+    expect(within(kitchenSection).queryByRole("table")).toBeNull();
+
+    await user.click(kitchenToggle);
+    expect(within(kitchenSection).queryByRole("table")).not.toBeNull();
+  });
+
+  it("suppresses disclosure carets while sheet search is active and restores them on clear (OD-3)", async () => {
+    const user = userEvent.setup();
+    renderSheet(mixedTree(), "building-a");
+    expect(screen.getByRole("button", { name: /Collapse Building A|Expand Building A/ })).toBeInTheDocument();
+
+    // Open the tab search panel and type a matching query.
+    await user.click(screen.getByRole("button", { name: "Show tab search" }));
+    const searchBox = await screen.findByLabelText("Search Tab");
+    await user.type(searchBox, "Building");
+
+    // While searching, collapse state is force-revealed; the per-node caret is
+    // suppressed so a user can't toggle invisible collapse state.
+    expect(screen.queryByRole("button", { name: /Collapse Building A|Expand Building A/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Collapse Kitchen|Expand Kitchen/ })).not.toBeInTheDocument();
+
+    // Clearing search restores the carets.
+    await user.clear(searchBox);
+    expect(screen.getByRole("button", { name: /Collapse Building A|Expand Building A/ })).toBeInTheDocument();
   });
 
   it("offsets the own-rows sticky thead below the node header (sticky cascade)", () => {

@@ -1167,11 +1167,14 @@ export function EstimateSheetContent({
       };
     });
   }, [collapsedScopeKey]);
-  // Searches reveal every match: collapse state pauses while filtering.
+  // Searches reveal every match: collapse state pauses while filtering, and the
+  // per-node disclosure caret is suppressed (searchActive) so users can't toggle
+  // collapse state they can't see take effect. State restores when search clears.
   const sheetExpansionContextValue = useMemo(
     () => ({
       collapsedNodeIds: sheetSearchActive ? EMPTY_COLLAPSED_NODE_IDS : collapsedNodeIds,
       setCollapsedNodeIds,
+      searchActive: sheetSearchActive,
     }),
     [collapsedNodeIds, setCollapsedNodeIds, sheetSearchActive],
   );

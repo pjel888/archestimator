@@ -76,13 +76,15 @@ export type SheetMutationHandlers = Pick<
 >;
 
 export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0, usesSiblingGroupRhythm = false, stickyTop = 0 }: EstimateSheetBranchProps) {
-  const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
+  const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
-  // Containment is derived from CHILDREN, not kind: a node is a leaf iff it has
-  // no child sub-areas. The disclosure caret, aria-expanded, and the rows-vs
-  // -sub-areas distinction all key off this.
+  // P6 single-node model: a node is "expandable" iff it has collapsible
+  // contents (own rows OR child sub-areas) -- NOT iff it has children. The
+  // disclosure caret and aria-expanded key off hasContents; only a truly-empty
+  // node (no rows, no children) is a non-collapsible leaf. hasChildren is still
+  // used for the rows-vs-sub-areas distinction and the sr-only content count.
   const hasChildren = childAreas.length > 0;
   const hasOwnRows = estimateRowItems.length > 0;
   const hasContents = hasChildren || hasOwnRows;
@@ -179,7 +181,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
               the node-name labelled region. "{name}, area{, N rows}{, M
               sub-areas}". */}
           <span className="sr-only">{headerAriaLabel}</span>
-          {hasChildren ? (
+          {hasContents && !searchActive ? (
             <Button
               variant="ghost"
               size="icon-sm"
@@ -198,9 +200,10 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
               <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
             </Button>
           ) : (
-            // Reserve the caret slot so leaf names stay aligned with parents.
-            // Non-focusable, no aria-expanded — a leaf must not advertise
-            // expandability (L7).
+            // Reserve the caret slot so node names stay aligned. Rendered for a
+            // truly-empty node (nothing to collapse) AND while search is active
+            // (carets suppressed, OD-3). Non-focusable, no aria-expanded — it
+            // must not advertise expandability (L7).
             <span className="size-6 shrink-0" aria-hidden="true" />
           )}
           <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
