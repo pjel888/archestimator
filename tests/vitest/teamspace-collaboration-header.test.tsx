@@ -112,7 +112,7 @@ function renderHeader(props: { summary: ProjectCollaborationSummary }) {
 }
 
 async function openShare(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Manage access" }));
+  await user.click(screen.getByRole("button", { name: "Teamspace" }));
   const dialog = screen.getByRole("dialog", { name: "Share" });
   await waitFor(() => expect(dialog).toBeInTheDocument());
   return dialog;
@@ -146,13 +146,21 @@ describe("ProjectTeamspaceHeader", () => {
     vi.clearAllMocks();
   });
 
-  it("renders presence faces in the header instead of a settings gear", () => {
+  it("renders a single icon-only Teamspace button instead of a presence face cluster", () => {
     renderHeader({ summary });
 
-    // The header now shows faces (felt-impact #1), not a lone gear.
-    expect(screen.getByRole("button", { name: /Philip Lewis \(you\), Owner/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Manage access" })).toBeInTheDocument();
-    // No "Teamspace settings" gear/dialog anymore.
+    // Single icon-only button replaces the face cluster.
+    const teamspaceBtn = screen.getByRole("button", { name: "Teamspace" });
+    expect(teamspaceBtn).toBeInTheDocument();
+    expect(teamspaceBtn).toHaveAttribute("type", "button");
+    expect(teamspaceBtn).toHaveAttribute("title", "Teamspace");
+
+    // No individual face avatar buttons.
+    expect(screen.queryByRole("button", { name: /Philip Lewis \(you\), Owner/ })).not.toBeInTheDocument();
+    // No visible "Manage access" text or gear button.
+    expect(screen.queryByRole("button", { name: "Manage access" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Manage access")).not.toBeInTheDocument();
+    // No "Project teamspaces" gear/dialog either.
     expect(screen.queryByRole("button", { name: "Project teamspaces" })).not.toBeInTheDocument();
   });
 

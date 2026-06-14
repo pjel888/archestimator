@@ -14,7 +14,6 @@ import { usePathname } from "next/navigation";
 import {
   Check,
   CircleNotch,
-  Gear,
   LinkSimple,
   PaperPlaneTilt,
   Trash,
@@ -24,7 +23,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Modal } from "@/components/ui/modal";
-import { Popover } from "@/components/ui/overlays/popover";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { useToast } from "@/components/ui/toast";
 import { useProjectPresence } from "@/hooks/use-project-presence";
@@ -196,7 +194,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const activeSurface = useMemo(() => routeToActiveSurface(pathname), [pathname]);
 
   const [open, setOpen] = useState(false);
-  const [rosterOpen, setRosterOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteEmailError, setInviteEmailError] = useState<string | null>(null);
   const [inviteRole, setInviteRole] = useState<CollaborationRole>("editor");
@@ -212,7 +209,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const [busyRowId, setBusyRowId] = useState<string | null>(null);
   const [doneRowId, setDoneRowId] = useState<string | null>(null);
   const [showAllPending, setShowAllPending] = useState(false);
-  const [maxFaces, setMaxFaces] = useState(4);
   const [presenceAnnouncement, setPresenceAnnouncement] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -231,23 +227,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     enabled: Boolean(liveSummary),
   });
   const onlineUserIds = presence.onlineUserIds;
-
-  // Responsive face budget (08 §2 responsive rules): 2 (<640) / 3 (<900) / 4.
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const small = window.matchMedia("(max-width: 639px)");
-    const medium = window.matchMedia("(max-width: 899px)");
-    function update() {
-      setMaxFaces(small.matches ? 2 : medium.matches ? 3 : 4);
-    }
-    update();
-    small.addEventListener("change", update);
-    medium.addEventListener("change", update);
-    return () => {
-      small.removeEventListener("change", update);
-      medium.removeEventListener("change", update);
-    };
-  }, []);
 
   // Announce joins/leaves once at a time (08 §2 aria-live).
   const prevOnlineRef = useRef<Set<string>>(new Set());
@@ -296,16 +275,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     };
   }, [open, liveSummary]);
 
-  // Close the roster popover on Escape / outside click.
-  useEffect(() => {
-    if (!rosterOpen) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setRosterOpen(false);
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [rosterOpen]);
-
   if (!liveSummary) return <UnavailableTeamspaceRail />;
 
   const activeSummary = liveSummary;
@@ -315,23 +284,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const inviteCapabilityDisabled = !canManageProjectAccess || !canUseInviteDelivery;
   const inviteControlsDisabled = inviteCapabilityDisabled || isPending;
   const projectSharePath = `/workshop/projects/${activeSummary.projectId}`;
-
-  // --- Presence-ordered roster (T3.2 / D-2: online in stack, all in roster) ---
-  const selfId = activeSummary.currentUserId;
-  const self = activeSummary.collaborators.find((collaborator) => collaborator.id === selfId) ?? null;
-  const onlineOthers = activeSummary.collaborators
-    .filter((collaborator) => collaborator.id !== selfId && isOnlineCollaborator(collaborator, onlineUserIds))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  const offlineOthers = activeSummary.collaborators
-    .filter((collaborator) => collaborator.id !== selfId && !isOnlineCollaborator(collaborator, onlineUserIds))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  const stackOrder = [self, ...onlineOthers].filter(Boolean) as ProjectCollaboratorSummary[];
-  const shownFaces = stackOrder.slice(0, maxFaces);
-  const overflowCount = activeSummary.collaborators.length - shownFaces.length;
-  const rosterOrder = [...stackOrder, ...offlineOthers];
-  const onlineCollaboratorCount = activeSummary.collaborators.filter((collaborator) =>
-    isOnlineCollaborator(collaborator, onlineUserIds),
-  ).length;
 
   function setResult(message: string, tone: "neutral" | "warning", assertive = false) {
     setActionMessageTone(tone);
@@ -509,7 +461,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   }
 
   function openManageAccess() {
-    setRosterOpen(false);
     // Reset to "checking…" here (event context) rather than in the readiness
     // effect, so the modal re-verifies delivery each open without a sync setState
     // inside the effect.
@@ -532,91 +483,21 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
 
   return (
     <>
-      {/* Header presence cluster (Track B) — replaces the lone gear. */}
+      {/* Teamspace icon-only button — opens Share modal (Req 2). */}
       <div
         className="relative flex items-center"
         data-workshop-layout="project-teamspace-header"
         data-teamspace-presence-cluster
       >
-        <div className="flex items-center" role="group" aria-label={`${onlineCollaboratorCount} active now`}>
-          {shownFaces.map((collaborator, index) => {
-            const online = isOnlineCollaborator(collaborator, onlineUserIds);
-            const isSelf = collaborator.id === selfId;
-            const activity = rosterActivityFor(collaborator);
-            const label = `${collaborator.displayName}${isSelf ? " (you)" : ""}, ${roleLabels[collaborator.role]}, ${activity}`;
-            return (
-              <Tooltip key={collaborator.id} label={label} side="bottom">
-                <button
-                  type="button"
-                  className="rounded-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  style={{ marginLeft: index ? -8 : 0, zIndex: shownFaces.length - index }}
-                  aria-label={label}
-                  data-teamspace-face={collaborator.id}
-                  onClick={openManageAccess}
-                >
-                  <CollaboratorAvatar
-                    collaborator={collaborator}
-                    online={online}
-                    offset={0}
-                    stackSize={shownFaces.length}
-                  />
-                </button>
-              </Tooltip>
-            );
-          })}
-
-          {overflowCount > 0 ? (
-            <Popover
-              open={rosterOpen}
-              onOpenChange={setRosterOpen}
-              side="bottom"
-              align="end"
-              title="In this project"
-              triggerLabel={`Show all ${activeSummary.collaborators.length} collaborators`}
-              triggerVariant="ghost"
-              triggerSize="sm"
-              triggerClassName="ml-1 grid size-6 place-items-center rounded-xs border border-hairline bg-surfaceMuted px-0 text-[9px] font-medium text-secondary hover:bg-white"
-              contentClassName="w-64"
-              className="ml-0"
-              trigger={<span aria-hidden="true">+{overflowCount}</span>}
-              footer={
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-center gap-1 rounded-xs px-2 py-1 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                  onClick={openManageAccess}
-                >
-                  <Gear size={12} aria-hidden="true" />
-                  Manage access
-                </button>
-              }
-            >
-              <RosterList
-                collaborators={rosterOrder}
-                onlineUserIds={onlineUserIds}
-                rosterActivityFor={rosterActivityFor}
-                selfId={selfId}
-              />
-            </Popover>
-          ) : null}
-        </div>
-
-        <Tooltip label="Manage access">
-          <button
-            type="button"
-            className={cn(
-              "ml-1 grid h-6 shrink-0 place-items-center gap-1 rounded-xs border border-hairline bg-white px-1.5 text-[10px] font-medium text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              "lg:px-2",
-            )}
-            aria-label="Manage access"
-            aria-haspopup="dialog"
-            aria-expanded={open}
-            data-teamspace-manage-access
-            onClick={openManageAccess}
-          >
-            <Gear size={13} weight="regular" aria-hidden="true" />
-            <span className="hidden lg:inline">Manage access</span>
-          </button>
-        </Tooltip>
+        <button
+          type="button"
+          className="relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          aria-label="Teamspace"
+          title="Teamspace"
+          onClick={openManageAccess}
+        >
+          <UsersThree size={14} weight="regular" aria-hidden="true" />
+        </button>
 
         <span className="sr-only" role="status" aria-live="polite" aria-relevant="additions removals">
           {presenceAnnouncement}
@@ -734,39 +615,6 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
         </div>
       </Modal>
     </>
-  );
-}
-
-function RosterList({
-  collaborators,
-  onlineUserIds,
-  rosterActivityFor,
-  selfId,
-}: {
-  collaborators: ProjectCollaboratorSummary[];
-  onlineUserIds: Set<string>;
-  rosterActivityFor: (collaborator: ProjectCollaboratorSummary) => string;
-  selfId?: string;
-}) {
-  return (
-    <ul className="space-y-1">
-      {collaborators.map((collaborator) => {
-        const online = isOnlineCollaborator(collaborator, onlineUserIds);
-        return (
-          <li key={collaborator.id} className="flex min-w-0 items-center gap-2">
-            <CollaboratorAvatar collaborator={collaborator} online={online} size="row" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[10px] font-medium leading-3 text-ink">
-                {collaborator.displayName}
-                {collaborator.id === selfId ? <span className="text-tertiary"> (you)</span> : null}
-              </span>
-              <span className="block truncate text-[9px] leading-3 text-tertiary">{rosterActivityFor(collaborator)}</span>
-            </span>
-            <RoleBadge role={collaborator.role} />
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
