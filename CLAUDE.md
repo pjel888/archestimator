@@ -15,6 +15,30 @@ TanStack Query, Zustand, and repository boundaries. Keep recommendations
 aligned with `DESIGN.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, and
 `.ai/10_state/decisions.md`.
 
+## Codex Delegation (codex-plugin-cc)
+
+Codex is the implementation lane (`CODEX.md`): diffs, refactors, tests, deep
+bug investigation, long-running background work. Claude stays the lead —
+product judgment, planning, review — and **delegates execution-heavy or
+deep-analysis work to Codex** instead of grinding it solo. Codex runs against
+ChatGPT/OpenAI limits, so reach for it deliberately, not reflexively.
+
+Delegate to Codex when:
+
+- A bug needs deep root-cause analysis or a second diagnosis pass — `/codex:rescue` (or the `codex:codex-rescue` subagent).
+- Work is long-running or parallelizable — run it with `--background`, poll `/codex:status`, collect with `/codex:result`.
+- A design/implementation decision should be pressure-tested before shipping — `/codex:adversarial-review`.
+- You want an independent review of uncommitted changes or a branch — `/codex:review [--base <ref>]`.
+
+Commands: `/codex:review`, `/codex:adversarial-review`, `/codex:rescue`,
+`/codex:status`, `/codex:result`, `/codex:cancel`, `/codex:setup`.
+
+**Review gate is enabled** for this repo: a Codex review must pass before Claude
+stops. When it surfaces issues, address them before claiming work is complete —
+don't loop indefinitely; escalate to the user if Codex and Claude disagree.
+Verify Codex's output the same as any other agent's — adopt fixes on the merits,
+not on authority. Toggle the gate with `/codex:setup [--enable-review-gate | --disable-review-gate]`.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
