@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupGap } from "@/components/workshop/estimate-sheet/rows/node-visuals";
+import { groupGap, nodeShellClasses } from "@/components/workshop/estimate-sheet/rows/node-visuals";
 
 // Req 2: the inter-node vertical rhythm must actually fire (it used to collapse
 // to mt-0 for every nested node because a dead flag was never threaded through
@@ -18,5 +18,18 @@ describe("groupGap vertical rhythm (Req 2)", () => {
     expect(groupGap(2)).toBe("mt-3"); // md = 12px
     expect(groupGap(3)).toBe("mt-2"); // sm = 8px
     expect(groupGap(4)).toBe("mt-2");
+  });
+});
+
+describe("estimate sheet node shell styling", () => {
+  it("keeps root and child nodes on the same surface tone", () => {
+    expect(nodeShellClasses(0)).toContain("bg-surfaceMuted/20");
+    expect(nodeShellClasses(1)).toBe("bg-surfaceMuted/20");
+    expect(nodeShellClasses(2)).toBe("bg-surfaceMuted/20");
+  });
+
+  it("limits the framed card treatment to the root node", () => {
+    expect(nodeShellClasses(0)).toContain("border border-hairline");
+    expect(nodeShellClasses(1)).not.toContain("border");
   });
 });

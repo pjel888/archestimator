@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { setEstimateSheetRenderProbe } from "@/components/workshop/estimate-sheet-render-probe";
+import { setEstimateRowItemRenderProbe, setEstimateSheetRenderProbe } from "@/components/workshop/estimate-sheet-render-probe";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
@@ -115,6 +115,7 @@ function rendersOutside(renderCounts: Map<string, number>, editedTableId: string
 describe("estimate sheet render relief (U1)", () => {
   afterEach(() => {
     setEstimateSheetRenderProbe(null);
+    setEstimateRowItemRenderProbe(null);
     cleanup();
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
@@ -137,6 +138,27 @@ describe("estimate sheet render relief (U1)", () => {
     expect(document.activeElement).toBe(input);
     expect(renderCounts.get("relief-area-1") ?? 0).toBeGreaterThan(0);
     expect(rendersOutside(renderCounts, "relief-area-1")).toBe(0);
+  });
+
+  it("typing in one row's quantity does not re-render sibling rows in the same table", () => {
+    const rowRenderCounts = new Map<string, number>();
+    setEstimateRowItemRenderProbe((rowItemId) => {
+      rowRenderCounts.set(rowItemId, (rowRenderCounts.get(rowItemId) ?? 0) + 1);
+    });
+    const { view } = renderSheet();
+    const input = quantityInput(view, "relief-row-1-1");
+    act(() => input.focus());
+
+    rowRenderCounts.clear();
+    for (const value of ["3", "34", "345"]) {
+      act(() => {
+        fireEvent.change(input, { target: { value } });
+      });
+    }
+
+    expect(rowRenderCounts.get("relief-row-1-1") ?? 0).toBeGreaterThan(0);
+    expect(rowRenderCounts.get("relief-row-1-2") ?? 0).toBe(0);
+    expect(rowRenderCounts.get("relief-row-1-3") ?? 0).toBe(0);
   });
 
   it("edits in two different tables keep both subtotals live with no stale rows", () => {

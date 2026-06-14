@@ -1,8 +1,10 @@
 // Render observability for perf tests. The probe must stay null outside
 // tests so production renders pay only a single null check.
 type EstimateSheetRenderProbe = (tableNodeId: string) => void;
+type EstimateRowItemRenderProbe = (rowItemId: string) => void;
 
 let activeProbe: EstimateSheetRenderProbe | null = null;
+let activeRowProbe: EstimateRowItemRenderProbe | null = null;
 
 export function setEstimateSheetRenderProbe(probe: EstimateSheetRenderProbe | null) {
   activeProbe = probe;
@@ -10,6 +12,14 @@ export function setEstimateSheetRenderProbe(probe: EstimateSheetRenderProbe | nu
 
 export function reportEstimateRowItemsTableRender(tableNodeId: string) {
   activeProbe?.(tableNodeId);
+}
+
+export function setEstimateRowItemRenderProbe(probe: EstimateRowItemRenderProbe | null) {
+  activeRowProbe = probe;
+}
+
+export function reportEstimateRowItemRender(rowItemId: string) {
+  activeRowProbe?.(rowItemId);
 }
 
 let sheetContentProbe: (() => void) | null = null;

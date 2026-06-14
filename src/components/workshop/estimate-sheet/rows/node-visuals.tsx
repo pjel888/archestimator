@@ -13,6 +13,12 @@ export function groupGap(depth: number) {
   return "mt-2";                  // sm = 8px
 }
 
+// One node model: root and descendants share the same surface tone; depth is
+// expressed by spacing, indentation, and the root frame, not a darker child fill.
+export function nodeShellClasses(depth: number) {
+  return depth > 0 ? "bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20";
+}
+
 export function getNodeCode(parentCode: string, siblingIndex: number): string {
   const segment = String(siblingIndex + 1).padStart(2, "0");
   return parentCode ? `${parentCode}.${segment}` : segment;

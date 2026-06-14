@@ -118,6 +118,28 @@ export function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<st
   return rowTotal + childTotal;
 }
 
+export function computeNodeTotals(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>): Map<string, number> {
+  const nodeTotals = new Map<string, number>();
+
+  function visit(node: EstimateTreeNode): number {
+    let total = 0;
+    for (const item of node.estimateRowItems ?? []) {
+      total += computeRowTotal(item, editableRows);
+    }
+    for (const child of node.children ?? []) {
+      total += visit(child);
+    }
+    nodeTotals.set(node.id, total);
+    return total;
+  }
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  return nodeTotals;
+}
+
 export function materializeEditableEstimateTree(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>): EstimateTreeNode[] {
   return nodes.map((node) => ({
     ...node,

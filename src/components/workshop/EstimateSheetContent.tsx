@@ -82,6 +82,7 @@ import {
   calculateContingencyValue,
   collectEditableRows,
   computeNodeTotal,
+  computeNodeTotals,
   flattenEstimateRows,
   getInitialEditableRow,
   materializeEditableEstimateTree,
@@ -155,6 +156,8 @@ type EstimateSheetContentProps = {
 };
 
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
+const EMPTY_FLATTENED_ESTIMATE_ROWS: FlattenedEstimateRow[] = [];
+const EMPTY_ACTIVITY_SCOPE_ITEMS: ActivityScopeTreeItem[] = [];
 
 
 
@@ -170,6 +173,18 @@ function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTree
     }
   }
   return [];
+}
+
+function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateRowItem | null {
+  for (const node of nodes) {
+    const rowItem = node.estimateRowItems?.find((item) => item.id === rowItemId);
+    if (rowItem) return rowItem;
+    if (node.children) {
+      const childRowItem = findEstimateRowItem(node.children, rowItemId);
+      if (childRowItem) return childRowItem;
+    }
+  }
+  return null;
 }
 
 function computeNodeCode(nodes: EstimateTreeNode[], targetId: string): string {
@@ -411,6 +426,7 @@ function buildActivityScopeTreeItems({
   editableRows,
   metadata,
   projectTotal,
+  nodeTotals,
   activityScopeDirectOnly,
 }: {
   nodes: EstimateTreeNode[];
@@ -418,6 +434,7 @@ function buildActivityScopeTreeItems({
   editableRows: Record<string, EditableRowValue>;
   metadata: ProposalExportMetadata | null;
   projectTotal: number;
+  nodeTotals: ReadonlyMap<string, number>;
   // Unification P3-activity: scope is a STORED, STABLE per-node choice — never
   // derived from kind/children. An empty map yields includeDescendants:true for
   // every node, byte-identical to the legacy leaf behavior (a leaf's descendant
@@ -451,7 +468,7 @@ function buildActivityScopeTreeItems({
       label: node.name,
       eyebrow: `${nodeCode} Area`,
       description: isGroup ? "Includes descendant node and row activity" : pathLabel,
-      total: computeNodeTotal(node, editableRows),
+      total: nodeTotals.get(node.id) ?? computeNodeTotal(node, editableRows),
       row: null,
     });
 
@@ -575,6 +592,7 @@ function EstimateSheetHeader({
 }
 
 const EMPTY_COLLAPSED_NODE_IDS = new Set<string>();
+const EMPTY_NODE_TOTALS: ReadonlyMap<string, number> = new Map();
 
 function estimateSheetRowMatchesQuery(item: EstimateRowItem, normalizedQuery: string) {
   return [item.material, item.name, item.category, item.supplier, item.description]
@@ -1234,24 +1252,35 @@ export function EstimateSheetContent({
   const canInsertTemplateIntoSelectedNode = Boolean(templateTargetParentNode);
   const insertionTargetLabel = selectedNode?.name ?? "selected area";
   const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected area";
+  const estimateNodeTotals = useMemo(() => computeNodeTotals(estimateTree, editableRows), [editableRows, estimateTree]);
+  const displayedNodeTotals = useMemo(() => {
+    if (!displayedSheetNode) return EMPTY_NODE_TOTALS;
+    if (displayedSheetNode === selectedNode) return estimateNodeTotals;
+    return computeNodeTotals([displayedSheetNode], editableRows);
+  }, [displayedSheetNode, editableRows, estimateNodeTotals, selectedNode]);
   const projectTotal = useMemo(
-    () => estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0),
-    [editableRows, estimateTree],
+    () => estimateTree.reduce((total, node) => total + (estimateNodeTotals.get(node.id) ?? 0), 0),
+    [estimateNodeTotals, estimateTree],
   );
-  const currentRows = useMemo(() => flattenEstimateRows(estimateTree, editableRows), [editableRows, estimateTree]);
+  const shouldBuildFlattenedRows = Boolean(inspector || rowDetails || projectSpecificRowId);
+  const currentRows = useMemo(
+    () => (shouldBuildFlattenedRows ? flattenEstimateRows(estimateTree, editableRows) : EMPTY_FLATTENED_ESTIMATE_ROWS),
+    [editableRows, estimateTree, shouldBuildFlattenedRows],
+  );
   const inspectorScopeKey = getActivityScopeKey(inspector);
   const activityFilterKey = useMemo(() => createActivityFilterKey(activityFilters), [activityFilters]);
-  const activityScopeItems = useMemo(
-    () => buildActivityScopeTreeItems({
+  const activityScopeItems = useMemo(() => {
+    if (!inspector) return EMPTY_ACTIVITY_SCOPE_ITEMS;
+    return buildActivityScopeTreeItems({
       nodes: estimateTree,
       rows: currentRows,
       editableRows,
       metadata: resolvedProposalExportMetadata,
       projectTotal,
+      nodeTotals: estimateNodeTotals,
       activityScopeDirectOnly,
-    }),
-    [activityScopeDirectOnly, currentRows, editableRows, estimateTree, projectTotal, resolvedProposalExportMetadata],
-  );
+    });
+  }, [activityScopeDirectOnly, currentRows, editableRows, estimateNodeTotals, estimateTree, inspector, projectTotal, resolvedProposalExportMetadata]);
   const selectedActivityScopeItem = useMemo(
     () => activityScopeItems.find((item) => getActivityScopeKey(item.scope) === inspectorScopeKey) ?? activityScopeItems[0] ?? null,
     [activityScopeItems, inspectorScopeKey],
@@ -2016,8 +2045,8 @@ export function EstimateSheetContent({
   });
 
   const requestProjectSpecific = useStableCallback((rowItemId: string) => {
-    const row = currentRows.find((candidate) => candidate.item.id === rowItemId);
-    if (!row || !canMakeProjectSpecific(row.item)) return;
+    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
+    if (!rowItem || !canMakeProjectSpecific(rowItem)) return;
     setProjectSpecificRowId(rowItemId);
   });
 
@@ -2318,11 +2347,6 @@ export function EstimateSheetContent({
             onCreateTabStateChange={setCreateTabState}
           />
         ) : null}
-        {hasMultiplePersistedTabs ? (
-          <p className="border-b border-hairline bg-white px-3 py-1 text-[10px] leading-4 text-tertiary">
-            XLSX export includes all tabs by default. Use the preview scope chips to download all tabs or just the active tab.
-          </p>
-        ) : null}
         {isActiveTabTreeLoading ? (
           <>
             <div role="status" aria-label="Loading estimate tab" className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
@@ -2361,6 +2385,7 @@ export function EstimateSheetContent({
                     selectedRowIds={bulkSelectedRowIds}
                     onToggleRowSelection={toggleRowSelection}
                     onToggleRowsSelection={toggleRowsSelection}
+                    nodeTotals={displayedNodeTotals}
                   />
                 </EstimateSheetExpansionContext.Provider>
                 ) : (

@@ -16,7 +16,7 @@ import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data
 import { EMPTY_ESTIMATE_ROW_ITEMS } from "./constants";
 import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
-import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
+import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeShellClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
@@ -44,6 +44,7 @@ export type EstimateSheetBranchProps = {
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
+  nodeTotals?: ReadonlyMap<string, number>;
   depth?: number;
 };
 
@@ -68,7 +69,7 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0 }: EstimateSheetBranchProps) {
+export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0 }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
   // resolves the scroll container from its own DOM node.
@@ -86,7 +87,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   const hasOwnRows = estimateRowItems.length > 0;
   const hasContents = hasChildren || hasOwnRows;
   const leftIndent = Math.min(depth * 16, 96);
-  const total = computeNodeTotal(node, editableRows);
+  const total = nodeTotals?.get(node.id) ?? computeNodeTotal(node, editableRows);
   const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
   // Sticky model: ONLY the displayed (depth-0) node header is sticky, pinned at
   // the top of the scroll container. Nested node headers and every table <thead>
@@ -162,10 +163,10 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
         groupGap(depth),
         // Node>row>component hierarchy reads via ONE frame, not concentric
         // borders (UX-4 / OD-7): only the root carries the bordered card; nested
-        // nodes drop the competing border and step in with a tonal surface +
-        // indent + groupGap. The row table keeps its own border, so each node's
-        // data grid stays framed at every depth.
-        depth > 0 ? "bg-surfaceMuted/30" : "rounded-xs border border-hairline bg-surfaceMuted/20",
+        // nodes share the same surface tone and step in with indent + groupGap.
+        // The row table keeps its own border, so each node's data grid stays
+        // framed at every depth.
+        nodeShellClasses(depth),
         templateDragActive && templateDragOverCount > 0 && "bg-surfaceWarm/30",
       )}
       aria-label={node.name}
@@ -176,7 +177,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     >
       <div className={cn("bg-white", isStickyHeader && "sticky top-0 z-[20]")}>
         <div
-          className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses())}
+          className={cn("flex h-10 items-center gap-2 border-t border-hairline bg-surfaceMuted/40 px-1", nodeHeaderClasses())}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
         >
           {/* L7 dual-content announcement as a real (visually-hidden) text
@@ -310,6 +311,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
                 selectedRowIds={selectedRowIds}
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}
+                nodeTotals={nodeTotals}
                 depth={depth + 1}
               />
             );

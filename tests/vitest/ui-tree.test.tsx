@@ -98,6 +98,19 @@ describe("ui tree", () => {
     expect(checkbox.compareDocumentPosition(indent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("allows callers to widen the content indent without changing the default", () => {
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        defaultExpandedIds={["a"]}
+        indentStep={24}
+      />,
+    );
+
+    expect((row("a1").querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("24px");
+  });
+
   it("reserves rail slots for non-draggable and non-selectable nodes so siblings align", () => {
     const nodes = sampleNodes();
     nodes[2] = { ...nodes[2], draggable: false, selectable: false };
