@@ -498,22 +498,29 @@ Do not over-round estimating, financial, or proposal surfaces. The product shoul
 - App primary actions use strong neutral (`#292929`) for Create, Add selected item, Duplicate revision, Issue proposal, and Export while preserving clear text/ink hierarchy.
 - Destructive actions use danger styling and confirmation.
 
-#### Named app exception: estimate-sheet "Add" affordances (approved 2026-06-14)
+#### Named app exception: estimate-sheet orange affordances (approved 2026-06-14)
 
-The "add" icon buttons on the Estimate Sheet page — Add Area (left tree),
-Add tab (middle), Add Component / Add Template (right sidebar) — use a
-light-orange affordance instead of strong neutral:
+The Estimate Sheet page carries the only app-chrome orange exception, in two
+tightly-scoped places that reuse the Tailwind `orange-*` scale already used at
+`projects-page-client.tsx:371`:
+
+**1. "Add" icon buttons** — Add Area (left tree), Add tab (middle), Add
+Component / Add Template (right sidebar) — use a light-orange affordance instead
+of strong neutral:
 
 - resting:  `bg-orange-100` `text-orange-700`
 - hover:    `bg-orange-200` `text-orange-800`  (+ focus-visible mirror)
 - cursor:   pointer (explicit — Tailwind v4 has no default)
 
-Rationale: the estimate sheet has many co-located neutral toolbar icons;
-the orange tint disambiguates the primary "add" action. This is the only
-app-chrome orange-button exception. Reuses the Tailwind `orange-*` scale
-already used at `projects-page-client.tsx:371`. Centralized as
-`ADD_BUTTON_CLASSNAME` (`src/components/ui/toolbar-icon-button.tsx`).
+Centralized as `ADD_BUTTON_CLASSNAME` (`src/components/ui/toolbar-icon-button.tsx`).
 Does NOT apply to in-row "Add row" (`QuietAddRowButton` stays low-emphasis).
+
+**2. Occupied node glyph** — a left-tree node that directly holds estimate items
+renders its `Circle` glyph in `text-orange-600` (empty nodes stay
+`text-tertiary`), so occupancy is scannable at a glance.
+
+Rationale: the estimate sheet has many co-located neutral toolbar icons; the
+orange tint disambiguates the primary "add" action and flags where work lives.
 
 ### Navigation
 
