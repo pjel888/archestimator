@@ -1,0 +1,24 @@
+$ node scripts/enforce-app-design-system.mjs
+App/workshop design-system enforcement failed outside landing-approved surfaces.
+src/components/workshop/ProjectChromeAsync.tsx:71 uses rounded-sm. App border radius must be rounded-xs only.
+src/components/workshop/ProjectChromeAsync.tsx:72 uses rounded-full. App border radius must be rounded-xs only.
+src/components/workshop/ProjectEstimatesListSkeleton.tsx:22 uses rounded-sm. App border radius must be rounded-xs only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:91 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:213 uses text-[13px] (13px). App/workshop text must stay at or below 12px.
+src/components/workshop/ProposalExportPreviewDialog.tsx:213 uses text-[13px] (13px). App/workshop text must stay at or below 12px.
+src/components/workshop/ProposalExportPreviewDialog.tsx:213 uses font-semibold. App typography must be SF Pro regular or medium only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:214 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:325 uses uppercase label/meta text above 9px. Labels, eyebrows, metadata, and section kickers must be 8-9px and never larger than paired input/control text.
+src/components/workshop/ProposalExportPreviewDialog.tsx:325 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:325 uses font-semibold. App typography must be SF Pro regular or medium only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:410 uses font-semibold. App typography must be SF Pro regular or medium only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:416 uses uppercase label/meta text above 9px. Labels, eyebrows, metadata, and section kickers must be 8-9px and never larger than paired input/control text.
+src/components/workshop/ProposalExportPreviewDialog.tsx:416 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:416 uses font-semibold. App typography must be SF Pro regular or medium only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:423 uses font-semibold. App typography must be SF Pro regular or medium only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:440 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:446 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:462 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+src/components/workshop/ProposalExportPreviewDialog.tsx:465 uses rounded-full. App border radius must be rounded-xs only.
+src/components/workshop/ProposalExportPreviewDialog.tsx:479 uses secondary/supporting text above 10px. Subheaders, descriptions, muted values, and helper copy must stay below true headers and controls.
+error: script "lint:design-system" exited with code 1
