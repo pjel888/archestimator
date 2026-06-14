@@ -924,7 +924,7 @@ describe("templates tree", () => {
     expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
   });
 
-  it("refreshes readable project sources from the Templates tab", async () => {
+  it("auto-refreshes project sources each time the Templates tab is opened (no manual Refresh button)", async () => {
     const refreshedProjectSources: ReusableEstimateSource[] = [
       ...projectSources.filter((source) => source.kind === "project"),
       {
@@ -951,8 +951,13 @@ describe("templates tree", () => {
 
     openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
 
+    // First open auto-loads the initial set (no Refresh button exists).
     expect(await screen.findByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Refresh project sources" }));
+    expect(screen.queryByRole("button", { name: "Refresh project sources" })).not.toBeInTheDocument();
+
+    // Re-opening the Templates tab auto-refreshes the project sources.
+    fireEvent.click(screen.getByRole("tab", { name: "Components" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
 
     await waitFor(() => expect(reusableSourceActionMocks.listReusableProjectSources).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("treeitem", { name: "Hotel Refresh Project project source" })).toBeInTheDocument();
@@ -1100,7 +1105,7 @@ describe("templates tree", () => {
     expect(reusableSourceActionMocks.getReusableEstimateOutline).not.toHaveBeenCalled();
   });
 
-  it("shows all project sources by default and narrows to the current project only on request", () => {
+  it("shows all project sources by default with no scope toggle", () => {
     const mixedProjectSources: ReusableEstimateSource[] = [
       {
         kind: "project",
@@ -1119,19 +1124,12 @@ describe("templates tree", () => {
 
     openTemplatesTab({ projectSources: mixedProjectSources, projectId: "project-1", estimateId: "estimate-1" });
 
+    // The current project AND every other project show — no per-project narrowing.
     expect(screen.getByRole("treeitem", { name: "Active Project project source" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "All projects" })).toHaveAttribute("aria-pressed", "true");
-
-    fireEvent.click(screen.getByRole("button", { name: "Current project only" }));
-
-    expect(screen.getByRole("button", { name: "Current project only" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("treeitem", { name: "Active Project project source" })).toBeInTheDocument();
-    expect(screen.queryByRole("treeitem", { name: "Renovation Project project source" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "All projects" }));
-
-    expect(screen.getByRole("treeitem", { name: "Renovation Project project source" })).toBeInTheDocument();
+    // The all/current-project scope toggle is gone.
+    expect(screen.queryByRole("button", { name: "All projects" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Current project only" })).not.toBeInTheDocument();
   });
 
   it("filters reusable source sections between custom templates and project sources", () => {

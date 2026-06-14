@@ -199,7 +199,6 @@ function useDelayedIdSet(activeIds: string[], delayMs: number): string[] {
 
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
-type ProjectSourceScope = "all" | "current-project";
 const TEMPLATE_SOURCE_FILTER_OPTIONS = [
   { value: "all", label: "All sources" },
   { value: "custom", label: "Custom templates" },
@@ -731,10 +730,6 @@ function hasReusableEstimateOutline(sources: ReusableEstimateSource[], estimateI
   );
 }
 
-function sourceBelongsToProject(source: ReusableEstimateSource, projectId: string) {
-  return source.kind === "custom-template" || source.projectId === projectId;
-}
-
 function projectNodeSourceToTemplateSourceNode(source: ProjectNodeReusableSource): EstimateTreeNode {
   return {
     id: source.nodeId,
@@ -824,7 +819,6 @@ function EstimateRightSidebarBase({
     });
   }
   const [loadedProjectSources, setLoadedProjectSources] = useState<ReusableEstimateSource[]>(projectSources);
-  const [projectSourceScope, setProjectSourceScope] = useState<ProjectSourceScope>("all");
   const [templateSourceFilter, setTemplateSourceFilter] = useState<TemplateSourceFilter>("all");
   const [projectSourcesLoading, setProjectSourcesLoading] = useState(false);
   const [projectSourceSearchResults, setProjectSourceSearchResults] = useState<ProjectReusableEstimateSource[]>([]);
@@ -938,13 +932,6 @@ function EstimateRightSidebarBase({
         if (!isCancelled?.()) setProjectSourcesLoading(false);
       });
   }, [canLoadProjectSourcesFromActions, toast]);
-  const refreshProjectSources = useCallback(() => {
-    setPreviewProjectSourceKey(null);
-    setBulkSelectedNodeIds(new Set());
-    setProjectSourceSearchResults([]);
-    setProjectEstimateLoadedProjectIds([]);
-    void loadProjectSources();
-  }, [loadProjectSources]);
   const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
     ? searchQuery.trim()
     : "";
@@ -1066,7 +1053,11 @@ function EstimateRightSidebarBase({
   }, [projectSources]);
 
   useEffect(() => {
-    if (activeTab !== "templates" || !canLoadProjectSourcesFromActions || loadedProjectSources.length > 0) return;
+    // Auto-refresh project sources every time the Templates tab is activated
+    // (replaces the manual "Refresh project sources" button). Keyed only off the
+    // activeTab transition, so it fires on each open but not on unrelated
+    // re-renders while already on Templates (loadProjectSources is stable).
+    if (activeTab !== "templates" || !canLoadProjectSourcesFromActions) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       if (!cancelled) void loadProjectSources(() => cancelled);
@@ -1075,7 +1066,7 @@ function EstimateRightSidebarBase({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources, loadedProjectSources.length]);
+  }, [activeTab, canLoadProjectSourcesFromActions, loadProjectSources]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1158,15 +1149,13 @@ function EstimateRightSidebarBase({
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 
   const librarySelectionNodes = useMemo(() => buildLibrarySelectionNodes(treeNodes), [treeNodes]);
-  const visibleProjectSources = useMemo(() => {
-    if (projectSourceScope !== "current-project" || !projectId) return loadedProjectSources;
-    return loadedProjectSources.filter((source) => sourceBelongsToProject(source, projectId));
-  }, [loadedProjectSources, projectId, projectSourceScope]);
-  const visibleProjectSourceSearchResults = useMemo(() => {
-    if (!projectSourceSearchQuery) return [];
-    if (projectSourceScope !== "current-project" || !projectId) return projectSourceSearchResults;
-    return projectSourceSearchResults.filter((source) => sourceBelongsToProject(source, projectId));
-  }, [projectId, projectSourceScope, projectSourceSearchQuery, projectSourceSearchResults]);
+  // Always browse ALL projects' sources (the all/current-project scope toggle
+  // was removed); no per-project filtering.
+  const visibleProjectSources = loadedProjectSources;
+  const visibleProjectSourceSearchResults = useMemo(
+    () => (projectSourceSearchQuery ? projectSourceSearchResults : []),
+    [projectSourceSearchQuery, projectSourceSearchResults],
+  );
   const searchableProjectSources = useMemo(
     () => projectSourceSearchQuery && visibleProjectSourceSearchResults.length > 0
       ? mergeReusableSourcesByKey(visibleProjectSources, visibleProjectSourceSearchResults)
@@ -1221,54 +1210,6 @@ function EstimateRightSidebarBase({
     // U1b: search failures surface via toast, not an inline banner.
     return null;
   }, [projectSourceSearchLoading, projectSourceSearchQuery]);
-  const templatesProjectSourceScopeControls = useMemo(() => {
-    if (
-      templateSourceFilter === "custom" ||
-      !projectId ||
-      loadedProjectSources.every((source) => source.kind === "custom-template")
-    ) return null;
-    return (
-      <div className="mb-2 flex gap-1" role="group" aria-label="Project source scope">
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          aria-pressed={projectSourceScope === "all"}
-          className="min-h-6 min-w-0 flex-1 px-2 py-1"
-          onClick={() => setProjectSourceScope("all")}
-        >
-          All projects
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          aria-pressed={projectSourceScope === "current-project"}
-          className="min-h-6 min-w-0 flex-1 px-2 py-1"
-          onClick={() => setProjectSourceScope("current-project")}
-        >
-          Current project only
-        </Button>
-      </div>
-    );
-  }, [loadedProjectSources, projectId, projectSourceScope, templateSourceFilter]);
-  const templatesProjectSourceRefreshControl = useMemo(() => {
-    if (templateSourceFilter === "custom" || !canLoadProjectSourcesFromActions) return null;
-    return (
-      <div className="mb-2 flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          className="min-h-6 px-2 py-1"
-          disabled={projectSourcesLoading}
-          onClick={refreshProjectSources}
-        >
-          Refresh project sources
-        </Button>
-      </div>
-    );
-  }, [canLoadProjectSourcesFromActions, projectSourcesLoading, refreshProjectSources, templateSourceFilter]);
   const handleTemplateSourceFilterChange = useCallback((nextFilter: TemplateSourceFilter) => {
     setTemplateSourceFilter(nextFilter);
     setBulkSelectedNodeIds(new Set());
@@ -2084,8 +2025,6 @@ function EstimateRightSidebarBase({
               <>
                 {templatesProjectSourceSearchStatus}
                 {templatesSourceFilterControls}
-                {templatesProjectSourceScopeControls}
-                {templatesProjectSourceRefreshControl}
                 <TemplatesTree
                   templates={visibleTemplateList}
                   projectSources={visibleTemplateProjectSources}
