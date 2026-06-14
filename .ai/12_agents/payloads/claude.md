@@ -36,6 +36,19 @@ Before scoped edits, check `git status --short --branch` and preserve unrelated 
 
 Use code-review-graph/GitNexus for broad architecture/code claims when useful. Record graph/tool failures honestly.
 
+## Codex Delegation Lane
+
+The `codex` plugin lets Claude route work to Codex (GPT-5.x) as an independent
+reviewer or rescue/implementation lane. Use it risk-proportionally, not as a
+gate: `/codex:review` and `/codex:adversarial-review` for independent
+maker/checker passes on Claude-made changes (prefer adversarial for auth, data,
+migration, security, or rollback risk); `/codex:rescue` or the
+`codex:codex-rescue` subagent when stuck, wanting a second implementation, or
+delegating Codex's builder lane. Claude stays lead: Codex output is evidence,
+not the final claim, and never provider proof. Keep write-capable rescue runs in
+a disjoint scope and inside the standing Supabase/provider boundaries. The
+stop-time review gate is opt-in via `/codex:setup`.
+
 ## Allowed Edit Scope
 
 Claude may write `.ai` plans/specs/logs or review docs when explicitly assigned.
