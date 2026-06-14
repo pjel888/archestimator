@@ -80,6 +80,7 @@ All three panels share the `TreePanelHeader` primitive (`src/components/ui/tree-
 | `04-BLAST-RADIUS-RISK-SEQUENCING.md` | Shared-symbol impact, risk-ranked table, test coverage, concurrency, phasing |
 | `05-IMPLEMENTATION-PLAN.md` | The phased, task-by-task TDD plan (the executable deliverable) |
 | `06-TEST-PLAN-AND-VERIFICATION.md` | Tests to update, new guards to add, manual smoke script, validation gate |
+| `07-IMPLEMENTATION-HANDOFF.md` | **Start here to execute** — copy-paste kickoff prompt, locked decisions, phase order, watch-outs, done criteria |
 
 ---
 

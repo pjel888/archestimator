@@ -307,7 +307,7 @@ plus error state (`:198`): `border-danger bg-dangerSoft/40`.
 **Recommended fix.**
 - Remove `max-w-[320px]`; let the field **size to content** via `field-sizing-content` (Tailwind v4 utility → CSS `field-sizing: content`), capped by `max-w-full` so it never overflows the centered metadata strip. Keep `min-w-0`. (Browser caveat: `field-sizing` is Chromium 123+; Safari/Firefox fall back gracefully because an `<input>` scrolls horizontally on overflow, so the **full name stays editable** even if the visible field is bounded by the header width. A fully cross-browser alternative is a measuring-span auto-size; flagged as optional.)
 - Remove the border affordance: drop `border border-transparent hover:border-hairline focus:border-accent`. Keep `focus:bg-accentSoft` as the edit affordance (a background, not a border) so the field still signals "editable/active."
-- Error state: to honor "no border," prefer `bg-dangerSoft/40` only (drop `border-danger`); the `!` error badge (`:215`) already conveys failure. (Minor — flag for owner; keeping the danger border is also defensible.)
+- Error state: **keep `border-danger bg-dangerSoft/40`** (owner confirmed 2026-06-14). "No border" applies to the resting/hover/focus affordance only — the error border stays as failure feedback.
 
 **Blast radius.** `ProjectEstimateMetadataStrip` is the estimate header strip (rendered in `role="banner"` — see `estimate-sheet-cost-inputs.test.tsx` breadcrumb-in-banner assertions). Changing width/border classes does not affect the breadcrumb structure or the `aria-label="Estimate name"` selector → **isolated, LOW risk**. Confirm no test asserts `max-w-[320px]` (none found). Verify the rename save/validation flow (`handleBlur`/`handleKeyDown`/empty-required) is untouched.
 

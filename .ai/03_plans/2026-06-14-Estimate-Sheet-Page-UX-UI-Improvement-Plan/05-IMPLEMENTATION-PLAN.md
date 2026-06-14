@@ -243,7 +243,7 @@ type EstimateHeaderActions = {
   - remove `max-w-[320px]`; add `field-sizing-content max-w-full`.
   - remove `border border-transparent hover:border-hairline focus:border-accent` (keep `focus:bg-accentSoft` as the edit affordance).
   - net: `h-7 min-w-0 max-w-full field-sizing-content rounded-xs bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:bg-accentSoft disabled:opacity-60`.
-  - error state (`:198`): change to `bg-dangerSoft/40` only (drop `border-danger`) — *owner-optional; flag in PR*.
+  - error state (`:198`): **keep `border-danger bg-dangerSoft/40` unchanged** (owner confirmed — the error border stays; "no border" applies only to the resting/hover/focus affordance, not the error feedback).
 - [ ] **Step 4 — Run, expect PASS.** Verify rename save/validation (`handleBlur`/`handleKeyDown`/empty-required) untouched.
 - [ ] **Step 5 — Verify (dev app):** type a long estimate name → field grows to content, no clip, no border; in Safari/Firefox confirm the full name remains editable (horizontal scroll within the input).
 - [ ] **Step 6 — `vitest` + `tsc` + `lint`; commit** `fix(estimate-sheet): editable title grows with content, no border/clip (Req 14)`.
