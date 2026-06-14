@@ -64,6 +64,23 @@ function emptyTree(): EstimateTreeNode[] {
   ];
 }
 
+// A node with a child sub-area but NO own components, whose child DOES hold a
+// component — to prove the orange caret keys off DIRECT components only.
+function childrenOnlyTree(): EstimateTreeNode[] {
+  return [
+    {
+      id: "wrap",
+      name: "Wrap",
+      kind: "group",
+      total: "₱0.00",
+      estimateRowItems: [],
+      children: [
+        { id: "leaf", name: "Leaf", kind: "area", total: "₱0.00", estimateRowItems: [childRow], children: [] },
+      ],
+    },
+  ];
+}
+
 function renderSheet(nodes: EstimateTreeNode[], selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
@@ -235,10 +252,22 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(text).not.toMatch(/select a group first/i);
   });
 
-  it("uses one neutral node icon (no FolderSimple/MapPin folder-vs-pin split)", () => {
+  it("renders no per-node circle icon; dual content is announced via the sr-only label", () => {
     renderSheet(mixedTree(), "building-a");
     const buildingSection = screen.getByLabelText("Building A");
-    // The neutral glyph announces the dual content via the sr-only L7 label.
+    // The node circle was removed; the sr-only L7 label still announces content.
     expect(within(buildingSection).getAllByText(/Building A, area/).length).toBeGreaterThan(0);
+  });
+
+  it("colors the EMC disclosure caret orange only for nodes that DIRECTLY hold components (Req 4)", () => {
+    renderSheet(childrenOnlyTree(), "wrap");
+    // "Wrap" has a child but no own components → caret present, NOT orange.
+    const wrapToggle = screen.getByRole("button", { name: /Collapse Wrap|Expand Wrap/ });
+    expect(wrapToggle.className).toMatch(/text-tertiary/);
+    expect(wrapToggle.className).not.toMatch(/text-orange-600/);
+    // "Leaf" directly holds a component → orange caret.
+    const leafSection = screen.getByLabelText("Leaf");
+    const leafToggle = within(leafSection).getByRole("button", { name: /Collapse Leaf|Expand Leaf/ });
+    expect(leafToggle.className).toMatch(/text-orange-600/);
   });
 });

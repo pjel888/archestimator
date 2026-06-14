@@ -35,6 +35,13 @@ export interface TreeNode {
   icon?: ReactNode;
   /** Explicit folder hint: `false` forces folder treatment even with no children. */
   isLeaf?: boolean;
+  /**
+   * Accent the disclosure caret (orange) to flag a meaningful node — e.g. an
+   * estimate area that directly holds components. Expandable nodes tint their
+   * caret; leaf nodes render a static accented caret marker in the reserved
+   * caret slot. Trees that don't set this render the default (muted) caret.
+   */
+  accent?: boolean;
   data?: Record<string, unknown>;
 }
 
@@ -471,14 +478,25 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
             aria-label={isExpanded ? "Collapse" : "Expand"}
           >
             {isExpanded ? (
-              <CaretDown weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+              <CaretDown weight="regular" className={cn("h-2.5 w-2.5", node.accent ? "text-orange-600" : "text-tertiary")} />
             ) : (
-              <CaretRight weight="regular" className="h-2.5 w-2.5 text-tertiary" />
+              <CaretRight weight="regular" className={cn("h-2.5 w-2.5", node.accent ? "text-orange-600" : "text-tertiary")} />
             )}
           </button>
         )}
 
-        {expandable && !isFolder && <span className="w-4 shrink-0" />}
+        {expandable && !isFolder && (
+          node.accent ? (
+            // Leaf area that holds components: a static (non-interactive) orange
+            // caret marker stands in for the disclosure caret it can't have, so
+            // the "has components" cue lives in the caret column on every row.
+            <span className="shrink-0 mr-0.5 flex h-3.5 w-3.5 items-center justify-center" aria-hidden="true">
+              <CaretRight weight="regular" className="h-2.5 w-2.5 text-orange-600" />
+            </span>
+          ) : (
+            <span className="w-4 shrink-0" />
+          )
+        )}
 
         {node.icon && (
           <span className="shrink-0 mr-1.5 flex items-center">{node.icon}</span>
