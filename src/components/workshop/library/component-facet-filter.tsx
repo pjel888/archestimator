@@ -220,24 +220,14 @@ export function ComponentFacetFilterPopover({
   return (
     <FilterPopover
       triggerLabel={filterActive ? `Filter components (${activeCount} active)` : "Filter components"}
-      trigger={
-        <>
-          <FunnelSimple size={12} weight="regular" aria-hidden="true" />
-          {filterActive ? (
-            <span className="rounded-xs bg-surfaceMuted px-1 text-[8px] font-medium leading-3 tabular-nums">
-              {activeCount}
-            </span>
-          ) : null}
-        </>
-      }
+      trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
       triggerVariant="ghost"
+      // Always a square icon button matching the other toolbar icons (size-6),
+      // like the sheet + tree filter triggers. Active state reads from the
+      // muted fill, not a width change; the count lives in the trigger label.
       triggerClassName={cn(
-        "rounded-xs",
-        // Inactive: a plain square icon button matching the other toolbar icons
-        // (size-6). Active: widen to seat the count badge beside the funnel.
-        filterActive
-          ? "h-6 min-h-6 w-auto gap-1 px-1.5 py-0 !text-[9px] bg-surfaceMuted text-ink"
-          : "size-6 p-0 text-tertiary",
+        "size-6 rounded-xs p-0",
+        filterActive ? "bg-surfaceMuted text-ink" : "text-tertiary",
       )}
       triggerPressed={filterActive}
       title="Filter components"
