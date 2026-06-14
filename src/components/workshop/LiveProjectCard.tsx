@@ -94,10 +94,6 @@ function formatOpenCount(count: number) {
   return `${count} ${count === 1 ? "open" : "opens"}`;
 }
 
-function formatPendingInviteCount(count: number) {
-  return `${count} pending ${count === 1 ? "invite" : "invites"}`;
-}
-
 function getAccessibleAccessLabel({
   accessKind,
   projectName,
@@ -149,14 +145,16 @@ export function LiveProjectCard({
   // Density ladder: "small" = compact tile (image + title + client); "medium" adds
   // one meta line + footer; "large" is the full showcase. Pending invites keep
   // their action in every mode.
+  const hasInvites = accessKind === "owned" && pendingInviteCount > 0;
   const showMeta = !isListView && viewMode !== "small";
   const showSecondaryMeta = viewMode === "large";
   const showFooter = !isListView && viewMode !== "small";
-  // Owned "small" tiles stay minimal, but a shared / estimate-only / pending tile
-  // keeps its access chip even in small mode — that context is load-bearing, not
-  // decorative (a user must not mistake estimate-only access for full ownership).
+  // Owned "small" tiles stay minimal, but a shared / estimate-only / pending tile —
+  // or an owned one with outstanding invites — keeps its chip even in small mode:
+  // that context is load-bearing, not decorative.
   const showChips =
-    !isListView && (viewMode !== "small" || isSharedAccess || isPendingInvite || Boolean(livePublication));
+    !isListView &&
+    (viewMode !== "small" || isSharedAccess || isPendingInvite || Boolean(livePublication) || hasInvites);
 
   const accessChip = isPendingInvite ? (
     <span className="inline-flex shrink-0 items-center rounded-xs bg-warningSoft px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-warning">
@@ -175,13 +173,19 @@ export function LiveProjectCard({
     </span>
   ) : null;
 
+  const invitesChip = hasInvites ? (
+    <span className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
+      {pendingInviteCount} {pendingInviteCount === 1 ? "invite" : "invites"}
+    </span>
+  ) : null;
+
   const selectControl = canSelect ? (
     <label
       className={cn(
         "grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border border-hairline bg-white text-ink hover:bg-surfaceMuted",
         // When a selection is active the checkbox must stay clickable, so it drops
-        // the reveal gate entirely rather than fighting its pointer-events.
-        selectedForDeletion || selectionActive ? "opacity-100" : REVEAL_ON_INTENT,
+        // the reveal gate and re-asserts pointer-events over the wrapper's none.
+        selectedForDeletion || selectionActive ? "opacity-100 pointer-events-auto" : REVEAL_ON_INTENT,
       )}
       title="Select project for deletion"
     >
@@ -203,14 +207,15 @@ export function LiveProjectCard({
       size="icon-xs"
       className={cn(
         CONTROL_BUTTON,
-        "disabled:cursor-wait",
+        "cursor-pointer aria-busy:cursor-wait aria-disabled:opacity-60",
         // Favorited reads as a solid ink "pressed" toggle (not a hue change), so the
         // state survives without color (WCAG 1.4.1) and stays legible even on the
-        // muted monogram thumb where a surfaceMuted fill would vanish. While a toggle
-        // is in flight it stays visible so the un-favorite transition doesn't ghost.
+        // muted monogram thumb where a surfaceMuted fill would vanish. It also re-asserts
+        // pointer-events over the overlay wrapper's none. While a toggle is in flight it
+        // stays visible so the un-favorite transition doesn't ghost.
         isFavorite
-          ? "opacity-100 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
-          : cn("text-tertiary hover:text-ink", favoriteBusy ? "opacity-100" : REVEAL_ON_INTENT),
+          ? "pointer-events-auto opacity-100 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
+          : cn("text-secondary hover:text-ink", favoriteBusy ? "opacity-100" : REVEAL_ON_INTENT),
       )}
       aria-label={
         isFavorite
@@ -218,8 +223,14 @@ export function LiveProjectCard({
           : `Add ${project.name} to favorite projects`
       }
       aria-pressed={isFavorite}
-      disabled={favoriteBusy}
-      onClick={() => onToggleFavorite?.(project.id, !isFavorite)}
+      // Stay focusable while saving (native `disabled` would drop keyboard focus to
+      // <body>); the click is guarded instead, and aria-busy announces the in-flight state.
+      aria-busy={favoriteBusy}
+      aria-disabled={favoriteBusy}
+      onClick={() => {
+        if (favoriteBusy) return;
+        onToggleFavorite?.(project.id, !isFavorite);
+      }}
     >
       <Star size={13} weight="regular" aria-hidden="true" />
     </Button>
@@ -258,7 +269,7 @@ export function LiveProjectCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2">
-            <span className={cn("truncate font-medium tracking-normal text-tertiary", motifSize)}>
+            <span className={cn("truncate font-medium tracking-normal text-secondary", motifSize)}>
               {motif}
             </span>
           </div>
@@ -266,9 +277,13 @@ export function LiveProjectCard({
 
         {withOverlay ? (
           <>
-            {selectControl ? <div className="absolute left-1.5 top-1.5 z-20">{selectControl}</div> : null}
+            {/* Wrappers are pointer-events-none so their dead space lets clicks reach the
+                tile link; each control re-asserts pointer-events when revealed or active. */}
+            {selectControl ? (
+              <div className="pointer-events-none absolute left-1.5 top-1.5 z-20">{selectControl}</div>
+            ) : null}
             {favoriteControl || expandControl ? (
-              <div className="absolute right-1.5 top-1.5 z-20 flex items-center gap-1">
+              <div className="pointer-events-none absolute right-1.5 top-1.5 z-20 flex items-center gap-1">
                 {favoriteControl}
                 {expandControl}
               </div>
@@ -371,29 +386,40 @@ export function LiveProjectCard({
             </h2>
             {accessChip}
             {sharedLinkChip}
+            {invitesChip}
           </div>
-          <p className="truncate text-[9px] leading-3 text-tertiary">
+          <p className="truncate text-[9px] leading-3 text-secondary">
             {project.client_name ?? "No client yet"}
           </p>
         </div>
 
-        <p className="hidden min-w-0 max-w-[180px] items-center gap-1 text-[9px] leading-3 text-tertiary sm:flex">
+        <p className="hidden min-w-0 max-w-[180px] items-center gap-1 text-[9px] leading-3 text-secondary sm:flex">
           <MapPin size={12} aria-hidden="true" className="shrink-0" />
           <span className="truncate">{project.location ?? "No location"}</span>
         </p>
-        <p className="hidden w-[78px] shrink-0 items-center gap-1 text-[9px] leading-3 text-tertiary md:flex">
+        <p className="hidden w-[78px] shrink-0 items-center gap-1 text-[9px] leading-3 text-secondary md:flex">
           <Clock size={12} aria-hidden="true" className="shrink-0" />
+          <span className="sr-only">{isPendingInvite ? "Invite expires" : "Updated"}</span>
           <span className="truncate">
             {isPendingInvite && pendingInvite?.expiresAt
               ? formatUpdatedAt(pendingInvite.expiresAt)
               : formatUpdatedAt(project.updated_at)}
           </span>
         </p>
-        <span className="hidden w-[88px] shrink-0 truncate text-right font-sans text-[9px] font-medium text-tertiary lg:block">
+        <span className="hidden w-[88px] shrink-0 truncate text-right font-sans text-[9px] font-medium text-secondary lg:block">
+          <span className="sr-only">Project code </span>
           {project.project_code ?? "—"}
         </span>
 
-        <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
+        <div
+          className={cn(
+            "relative z-20 ml-auto flex shrink-0 items-center gap-1 sm:ml-0",
+            // Dead space in this strip must let clicks reach the whole-row link; each
+            // control re-asserts pointer-events when revealed/active. Pending rows have
+            // no row link, so their always-on Accept button keeps pointer-events.
+            isPendingInvite ? null : "pointer-events-none",
+          )}
+        >
           {selectControl}
           {favoriteControl}
           {expandControl}
@@ -432,7 +458,10 @@ export function LiveProjectCard({
   }
 
   // ----- TILE: small / medium / large -----
-  const aspectClass = viewMode === "small" ? "aspect-square" : "aspect-[4/3]";
+  // Distinct image rhythm per rung so medium and large don't read as one card at two
+  // zoom levels: small = square compact, medium = shorter 3:2, large = taller 4:3 showcase.
+  const aspectClass =
+    viewMode === "small" ? "aspect-square" : viewMode === "medium" ? "aspect-[3/2]" : "aspect-[4/3]";
   const motifSize = "text-[10px]";
   const contentPad = viewMode === "large" ? "p-3" : "p-2";
 
@@ -454,13 +483,14 @@ export function LiveProjectCard({
 
       <div className={cn("flex min-w-0 flex-1 flex-col", contentPad)}>
         <div className="min-w-0 space-y-1">
-          {showChips && (isSharedAccess || isPendingInvite || livePublication) ? (
+          {showChips && (isSharedAccess || isPendingInvite || livePublication || hasInvites) ? (
             <div className="flex min-w-0 flex-wrap items-center gap-1">
               {accessChip}
               {sharedLinkChip}
+              {invitesChip}
             </div>
           ) : null}
-          <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-tertiary">
+          <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
             {project.client_name ?? "No client yet"}
           </p>
           <h2
@@ -485,7 +515,7 @@ export function LiveProjectCard({
             ) : null}
             {showSecondaryMeta && isSharedAccess ? (
               <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
-                <span className="shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
+                <span className="shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-secondary">
                   {roleLabels[currentUserRole]}
                 </span>
                 <span className="truncate">
@@ -497,20 +527,12 @@ export function LiveProjectCard({
                 </span>
               </p>
             ) : null}
-            {showSecondaryMeta && pendingInviteCount > 0 ? (
-              <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
-                <span className="shrink-0 rounded-xs bg-warningSoft px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-warning">
-                  Invites
-                </span>
-                <span className="truncate">{formatPendingInviteCount(pendingInviteCount)}</span>
-              </p>
-            ) : null}
-            <p className="flex items-center gap-1.5 text-[9px] leading-3 text-tertiary">
+            <p className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary">
               <MapPin size={12} aria-hidden="true" className="shrink-0" />
               <span className="truncate">{project.location ?? "No location"}</span>
             </p>
-            {showSecondaryMeta ? (
-              <p className="flex items-center gap-1.5 text-[9px] leading-3 text-tertiary">
+            {showSecondaryMeta || (isPendingInvite && pendingInvite?.expiresAt) ? (
+              <p className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary">
                 <Clock size={12} aria-hidden="true" className="shrink-0" />
                 <span className="truncate">
                   {isPendingInvite && pendingInvite?.expiresAt
@@ -529,7 +551,7 @@ export function LiveProjectCard({
               viewMode === "large" ? "pt-3" : "pt-2",
             )}
           >
-            <span className="truncate font-sans text-[9px] font-medium text-tertiary">
+            <span className="truncate font-sans text-[9px] font-medium text-secondary">
               {project.project_code ?? "—"}
             </span>
             {renderFooterAction()}
