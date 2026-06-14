@@ -2046,7 +2046,7 @@ export function EstimateSheetContent({
           <>
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div
-                className={cn("relative min-h-0 flex-1 overflow-auto px-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
+                className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
                 data-estimate-pointer-surface
               >
                 <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
@@ -2100,7 +2100,7 @@ export function EstimateSheetContent({
           </>
         ) : (
           <>
-            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" data-estimate-pointer-surface>
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2 pt-2" data-estimate-pointer-surface>
               <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
               <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
                 {dataTabId ? (
