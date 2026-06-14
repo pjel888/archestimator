@@ -176,7 +176,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     : startActions;
 
   return (
-    <div ref={ref} className={cn("sticky top-0 z-20 shrink-0 bg-white", className)}>
+    <div ref={ref} className={cn("sticky top-0 z-20 shrink-0 border-b border-hairline bg-white", className)}>
       <div ref={searchRootRef} className="relative">
         <HeaderIconToolbar
           ariaLabel={ariaLabel}
