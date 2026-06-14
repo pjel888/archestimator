@@ -66,9 +66,9 @@ describe("live estimate node route", () => {
     expect(estimateTree).not.toContain("MoveEstimateNodeForm");
     expect(estimateTree).not.toContain("Move node");
     expect(estimateTree).not.toContain("ArrowsOutSimple");
-    // One neutral node glyph (Circle) replaces the FolderSimple/MapPin
+    // One neutral node glyph (Log) replaces the FolderSimple/MapPin
     // group-vs-area split (P4 single-node model).
-    expect(estimateTree).toContain("Circle");
+    expect(estimateTree).toContain("Log");
     expect(estimateTree).not.toContain("FolderSimple");
     expect(estimateTree).not.toContain("HouseLine");
     expect(estimateTree).not.toContain("Stack,");
@@ -168,6 +168,13 @@ describe("live estimate node route", () => {
     // on `.eq("kind", "area")`. Existence/orphan safety stays via the
     // estimate/project scoping and the relaxed RPC.
     expect(estimateActions).not.toContain('.eq("kind", "area")');
+    expect(estimateContent).not.toContain('targetNode?.kind !== "area"');
+    expect(estimateContent).not.toContain('targetParentNode?.kind !== "group"');
+    const templateNodeInsertStart = estimateActions.indexOf("export async function insertEstimateTemplateNodeIntoEstimate");
+    const templateNodeInsertEnd = estimateActions.indexOf("const { data: template", templateNodeInsertStart);
+    const templateNodeInsertBlock = estimateActions.slice(templateNodeInsertStart, templateNodeInsertEnd);
+    expect(templateNodeInsertBlock).not.toContain('.eq("kind", "group")');
+    expect(templateNodeInsertBlock).toContain('.eq("estimates.project_id", project.id)');
     expect(estimateActions).toContain('.eq("estimates.project_id", project.id)');
     expect(estimateActions).toContain("getSourceLibraryItemId");
     expect(estimateActions).toContain("isUuid(libraryItem.id)");

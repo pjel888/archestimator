@@ -2328,7 +2328,7 @@ type TemplateSubtreeNodeRow = {
 
 /**
  * Inserts one node of a template — a group or area inside it — and its whole
- * subtree under a target group. Unlike whole-template insertion (a single
+ * subtree under a target node. Unlike whole-template insertion (a single
  * RPC), this loops the history-aware node/row RPCs so every created node and
  * row lands in the estimate's event history; a mid-way failure leaves the
  * already-created nodes visible and deletable rather than rolling back.
@@ -2356,11 +2356,10 @@ export async function insertEstimateTemplateNodeIntoEstimate({
     .select("id, kind, estimates!inner(project_id)")
     .eq("id", targetParentNodeId)
     .eq("estimate_id", estimateId)
-    .eq("kind", "group")
     .eq("estimates.project_id", project.id)
     .maybeSingle();
   if (parentError) throw parentError;
-  if (!targetParent) throw new Error("Target Group Node not found in the current project.");
+  if (!targetParent) throw new Error("Target node not found in the current project.");
 
   const { data: template, error: templateError } = await supabase
     .from("estimate_templates")
