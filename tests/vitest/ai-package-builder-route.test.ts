@@ -682,6 +682,7 @@ describe("AI package-builder route", () => {
         authorizeApply,
         recordAudit,
         recordMemory,
+        hasMemorySchema: async () => true,
       },
     );
 
@@ -767,6 +768,7 @@ describe("AI package-builder route", () => {
         authorizeApply,
         recordAudit,
         recordMemory,
+        hasMemorySchema: async () => true,
       },
     );
 
@@ -844,6 +846,7 @@ describe("AI package-builder route", () => {
         authorizeApply: vi.fn(),
         recordAudit: vi.fn(),
         recordMemory,
+        hasMemorySchema: async () => true,
       },
     );
 
@@ -858,6 +861,89 @@ describe("AI package-builder route", () => {
       draft,
       draftHash,
       userContext,
+    }));
+  });
+
+  it("does not record memory when the feature flag is on but the schema is absent", async () => {
+    const userContext = {
+      userId: "44444444-4444-4444-8444-444444444444",
+      email: "user@example.com",
+      workspaceId: "55555555-5555-4555-8555-555555555555",
+      authMode: "supabase" as const,
+    };
+    const draftResponse = await handlePackageBuilderRequest(makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }), {
+      getUserContext: async () => userContext,
+      readTools: async () => readData,
+      provider: {
+        name: "deepseek",
+        model: "mock-model",
+        hasApiKey: () => false,
+        createDraftSuggestion: vi.fn(async () => null),
+      },
+      recordAudit: vi.fn(),
+    });
+    const { draft, draftHash, draftToken } = await draftResponse.json();
+    const recordMemory = vi.fn();
+    process.env.AI_PACKAGE_BUILDER_MEMORY_ENABLED = "1";
+
+    const response = await handlePackageBuilderRequest(
+      makeRequest({
+        mode: "feedback",
+        decision: "rejected",
+        draft,
+        draftHash,
+        draftToken,
+      }),
+      {
+        getUserContext: async () => userContext,
+        readTools: vi.fn(),
+        provider: {
+          name: "deepseek",
+          model: "mock-model",
+          hasApiKey: () => true,
+          createDraftSuggestion: vi.fn(async () => null),
+        },
+        applyPackage: vi.fn(),
+        authorizeApply: vi.fn(),
+        recordAudit: vi.fn(),
+        recordMemory,
+        hasMemorySchema: async () => false,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(recordMemory).not.toHaveBeenCalled();
+  });
+
+  it("does not read memory when the feature flag is on but the schema is absent", async () => {
+    const userContext = {
+      userId: "44444444-4444-4444-8444-444444444444",
+      email: "user@example.com",
+      workspaceId: "55555555-5555-4555-8555-555555555555",
+      authMode: "supabase" as const,
+    };
+    const readTools = vi.fn(async () => readData);
+    process.env.AI_PACKAGE_BUILDER_MEMORY_ENABLED = "1";
+
+    const response = await handlePackageBuilderRequest(
+      makeRequest({ mode: "draft", message: "Assemble me a 3 bedroom package, budget is 5 million pesos." }),
+      {
+        getUserContext: async () => userContext,
+        readTools,
+        provider: {
+          name: "deepseek",
+          model: "mock-model",
+          hasApiKey: () => false,
+          createDraftSuggestion: vi.fn(async () => null),
+        },
+        recordAudit: vi.fn(),
+        hasMemorySchema: async () => false,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(readTools).toHaveBeenCalledWith(expect.objectContaining({
+      memoryEnabled: false,
     }));
   });
 
@@ -1479,6 +1565,7 @@ describe("AI package-builder route", () => {
         authorizeApply,
         recordAudit: vi.fn(),
         recordMemory,
+        hasMemorySchema: async () => true,
       },
     );
 
@@ -1802,6 +1889,7 @@ describe("AI package-builder route", () => {
         authorizeApply: vi.fn(),
         recordAudit: vi.fn(),
         recordMemory,
+        hasMemorySchema: async () => true,
       },
     );
 
