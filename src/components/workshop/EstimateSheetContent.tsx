@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type SetStateAction } from "react";
+import { FunnelSimple, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { FilterPopover } from "@/components/ui/overlays/popover";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
@@ -119,6 +120,10 @@ export {
   searchComponents,
   sortComponents,
 } from "./component-library/helpers";
+// D2 / Req 10: local bindings for the within-area group/sort transform. The
+// block above is a re-export (`export … from`) and creates NO local binding,
+// so these must be imported explicitly to be callable here.
+import { groupComponents as groupSheetRows, sortComponents as sortSheetRows } from "./component-library/helpers";
 export { EstimateRightSidebar } from "./component-library";
 export { pesoFormatter };
 
@@ -478,23 +483,40 @@ function buildActivityScopeTreeItems({
   return items;
 }
 
+const SHEET_GROUP_OPTIONS: { mode: SheetGroupMode; label: string }[] = [
+  { mode: "default", label: "Default" },
+  { mode: "category", label: "Category" },
+  { mode: "supplier", label: "Supplier" },
+  { mode: "cost", label: "Cost (high to low)" },
+];
+
 function EstimateSheetHeader({
   onExpandAll,
   onCollapseAll,
   searchQuery,
   onSearchQueryChange,
   addActions,
+  filterSlot,
+  groupMode,
+  onGroupModeChange,
 }: {
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   addActions?: HeaderIconToolbarAddAction[];
+  // D2 / Req 10 (middle): a wired faceted-filter popover and a within-area
+  // group/sort menu. Both feed `displayedSheetNode` only — never the rows.
+  filterSlot?: ReactNode;
+  groupMode?: SheetGroupMode;
+  onGroupModeChange?: (mode: SheetGroupMode) => void;
 }) {
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const groupActive = (groupMode ?? "default") !== "default";
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
+    <header className="relative sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
         ariaLabel="Tab tools"
@@ -506,10 +528,48 @@ function EstimateSheetHeader({
         onSearchValueChange={onSearchQueryChange}
         searchPlaceholder="Search Tab"
         searchLabel="Search Tab"
+        // D2 / Req 10: wired Filter (facets) rendered in the filter position.
+        filterSlot={filterSlot}
+        // D2 / Req 10: the built-in Group button toggles a small within-area
+        // ordering menu. aria-pressed reflects a non-default active mode.
+        onGroup={onGroupModeChange ? () => setGroupMenuOpen((open) => !open) : undefined}
         // Req 13 / C3: the "New tab" button relocated here from the tab strip.
         // Hidden entirely for non-editors (canCreate=false → empty array).
         addActions={addActions ?? []}
       />
+      {groupMenuOpen && onGroupModeChange ? (
+        <div
+          role="menu"
+          aria-label="Group rows"
+          className="absolute right-2 top-[40px] z-[1050] w-48 rounded-xs border border-hairline bg-white p-1 text-[10px] leading-4 text-secondary shadow-[0_16px_36px_rgba(17,24,39,0.14)]"
+        >
+          {SHEET_GROUP_OPTIONS.map((option) => {
+            const active = (groupMode ?? "default") === option.mode;
+            return (
+              <button
+                key={option.mode}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 rounded-xs px-2 py-1 text-left hover:bg-surfaceMuted",
+                  active ? "bg-surfaceMuted text-ink" : "text-secondary",
+                )}
+                onClick={() => {
+                  onGroupModeChange(option.mode);
+                  setGroupMenuOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {active ? <span aria-hidden="true">✓</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+      <span className="sr-only" aria-live="polite">
+        {groupActive ? `Rows grouped by ${groupMode}` : "Rows in default order"}
+      </span>
     </header>
   );
 }
@@ -541,6 +601,122 @@ function filterEstimateSheetNode(node: EstimateTreeNode, query: string): Estimat
       return { ...current, children, estimateRowItems };
     }
     return null;
+  }
+
+  return visit(node);
+}
+
+// ---------------------------------------------------------------------------
+// D2 / Req 10 (middle sheet): faceted FILTER + within-area GROUP/SORT.
+//
+// Both transforms operate ONLY over a sheet node's `estimateRowItems` and
+// recurse `node.children`, preserving the AREA hierarchy (no flatten, no
+// re-root — same constraint as the left tree). They are composed inside the
+// `displayedSheetNode` memo so a referentially-stable node tree still flows to
+// the memoized <EstimateSheetBranch>. When a transform is inactive it returns
+// the SAME node reference (identity preserved) so the render-relief perf guard
+// is unaffected.
+// ---------------------------------------------------------------------------
+
+type SheetFacetState = {
+  suppliers: string[];
+  categories: string[];
+  /** Keep only rows whose total/cost is greater than zero. */
+  hasValueOnly: boolean;
+};
+
+const EMPTY_SHEET_FACETS: SheetFacetState = { suppliers: [], categories: [], hasValueOnly: false };
+
+function sheetFacetsActive(facets: SheetFacetState) {
+  return facets.suppliers.length > 0 || facets.categories.length > 0 || facets.hasValueOnly;
+}
+
+function estimateRowItemValue(item: EstimateRowItem) {
+  // Best-effort "row value" without recomputing the full editable total: the
+  // seed total, else cost × quantity. Used only for the "has value" facet and
+  // the cost sort ordering — never for display.
+  if (typeof item.totalItemCosts === "number" && item.totalItemCosts !== 0) return item.totalItemCosts;
+  return (item.itemCost ?? 0) * (item.quantity ?? 0);
+}
+
+function estimateRowMatchesFacets(item: EstimateRowItem, facets: SheetFacetState) {
+  if (facets.suppliers.length > 0 && !facets.suppliers.includes(item.supplier || "")) return false;
+  if (facets.categories.length > 0 && !facets.categories.includes(item.category || "")) return false;
+  if (facets.hasValueOnly && estimateRowItemValue(item) <= 0) return false;
+  return true;
+}
+
+/** Collect the distinct supplier/category values present in a sheet subtree. */
+function collectSheetFacetOptions(node: EstimateTreeNode | null): { suppliers: string[]; categories: string[] } {
+  const suppliers = new Set<string>();
+  const categories = new Set<string>();
+  function visit(current: EstimateTreeNode) {
+    current.estimateRowItems?.forEach((item) => {
+      if (item.supplier) suppliers.add(item.supplier);
+      if (item.category) categories.add(item.category);
+    });
+    current.children?.forEach(visit);
+  }
+  if (node) visit(node);
+  return {
+    suppliers: Array.from(suppliers).sort((a, b) => a.localeCompare(b)),
+    categories: Array.from(categories).sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+/**
+ * Prune a sheet node to rows matching the active facets, mirroring
+ * `filterEstimateSheetNode`'s keep-ancestors recursion: an area survives iff it
+ * keeps a row OR a kept descendant. Returns the SAME node when no facet is
+ * active (identity preserved).
+ */
+function filterEstimateSheetNodeByFacets(node: EstimateTreeNode, facets: SheetFacetState): EstimateTreeNode | null {
+  if (!sheetFacetsActive(facets)) return node;
+
+  function visit(current: EstimateTreeNode): EstimateTreeNode | null {
+    const children = (current.children ?? [])
+      .map(visit)
+      .filter((child): child is EstimateTreeNode => child !== null);
+    const estimateRowItems = (current.estimateRowItems ?? []).filter((item) => estimateRowMatchesFacets(item, facets));
+    if (children.length > 0 || estimateRowItems.length > 0) {
+      return { ...current, children, estimateRowItems };
+    }
+    return null;
+  }
+
+  return visit(node);
+}
+
+type SheetGroupMode = "default" | "category" | "supplier" | "cost";
+
+/**
+ * Reorder each area's `estimateRowItems` WITHIN that area (hierarchy preserved):
+ * - category/supplier: flatten `groupComponents` buckets back to one array;
+ * - cost: `sortComponents` priceDesc.
+ * This is a within-area reorder only — it does NOT add group-header rows (that
+ * would require changing the row renderer and risk the perf guard; out of
+ * scope). Returns the SAME node when mode === "default" (identity preserved).
+ */
+function reorderEstimateSheetNodeRows(node: EstimateTreeNode, mode: SheetGroupMode): EstimateTreeNode {
+  if (mode === "default") return node;
+
+  function orderRows(items: EstimateRowItem[]): EstimateRowItem[] {
+    if (items.length <= 1) return items;
+    if (mode === "category" || mode === "supplier") {
+      return groupSheetRows(items, mode === "category" ? "category" : "supplier").flatMap(([, bucket]) => bucket);
+    }
+    // cost: high → low.
+    return sortSheetRows(items.map((item, index) => ({ item, score: 0, index })), "priceDesc");
+  }
+
+  function visit(current: EstimateTreeNode): EstimateTreeNode {
+    const children = (current.children ?? []).map(visit);
+    const rows = current.estimateRowItems ?? [];
+    const reordered = orderRows(rows);
+    const childrenChanged = children.some((child, index) => child !== (current.children ?? [])[index]);
+    const rowsChanged = reordered !== rows && reordered.some((item, index) => item !== rows[index]);
+    if (!childrenChanged && !rowsChanged) return current;
+    return { ...current, children, estimateRowItems: reordered };
   }
 
   return visit(node);
@@ -950,12 +1126,32 @@ export function EstimateSheetContent({
   );
   const [sheetSearchQuery, setSheetSearchQuery] = useState("");
   const sheetSearchActive = sheetSearchQuery.trim().length > 0;
+  // D2 / Req 10 (middle): faceted filter + within-area group/sort. Client state
+  // only; both compose into `displayedSheetNode` and NEVER reach the rows.
+  const [sheetFacets, setSheetFacets] = useState<SheetFacetState>(EMPTY_SHEET_FACETS);
+  const [sheetGroupMode, setSheetGroupMode] = useState<SheetGroupMode>("default");
+  const facetsActive = sheetFacetsActive(sheetFacets);
+  const groupActive = sheetGroupMode !== "default";
   // Render-only filtered copy: row edits and inserts keep targeting the real
   // tree state by node/item id.
-  const displayedSheetNode = useMemo(
-    () => (selectedNode && sheetSearchActive ? filterEstimateSheetNode(selectedNode, sheetSearchQuery) : selectedNode),
-    [selectedNode, sheetSearchActive, sheetSearchQuery],
-  );
+  //
+  // Composition order: search prune → facet filter → per-area reorder. Each
+  // step returns the SAME node reference when inactive, so when ALL of
+  // search/facets/group are inactive `displayedSheetNode` is referentially
+  // identical to `selectedNode` — preserving the render-relief perf guarantee
+  // (stable props into the memoized <EstimateSheetBranch>).
+  const displayedSheetNode = useMemo(() => {
+    if (!selectedNode) return selectedNode;
+    let node: EstimateTreeNode | null = sheetSearchActive
+      ? filterEstimateSheetNode(selectedNode, sheetSearchQuery)
+      : selectedNode;
+    if (node && facetsActive) node = filterEstimateSheetNodeByFacets(node, sheetFacets);
+    if (node && groupActive) node = reorderEstimateSheetNodeRows(node, sheetGroupMode);
+    return node;
+  }, [selectedNode, sheetSearchActive, sheetSearchQuery, facetsActive, sheetFacets, groupActive, sheetGroupMode]);
+  // Facet options derive from the unfiltered selected node so toggling a facet
+  // never removes other facets' options from the popover.
+  const sheetFacetOptions = useMemo(() => collectSheetFacetOptions(selectedNode), [selectedNode]);
   const collapsedScopeKey = dataTabId ?? "legacy";
   const collapsedNodeIds = useMemo(
     () => new Set(collapsedNodeIdsByScope[collapsedScopeKey] ?? []),
@@ -2004,6 +2200,95 @@ export function EstimateSheetContent({
           onCollapseAll={collapseAll}
           searchQuery={sheetSearchQuery}
           onSearchQueryChange={setSheetSearchQuery}
+          groupMode={sheetGroupMode}
+          onGroupModeChange={setSheetGroupMode}
+          filterSlot={
+            <FilterPopover
+              trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
+              triggerLabel="Filter sheet"
+              triggerPressed={facetsActive}
+              triggerVariant="ghost"
+              triggerSize="icon-sm"
+              triggerClassName={cn(
+                "size-6 rounded-xs p-0",
+                facetsActive ? "bg-surfaceMuted text-ink" : "text-tertiary",
+              )}
+              title="Filter sheet"
+              contentClassName="w-64"
+            >
+              <div className="flex flex-col gap-3">
+                {sheetFacetOptions.suppliers.length > 0 ? (
+                  <fieldset className="flex flex-col gap-1">
+                    <legend className="text-[9px] font-medium uppercase tracking-wide text-tertiary">Supplier</legend>
+                    {sheetFacetOptions.suppliers.map((supplier) => (
+                      <label key={supplier} className="flex cursor-pointer items-center gap-2 text-[10px] font-medium leading-none text-ink">
+                        <input
+                          type="checkbox"
+                          aria-label={`Supplier ${supplier}`}
+                          checked={sheetFacets.suppliers.includes(supplier)}
+                          onChange={(event) =>
+                            setSheetFacets((current) => ({
+                              ...current,
+                              suppliers: event.currentTarget.checked
+                                ? [...current.suppliers, supplier]
+                                : current.suppliers.filter((value) => value !== supplier),
+                            }))
+                          }
+                          className="size-3 rounded-xs accent-brand-orange"
+                        />
+                        <span className="truncate">{supplier}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : null}
+                {sheetFacetOptions.categories.length > 0 ? (
+                  <fieldset className="flex flex-col gap-1">
+                    <legend className="text-[9px] font-medium uppercase tracking-wide text-tertiary">Category</legend>
+                    {sheetFacetOptions.categories.map((category) => (
+                      <label key={category} className="flex cursor-pointer items-center gap-2 text-[10px] font-medium leading-none text-ink">
+                        <input
+                          type="checkbox"
+                          aria-label={`Category ${category}`}
+                          checked={sheetFacets.categories.includes(category)}
+                          onChange={(event) =>
+                            setSheetFacets((current) => ({
+                              ...current,
+                              categories: event.currentTarget.checked
+                                ? [...current.categories, category]
+                                : current.categories.filter((value) => value !== category),
+                            }))
+                          }
+                          className="size-3 rounded-xs accent-brand-orange"
+                        />
+                        <span className="truncate">{category}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : null}
+                <label className="flex cursor-pointer items-center gap-2 border-t border-hairline pt-2 text-[10px] font-medium leading-none text-ink">
+                  <input
+                    type="checkbox"
+                    aria-label="Has value"
+                    checked={sheetFacets.hasValueOnly}
+                    onChange={(event) =>
+                      setSheetFacets((current) => ({ ...current, hasValueOnly: event.currentTarget.checked }))
+                    }
+                    className="size-3 rounded-xs accent-brand-orange"
+                  />
+                  Has value (cost &gt; 0)
+                </label>
+                {facetsActive ? (
+                  <button
+                    type="button"
+                    className="self-start rounded-xs px-1 py-0.5 text-[9px] font-medium text-brand-orange hover:underline"
+                    onClick={() => setSheetFacets(EMPTY_SHEET_FACETS)}
+                  >
+                    Clear filters
+                  </button>
+                ) : null}
+              </div>
+            </FilterPopover>
+          }
           // C3/Req 13+6: New-tab button relocated here from the tab strip.
           // Hidden entirely when canCreate is false (non-editors see no affordance).
           addActions={createTabState.canCreate ? [
