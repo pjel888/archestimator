@@ -227,8 +227,12 @@ describe("component library UI", () => {
     // whose trigger aria-label is "Filter components" (inactive state).
     expect(within(toolsRow).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
     expect(within(toolsRow).getByRole("button", { name: "View by" })).toBeInTheDocument();
-    expect(within(toolsRow).getByRole("button", { name: "Add folder" })).toBeInTheDocument();
-    expect(within(toolsRow).getByRole("button", { name: "Add Component" })).toHaveAttribute("title", "Add Component");
+    const addFolderButton = within(toolsRow).getByRole("button", { name: "Add folder" });
+    const addComponentButton = within(toolsRow).getByRole("button", { name: "Add Component" });
+    expect(addFolderButton).toBeInTheDocument();
+    expect(addFolderButton).toHaveClass("bg-orange-100", "text-orange-700", "cursor-pointer");
+    expect(addComponentButton).toHaveAttribute("title", "Add Component");
+    expect(addComponentButton).toHaveClass("bg-orange-100", "text-orange-700", "cursor-pointer");
     expect(screen.queryByRole("button", { name: "Group library tree" })).not.toBeInTheDocument();
 
     // View-by popover opens below the new row (external sibling, not inside sticky).
@@ -659,6 +663,20 @@ describe("templates tree", () => {
     subTotal: 2400,
     totalItemCosts: 2400,
   };
+  const projectRowItem: EstimateRowItem = {
+    ...sharedLibraryItems[0],
+    id: "project-row-stone",
+    material: "Project Stone Panel",
+    name: "Project Stone Panel",
+    description: "Project-sourced wall panel",
+    supplier: "Project Supplier",
+    unit: "pc",
+    itemCost: 5400,
+    price: 5400,
+    quantity: 1,
+    subTotal: 5400,
+    totalItemCosts: 5400,
+  };
 
   const sidebarTemplates: EstimateTemplate[] = [
     {
@@ -707,6 +725,17 @@ describe("templates tree", () => {
       nodeId: "node-amenity",
       nodeKind: "group",
       name: "Amenity Millwork",
+      rowItems: [projectRowItem],
+    },
+    {
+      kind: "project-node",
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      nodeId: "node-closet",
+      parentNodeId: "node-amenity",
+      nodeKind: "area",
+      name: "Closet Details",
     },
   ];
 
@@ -781,6 +810,8 @@ describe("templates tree", () => {
     openTemplatesTab();
 
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Template Group" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Template" })).toBeInTheDocument();
 
     // The category reads as a plain group node row: name + summed cost only.
     const categoryRow = screen.getByRole("treeitem", { name: "Rooms templates" });
@@ -791,6 +822,27 @@ describe("templates tree", () => {
     expect(within(templateRow).getByText("₱2,400.00")).toBeInTheDocument();
     expect(within(templateRow).queryByText(/groups · .* areas · .* rows/)).not.toBeInTheDocument();
     expect(templateRow).toHaveAttribute("draggable", "true");
+  });
+
+  it("creates an empty custom template group from the templates toolbar", async () => {
+    openTemplatesTab();
+
+    const toolbar = screen.getByRole("toolbar", { name: "Library tools" });
+    const addGroupButton = within(toolbar).getByRole("button", { name: "Add Template Group" });
+    const addTemplateButton = within(toolbar).getByRole("button", { name: "Add Template" });
+    expect(Array.from(toolbar.querySelectorAll("button")).indexOf(addGroupButton)).toBeLessThan(
+      Array.from(toolbar.querySelectorAll("button")).indexOf(addTemplateButton),
+    );
+
+    fireEvent.click(addGroupButton);
+    fireEvent.change(await screen.findByLabelText("Template group name"), { target: { value: "Exterior + Site" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add group" }));
+
+    expect(screen.getByRole("treeitem", { name: "Exterior + Site templates" })).toBeInTheDocument();
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Exterior + Site templates" }), { clientX: 16, clientY: 16 });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "New Template" }));
+    expect(await screen.findByLabelText("Template category")).toHaveValue("Exterior + Site");
   });
 
   it("reveals the template's internal structure, with every row draggable, when expanded", () => {
@@ -900,7 +952,36 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
-    expect(screen.getByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
+    const nodeRow = screen.getByRole("treeitem", { name: "Amenity Millwork project area" });
+    expect(nodeRow).toBeInTheDocument();
+    expect(within(nodeRow).queryByText("Group")).not.toBeInTheDocument();
+    expect(within(nodeRow).queryByText("Area")).not.toBeInTheDocument();
+
+    fireEvent.click(nodeRow);
+    expect(screen.getByRole("treeitem", { name: "Closet Details project area" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Project Stone Panel project component" })).toBeInTheDocument();
+  });
+
+  it("indents project-derived source levels clearly in the Templates tree", () => {
+    openTemplatesTab({ projectSources });
+
+    const projectRow = screen.getByRole("treeitem", { name: "Renovation Project project source" });
+    fireEvent.click(projectRow);
+    const estimateRow = screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" });
+    fireEvent.click(estimateRow);
+    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+    fireEvent.click(tabRow);
+    const nodeRow = screen.getByRole("treeitem", { name: "Amenity Millwork project area" });
+    fireEvent.click(nodeRow);
+    const childNodeRow = screen.getByRole("treeitem", { name: "Closet Details project area" });
+    const componentRow = screen.getByRole("treeitem", { name: "Project Stone Panel project component" });
+
+    expect((projectRow.querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("20px");
+    expect((estimateRow.querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("40px");
+    expect((tabRow.querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("60px");
+    expect((nodeRow.querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("80px");
+    expect((childNodeRow.querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("100px");
+    expect((componentRow.querySelector("[data-tree-indent]") as HTMLElement).style.width).toBe("100px");
   });
 
   it("loads readable project sources when the Templates tab opens in an estimate context", async () => {
@@ -1138,14 +1219,20 @@ describe("templates tree", () => {
     const sourceFilter = screen.getByRole("combobox", { name: "Reusable source filter" });
     expect(sourceFilter).toHaveTextContent("All sources");
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    const allSourcesProjectSection = screen.getByRole("treeitem", { name: "Projects reusable sources" });
+    expect(allSourcesProjectSection).toBeInTheDocument();
+    expect(allSourcesProjectSection).toHaveClass("border-t-source-boundary");
+    expect(allSourcesProjectSection).toHaveClass("mt-1");
 
     fireEvent.click(sourceFilter);
     fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
 
     expect(sourceFilter).toHaveTextContent("Project sources");
     expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Projects reusable sources" })).toBeInTheDocument();
+    const projectOnlySection = screen.getByRole("treeitem", { name: "Projects reusable sources" });
+    expect(projectOnlySection).toBeInTheDocument();
+    expect(projectOnlySection).not.toHaveClass("border-t-source-boundary");
+    expect(screen.queryByRole("button", { name: "Add Template Group" })).not.toBeInTheDocument();
 
     fireEvent.click(sourceFilter);
     fireEvent.click(screen.getByRole("option", { name: "Custom templates" }));
@@ -1153,6 +1240,7 @@ describe("templates tree", () => {
     expect(sourceFilter).toHaveTextContent("Custom templates");
     expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Projects reusable sources" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Template Group" })).toBeInTheDocument();
   });
 
   it("drags a project tab source with the project-source payload", () => {
@@ -1298,6 +1386,28 @@ describe("templates tree", () => {
       kind: "project-tab",
       tabId: "tab-2",
     }));
+  });
+
+  it("bulk-adds checked project-source component rows without inserting the parent source", () => {
+    const onInsertComponent = vi.fn(() => true);
+    const onInsertProjectSource = vi.fn(() => true);
+    openTemplatesTab({
+      projectSources,
+      onInsertComponent,
+      onInsertProjectSource,
+      selectedNodeKind: "area",
+      selectedNodeName: "Amenity",
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Project Stone Panel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
+
+    expect(onInsertComponent).toHaveBeenCalledWith(expect.objectContaining({ id: "project-row-stone" }));
+    expect(onInsertProjectSource).not.toHaveBeenCalled();
   });
 
   it("keyboard-selects a project source for bulk insertion", () => {

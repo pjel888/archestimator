@@ -4,6 +4,7 @@ export {
   buildTemplatesTreeNodes,
   buildTemplatesSelectionNodes,
   getCheckedProjectSourceTargets,
+  getCheckedProjectSourceRowItems,
   getCheckedTemplates,
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,

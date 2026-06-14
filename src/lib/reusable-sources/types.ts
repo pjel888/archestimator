@@ -1,5 +1,5 @@
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
-import type { EstimateTreeNode } from "@/lib/estimates/types";
+import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 
 export type CustomEstimateTemplateSource = {
   kind: "custom-template";
@@ -48,8 +48,10 @@ export type ProjectNodeReusableSource = {
   estimateId: string;
   tabId: string;
   nodeId: string;
+  parentNodeId?: string | null;
   nodeKind: "group" | "area";
   name: string;
+  rowItems?: EstimateRowItem[];
   metadata?: ReusableSourceLiveMetadata;
 };
 
