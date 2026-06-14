@@ -2219,7 +2219,7 @@ export function EstimateSheetContent({
               <div className="flex flex-col gap-3">
                 {sheetFacetOptions.suppliers.length > 0 ? (
                   <fieldset className="flex flex-col gap-1">
-                    <legend className="text-[9px] font-medium uppercase tracking-wide text-tertiary">Supplier</legend>
+                    <legend className="text-[9px] font-medium uppercase text-tertiary">Supplier</legend>
                     {sheetFacetOptions.suppliers.map((supplier) => (
                       <label key={supplier} className="flex cursor-pointer items-center gap-2 text-[10px] font-medium leading-none text-ink">
                         <input
@@ -2243,7 +2243,7 @@ export function EstimateSheetContent({
                 ) : null}
                 {sheetFacetOptions.categories.length > 0 ? (
                   <fieldset className="flex flex-col gap-1">
-                    <legend className="text-[9px] font-medium uppercase tracking-wide text-tertiary">Category</legend>
+                    <legend className="text-[9px] font-medium uppercase text-tertiary">Category</legend>
                     {sheetFacetOptions.categories.map((category) => (
                       <label key={category} className="flex cursor-pointer items-center gap-2 text-[10px] font-medium leading-none text-ink">
                         <input
