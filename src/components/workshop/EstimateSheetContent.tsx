@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
+import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -42,7 +44,7 @@ import {
 import { reportEstimateSheetContentRender } from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
-import { EstimateTabStrip } from "./estimate-sheet/EstimateTabStrip";
+import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
 import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "./estimate-sheet/events";
 import { ProposalExportPreviewDialog, type ProposalExportPreviewScope, type ProposalExportUserSettings } from "./ProposalExportPreviewDialog";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
@@ -481,11 +483,13 @@ function EstimateSheetHeader({
   onCollapseAll,
   searchQuery,
   onSearchQueryChange,
+  addActions,
 }: {
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
+  addActions?: HeaderIconToolbarAddAction[];
 }) {
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
@@ -502,10 +506,9 @@ function EstimateSheetHeader({
         onSearchValueChange={onSearchQueryChange}
         searchPlaceholder="Search Tab"
         searchLabel="Search Tab"
-        // Req 1 / D2: the "Activity" + "Preview Excel Export" triggers moved to the
-        // project chrome header (`EstimateHeaderActions`). The slot is intentionally
-        // emptied here; Task C3 later refills it with the relocated New-tab button.
-        addActions={[]}
+        // Req 13 / C3: the "New tab" button relocated here from the tab strip.
+        // Hidden entirely for non-editors (canCreate=false → empty array).
+        addActions={addActions ?? []}
       />
     </header>
   );
@@ -832,6 +835,13 @@ export function EstimateSheetContent({
   const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
+  // C3/Req 13: ref to the tab strip's imperative handle so the middle-panel
+  // header can trigger createTab without prop-drilling.
+  const tabStripRef = useRef<EstimateTabStripHandle | null>(null);
+  // Mirrors the tab strip's create-enabled / pending state for the header button.
+  // Updated via onCreateTabStateChange (effect in EstimateTabStrip) so the header
+  // re-renders on each transition even though refs don't cause re-renders.
+  const [createTabState, setCreateTabState] = useState({ canCreate: false, pending: false });
   const inspectorOpenerRef = useRef<HTMLElement | null>(null);
   const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
   const proposalPreviewOpenerRef = useRef<HTMLElement | null>(null);
@@ -1994,9 +2004,21 @@ export function EstimateSheetContent({
           onCollapseAll={collapseAll}
           searchQuery={sheetSearchQuery}
           onSearchQueryChange={setSheetSearchQuery}
+          // C3/Req 13+6: New-tab button relocated here from the tab strip.
+          // Hidden entirely when canCreate is false (non-editors see no affordance).
+          addActions={createTabState.canCreate ? [
+            {
+              label: "New tab",
+              icon: <Plus size={13} weight="regular" aria-hidden="true" />,
+              onClick: () => void tabStripRef.current?.createTab(),
+              disabled: createTabState.pending,
+              className: ADD_BUTTON_CLASSNAME,
+            },
+          ] : []}
         />
         {estimateTabs.length > 0 ? (
           <EstimateTabStrip
+            ref={tabStripRef}
             tabs={estimateTabs}
             activeTabId={activeTabId ?? estimateTabs[0]?.id ?? "legacy-main"}
             projectId={projectId}
@@ -2005,6 +2027,7 @@ export function EstimateSheetContent({
             canCreateTabs={canEditEstimate}
             onTabChange={onActiveTabChange ?? (() => {})}
             onTabsChange={onEstimateTabsChange}
+            onCreateTabStateChange={setCreateTabState}
           />
         ) : null}
         {hasMultiplePersistedTabs ? (

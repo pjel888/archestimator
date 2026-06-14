@@ -144,6 +144,7 @@ test.describe("estimate tabs smoke", () => {
       await expect(tablist.getByRole("tab", { name: "Page 001" })).toHaveAttribute("aria-selected", "true");
       await expect(tablist.getByRole("tab", { name: "Base Bid" })).toHaveCount(0);
       await expect(page.getByText("Default")).toHaveCount(0);
+      // C3/Req 13: "New tab" button relocated to the middle-panel header toolbar.
       await expect(page.getByRole("button", { name: "New tab" })).toBeVisible();
       await expect(page.locator(`[data-estimate-tree-node-id="${fixture.defaultNodeId}"]`).first()).toBeVisible();
       await expect(page.locator(`[data-estimate-tree-node-id="${fixture.alternateNodeId}"]`)).toHaveCount(0);
