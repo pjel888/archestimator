@@ -216,6 +216,16 @@ describe("estimate mixed-content layout (P4)", () => {
     expect((thead as HTMLElement).style.top).toBe(`${STICKY_HEADER_H}px`);
   });
 
+  it("renders no phantom row-reorder handle (false 'Drag material' affordance removed, Req 4/D5)", () => {
+    const { container } = renderSheet(mixedTree(), "building-a");
+    // The DotsSixVertical row grip presented cursor-grab + aria-label="Drag
+    // material …" but had no drag handler and no reorder RPC — a false
+    // affordance and a false a11y announcement. It must not exist. (The real
+    // component-move handle "Drag component …" in the material cell stays.)
+    expect(container.querySelector('[aria-label^="Drag material"]')).toBeNull();
+    expect(container.querySelector('[aria-label^="Drag component"]')).not.toBeNull();
+  });
+
   it("renders no 'Group Node' / 'Area Node' / 'select a group first' copy", () => {
     const { container } = renderSheet(mixedTree(), "building-a");
     const text = container.textContent ?? "";

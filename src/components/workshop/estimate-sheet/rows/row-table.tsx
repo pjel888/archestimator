@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo, useState, type Dispatch, type DragEvent, type MouseEvent, type SetStateAction } from "react";
-import { ArrowsOutSimple, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -198,21 +198,16 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 <td className="flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
                   {String(rowIndex + 1).padStart(2, "0")}
                 </td>
-                <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
-                  <span className="flex h-6 cursor-grab items-center justify-center active:cursor-grabbing">
-                    <DotsSixVertical size={14} weight="regular" className="cursor-grab active:cursor-grabbing" aria-label={`Drag material ${item.material}`} />
-                  </span>
-                  <span className="flex h-6 items-center justify-center">
-                    <input
-                      type="checkbox"
-                      aria-label={`Select ${item.material}`}
-                      checked={selectedRowIds.has(item.id)}
-                      onChange={(event) => onToggleRowSelection(item.id, event.currentTarget.checked)}
-                    />
-                  </span>
-                  <span className="flex h-6 items-center justify-center">
-                    <span className="size-3" aria-hidden="true" />
-                  </span>
+                <td className="flex items-center justify-center border-r border-hairline text-tertiary">
+                  {/* No row-reorder grip: row reorder isn't implemented (no drag
+                      handler, no reorder RPC), so a draggable-looking handle was
+                      a false affordance + false a11y announcement (OD-13/D5). */}
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${item.material}`}
+                    checked={selectedRowIds.has(item.id)}
+                    onChange={(event) => onToggleRowSelection(item.id, event.currentTarget.checked)}
+                  />
                 </td>
                 <td className="min-w-0">
                   <EstimateMaterialCell
