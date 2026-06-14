@@ -6,6 +6,7 @@ import {
   ArrowCounterClockwise,
   Check,
   Circle,
+  FunnelSimple,
   PencilSimple,
   StackPlus,
   Trash,
@@ -13,6 +14,7 @@ import {
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
+import { FilterPopover } from "@/components/ui/overlays/popover";
 import { Button } from "@/components/ui/button";
 import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
@@ -211,6 +213,35 @@ function filterEstimateTreeNodes(nodes: EstimateTreeNode[], query: string): Esti
   return nodes.map(visit).filter((node): node is EstimateTreeNode => node !== null);
 }
 
+type EstimateTreeStructureFilter = { hideEmptyAreas: boolean };
+
+/**
+ * Structural filter: prune subtrees that contain zero estimate items anywhere.
+ * A node is kept iff it has direct items OR any descendant has direct items.
+ * When no filter option is active, returns `nodes` unchanged (identity preserved).
+ */
+function filterEstimateTreeByStructure(
+  nodes: EstimateTreeNode[],
+  filter: EstimateTreeStructureFilter,
+): EstimateTreeNode[] {
+  if (!filter.hideEmptyAreas) return nodes;
+
+  function hasItems(node: EstimateTreeNode): boolean {
+    if ((node.estimateRowItems?.length ?? 0) > 0) return true;
+    return (node.children ?? []).some(hasItems);
+  }
+
+  function visit(node: EstimateTreeNode): EstimateTreeNode | null {
+    if (!hasItems(node)) return null;
+    const children = (node.children ?? [])
+      .map(visit)
+      .filter((child): child is EstimateTreeNode => child !== null);
+    return { ...node, children };
+  }
+
+  return nodes.map(visit).filter((node): node is EstimateTreeNode => node !== null);
+}
+
 function collectEstimateFolderIds(nodes: EstimateTreeNode[], into: string[] = []): string[] {
   for (const node of nodes) {
     // Expandable === has children (kind-agnostic), matching buildUiTreeModel.
@@ -290,15 +321,27 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
   const [contextMenuNode, setContextMenuNode] = useState<EstimateTreeNode | null>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [treeSearchQuery, setTreeSearchQuery] = useState("");
+  // D3 (Req 10 left): structured filter. No group-by (D6 — the Area hierarchy IS
+  // the grouping).
+  const [treeFilter, setTreeFilter] = useState<EstimateTreeStructureFilter>({ hideEmptyAreas: false });
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, activeTabId);
   const currentRouteNodeId = useMemo(
     () => getEstimateRouteNodeIdFromPathname(pathname, estimateId) ?? selectedNodeId,
     [estimateId, pathname, selectedNodeId],
   );
   const treeSearchActive = treeSearchQuery.trim().length > 0;
+  // Structured filter runs first (identity-stable when inactive), then the search
+  // prune — so both compose and an inactive filter preserves the localNodes memo.
+  const structurallyFilteredNodes = useMemo(
+    () => filterEstimateTreeByStructure(localNodes, treeFilter),
+    [localNodes, treeFilter],
+  );
   const displayedNodes = useMemo(
-    () => (treeSearchActive ? filterEstimateTreeNodes(localNodes, treeSearchQuery) : localNodes),
-    [localNodes, treeSearchActive, treeSearchQuery],
+    () =>
+      treeSearchActive
+        ? filterEstimateTreeNodes(structurallyFilteredNodes, treeSearchQuery)
+        : structurallyFilteredNodes,
+    [structurallyFilteredNodes, treeSearchActive, treeSearchQuery],
   );
   const { uiNodes: uiTreeNodes } = useMemo(() => buildUiTreeModel(displayedNodes), [displayedNodes]);
   const folderIds = useMemo(() => new Set(collectEstimateFolderIds(localNodes)), [localNodes]);
@@ -1347,6 +1390,32 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           onSearchValueChange={setTreeSearchQuery}
           searchPlaceholder="Search Tree"
           searchLabel="Search Tree"
+          filterSlot={
+            <FilterPopover
+              trigger={<FunnelSimple size={12} weight="regular" aria-hidden="true" />}
+              triggerLabel="Filter tree"
+              triggerPressed={treeFilter.hideEmptyAreas}
+              triggerVariant="ghost"
+              triggerSize="icon-sm"
+              triggerClassName={cn(
+                "size-6 rounded-xs p-0",
+                treeFilter.hideEmptyAreas ? "bg-surfaceMuted text-ink" : "text-tertiary",
+              )}
+              title="Filters"
+            >
+              <label className="flex cursor-pointer items-center gap-2 text-[10px] font-medium leading-none text-ink">
+                <input
+                  type="checkbox"
+                  checked={treeFilter.hideEmptyAreas}
+                  onChange={(event) =>
+                    setTreeFilter((current) => ({ ...current, hideEmptyAreas: event.currentTarget.checked }))
+                  }
+                  className="size-3 rounded-xs accent-brand-orange"
+                />
+                Hide empty areas
+              </label>
+            </FilterPopover>
+          }
           addActions={[
             {
               label: "Add Area",
