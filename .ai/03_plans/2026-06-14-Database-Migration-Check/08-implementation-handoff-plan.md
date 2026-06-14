@@ -1,5 +1,12 @@
 # Database Migration Repair Implementation Plan
 
+> Implementation status, 2026-06-14: this handoff has been executed for the
+> app-facing repair and ledger-reconciliation scope. Current outcomes and
+> residual deferred items are recorded in `evidence/provider-after.md`,
+> `evidence/migration-ledger-map.md`, and
+> `evidence/implementation-closeout-log.md`. The unchecked boxes below are the
+> original execution checklist, not current unresolved work.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Reconcile Archestimator's local Supabase migration ledger, linked Supabase provider schema, generated database types, and database security posture so the repository and project `ebxxqidacheyapmmzavr` agree before closed beta.

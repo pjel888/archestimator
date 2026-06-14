@@ -1,5 +1,10 @@
 # Codebase Database Surface Audit
 
+> Implementation status, 2026-06-14: this is the pre-repair app-surface audit.
+> Provider now has `delete_library_folder`, `notification_definitions`, and
+> `notification_deliveries`. AI package-builder memory and chart bucket RPC are
+> intentionally deferred and moved out of `supabase/migrations/`.
+
 ## Supabase Client Factories
 
 | File | Role |

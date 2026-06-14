@@ -1,6 +1,8 @@
 # Remediation Plan
 
-This is a planning artifact only. It intentionally does not apply migrations or change provider state.
+This was originally a planning artifact only. The 2026-06-14 implementation pass
+has now executed the app-facing repair subset and recorded closeout evidence in
+`evidence/implementation-closeout-log.md`.
 
 ## Principle
 
@@ -66,7 +68,8 @@ Recommended order:
 
 Run after ledger and app-facing schema are stable:
 
-1. Re-run official Supabase advisors with updated CLI.
+1. Re-run official Supabase advisors with updated CLI. Completed 2026-06-14;
+   current summary is in `evidence/supabase-advisors-after-cli-upgrade.md`.
 2. Classify all security-definer functions into private helper, authenticated RPC, or anonymous RPC.
 3. Move private helpers out of exposed schemas or revoke broad execute.
 4. Review the five RLS-enabled tables with no policies and document whether they are intentionally service-role only.

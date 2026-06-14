@@ -1,6 +1,9 @@
 # Commands And Evidence
 
-This audit used read-only local commands, Supabase MCP/provider tools, Supabase CLI checks, and parallel subagent lanes. No provider mutation was performed.
+The original audit used read-only local commands, Supabase MCP/provider tools,
+Supabase CLI checks, and parallel subagent lanes. The implementation addendum at
+the end of this file records the later provider mutations performed to resolve
+the app-facing repair scope.
 
 ## Local Repository Evidence
 
@@ -110,3 +113,53 @@ Known gaps in this audit:
 - Supabase branch listing failed with a project-reference permission validation error.
 - Remote P6 exact SQL text was not extracted into this audit pack; only version/effect evidence and subagent comparison findings were recorded.
 - Function-body equivalence for timestamp aliases was not exhaustively diffed. That should be part of the repair phase, not this audit.
+
+## Implementation Evidence — 2026-06-14
+
+The repair phase used Supabase MCP for provider proof and DDL because linked CLI
+Postgres access hit `cli_login_postgres`/password auth failures.
+
+Local commands/checks:
+
+- `supabase --version` -> `2.98.2` (CLI noted `2.106.0` available).
+- `supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > /tmp/archestimator-linked-types.ts` -> 4,386-line linked type output.
+- `bun run type-check` -> passed after linked type refresh, compatibility-boundary
+  fixes, and the AI memory schema-availability guard.
+- `bun x vitest run tests/vitest/ai-package-builder-route.test.ts tests/vitest/notification-schema.test.ts tests/vitest/security-findings-implementation-contracts.test.ts tests/vitest/supabase-performance-migrations.test.ts tests/vitest/security-findings-library-tooling-contracts.test.ts tests/vitest/project-collaboration-schema.test.ts --maxWorkers=1`
+  -> 6 files passed, 53 tests passed.
+- `git diff --check` -> passed.
+- `find .ai/03_plans/2026-06-14-Database-Migration-Check/evidence -type f -size 0 -print`
+  -> no zero-byte evidence files.
+- `supabase migration list --linked` -> passed after local filename
+  reconciliation; no remote-only rows remained. The only local-only rows were
+  the documented `20260520100459`, `20260605123000`, and `20260605131500`.
+- `POSTGRES_BIN_DIR=/opt/homebrew/bin bun run prove:notification-rls` -> passed
+  on PostgreSQL 15.17 with same-user read allow, cross-user read deny,
+  authenticated write deny, authenticated definition insert deny, and anonymous
+  read deny assertions.
+- `bun x vitest run tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1`
+  -> passed 33 route tests, including the absent-schema memory guard.
+- Supabase CLI upgrade after closeout:
+  - `supabase --version` -> `2.106.0`.
+  - Official release tarball SHA-256 verified before install.
+  - `supabase migration list --linked` still passed with no remote-only rows
+    and the same three documented local-only rows.
+  - `SUPABASE_TELEMETRY_DISABLED=1 supabase db advisors --linked --type all --level warn --fail-on none`
+    completed; summarized in `supabase-advisors-after-cli-upgrade.md`.
+
+Provider mutations:
+
+- Applied `20260605113000_transactional_library_folder_delete` through Supabase
+  MCP. Provider recorded version `20260614125239`.
+- Applied `20260606090000_notification_system` through Supabase MCP with
+  `(select auth.uid())` RLS predicates. Provider recorded version
+  `20260614125313`.
+- Removed accidental no-op provider migration-history row `20260614125632` /
+  `noop_test_should_not_apply` after verifying it contained exactly `select 1;`.
+
+Post-repair evidence is consolidated in:
+
+- `provider-before.md`
+- `provider-after.md`
+- `migration-ledger-map.md`
+- `implementation-closeout-log.md`

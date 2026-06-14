@@ -1,5 +1,12 @@
 # Executive Summary
 
+> Implementation status, 2026-06-14: this summary is the pre-repair audit
+> snapshot. The app-facing missing-object findings for `delete_library_folder`
+> and notifications were repaired in provider migrations `20260614125239` and
+> `20260614125313`. Current closeout truth lives in
+> `evidence/provider-after.md`, `evidence/migration-ledger-map.md`, and
+> `evidence/implementation-closeout-log.md`.
+
 ## Current Provider State
 
 - Supabase project: `ebxxqidacheyapmmzavr` (`Archestimator`).
@@ -77,11 +84,31 @@ Remaining review items:
 
 Live checks show these are not applied. At least one T4 drop gate is not satisfied because `project_publications_token_hash_idx` has live index scans.
 
-### 7. Low: Supabase CLI is outdated relative to current changelog
+### 7. Resolved: Supabase CLI was outdated relative to current changelog
 
-Installed CLI: `2.98.2`. Current changelog reported `2.106.0`. The package dependency `@supabase/supabase-js` is already `2.106.2`.
+Audit-time installed CLI: `2.98.2`. Current changelog reported `2.106.0`. The package dependency `@supabase/supabase-js` is already `2.106.2`.
 
-This is not a direct production bug, but update the CLI before doing migration repair work so command behavior and advisor output are current.
+Post-implementation update, 2026-06-14: the local Supabase CLI is now `2.106.0`.
+`supabase migration list --linked` still passes with no remote-only rows, and
+official advisors now run. Remaining advisor findings are summarized in
+`evidence/supabase-advisors-after-cli-upgrade.md`.
+
+### 8. Resolved in follow-up: deterministic advisor hardening applied
+
+Follow-up hardening migration `20260614140923` was applied and recorded in the
+linked migration ledger. It cleared:
+
+- `function_search_path_mutable`: `3 -> 0`
+- `auth_rls_initplan`: `13 -> 0`
+
+It also reduced broad security-definer execute warnings:
+
+- `anon_security_definer_function_executable`: `32 -> 26`
+- `authenticated_security_definer_function_executable`: `75 -> 71`
+
+Remaining backlog is documented in
+`evidence/supabase-advisors-after-hardening.md`: leaked-password protection,
+security-definer policy-helper audit, and multiple-permissive-policy cleanup.
 
 ## Bottom Line
 

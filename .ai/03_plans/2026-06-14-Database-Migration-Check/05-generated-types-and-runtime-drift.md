@@ -1,5 +1,10 @@
 # Generated Types And Runtime Drift
 
+> Implementation status, 2026-06-14: this is the pre-repair type-drift audit.
+> `src/lib/supabase/types.ts` has since been regenerated from linked provider
+> typegen. The remaining differences are documented compatibility patches for
+> nullable RPC args and non-schema env helper exports.
+
 ## Observed Type File
 
 File:
