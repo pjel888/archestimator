@@ -47,6 +47,11 @@ See [ui/taste.md](ui/taste.md)
 # branding
 - The brand name "archestimator" is always all lowercase, never capitalized. Confidence: 0.85
 
+# color-palette
+- The landing page uses three accent colors alongside the existing warm/neutral palette: brand orange (#a9532d), deep blue-green (rgb(8, 50, 65) / #083241), and muted yellow (#d8a84f). Use these for diagram node outlines and small accents, not large filled blocks. Confidence: 0.70
+
 # landing-page
 - Landing page design references: Amigo.ai (https://www.amigo.ai/) and Intercom (https://www.intercom.com/). The landing page should feel like a hybrid of these two sites. Confidence: 0.85
 - When doing rapid visual/landing page work, skip all tests to maximize iteration speed. Confidence: 0.80
+- Use rough.js and rough-notation for hand-drawn/whiteboard-style animated diagrams on the landing page; reject React Flow and other corporate graph-editor tools as too enterprise-looking for landing page diagrams. Confidence: 0.80
+- Landing page explanatory diagrams must follow the simplification principle: maximum 4 major workflow elements, no duplicate nodes, one thought bubble per concept, never split connected concepts into separate boxes. Whitespace is part of the design. Confidence: 0.75
