@@ -1,7 +1,8 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const migration = readFileSync("supabase/migrations/20260606090000_notification_system.sql", "utf8");
+import { latestMigrationBySuffix } from "./security-findings-test-helpers";
+
+const migration = latestMigrationBySuffix("_notification_system.sql");
 
 function normalizedSql(sql: string) {
   return sql.replace(/\s+/g, " ").toLowerCase();
@@ -38,12 +39,12 @@ describe("notification schema migration", () => {
   it("scopes reads through authenticated user delivery rows only", () => {
     expect(sql).toContain('create policy "users can read definitions delivered to them"');
     expect(sql).toContain("for select to authenticated");
-    expect(sql).toContain("auth.uid() is not null and exists");
+    expect(sql).toContain("(select auth.uid()) is not null and exists");
     expect(sql).toContain("from public.notification_deliveries deliveries");
     expect(sql).toContain("deliveries.notification_id = notification_definitions.id");
-    expect(sql).toContain("deliveries.user_id = auth.uid()");
+    expect(sql).toContain("deliveries.user_id = (select auth.uid())");
     expect(sql).toContain('create policy "users can read own notification deliveries"');
-    expect(sql).toContain("using (auth.uid() is not null and user_id = auth.uid())");
+    expect(sql).toContain("using ((select auth.uid()) is not null and user_id = (select auth.uid()))");
     expect(sql).not.toMatch(/create policy "[^"]*update[^"]*" on public\.notification_deliveries/);
     expect(sql).not.toContain("for update to authenticated");
   });

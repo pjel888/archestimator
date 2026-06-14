@@ -1,15 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { latestMigrationBySuffix } from "./security-findings-test-helpers";
+
 const migration = readFileSync("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql", "utf8");
-const membershipGuards = readFileSync(
-  "supabase/migrations/20260614120000_teamspace_membership_atomic_guards.sql",
-  "utf8",
-);
-const rlsAuthUidPerf = readFileSync(
-  "supabase/migrations/20260614120100_teamspace_rls_authuid_perf.sql",
-  "utf8",
-);
+const membershipGuards = latestMigrationBySuffix("_teamspace_membership_atomic_guards.sql");
+const rlsAuthUidPerf = latestMigrationBySuffix("_teamspace_rls_authuid_perf.sql");
 const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 
 describe("project and estimate sheet collaboration schema", () => {

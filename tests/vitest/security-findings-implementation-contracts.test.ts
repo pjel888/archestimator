@@ -18,7 +18,7 @@ describe("Codex implementation and seed-data hardening contracts", () => {
 
   it("restores deterministic Lewis seed rows after the Luna reset migrations", () => {
     const resetMigrationIndex = migrations.indexOf("20260518151743_reset_luna_heights_estimate_contents.sql");
-    const treeMigrationIndex = migrations.indexOf("20260519173857_populate_lewis_residence_estimate_tree.sql");
+    const treeMigrationIndex = migrations.indexOf("20260520051859_populate_lewis_residence_estimate_tree.sql");
     const repairMigrationIndex = migrations.indexOf("20260605131500_restore_lewis_residence_seed_rows.sql");
     const repairMigration = latestMigrationBySuffix("_restore_lewis_residence_seed_rows.sql");
 
