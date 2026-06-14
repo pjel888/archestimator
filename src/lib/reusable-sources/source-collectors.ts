@@ -61,10 +61,12 @@ export function collectProjectNodeSources({
   context,
   nodes,
   path = [],
+  parentNodeId = null,
 }: {
   context: ProjectSourceOutlineContext;
   nodes: EstimateTreeNode[];
   path?: string[];
+  parentNodeId?: string | null;
 }): ProjectNodeReusableSource[] {
   const sources: ProjectNodeReusableSource[] = [];
 
@@ -78,8 +80,10 @@ export function collectProjectNodeSources({
         estimateId: context.estimateId,
         tabId: context.tabId,
         nodeId: node.id,
+        parentNodeId,
         nodeKind: node.kind,
         name: node.name,
+        rowItems: node.estimateRowItems ?? [],
         metadata: {
           tabName: context.tabName,
           nodePath: [context.tabName, ...nodePath],
@@ -94,6 +98,7 @@ export function collectProjectNodeSources({
         context,
         nodes: node.children,
         path: nodePath,
+        parentNodeId: node.id,
       }));
     }
   }
@@ -106,11 +111,13 @@ export function collectProjectNodeSearchSources({
   nodes,
   query,
   path = [],
+  parentNodeId = null,
 }: {
   context: ProjectSourceSearchContext;
   nodes: EstimateTreeNode[];
   query: string;
   path?: string[];
+  parentNodeId?: string | null;
 }): ProjectNodeReusableSource[] {
   const sources: ProjectNodeReusableSource[] = [];
 
@@ -124,8 +131,10 @@ export function collectProjectNodeSearchSources({
         estimateId: context.estimateId,
         tabId: context.tabId,
         nodeId: node.id,
+        parentNodeId,
         nodeKind: node.kind,
         name: node.name,
+        rowItems: node.estimateRowItems ?? [],
         metadata: {
           projectName: context.projectName,
           estimateName: context.estimateName,
@@ -144,6 +153,7 @@ export function collectProjectNodeSearchSources({
         nodes: node.children,
         query,
         path: nodePath,
+        parentNodeId: node.id,
       }));
     }
   }

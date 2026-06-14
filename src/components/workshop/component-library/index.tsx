@@ -71,6 +71,7 @@ import {
   findNode,
   getAllNodeIds,
   getCheckedProjectSourceTargets,
+  getCheckedProjectSourceRowItems,
   getCheckedTemplateUnits,
   getTemplatesTreeAllNodeIds,
   LibraryTree,
@@ -706,28 +707,34 @@ function mergeReusableSourcesByKey(
   return Array.from(sourcesByKey.values());
 }
 
-function findProjectEstimateSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectEstimateReusableSource | null {
-  if (!nodeId.startsWith(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX)) return null;
-  const estimateId = nodeId.slice(PROJECT_ESTIMATE_SOURCE_NODE_PREFIX.length);
-  return sources.find(
-    (source): source is ProjectEstimateReusableSource => source.kind === "project-estimate" && source.estimateId === estimateId,
-  ) ?? null;
-}
+type ReusableProjectSourceIndex = {
+  projectsByTreeNodeId: Map<string, ProjectReusableSource>;
+  estimatesByTreeNodeId: Map<string, ProjectEstimateReusableSource>;
+  projectIdsWithEstimates: Set<string>;
+  estimateIdsWithOutline: Set<string>;
+};
 
-function findProjectSourceByNodeId(sources: ReusableEstimateSource[], nodeId: string): ProjectReusableSource | null {
-  if (!nodeId.startsWith(PROJECT_SOURCE_NODE_PREFIX)) return null;
-  const projectId = nodeId.slice(PROJECT_SOURCE_NODE_PREFIX.length);
-  return sources.find((source): source is ProjectReusableSource => source.kind === "project" && source.projectId === projectId) ?? null;
-}
+function buildReusableProjectSourceIndex(sources: ReusableEstimateSource[]): ReusableProjectSourceIndex {
+  const projectsByTreeNodeId = new Map<string, ProjectReusableSource>();
+  const estimatesByTreeNodeId = new Map<string, ProjectEstimateReusableSource>();
+  const projectIdsWithEstimates = new Set<string>();
+  const estimateIdsWithOutline = new Set<string>();
 
-function hasReusableProjectEstimates(sources: ReusableEstimateSource[], projectId: string) {
-  return sources.some((source) => source.kind === "project-estimate" && source.projectId === projectId);
-}
+  for (const source of sources) {
+    if (source.kind === "custom-template") continue;
+    if (source.kind === "project") {
+      projectsByTreeNodeId.set(`${PROJECT_SOURCE_NODE_PREFIX}${source.projectId}`, source);
+      continue;
+    }
+    if (source.kind === "project-estimate") {
+      estimatesByTreeNodeId.set(`${PROJECT_ESTIMATE_SOURCE_NODE_PREFIX}${source.estimateId}`, source);
+      projectIdsWithEstimates.add(source.projectId);
+      continue;
+    }
+    estimateIdsWithOutline.add(source.estimateId);
+  }
 
-function hasReusableEstimateOutline(sources: ReusableEstimateSource[], estimateId: string) {
-  return sources.some((source) =>
-    (source.kind === "project-tab" || source.kind === "project-node") && source.estimateId === estimateId,
-  );
+  return { projectsByTreeNodeId, estimatesByTreeNodeId, projectIdsWithEstimates, estimateIdsWithOutline };
 }
 
 function projectNodeSourceToTemplateSourceNode(source: ProjectNodeReusableSource): EstimateTreeNode {
@@ -857,6 +864,10 @@ function EstimateRightSidebarBase({
   const [showNewComponent, setShowNewComponent] = useState(false);
   const [addComponentOpen, setAddComponentOpen] = useState(false);
   const [addTemplateOpen, setAddTemplateOpen] = useState(false);
+  const [addTemplateGroupOpen, setAddTemplateGroupOpen] = useState(false);
+  const [templateGroupName, setTemplateGroupName] = useState("");
+  const [templateGroupError, setTemplateGroupError] = useState("");
+  const [customTemplateGroups, setCustomTemplateGroups] = useState<string[]>([]);
   // "Save as template" from the sheets tree targets the right-clicked node
   // instead of the current selection; categories prefill from their menu.
   const [templateSourceNodeId, setTemplateSourceNodeId] = useState<string | null>(null);
@@ -1166,13 +1177,25 @@ function EstimateRightSidebarBase({
     () => (templateSourceFilter === "projects" ? [] : templateList),
     [templateList, templateSourceFilter],
   );
+  const templateGroupNames = useMemo(
+    () => Array.from(new Set([...templateList.map((template) => template.category), ...customTemplateGroups])).sort(),
+    [customTemplateGroups, templateList],
+  );
+  const visibleCustomTemplateGroups = useMemo(
+    () => (templateSourceFilter === "projects" ? [] : customTemplateGroups),
+    [customTemplateGroups, templateSourceFilter],
+  );
   const visibleTemplateProjectSources = useMemo(
     () => (templateSourceFilter === "custom" ? [] : searchableProjectSources),
     [searchableProjectSources, templateSourceFilter],
   );
+  const loadedProjectSourceIndex = useMemo(
+    () => buildReusableProjectSourceIndex(loadedProjectSources),
+    [loadedProjectSources],
+  );
   const templatesSelectionNodes = useMemo(
-    () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources),
-    [visibleTemplateList, visibleTemplateProjectSources],
+    () => buildTemplatesSelectionNodes(visibleTemplateList, visibleTemplateProjectSources, visibleCustomTemplateGroups),
+    [visibleCustomTemplateGroups, visibleTemplateList, visibleTemplateProjectSources],
   );
   const activeSelectionNodes = activeTab === "templates" ? templatesSelectionNodes : librarySelectionNodes;
   const previewProjectSource = useMemo(
@@ -1261,6 +1284,10 @@ function EstimateRightSidebarBase({
     [bulkSelectedNodeIds, visibleTemplateProjectSources],
   );
   const bulkProjectSourceTargetCount = bulkProjectSourceTargets.length;
+  const bulkProjectSourceRowItems = useMemo(
+    () => getCheckedProjectSourceRowItems(visibleTemplateProjectSources, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, visibleTemplateProjectSources],
+  );
 
   const clearBulkSelection = useCallback(() => {
     setBulkSelectedNodeIds(new Set());
@@ -1450,6 +1477,41 @@ function EstimateRightSidebarBase({
     setTemplateSourceProjectSource(null);
     setAddTemplateOpen(true);
   }, []);
+
+  const startNewTemplateGroup = useCallback(() => {
+    setTemplateGroupName("");
+    setTemplateGroupError("");
+    setAddTemplateGroupOpen(true);
+  }, []);
+
+  const handleAddTemplateGroupOpenChange = useCallback((open: boolean) => {
+    setAddTemplateGroupOpen(open);
+    if (!open) {
+      setTemplateGroupName("");
+      setTemplateGroupError("");
+    }
+  }, []);
+
+  const handleCreateTemplateGroup = useCallback(() => {
+    const groupName = templateGroupName.trim();
+    if (!groupName) {
+      setTemplateGroupError("Group name is required.");
+      return;
+    }
+    if (templateGroupNames.some((category) => category.toLowerCase() === groupName.toLowerCase())) {
+      setTemplateGroupError("A template group with this name already exists.");
+      return;
+    }
+    setCustomTemplateGroups((groups) => [...groups, groupName].sort((left, right) => left.localeCompare(right)));
+    setTemplatesExpandedIds((current) => Array.from(new Set([
+      ...current,
+      templatesTreeSectionId("custom-templates"),
+      templatesTreeCategoryId(groupName),
+    ])));
+    setTemplateSourceFilter((current) => (current === "projects" ? "custom" : current));
+    setLastActionMessage(`${groupName} group added to custom templates.`);
+    handleAddTemplateGroupOpenChange(false);
+  }, [handleAddTemplateGroupOpenChange, templateGroupName, templateGroupNames]);
 
   const startNewTemplateInCategory = useCallback((category: string) => {
     setTemplateSourceProjectSource(null);
@@ -1692,7 +1754,8 @@ function EstimateRightSidebarBase({
         if (addProjectSource(source)) insertedCount += 1;
       });
     }
-    if (items.length > 0 && insertLibraryItems(items)) insertedCount += items.length;
+    const componentItems = [...items, ...bulkProjectSourceRowItems];
+    if (componentItems.length > 0 && insertLibraryItems(componentItems)) insertedCount += componentItems.length;
     if (insertedCount === 0) return;
     if (insertedCount > 1) setLastActionMessage(`${insertedCount} reusable selections added.`);
     clearBulkSelection();
@@ -1701,6 +1764,7 @@ function EstimateRightSidebarBase({
     addTemplate,
     addTemplateNode,
     bulkProjectSourceTargets,
+    bulkProjectSourceRowItems,
     bulkTemplateUnits,
     canInsertTemplate,
     clearBulkSelection,
@@ -1756,7 +1820,7 @@ function EstimateRightSidebarBase({
   // idempotent: already-resident or already-in-flight levels short-circuit, so
   // a hover followed by an expand never double-fetches.
   const ensureProjectEstimatesLoaded = useCallback((projectId: string) => {
-    if (hasReusableProjectEstimates(loadedProjectSources, projectId)) return;
+    if (loadedProjectSourceIndex.projectIdsWithEstimates.has(projectId)) return;
     if (projectEstimateLoadedProjectIds.includes(projectId)) return;
     if (projectEstimateLoadingProjectIds.includes(projectId)) return;
 
@@ -1779,10 +1843,10 @@ function EstimateRightSidebarBase({
       .finally(() => {
         setProjectEstimateLoadingProjectIds((current) => current.filter((id) => id !== projectId));
       });
-  }, [loadedProjectSources, projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds, toast]);
+  }, [loadedProjectSourceIndex, projectEstimateLoadedProjectIds, projectEstimateLoadingProjectIds, toast]);
 
   const ensureEstimateOutlineLoaded = useCallback((source: { projectId: string; estimateId: string }) => {
-    if (hasReusableEstimateOutline(loadedProjectSources, source.estimateId)) return;
+    if (loadedProjectSourceIndex.estimateIdsWithOutline.has(source.estimateId)) return;
     if (projectOutlineLoadingEstimateIds.includes(source.estimateId)) return;
 
     setProjectOutlineLoadingEstimateIds((current) =>
@@ -1799,19 +1863,19 @@ function EstimateRightSidebarBase({
       .finally(() => {
         setProjectOutlineLoadingEstimateIds((current) => current.filter((id) => id !== source.estimateId));
       });
-  }, [loadedProjectSources, projectOutlineLoadingEstimateIds, toast]);
+  }, [loadedProjectSourceIndex, projectOutlineLoadingEstimateIds, toast]);
 
   // Hovering a project/estimate row warms its next level so the subsequent
   // expand is already resident and shows no loading state at all (U23).
   const handleTemplatesPrefetch = useCallback((nodeId: string) => {
-    const projectSource = findProjectSourceByNodeId(loadedProjectSources, nodeId);
+    const projectSource = loadedProjectSourceIndex.projectsByTreeNodeId.get(nodeId);
     if (projectSource) {
       ensureProjectEstimatesLoaded(projectSource.projectId);
       return;
     }
-    const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
+    const source = loadedProjectSourceIndex.estimatesByTreeNodeId.get(nodeId);
     if (source) ensureEstimateOutlineLoaded(source);
-  }, [ensureEstimateOutlineLoaded, ensureProjectEstimatesLoaded, loadedProjectSources]);
+  }, [ensureEstimateOutlineLoaded, ensureProjectEstimatesLoaded, loadedProjectSourceIndex]);
 
   const handleTemplatesToggle = useCallback((nodeId: string) => {
     const isExpanded = templatesExpandedIds.includes(nodeId);
@@ -1820,14 +1884,14 @@ function EstimateRightSidebarBase({
     );
     if (isExpanded) return;
 
-    const projectSource = findProjectSourceByNodeId(loadedProjectSources, nodeId);
+    const projectSource = loadedProjectSourceIndex.projectsByTreeNodeId.get(nodeId);
     if (projectSource) {
       ensureProjectEstimatesLoaded(projectSource.projectId);
       return;
     }
-    const source = findProjectEstimateSourceByNodeId(loadedProjectSources, nodeId);
+    const source = loadedProjectSourceIndex.estimatesByTreeNodeId.get(nodeId);
     if (source) ensureEstimateOutlineLoaded(source);
-  }, [ensureEstimateOutlineLoaded, ensureProjectEstimatesLoaded, loadedProjectSources, templatesExpandedIds]);
+  }, [ensureEstimateOutlineLoaded, ensureProjectEstimatesLoaded, loadedProjectSourceIndex, templatesExpandedIds]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
@@ -1991,7 +2055,7 @@ function EstimateRightSidebarBase({
             <div className="ml-auto flex items-center gap-1">
               {activeTab === "components" ? (
                 <>
-                  <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending}>
+                  <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending} className={ADD_BUTTON_CLASSNAME}>
                     <FolderPlus size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                   <ToolbarIconButton label="Add Component" onClick={startNewComponent} className={ADD_BUTTON_CLASSNAME}>
@@ -1999,9 +2063,16 @@ function EstimateRightSidebarBase({
                   </ToolbarIconButton>
                 </>
               ) : (
-                <ToolbarIconButton label="Add Template" onClick={startNewTemplate} className={ADD_BUTTON_CLASSNAME}>
-                  <StackPlus size={13} weight="regular" aria-hidden="true" />
-                </ToolbarIconButton>
+                <>
+                  {templateSourceFilter !== "projects" ? (
+                    <ToolbarIconButton label="Add Template Group" onClick={startNewTemplateGroup} className={ADD_BUTTON_CLASSNAME}>
+                      <FolderPlus size={13} weight="regular" aria-hidden="true" />
+                    </ToolbarIconButton>
+                  ) : null}
+                  <ToolbarIconButton label="Add Template" onClick={startNewTemplate} className={ADD_BUTTON_CLASSNAME}>
+                    <StackPlus size={13} weight="regular" aria-hidden="true" />
+                  </ToolbarIconButton>
+                </>
               )}
             </div>
           </div>
@@ -2028,6 +2099,7 @@ function EstimateRightSidebarBase({
                 <TemplatesTree
                   templates={visibleTemplateList}
                   projectSources={visibleTemplateProjectSources}
+                  customTemplateCategories={visibleCustomTemplateGroups}
                   searchQuery={deferredSearchQuery}
                   expandedNodeIds={templatesExpandedIds}
                   onToggle={handleTemplatesToggle}
@@ -2104,7 +2176,7 @@ function EstimateRightSidebarBase({
                     icon: <Plus size={12} weight="regular" />,
                     disabled:
                       (!canInsertTemplate || (bulkTemplateUnitCount === 0 && bulkProjectSourceTargetCount === 0)) &&
-                      (!canInsert || bulkTemplateUnits.items.length === 0),
+                      (!canInsert || (bulkTemplateUnits.items.length === 0 && bulkProjectSourceRowItems.length === 0)),
                     onClick: handleBulkAddSelectedTemplates,
                   },
                 ]
@@ -2174,6 +2246,50 @@ function EstimateRightSidebarBase({
           />
         ) : null}
 
+        {addTemplateGroupOpen ? (
+          <Modal
+            open={addTemplateGroupOpen}
+            title="New template group"
+            description="Create a custom template group for organizing saved templates."
+            closeLabel="Cancel template group creation"
+            className="max-w-sm"
+            onOpenChange={handleAddTemplateGroupOpenChange}
+          >
+            <div className="grid gap-3">
+              {templateGroupError ? (
+                <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{templateGroupError}</p>
+              ) : null}
+              <label className="grid gap-1">
+                <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
+                  Group name<span className="ml-0.5 text-danger" aria-hidden="true">*</span>
+                </span>
+                <ControlInput
+                  aria-label="Template group name"
+                  className="h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent"
+                  value={templateGroupName}
+                  placeholder="Exterior + Site"
+                  autoFocus
+                  onChange={(event) => {
+                    setTemplateGroupName(event.target.value);
+                    if (templateGroupError) setTemplateGroupError("");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleCreateTemplateGroup();
+                  }}
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => handleAddTemplateGroupOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" size="sm" onClick={handleCreateTemplateGroup}>
+                  Add group
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        ) : null}
+
         {/* Create flow: save an estimate node (selected, or handed over by
             the sheets tree context menu) as a template. */}
         {addTemplateOpen ? (
@@ -2185,7 +2301,7 @@ function EstimateRightSidebarBase({
             estimateId={templateModalEstimateId}
             sourceNode={templateModalSourceNode}
             sourceTabId={templateModalSourceTab?.tabId}
-            existingCategories={Array.from(new Set(templateList.map((template) => template.category))).sort()}
+            existingCategories={templateGroupNames}
             defaultCategory={templateDefaultCategory ?? undefined}
             onCreated={handleTemplateCreated}
           />

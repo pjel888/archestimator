@@ -52,6 +52,7 @@ export type TemplatesTreeDatum =
   | { type: "project-estimate"; source: ProjectEstimateReusableSource }
   | { type: "project-tab"; source: ProjectTabReusableSource }
   | { type: "project-node"; source: ProjectNodeReusableSource }
+  | { type: "project-row"; source: ProjectNodeReusableSource; item: EstimateRowItem }
   // U23: a placeholder child rendered in-place under a project/estimate folder
   // whose next level is still loading — a skeleton row, never a spinner.
   | { type: "skeleton" };
@@ -61,6 +62,7 @@ const EMPTY_ID_LIST: readonly string[] = [];
 
 /** Skeleton rows shown under a cold-expanded project/estimate while it loads. */
 const SKELETON_CHILD_COUNT = 3;
+const TEMPLATES_TREE_INDENT_STEP = 20;
 
 function buildSkeletonChildNodes(parentId: string): UiTreeNode[] {
   return Array.from({ length: SKELETON_CHILD_COUNT }, (_unused, index) => ({
@@ -125,6 +127,10 @@ function templateInnerRowId(templateId: string, nodeId: string, rowId: string, i
   return `${toTemplateTreeItemId(templateId)}::node-${nodeId}::row-${rowId}-${index}`;
 }
 
+function projectSourceRowItemId(source: ProjectNodeReusableSource, item: EstimateRowItem, index: number) {
+  return `${projectSourceTreeItemId(source)}::row-${item.id}-${index}`;
+}
+
 function getTemplatesTreeDatum(node: UiTreeNode): TemplatesTreeDatum | undefined {
   return node.data?.templatesNode as TemplatesTreeDatum | undefined;
 }
@@ -170,18 +176,26 @@ function toTemplateInnerUiNodes(template: EstimateTemplate, node: EstimateTreeNo
   };
 }
 
-function buildTemplateCategoryTreeNodes(templates: EstimateTemplate[]): UiTreeNode[] {
-  const categories = Array.from(new Set(templates.map((template) => template.category))).sort();
+function buildTemplateCategoryTreeNodes(templates: EstimateTemplate[], customTemplateCategories: string[] = []): UiTreeNode[] {
+  const templatesByCategory = new Map<string, EstimateTemplate[]>();
+  for (const template of templates) {
+    const categoryTemplates = templatesByCategory.get(template.category);
+    if (categoryTemplates) categoryTemplates.push(template);
+    else templatesByCategory.set(template.category, [template]);
+  }
+  for (const category of customTemplateCategories) {
+    if (!templatesByCategory.has(category)) templatesByCategory.set(category, []);
+  }
 
-  return categories.map((category) => ({
+  return Array.from(templatesByCategory.entries()).sort(([left], [right]) => left.localeCompare(right)).map(([category, categoryTemplates]) => ({
     id: templatesTreeCategoryId(category),
     label: category,
     ariaLabel: `${category} templates`,
-    isLeaf: false,
+    isLeaf: categoryTemplates.length === 0,
+    selectable: categoryTemplates.length > 0,
     icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
     data: { templatesNode: { type: "category", category } satisfies TemplatesTreeDatum },
-    children: templates
-      .filter((template) => template.category === category)
+    children: categoryTemplates
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((template) => ({
         id: toTemplateTreeItemId(template.id),
@@ -205,9 +219,15 @@ type EstimateTreeGroup = {
   tabs: Map<string, TabTreeGroup>;
 };
 
+type ProjectNodeTreeGroup = {
+  source: ProjectNodeReusableSource;
+  children: Map<string, ProjectNodeTreeGroup>;
+};
+
 type TabTreeGroup = {
   source: ProjectTabReusableSource;
-  nodes: ProjectNodeReusableSource[];
+  nodeGroups: Map<string, ProjectNodeTreeGroup>;
+  rootNodes: Map<string, ProjectNodeTreeGroup>;
 };
 
 function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): UiTreeNode[] {
@@ -257,7 +277,8 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
     }
     const group = {
       source: { kind: "project-tab", projectId, estimateId, tabId, name: name ?? projectFallbackName("Tab", tabId) },
-      nodes: [],
+      nodeGroups: new Map<string, ProjectNodeTreeGroup>(),
+      rootNodes: new Map<string, ProjectNodeTreeGroup>(),
     } satisfies TabTreeGroup;
     estimate.tabs.set(tabId, group);
     return group;
@@ -280,8 +301,52 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
       ensureTab(source.projectId, source.estimateId, source.tabId, source.name).source = source;
       continue;
     }
-    const tab = ensureTab(source.projectId, source.estimateId, source.tabId);
-    tab.nodes = [...tab.nodes.filter((node) => node.nodeId !== source.nodeId), source];
+    ensureTab(source.projectId, source.estimateId, source.tabId).nodeGroups.set(source.nodeId, {
+      source,
+      children: new Map<string, ProjectNodeTreeGroup>(),
+    });
+  }
+
+  for (const project of projects.values()) {
+    for (const estimate of project.estimates.values()) {
+      for (const tab of estimate.tabs.values()) {
+        tab.rootNodes.clear();
+        for (const group of tab.nodeGroups.values()) group.children.clear();
+        for (const group of tab.nodeGroups.values()) {
+          const parent = group.source.parentNodeId ? tab.nodeGroups.get(group.source.parentNodeId) : undefined;
+          if (parent && parent !== group) parent.children.set(group.source.nodeId, group);
+          else tab.rootNodes.set(group.source.nodeId, group);
+        }
+      }
+    }
+  }
+
+  function toProjectNodeUiNode(group: ProjectNodeTreeGroup): UiTreeNode {
+    const childNodes = Array.from(group.children.values())
+      .sort((left, right) => left.source.name.localeCompare(right.source.name))
+      .map(toProjectNodeUiNode);
+    const rowNodes = (group.source.rowItems ?? []).map((item, index) => ({
+      id: projectSourceRowItemId(group.source, item, index),
+      label: getComponentName(item),
+      ariaLabel: `${getComponentName(item)} project component`,
+      isLeaf: true,
+      selectable: true,
+      icon: <Package size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+      data: { templatesNode: { type: "project-row", source: group.source, item } satisfies TemplatesTreeDatum },
+    } satisfies UiTreeNode));
+    return {
+      id: projectSourceTreeItemId(group.source),
+      label: group.source.name,
+      ariaLabel: `${group.source.name} project area`,
+      isLeaf: childNodes.length === 0 && rowNodes.length === 0,
+      selectable: true,
+      icon: <NodeKindIcon />,
+      // Same dot cue as the estimate-tree left sidebar: orange when the
+      // source subtree contains components (rowCount), muted otherwise.
+      accent: (group.source.metadata?.rowCount ?? group.source.rowItems?.length ?? 0) > 0,
+      children: [...childNodes, ...rowNodes],
+      data: { templatesNode: { type: "project-node", source: group.source } satisfies TemplatesTreeDatum },
+    };
   }
 
   return Array.from(projects.values())
@@ -310,33 +375,28 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
               id: projectSourceTreeItemId(tab.source),
               label: tab.source.name,
               ariaLabel: `${tab.source.name} project tab source`,
-              isLeaf: tab.nodes.length === 0,
+              isLeaf: tab.rootNodes.size === 0,
               selectable: true,
               // Follow the estimate-tree node cue: a dot, muted on a tab (a
               // grouping page, not a component-bearing node).
               accent: false,
               data: { templatesNode: { type: "project-tab", source: tab.source } satisfies TemplatesTreeDatum },
-              children: tab.nodes
-                .sort((left, right) => left.name.localeCompare(right.name))
-                .map((node) => ({
-                  id: projectSourceTreeItemId(node),
-                  label: node.name,
-                  ariaLabel: `${node.name} project area`,
-                  isLeaf: true,
-                  selectable: true,
-                  // Same dot cue as the estimate-tree left sidebar: orange when
-                  // the area directly holds components (rowCount), muted otherwise.
-                  accent: (node.metadata?.rowCount ?? 0) > 0,
-                  data: { templatesNode: { type: "project-node", source: node } satisfies TemplatesTreeDatum },
-                })),
+              children: Array.from(tab.rootNodes.values())
+                .sort((left, right) => left.source.name.localeCompare(right.source.name))
+                .map(toProjectNodeUiNode),
             })),
         })),
     }));
 }
 
-export function buildTemplatesTreeNodes(templates: EstimateTemplate[], projectSources: ReusableEstimateSource[] = []): UiTreeNode[] {
+export function buildTemplatesTreeNodes(
+  templates: EstimateTemplate[],
+  projectSources: ReusableEstimateSource[] = [],
+  customTemplateCategories: string[] = [],
+): UiTreeNode[] {
   const nodes: UiTreeNode[] = [];
-  if (templates.length > 0) {
+  const hasCustomTemplateSources = templates.length > 0 || customTemplateCategories.length > 0;
+  if (hasCustomTemplateSources) {
     nodes.push({
       id: templatesTreeSectionId("custom-templates"),
       label: "Custom Templates",
@@ -345,7 +405,7 @@ export function buildTemplatesTreeNodes(templates: EstimateTemplate[], projectSo
       selectable: false,
       icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       data: { templatesNode: { type: "section", section: "custom-templates" } satisfies TemplatesTreeDatum },
-      children: buildTemplateCategoryTreeNodes(templates),
+      children: buildTemplateCategoryTreeNodes(templates, customTemplateCategories),
     });
   }
   const projectTree = buildProjectSourceTreeNodes(projectSources);
@@ -356,6 +416,7 @@ export function buildTemplatesTreeNodes(templates: EstimateTemplate[], projectSo
       ariaLabel: "Projects reusable sources",
       isLeaf: false,
       selectable: false,
+      rowClassName: hasCustomTemplateSources ? "mt-1 border-t-source-boundary" : undefined,
       icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
       data: { templatesNode: { type: "section", section: "projects" } satisfies TemplatesTreeDatum },
       children: projectTree,
@@ -374,20 +435,6 @@ export function getTemplatesTreeAllNodeIds(nodes: UiTreeNode[]): string[] {
   return ids;
 }
 
-function toTemplateInnerSelectionNodes(template: EstimateTemplate, node: EstimateTreeNode): TreeSelectionNode {
-  return {
-    id: templateInnerNodeId(template.id, node.id),
-    selectable: true,
-    children: [
-      ...(node.children ?? []).map((child) => toTemplateInnerSelectionNodes(template, child)),
-      ...(node.estimateRowItems ?? []).map((item, index) => ({
-        id: templateInnerRowId(template.id, node.id, item.id, index),
-        selectable: true,
-      })),
-    ],
-  };
-}
-
 function toSelectionNodes(nodes: UiTreeNode[]): TreeSelectionNode[] {
   return nodes.map((node) => ({
     id: node.id,
@@ -399,35 +446,9 @@ function toSelectionNodes(nodes: UiTreeNode[]): TreeSelectionNode[] {
 export function buildTemplatesSelectionNodes(
   templates: EstimateTemplate[],
   projectSources: ReusableEstimateSource[] = [],
+  customTemplateCategories: string[] = [],
 ): TreeSelectionNode[] {
-  const categories = Array.from(new Set(templates.map((template) => template.category))).sort();
-  const nodes: TreeSelectionNode[] = [];
-  if (categories.length > 0) {
-    nodes.push({
-      id: templatesTreeSectionId("custom-templates"),
-      selectable: false,
-      children: categories.map((category) => ({
-        id: templatesTreeCategoryId(category),
-        selectable: true,
-        children: templates
-          .filter((template) => template.category === category)
-          .map((template) => ({
-            id: toTemplateTreeItemId(template.id),
-            selectable: true,
-            children: template.nodes.map((node) => toTemplateInnerSelectionNodes(template, node)),
-          })),
-      })),
-    });
-  }
-  const projectTree = buildProjectSourceTreeNodes(projectSources);
-  if (projectTree.length > 0) {
-    nodes.push({
-      id: templatesTreeSectionId("projects"),
-      selectable: false,
-      children: toSelectionNodes(projectTree),
-    });
-  }
-  return nodes;
+  return toSelectionNodes(buildTemplatesTreeNodes(templates, projectSources, customTemplateCategories));
 }
 
 export function getCheckedTemplates(templates: EstimateTemplate[], checkedIds: ReadonlySet<string>): EstimateTemplate[] {
@@ -449,9 +470,16 @@ export function getCheckedProjectSourceTargets(
 ): ProjectSourceInsertTarget[] {
   const targets: ProjectSourceInsertTarget[] = [];
   const checkedTabIds = new Set<string>();
+  const checkedNodeIds = new Set<string>();
+  const sourceByNodeId = new Map<string, ProjectNodeReusableSource>();
   const seenTargetIds = new Set<string>();
 
   for (const source of projectSources) {
+    if (source.kind === "project-node") {
+      sourceByNodeId.set(source.nodeId, source);
+      if (checkedIds.has(projectSourceTreeItemId(source))) checkedNodeIds.add(source.nodeId);
+      continue;
+    }
     if (source.kind !== "project-tab") continue;
     if (!checkedIds.has(projectSourceTreeItemId(source))) continue;
     checkedTabIds.add(source.tabId);
@@ -459,16 +487,67 @@ export function getCheckedProjectSourceTargets(
     targets.push(source);
   }
 
+  function hasCheckedNodeAncestor(source: ProjectNodeReusableSource) {
+    let parentNodeId = source.parentNodeId ?? null;
+    while (parentNodeId) {
+      if (checkedNodeIds.has(parentNodeId)) return true;
+      parentNodeId = sourceByNodeId.get(parentNodeId)?.parentNodeId ?? null;
+    }
+    return false;
+  }
+
   for (const source of projectSources) {
     if (source.kind !== "project-node") continue;
     if (checkedTabIds.has(source.tabId)) continue;
     const key = projectSourceTreeItemId(source);
     if (!checkedIds.has(key) || seenTargetIds.has(key)) continue;
+    if (hasCheckedNodeAncestor(source)) continue;
     seenTargetIds.add(key);
     targets.push(source);
   }
 
   return targets;
+}
+
+export function getCheckedProjectSourceRowItems(
+  projectSources: ReusableEstimateSource[],
+  checkedIds: ReadonlySet<string>,
+): EstimateRowItem[] {
+  const checkedTabIds = new Set<string>();
+  const checkedNodeIds = new Set<string>();
+  const sourceByNodeId = new Map<string, ProjectNodeReusableSource>();
+
+  for (const source of projectSources) {
+    if (source.kind === "project-tab" && checkedIds.has(projectSourceTreeItemId(source))) checkedTabIds.add(source.tabId);
+    if (source.kind === "project-node") {
+      sourceByNodeId.set(source.nodeId, source);
+      if (checkedIds.has(projectSourceTreeItemId(source))) checkedNodeIds.add(source.nodeId);
+    }
+  }
+
+  function hasCheckedNodeAncestor(source: ProjectNodeReusableSource) {
+    let parentNodeId = source.parentNodeId ?? null;
+    while (parentNodeId) {
+      if (checkedNodeIds.has(parentNodeId)) return true;
+      parentNodeId = sourceByNodeId.get(parentNodeId)?.parentNodeId ?? null;
+    }
+    return false;
+  }
+
+  const items: EstimateRowItem[] = [];
+  const seenRowIds = new Set<string>();
+  for (const source of projectSources) {
+    if (source.kind !== "project-node") continue;
+    if (checkedTabIds.has(source.tabId)) continue;
+    if (checkedNodeIds.has(source.nodeId) || hasCheckedNodeAncestor(source)) continue;
+    source.rowItems?.forEach((item, index) => {
+      const key = projectSourceRowItemId(source, item, index);
+      if (!checkedIds.has(key) || seenRowIds.has(key)) return;
+      seenRowIds.add(key);
+      items.push(item);
+    });
+  }
+  return items;
 }
 
 /**
@@ -546,23 +625,55 @@ function projectSourceMatchesQuery(source: ReusableEstimateSource, query: string
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return true;
   if (source.kind === "custom-template") return templateMatchesQuery(source.template, query);
-  const values = [source.name];
+  const values: Array<string | null | undefined> = [source.name];
   if (source.kind === "project-estimate" && source.sheetCode) values.push(source.sheetCode);
-  if (source.kind === "project-node") values.push(source.nodeKind);
-  return values.some((value) => value.toLowerCase().includes(normalizedQuery));
+  if (source.kind === "project-node") {
+    for (const item of source.rowItems ?? []) {
+      values.push(item.name, item.material, item.description, item.supplier);
+    }
+  }
+  return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
 }
 
-function filterProjectSourcesByQuery(projectSources: ReusableEstimateSource[], query: string) {
+export function filterProjectSourcesByQuery(projectSources: ReusableEstimateSource[], query: string) {
   if (!query.trim()) return projectSources;
   const included = new Set<ReusableEstimateSource>();
   const projectById = new Map<string, ReusableEstimateSource>();
   const estimateById = new Map<string, ReusableEstimateSource>();
   const tabById = new Map<string, ReusableEstimateSource>();
+  const sourcesByProjectId = new Map<string, ReusableEstimateSource[]>();
+  const sourcesByEstimateId = new Map<string, ReusableEstimateSource[]>();
+  const sourcesByTabId = new Map<string, ReusableEstimateSource[]>();
+
+  function append(map: Map<string, ReusableEstimateSource[]>, key: string, source: ReusableEstimateSource) {
+    const sources = map.get(key);
+    if (sources) sources.push(source);
+    else map.set(key, [source]);
+  }
 
   for (const source of projectSources) {
-    if (source.kind === "project") projectById.set(source.projectId, source);
-    if (source.kind === "project-estimate") estimateById.set(source.estimateId, source);
-    if (source.kind === "project-tab") tabById.set(source.tabId, source);
+    if (source.kind === "custom-template") continue;
+    append(sourcesByProjectId, source.projectId, source);
+    if (source.kind === "project") {
+      projectById.set(source.projectId, source);
+      continue;
+    }
+    if (source.kind === "project-estimate") {
+      estimateById.set(source.estimateId, source);
+      append(sourcesByEstimateId, source.estimateId, source);
+      continue;
+    }
+    append(sourcesByEstimateId, source.estimateId, source);
+    if (source.kind === "project-tab") {
+      tabById.set(source.tabId, source);
+      append(sourcesByTabId, source.tabId, source);
+      continue;
+    }
+    append(sourcesByTabId, source.tabId, source);
+  }
+
+  function includeMany(sources: ReusableEstimateSource[] | undefined) {
+    sources?.forEach((source) => included.add(source));
   }
 
   function includeAncestors(source: ReusableEstimateSource) {
@@ -584,28 +695,13 @@ function filterProjectSourcesByQuery(projectSources: ReusableEstimateSource[], q
     if (!projectSourceMatchesQuery(source, query)) continue;
     includeAncestors(source);
     if (source.kind === "project") {
-      projectSources.forEach((candidate) => {
-        if (candidate.kind !== "custom-template" && candidate.projectId === source.projectId) included.add(candidate);
-      });
+      includeMany(sourcesByProjectId.get(source.projectId));
     }
     if (source.kind === "project-estimate") {
-      projectSources.forEach((candidate) => {
-        if (
-          candidate.kind !== "custom-template" &&
-          candidate.kind !== "project" &&
-          candidate.estimateId === source.estimateId
-        ) included.add(candidate);
-      });
+      includeMany(sourcesByEstimateId.get(source.estimateId));
     }
     if (source.kind === "project-tab") {
-      projectSources.forEach((candidate) => {
-        if (
-          candidate.kind !== "custom-template" &&
-          candidate.kind !== "project" &&
-          candidate.kind !== "project-estimate" &&
-          candidate.tabId === source.tabId
-        ) included.add(candidate);
-      });
+      includeMany(sourcesByTabId.get(source.tabId));
     }
   }
 
@@ -615,6 +711,7 @@ function filterProjectSourcesByQuery(projectSources: ReusableEstimateSource[], q
 export type TemplatesTreeProps = {
   templates: EstimateTemplate[];
   projectSources?: ReusableEstimateSource[];
+  customTemplateCategories?: string[];
   searchQuery: string;
   expandedNodeIds: string[];
   onToggle: (nodeId: string) => void;
@@ -664,6 +761,7 @@ export type TemplatesTreeProps = {
 export function TemplatesTree({
   templates,
   projectSources = [],
+  customTemplateCategories = [],
   searchQuery,
   expandedNodeIds,
   onToggle,
@@ -704,15 +802,20 @@ export function TemplatesTree({
     () => filterProjectSourcesByQuery(projectSources, searchQuery),
     [projectSources, searchQuery],
   );
+  const filteredCustomTemplateCategories = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!normalizedQuery) return customTemplateCategories;
+    return customTemplateCategories.filter((category) => category.toLowerCase().includes(normalizedQuery));
+  }, [customTemplateCategories, searchQuery]);
   const loadingProjectIdSet = useMemo(() => new Set(loadingProjectIds), [loadingProjectIds]);
   const loadingEstimateIdSet = useMemo(() => new Set(loadingEstimateIds), [loadingEstimateIds]);
   const uiNodes = useMemo(
     () => injectProjectSourceSkeletons(
-      buildTemplatesTreeNodes(filteredTemplates, filteredProjectSources),
+      buildTemplatesTreeNodes(filteredTemplates, filteredProjectSources, filteredCustomTemplateCategories),
       loadingProjectIdSet,
       loadingEstimateIdSet,
     ),
-    [filteredProjectSources, filteredTemplates, loadingProjectIdSet, loadingEstimateIdSet],
+    [filteredProjectSources, filteredTemplates, filteredCustomTemplateCategories, loadingProjectIdSet, loadingEstimateIdSet],
   );
   const nodeById = useMemo(() => {
     const map = new Map<string, UiTreeNode>();
@@ -731,9 +834,18 @@ export function TemplatesTree({
     [searchActive, uiNodes, expandedNodeIds],
   );
 
-  const templatesByCategory = useCallback(
-    (category: string) => filteredTemplates.filter((template) => template.category === category),
-    [filteredTemplates],
+  const templatesByCategory = useMemo(() => {
+    const categories = new Map<string, EstimateTemplate[]>();
+    for (const template of filteredTemplates) {
+      const templatesForCategory = categories.get(template.category);
+      if (templatesForCategory) templatesForCategory.push(template);
+      else categories.set(template.category, [template]);
+    }
+    return categories;
+  }, [filteredTemplates]);
+  const getTemplatesByCategory = useCallback(
+    (category: string) => templatesByCategory.get(category) ?? [],
+    [templatesByCategory],
   );
 
   // UI-1/UI-2: template, category, and node cost totals used to be recomputed
@@ -777,11 +889,12 @@ export function TemplatesTree({
       const datum = nodeById.get(nodeId) ? getTemplatesTreeDatum(nodeById.get(nodeId)!) : undefined;
       if (datum?.type === "template") onTemplateDragStart(event, datum.template);
       if (datum?.type === "template-row") onItemDragStart(event, datum.item);
-      if (datum?.type === "category") onCategoryDragStart(event, datum.category, templatesByCategory(datum.category));
+      if (datum?.type === "project-row") onItemDragStart(event, datum.item);
+      if (datum?.type === "category") onCategoryDragStart(event, datum.category, getTemplatesByCategory(datum.category));
       if (datum?.type === "template-node") onTemplateNodeDragStart(event, datum.template, datum.node);
       if (datum?.type === "project-tab" || datum?.type === "project-node") onProjectSourceDragStart?.(event, datum.source);
     },
-    [nodeById, onCategoryDragStart, onItemDragStart, onProjectSourceDragStart, onTemplateDragStart, onTemplateNodeDragStart, templatesByCategory],
+    [nodeById, onCategoryDragStart, onItemDragStart, onProjectSourceDragStart, onTemplateDragStart, onTemplateNodeDragStart, getTemplatesByCategory],
   );
 
   const handleRowClick = useCallback(
@@ -800,8 +913,7 @@ export function TemplatesTree({
         onClearProjectSourcePreview?.();
       }
       // Leaf component rows have nothing to toggle; everything else folds.
-      if (datum?.type === "template-row") return;
-      if (datum?.type === "project-node") return;
+      if (datum?.type === "template-row" || datum?.type === "project-row") return;
       if (node.children?.length || node.isLeaf === false) onToggle(nodeId);
     },
     [onClearProjectSourcePreview, onPreviewProjectSource, onToggle],
@@ -891,7 +1003,7 @@ export function TemplatesTree({
         },
       ];
     }
-    if (datum.type === "template-row") {
+    if (datum.type === "template-row" || datum.type === "project-row") {
       return [
         {
           id: "template-component-actions",
@@ -933,7 +1045,7 @@ export function TemplatesTree({
       ];
     }
     if (datum.type === "category") {
-      const categoryTemplates = templatesByCategory(datum.category);
+      const categoryTemplates = getTemplatesByCategory(datum.category);
       return [
         {
           id: "template-category-create",
@@ -982,7 +1094,7 @@ export function TemplatesTree({
     onDeleteTemplate,
     onRenameTemplate,
     onToggle,
-    templatesByCategory,
+    getTemplatesByCategory,
     templateTargetName,
   ]);
 
@@ -1006,6 +1118,9 @@ export function TemplatesTree({
         return <TemplateNodeRowContent label={datum.node.name} total={templateNodeTotals.get(datum.node.id) ?? computeTemplateNodeTotal(datum.node)} />;
       }
       if (datum?.type === "template-row") {
+        return <TemplateComponentRowContent item={datum.item} />;
+      }
+      if (datum?.type === "project-row") {
         return <TemplateComponentRowContent item={datum.item} />;
       }
       if (datum?.type === "section") {
@@ -1038,14 +1153,14 @@ export function TemplatesTree({
         return <SourceFolderRowContent label={datum.source.name} meta="Whole tab" />;
       }
       if (datum?.type === "project-node") {
-        return <SourceFolderRowContent label={datum.source.name} meta={datum.source.nodeKind === "group" ? "Group" : "Area"} />;
+        return <SourceFolderRowContent label={datum.source.name} />;
       }
       return <span className="min-w-0 flex-1 truncate">{treeNode.label}</span>;
     },
     [onPrefetchNode, categoryTotals, templateTotals, templateNodeTotals],
   );
 
-  if (templates.length === 0 && projectSources.length === 0) {
+  if (templates.length === 0 && projectSources.length === 0 && customTemplateCategories.length === 0) {
     return (
       <>
         {emptyState ?? (
@@ -1097,6 +1212,7 @@ export function TemplatesTree({
               selectable && onCheckToggle ? (nodeId, checked) => onCheckToggle(nodeId, checked) : undefined
             }
             railsPinned={contextMenuOpen}
+            indentStep={TEMPLATES_TREE_INDENT_STEP}
             draggable
             canDrag={handleCanDrag}
             onNodeDragStart={handleNodeDragStart}
