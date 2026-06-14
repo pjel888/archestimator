@@ -147,11 +147,12 @@ function getProjectViewModeServerSnapshot(): ProjectCardViewMode {
 }
 
 function getProjectGridClassName(viewMode: ProjectCardViewMode) {
-  if (viewMode === "list") return "flex flex-col gap-1.5";
-  if (viewMode === "small") return "grid grid-cols-[repeat(auto-fill,minmax(128px,156px))] gap-2";
-  if (viewMode === "medium") return "grid grid-cols-[repeat(auto-fill,minmax(180px,220px))] gap-2";
+  if (viewMode === "list")
+    return "flex flex-col divide-y divide-hairline overflow-hidden rounded-xs border border-hairline";
+  if (viewMode === "small") return "grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2";
+  if (viewMode === "medium") return "grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3";
 
-  return "grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
+  return "grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3";
 }
 
 function getProjectAccessTabId(tab: ProjectAccessTab) {
@@ -254,13 +255,6 @@ function canSelectProjectForDeletion(item: ProjectListItem) {
   if (item.accessKind === "pending-invite" || item.accessKind === "sheet-member") return false;
   if (item.accessKind === "owned") return true;
   return item.currentUserRole === "owner" || item.currentUserRole === "admin";
-}
-
-function getProjectDeletionDisabledReason(item: ProjectListItem) {
-  if (canSelectProjectForDeletion(item)) return null;
-  if (item.accessKind === "sheet-member") return "Estimate-only access cannot delete the project.";
-  if (item.accessKind === "pending-invite") return "Accept the invite before managing the project.";
-  return "Only project owners and admins can delete projects.";
 }
 
 export function ProjectsPageClient({
@@ -573,7 +567,7 @@ export function ProjectsPageClient({
                     isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
                     favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
                     selectedForDeletion={selectedProjectIds.has(item.project.id)}
-                    selectionDisabledReason={getProjectDeletionDisabledReason(item)}
+                    selectionActive={selectedVisibleProjectIds.length > 0}
                     onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
                     onToggleFavorite={canFavoriteProject ? toggleProjectFavorite : undefined}
                     onExpand={setExpandedProject}
@@ -600,9 +594,12 @@ export function ProjectsPageClient({
             <div
               data-project-view-mode={projectViewMode}
               className={cn(
-                projectViewMode === "large"
-                  ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                  : projectLayoutClassName,
+                "grid",
+                projectViewMode === "small" || projectViewMode === "list"
+                  ? "grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2"
+                  : projectViewMode === "medium"
+                    ? "grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3"
+                    : "grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3",
               )}
             >
               {displaySamples.map((project) => (
