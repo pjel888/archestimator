@@ -43,7 +43,7 @@ export function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
       type="button"
       onClick={() => onAddBlankRow(nodeId)}
       aria-label={`Add blank estimate row to ${nodeName}`}
-      className="flex h-6 w-full items-center gap-1.5 rounded-xs border border-transparent px-1.5 text-[9px] font-medium text-tertiary transition-colors hover:bg-surfaceMuted/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="flex h-6 w-full cursor-pointer items-center gap-1.5 rounded-xs border border-transparent px-1.5 text-[9px] font-medium text-tertiary transition-colors hover:bg-surfaceMuted/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <Plus size={11} weight="regular" aria-hidden="true" />
       <span>Add row</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { useEstimateSheetExpansion } from "./expansion";
 import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
+import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 
 export type BreadcrumbNode = { id: string; name: string };
 
@@ -69,6 +70,10 @@ export type SheetMutationHandlers = Pick<
 
 export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, depth = 0 }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
+  // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
+  // resolves the scroll container from its own DOM node.
+  const sectionRef = useRef<HTMLElement | null>(null);
+  useDragEdgeAutoScroll(sectionRef, depth === 0);
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
@@ -150,7 +155,9 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   }
 
   return (
+    <>
     <section
+      ref={sectionRef}
       className={cn(
         groupGap(depth),
         // Node>row>component hierarchy reads via ONE frame, not concentric
@@ -183,9 +190,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
               size="icon-sm"
               aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name}`}
               aria-expanded={!collapsed}
-              // The caret carries the "has components" cue (orange) now that the
-              // node icon is gone: orange iff this node directly holds row items.
-              className={cn("size-6 rounded-xs p-0", hasOwnRows ? "text-orange-600" : "text-tertiary")}
+              className="size-6 rounded-xs p-0 text-tertiary"
               onClick={() =>
                 setCollapsedNodeIds((prev) => {
                   const next = new Set(prev);
@@ -204,6 +209,13 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
             // must not advertise expandability (L7).
             <span className="size-6 shrink-0" aria-hidden="true" />
           )}
+          {/* Occupancy dot between the caret and the name: orange iff this node
+              directly holds components, muted otherwise. */}
+          <span
+            data-occupancy-dot=""
+            aria-hidden="true"
+            className={cn("size-1.5 shrink-0 rounded-full", hasOwnRows ? "bg-orange-600" : "bg-tertiary")}
+          />
           <div className="min-w-0 flex-1">
             {nodeCode && (
               <p className="text-[8px] font-sans leading-none tabular-nums text-tertiary">{nodeCode}</p>
@@ -316,5 +328,10 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
         </div>
       ) : null}
     </section>
+    {/* Default bottom breathing room (root only): a scroll buffer so the
+        bottom-most node can scroll up into reach — and the layout doesn't jump
+        when the mid-drag drop zones appear. Pairs with the drag edge-autoscroll. */}
+    {depth === 0 ? <div aria-hidden="true" className="h-32 shrink-0" /> : null}
+    </>
   );
 }

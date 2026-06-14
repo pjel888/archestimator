@@ -259,15 +259,14 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(within(buildingSection).getAllByText(/Building A, area/).length).toBeGreaterThan(0);
   });
 
-  it("colors the EMC disclosure caret orange only for nodes that DIRECTLY hold components (Req 4)", () => {
+  it("shows an orange occupancy dot only for EMC nodes that DIRECTLY hold components (Req 4)", () => {
     renderSheet(childrenOnlyTree(), "wrap");
-    // "Wrap" has a child but no own components → caret present, NOT orange.
-    const wrapToggle = screen.getByRole("button", { name: /Collapse Wrap|Expand Wrap/ });
-    expect(wrapToggle.className).toMatch(/text-tertiary/);
-    expect(wrapToggle.className).not.toMatch(/text-orange-600/);
-    // "Leaf" directly holds a component → orange caret.
-    const leafSection = screen.getByLabelText("Leaf");
-    const leafToggle = within(leafSection).getByRole("button", { name: /Collapse Leaf|Expand Leaf/ });
-    expect(leafToggle.className).toMatch(/text-orange-600/);
+    // "Wrap" has a child but no own components → muted dot.
+    const wrapDot = screen.getByLabelText("Wrap").querySelector("[data-occupancy-dot]");
+    expect(wrapDot?.className).toMatch(/bg-tertiary/);
+    expect(wrapDot?.className).not.toMatch(/bg-orange-600/);
+    // "Leaf" directly holds a component → orange dot.
+    const leafDot = screen.getByLabelText("Leaf").querySelector("[data-occupancy-dot]");
+    expect(leafDot?.className).toMatch(/bg-orange-600/);
   });
 });
