@@ -193,6 +193,18 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(screen.getByRole("button", { name: /Collapse Building A|Expand Building A/ })).toBeInTheDocument();
   });
 
+  it("keeps a nested node's breadcrumb OUT of the sticky header so it can't clip the table thead (OD-20)", () => {
+    renderSheet(mixedTree(), "building-a");
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const stickyHeader = kitchenSection.querySelector(".sticky") as HTMLElement;
+    expect(stickyHeader).not.toBeNull();
+    const breadcrumb = screen.getByLabelText("Kitchen breadcrumbs");
+    // If the breadcrumb lives inside the sticky header it inflates the sticky
+    // height past STICKY_HEADER_H (40px) and covers the own-rows thead that pins
+    // at stickyTop + 40. It must be a normal (scrolling) band outside sticky.
+    expect(stickyHeader.contains(breadcrumb)).toBe(false);
+  });
+
   it("offsets the own-rows sticky thead below the node header (sticky cascade)", () => {
     renderSheet(mixedTree(), "building-a");
 

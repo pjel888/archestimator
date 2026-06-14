@@ -219,27 +219,30 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
           </div>
           <span className={nodeTotalClasses()}>{pesoFormatter.format(total)}</span>
         </div>
-
-        {showBreadcrumbs && (
-          <div
-            className="my-1 flex items-center gap-1 truncate pb-2 text-[8px] text-muted"
-            aria-label={`${node.name} breadcrumbs`}
-            style={{ paddingLeft: `${leftIndent + 72}px` }}
-          >
-            {ancestorPath.map((ancestor, index) => (
-              <span key={ancestor.id}>
-                {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
-                {ancestor.name}
-              </span>
-            ))}
-            <span className="mx-0.5 text-hairline">›</span>
-            <span>{node.name}</span>
-          </div>
-        )}
       </div>
 
       {!collapsed ? (
-        <div className={cn("space-y-2", !showBreadcrumbs && "mt-1")}>
+        <div className="mt-1 space-y-2">
+          {/* Breadcrumb path band (L?) — a NORMAL scrolling band, NOT inside the
+              sticky header: keeping it sticky inflated the header past
+              STICKY_HEADER_H (40px) and covered the own-rows thead pinned at
+              stickyTop+40 (OD-20). It's contextual-on-arrival and scrolls away. */}
+          {showBreadcrumbs && (
+            <div
+              className="flex items-center gap-1 truncate text-[8px] text-muted"
+              aria-label={`${node.name} breadcrumbs`}
+              style={{ paddingLeft: `${leftIndent + 72}px` }}
+            >
+              {ancestorPath.map((ancestor, index) => (
+                <span key={ancestor.id}>
+                  {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
+                  {ancestor.name}
+                </span>
+              ))}
+              <span className="mx-0.5 text-hairline">›</span>
+              <span>{node.name}</span>
+            </div>
+          )}
           {/* Rows-first (L1): a node renders its OWN rows + add-row strip
               directly under its header, ABOVE its child sub-areas, so clicking
               a node shows its own numbers before an arbitrarily deep subtree.
