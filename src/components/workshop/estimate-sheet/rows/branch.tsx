@@ -214,7 +214,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
           <span
             data-occupancy-dot=""
             aria-hidden="true"
-            className={cn("size-1.5 shrink-0 rounded-full", hasOwnRows ? "bg-orange-600" : "bg-tertiary")}
+            className={cn("size-[3px] shrink-0 rounded-full opacity-50", hasOwnRows ? "bg-orange-600" : "bg-tertiary")}
           />
           <div className="min-w-0 flex-1">
             {nodeCode && (
