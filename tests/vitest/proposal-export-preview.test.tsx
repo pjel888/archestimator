@@ -6,6 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import { ProposalExportPreviewDialog, clampRate } from "@/components/workshop/ProposalExportPreviewDialog";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+// Req 1 / D2: the "Preview Excel Export" opener moved to the project chrome
+// header (`EstimateHeaderActions`), fed by the page via a shared store. Render it
+// alongside the sheet so the relocated opener is reachable here.
+import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 
@@ -221,6 +225,7 @@ describe("ProposalExportPreviewDialog", () => {
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
+        <EstimateHeaderActions />
       </QueryClientProvider>,
     );
 
@@ -249,6 +254,7 @@ describe("ProposalExportPreviewDialog", () => {
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
+        <EstimateHeaderActions />
       </QueryClientProvider>,
     );
 
@@ -287,6 +293,7 @@ describe("ProposalExportPreviewDialog", () => {
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
+        <EstimateHeaderActions />
       </QueryClientProvider>,
     );
 
@@ -346,6 +353,7 @@ describe("ProposalExportPreviewDialog", () => {
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
+        <EstimateHeaderActions />
       </QueryClientProvider>,
     );
 
@@ -410,6 +418,7 @@ describe("ProposalExportPreviewDialog", () => {
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
+        <EstimateHeaderActions />
       </QueryClientProvider>,
     );
 

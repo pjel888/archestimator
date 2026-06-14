@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
-import { ClockCounterClockwise, FileXls, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hoo
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { useEstimateUiStore } from "@/stores/estimate-ui-store";
+import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
@@ -478,17 +479,11 @@ function buildActivityScopeTreeItems({
 function EstimateSheetHeader({
   onExpandAll,
   onCollapseAll,
-  onPreviewProposalExport,
-  canPreviewProposalExport = false,
-  onOpenSheetActivity,
   searchQuery,
   onSearchQueryChange,
 }: {
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
-  onPreviewProposalExport?: () => void;
-  canPreviewProposalExport?: boolean;
-  onOpenSheetActivity?: (opener: HTMLElement) => void;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
 }) {
@@ -507,26 +502,10 @@ function EstimateSheetHeader({
         onSearchValueChange={onSearchQueryChange}
         searchPlaceholder="Search Tab"
         searchLabel="Search Tab"
-        addActions={[
-          {
-            label: "Activity",
-            icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />,
-            onClick: onOpenSheetActivity
-              ? function openSheetActivity(event?: unknown) {
-                const target = event && typeof event === "object" && "currentTarget" in event ? (event as { currentTarget?: EventTarget | null }).currentTarget : null;
-                onOpenSheetActivity(target instanceof HTMLElement ? target : document.body);
-              }
-              : undefined,
-            className: "text-tertiary hover:bg-orange-50 hover:text-orange-700 focus-visible:bg-orange-50 focus-visible:text-orange-700",
-          },
-          {
-            label: "Preview Excel Export",
-            icon: <FileXls size={12} weight="regular" aria-hidden="true" />,
-            onClick: onPreviewProposalExport,
-            disabled: !canPreviewProposalExport,
-            className: "text-tertiary hover:bg-emerald-50 hover:text-emerald-700 focus-visible:bg-emerald-50 focus-visible:text-emerald-700",
-          },
-        ]}
+        // Req 1 / D2: the "Activity" + "Preview Excel Export" triggers moved to the
+        // project chrome header (`EstimateHeaderActions`). The slot is intentionally
+        // emptied here; Task C3 later refills it with the relocated New-tab button.
+        addActions={[]}
       />
     </header>
   );
@@ -1890,6 +1869,36 @@ export function EstimateSheetContent({
   const isActiveTabTreeLoading = Boolean(dataTabId && tabTreeQuery.isFetching && estimateTree.length === 0);
   const canPreviewCurrentExport = Boolean(resolvedProposalExportMetadata);
 
+  // Req 1 / D2: lift the "Activity" + "Preview Excel Export" triggers up to the
+  // project chrome header (rendered by `EstimateHeaderActions`, a separate React
+  // tree) while keeping the dialogs + their state here. Only the callbacks and the
+  // export capability cross the boundary, via the shared store. `openActivity` is a
+  // zero-arg wrapper that anchors the activity modal on the chrome button that was
+  // clicked (falling back to <body> if focus has moved), preserving
+  // `openActivityHistory`'s existing (opener) signature. `clear` on unmount is the
+  // off-route gate so the chrome buttons disappear when the estimate page leaves.
+  const registerEstimateHeaderActions = useEstimateHeaderActionsStore((state) => state.register);
+  const clearEstimateHeaderActions = useEstimateHeaderActionsStore((state) => state.clear);
+  useEffect(() => {
+    registerEstimateHeaderActions({
+      openActivity: () =>
+        openActivityHistory(
+          typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : (typeof document !== "undefined" ? document.body : (null as unknown as HTMLElement)),
+        ),
+      openProposalPreview,
+      canPreviewExport: canPreviewCurrentExport,
+    });
+    return () => clearEstimateHeaderActions();
+  }, [
+    registerEstimateHeaderActions,
+    clearEstimateHeaderActions,
+    openActivityHistory,
+    openProposalPreview,
+    canPreviewCurrentExport,
+  ]);
+
   return (
     <>
       <CommandPalette
@@ -1983,9 +1992,6 @@ export function EstimateSheetContent({
         <EstimateSheetHeader
           onExpandAll={expandAll}
           onCollapseAll={collapseAll}
-          onPreviewProposalExport={openProposalPreview}
-          canPreviewProposalExport={canPreviewCurrentExport}
-          onOpenSheetActivity={openActivityHistory}
           searchQuery={sheetSearchQuery}
           onSearchQueryChange={setSheetSearchQuery}
         />

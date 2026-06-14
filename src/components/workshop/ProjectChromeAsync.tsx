@@ -1,4 +1,5 @@
 import { ProjectCursorLayer } from "@/components/workshop/ProjectCursorLayer";
+import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { ProjectPublicationHeader } from "@/components/workshop/ProjectPublicationHeader";
 import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,6 +57,14 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
         projectEstimateSheets={projectEstimateSheets}
       />
       <ProjectTeamspaceHeader summary={collaborationSummary} />
+      {/* Req 1 / D2: the estimate page's "Activity" + "Preview Excel Export"
+          triggers, relocated here beside Share. A client component that renders
+          nothing until an estimate page mounts and registers into the shared
+          store — identical on the server, on first client render, and off the
+          estimate route, so the streamed-chrome swap and hydration stay clean.
+          Safe inside this single wrapper: per the comment above, child-count
+          variation here does NOT shift the toolbar siblings. */}
+      <EstimateHeaderActions />
       {/* Teamspace T5.3 project-wide cursors — a fixed inset-0 overlay, inert
           unless the OFF-by-default flag is on. Rendered here (not the layout) so
           it reuses the collaboration identity this streamed chrome already
@@ -81,6 +90,13 @@ export async function ProjectChromeAsync({ projectId, liveProject }: ProjectChro
 export function ProjectHeaderChromeSkeleton() {
   return (
     <div className="flex items-center gap-1" aria-hidden="true" data-testid="project-header-chrome-skeleton">
+      {/* Four size-10 placeholders approximate the resolved cluster — Share,
+          Teamspace, and (on the estimate route) the relocated Activity + Preview
+          Excel Export buttons (Req 1) — so the streamed swap minimizes layout
+          shift (CLS). Off-route the two action buttons resolve to nothing, a
+          minor over-estimate that errs toward stability. */}
+      <Skeleton className="size-10 rounded-xs" />
+      <Skeleton className="size-10 rounded-xs" />
       <Skeleton className="size-10 rounded-xs" />
       <Skeleton className="size-10 rounded-xs" />
     </div>

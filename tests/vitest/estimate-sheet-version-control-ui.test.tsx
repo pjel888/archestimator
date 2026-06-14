@@ -19,6 +19,10 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+// Req 1 / D2: the "Activity" trigger now lives in the project chrome header
+// (`EstimateHeaderActions`), fed by the page via a shared store. Render it
+// alongside the sheet so the relocated button is reachable in these tests.
+import { EstimateHeaderActions } from "@/components/workshop/EstimateHeaderActions";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 function deferred<T>() {
@@ -50,6 +54,7 @@ function renderEstimateSheet() {
           currency: "PHP",
         }}
       />
+      <EstimateHeaderActions />
     </QueryClientProvider>,
   );
 }
