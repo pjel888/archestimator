@@ -695,6 +695,9 @@ describe("estimate sheet cost inputs", () => {
     expect(within(sheetTools).getByRole("button", { name: "Collapse all tab" })).toHaveAttribute("title", "Collapse all tab");
     expect(within(sheetTools).getByRole("button", { name: "Expand all tab" })).toHaveAttribute("title", "Expand all tab");
     expect(within(sheetTools).queryByRole("button", { name: "Add tab" })).not.toBeInTheDocument();
+    // C3/Req 13: "New tab" button relocated to Tab tools, hidden for non-editors
+    // (canEditEstimate not passed → defaults false → canCreate=false → not rendered).
+    expect(within(sheetTools).queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
     // C1/Req 1: Activity + Preview Excel Export relocated to the project chrome
     // header (EstimateHeaderActions) — no longer inside the sheet's Tab tools.
     expect(within(sheetTools).queryByRole("button", { name: "Activity" })).not.toBeInTheDocument();

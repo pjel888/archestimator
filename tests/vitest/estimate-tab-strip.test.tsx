@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState, type ComponentProps } from "react";
+import { useRef, useState, type ComponentProps } from "react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EstimateTabStrip } from "@/components/workshop/estimate-sheet/EstimateTabStrip";
+import { EstimateTabStrip, type EstimateTabStripHandle } from "@/components/workshop/estimate-sheet/EstimateTabStrip";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/drag-types";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 
@@ -106,7 +106,9 @@ describe("EstimateTabStrip", () => {
     expect(screen.getByRole("tab", { name: "Alternate" })).toBeInTheDocument();
     expect(screen.queryByText("Default")).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Main/ })).not.toBeInTheDocument();
-    expect(tabRoot?.contains(screen.getByRole("button", { name: "New tab" }))).toBe(true);
+    // C3/Req 13: "New tab" button has been relocated to the middle-panel header
+    // toolbar — it is no longer rendered inside the tab strip (or its tablist).
+    expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
   });
 
   it("matches the sidebar tab group surface and height contract", () => {
@@ -154,6 +156,8 @@ describe("EstimateTabStrip", () => {
     renderStrip({ enableLifecycleActions: false, canCreateTabs: true });
 
     // No persistent controls — the strip is a pure read-only tab switcher.
+    // The "New tab" button lives in the parent header, not the strip, so it is
+    // also absent here (the strip renders no button of its own).
     expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
 
     // No context menu attaches: right-click opens nothing.
@@ -175,11 +179,12 @@ describe("EstimateTabStrip", () => {
     expect(screen.queryByRole("button", { name: "Rename active tab" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Archive active tab" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete active tab" })).not.toBeInTheDocument();
-    // The "+" remains the only persistent control.
-    expect(screen.getByRole("button", { name: "New tab" })).toBeInTheDocument();
+    // C3/Req 13: "New tab" has moved to the middle-panel header; the strip itself
+    // renders no persistent create button.
+    expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
   });
 
-  it("creates a tab through the +, updates the list from the returned array, switches to it, and arms inline rename", async () => {
+  it("creates a tab through the header button (via ref), updates the list from the returned array, switches to it, and arms inline rename", async () => {
     const createdTabs = [
       { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
       { id: "tab-alt", name: "Alternate", sortOrder: 1, isDefault: false },
@@ -187,20 +192,39 @@ describe("EstimateTabStrip", () => {
     ];
     actionMocks.createEstimateTab.mockResolvedValue({ estimateTabId: "tab-3", tabs: createdTabs });
     const switchedTo: string[] = [];
+    // C3/Req 13: "New tab" now lives in the middle-panel header outside the strip.
+    // This harness simulates that wiring: the parent holds the ref and exposes a
+    // header button that calls ref.current.createTab() imperatively.
     function CreateHarness() {
       const [tabs, setTabs] = useState(fixtureTabs());
       const [activeTabId, setActiveTabId] = useState("tab-main");
+      const [createState, setCreateState] = useState({ canCreate: false, pending: false });
+      const stripRef = useRef<EstimateTabStripHandle | null>(null);
       return (
-        <EstimateTabStrip
-          tabs={tabs}
-          activeTabId={activeTabId}
-          projectId="project-1"
-          estimateId="estimate-1"
-          enableLifecycleActions
-          canCreateTabs
-          onTabChange={(id) => { switchedTo.push(id); setActiveTabId(id); }}
-          onTabsChange={setTabs}
-        />
+        <>
+          {createState.canCreate && (
+            <button
+              type="button"
+              aria-label="New tab"
+              disabled={createState.pending}
+              onClick={() => void stripRef.current?.createTab()}
+            >
+              New tab
+            </button>
+          )}
+          <EstimateTabStrip
+            ref={stripRef}
+            tabs={tabs}
+            activeTabId={activeTabId}
+            projectId="project-1"
+            estimateId="estimate-1"
+            enableLifecycleActions
+            canCreateTabs
+            onTabChange={(id) => { switchedTo.push(id); setActiveTabId(id); }}
+            onTabsChange={setTabs}
+            onCreateTabStateChange={setCreateState}
+          />
+        </>
       );
     }
     render(<CreateHarness />);
@@ -467,13 +491,17 @@ describe("EstimateTabStrip", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Main tab deleted.");
   });
 
-  it("pins the New tab control outside the scrollable tab list so it never scrolls away", () => {
+  it("reports canCreate=true via onCreateTabStateChange when canCreateTabs is enabled (button lives in header, not strip)", () => {
+    // C3/Req 13: the "New tab" button has moved to the middle-panel header toolbar.
+    // The strip itself never renders it, but signals readiness via onCreateTabStateChange
+    // so the parent header can render (and pin) the button outside the tab list.
     const manyTabs = Array.from({ length: 12 }, (_, index) => ({
       id: `tab-${index}`,
       name: `Tab ${index + 1}`,
       sortOrder: index,
       isDefault: index === 0,
     }));
+    const stateChanges: Array<{ canCreate: boolean; pending: boolean }> = [];
     render(
       <EstimateTabStrip
         tabs={manyTabs}
@@ -484,13 +512,16 @@ describe("EstimateTabStrip", () => {
         canCreateTabs
         onTabChange={vi.fn()}
         onTabsChange={vi.fn()}
+        onCreateTabStateChange={(s) => stateChanges.push(s)}
       />,
     );
-    const createButton = screen.getByRole("button", { name: "New tab" });
     const tablist = screen.getByRole("tablist", { name: "Estimate tabs" });
-    expect(createButton).toBeInTheDocument();
-    // Pinned: the "+" is a sibling of (not inside) the overflow-x-auto tablist.
-    expect(tablist.contains(createButton)).toBe(false);
+    // The strip has no "New tab" button of its own.
+    expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
+    // The strip reported canCreate=true so the parent can render the header button.
+    expect(stateChanges.some((s) => s.canCreate)).toBe(true);
+    // The tablist is still present and functional.
+    expect(tablist).toBeInTheDocument();
   });
 
   it("scrolls the active tab into view (smoothly) when the active tab changes", async () => {
@@ -561,9 +592,17 @@ describe("EstimateTabStrip", () => {
     }
   });
 
-  it("shows an accessible \"New tab\" tooltip on the create control", async () => {
-    renderStrip({ enableLifecycleActions: true, canCreateTabs: true });
-    fireEvent.focus(screen.getByRole("button", { name: "New tab" }));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("New tab");
+  it("reports canCreate=false and does not render a New tab button when canCreateTabs is false", () => {
+    // C3/Req 13: non-editors must see no New tab affordance anywhere. Since the strip
+    // now signals state via onCreateTabStateChange, verify it reports canCreate=false
+    // when canCreateTabs is not set, so the parent header renders nothing.
+    const stateChanges: Array<{ canCreate: boolean; pending: boolean }> = [];
+    renderStrip({
+      enableLifecycleActions: true,
+      canCreateTabs: false,
+      onCreateTabStateChange: (s) => stateChanges.push(s),
+    });
+    expect(screen.queryByRole("button", { name: "New tab" })).not.toBeInTheDocument();
+    expect(stateChanges.every((s) => !s.canCreate)).toBe(true);
   });
 });

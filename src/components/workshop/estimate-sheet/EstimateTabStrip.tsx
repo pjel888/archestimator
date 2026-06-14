@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
-import { CopySimple, PencilSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { CopySimple, PencilSimple, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
-import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 import {
   createEstimateTab,
   deleteEstimateTab,
@@ -19,6 +18,11 @@ import { cn } from "@/lib/ui/cn";
 import { useToast } from "@/components/ui/toast";
 import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE } from "../component-library/templates";
 import { ESTIMATE_TREE_DRAG_MIME_TYPE } from "./drag-types";
+
+/** Imperative handle exposed via ref so the middle-panel header can trigger tab creation. */
+export type EstimateTabStripHandle = {
+  createTab: () => void;
+};
 
 export type EstimateTabStripProps = {
   tabs: readonly EstimateTabSummary[];
@@ -37,6 +41,12 @@ export type EstimateTabStripProps = {
   enableLifecycleActions?: boolean;
   /** When true (with `enableLifecycleActions`), renders the "+" create button. */
   canCreateTabs?: boolean;
+  /**
+   * Fired whenever the create-enabled or pending state changes so the parent
+   * (middle-panel header) can reflect the button's enabled/disabled status
+   * without relying on the ref causing a re-render.
+   */
+  onCreateTabStateChange?: (state: { canCreate: boolean; pending: boolean }) => void;
   className?: string;
 };
 
@@ -79,7 +89,7 @@ function getTabDisplayName(tab: EstimateTabSummary, index: number) {
   return tab.name;
 }
 
-export function EstimateTabStrip({
+export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabStripProps>(function EstimateTabStrip({
   tabs,
   activeTabId,
   projectId,
@@ -88,8 +98,9 @@ export function EstimateTabStrip({
   onTabsChange,
   enableLifecycleActions = false,
   canCreateTabs = false,
+  onCreateTabStateChange,
   className,
-}: EstimateTabStripProps) {
+}: EstimateTabStripProps, ref) {
   const { toast } = useToast();
   const orderedTabs = useMemo(() => sortTabs(tabs), [tabs]);
   const resolvedActiveTabId = orderedTabs.some((tab) => tab.id === activeTabId)
@@ -386,6 +397,22 @@ export function EstimateTabStrip({
     }
   }, [beginRename, canCreateTabs, estimateId, lifecycleActionsReady, onTabChange, onTabsChange, orderedTabs, projectId]);
 
+  // Expose createTab imperatively so the middle-panel header (a sibling component)
+  // can trigger tab creation without prop-drilling through EstimateSheetContent.
+  useImperativeHandle(ref, () => ({ createTab: () => void createTab() }), [createTab]);
+
+  // Notify the parent when create-enabled or pending state changes. The parent
+  // holds a useState that drives the header button's visibility/disabled state.
+  // We use an effect (not a ref) so the parent re-renders on each transition.
+  const canCreate = lifecycleActionsReady && canCreateTabs;
+  // Disable "New tab" while ANY tab lifecycle action is in flight (create,
+  // rename, delete, duplicate) — preserving the original in-strip button's
+  // `disabled={Boolean(pendingAction)}` serialization guard.
+  const actionPending = Boolean(pendingAction);
+  useEffect(() => {
+    onCreateTabStateChange?.({ canCreate, pending: actionPending });
+  }, [canCreate, actionPending, onCreateTabStateChange]);
+
   const releaseMenuCloseFocusToActiveTab = useCallback(() => {
     if (!manageMenuCloseFocusRef.current) return;
     manageMenuCloseFocusRef.current = false;
@@ -593,17 +620,8 @@ export function EstimateTabStrip({
     [attachRenameInputRef, commitRename, editingName, editingTabId, orderedTabs, pendingAction],
   );
 
-  const createButton = lifecycleActionsReady && canCreateTabs ? (
-    <ToolbarIconButton
-      type="button"
-      label="New tab"
-      className="mb-0.5"
-      disabled={Boolean(pendingAction)}
-      onClick={() => void createTab()}
-    >
-      <Plus size={12} weight="regular" aria-hidden="true" />
-    </ToolbarIconButton>
-  ) : null;
+  // The "New tab" button has been relocated to the middle-panel header toolbar
+  // (Task C3 / Req 13). It is no longer rendered inside the tab strip.
 
   const tabList = (
     <Tabs
@@ -612,7 +630,6 @@ export function EstimateTabStrip({
       onChange={onTabChange}
       ariaLabel="Estimate tabs"
       activationMode="manual"
-      endAction={createButton}
       className="min-w-0 flex-1"
       onContextMenu={(event) => {
         if (!(event.target instanceof Element) || !event.target.closest("[data-estimate-tab-id]")) {
@@ -667,4 +684,4 @@ export function EstimateTabStrip({
       </div>
     </div>
   );
-}
+});
