@@ -121,6 +121,6 @@ vitest run tests/vitest/perf/estimate-sheet-render-relief.test.tsx \
 - [ ] Rebase on latest `origin/main` (P0–P6 + templates-panel are committed; avoid stale base).
 - [ ] Copy `.env.local` into any fresh worktree (else dev bounces to /login).
 - [ ] Confirm gitnexus / code-review-graph index is fresh (`npx gitnexus analyze` if stale).
-- [ ] Owner sign-off recorded on D1 (DESIGN.md orange exception) and the Req 14 error-border micro-choice.
+- [x] Owner sign-off recorded: D1 (DESIGN.md orange exception) **approved**; Req 14 **keeps the red error border**. (2026-06-14)
 - [ ] Decide execution mode: Codex delegation (per CLAUDE.md, review gate ON) vs `superpowers:subagent-driven-development`.
 - [ ] Land **Phase A first** (shared primitives) before any per-panel work.

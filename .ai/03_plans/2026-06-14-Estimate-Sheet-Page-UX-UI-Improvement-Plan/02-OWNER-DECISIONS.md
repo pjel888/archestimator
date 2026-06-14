@@ -147,3 +147,10 @@ Does NOT apply to in-row "Add row" (QuietAddRowButton stays low-emphasis).
 | New right-sidebar toolbar row height (38px) vs dropdown (40px) | Keep as written: **row 38px, dropdown 40px** | `01`, `05 B3` |
 | Add-button orange = Tailwind `orange-*` vs `brand-orange` | **Tailwind orange** (D1) | `03` |
 | Non-color affordance for occupied node (a11y) | **Follow-up**, not in initial scope | `01 Req4`, `06` |
+
+## Resolved sign-offs (2026-06-14)
+
+| Item | Resolution |
+|---|---|
+| **DESIGN.md orange exception (D1)** | ✅ **Approved.** Land the §D1 amendment block with Phase A Task A1. |
+| **Req 14 error border** | ✅ **Keep the red error border** (`border-danger bg-dangerSoft/40`). "No border" applies to resting/hover/focus only. |
