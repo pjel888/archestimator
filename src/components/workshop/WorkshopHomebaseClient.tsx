@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { MoonStarsIcon, SunHorizonIcon } from "@phosphor-icons/react/dist/ssr";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 
 import { Button } from "@/components/ui/button";
 import { acceptPendingInvitationById, signOutForPendingInvite } from "@/lib/collaboration/pending-invite-actions";
@@ -96,8 +97,20 @@ export function WorkshopHomebaseClient({
   );
 }
 
+// Stable placeholder used for SSR + the first client render. The real greeting
+// depends on the viewer's wall clock + timezone (which the server can't know),
+// so computing it during hydration would mismatch the server output — both the
+// text and the moon/sun icon *element*. We render this fixed tone until hydrated,
+// then swap to the viewer-local greeting in a post-commit render.
+const GREETING_PLACEHOLDER_TONE: WorkshopGreetingTone = {
+  icon: "sun",
+  periodLabel: "Morning",
+  greeting: "Good morning",
+};
+
 function WorkshopGreeting({ displayName }: { displayName?: string | null }) {
-  const tone = getWorkshopGreetingTone();
+  const hydrated = useIsHydrated();
+  const tone = hydrated ? getWorkshopGreetingTone() : GREETING_PLACEHOLDER_TONE;
   const name = formatWorkshopGreetingName(displayName);
 
   return (

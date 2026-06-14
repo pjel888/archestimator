@@ -13,6 +13,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import type { PublicationSnapshotEstimate, PublicationSnapshotEstimateTab } from "@/lib/publication/types";
 
 import Image from "next/image";
@@ -67,9 +68,14 @@ export default function SharePageTabs({
   token,
 }: SharePageTabsProps) {
   const storageKey = `share-tab:${token}`;
-  const [activeIdOverride, setActiveIdOverride] = useState<string | null>(() =>
-    readStoredActiveEstimateId(storageKey, estimates),
-  );
+  const hydrated = useIsHydrated();
+  // The persisted active tab lives in sessionStorage, which only exists in the
+  // browser. Reading it during the lazy useState initializer made the first
+  // client render (the stored tab) diverge from the server render (which always
+  // falls back to estimates[0]) → hydration mismatch on the tablist + panel.
+  // Start from `null` (server-identical) and fold the stored value in only after
+  // hydration, while still letting an explicit user selection take precedence.
+  const [activeIdOverride, setActiveIdOverride] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -79,7 +85,9 @@ export default function SharePageTabs({
   const [estimateTabOverrides, setEstimateTabOverrides] = useState<Record<string, string>>({});
 
   const fallbackActiveId = estimates[0]?.id ?? "";
-  const activeId = activeIdOverride && estimates.some((estimate) => estimate.id === activeIdOverride) ? activeIdOverride : fallbackActiveId;
+  const storedActiveId = hydrated ? readStoredActiveEstimateId(storageKey, estimates) : null;
+  const resolvedActiveId = activeIdOverride ?? storedActiveId;
+  const activeId = resolvedActiveId && estimates.some((estimate) => estimate.id === resolvedActiveId) ? resolvedActiveId : fallbackActiveId;
   const currentView = sheetViews[activeId] ?? "tree";
 
   const contentRef = useRef<HTMLDivElement>(null);

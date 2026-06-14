@@ -117,7 +117,11 @@ function formatCompactMoney(value: number, currencyCode: string): string {
   const prefix = currencyCode === "PHP" ? "₱" : currencyCode === "USD" ? "$" : `${currencyCode} `;
   if (abs >= 1_000_000) return `${prefix}${(value / 1_000_000).toFixed(1)}M`;
   if (abs >= 10_000) return `${prefix}${Math.round(value / 1000)}k`;
-  return `${prefix}${new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value)}`;
+  // Fixed locale (matches the codebase's en-PH convention) so server and client
+  // format grouping identically — an undefined locale uses the runtime default,
+  // which differs between the Node server and the visitor's browser → hydration
+  // mismatch on the rendered number text.
+  return `${prefix}${new Intl.NumberFormat("en-PH", { maximumFractionDigits: 0 }).format(value)}`;
 }
 
 function formatPercent(share: number): string {

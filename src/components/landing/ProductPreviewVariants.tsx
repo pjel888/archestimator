@@ -40,9 +40,9 @@ export function EstimateWorkspacePreview() {
                 >
                   <span className="truncate pr-3 font-semibold text-[#111111]">{item}</span>
                   <span className="font-mono">{index + 2}</span>
-                  <span className="text-right font-mono max-sm:hidden">₱{((index + 2) * 7800).toLocaleString()}</span>
+                  <span className="text-right font-mono max-sm:hidden">₱{((index + 2) * 7800).toLocaleString("en-PH")}</span>
                   <span className="text-right font-mono font-semibold text-[#111111] max-sm:hidden">
-                    ₱{((index + 4) * 18600).toLocaleString()}
+                    ₱{((index + 4) * 18600).toLocaleString("en-PH")}
                   </span>
                 </div>
               )
