@@ -223,7 +223,9 @@ describe("component library UI", () => {
     // The new under-tabs toolbar row has Filter, View-by, and Add buttons.
     const toolsRow = screen.getByRole("toolbar", { name: "Library tools" });
     expect(toolsRow).toBeInTheDocument();
-    expect(within(toolsRow).getByRole("button", { name: "Filter library" })).toBeInTheDocument();
+    // After D1 wiring the placeholder is replaced by ComponentFacetFilterPopover,
+    // whose trigger aria-label is "Filter components" (inactive state).
+    expect(within(toolsRow).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
     expect(within(toolsRow).getByRole("button", { name: "View by" })).toBeInTheDocument();
     expect(within(toolsRow).getByRole("button", { name: "Add Component" })).toHaveAttribute("title", "Add Component");
     expect(screen.queryByRole("button", { name: "Group library tree" })).not.toBeInTheDocument();
@@ -608,6 +610,41 @@ describe("component library UI", () => {
     expect(await screen.findByText("Powder Room")).toBeInTheDocument();
     // P4: one node type — "Area · N sub-areas · M rows" (a leaf area: 0 of each).
     expect(screen.getByText(/Area · 0 sub-areas · 0 rows/)).toBeInTheDocument();
+  });
+
+  // D1: Right sidebar Filter wired to ComponentFacetFilterPopover
+  it("wires the Filter button to ComponentFacetFilterPopover: selecting a supplier facet narrows the component tree", () => {
+    // sidebarSeedItems (slice 0–7) includes items from "IKEA Philippines" and
+    // "Mandaue Foam".  After filtering to "Mandaue Foam" only, IKEA items must
+    // disappear and "Mandaue Foam Accent Chair" must remain.
+    renderSidebar();
+
+    // 1. Filter button renders with the real popover's trigger label (inactive).
+    const toolsRow = screen.getByRole("toolbar", { name: "Library tools" });
+    const filterBtn = within(toolsRow).getByRole("button", { name: "Filter components" });
+    expect(filterBtn).toBeInTheDocument();
+
+    // 2. Clicking the trigger opens the facet popover.
+    fireEvent.click(filterBtn);
+    expect(screen.getByRole("dialog", { name: "Filter components" })).toBeInTheDocument();
+
+    // 3. Select the "Mandaue Foam" supplier checkbox.
+    const mandaueCheckbox = screen.getByRole("checkbox", { name: "Mandaue Foam" });
+    fireEvent.click(mandaueCheckbox);
+    expect(mandaueCheckbox).toBeChecked();
+
+    // 4. The trigger now shows an active-count badge (1 filter active).
+    expect(within(toolsRow).getByRole("button", { name: "Filter components (1 active)" })).toBeInTheDocument();
+
+    // 5. The component tree is narrowed: only Mandaue Foam items remain.
+    expect(screen.getByRole("treeitem", { name: "Mandaue Foam Accent Chair" })).toBeInTheDocument();
+    // IKEA items are filtered out.
+    expect(screen.queryByRole("treeitem", { name: "HEMLINGBY Loveseat" })).not.toBeInTheDocument();
+
+    // 6. Clicking "Reset filters" restores the full list.
+    fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
+    expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
+    expect(within(toolsRow).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
   });
 });
 
