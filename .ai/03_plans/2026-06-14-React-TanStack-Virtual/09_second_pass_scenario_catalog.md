@@ -6,14 +6,16 @@ Status: second-pass UltraQA expansion. These are planning scenarios, not impleme
 
 1. Add virtual-path activation assertions before DOM-count assertions.
 2. Extend keyboard/focus tests before DnD tests.
-3. Add collaboration offscreen cursor tests before shipping row-table virtualization.
-4. Keep browser proof mandatory for scroll gaps, sticky overlap, and narrow-panel layout.
+3. Add EMC branch/section virtualization tests before enabling `NEXT_PUBLIC_EMC_VIRTUALIZATION`.
+4. Add collaboration offscreen cursor tests before shipping row-table virtualization.
+5. Keep browser proof mandatory for scroll gaps, sticky overlap, and narrow-panel layout.
 
 ## Scenario matrix
 
 | Category | Scenario | Expected proof | Existing tests to extend | New test name |
 | --- | --- | --- | --- | --- |
 | Normal | Large shared `Tree` renders windowed rows while preserving logical metadata | mounted `[data-tree-row]` count is below logical visible row count; logical ARIA metadata remains correct | `tests/vitest/ui-tree.test.tsx`, `tests/vitest/estimate-sheet-tree-dom.test.tsx` | `virtual mode renders a bounded row window while preserving logical treeitem metadata` |
+| Normal | Large EMC branch stream renders windowed sections while preserving mixed-content layout | mounted center node sections are below logical visible nodes; rows-first order remains correct | `tests/vitest/estimate-mixed-content.test.tsx`, `tests/vitest/perf/estimate-sheet-render-baseline.test.tsx` | `virtual EMC mode renders a bounded section window while preserving rows-first node layout` |
 | Normal | Large row table renders only visible estimate rows | mounted `data-estimate-row-id` count is bounded; header remains present; row ids remain stable | `tests/vitest/perf/estimate-sheet-render-baseline.test.tsx`, `tests/vitest/perf/estimate-sheet-render-relief.test.tsx` | `virtual row table mounts only the visible row window for a large area` |
 | Edge | Small trees stay non-virtual | no virtual wrapper/probe event below threshold | `tests/vitest/ui-tree.test.tsx` | `keeps the non-virtual tree path below the virtualization threshold` |
 | Edge | Small row tables stay native | no virtual wrapper/probe event below threshold | `tests/vitest/estimate-sheet-cost-inputs.test.tsx` | `keeps the native table body below the row virtualization threshold` |
@@ -32,6 +34,7 @@ Status: second-pass UltraQA expansion. These are planning scenarios, not impleme
 | Collaboration | Remote cursor for offscreen row does not force local scroll | fallback or edge indicator renders; row tables do not re-render | `tests/vitest/perf/estimate-sheet-cursor-isolation.test.tsx` | `renders an offscreen remote cursor fallback without scrolling or re-rendering row tables` |
 | Collaboration | Remote cursor for mounted virtual row anchors to DOM | cursor resolves against mounted row/cell | `tests/vitest/perf/estimate-sheet-cursor-isolation.test.tsx` | `anchors a remote cursor to a mounted virtual row cell` |
 | Search/filter | Search while scrolled deep recomputes logical rows | search reveal resets or intentionally preserves scroll; no stale index | `tests/vitest/estimate-tree-filter.test.tsx`, `tests/vitest/component-library-ui.test.tsx` | `recomputes the virtual tree window after search reveals new logical rows` |
+| Search/filter | EMC search while scrolled deep recomputes logical node sections | search reveal force-renders matches without stale section indexes | `tests/vitest/estimate-mixed-content.test.tsx` | `recomputes the virtual EMC window after search reveals new node sections` |
 | Search/filter | Component/template search stays windowed | source ancestors remain visible without mounting every match above threshold | `tests/vitest/component-library-ui.test.tsx`, `tests/vitest/templates-tree-performance.test.ts` | `keeps template search results virtualized while preserving source ancestors` |
 | Mobile/narrow | Narrow panel does not clip variable-height template rows | no overlapping rows; measured height updates total size | browser/E2E | `does not overlap variable-height template rows in a narrow right panel` |
 | Mobile/narrow | Center sheet virtual body does not hide active input under sticky areas | focused middle/bottom row remains visible after scroll-to-focus | browser/E2E | `keeps a focused virtual estimate row visible in a narrow viewport` |
@@ -72,6 +75,20 @@ Required before enabling `NEXT_PUBLIC_ESTIMATE_ROW_VIRTUALIZATION=true`:
 - mounted and offscreen cursor behavior
 - browser proof for sticky header and narrow viewport
 
+### EMC branch route bundle
+
+Required before enabling `NEXT_PUBLIC_EMC_VIRTUALIZATION=true`:
+
+- virtual-path activation
+- large expanded EMC section mounted-count proof
+- rows-first mixed-content order
+- rows-only collapse/expand
+- search force-reveal behavior
+- template/component drop after scroll
+- add-row strip and pending focus after scroll
+- single sticky displayed header with no collisions
+- browser proof for center scroll with no blank gaps
+
 ### Browser-only bundle
 
 These cannot be proven by jsdom alone:
@@ -81,4 +98,3 @@ These cannot be proven by jsdom alone:
 - variable-height templates do not clip
 - active input remains visible in narrow viewport
 - before/after long-task and initial-render metrics improve
-
