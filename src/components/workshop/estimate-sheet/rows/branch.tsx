@@ -87,7 +87,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   const hasChildren = childAreas.length > 0;
   const hasOwnRows = estimateRowItems.length > 0;
   const hasContents = hasChildren || hasOwnRows;
-  const leftIndent = Math.min(depth * 32, 192);
+  const leftIndent = Math.min(depth * 16, 96);
   const total = computeNodeTotal(node, editableRows);
   const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
   // Own-rows <thead> pins directly below this node's header; children pin below
@@ -236,7 +236,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
       </div>
 
       {!collapsed ? (
-        <div className={cn("space-y-4", !showBreadcrumbs && "mt-1")}>
+        <div className={cn("space-y-2", !showBreadcrumbs && "mt-1")}>
           {/* Rows-first (L1): a node renders its OWN rows + add-row strip
               directly under its header, ABOVE its child sub-areas, so clicking
               a node shows its own numbers before an arbitrarily deep subtree.
