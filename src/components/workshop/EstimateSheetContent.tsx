@@ -1649,7 +1649,7 @@ export function EstimateSheetContent({
 
   const insertLibraryItem = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
     const targetNode = findEstimateNode(estimateTree, targetNodeId);
-    if (targetNode?.kind !== "area") return;
+    if (!targetNode) return;
 
     const previousTree = estimateTree;
     const previousRows = editableRows;
@@ -1740,7 +1740,7 @@ export function EstimateSheetContent({
       if (templates.length === 1) return insertTemplateIntoParent(targetParentNodeId, templates[0]);
 
       const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
-      if (targetParentNode?.kind !== "group") return false;
+      if (!targetParentNode) return false;
 
       const previousTree = estimateTree;
       const previousRows = editableRows;
