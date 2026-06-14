@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { CaretDoubleDown, CaretDoubleUp, FunnelSimple, ListBullets, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
+import { cn } from "@/lib/ui/cn";
 
 export type HeaderIconToolbarAddAction = {
   label: string;
@@ -94,18 +95,33 @@ export function HeaderIconToolbar({
           ))}
         </div>
       ) : null}
-      {filterSlot}
-      {showDefaultActions ? (
-        <>
-          {filterSlot ? null : (
+      {filterSlot || (showDefaultActions && (onFilter || onGroup)) ? (
+        // D8: Filter/Group are honest-by-construction. An explicit `filterSlot`
+        // always renders (it is a deliberate injection, independent of
+        // `showDefaultActions`); the built-in Filter/Group buttons stay gated
+        // behind `showDefaultActions`. Req 11: the cluster gets a trailing
+        // hairline separator only when Expand/Collapse follow it — so a
+        // filter-only toolbar (e.g. the library manager) never shows an orphan
+        // divider.
+        <div
+          className={cn(
+            "flex items-center gap-1",
+            (onExpandAll || onCollapseAll) && "mr-1 border-r border-hairline pr-1",
+          )}
+          role="group"
+          aria-label={`${labelPrefix} view filters`}
+        >
+          {filterSlot ? filterSlot : showDefaultActions && onFilter ? (
             <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
               <FunnelSimple size={12} weight="regular" aria-hidden="true" />
             </ToolbarIconButton>
-          )}
-          <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
-            <ListBullets size={12} weight="regular" aria-hidden="true" />
-          </ToolbarIconButton>
-        </>
+          ) : null}
+          {showDefaultActions && onGroup ? (
+            <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
+              <ListBullets size={12} weight="regular" aria-hidden="true" />
+            </ToolbarIconButton>
+          ) : null}
+        </div>
       ) : null}
       {onExpandAll ? (
         <ToolbarIconButton label={`Expand all ${labelPrefix}`} onClick={onExpandAll}>

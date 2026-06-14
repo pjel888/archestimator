@@ -103,7 +103,8 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     // P4: one neutral "Add Area" replaces the old "Add Group" + "Add Node" pair.
     expect(
       Array.from(screen.getByLabelText("Tree tools").querySelectorAll("button")).map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Show tree search", "Filter tree", "Group tree", "Expand all tree", "Collapse all tree", "Add Area"]);
+    // A4/D8: handler-gated — re-wired in Phase D
+    ).toEqual(["Show tree search", "Expand all tree", "Collapse all tree", "Add Area"]);
     expect(screen.getByRole("button", { name: "Expand all tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Area" })).toBeInTheDocument();
