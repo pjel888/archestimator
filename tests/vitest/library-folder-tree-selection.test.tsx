@@ -1,7 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
-import type { TreeItem, TreeItemIndex } from "react-complex-tree";
 
 import { LibraryFolderTree } from "@/components/workshop/component-library-manager/LibraryFolderTree";
 import { ALL_COMPONENTS_FOLDER_ID } from "@/components/workshop/component-library-manager/library-folder-tree-shared";
@@ -14,71 +12,6 @@ import type { EstimateRowItem } from "@/lib/estimates/types";
 
 vi.mock("@/lib/component-library/actions", () => ({
   reorderLibraryFolders: vi.fn(),
-}));
-
-type CapturedTreeItemData = {
-  kind: "folder" | "component";
-  folderId: string | null;
-  label: string;
-  item?: EstimateRowItem;
-  parentFolderId?: string;
-};
-
-const rctHarness = vi.hoisted(() => ({
-  environment: null as (Record<string, unknown> & {
-    items: Record<TreeItemIndex, TreeItem<CapturedTreeItemData>>;
-    getItemTitle: (item: TreeItem<CapturedTreeItemData>) => string;
-    renderItem?: (props: Record<string, unknown>) => ReactNode;
-    renderItemTitle?: (props: Record<string, unknown>) => ReactNode;
-    renderItemArrow?: (props: Record<string, unknown>) => ReactNode;
-    onPrimaryAction?: (item: TreeItem<CapturedTreeItemData>) => void;
-  }) | null,
-}));
-
-vi.mock("react-complex-tree", () => ({
-  InteractionMode: { ClickArrowToExpand: "ClickArrowToExpand" },
-  ControlledTreeEnvironment: (props: Record<string, unknown> & { children: ReactNode }) => {
-    rctHarness.environment = props as typeof rctHarness.environment;
-    return <div data-rct-environment="true">{props.children}</div>;
-  },
-  Tree: ({ rootItem, treeLabel }: { rootItem: TreeItemIndex; treeLabel: string }) => {
-    const environment = rctHarness.environment;
-    if (!environment) return null;
-
-    function renderChildren(parentId: TreeItemIndex, depth = 0): ReactNode {
-      const parent = environment?.items[parentId];
-      return (
-        <ol>
-          {(parent?.children ?? []).map((childId) => {
-            const item = environment.items[childId]!;
-            const title = environment.renderItemTitle?.({ title: environment.getItemTitle(item), item }) ?? environment.getItemTitle(item);
-            const arrow = environment.renderItemArrow?.({
-              item,
-              context: { isExpanded: true, arrowProps: { role: "button" } },
-            });
-            const children = renderChildren(childId, depth + 1);
-            return environment.renderItem?.({
-              item,
-              depth,
-              title,
-              arrow,
-              children,
-              context: {
-                isExpanded: true,
-                itemContainerWithChildrenProps: {},
-                itemContainerWithoutChildrenProps: {},
-                interactiveElementProps: {
-                  onClick: () => environment.onPrimaryAction?.(item),
-                },
-              },
-            });
-          })}
-        </ol>
-      );
-    }
-
-    return <div role="tree" aria-label={treeLabel}>{renderChildren(rootItem)}</div>;
-  },
 }));
 
 const folders: LibraryFolderRecord[] = [
@@ -192,10 +125,19 @@ function renderTree(onDeleteFolders = vi.fn(), options: RenderTreeOptions = {}) 
 }
 
 describe("library folder tree bulk selection", () => {
-  it("protects the synthetic root while allowing folder checkbox selection and bulk delete", async () => {
-    const onDeleteFolders = renderTree();
+  it("renders on the shared tree primitive and protects the synthetic root from selection", () => {
+    renderTree();
 
-    expect(screen.getByRole("checkbox", { name: "Selection disabled for All Components" })).toBeDisabled();
+    // The folder sidebar now renders with the in-house @/components/ui/tree
+    // primitive (same one the estimate sheet and templates tree use).
+    expect(screen.getByRole("tree", { name: "Library folders" })).toBeInTheDocument();
+    // The synthetic "All Components" root is not selectable: it exposes no checkbox.
+    expect(screen.queryByRole("checkbox", { name: /All Components/ })).toBeNull();
+    expect(screen.getByRole("treeitem", { name: "All Components" })).toBeInTheDocument();
+  });
+
+  it("selects a folder via its checkbox and runs a bulk delete", async () => {
+    const onDeleteFolders = renderTree();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Details" }));
 
@@ -205,17 +147,19 @@ describe("library folder tree bulk selection", () => {
     await waitFor(() => expect(onDeleteFolders).toHaveBeenCalledWith(["folder-details"]));
   });
 
-  it("cascades folder selection to child folders and keeps navigation selection separate", () => {
+  it("cascades folder selection to child folders and keeps the active-folder highlight separate", () => {
     renderTree();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Fabrication" }));
 
     expect(screen.getByRole("checkbox", { name: "Select Details" })).toBeChecked();
-    expect(screen.getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "true");
+    // The active folder is marked with aria-current (navigation), independent of
+    // the bulk-selection checkboxes.
+    expect(screen.getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("toolbar", { name: "Bulk actions" })).toHaveTextContent("2 folders selected");
   });
 
-  it("shows component rows with a checkbox and drag handle", () => {
+  it("shows component rows with a checkbox and a drag affordance", () => {
     const onToggleComponentSelected = vi.fn();
 
     renderTree(vi.fn(), {
@@ -228,8 +172,7 @@ describe("library folder tree bulk selection", () => {
     const checkbox = screen.getByRole("checkbox", { name: "Select General Requirements Monthly" });
     expect(checkbox).toBeChecked();
     const row = screen.getByRole("treeitem", { name: "General Requirements Monthly" });
-    expect(row).toHaveAttribute("data-library-component-bulk-selected", "true");
-    expect(row.querySelector('[title="Drag row"]')).not.toBeNull();
+    expect(row).toHaveAttribute("draggable", "true");
 
     fireEvent.click(checkbox);
 

@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  type ButtonHTMLAttributes,
-  type HTMLAttributes,
   type ReactNode,
   useCallback,
   useEffect,
@@ -10,41 +8,26 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  ControlledTreeEnvironment,
-  InteractionMode,
-  Tree,
-  type DraggingPosition,
-  type TreeItem,
-  type TreeItemIndex,
-  type TreeViewState,
-} from "react-complex-tree";
 import { CaretDown, CaretRight, Check, FolderSimple, Package, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
-import type { ActionMenuGroup } from "@/components/ui/action-menu";
+import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
-import { WorkshopTreeRow } from "@/components/workshop/workshop-tree";
-import { TreeBulkActionBar, TreeDragHandle, TreeSelectionCheckbox } from "@/components/workshop/tree-row-affordances";
-import {
-  WORKSHOP_TREE_ICON_SLOT_CLASS,
-  WORKSHOP_TREE_ROW_GAP_CLASS,
-  WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
-} from "@/components/workshop/tree-visual-style";
+import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { TreeBulkActionBar } from "@/components/workshop/tree-row-affordances";
+import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "@/components/workshop/tree-visual-style";
 import { reorderLibraryFolders } from "@/lib/component-library/actions";
 import {
-  evaluateLibraryFolderDrop,
-  fromLibraryFolderTreeItemId,
-  LIBRARY_FOLDER_TREE_ID,
-  LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
+  buildLibraryFolderReorderPlan,
   toLibraryFolderTreeItemId,
   type LibraryFolderRecord,
+  type LibraryFolderReorderResult,
   type LibraryFolderTreeNode,
 } from "@/lib/component-library/library-folder-reorder";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 import {
-  getSelectionState,
   pruneSelection,
   toggleCascadeSelection,
   type TreeSelectionNode,
@@ -69,18 +52,14 @@ export {
   type ReorderStatus,
 } from "./library-folder-tree-shared";
 
-type LibraryFolderTreeItemData = {
-  kind: "folder" | "component";
-  folderId: string | null;
-  label: string;
-  item?: EstimateRowItem;
-  parentFolderId?: string;
-};
+/** Per-row domain payload carried on `UiTreeNode.data.folderTree`. */
+type LibraryFolderTreeDatum =
+  | { kind: "folder"; folderId: string; label: string; isSyntheticRoot: boolean }
+  | { kind: "component"; item: EstimateRowItem; parentFolderId: string };
 
-type LibraryFolderTreeModel = {
-  items: Record<TreeItemIndex, TreeItem<LibraryFolderTreeItemData>>;
-  folderItemIds: TreeItemIndex[];
-};
+function getLibraryFolderTreeDatum(node: UiTreeNode | undefined): LibraryFolderTreeDatum | undefined {
+  return node?.data?.folderTree as LibraryFolderTreeDatum | undefined;
+}
 
 function normalizeLabel(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -163,7 +142,7 @@ function filterFolderTree(
   });
 }
 
-export function getAllFolderTreeItemIds(nodes: LibraryFolderTreeNode[]): TreeItemIndex[] {
+export function getAllFolderTreeItemIds(nodes: LibraryFolderTreeNode[]): string[] {
   return nodes.flatMap((node) => [node.id, ...getAllFolderTreeItemIds(node.children ?? [])]);
 }
 
@@ -232,51 +211,94 @@ function filterComponentItemsByFolderId(itemsByFolderId: Map<string, EstimateRow
   return filtered;
 }
 
-function buildFolderTreeModel(nodes: LibraryFolderTreeNode[], itemsByFolderId: Map<string, EstimateRowItem[]>): LibraryFolderTreeModel {
-  const items: Record<TreeItemIndex, TreeItem<LibraryFolderTreeItemData>> = {
-    [LIBRARY_FOLDER_TREE_ROOT_ITEM_ID]: {
-      index: LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
-      isFolder: true,
-      canMove: false,
-      children: nodes.map((node) => node.id),
-      data: { kind: "folder", folderId: null, label: "Library folders" },
-    },
-  };
-  const folderItemIds: TreeItemIndex[] = [];
-
-  function visit(node: LibraryFolderTreeNode) {
-    folderItemIds.push(node.id);
+/**
+ * Build the in-house `Tree` node list. Folders carry their subfolders followed
+ * by their component rows as leaf children, so a folder expands to reveal both —
+ * the same shape the estimate sheet and templates tree use. The synthetic "All
+ * Components" root is never selectable or draggable; an empty folder renders as
+ * a leaf (no caret), matching the prior affordance.
+ */
+function toLibraryFolderUiNodes(
+  nodes: LibraryFolderTreeNode[],
+  itemsByFolderId: Map<string, EstimateRowItem[]>,
+  options: { enableFolderActions: boolean; componentsSelectable: boolean },
+): UiTreeNode[] {
+  return nodes.map((node) => {
     const isSyntheticRoot = isAllComponentsFolderId(node.folderId);
-    const componentItems = isSyntheticRoot ? [] : (itemsByFolderId.get(node.folderId) ?? []);
-    const componentItemIds = componentItems.map((item) => toLibraryComponentTreeItemId(node.folderId, item.id));
-    items[node.id] = {
-      index: node.id,
-      isFolder: true,
-      canMove: !isSyntheticRoot,
-      children: [...(node.children?.map((child) => child.id) ?? []), ...componentItemIds],
-      data: { kind: "folder", folderId: node.folderId, label: node.label },
-    };
-    for (const item of componentItems) {
-      const itemId = toLibraryComponentTreeItemId(node.folderId, item.id);
-      items[itemId] = {
-        index: itemId,
-        isFolder: false,
-        canMove: true,
-        children: [],
-        data: {
-          kind: "component",
-          folderId: null,
-          parentFolderId: node.folderId,
-          label: getComponentName(item),
-          item,
-        },
-      };
-    }
-    node.children?.forEach(visit);
+    const childFolders = node.children?.length
+      ? toLibraryFolderUiNodes(node.children, itemsByFolderId, options)
+      : [];
+    const componentItems = isSyntheticRoot ? [] : itemsByFolderId.get(node.folderId) ?? [];
+    const componentNodes: UiTreeNode[] = componentItems.map((item) => ({
+      id: toLibraryComponentTreeItemId(node.folderId, item.id),
+      label: getComponentName(item),
+      ariaLabel: getComponentName(item),
+      isLeaf: true,
+      selectable: options.componentsSelectable,
+      icon: <Package size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+      data: { folderTree: { kind: "component", item, parentFolderId: node.folderId } satisfies LibraryFolderTreeDatum },
+    }));
+    const children = [...childFolders, ...componentNodes];
+    return {
+      id: node.id,
+      label: node.label,
+      ariaLabel: node.label,
+      selectable: options.enableFolderActions && !isSyntheticRoot,
+      icon: <FolderSimple size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
+      children: children.length ? children : undefined,
+      data: {
+        folderTree: { kind: "folder", folderId: node.folderId, label: node.label, isSyntheticRoot } satisfies LibraryFolderTreeDatum,
+      },
+    } satisfies UiTreeNode;
+  });
+}
+
+function indexUiNodes(nodes: UiTreeNode[], into = new Map<string, UiTreeNode>()): Map<string, UiTreeNode> {
+  for (const node of nodes) {
+    into.set(node.id, node);
+    if (node.children?.length) indexUiNodes(node.children, into);
+  }
+  return into;
+}
+
+type FolderPlacement = {
+  /** Real data-model parent folder id for a folder row (null = top level). */
+  parentFolderIdByTreeId: Map<string, string | null>;
+  /** Index of a folder among its real folder siblings (render order). */
+  indexByTreeId: Map<string, number>;
+  /** Count of subfolders for a given folder id (append index for "inside"). */
+  childFolderCountByFolderId: Map<string, number>;
+  /** Number of top-level real folders (append index for the synthetic root). */
+  topLevelCount: number;
+};
+
+/**
+ * Maps each rendered folder row to the (parent, index) coordinates that
+ * `buildLibraryFolderReorderPlan` consumes. The synthetic "All Components" root
+ * is unwrapped: its children are the real top-level folders (data-model parent
+ * `null`), so dropping a folder "inside" the root makes it a top-level folder.
+ */
+function buildFolderPlacement(nodes: LibraryFolderTreeNode[]): FolderPlacement {
+  const parentFolderIdByTreeId = new Map<string, string | null>();
+  const indexByTreeId = new Map<string, number>();
+  const childFolderCountByFolderId = new Map<string, number>();
+
+  function walk(siblings: LibraryFolderTreeNode[], parentRealFolderId: string | null) {
+    siblings.forEach((node, index) => {
+      parentFolderIdByTreeId.set(node.id, parentRealFolderId);
+      indexByTreeId.set(node.id, index);
+      const children = node.children ?? [];
+      childFolderCountByFolderId.set(node.folderId, children.length);
+      walk(children, node.folderId);
+    });
   }
 
-  nodes.forEach(visit);
-  return { items, folderItemIds };
+  const hasSyntheticRoot = nodes.length > 0 && isAllComponentsFolderId(nodes[0].folderId);
+  const topLevelFolders = hasSyntheticRoot ? nodes[0].children ?? [] : nodes;
+  if (hasSyntheticRoot) childFolderCountByFolderId.set(nodes[0].folderId, topLevelFolders.length);
+  walk(topLevelFolders, null);
+
+  return { parentFolderIdByTreeId, indexByTreeId, childFolderCountByFolderId, topLevelCount: topLevelFolders.length };
 }
 
 function buildFolderSelectionNodes(nodes: LibraryFolderTreeNode[]): TreeSelectionNode[] {
@@ -285,19 +307,6 @@ function buildFolderSelectionNodes(nodes: LibraryFolderTreeNode[]): TreeSelectio
     selectable: !isAllComponentsFolderId(node.folderId),
     children: buildFolderSelectionNodes(node.children ?? []),
   }));
-}
-
-function getWritableDropFolderId(targetItem: TreeItemIndex) {
-  const value = String(targetItem);
-  if (value === LIBRARY_FOLDER_TREE_ROOT_ITEM_ID) return null;
-  const folderId = fromLibraryFolderTreeItemId(value);
-  return folderId && !isAllComponentsFolderId(folderId) ? folderId : null;
-}
-
-function getComponentDropTargetFolderId(target: DraggingPosition) {
-  if (target.targetType === "item") return getWritableDropFolderId(target.targetItem);
-  if (target.targetType === "between-items") return getWritableDropFolderId(target.parentItem);
-  return null;
 }
 
 export function FolderActionIcon() {
@@ -365,8 +374,8 @@ type LibraryFolderTreeProps = {
   onCreateFolder: (parentId: string | null) => void;
   onRenameFolder: (folderId: string, currentName: string) => void;
   onDeleteFolder: (folderId: string, currentName: string) => void;
-  expandedItemIds?: TreeItemIndex[];
-  onExpandedItemIdsChange?: (itemIds: TreeItemIndex[]) => void;
+  expandedItemIds?: string[];
+  onExpandedItemIdsChange?: (itemIds: string[]) => void;
   enableFolderActions?: boolean;
   enableDragAndDrop?: boolean;
   selectedTitleOnly?: boolean;
@@ -405,10 +414,19 @@ export function LibraryFolderTree({
     () => filterFolderTree(nodes, searchQuery, filteredComponentItemsByFolderId),
     [filteredComponentItemsByFolderId, nodes, searchQuery],
   );
-  const treeModel = useMemo(() => buildFolderTreeModel(filteredNodes, filteredComponentItemsByFolderId), [filteredComponentItemsByFolderId, filteredNodes]);
-  const [internalExpandedItemIds, setInternalExpandedItemIds] = useState<TreeItemIndex[]>(() => getAllFolderTreeItemIds(nodes));
+  const componentsSelectable = Boolean(onToggleComponentSelected);
+  const selectable = enableFolderActions || componentsSelectable;
+
+  const uiNodes = useMemo(
+    () => toLibraryFolderUiNodes(filteredNodes, filteredComponentItemsByFolderId, { enableFolderActions, componentsSelectable }),
+    [componentsSelectable, enableFolderActions, filteredComponentItemsByFolderId, filteredNodes],
+  );
+  const nodeById = useMemo(() => indexUiNodes(uiNodes), [uiNodes]);
+  const placement = useMemo(() => buildFolderPlacement(filteredNodes), [filteredNodes]);
+
+  const [internalExpandedItemIds, setInternalExpandedItemIds] = useState<string[]>(() => getAllFolderTreeItemIds(nodes));
   const expandedItemIds = controlledExpandedItemIds ?? internalExpandedItemIds;
-  const setExpandedItemIds = useCallback((update: TreeItemIndex[] | ((current: TreeItemIndex[]) => TreeItemIndex[])) => {
+  const setExpandedItemIds = useCallback((update: string[] | ((current: string[]) => string[])) => {
     const next = typeof update === "function" ? update(expandedItemIds) : update;
     if (onExpandedItemIdsChange) {
       onExpandedItemIdsChange(next);
@@ -416,17 +434,7 @@ export function LibraryFolderTree({
       setInternalExpandedItemIds(next);
     }
   }, [expandedItemIds, onExpandedItemIdsChange]);
-  const selectedItems = useMemo<TreeItemIndex[]>(
-    () => (selectedFolderId ? [toLibraryFolderTreeItemId(selectedFolderId)] : []),
-    [selectedFolderId],
-  );
-  const viewState = useMemo<TreeViewState>(() => ({
-    [LIBRARY_FOLDER_TREE_ID]: {
-      expandedItems: expandedItemIds,
-      selectedItems,
-      focusedItem: selectedItems[0],
-    },
-  }), [expandedItemIds, selectedItems]);
+
   const folderSelectionNodes = useMemo(() => buildFolderSelectionNodes(filteredNodes), [filteredNodes]);
   const [bulkSelectedFolderIds, setBulkSelectedFolderIds] = useState<Set<string>>(() => new Set());
   const bulkSelectionCount = bulkSelectedFolderIds.size;
@@ -446,6 +454,25 @@ export function LibraryFolderTree({
     };
   }, [folderSelectionNodes]);
 
+  // The in-house tree drives selection from a single id set: union the bulk
+  // folder selection (cascade checkboxes) with the component selection so both
+  // render their checkbox state from one source.
+  const selectedComponentTreeIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const [folderId, items] of filteredComponentItemsByFolderId.entries()) {
+      for (const item of items) {
+        if (selectedComponentIds.has(item.id)) ids.push(toLibraryComponentTreeItemId(folderId, item.id));
+      }
+    }
+    return ids;
+  }, [filteredComponentItemsByFolderId, selectedComponentIds]);
+
+  const selectedIds = useMemo(
+    () => [...[...bulkSelectedFolderIds].map((folderId) => toLibraryFolderTreeItemId(folderId)), ...selectedComponentTreeIds],
+    [bulkSelectedFolderIds, selectedComponentTreeIds],
+  );
+  const currentId = selectedFolderId ? toLibraryFolderTreeItemId(selectedFolderId) : undefined;
+
   const clearBulkSelection = useCallback(() => setBulkSelectedFolderIds(new Set()), []);
 
   const handleToggleBulkFolder = useCallback((folderId: string, checked: boolean) => {
@@ -458,65 +485,114 @@ export function LibraryFolderTree({
     if (result !== false) clearBulkSelection();
   }, [bulkSelectedFolderIds, clearBulkSelection, onDeleteFolders]);
 
-  const canDrag = useCallback((items: TreeItem<LibraryFolderTreeItemData>[]) => {
-    if (!enableDragAndDrop || disabled || items.length !== 1) return false;
-    const draggedItem = items[0];
-    if (draggedItem?.data.kind === "folder") {
-      return Boolean(draggedItem.data.folderId) && !isAllComponentsFolderId(draggedItem.data.folderId);
+  const handleToggle = useCallback((nodeId: string) => {
+    setExpandedItemIds((current) =>
+      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
+    );
+  }, [setExpandedItemIds]);
+
+  const handleCheckboxToggle = useCallback((nodeId: string, checked: boolean, node: UiTreeNode) => {
+    const datum = getLibraryFolderTreeDatum(node);
+    if (datum?.kind === "folder" && !datum.isSyntheticRoot) {
+      handleToggleBulkFolder(datum.folderId, checked);
+    } else if (datum?.kind === "component") {
+      onToggleComponentSelected?.(datum.item.id);
     }
-    return Boolean(onMoveComponentToFolder && draggedItem?.data.kind === "component" && draggedItem.data.item && draggedItem.data.parentFolderId);
+  }, [handleToggleBulkFolder, onToggleComponentSelected]);
+
+  const handleRowClick = useCallback((_nodeId: string, node: UiTreeNode) => {
+    const datum = getLibraryFolderTreeDatum(node);
+    if (datum?.kind === "component") onSelectFolder(datum.parentFolderId);
+    else if (datum?.kind === "folder" && datum.folderId) onSelectFolder(datum.folderId);
+  }, [onSelectFolder]);
+
+  const handleCanDrag = useCallback((node: UiTreeNode) => {
+    if (!enableDragAndDrop || disabled) return false;
+    const datum = getLibraryFolderTreeDatum(node);
+    if (datum?.kind === "folder") return !datum.isSyntheticRoot && Boolean(datum.folderId);
+    if (datum?.kind === "component") return Boolean(onMoveComponentToFolder);
+    return false;
   }, [disabled, enableDragAndDrop, onMoveComponentToFolder]);
 
-  const canDropAt = useCallback((items: TreeItem<LibraryFolderTreeItemData>[], target: DraggingPosition) => {
-    if (!canDrag(items)) return false;
-    const draggedItem = items[0];
-    if (draggedItem.data.kind === "component") {
-      const targetFolderId = getComponentDropTargetFolderId(target);
-      return Boolean(targetFolderId && draggedItem.data.parentFolderId !== targetFolderId);
+  // A component drops into whichever folder the target row resolves to: the
+  // folder itself, or the parent folder of a hovered component row. The
+  // synthetic "All Components" root is never a valid destination.
+  const resolveComponentTargetFolderId = useCallback((targetId: string) => {
+    const datum = getLibraryFolderTreeDatum(nodeById.get(targetId));
+    if (!datum) return null;
+    if (datum.kind === "component") return datum.parentFolderId;
+    if (datum.isSyntheticRoot) return null;
+    return datum.folderId;
+  }, [nodeById]);
+
+  // Translate the tree's (target, position) into the (parent, index)
+  // coordinates the reorder planner consumes. "inside" nests under the folder;
+  // before/after reorders among the target's siblings.
+  const resolveFolderDropPlan = useCallback((
+    draggedFolderId: string,
+    targetId: string,
+    position: TreeDropPosition,
+  ): LibraryFolderReorderResult | null => {
+    const datum = getLibraryFolderTreeDatum(nodeById.get(targetId));
+    if (datum?.kind !== "folder") return null;
+    if (position === "inside") {
+      const targetParentId = datum.isSyntheticRoot ? null : datum.folderId;
+      const targetIndex = datum.isSyntheticRoot
+        ? placement.topLevelCount
+        : placement.childFolderCountByFolderId.get(datum.folderId) ?? 0;
+      return buildLibraryFolderReorderPlan({ folders, draggedFolderId, targetParentId, targetIndex });
     }
-    return evaluateLibraryFolderDrop({
-      folders,
-      draggedItemIds: items.map((item) => item.index),
-      target,
-    }).ok;
-  }, [canDrag, folders]);
+    if (datum.isSyntheticRoot) return null;
+    const targetParentId = placement.parentFolderIdByTreeId.get(targetId) ?? null;
+    const baseIndex = placement.indexByTreeId.get(targetId) ?? 0;
+    const targetIndex = position === "after" ? baseIndex + 1 : baseIndex;
+    return buildLibraryFolderReorderPlan({ folders, draggedFolderId, targetParentId, targetIndex });
+  }, [folders, nodeById, placement]);
 
-  const handleDrop = useCallback(async (items: TreeItem<LibraryFolderTreeItemData>[], target: DraggingPosition) => {
-    const draggedItem = items[0];
-    if (draggedItem?.data.kind === "component") {
-      const targetFolderId = getComponentDropTargetFolderId(target);
-      const componentItem = draggedItem.data.item;
-      if (!componentItem || !targetFolderId || !onMoveComponentToFolder) {
-        onReorderStatus({ state: "error", message: "Drop components onto a library folder." });
-        return;
-      }
-      if (draggedItem.data.parentFolderId === targetFolderId) {
-        onReorderStatus({ state: "saved", message: "Component is already in that folder." });
-        return;
-      }
+  const handleCanDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
+    const draggedDatum = getLibraryFolderTreeDatum(nodeById.get(draggedId));
+    if (!draggedDatum) return false;
+    if (draggedDatum.kind === "component") {
+      const targetFolderId = resolveComponentTargetFolderId(targetId);
+      return Boolean(targetFolderId && targetFolderId !== draggedDatum.parentFolderId);
+    }
+    return Boolean(resolveFolderDropPlan(draggedDatum.folderId, targetId, position)?.ok);
+  }, [nodeById, resolveComponentTargetFolderId, resolveFolderDropPlan]);
 
-      onReorderStatus({ state: "saving", message: `Moving ${getComponentName(componentItem)}...` });
-      try {
-        await onMoveComponentToFolder(componentItem, targetFolderId);
-        onSelectFolder(targetFolderId);
-        onReorderStatus({ state: "saved", message: "Component moved." });
-      } catch (error) {
-        onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not move component." });
-      }
+  const handleComponentDrop = useCallback(async (
+    item: EstimateRowItem,
+    sourceFolderId: string,
+    targetFolderId: string | null,
+  ) => {
+    if (!targetFolderId || !onMoveComponentToFolder) {
+      onReorderStatus({ state: "error", message: "Drop components onto a library folder." });
       return;
     }
+    if (sourceFolderId === targetFolderId) {
+      onReorderStatus({ state: "saved", message: "Component is already in that folder." });
+      return;
+    }
+    onReorderStatus({ state: "saving", message: `Moving ${getComponentName(item)}...` });
+    try {
+      await onMoveComponentToFolder(item, targetFolderId);
+      onSelectFolder(targetFolderId);
+      onReorderStatus({ state: "saved", message: "Component moved." });
+    } catch (error) {
+      onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not move component." });
+    }
+  }, [onMoveComponentToFolder, onReorderStatus, onSelectFolder]);
 
-    const result = evaluateLibraryFolderDrop({
-      folders,
-      draggedItemIds: items.map((item) => item.index),
-      target,
-    });
-
+  const handleFolderDrop = useCallback(async (
+    draggedFolderId: string,
+    targetId: string,
+    position: TreeDropPosition,
+  ) => {
+    const result = resolveFolderDropPlan(draggedFolderId, targetId, position);
+    if (!result) return;
     if (!result.ok) {
       onReorderStatus({ state: "error", message: result.message });
       return;
     }
-
     const previousFolders = folders;
     onFoldersChange(result.plan.nextFolders);
     onReorderStatus({ state: "saving", message: "Saving folder order..." });
@@ -528,33 +604,43 @@ export function LibraryFolderTree({
       onFoldersChange(previousFolders);
       onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save folder order." });
     }
-  }, [folders, onFoldersChange, onMoveComponentToFolder, onReorderStatus, onSelectFolder]);
+  }, [folders, onFoldersChange, onReorderStatus, onSelectFolder, resolveFolderDropPlan]);
 
-  const createActionGroups = useCallback((item: TreeItem<LibraryFolderTreeItemData>, hasChildren: boolean, isExpanded: boolean): ActionMenuGroup[] => {
-    const folderId = item.data.folderId;
-    const isSyntheticRoot = isAllComponentsFolderId(folderId);
+  const handleDrop = useCallback((draggedId: string, targetId: string, position: TreeDropPosition) => {
+    const draggedDatum = getLibraryFolderTreeDatum(nodeById.get(draggedId));
+    if (!draggedDatum) return;
+    if (draggedDatum.kind === "component") {
+      void handleComponentDrop(draggedDatum.item, draggedDatum.parentFolderId, resolveComponentTargetFolderId(targetId));
+      return;
+    }
+    void handleFolderDrop(draggedDatum.folderId, targetId, position);
+  }, [handleComponentDrop, handleFolderDrop, nodeById, resolveComponentTargetFolderId]);
+
+  const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+
+  const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
+    const node = contextMenuNodeId ? nodeById.get(contextMenuNodeId) : undefined;
+    const datum = getLibraryFolderTreeDatum(node);
+    if (!node || datum?.kind !== "folder") return [];
+    const { folderId, label, isSyntheticRoot } = datum;
+    const hasChildren = Boolean(node.children?.length);
+    const isExpanded = expandedItemIds.includes(node.id);
     const createParentId = isSyntheticRoot ? null : folderId;
     return [
       {
         id: "folder-actions",
         items: [
-          {
-            id: "select",
-            label: "Select",
-            onSelect: () => {
-              if (folderId) onSelectFolder(folderId);
-            },
-          },
+          { id: "select", label: "Select", onSelect: () => onSelectFolder(folderId) },
           ...(hasChildren
             ? [
                 {
                   id: isExpanded ? "collapse" : "expand",
                   label: isExpanded ? "Collapse" : "Expand",
-                  onSelect: () => {
-                    setExpandedItemIds((current) =>
-                      current.includes(item.index) ? current.filter((id) => id !== item.index) : [...current, item.index],
-                    );
-                  },
+                  icon: isExpanded
+                    ? <CaretDown size={12} weight="regular" aria-hidden="true" />
+                    : <CaretRight size={12} weight="regular" aria-hidden="true" />,
+                  onSelect: () => handleToggle(node.id),
                 },
               ]
             : []),
@@ -574,9 +660,7 @@ export function LibraryFolderTree({
                         label: "Rename",
                         disabled,
                         disabledReason: disabled ? "Finish the current folder save before renaming another folder." : undefined,
-                        onSelect: () => {
-                          if (folderId) onRenameFolder(folderId, item.data.label);
-                        },
+                        onSelect: () => onRenameFolder(folderId, label),
                       },
                       {
                         id: "delete-folder",
@@ -584,9 +668,7 @@ export function LibraryFolderTree({
                         tone: "destructive" as const,
                         disabled: disabled || !folderId,
                         disabledReason: disabled ? "Finish the current folder save before deleting another folder." : undefined,
-                        onSelect: () => {
-                          if (folderId) onDeleteFolder(folderId, item.data.label);
-                        },
+                        onSelect: () => onDeleteFolder(folderId, label),
                       },
                     ]
                   : []),
@@ -595,7 +677,32 @@ export function LibraryFolderTree({
         ],
       },
     ];
-  }, [disabled, enableFolderActions, onCreateFolder, onDeleteFolder, onRenameFolder, onSelectFolder, setExpandedItemIds]);
+  }, [contextMenuNodeId, disabled, enableFolderActions, expandedItemIds, handleToggle, nodeById, onCreateFolder, onDeleteFolder, onRenameFolder, onSelectFolder]);
+
+  const renderRow = useCallback((node: UiTreeNode) => {
+    const datum = getLibraryFolderTreeDatum(node);
+    if (datum?.kind === "component") {
+      const item = datum.item;
+      return (
+        <span data-library-component-item-id={item.id} className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5">
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-[10px] font-medium leading-4 text-ink">{getComponentName(item)}</span>
+            <span className="truncate text-[9px] leading-3 text-tertiary">{item.supplier || "No supplier"}</span>
+          </span>
+          <span className="flex shrink-0 flex-col items-end">
+            <span className="text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(getComponentPrice(item))}</span>
+            <span className="text-[9px] text-tertiary">/{item.unit}</span>
+          </span>
+        </span>
+      );
+    }
+    const isCurrentFolder = datum?.kind === "folder" && selectedFolderId === datum.folderId;
+    return (
+      <span className={cn("min-w-0 flex-1 truncate", selectedTitleOnly && isCurrentFolder && "font-medium text-ink")}>
+        {node.label}
+      </span>
+    );
+  }, [selectedFolderId, selectedTitleOnly]);
 
   if (filteredNodes.length === 0) {
     return (
@@ -615,230 +722,49 @@ export function LibraryFolderTree({
         deleteDisabled={disabled || !onDeleteFolders}
         disabledReason={disabled ? "Finish the current folder save before deleting selected folders." : "Bulk folder delete is not available here."}
       />
-      <ControlledTreeEnvironment<LibraryFolderTreeItemData>
-      items={treeModel.items}
-      getItemTitle={(item) => item.data.label}
-      viewState={viewState}
-      defaultInteractionMode={InteractionMode.ClickArrowToExpand}
-      canInvokePrimaryActionOnItemContainer
-      canSearch={false}
-      canDragAndDrop={enableDragAndDrop}
-      canReorderItems={enableDragAndDrop}
-      canDropOnFolder={enableDragAndDrop}
-      canDropOnNonFolder={false}
-      canDropBelowOpenFolders={enableDragAndDrop}
-      canDrag={canDrag}
-      canDropAt={canDropAt}
-      onDrop={handleDrop}
-      onPrimaryAction={(item) => {
-        if (item.data.folderId) onSelectFolder(item.data.folderId);
-        else if (item.data.parentFolderId) onSelectFolder(item.data.parentFolderId);
-      }}
-      onExpandItem={(item) => {
-        setExpandedItemIds((current) => current.includes(item.index) ? current : [...current, item.index]);
-      }}
-      onCollapseItem={(item) => {
-        setExpandedItemIds((current) => current.filter((id) => id !== item.index));
-      }}
-      renderTreeContainer={({ children, containerProps }) => {
-        const { className, ...treeContainerProps } = containerProps as HTMLAttributes<HTMLDivElement>;
-        return (
-          <nav aria-label="Library folder tree">
-            <div {...treeContainerProps} className={cn("relative min-h-7 outline-none", className)}>
-              {children}
-            </div>
-          </nav>
-        );
-      }}
-      renderItemsContainer={({ children, containerProps }) => {
-        const { className, ...itemsContainerProps } = containerProps as HTMLAttributes<HTMLOListElement>;
-        return (
-          <ol {...itemsContainerProps} className={cn(WORKSHOP_TREE_ROW_GAP_CLASS, className)}>
-            {children}
-          </ol>
-        );
-      }}
-      renderItemTitle={({ title }) => (
-        <>
-          <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
-            <FolderActionIcon />
-          </span>
-          <span className="min-w-0 flex-1 truncate">{title}</span>
-        </>
-      )}
-      renderItemArrow={({ item, context }) => {
-        const { className, ...arrowProps } = context.arrowProps as HTMLAttributes<HTMLSpanElement>;
-        if (!item.children?.length) {
-          return (
-            <span
-              data-library-folder-arrow-spacer-id={String(item.index)}
-              className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, className)}
-              aria-hidden="true"
-            />
-          );
-        }
-        return (
-          <span
-            {...arrowProps}
-            data-library-folder-arrow-id={String(item.index)}
-            className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surfaceMuted", className)}
+      <ContextMenu onOpenChange={setContextMenuOpen}>
+        <ContextMenuTrigger asChild>
+          <nav
+            aria-label="Library folder tree"
+            className="block w-full"
+            onContextMenu={(event) => {
+              // Only folder rows open the menu; right-clicks on empty space or
+              // component rows keep it closed.
+              if (!(event.target instanceof Element)) {
+                event.preventDefault();
+                return;
+              }
+              const row = event.target.closest("[data-tree-row]");
+              if (!row || (row.getAttribute("data-tree-row") ?? "").startsWith("component:")) {
+                event.preventDefault();
+              }
+            }}
           >
-            {context.isExpanded ? (
-              <CaretDown size={11} weight="regular" aria-hidden="true" />
-            ) : (
-              <CaretRight size={11} weight="regular" aria-hidden="true" />
-            )}
-          </span>
-        );
-      }}
-      renderItem={({ item, depth, children, title, arrow, context }) => {
-        if (item.data.kind === "component" && item.data.item) {
-          const parentFolderId = item.data.parentFolderId;
-          const componentItem = item.data.item;
-          const componentName = getComponentName(componentItem);
-          const componentPrice = getComponentPrice(componentItem);
-          const componentSelected = selectedComponentIds.has(componentItem.id);
-          const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
-          delete (liProps as Record<string, unknown>).role;
-          delete (liProps as Record<string, unknown>)["aria-selected"];
-          const { className: rowClassName, style: rowStyle, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
-          const { className: buttonClassName, onClick: interactiveOnClick, ...interactiveProps } = context.interactiveElementProps as HTMLAttributes<HTMLDivElement>;
-          delete (interactiveProps as Record<string, unknown>).type;
-          delete (interactiveProps as Record<string, unknown>).disabled;
-
-          return (
-            <li {...liProps} className={cn("list-none", liClassName)}>
-              <div
-                {...rowProps}
-                data-library-component-tree-row="true"
-                className={cn("relative flex items-center gap-0.5 py-0", WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS, rowClassName)}
-                style={rowStyle}
-              >
-                <WorkshopTreeRow
-                  {...interactiveProps}
-                  as="div"
-                  role="treeitem"
-                  aria-label={componentName}
-                  aria-selected={false}
-                  data-library-component-item-id={componentItem.id}
-                  data-library-component-bulk-selected={componentSelected ? "true" : undefined}
-                  depth={depth}
-                  selected={false}
-                  selectionMode={selectedComponentCount > 0}
-                  dragHandleSlot={enableDragAndDrop && onMoveComponentToFolder ? <TreeDragHandle forceVisible /> : undefined}
-                  leadingSlot={
-                    onToggleComponentSelected ? (
-                      <TreeSelectionCheckbox
-                        checked={componentSelected}
-                        disabled={disabled}
-                        aria-label={`Select ${componentName}`}
-                        onChange={() => onToggleComponentSelected(componentItem.id)}
-                      />
-                    ) : undefined
-                  }
-                  className={cn(
-                    "cursor-pointer gap-1.5",
-                    componentSelected ? "border-accent bg-accentSoft" : undefined,
-                    buttonClassName,
-                  )}
-                  onClick={(event) => {
-                    interactiveOnClick?.(event);
-                    if (parentFolderId) onSelectFolder(parentFolderId);
-                  }}
-                >
-                  <Package size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[10px] font-medium leading-4 text-ink">{componentName}</span>
-                      <span className="truncate text-[9px] leading-3 text-tertiary">{componentItem.supplier || "No supplier"}</span>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end">
-                      <span className="text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(componentPrice)}</span>
-                      <span className="text-[9px] text-tertiary">/{componentItem.unit}</span>
-                    </div>
-                  </div>
-                </WorkshopTreeRow>
-              </div>
-            </li>
-          );
-        }
-
-        const folderId = item.data.folderId;
-        if (!folderId) return null;
-
-        const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
-        const { className: rowClassName, style: rowStyle, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
-        const { className: buttonClassName, ...interactiveProps } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
-        delete (interactiveProps as Record<string, unknown>).type;
-        delete (interactiveProps as Record<string, unknown>).disabled;
-        const selected = selectedFolderId === folderId;
-        const hasChildren = Boolean(item.children?.length);
-        const isSyntheticRoot = isAllComponentsFolderId(folderId);
-        const bulkState = getSelectionState(folderSelectionNodes, bulkSelectedFolderIds, folderId);
-
-        return (
-          <li {...liProps} className={cn("list-none", liClassName)}>
-            <div
-              {...rowProps}
-              data-library-folder-tree-row="true"
-              className={cn("relative flex items-center gap-0.5 py-0", WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS, rowClassName)}
-              style={rowStyle}
-            >
-              <div className="min-w-0 flex-1">
-                <WorkshopTreeRow
-                  {...(interactiveProps as HTMLAttributes<HTMLDivElement>)}
-                  as="div"
-                  role="treeitem"
-                  aria-label={item.data.label}
-                  aria-selected={selected}
-                  aria-expanded={hasChildren ? context.isExpanded : undefined}
-                  data-library-folder-node-id={item.index}
-                  data-library-folder-bulk-selected={bulkState.checked ? "true" : undefined}
-                  depth={depth}
-                  selected={selected}
-                  selectionMode={bulkSelectionCount > 0}
-                  dragHandleSlot={enableDragAndDrop && !isSyntheticRoot ? <TreeDragHandle forceVisible={bulkSelectionCount > 0} /> : undefined}
-                  leadingSlot={
-                    enableFolderActions ? (
-                      <TreeSelectionCheckbox
-                        checked={bulkState.checked}
-                        indeterminate={bulkState.indeterminate}
-                        disabled={disabled || isSyntheticRoot}
-                        aria-label={isSyntheticRoot ? `Selection disabled for ${item.data.label}` : `Select ${item.data.label}`}
-                        onChange={(event) => handleToggleBulkFolder(folderId, event.currentTarget.checked)}
-                      />
-                    ) : undefined
-                  }
-                  contextMenuGroups={createActionGroups(item, hasChildren, Boolean(context.isExpanded))}
-                  className={cn(
-                    "relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
-                    bulkState.checked && !selected ? "border-accent bg-accentSoft" : undefined,
-                    buttonClassName,
-                  )}
-                >
-                  {arrow}
-                  {selectedTitleOnly ? (
-                    <>
-                      <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
-                        <FolderActionIcon />
-                      </span>
-                      <span className={cn("min-w-0 flex-1 truncate", selected ? "font-medium text-ink" : "font-normal text-ink")}>
-                        {item.data.label}
-                      </span>
-                    </>
-                  ) : (
-                    title
-                  )}
-                </WorkshopTreeRow>
-              </div>
-            </div>
-            {children}
-          </li>
-        );
-      }}
-    >
-      <Tree treeId={LIBRARY_FOLDER_TREE_ID} rootItem={LIBRARY_FOLDER_TREE_ROOT_ITEM_ID} treeLabel="Library folders" />
-      </ControlledTreeEnvironment>
+            <Tree
+              nodes={uiNodes}
+              ariaLabel="Library folders"
+              className={cn("relative min-h-7 overflow-visible", WORKSHOP_TREE_ROW_GAP_CLASS)}
+              expandedIds={expandedItemIds}
+              onToggle={(nodeId) => handleToggle(nodeId)}
+              selectable={selectable}
+              selectedIds={selectedIds}
+              onCheckboxToggle={selectable ? handleCheckboxToggle : undefined}
+              currentId={currentId}
+              railsPinned={contextMenuOpen || bulkSelectionCount > 0 || selectedComponentCount > 0}
+              draggable={enableDragAndDrop}
+              canDrag={handleCanDrag}
+              canDrop={handleCanDrop}
+              onDrop={enableDragAndDrop ? handleDrop : undefined}
+              onRowClick={handleRowClick}
+              onContextMenu={(nodeId) => setContextMenuNodeId(nodeId)}
+              renderRow={renderRow}
+            />
+          </nav>
+        </ContextMenuTrigger>
+        <ContextMenuContent data-library-folder-tree-context-menu="true" alignOffset={4}>
+          <ContextActionMenuContent groups={contextMenuGroups} />
+        </ContextMenuContent>
+      </ContextMenu>
     </>
   );
 }
@@ -987,7 +913,7 @@ export function LibraryFolderTreeSurface({
     [folderNodes, showAllComponentsRoot],
   );
   const effectiveSelectedFolderId = showAllComponentsRoot ? (selectedFolderId ?? ALL_COMPONENTS_FOLDER_ID) : selectedFolderId;
-  const [expandedFolderItemIds, setExpandedFolderItemIds] = useState<TreeItemIndex[]>(() => getAllFolderTreeItemIds(displayedFolderNodes));
+  const [expandedFolderItemIds, setExpandedFolderItemIds] = useState<string[]>(() => getAllFolderTreeItemIds(displayedFolderNodes));
   const [expandedSupplierNodeIds, setExpandedSupplierNodeIds] = useState(() => getAllNodeIds(supplierNodes));
   const [expandedBrandNodeIds, setExpandedBrandNodeIds] = useState(() => getAllNodeIds(brandNodes));
   const filteredSupplierNodes = filterTree(supplierNodes, searchQuery);

@@ -167,21 +167,24 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
   it("filters the catalogue through the facet popover and resets", async () => {
     renderManager();
     await waitForSheet();
-    expect(screen.getByText("Fresh Tile")).toBeInTheDocument();
+    // The facet filter scopes the catalogue sheet; the folder tree (a separate
+    // surface) also lists component names, so assert against the sheet panel.
+    const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
+    expect(within(sheet).getByText("Fresh Tile")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Filter components" }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByLabelText("Discontinued"));
 
     await waitFor(() => {
-      expect(screen.queryByText("Fresh Tile")).not.toBeInTheDocument();
+      expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("Discontinued Plank")).toBeInTheDocument();
+    expect(within(sheet).getByText("Discontinued Plank")).toBeInTheDocument();
     expect(screen.getByText(/1 of 3 after filters/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
     await waitFor(() => {
-      expect(screen.getByText("Fresh Tile")).toBeInTheDocument();
+      expect(within(sheet).getByText("Fresh Tile")).toBeInTheDocument();
     });
     expect(dialog).toBeInTheDocument();
   });
@@ -189,26 +192,28 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
   it("filters by pricing freshness", async () => {
     renderManager();
     await waitForSheet();
+    const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
 
     fireEvent.click(screen.getByRole("button", { name: "Filter components" }));
     await screen.findByRole("dialog");
     fireEvent.click(screen.getByLabelText(/Older than 90 days/));
 
     await waitFor(() => {
-      expect(screen.queryByText("Fresh Tile")).not.toBeInTheDocument();
+      expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("Stale Paint")).toBeInTheDocument();
+    expect(within(sheet).getByText("Stale Paint")).toBeInTheDocument();
   });
 
   it("seeds facet state from deep-link search params", async () => {
     navigationMocks.searchParams = new URLSearchParams("lifecycle=discontinued");
     renderManager();
     await waitForSheet();
+    const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
 
     await waitFor(() => {
-      expect(screen.queryByText("Fresh Tile")).not.toBeInTheDocument();
+      expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("Discontinued Plank")).toBeInTheDocument();
+    expect(within(sheet).getByText("Discontinued Plank")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Filter components (1 active)" })).toBeInTheDocument();
   });
 
@@ -216,11 +221,12 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     navigationMocks.searchParams = new URLSearchParams("brand=none");
     renderManager();
     await waitForSheet();
+    const sheet = document.querySelector("[data-component-library-sheet-panel='true']") as HTMLElement;
 
     await waitFor(() => {
-      expect(screen.queryByText("Fresh Tile")).not.toBeInTheDocument();
+      expect(within(sheet).queryByText("Fresh Tile")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("Stale Paint")).toBeInTheDocument();
+    expect(within(sheet).getByText("Stale Paint")).toBeInTheDocument();
   });
 
   it("opens and focuses the sheet search disclosure on Cmd+K", async () => {

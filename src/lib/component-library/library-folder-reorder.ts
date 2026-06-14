@@ -1,4 +1,4 @@
-import type { DraggingPosition, TreeItemIndex } from "react-complex-tree";
+import type { TreeItemIndex } from "react-complex-tree";
 
 import type { EstimateRowItem } from "@/lib/estimates/types";
 
@@ -84,11 +84,6 @@ export function toLibraryFolderTreeItemId(folderId: string) {
 export function fromLibraryFolderTreeItemId(itemId: TreeItemIndex): string {
   const value = String(itemId);
   return value.startsWith(LIBRARY_FOLDER_ID_PREFIX) ? value.slice(LIBRARY_FOLDER_ID_PREFIX.length) : value;
-}
-
-function normalizeParentId(parentItem: TreeItemIndex): string | null {
-  const parentId = String(parentItem);
-  return parentId === LIBRARY_FOLDER_TREE_ROOT_ITEM_ID ? null : fromLibraryFolderTreeItemId(parentId);
 }
 
 function compareFolders(left: LibraryFolderRecord, right: LibraryFolderRecord) {
@@ -294,46 +289,6 @@ export function buildLibraryFolderReorderPlan({
       updates: buildSiblingUpdates(nextFolders, [sourceLocation.parentId, targetParentId]),
     },
   };
-}
-
-export function evaluateLibraryFolderDrop({
-  folders,
-  draggedItemIds,
-  target,
-}: {
-  folders: LibraryFolderRecord[];
-  draggedItemIds: TreeItemIndex[];
-  target: DraggingPosition;
-}): LibraryFolderReorderResult {
-  if (draggedItemIds.length !== 1) return fail("multi-drag-unsupported", "Only one library folder can be moved at a time.");
-
-  const draggedFolderId = fromLibraryFolderTreeItemId(draggedItemIds[0]);
-  if (draggedFolderId === LIBRARY_FOLDER_TREE_ROOT_ITEM_ID) return fail("synthetic-root-drag", "The library folder root cannot be moved.");
-
-  if (target.targetType === "between-items") {
-    return buildLibraryFolderReorderPlan({
-      folders,
-      draggedFolderId,
-      targetParentId: normalizeParentId(target.parentItem),
-      targetIndex: target.childIndex,
-    });
-  }
-
-  if (target.targetType === "item") {
-    const targetFolderId = fromLibraryFolderTreeItemId(target.targetItem);
-    return buildLibraryFolderReorderPlan({
-      folders,
-      draggedFolderId,
-      targetParentId: targetFolderId === LIBRARY_FOLDER_TREE_ROOT_ITEM_ID ? null : targetFolderId,
-      targetIndex: getChildren(folders, targetFolderId).length,
-    });
-  }
-
-  if (target.targetType === "root") {
-    return buildLibraryFolderReorderPlan({ folders, draggedFolderId, targetParentId: null, targetIndex: getChildren(folders, null).length });
-  }
-
-  return fail("unsupported-target", "Unsupported library folder drop target.");
 }
 
 function collectFolderPlacement(node: LibraryFolderTreeNode) {

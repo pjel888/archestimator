@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { DraggingPosition } from "react-complex-tree";
 
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import {
   buildLibraryFolderTree,
-  evaluateLibraryFolderDrop,
   getLibraryFolderCreateSortOrder,
   getLibraryItemsForFolderNode,
-  LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
   planLibraryFolderDelete,
   type LibraryFolderRecord,
 } from "@/lib/component-library/library-folder-reorder";
@@ -78,64 +75,6 @@ describe("library folder reorder planning", () => {
     expect(getLibraryFolderCreateSortOrder([], "top")).toBe(10);
     expect(getLibraryFolderCreateSortOrder([{ sort_order: 10 }, { sort_order: 20 }], "top")).toBe(0);
     expect(getLibraryFolderCreateSortOrder([{ sort_order: 10 }, { sort_order: 20 }], "bottom")).toBe(30);
-  });
-
-  it("plans single-folder root and nesting moves with affected sibling updates", () => {
-    const target: DraggingPosition = {
-      targetType: "item",
-      treeId: "library-folder-tree",
-      targetItem: "folder:folder-custom",
-      parentItem: LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
-      depth: 0,
-      linearIndex: 1,
-    };
-
-    const result = evaluateLibraryFolderDrop({
-      folders,
-      draggedItemIds: ["folder:folder-concrete"],
-      target,
-    });
-
-    expect(result).toMatchObject({
-      ok: true,
-      plan: {
-        draggedFolderId: "folder-concrete",
-        sourceParentId: "folder-structure",
-        targetParentId: "folder-custom",
-      },
-    });
-    expect(result.ok ? result.plan.updates : []).toEqual([
-      { id: "folder-concrete", parentId: "folder-custom", sortOrder: 10 },
-    ]);
-  });
-
-  it("rejects descendant cycles and no-op drops", () => {
-    const cycleTarget: DraggingPosition = {
-      targetType: "item",
-      treeId: "library-folder-tree",
-      targetItem: "folder:folder-concrete",
-      parentItem: LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
-      depth: 1,
-      linearIndex: 1,
-    };
-    const noOpTarget: DraggingPosition = {
-      targetType: "between-items",
-      treeId: "library-folder-tree",
-      parentItem: "folder:folder-structure",
-      childIndex: 0,
-      linePosition: "top",
-      linearIndex: 1,
-      depth: 1,
-    };
-
-    expect(evaluateLibraryFolderDrop({ folders, draggedItemIds: ["folder:folder-structure"], target: cycleTarget })).toMatchObject({
-      ok: false,
-      code: "cycle",
-    });
-    expect(evaluateLibraryFolderDrop({ folders, draggedItemIds: ["folder:folder-concrete"], target: noOpTarget })).toMatchObject({
-      ok: false,
-      code: "no-op",
-    });
   });
 
   it("filters row items by explicit folder assignment before taxonomy fallback", () => {
