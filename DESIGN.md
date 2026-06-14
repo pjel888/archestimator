@@ -18,6 +18,7 @@ colors:
   surfaceWarm: "#F5F5F5"
   accent: "#292929"
   accentSoft: "#F5F5F5"
+  sourceBoundary: "#E8D8CF"
   focus: "#292929"
   success: "#15803D"
   successSoft: "#DCFCE7"
@@ -519,6 +520,12 @@ Does NOT apply to in-row "Add row" (`QuietAddRowButton` stays low-emphasis).
 renders its `Circle` glyph in `text-orange-600` (empty nodes stay
 `text-tertiary`), so occupancy is scannable at a glance.
 
+**3. Source-family divider** — the Templates panel may use the muted
+`sourceBoundary` token (`#E8D8CF`, exposed as `border-t-source-boundary`) as a
+single 1px rule between Custom Templates and project-derived sources. This is
+lower-chroma than Tailwind orange and must stay a grouping boundary, not a
+general accent.
+
 Rationale: the estimate sheet has many co-located neutral toolbar icons; the
 orange tint disambiguates the primary "add" action and flags where work lives.
 
@@ -527,6 +534,10 @@ orange tint disambiguates the primary "add" action and flags where work lives.
 - Use Intercom-like compact top nav on public pages.
 - Use v4-inspired left app sidebar inside the dashboard/authenticated app.
 - Navigation labels must be explicit; avoid hiding primary product areas behind unlabeled icons unless the sidebar is collapsed and tooltips/accessible labels exist.
+- Main sidebar active links are a named app navigation exception: the selected
+  icon tile uses `bg-orange-50`, while the icon and 1px inset border use the same
+  orange (`text-orange-700` / `rgb(194,65,12)`). Expanded labels stay neutral
+  primary text; inactive and hover states remain neutral unless selected.
 
 ### Product mockups and illustrations
 

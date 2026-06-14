@@ -133,6 +133,9 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).not.toContain("mt-auto");
     expect(sidebarHeader).not.toContain("absolute bottom-0 border-b border-hairline");
     expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
+    expect(sidebarNavItemRow).toContain("before:bg-orange-50");
+    expect(sidebarNavItemRow).toContain("text-orange-700");
+    expect(sidebarNavItemRow).toContain("rgb(194,65,12)");
     expect(sidebarNavItemRow).not.toContain('expanded ? "w-full pr-2"');
     expect(sidebar).toContain("clipPath");
   });
