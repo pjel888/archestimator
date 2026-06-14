@@ -355,14 +355,36 @@ describe("estimate tree context menu", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     await openContextMenu("kitchen");
-    // The create action stays on nodes that can take a child under the current
-    // write model (a group) so the affordance is never shown where it would
-    // throw; it appears on every node with the P6 write-enable.
-    expect(screen.queryByRole("menuitem", { name: "Add area inside" })).not.toBeInTheDocument();
+    // P6 write-enable: "Add area inside" is UNCONDITIONAL — it appears on EVERY
+    // node, including a row-owning former-area like "kitchen", because any node
+    // can now parent a sub-area.
+    expect(screen.getByRole("menuitem", { name: "Add area inside" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Save as template" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
     expect(routerMock.push).not.toHaveBeenCalled();
+  });
+
+  it("adds an area under a row-owning node (former area), proving no wrap and no error (P6)", async () => {
+    const pendingCreate = deferred<{ nodeId: string }>();
+    actionMocks.createEstimateNode.mockReturnValue(pendingCreate.promise);
+    renderTree();
+
+    // "kitchen" is a row-owning leaf (a former "area"). Adding an area inside it
+    // creates a plain `area` child of kitchen — no wrapper group, no error.
+    await chooseMenuItem("kitchen", "Add area inside");
+
+    expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
+    const [, , formData] = actionMocks.createEstimateNode.mock.calls[0];
+    expect(formData.get("kind")).toBe("area");
+    expect(formData.get("name")).toBe("New Area");
+    expect(formData.get("parentId")).toBe("kitchen");
+    expect(await screen.findByLabelText("Rename New Area")).toBeInTheDocument();
+
+    await act(async () => {
+      pendingCreate.resolve({ nodeId: "server-new-area" });
+      await pendingCreate.promise;
+    });
   });
 
   it("creates an Area under the right-clicked group, not the current selection", async () => {

@@ -544,14 +544,16 @@ describe("estimate sheet tree drag/drop", () => {
     );
   });
 
-  it("does not call persistence for invalid or no-op drops", async () => {
+  it("does not call persistence for no-op drops", async () => {
     renderTree();
 
-    // Living onto Kitchen resolves to "after kitchen", which is living's
-    // current position: a no-op. Living onto its own parent's midpoint
-    // resolves to "inside ground-floor", appending where it already sits.
+    // Living onto its own parent's midpoint resolves to "inside ground-floor",
+    // appending where it already sits: a genuine no-op.
+    // (Unification P6: living onto kitchen now nests living *inside* kitchen — a
+    //  valid move that DOES persist, since any node may parent any node. The
+    //  cycle / self-drop / cross-tab rejections are covered in
+    //  estimate-tree-reorder.test.ts and estimate-node-reorder-action.test.ts.)
     await act(async () => {
-      await dropOnto("living", "kitchen");
       await dropOnto("living", "ground-floor");
     });
 

@@ -52,10 +52,11 @@ export function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
 }
 
 /**
- * Library-item drop target for an area. The dashed zone only exists while a
- * component drag is in flight; at rest the area keeps a quiet add-row
- * affordance (and, when empty, a short empty-state line) so the sheet is not
- * littered with permanent drop targets.
+ * Library-item drop target for a node. The dashed zone only exists while a
+ * component drag is in flight; at rest the node keeps a quiet add-row
+ * affordance (and, when empty, a short truthful empty-state line offering both
+ * a row and a sub-area) so the sheet is not littered with permanent drop
+ * targets.
  */
 export function ComponentDropTarget({
   nodeId,
@@ -84,7 +85,7 @@ export function ComponentDropTarget({
     return (
       <div className="flex min-h-9 items-center justify-between gap-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 px-1.5 py-0.5">
         <span className="text-[9px] leading-3 text-tertiary">
-          No estimate components yet. Add a row, or drag components from the library.
+          Empty area. Add a row, drag components from the library, or add a sub-area from the tree.
         </span>
         <span className="w-24 shrink-0">
           <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
@@ -166,27 +167,6 @@ export function TemplateDropZone({
       }}
     >
       <EstimateDropZone label={label} isDragOver={isDragOver} />
-    </div>
-  );
-}
-
-/**
- * Unified empty-node guidance. One component for every empty node — the old
- * kind-split empty states are gone. Copy stays truthful for the pre-write
- * model (P4): a node that already has child sub-areas (but no own rows) reads
- * as a container, so it points at the one creatable thing under the current
- * model ("Add a sub-area" via the tree). A node that holds neither rows nor
- * children is handled by ComponentDropTarget's "Add a row" empty state, so
- * this surface is only shown for the empty-container case. No affordance that
- * does not yet work is offered here (mixed creation lands in P6).
- */
-export function EmptyNodeMessage({ templateDragActive }: { templateDragActive: boolean }) {
-  if (templateDragActive) return null;
-  return (
-    <div className="flex min-h-9 items-center rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 px-1.5 py-0.5">
-      <span className="text-[9px] leading-3 text-tertiary">
-        No sub-areas yet. Add a sub-area from the tree, or drag an estimate template here.
-      </span>
     </div>
   );
 }

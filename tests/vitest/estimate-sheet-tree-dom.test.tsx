@@ -301,8 +301,9 @@ describe("estimate sheet tree DOM integration", () => {
 
       expect(insertEvents).toEqual([{ targetParentNodeId: "alternates", templateIds: ["tpl-9"] }]);
 
-      // Area rows accept templates too: areas cannot nest nodes, so the
-      // sheet wraps the area and the template in a new group.
+      // P6: a row-owning area row accepts a template directly — any node can
+      // parent children now, so the drop emits a plain `targetParentNodeId`
+      // insert (no wrap-into-group).
       const kitchen = treeNodeButton("kitchen");
       setMiddleDropRect(kitchen);
       fireEvent.dragOver(kitchen, { clientY: 0, dataTransfer });
@@ -310,7 +311,7 @@ describe("estimate sheet tree DOM integration", () => {
       fireEvent.drop(kitchen, { dataTransfer });
 
       expect(insertEvents).toHaveLength(2);
-      expect(insertEvents[1]).toEqual({ wrapAreaNodeId: "kitchen", templateIds: ["tpl-9"] });
+      expect(insertEvents[1]).toEqual({ targetParentNodeId: "kitchen", templateIds: ["tpl-9"] });
     } finally {
       window.removeEventListener(INSERT_ESTIMATE_TEMPLATE_EVENT, recordInsert);
     }

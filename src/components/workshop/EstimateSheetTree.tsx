@@ -20,7 +20,6 @@ import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
-import { isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import {
   dedupeSelectedRoots,
@@ -104,7 +103,9 @@ function insertLocalEstimateTreeNode(nodes: EstimateTreeNode[], parentId: string
 
   return nodes.map((node) => {
     const cloned = cloneEstimateTreeNode(node);
-    if (cloned.id === parentId && isEstimateGroupNodeKind(cloned.kind)) {
+    // P6 single-node model: any node may parent any node, so the optimistic
+    // insert lands under whichever node matches the target id — no kind gate.
+    if (cloned.id === parentId) {
       return {
         ...cloned,
         children: [...(cloned.children ?? []), cloneEstimateTreeNode(nodeToInsert)],
@@ -124,8 +125,9 @@ function removeLocalEstimateTreeNode(nodes: EstimateTreeNode[], nodeId: string):
   });
 }
 
-function makeOptimisticTreeNodeId(kind: EstimateTreeNode["kind"]) {
-  return `optimistic-${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+function makeOptimisticTreeNodeId() {
+  // P6 single-node model: every new node is an "area" (the surviving label).
+  return `optimistic-area-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function isOptimisticEstimateNodeId(nodeId: string) {
@@ -142,14 +144,16 @@ function replaceLocalEstimateTreeNodeId(nodes: EstimateTreeNode[], fromId: strin
   });
 }
 
-function createOptimisticEstimateTreeNode(kind: EstimateTreeNode["kind"], id: string, name: string): EstimateTreeNode {
+function createOptimisticEstimateTreeNode(id: string, name: string): EstimateTreeNode {
+  // P6 single-node model: every new node is an "area" that can hold both rows
+  // and child sub-areas, so it always carries an (empty) estimateRowItems slot.
   return {
     id,
     name,
-    kind,
+    kind: "area",
     total: "₱0.00",
     children: [],
-    ...(kind === "area" ? { estimateRowItems: [] } : {}),
+    estimateRowItems: [],
   };
 }
 
@@ -350,9 +354,12 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     return () => dismissToast("estimate-tree-mutation");
   }, [dismissToast]);
 
-  const selectedGroupId = useMemo(() => {
+  // P6 single-node model: ANY selected node is a valid create parent (an "Add
+  // Area" targets the selection as a child, or a root when nothing/an unknown
+  // node is selected). No group-kind gate — every node can take a sub-area.
+  const selectedParentNodeId = useMemo(() => {
     const selectedNode = activeSelectedNodeId ? findEstimateNode(localNodes, activeSelectedNodeId) : undefined;
-    return selectedNode && isEstimateGroupNodeKind(selectedNode.kind) ? selectedNode.id : null;
+    return selectedNode ? selectedNode.id : null;
   }, [activeSelectedNodeId, localNodes]);
 
   const syncLocalNodesFromProps = useCallback((incomingNodes: EstimateTreeNode[]) => {
@@ -590,10 +597,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     treeSearchActive,
   ]);
 
-  // Templates dragged from the right sidebar drop "inside" group and area
-  // rows (no root or between-row placement). Group targets insert directly;
-  // area targets cannot take child nodes, so the sheet wraps the area and
-  // the template in a new group occupying the area's slot.
+  // P6 single-node model: a template OR a project source dropped "inside" any
+  // node row inserts directly as a child of that node — every node can take
+  // children now, so there is no group gate and no area-wrap path. (Drops are
+  // still "inside" only — no root or between-row placement here.)
   const treeExternalDrop = useMemo<TreeExternalDropOptions>(() => ({
     types: [ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, PROJECT_SOURCE_DRAG_MIME_TYPE],
     canDrop: (types, targetId, position) => {
@@ -601,16 +608,13 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       if (isOptimisticEstimateNodeId(targetId)) return false;
       const targetNode = findEstimateNode(localNodes, targetId);
       if (!targetNode) return false;
-      // Templates drop on groups (direct) or areas (wrap). Project sources insert
-      // under a GROUP only in this pass (area-wrap parity is a follow-up, U2).
-      if (types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return true;
-      if (types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE)) return isEstimateGroupNodeKind(targetNode.kind);
-      return false;
+      // Any existing node is a valid drop target for both templates and
+      // project sources now.
+      return types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE) || types.includes(PROJECT_SOURCE_DRAG_MIME_TYPE);
     },
     onDrop: (event, targetId) => {
       const targetNode = findEstimateNode(localNodes, targetId);
       if (!targetNode) return;
-      const isGroupTarget = isEstimateGroupNodeKind(targetNode.kind);
 
       // The sheet owns insertion (tree update + action); hand the drop over via a
       // window event instead of duplicating that flow here.
@@ -618,18 +622,14 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
       if (templatePayload) {
         suppressPrimaryActionAfterDrag();
         const detail: InsertEstimateTemplateEventDetail = templatePayload.kind === "template-node"
-          ? isGroupTarget
-            ? { targetParentNodeId: targetId, templateId: templatePayload.templateId, templateNodeId: templatePayload.templateNodeId }
-            : { wrapAreaNodeId: targetId, templateId: templatePayload.templateId, templateNodeId: templatePayload.templateNodeId }
-          : isGroupTarget
-            ? { targetParentNodeId: targetId, templateIds: templatePayload.templateIds }
-            : { wrapAreaNodeId: targetId, templateIds: templatePayload.templateIds };
+          ? { targetParentNodeId: targetId, templateId: templatePayload.templateId, templateNodeId: templatePayload.templateNodeId }
+          : { targetParentNodeId: targetId, templateIds: templatePayload.templateIds };
         window.dispatchEvent(new CustomEvent<InsertEstimateTemplateEventDetail>(INSERT_ESTIMATE_TEMPLATE_EVENT, { detail }));
         return;
       }
 
       const projectSourcePayload = readProjectSourceDragPayload(event.dataTransfer.getData(PROJECT_SOURCE_DRAG_MIME_TYPE));
-      if (projectSourcePayload && isGroupTarget) {
+      if (projectSourcePayload) {
         suppressPrimaryActionAfterDrag();
         window.dispatchEvent(new CustomEvent<InsertProjectSourceEventDetail>(INSERT_PROJECT_SOURCE_EVENT, {
           detail: {
@@ -646,27 +646,23 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     },
   }), [localNodes, suppressPrimaryActionAfterDrag]);
 
-  const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"], parentGroupIdOverride?: string) => {
-    // Context-menu creates target the right-clicked group; header buttons
-    // fall back to the current selection. Callers (handleAddArea / the
-    // context menu) only ever pass a write-valid (kind, parent) pair — an
-    // `area` always with a group parent, a root create always as `group` —
-    // so the old "select a group first" error path is gone: every create
-    // succeeds. Internal `kind` stays the write-path discriminant; the user
-    // only ever sees "Area".
-    const targetParentGroupId = parentGroupIdOverride ?? selectedGroupId;
+  // P6 single create flow: "Add Area" makes a child area of the given parent
+  // (or a root area when no parent). There is no kind choice and no
+  // "select a group first" guard — every node can parent an area, so every
+  // create succeeds. Internal `kind` is always "area" (the surviving label);
+  // the user only ever sees "Area".
+  const handleAddTreeNode = useCallback((parentNodeIdOverride?: string) => {
+    const targetParentNodeId = parentNodeIdOverride ?? selectedParentNodeId;
 
-    // One user-facing name for every node. The internal kind still drives the
-    // write path, but the placeholder the user names is always "New Area".
     const nodeName = "New Area";
-    const optimisticNodeId = makeOptimisticTreeNodeId(kind);
-    const optimisticNode = createOptimisticEstimateTreeNode(kind, optimisticNodeId, nodeName);
-    const nextNodes = insertLocalEstimateTreeNode(localNodes, targetParentGroupId, optimisticNode);
+    const optimisticNodeId = makeOptimisticTreeNodeId();
+    const optimisticNode = createOptimisticEstimateTreeNode(optimisticNodeId, nodeName);
+    const nextNodes = insertLocalEstimateTreeNode(localNodes, targetParentNodeId, optimisticNode);
     const previousSelectedNodeId = activeSelectedNodeId;
 
     setLocalNodes(nextNodes);
-    if (targetParentGroupId) {
-      setExpandedNodeIds(Array.from(new Set([...expandedItems, targetParentGroupId])));
+    if (targetParentNodeId) {
+      setExpandedNodeIds(Array.from(new Set([...expandedItems, targetParentNodeId])));
     }
     // The node is usable immediately: select it and open inline rename while
     // the create settles in the background.
@@ -679,7 +675,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
     function createOnServer(serverParentId: string | null) {
       const formData = new FormData();
-      formData.set("kind", kind);
+      formData.set("kind", "area");
       formData.set("name", nodeName);
       if (serverParentId) formData.set("parentId", serverParentId);
       if (activeTabId) formData.set("estimateTabId", activeTabId);
@@ -689,7 +685,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     // A parent created moments ago may still carry an optimistic id; chain
     // this create behind the parent's create instead of sending an id the
     // server has never seen.
-    const knownParentId = targetParentGroupId ? resolvedNodeIdsRef.current.get(targetParentGroupId) ?? targetParentGroupId : null;
+    const knownParentId = targetParentNodeId ? resolvedNodeIdsRef.current.get(targetParentNodeId) ?? targetParentNodeId : null;
     const createPromise = knownParentId && isOptimisticEstimateNodeId(knownParentId)
       ? resolveServerNodeId(knownParentId).then(createOnServer)
       : createOnServer(knownParentId);
@@ -747,30 +743,27 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
     localNodes,
     projectId,
     resolveServerNodeId,
-    selectedGroupId,
+    selectedParentNodeId,
     setExpandedNodeIds,
     setLocalNodes,
     setSelectedNodeId,
     syncEstimateRouteUrl,
   ]);
 
-  // The single "Add Area" affordance. Type no longer exists for the user, but
-  // the write path is unchanged in P4: an `area` requires a group parent and a
-  // root create must be a `group`. So this routes to the write-valid internal
-  // kind for the current selection — a child `area` when a group is selected,
-  // a root `group` otherwise — while the user only ever sees "Area". Removing
-  // the kind choice (and the create flow being able to add under any node)
-  // ships with the write-enable in P6.
-  const handleAddArea = useCallback((parentGroupIdOverride?: string) => {
-    const targetParentGroupId = parentGroupIdOverride ?? selectedGroupId;
-    handleAddTreeNode(targetParentGroupId ? "area" : "group", targetParentGroupId ?? undefined);
-  }, [handleAddTreeNode, selectedGroupId]);
+  // The single "Add Area" affordance: a child area of the selected node, or a
+  // root area when nothing is selected. One name, one flow — every node can now
+  // parent an area (P6), so there is no kind choice and no "select a group
+  // first" guard.
+  const handleAddArea = useCallback((parentNodeIdOverride?: string) => {
+    handleAddTreeNode(parentNodeIdOverride);
+  }, [handleAddTreeNode]);
 
   useEffect(() => {
     function handleRequestedTreeNodeCreate(event: Event) {
       const detail = (event as CustomEvent<Partial<RequestEstimateTreeNodeCreateEventDetail>>).detail;
-      // Legacy create event still carries a kind ("group" from the empty-tab
-      // "Add Area" button → root create). Route it through the single flow.
+      // Legacy create event still carries a kind ("group"/"area" from the
+      // empty-tab "Add Area" button → root create). Route any of them through
+      // the single create flow as a root area.
       if (detail?.kind !== "group" && detail?.kind !== "area") return;
       handleAddArea();
     }
@@ -1133,33 +1126,26 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
     if (!contextMenuNode) return [];
-    const nodeIsGroup = isEstimateGroupNodeKind(contextMenuNode.kind);
     const nodeIsPendingCreate = isOptimisticEstimateNodeId(contextMenuNode.id);
 
     return [
-      // One unconditional-looking "Add area inside" replaces the old
-      // New Group/New Area pair. It stays gated to nodes that can take a child
-      // under the CURRENT write model (a group) so the affordance is never
-      // shown where it would throw server-side; making it appear on every node
-      // ships with the write-enable (P6). The item creates an `area` child.
-      ...(nodeIsGroup
-        ? [
-            {
-              id: "create-nodes",
-              items: [
-                {
-                  id: "add-area-inside",
-                  label: "Add area inside",
-                  icon: <Circle size={12} weight="regular" aria-hidden="true" />,
-                  onSelect: () => {
-                    armContextMenuRenameHandoff();
-                    handleAddTreeNode("area", contextMenuNode.id);
-                  },
-                },
-              ],
+      // P6 single-node model: "Add area inside" is UNCONDITIONAL on every node —
+      // any node can now parent a sub-area, so the affordance never throws
+      // server-side. It creates an `area` child of the right-clicked node.
+      {
+        id: "create-nodes",
+        items: [
+          {
+            id: "add-area-inside",
+            label: "Add area inside",
+            icon: <Circle size={12} weight="regular" aria-hidden="true" />,
+            onSelect: () => {
+              armContextMenuRenameHandoff();
+              handleAddTreeNode(contextMenuNode.id);
             },
-          ]
-        : []),
+          },
+        ],
+      },
       {
         id: "node-actions",
         items: [
@@ -1402,6 +1388,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                       railsPinned={contextMenuOpen}
                       draggable
                       selectable
+                      allowInsideOnLeaves
                       dragDataType={ESTIMATE_TREE_DRAG_MIME_TYPE}
                       canDrag={handleTreeCanDrag}
                       canDrop={handleTreeCanDrop}

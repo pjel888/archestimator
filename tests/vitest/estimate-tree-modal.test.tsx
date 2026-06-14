@@ -171,10 +171,10 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
   });
 
-  it("Add Area creates a write-valid root node when no group is selected (no error)", () => {
-    // An area is selected (not a group). The single Add Area must NOT error
-    // ("select a group first" is gone) — it falls back to a write-valid root
-    // create. Internally that is a `group`; the user only ever sees "Area".
+  it("Add Area adds a child area under a selected row-owning node (former area), no error (P6)", () => {
+    // P6 single-node model: ANY selected node is a valid create parent. With a
+    // row-owning former-"area" selected, "Add Area" creates an `area` CHILD of
+    // it (no "select a group first" error, no root fallback, no wrap).
     renderTree([
       {
         id: "general-requirements",
@@ -196,7 +196,8 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add Area" }));
     expect(screen.queryByText("you must select a group first before adding an area node")).not.toBeInTheDocument();
     const formData = submittedCreateFormData();
-    expect(formData.get("parentId")).toBeNull();
+    expect(formData.get("parentId")).toBe("mobilization");
+    expect(formData.get("kind")).toBe("area");
     expect(formData.get("name")).toBe("New Area");
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
   });

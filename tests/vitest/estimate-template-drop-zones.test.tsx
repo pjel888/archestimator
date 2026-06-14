@@ -139,7 +139,11 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(screen.queryByText(/Drag and drop estimate component/i)).not.toBeInTheDocument();
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
     expect(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" })).toBeInTheDocument();
-    expect(screen.getByText(/No sub-areas yet/i)).toBeInTheDocument();
+    // P6: an empty node ("annex") shows the unified, truthful empty state that
+    // offers BOTH a row and a sub-area (the old "No sub-areas yet" group-only
+    // copy is gone).
+    expect(screen.getByText(/Empty area\. Add a row/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No sub-areas yet/i)).not.toBeInTheDocument();
   });
 
   it("reveals component drop zones only while a library-item drag is active", () => {
@@ -201,70 +205,72 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(screen.queryByText("Starter Wing")).not.toBeInTheDocument();
   });
 
-  it("offers plain insert zones for groups only, never for areas nested in a group-scoped sheet", () => {
+  it("offers a plain insert zone on EVERY node, including a row-owning area (P6)", () => {
     renderSheet();
 
     act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "tpl-1", templateName: "Kitchen Starter" }));
 
     expect(screen.getByText("Drop Kitchen Starter into Lot")).toBeInTheDocument();
     expect(screen.getByText("Drop Kitchen Starter into Annex")).toBeInTheDocument();
-    expect(screen.queryByText("Drop Kitchen Starter into Kitchen")).not.toBeInTheDocument();
+    // P6: a row-owning area ("Kitchen") now accepts a direct template insert —
+    // no group gate, and crucially NO "group it with" wrap copy.
+    expect(screen.getByText("Drop Kitchen Starter into Kitchen")).toBeInTheDocument();
     expect(screen.queryByText(/group it with Kitchen/i)).not.toBeInTheDocument();
 
     act(() => endEstimateWorkshopDrag());
     expect(screen.queryByText(/Drop Kitchen Starter into/i)).not.toBeInTheDocument();
   });
 
-  it("wraps an area-scoped sheet and the dropped template in a new group and re-scopes to it", async () => {
+  it("inserts a dropped template directly INTO a row-owning area (no wrap group) — P6", async () => {
     renderAreaScopedSheet();
 
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
     act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "tpl-1", templateName: "Kitchen Starter" }));
 
-    // Areas take no child nodes, so the only target is the wrap zone.
-    expect(screen.queryByText(/Drop Kitchen Starter into/i)).not.toBeInTheDocument();
-    const wrapZoneLabel = screen.getByText("Drop Kitchen Starter here to group it with Kitchen");
-    const wrapZone = wrapZoneLabel.closest("[data-estimate-template-drop-zone]");
-    expect(wrapZone).not.toBeNull();
+    // P6: a row-owning area takes child nodes directly — the drop target is a
+    // plain "into" zone (no wrap), and there is no "group it with" copy.
+    expect(screen.queryByText(/group it with Kitchen/i)).not.toBeInTheDocument();
+    const dropZoneLabel = screen.getByText("Drop Kitchen Starter into Kitchen");
+    const dropZone = dropZoneLabel.closest("[data-estimate-template-drop-zone]");
+    expect(dropZone).not.toBeNull();
 
     const dataTransfer = createDataTransferStub([ESTIMATE_TEMPLATE_DRAG_MIME_TYPE]);
     dataTransfer.setData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, JSON.stringify({ templateId: "tpl-1" }));
-    fireEvent.drop(wrapZone as HTMLElement, { dataTransfer });
+    fireEvent.drop(dropZone as HTMLElement, { dataTransfer });
     act(() => endEstimateWorkshopDrag());
 
-    // The sheet now shows the wrapper group holding the original area and
-    // the template structure; names can repeat in headers and breadcrumbs.
-    expect((await screen.findAllByText("Kitchen Group")).length).toBeGreaterThan(0);
+    // The template structure lands as a CHILD of Kitchen — Kitchen stays its own
+    // node and no wrapper "Kitchen Group" is created.
+    expect(screen.queryByText("Kitchen Group")).not.toBeInTheDocument();
     expect(screen.getAllByText("Kitchen").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Starter Wing").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Starter Wing")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Starter Pantry").length).toBeGreaterThan(0);
 
-    // Order is part of the wrap contract: the original area leads, the
-    // dropped template content follows.
+    // Kitchen's own content leads; the inserted child follows.
     const kitchenSection = screen.getByRole("region", { name: "Kitchen" });
     const starterWingSection = screen.getByRole("region", { name: "Starter Wing" });
     expect(kitchenSection.compareDocumentPosition(starterWingSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("wraps only the dragged subtree when a node from inside a template drops on an area-scoped sheet", async () => {
+  it("inserts only the dragged subtree directly into a row-owning area (P6)", async () => {
     renderAreaScopedSheet();
 
     act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateName: "Starter Pantry" }));
 
-    const wrapZoneLabel = screen.getByText("Drop Starter Pantry here to group it with Kitchen");
-    const wrapZone = wrapZoneLabel.closest("[data-estimate-template-drop-zone]");
-    expect(wrapZone).not.toBeNull();
+    const dropZoneLabel = screen.getByText("Drop Starter Pantry into Kitchen");
+    const dropZone = dropZoneLabel.closest("[data-estimate-template-drop-zone]");
+    expect(dropZone).not.toBeNull();
 
     const dataTransfer = createDataTransferStub([ESTIMATE_TEMPLATE_DRAG_MIME_TYPE]);
     dataTransfer.setData(
       ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
       JSON.stringify({ templateId: "tpl-1", templateNodeId: "tpl-1-area" }),
     );
-    fireEvent.drop(wrapZone as HTMLElement, { dataTransfer });
+    fireEvent.drop(dropZone as HTMLElement, { dataTransfer });
     act(() => endEstimateWorkshopDrag());
 
-    expect((await screen.findAllByText("Kitchen Group")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Starter Pantry").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Kitchen Group")).not.toBeInTheDocument();
+    expect((await screen.findAllByText("Starter Pantry")).length).toBeGreaterThan(0);
     expect(screen.queryByText("Starter Wing")).not.toBeInTheDocument();
 
     const kitchenSection = screen.getByRole("region", { name: "Kitchen" });

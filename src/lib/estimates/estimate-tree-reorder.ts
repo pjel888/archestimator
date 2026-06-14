@@ -1,5 +1,4 @@
 import type { EstimateTreeNode } from "@/lib/estimates/types";
-import { canNestEstimateNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 export const ESTIMATE_TREE_SORT_ORDER_STEP = 10;
 
@@ -30,7 +29,6 @@ type ReorderFailureCode =
   | "unknown-dragged-node"
   | "unknown-target-parent"
   | "multi-drag-unsupported"
-  | "invalid-parent"
   | "self-drop"
   | "cycle"
   | "no-op";
@@ -270,11 +268,12 @@ export function buildEstimateNodeReorderPlan({
   const targetParentLocation = targetParentId ? findNodeLocation(nodes, targetParentId) : null;
   if (targetParentId && !targetParentLocation) return fail("unknown-target-parent", "Drop target estimate tree node was not found.");
 
-  const targetParentKind = targetParentLocation?.node.kind ?? null;
-  if (!canNestEstimateNodeKind(sourceLocation.node.kind, targetParentKind)) {
-    return fail("invalid-parent", `${sourceLocation.node.kind} nodes cannot be placed under ${targetParentKind ?? "estimate root"}.`);
-  }
-
+  // Single-node model (P6): any node may parent any node, so there is no
+  // kind-based nesting rule left to reject. Structural safety stays — a node
+  // cannot drop inside itself (self-drop, above) or inside one of its own
+  // descendants (cycle, below) — and cross-tab moves are still rejected by the
+  // server action + the relaxed DB reorder RPC (this planner runs within one
+  // tab's projected tree, where every node already shares the active tab).
   if (targetParentId && getDescendantEstimateNodeIds(sourceLocation.node).has(targetParentId)) {
     return fail("cycle", "An estimate tree node cannot be dropped inside one of its descendants.");
   }

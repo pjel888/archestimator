@@ -139,7 +139,10 @@ describe("estimate tree reorder planning", () => {
     expect(getDescendantEstimateNodeIds(byId(result.plan.nextNodes, "ground-floor"))).toEqual(new Set(["kitchen", "living"]));
   });
 
-  it("rejects Area Nodes at estimate root", () => {
+  // P6 single-node model: any node may live at root or parent any node. The
+  // old kind-based "invalid-parent" rejections are gone; only cycle/self-drop
+  // (and server/DB cross-tab) remain.
+  it("allows a row-owning node (former area) at estimate root", () => {
     const result = buildEstimateNodeReorderPlan({
       nodes: fixtureTree(),
       draggedNodeId: "kitchen",
@@ -147,12 +150,16 @@ describe("estimate tree reorder planning", () => {
       targetIndex: 2,
     });
 
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("Expected root area move to be rejected.");
-    expect(result.code).toBe("invalid-parent");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, null)).toEqual(["project-scope", "alternates", "kitchen"]);
+    // The moved node keeps its own rows at the new root position.
+    expect(byId(result.plan.nextNodes, "kitchen").estimateRowItems?.map((row) => row.id)).toEqual([
+      "row-kitchen-cabinet",
+    ]);
   });
 
-  it("rejects Area Nodes as drop parents", () => {
+  it("allows dropping a node into a row-owning node (former area)", () => {
     const result = buildEstimateNodeReorderPlan({
       nodes: fixtureTree(),
       draggedNodeId: "living",
@@ -160,9 +167,13 @@ describe("estimate tree reorder planning", () => {
       targetIndex: 0,
     });
 
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("Expected area parent to be rejected.");
-    expect(result.code).toBe("invalid-parent");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "kitchen")).toEqual(["living"]);
+    // "kitchen" now has BOTH its own rows AND a child node (mixed content).
+    expect(byId(result.plan.nextNodes, "kitchen").estimateRowItems?.map((row) => row.id)).toEqual([
+      "row-kitchen-cabinet",
+    ]);
   });
 
   it("rejects self drops and descendant cycle drops", () => {
@@ -185,6 +196,39 @@ describe("estimate tree reorder planning", () => {
     expect(cycleDrop.ok).toBe(false);
     if (cycleDrop.ok) throw new Error("Expected cycle drop to be rejected.");
     expect(cycleDrop.code).toBe("cycle");
+  });
+
+  // P6 regression guard: evaluateEstimateTreeDrop (the gate the sidebar uses)
+  // must still reject self/cycle even though every kind-based nesting rule is
+  // gone. An "inside" drop onto an ancestor is a cycle; onto self is a self-drop.
+  it("still rejects cycle and self drops via evaluateEstimateTreeDrop after the nesting relax", () => {
+    const cycleInside = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["project-scope"],
+      target: { targetNodeId: "kitchen", position: "inside" },
+    });
+    expect(cycleInside).toMatchObject({ ok: false, code: "cycle" });
+
+    const selfInside = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["kitchen"],
+      target: { targetNodeId: "kitchen", position: "inside" },
+    });
+    expect(selfInside).toMatchObject({ ok: false, code: "self-drop" });
+  });
+
+  // P6 empty-target regression fix: a node with NO children (a former leaf
+  // area like "living") can now receive a dropped node "inside" it — the
+  // planner accepts containment on any node, not just folders.
+  it("accepts an inside drop onto a childless node (former leaf area)", () => {
+    const result = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedNodeIds: ["front-yard"],
+      target: { targetNodeId: "living", position: "inside" },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "living")).toEqual(["front-yard"]);
   });
 
   it("rejects unknown dragged nodes, unknown targets, multi-drag, and no-op drops", () => {

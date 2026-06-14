@@ -23,13 +23,15 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("nodes: EstimateTreeNode[]");
     expect(estimateTree).toContain('from "@/components/ui/tree"');
     expect(estimateTree).not.toContain("react-complex-tree");
-    // `isEstimateGroupNodeKind` / `selectedGroupId` stay (vestigial write-path
-    // gates kept until the P6 write-enable). The old "select a group first"
-    // error path was removed by the single-"Add Area" flow (P4) — the create
-    // flow no longer errors; that behavior is covered by the DOM tests in
-    // estimate-tree-modal.test.tsx (single Add Area, no gate).
-    expect(estimateTree).toContain("isEstimateGroupNodeKind");
-    expect(estimateTree).toContain("selectedGroupId");
+    // P6 single-node model: the kind-based gates are gone. The group-kind
+    // helper (`isEstimateGroupNodeKind`) and the group-only `selectedGroupId`
+    // are removed; the create parent is now any selected node. The old "select
+    // a group first" error path is gone (single "Add Area" flow). Behavior is
+    // covered by the DOM tests in estimate-tree-modal.test.tsx and
+    // estimate-mixed-content.test.tsx.
+    expect(estimateTree).not.toContain("isEstimateGroupNodeKind");
+    expect(estimateTree).not.toContain("selectedGroupId");
+    expect(estimateTree).toContain("selectedParentNodeId");
     expect(estimateTree).not.toContain("you must select a group first before adding an area node");
     expect(estimateTree).toContain("renderRow={renderEstimateTreeRowLabel}");
     expect(estimateTree).toContain("currentId={activeSelectedNodeId}");
@@ -162,7 +164,10 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("projectId={project.id}");
     expect(estimateNodePage).toContain("estimateId={estimate.id}");
     expect(estimateActions).toContain("insertEstimateRowItemFromLibrary");
-    expect(estimateActions).toContain('.eq("kind", "area")');
+    // P6: rows insert into ANY node — the row-insert target is no longer gated
+    // on `.eq("kind", "area")`. Existence/orphan safety stays via the
+    // estimate/project scoping and the relaxed RPC.
+    expect(estimateActions).not.toContain('.eq("kind", "area")');
     expect(estimateActions).toContain('.eq("estimates.project_id", project.id)');
     expect(estimateActions).toContain("getSourceLibraryItemId");
     expect(estimateActions).toContain("isUuid(libraryItem.id)");
@@ -174,7 +179,9 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
     expect(estimateActions).toContain("deleteEstimateRowItem");
     expect(estimateActions).toContain("createEstimateNode");
-    expect(estimateActions).toContain("canNestEstimateNodeKind(kind, parentKind)");
+    // P6: the kind-based nesting guard (canNestEstimateNodeKind) is deleted from
+    // the create + reorder server actions — any node may parent any node.
+    expect(estimateActions).not.toContain("canNestEstimateNodeKind");
     expect(estimateActions).toContain('return "group"');
     expect(estimateActions).toContain('kind: "group"');
     expect(estimateActions).toContain('.from("estimate_nodes").insert');
