@@ -26,6 +26,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables, TablesInsert } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
+import type { LibraryFolderKind } from "@/lib/component-library/library-folder-reorder";
 import { isMissingRelationError } from "./estimate-schema-compat";
 import { ensureDefaultWorkspace } from "./workspace-repository";
 
@@ -34,7 +35,9 @@ export type ComponentLibraryBrand = Pick<Tables<"component_brands">, "id" | "nam
 export type ComponentLibraryFolder = Pick<
   Tables<"library_folders">,
   "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind"
->;
+> & {
+  folder_kind: LibraryFolderKind;
+};
 
 export type ComponentLibraryDataset = {
   categoryTree: ComponentLibraryTaxonomyNode[];
@@ -312,6 +315,16 @@ function sortFolders(folders: ComponentLibraryFolder[]): ComponentLibraryFolder[
   });
 }
 
+function normalizeComponentLibraryFolder(folder: Pick<
+  Tables<"library_folders">,
+  "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind"
+>): ComponentLibraryFolder {
+  return {
+    ...folder,
+    folder_kind: folder.folder_kind === "taxonomy" ? "taxonomy" : "custom",
+  };
+}
+
 async function fetchLibraryFolders(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   workspaceId: string,
@@ -324,7 +337,7 @@ async function fetchLibraryFolders(
     .order("name", { ascending: true });
 
   if (error) throw error;
-  return sortFolders(data ?? []);
+  return sortFolders((data ?? []).map(normalizeComponentLibraryFolder));
 }
 
 export async function ensureWorkspaceLibraryFolders({

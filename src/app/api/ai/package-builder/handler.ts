@@ -13,6 +13,7 @@ import { buildPackageBuilderDraft, refinePackageBuilderDraft } from "@/lib/ai/pa
 import { createPackageDraftToken, verifyPackageDraftToken } from "@/lib/ai/package-builder/draft-token";
 import { getPackageBuilderFeatureFlags } from "@/lib/ai/package-builder/feature-flags";
 import {
+  hasPackageBuilderMemorySchema,
   recordPackageBuilderMemorySignals,
   type RecordPackageBuilderMemorySignalsInput,
 } from "@/lib/ai/package-builder/memory";
@@ -36,6 +37,7 @@ type PackageBuilderDependencies = {
   applyPackage: (input: PackageBuilderApplyRequest & { userContext: AiRequestUserContext; authorizationRunId: string; requestHost?: string | null; userAgent?: string | null }) => Promise<PackageBuilderApplyResult>;
   recordAudit: (input: AiPackageAuditRows | null) => Promise<void>;
   recordMemory: (input: RecordPackageBuilderMemorySignalsInput) => Promise<void>;
+  hasMemorySchema: () => Promise<boolean>;
   authorizeApply: (input: ReturnType<typeof buildAiPackageActionRun>) => Promise<void>;
 };
 
@@ -46,6 +48,7 @@ const defaultDependencies: PackageBuilderDependencies = {
   applyPackage: applyPackageBuilderDraft,
   recordAudit: recordAiPackageAuditRows,
   recordMemory: recordPackageBuilderMemorySignals,
+  hasMemorySchema: hasPackageBuilderMemorySchema,
   authorizeApply: recordAiPackageApplyAuthorization,
 };
 
@@ -196,6 +199,14 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
   }
   if (!userContext) return jsonError("Authentication required.", 401);
   if (userContext.authMode !== "supabase" || !userContext.workspaceId) return jsonError(AI_AUTH_MODE_ERROR, 403);
+  let memoryEnabled = false;
+  if (flags.memory) {
+    try {
+      memoryEnabled = await deps.hasMemorySchema();
+    } catch {
+      memoryEnabled = false;
+    }
+  }
 
   if (parsedRequest.mode === "feedback") {
     try {
@@ -246,7 +257,7 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
     if (actionRun) {
       await deps.recordAudit({ actionRun });
     }
-    if (flags.memory) {
+    if (memoryEnabled) {
       await recordMemorySignalBestEffort(deps, {
         userContext,
         draft: parsedRequest.draft,
@@ -317,7 +328,7 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
         requestHost: request.headers.get("host"),
         userAgent: request.headers.get("user-agent"),
       });
-      if (flags.memory) {
+      if (memoryEnabled) {
         await recordMemorySignalBestEffort(deps, {
           userContext,
           draft: applyRequest.draft,
@@ -356,7 +367,7 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
         userContext,
         message: parsedRequest.message,
         routeContext: parsedRequest.routeContext,
-        memoryEnabled: flags.memory,
+        memoryEnabled,
       });
     } catch {
       return jsonError("Package-builder read tools failed.", 503);
