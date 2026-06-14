@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -108,7 +108,8 @@ describe("project estimates create flow", () => {
 
     expect(screen.getByTestId("project-estimates-table")).toBeInTheDocument();
 
-    await user.type(screen.getByRole("searchbox", { name: "Search Estimates" }), "zzzz-estimate");
+    await user.click(screen.getByRole("button", { name: "Show estimates search" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search Estimates" }), { target: { value: "zzzz-estimate" } });
 
     expect(screen.getByText("No matching estimates")).toBeInTheDocument();
     expect(screen.getByText("Try an estimate code, estimate name, or clear search to return to all estimates.")).toBeInTheDocument();

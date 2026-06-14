@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -264,7 +264,8 @@ describe("ProjectsPageClient shared access", () => {
     expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
     expect(screen.getByText("Shared Sheet Project")).toBeInTheDocument();
 
-    await user.type(screen.getByRole("searchbox", { name: "Search projects" }), "clinic");
+    await user.click(screen.getByRole("button", { name: "Show projects search" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "clinic" } });
 
     expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
     expect(screen.queryByText("Shared Sheet Project")).not.toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -133,7 +133,8 @@ describe("ProjectsPageClient view modes", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[PROJECT_FIXTURE]} />);
 
-    await user.type(screen.getByRole("searchbox", { name: "Search projects" }), "zzzz-project");
+    await user.click(screen.getByRole("button", { name: "Show projects search" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "zzzz-project" } });
 
     expect(screen.getByText("No projects match your search")).toBeInTheDocument();
     expect(screen.getByText("Try an owned project name, client, code, or location.")).toBeInTheDocument();

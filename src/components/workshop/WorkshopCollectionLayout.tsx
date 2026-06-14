@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode, Ref } from "react";
+import type { ReactNode } from "react";
 
-import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
-import { SearchInput } from "@/components/ui/search-input";
+import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
+import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 
 type WorkshopCollectionLayoutProps = {
   searchLabel: string;
@@ -22,10 +22,8 @@ type WorkshopCollectionLayoutProps = {
   addVisibleLabel?: string;
   addDisabled?: boolean;
   addActions?: HeaderIconToolbarAddAction[];
-  searchActions?: ReactNode;
   toolbarPanel?: ReactNode;
   contentScroll?: boolean;
-  searchInputRef?: Ref<HTMLInputElement>;
   children: ReactNode;
 };
 
@@ -46,30 +44,19 @@ export function WorkshopCollectionLayout({
   addVisibleLabel,
   addDisabled,
   addActions,
-  searchActions,
   toolbarPanel,
   contentScroll = true,
-  searchInputRef,
   children,
 }: WorkshopCollectionLayoutProps) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-[38px] shrink-0 items-center gap-2 bg-white">
-        <SearchInput
-          ref={searchInputRef}
-          placeholder={searchPlaceholder}
-          value={searchValue}
-          onChange={(event) => onSearchChange(event.target.value)}
-          onClear={() => onSearchChange("")}
-          aria-label={searchLabel}
-          wrapperClassName="w-full"
-        />
-        {searchActions}
-      </div>
-
-      <HeaderIconToolbar
+      <TreePanelHeader
         ariaLabel={toolbarLabel}
         labelPrefix={toolbarPrefix}
+        searchValue={searchValue}
+        onSearchValueChange={onSearchChange}
+        searchPlaceholder={searchPlaceholder}
+        searchLabel={searchLabel}
         onFilter={onFilter}
         onGroup={onGroup}
         onExpandAll={onExpandAll}
