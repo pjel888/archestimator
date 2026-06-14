@@ -227,6 +227,7 @@ describe("component library UI", () => {
     // whose trigger aria-label is "Filter components" (inactive state).
     expect(within(toolsRow).getByRole("button", { name: "Filter components" })).toBeInTheDocument();
     expect(within(toolsRow).getByRole("button", { name: "View by" })).toBeInTheDocument();
+    expect(within(toolsRow).getByRole("button", { name: "Add folder" })).toBeInTheDocument();
     expect(within(toolsRow).getByRole("button", { name: "Add Component" })).toHaveAttribute("title", "Add Component");
     expect(screen.queryByRole("button", { name: "Group library tree" })).not.toBeInTheDocument();
 

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, PlusSquare, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { FolderPlus, Plus, PlusSquare, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -19,7 +19,7 @@ import {
   type TreeSelectionNode,
 } from "@/lib/bulk-selection/tree-selection";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
-import { deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
+import { createLibraryFolder, deleteEstimateTemplate, renameEstimateTemplate } from "@/lib/component-library/actions";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
@@ -1400,6 +1400,27 @@ function EstimateRightSidebarBase({
     [insertLibraryItems],
   );
 
+  // Quick top-level folder create (matches the /workshop/library manager's
+  // window.prompt flow). The new folder is usable in the Add Component folder
+  // picker and on /workshop/library; the sidebar's taxonomy tree doesn't render
+  // folders yet, so it won't appear here until a Folders view is built.
+  const [createFolderPending, setCreateFolderPending] = useState(false);
+  const createFolder = useCallback(async () => {
+    if (createFolderPending) return;
+    const name = window.prompt("Folder name")?.trim();
+    if (!name) return;
+    setCreateFolderPending(true);
+    try {
+      await createLibraryFolder(null, name);
+      onLibraryDataChanged?.();
+      setLastActionMessage(`Folder "${name}" created.`);
+    } catch {
+      setLastActionMessage("Could not create the folder. You may not have permission to manage library folders.");
+    } finally {
+      setCreateFolderPending(false);
+    }
+  }, [createFolderPending, onLibraryDataChanged]);
+
   const addTemplate = useCallback(
     (template: EstimateTemplate) => {
       if (!canInsertTemplate) {
@@ -2035,9 +2056,14 @@ function EstimateRightSidebarBase({
             </ToolbarIconButton>
             <div className="ml-auto flex items-center gap-1">
               {activeTab === "components" ? (
-                <ToolbarIconButton label="Add Component" onClick={startNewComponent} className={ADD_BUTTON_CLASSNAME}>
-                  <PlusSquare size={13} weight="regular" aria-hidden="true" />
-                </ToolbarIconButton>
+                <>
+                  <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending}>
+                    <FolderPlus size={13} weight="regular" aria-hidden="true" />
+                  </ToolbarIconButton>
+                  <ToolbarIconButton label="Add Component" onClick={startNewComponent} className={ADD_BUTTON_CLASSNAME}>
+                    <PlusSquare size={13} weight="regular" aria-hidden="true" />
+                  </ToolbarIconButton>
+                </>
               ) : (
                 <ToolbarIconButton label="Add Template" onClick={startNewTemplate} className={ADD_BUTTON_CLASSNAME}>
                   <StackPlus size={13} weight="regular" aria-hidden="true" />
