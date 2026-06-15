@@ -414,6 +414,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           "border border-transparent",
           node.rowClassName,
           (isSelected || isCurrent) && "bg-accentSoft",
+          state.isFocused && "border-l-focus bg-surfaceMuted",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
           isDropTarget && dropPosition === "after" && "border-b-2 border-b-primary",
