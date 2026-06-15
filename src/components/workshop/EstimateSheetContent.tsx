@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type SetStateAction } from "react";
-import { FunnelSimple, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { FunnelSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,11 @@ import {
   type InsertEstimateTemplateEventDetail,
   type InsertProjectSourceEventDetail,
 } from "./component-library/templates";
-import { reportEstimateSheetContentRender } from "./estimate-sheet-render-probe";
+import {
+  reportEstimateProposalPreviewSignatureCompute,
+  reportEstimateSelectedNodePresentationCompute,
+  reportEstimateSheetContentRender,
+} from "./estimate-sheet-render-probe";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
@@ -95,6 +99,7 @@ import {
   canMakeProjectSpecific,
 } from "./estimate-sheet/rows/cells";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
+import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
 
 /* Re-export component library helpers and sidebar so existing imports don't break */
 export {
@@ -158,6 +163,11 @@ type EstimateSheetContentProps = {
 const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
 const EMPTY_FLATTENED_ESTIMATE_ROWS: FlattenedEstimateRow[] = [];
 const EMPTY_ACTIVITY_SCOPE_ITEMS: ActivityScopeTreeItem[] = [];
+const EMPTY_BREADCRUMB_NODES: BreadcrumbNode[] = [];
+const EMPTY_SELECTED_NODE_PRESENTATION = {
+  nodeCode: "",
+  ancestorPath: EMPTY_BREADCRUMB_NODES,
+};
 
 
 
@@ -165,6 +175,7 @@ const EMPTY_ACTIVITY_SCOPE_ITEMS: ActivityScopeTreeItem[] = [];
 
 
 function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTreeNode[] {
+  reportEstimateSelectedNodePresentationCompute("path");
   for (const node of nodes) {
     if (node.id === targetId) return [node];
     if (node.children) {
@@ -188,6 +199,7 @@ function findEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): Esti
 }
 
 function computeNodeCode(nodes: EstimateTreeNode[], targetId: string): string {
+  reportEstimateSelectedNodePresentationCompute("code");
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
     if (node.id === targetId) return String(i + 1).padStart(2, "0");
@@ -230,6 +242,7 @@ function createBlankEstimateRowTemplate(): EstimateRowItem {
 
 
 function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>, metadata: ProposalExportMetadata | null) {
+  reportEstimateProposalPreviewSignatureCompute();
   const parts: string[] = [metadata ? `${metadata.projectId}|${metadata.estimateId}|${metadata.projectName}|${metadata.estimateName}|${metadata.versionLabel}|${metadata.currency}` : "no-metadata"];
 
   function visit(node: EstimateTreeNode) {
@@ -1120,8 +1133,8 @@ export function EstimateSheetContent({
     [dataTabId, editableRows, estimateTree, proposalExportSettings, resolvedProposalExportMetadata, tabScopeSignature],
   );
   const currentProposalPreviewSignature = useMemo(
-    () => getProposalPreviewSignature(proposalPreviewScope),
-    [getProposalPreviewSignature, proposalPreviewScope],
+    () => (proposalPreviewModel ? getProposalPreviewSignature(proposalPreviewScope) : ""),
+    [getProposalPreviewSignature, proposalPreviewModel, proposalPreviewScope],
   );
   const proposalDownloadHref = useMemo(() => {
     if (!projectId || !estimateId) return null;
@@ -1142,6 +1155,14 @@ export function EstimateSheetContent({
       }),
     [activeSelectedNodeId, estimateTree],
   );
+  const selectedNodePresentation = useMemo(() => {
+    if (!resolvedSelectedNodeId) return EMPTY_SELECTED_NODE_PRESENTATION;
+    const selectedNodePath = findNodePath(estimateTree, resolvedSelectedNodeId);
+    return {
+      nodeCode: computeNodeCode(estimateTree, resolvedSelectedNodeId),
+      ancestorPath: selectedNodePath.slice(0, -1).map((node) => ({ id: node.id, name: node.name })),
+    };
+  }, [estimateTree, resolvedSelectedNodeId]);
   const [sheetSearchQuery, setSheetSearchQuery] = useState("");
   const sheetSearchActive = sheetSearchQuery.trim().length > 0;
   // D2 / Req 10 (middle): faceted filter + within-area group/sort. Client state
@@ -2326,7 +2347,7 @@ export function EstimateSheetContent({
           addActions={createTabState.canCreate ? [
             {
               label: "New tab",
-              icon: <Plus size={13} weight="regular" aria-hidden="true" />,
+              icon: <TabsIcon size={13} weight="regular" aria-hidden="true" />,
               onClick: () => void tabStripRef.current?.createTab(),
               disabled: createTabState.pending,
               className: ADD_BUTTON_CLASSNAME,
@@ -2363,11 +2384,11 @@ export function EstimateSheetContent({
               >
                 <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
                 {displayedSheetNode ? (
-                <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
+                  <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
                   <EstimateSheetVirtualBranchList
                     node={displayedSheetNode}
-                    nodeCode={resolvedSelectedNodeId ? computeNodeCode(estimateTree, resolvedSelectedNodeId) : ""}
-                    ancestorPath={resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId).slice(0, -1).map((n) => ({ id: n.id, name: n.name })) : []}
+                    nodeCode={selectedNodePresentation.nodeCode}
+                    ancestorPath={selectedNodePresentation.ancestorPath}
                     editableRows={editableRows}
                     setEditableRows={setEditableRows}
                     onInsertLibraryItem={insertLibraryItem}

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
+import { Spinner } from "@/components/ui/spinner";
 import { useNavigationUiStore } from "@/stores/navigation-ui-store";
 import { cn } from "@/lib/ui/cn";
 
@@ -43,12 +43,7 @@ export function RouteLoadingOverlay() {
         "motion-reduce:transition-none motion-reduce:duration-0",
       )}
     >
-      <CircleNotch
-        size={28}
-        weight="regular"
-        className="animate-spin text-ink"
-        aria-hidden="true"
-      />
+      <Spinner size="lg" decorative />
     </div>,
     document.body,
   );

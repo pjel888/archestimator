@@ -13,6 +13,8 @@ import {
   listCurrentWorkspaceProjects,
   listProjectEstimateSheets,
 } from "@/lib/repositories/workspace-repository";
+import { formatEstimatePageTabName, getEstimateTabDisplayName, sortEstimateTabsForDisplay } from "@/lib/estimates/tab-display";
+import type { EstimateTabSummary } from "@/lib/estimates/types";
 import type {
   InsertProjectSourceIntoEstimateInput,
   InsertProjectSourceIntoEstimateResult,
@@ -166,6 +168,15 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   const supabase = await createSupabaseServerClient();
   const likePattern = toReusableSearchLikePattern(query);
   const estimatesToMaterialize = new Set<string>();
+  const tabsByEstimateId = new Map<string, EstimateTabSummary[]>();
+
+  async function getSortedTabsForEstimate(projectId: string, estimateId: string) {
+    const existing = tabsByEstimateId.get(estimateId);
+    if (existing) return existing;
+    const tabs = sortEstimateTabsForDisplay(await getEstimateTabs(projectId, estimateId, { allowLegacyFallback: true }));
+    tabsByEstimateId.set(estimateId, tabs);
+    return tabs;
+  }
 
   const { data: matchingNodeRows, error: matchingNodeError } = await supabase
     .from("estimate_nodes")
@@ -206,28 +217,47 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     if (!isMissingRelationError(error as never, "estimate_tabs")) throw error;
   }
 
+  // The first rendered tab displays as "Page 001" even when the stored tab name
+  // is "Main" or another raw name, so the DB tab-name ILIKE above cannot find a
+  // display-label-only search. Read tab summaries only for display-like queries;
+  // full tree materialization still happens only after an estimate matches.
+  if (textMatchesReusableSourceQuery(query, [formatEstimatePageTabName(1)])) {
+    for (const estimateId of accessibleEstimateIds) {
+      const ctx = estimateContextById.get(estimateId);
+      if (!ctx) continue;
+      const tabs = await getSortedTabsForEstimate(ctx.project.id, estimateId);
+      if (tabs.some((tab, index) => textMatchesReusableSourceQuery(query, [getEstimateTabDisplayName(tab, index)]))) {
+        estimatesToMaterialize.add(estimateId);
+      }
+    }
+  }
+
   // (3) Materialize ONLY the matching estimates; collect the rich tab/node sources.
   for (const estimateId of estimatesToMaterialize) {
     const ctx = estimateContextById.get(estimateId);
     if (!ctx) continue;
     const { project, estimate } = ctx;
-    const tabs = await getEstimateTabs(project.id, estimate.id, { allowLegacyFallback: true });
+    const tabs = await getSortedTabsForEstimate(project.id, estimate.id);
     const tabTrees = await Promise.all(
       tabs.map((tab) => getEstimateTabTree(project.id, estimate.id, tab.id, { allowLegacyFallback: true })),
     );
     tabs.forEach((tab, tabIndex) => {
       const updatedAt = tabTrees[tabIndex]?.estimate?.updated_at ?? estimate.updatedAt;
+      const tabDisplayName = getEstimateTabDisplayName(tab, tabIndex);
       const tabSource: ProjectTabReusableSource = {
         kind: "project-tab",
         projectId: project.id,
         estimateId: estimate.id,
         tabId: tab.id,
         name: tab.name,
+        displayName: tabDisplayName,
+        sortOrder: tab.sortOrder,
         metadata: {
           projectName: project.name,
           estimateName: estimate.name,
           sheetCode: estimate.sheetCode,
           tabName: tab.name,
+          tabDisplayName,
           updatedAt,
           ...summarizeEstimateTreeNodes(tabTrees[tabIndex]?.tree ?? []),
         },
@@ -240,9 +270,10 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         sheetCode: estimate.sheetCode,
         tabId: tab.id,
         tabName: tab.name,
+        tabDisplayName,
         updatedAt,
       };
-      if (textMatchesReusableSourceQuery(query, [tab.name])) {
+      if (textMatchesReusableSourceQuery(query, [tab.name, tabDisplayName])) {
         addReusableSearchSource(sourcesByKey, projectSourceFor(project));
         addReusableSearchSource(sourcesByKey, estimateSourceFor(project, estimate));
         addReusableSearchSource(sourcesByKey, tabSource);
@@ -261,7 +292,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
 
 export async function getReusableEstimateOutline(input: { projectId: string; estimateId: string }): Promise<ReusableEstimateOutlineResult> {
   await requireCurrentUserContext();
-  const tabs = await getEstimateTabs(input.projectId, input.estimateId, { allowLegacyFallback: true });
+  const tabs = sortEstimateTabsForDisplay(await getEstimateTabs(input.projectId, input.estimateId, { allowLegacyFallback: true }));
   const tabTrees = await Promise.all(
     tabs.map((tab) => getEstimateTabTree(input.projectId, input.estimateId, tab.id, { allowLegacyFallback: true })),
   );
@@ -269,14 +300,18 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
   const sources: ReusableEstimateOutlineResult["sources"] = [];
   tabs.forEach((tab, index) => {
     const updatedAt = tabTrees[index]?.estimate?.updated_at ?? null;
+    const tabDisplayName = getEstimateTabDisplayName(tab, index);
     sources.push({
       kind: "project-tab",
       projectId: input.projectId,
       estimateId: input.estimateId,
       tabId: tab.id,
       name: tab.name,
+      displayName: tabDisplayName,
+      sortOrder: tab.sortOrder,
       metadata: {
         tabName: tab.name,
+        tabDisplayName,
         updatedAt,
         ...summarizeEstimateTreeNodes(tabTrees[index]?.tree ?? []),
       },
@@ -287,6 +322,7 @@ export async function getReusableEstimateOutline(input: { projectId: string; est
         estimateId: input.estimateId,
         tabId: tab.id,
         tabName: tab.name,
+        tabDisplayName,
         updatedAt,
       },
       nodes: tabTrees[index]?.tree ?? [],

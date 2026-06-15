@@ -21,6 +21,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 import { TREE_ROW_ICON_SIZE, Tree, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
+import { getProjectReusableSourceDisplayName, getProjectTabReusableSourceDisplayName } from "@/lib/reusable-sources/display";
 import type {
   ProjectEstimateReusableSource,
   ProjectNodeReusableSource,
@@ -350,6 +351,13 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
     };
   }
 
+  function sortTabTreeGroups(left: TabTreeGroup, right: TabTreeGroup) {
+    const leftSortOrder = left.source.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const rightSortOrder = right.source.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    return leftSortOrder - rightSortOrder
+      || getProjectTabReusableSourceDisplayName(left.source).localeCompare(getProjectTabReusableSourceDisplayName(right.source));
+  }
+
   return Array.from(projects.values())
     .sort((left, right) => left.source.name.localeCompare(right.source.name))
     .map((project) => ({
@@ -371,21 +379,24 @@ function buildProjectSourceTreeNodes(projectSources: ReusableEstimateSource[]): 
           icon: <Table size={TREE_ROW_ICON_SIZE} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />,
           data: { templatesNode: { type: "project-estimate", source: estimate.source } satisfies TemplatesTreeDatum },
           children: Array.from(estimate.tabs.values())
-            .sort((left, right) => left.source.name.localeCompare(right.source.name))
-            .map((tab) => ({
-              id: projectSourceTreeItemId(tab.source),
-              label: tab.source.name,
-              ariaLabel: `${tab.source.name} project tab source`,
-              isLeaf: tab.rootNodes.size === 0,
-              selectable: true,
-              // Follow the estimate-tree node cue: a dot, muted on a tab (a
-              // grouping page, not a component-bearing node).
-              accent: false,
-              data: { templatesNode: { type: "project-tab", source: tab.source } satisfies TemplatesTreeDatum },
-              children: Array.from(tab.rootNodes.values())
-                .sort((left, right) => left.source.name.localeCompare(right.source.name))
-                .map(toProjectNodeUiNode),
-            })),
+            .sort(sortTabTreeGroups)
+            .map((tab) => {
+              const tabLabel = getProjectTabReusableSourceDisplayName(tab.source);
+              return {
+                id: projectSourceTreeItemId(tab.source),
+                label: tabLabel,
+                ariaLabel: `${tabLabel} project tab source`,
+                isLeaf: tab.rootNodes.size === 0,
+                selectable: true,
+                // Follow the estimate-tree node cue: a dot, muted on a tab (a
+                // grouping page, not a component-bearing node).
+                accent: false,
+                data: { templatesNode: { type: "project-tab", source: tab.source } satisfies TemplatesTreeDatum },
+                children: Array.from(tab.rootNodes.values())
+                  .sort((left, right) => left.source.name.localeCompare(right.source.name))
+                  .map(toProjectNodeUiNode),
+              } satisfies UiTreeNode;
+            }),
         })),
     }));
 }
@@ -626,7 +637,16 @@ function projectSourceMatchesQuery(source: ReusableEstimateSource, query: string
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return true;
   if (source.kind === "custom-template") return templateMatchesQuery(source.template, query);
-  const values: Array<string | null | undefined> = [source.name];
+  const values: Array<string | null | undefined> = [
+    source.name,
+    getProjectReusableSourceDisplayName(source),
+    source.metadata?.projectName,
+    source.metadata?.estimateName,
+    source.metadata?.sheetCode,
+    source.metadata?.tabName,
+    source.metadata?.tabDisplayName,
+    ...(source.metadata?.nodePath ?? []),
+  ];
   if (source.kind === "project-estimate" && source.sheetCode) values.push(source.sheetCode);
   if (source.kind === "project-node") {
     for (const item of source.rowItems ?? []) {
@@ -1151,7 +1171,7 @@ export function TemplatesTree({
         );
       }
       if (datum?.type === "project-tab") {
-        return <SourceFolderRowContent label={datum.source.name} meta="Whole tab" />;
+        return <SourceFolderRowContent label={getProjectTabReusableSourceDisplayName(datum.source)} meta="Whole tab" />;
       }
       if (datum?.type === "project-node") {
         return <SourceFolderRowContent label={datum.source.name} />;

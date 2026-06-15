@@ -1,12 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type MouseEvent, type SetStateAction } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type SetStateAction } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowsOutSimple, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 import { cn } from "@/lib/ui/cn";
 import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import { formatPeso, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history";
@@ -87,6 +88,13 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
 const ROW_COLUMNS = "grid-cols-[36px_32px_minmax(160px,1fr)_58px_92px_106px_92px_108px_30px]";
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
+
+function handleSelectionCheckboxKeyDown(event: KeyboardEvent<HTMLSpanElement>, onToggle: () => void) {
+  if (event.key !== " " && event.key !== "Enter") return;
+  event.preventDefault();
+  event.stopPropagation();
+  onToggle();
+}
 
 function findScrollParent(element: HTMLElement | null): HTMLElement | null {
   let parent = element?.parentElement ?? null;
@@ -174,7 +182,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   return (
     <tr
       className={cn(
-        "grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50 [contain-intrinsic-size:96px] [content-visibility:auto]",
+        "group/estimate-row grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50 [contain-intrinsic-size:96px] [content-visibility:auto]",
         activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
         ROW_COLUMNS,
       )}
@@ -189,11 +197,16 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         {/* No row-reorder grip: row reorder isn't implemented (no drag
             handler, no reorder RPC), so a draggable-looking handle was
             a false affordance + false a11y announcement (OD-13/D5). */}
-        <input
-          type="checkbox"
-          aria-label={`Select ${computedItem.material}`}
+        <SelectionCheckbox
           checked={selected}
-          onChange={(event) => onToggleRowSelection(computedItem.id, event.currentTarget.checked)}
+          ariaLabel={`Select ${computedItem.material}`}
+          tabIndex={0}
+          uncheckedRevealClassName="group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleRowSelection(computedItem.id, !selected);
+          }}
+          onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowSelection(computedItem.id, !selected))}
         />
       </td>
       <td className="min-w-0">
@@ -511,7 +524,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   return (
     <div
       ref={scrollRootRef}
-      className="overflow-hidden border border-hairline bg-white"
+      className="overflow-hidden border-x border-b border-hairline bg-white"
       data-estimate-row-table-root={targetNodeId}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -521,14 +534,18 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
           <tr className={cn("grid min-h-10 border-b border-hairline", ROW_COLUMNS)}>
             <th className="flex items-center justify-center border-r border-hairline text-[9px] font-sans text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">
-              <input
-                type="checkbox"
-                aria-label="Select all estimate row items"
+              <SelectionCheckbox
                 checked={allRowsSelected}
-                ref={(element) => {
-                  if (element) element.indeterminate = someRowsSelected;
+                indeterminate={someRowsSelected}
+                ariaLabel="Select all estimate row items"
+                tabIndex={0}
+                uncheckedRevealClassName="opacity-100"
+                className="opacity-100"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleRowsSelection(selectableRowIds, !allRowsSelected);
                 }}
-                onChange={(event) => onToggleRowsSelection(selectableRowIds, event.currentTarget.checked)}
+                onKeyDown={(event) => handleSelectionCheckboxKeyDown(event, () => onToggleRowsSelection(selectableRowIds, !allRowsSelected))}
               />
             </th>
             <th className="flex items-center justify-center border-r border-hairline">Materials</th>
@@ -574,13 +591,13 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onToggleRowSelection={onToggleRowSelection}
                 rowIds={selectableRowIds}
                 onRequestFocusByRowId={requestFocusByRowId}
-	                style={virtualEnabled ? {
-	                  left: 0,
-	                  position: "absolute",
-	                  top: 0,
-	                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
-	                  width: "100%",
-	                } : undefined}
+                style={virtualEnabled ? {
+                  left: 0,
+                  position: "absolute",
+                  top: 0,
+                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                  width: "100%",
+                } : undefined}
               />
             );
           })}

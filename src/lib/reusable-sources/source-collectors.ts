@@ -9,6 +9,7 @@ export type ProjectSourceSearchContext = {
   sheetCode: string | null;
   tabId: string;
   tabName: string;
+  tabDisplayName?: string;
   updatedAt: string | null;
 };
 
@@ -17,6 +18,7 @@ type ProjectSourceOutlineContext = {
   estimateId: string;
   tabId: string;
   tabName: string;
+  tabDisplayName?: string;
   updatedAt: string | null;
 };
 
@@ -69,6 +71,7 @@ export function collectProjectNodeSources({
   parentNodeId?: string | null;
 }): ProjectNodeReusableSource[] {
   const sources: ProjectNodeReusableSource[] = [];
+  const displayTabName = context.tabDisplayName ?? context.tabName;
 
   for (const node of nodes) {
     const nodePath = [...path, node.name];
@@ -86,7 +89,8 @@ export function collectProjectNodeSources({
         rowItems: node.estimateRowItems ?? [],
         metadata: {
           tabName: context.tabName,
-          nodePath: [context.tabName, ...nodePath],
+          tabDisplayName: displayTabName,
+          nodePath: [displayTabName, ...nodePath],
           updatedAt: context.updatedAt,
           rowCount: summary.rowCount,
           totalCost: summary.totalCost,
@@ -120,6 +124,7 @@ export function collectProjectNodeSearchSources({
   parentNodeId?: string | null;
 }): ProjectNodeReusableSource[] {
   const sources: ProjectNodeReusableSource[] = [];
+  const displayTabName = context.tabDisplayName ?? context.tabName;
 
   for (const node of nodes) {
     const nodePath = [...path, node.name];
@@ -140,7 +145,8 @@ export function collectProjectNodeSearchSources({
           estimateName: context.estimateName,
           sheetCode: context.sheetCode,
           tabName: context.tabName,
-          nodePath: [context.tabName, ...nodePath],
+          tabDisplayName: displayTabName,
+          nodePath: [displayTabName, ...nodePath],
           updatedAt: context.updatedAt,
           rowCount: summary.rowCount,
           totalCost: summary.totalCost,

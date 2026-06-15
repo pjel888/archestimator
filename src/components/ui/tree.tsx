@@ -19,11 +19,10 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   CaretDown,
   CaretRight,
-  Check,
   DotsSixVertical,
-  Minus,
 } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
+import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -464,27 +463,13 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
             )}
           >
             {node.selectable !== false && (
-              <span
-                role="checkbox"
-                aria-checked={isIndeterminate ? "mixed" : isSelected}
-                aria-label={`Select ${node.label}`}
+              <SelectionCheckbox
+                checked={isSelected}
+                indeterminate={isIndeterminate}
+                ariaLabel={`Select ${node.label}`}
                 tabIndex={-1}
                 onClick={(e) => onCheckboxClick(node.id, e)}
-                className={cn(
-                  "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-xs border transition-all",
-                  // Quiet selection grays: dark fills read too harsh in the
-                  // rails. The explicit checkmark gets a light-mid gray; the
-                  // dash (cascade hint) sits on a paler fill with a gray
-                  // glyph, since white would disappear on it.
-                  isSelected && !isIndeterminate && "border-[#ABABAB] bg-[#ABABAB] opacity-100",
-                  isIndeterminate && "border-[#D9D9D9] bg-[#E4E4E4] opacity-100",
-                  !isSelected && !isIndeterminate && "border-tertiary opacity-0 group-hover/tree-row:opacity-100",
-                  "cursor-pointer"
-                )}
-              >
-                {isSelected && !isIndeterminate && <Check weight="regular" className="h-2.5 w-2.5 text-white" />}
-                {isIndeterminate && <Minus weight="regular" className="h-2.5 w-2.5 text-tertiary" />}
-              </span>
+              />
             )}
           </span>
         )}

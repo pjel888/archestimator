@@ -199,8 +199,7 @@ describe("estimate sheet render relief (U1)", () => {
 
   it("bulk-selecting a row re-renders only that row's table", () => {
     const { view, renderCounts } = renderSheet();
-    const checkbox = view.container.querySelector<HTMLInputElement>('input[aria-label="Select Relief Row A1 R1"]')
-      ?? within(view.container as HTMLElement).getByLabelText(/Select.*A1 R1/i) as HTMLInputElement;
+    const checkbox = within(view.container as HTMLElement).getByRole("checkbox", { name: "Select Relief Row A1 R1" });
 
     renderCounts.clear();
     act(() => {

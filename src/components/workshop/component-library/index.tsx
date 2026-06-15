@@ -28,6 +28,7 @@ import {
   listReusableProjectSources,
   searchReusableProjectSources,
 } from "@/lib/reusable-sources/actions";
+import { getProjectReusableSourceDisplayName } from "@/lib/reusable-sources/display";
 import type {
   ProjectEstimateReusableSource,
   ProjectNodeReusableSource,
@@ -414,7 +415,12 @@ function getProjectSourcePreviewContext(
           candidate.tabId === tabId,
       )
     : null;
+  const tabDisplayName =
+    metadata.tabDisplayName ??
+    (source.kind === "project-tab" ? getProjectReusableSourceDisplayName(source) : null) ??
+    (tabSource ? getProjectReusableSourceDisplayName(tabSource) : null);
   const tabName =
+    tabDisplayName ??
     metadata.tabName ??
     (source.kind === "project-tab" ? source.name : null) ??
     (tabSource?.kind === "project-tab" ? tabSource.name : null);
@@ -459,7 +465,7 @@ function getProjectSourcePreviewOutlineRows(
         .filter((candidate): candidate is ProjectSourceInsertTarget => candidate.kind === "project-tab" && candidate.estimateId === source.estimateId)
         .map((candidate) => ({
           id: reusableProjectSourceKey(candidate),
-          label: candidate.name,
+          label: getProjectReusableSourceDisplayName(candidate),
           meta: "tab",
         }));
     case "project-tab":
@@ -495,6 +501,7 @@ function ProjectSourcePreviewPanel({
   addLabel: string;
 }) {
   const context = getProjectSourcePreviewContext(source, sources);
+  const sourceDisplayName = getProjectReusableSourceDisplayName(source);
   const outlineRows = getProjectSourcePreviewOutlineRows(source, sources);
   const nodePathText = context.nodePath.length ? context.nodePath.join(" / ") : null;
   const updatedAtText = formatPreviewDate(context.updatedAt);
@@ -519,7 +526,7 @@ function ProjectSourcePreviewPanel({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-1">
             <div className="min-w-0">
-              <h3 className="truncate text-[11px] font-medium text-ink">{source.name}</h3>
+              <h3 className="truncate text-[11px] font-medium text-ink">{sourceDisplayName}</h3>
               <p className="text-[9px] font-medium text-tertiary">{getProjectSourceTypeLabel(source)} source</p>
             </div>
             <Button
@@ -1431,6 +1438,7 @@ function EstimateRightSidebarBase({
 
   const addProjectSource = useCallback(
     (source: ProjectSourceInsertTarget) => {
+      const sourceName = getProjectReusableSourceDisplayName(source);
       if (!canInsertTemplate) {
         setLastActionMessage("Select an Area before adding project sources.");
         return false;
@@ -1438,11 +1446,11 @@ function EstimateRightSidebarBase({
 
       const didInsert = onInsertProjectSource ? onInsertProjectSource(source) !== false : false;
       if (!didInsert) {
-        setLastActionMessage(`${source.name} was not inserted. Select an Area and try again.`);
+        setLastActionMessage(`${sourceName} was not inserted. Select an Area and try again.`);
         return false;
       }
 
-      setLastActionMessage(`${source.name} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      setLastActionMessage(`${sourceName} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
       return true;
     },
     [canInsertTemplate, effectiveTemplateTargetName, onInsertProjectSource],
@@ -1948,6 +1956,7 @@ function EstimateRightSidebarBase({
 
   const handleProjectSourceDragStart = useCallback(
     (event: React.DragEvent<HTMLElement>, source: ProjectSourceInsertTarget) => {
+      const sourceName = getProjectReusableSourceDisplayName(source);
       event.dataTransfer.effectAllowed = "copy";
       const payload = source.kind === "project-node"
         ? {
@@ -1964,12 +1973,12 @@ function EstimateRightSidebarBase({
             tabId: source.tabId,
           };
       event.dataTransfer.setData(PROJECT_SOURCE_DRAG_MIME_TYPE, JSON.stringify(payload));
-      event.dataTransfer.setData("text/plain", source.name);
-      beginEstimateWorkshopDrag({ kind: "project-source", sourceName: source.name });
+      event.dataTransfer.setData("text/plain", sourceName);
+      beginEstimateWorkshopDrag({ kind: "project-source", sourceName });
 
       const dragGhost = document.createElement("div");
       dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
-      dragGhost.textContent = `${source.name} · project source`;
+      dragGhost.textContent = `${sourceName} · project source`;
       document.body.appendChild(dragGhost);
       event.dataTransfer.setDragImage(dragGhost, 12, 12);
       window.setTimeout(() => dragGhost.remove(), 0);
@@ -2301,6 +2310,8 @@ function EstimateRightSidebarBase({
             estimateId={templateModalEstimateId}
             sourceNode={templateModalSourceNode}
             sourceTabId={templateModalSourceTab?.tabId}
+            sourceTabName={templateModalSourceTab?.name}
+            sourceDisplayName={templateModalSourceTab ? getProjectReusableSourceDisplayName(templateModalSourceTab) : undefined}
             existingCategories={templateGroupNames}
             defaultCategory={templateDefaultCategory ?? undefined}
             onCreated={handleTemplateCreated}

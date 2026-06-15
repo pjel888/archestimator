@@ -163,6 +163,57 @@ describe("templates project-source performance helpers", () => {
     });
   });
 
+  it("renders project tabs by sheet display label and sort order while preserving raw names", () => {
+    const sources: ReusableEstimateSource[] = [
+      {
+        kind: "project",
+        projectId: "project-1",
+        name: "Project 1",
+      },
+      {
+        kind: "project-estimate",
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        name: "Estimate 1",
+        sheetCode: "EST-1",
+      },
+      {
+        kind: "project-tab",
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        tabId: "tab-second",
+        name: "Alpha Stored Name",
+        displayName: "Second Saved",
+        sortOrder: 1,
+      },
+      {
+        kind: "project-tab",
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        tabId: "tab-first",
+        name: "Zed Stored Name",
+        displayName: "Page 001",
+        sortOrder: 0,
+      },
+    ];
+
+    const estimateNode = buildTemplatesTreeNodes([], sources)[0]?.children?.[0]?.children?.[0];
+    const tabNodes = estimateNode?.children ?? [];
+
+    expect(tabNodes.map((node) => node.label)).toEqual(["Page 001", "Second Saved"]);
+    expect(tabNodes.map((node) => node.ariaLabel)).toEqual(["Page 001 project tab source", "Second Saved project tab source"]);
+    expect(filterProjectSourcesByQuery(sources, "Zed Stored Name")).toEqual([
+      expect.objectContaining({ kind: "project" }),
+      expect.objectContaining({ kind: "project-estimate" }),
+      expect.objectContaining({ kind: "project-tab", name: "Zed Stored Name" }),
+    ]);
+    expect(filterProjectSourcesByQuery(sources, "Page 001")).toEqual([
+      expect.objectContaining({ kind: "project" }),
+      expect.objectContaining({ kind: "project-estimate" }),
+      expect.objectContaining({ kind: "project-tab", name: "Zed Stored Name" }),
+    ]);
+  });
+
   it("materializes nested project nodes and project component rows without flattening", () => {
     const sources: ReusableEstimateSource[] = [
       {

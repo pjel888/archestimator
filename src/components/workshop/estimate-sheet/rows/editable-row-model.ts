@@ -5,6 +5,10 @@ import {
   type CostAdjustmentMode,
   type FlattenedEstimateRow,
 } from "../activity-history";
+import {
+  reportEstimateNodeTotalCompute,
+  reportEstimateNodeTotalsCompute,
+} from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem, EstimateTreeNode } from "../../estimate-tree-data";
 
 export function toEditableNumber(value: number) {
@@ -113,12 +117,14 @@ export function computeRowTotal(item: EstimateRowItem, editableRows: Record<stri
 }
 
 export function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, EditableRowValue>): number {
+  reportEstimateNodeTotalCompute(node.id);
   const rowTotal = (node.estimateRowItems ?? []).reduce((total, item) => total + computeRowTotal(item, editableRows), 0);
   const childTotal = (node.children ?? []).reduce((total, child) => total + computeNodeTotal(child, editableRows), 0);
   return rowTotal + childTotal;
 }
 
 export function computeNodeTotals(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>): Map<string, number> {
+  reportEstimateNodeTotalsCompute(nodes.map((node) => node.id));
   const nodeTotals = new Map<string, number>();
 
   function visit(node: EstimateTreeNode): number {

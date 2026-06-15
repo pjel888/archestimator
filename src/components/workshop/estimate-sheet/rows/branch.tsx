@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
+import { memo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
 import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeShellCla
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
+import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
 
 export type BreadcrumbNode = { id: string; name: string };
 
@@ -71,7 +72,75 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function areAncestorPathsEqual(prev: readonly BreadcrumbNode[], next: readonly BreadcrumbNode[]) {
+  if (prev === next) return true;
+  if (prev.length !== next.length) return false;
+  for (let index = 0; index < prev.length; index += 1) {
+    if (prev[index]?.id !== next[index]?.id || prev[index]?.name !== next[index]?.name) return false;
+  }
+  return true;
+}
+
+function branchRowStateChanged(
+  node: EstimateTreeNode,
+  prev: Pick<EstimateSheetBranchProps, "editableRows" | "selectedRowIds">,
+  next: Pick<EstimateSheetBranchProps, "editableRows" | "selectedRowIds">,
+  includeDescendants: boolean,
+): boolean {
+  for (const item of node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS) {
+    if (prev.editableRows[item.id] !== next.editableRows[item.id]) return true;
+    if (prev.selectedRowIds.has(item.id) !== next.selectedRowIds.has(item.id)) return true;
+  }
+  if (!includeDescendants) return false;
+  for (const child of node.children ?? []) {
+    if (branchRowStateChanged(child, prev, next, true)) return true;
+  }
+  return false;
+}
+
+export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps, next: EstimateSheetBranchProps) {
+  if (
+    prev.node !== next.node ||
+    prev.nodeCode !== next.nodeCode ||
+    prev.depth !== next.depth ||
+    prev.siblingIndex !== next.siblingIndex ||
+    prev.renderChildBranches !== next.renderChildBranches ||
+    prev.setEditableRows !== next.setEditableRows ||
+    prev.onInsertLibraryItem !== next.onInsertLibraryItem ||
+    prev.onInsertTemplates !== next.onInsertTemplates ||
+    prev.onInsertTemplateNode !== next.onInsertTemplateNode ||
+    prev.onAddBlankRow !== next.onAddBlankRow ||
+    prev.onReplaceRowItem !== next.onReplaceRowItem ||
+    prev.onDeleteRowItem !== next.onDeleteRowItem ||
+    prev.onUpdateRowItem !== next.onUpdateRowItem ||
+    prev.onMarkRowDirty !== next.onMarkRowDirty ||
+    prev.onOpenRowDetails !== next.onOpenRowDetails ||
+    prev.onClearRowComponent !== next.onClearRowComponent ||
+    prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
+    prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.onToggleRowSelection !== next.onToggleRowSelection ||
+    prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
+    !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
+  ) {
+    return false;
+  }
+
+  const prevTotal = prev.nodeTotals?.get(prev.node.id);
+  const nextTotal = next.nodeTotals?.get(next.node.id);
+  if (!Object.is(prevTotal, nextTotal)) return false;
+
+  const needsRowStateCheck =
+    prev.editableRows !== next.editableRows ||
+    prev.selectedRowIds !== next.selectedRowIds ||
+    !prev.nodeTotals ||
+    !next.nodeTotals;
+  if (!needsRowStateCheck) return true;
+
+  return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
+}
+
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+  reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
   // resolves the scroll container from its own DOM node.
@@ -267,7 +336,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
               It is contextual-on-arrival and scrolls away. */}
           {showBreadcrumbs && (
             <div
-              className="flex items-center gap-1 truncate border-x border-hairline bg-surfaceMuted/40 pb-2 text-[8px] text-muted"
+              className="flex items-center gap-1 truncate border-x border-b border-hairline bg-surfaceMuted/40 pb-2 text-[8px] text-muted"
               aria-label={`${node.name} breadcrumbs`}
               style={{ paddingLeft: `${headerTextOffset}px` }}
             >
@@ -372,3 +441,6 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     </>
   );
 }
+
+export const EstimateSheetBranch = memo(EstimateSheetBranchBase, areEstimateSheetBranchPropsEqual);
+EstimateSheetBranch.displayName = "EstimateSheetBranch";

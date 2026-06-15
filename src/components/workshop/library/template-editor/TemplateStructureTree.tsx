@@ -14,7 +14,6 @@ import {
   summarizeEstimateTemplate,
   type EstimateTemplate,
 } from "../../component-library/templates";
-import { findTemplateNode } from "./template-editor-model";
 
 export const TEMPLATE_EDITOR_ROOT_NODE_ID = "template-editor-root";
 
@@ -56,16 +55,25 @@ export function getTemplateStructureAllNodeIds(template: EstimateTemplate): stri
 
 type NodePlacement = { parent: EstimateTreeNode | null; siblings: EstimateTreeNode[] };
 
-function findNodePlacement(template: EstimateTemplate, nodeId: string): NodePlacement | null {
-  function visit(parent: EstimateTreeNode | null, siblings: EstimateTreeNode[]): NodePlacement | null {
+type TemplateStructureIndex = {
+  nodeById: Map<string, EstimateTreeNode>;
+  placementById: Map<string, NodePlacement>;
+};
+
+function buildTemplateStructureIndex(template: EstimateTemplate): TemplateStructureIndex {
+  const nodeById = new Map<string, EstimateTreeNode>();
+  const placementById = new Map<string, NodePlacement>();
+
+  function visit(parent: EstimateTreeNode | null, siblings: EstimateTreeNode[]) {
     for (const node of siblings) {
-      if (node.id === nodeId) return { parent, siblings };
-      const childResult = visit(node, node.children ?? []);
-      if (childResult) return childResult;
+      nodeById.set(node.id, node);
+      placementById.set(node.id, { parent, siblings });
+      visit(node, node.children ?? []);
     }
-    return null;
   }
-  return visit(null, template.nodes);
+
+  visit(null, template.nodes);
+  return { nodeById, placementById };
 }
 
 /**
@@ -91,6 +99,7 @@ export function TemplateStructureTree({
   const [contextMenuNodeId, setContextMenuNodeId] = useState<string | null>(null);
   // U12 (UX-5): polite SR announcement after a keyboard reorder.
   const [moveAnnouncement, setMoveAnnouncement] = useState("");
+  const structureIndex = useMemo(() => buildTemplateStructureIndex(template), [template]);
 
   const nodes = useMemo<UiTreeNode[]>(
     () => [
@@ -122,12 +131,12 @@ export function TemplateStructureTree({
     if (targetId === TEMPLATE_EDITOR_ROOT_NODE_ID) {
       return position === "inside" ? { parentId: null, index: template.nodes.length } : null;
     }
-    const targetNode = findTemplateNode(template.nodes, targetId);
+    const targetNode = structureIndex.nodeById.get(targetId);
     if (!targetNode) return null;
     if (position === "inside") {
       return { parentId: targetNode.id, index: targetNode.children?.length ?? 0 };
     }
-    const placement = findNodePlacement(template, targetId);
+    const placement = structureIndex.placementById.get(targetId);
     if (!placement) return null;
     const targetIndex = placement.siblings.findIndex((sibling) => sibling.id === targetId);
     return {
@@ -137,11 +146,11 @@ export function TemplateStructureTree({
   }
 
   function canDropNode(draggedId: string, targetId: string, position: TreeDropPosition) {
-    const dragged = findTemplateNode(template.nodes, draggedId);
+    const dragged = structureIndex.nodeById.get(draggedId);
     const target = resolveDropTarget(targetId, position);
     if (!dragged || !target) return false;
     if (target.parentId === null) return dragged.kind === "group";
-    const parentNode = findTemplateNode(template.nodes, target.parentId);
+    const parentNode = structureIndex.nodeById.get(target.parentId);
     return parentNode?.kind === "group";
   }
 
@@ -151,7 +160,7 @@ export function TemplateStructureTree({
     const currentSiblings =
       target.parentId === null
         ? template.nodes
-        : findTemplateNode(template.nodes, target.parentId)?.children ?? [];
+        : structureIndex.nodeById.get(target.parentId)?.children ?? [];
     const withoutDragged = currentSiblings.filter((sibling) => sibling.id !== draggedId);
     const draggedWasBefore = currentSiblings.findIndex((sibling) => sibling.id === draggedId);
     const insertionIndex =
@@ -183,7 +192,7 @@ export function TemplateStructureTree({
       ];
     }
 
-    const node = findTemplateNode(template.nodes, contextMenuNodeId);
+    const node = structureIndex.nodeById.get(contextMenuNodeId);
     if (!node) return [];
     const isTemporary = node.id.startsWith("temp-");
 
@@ -210,7 +219,7 @@ export function TemplateStructureTree({
     // U12 (UX-4): keyboard-reachable reorder. The context menu is keyboard-
     // navigable, so "Move up/down" gives a non-drag path to reorder a node
     // among its siblings via the existing onMoveNode handler.
-    const placement = findNodePlacement(template, node.id);
+    const placement = structureIndex.placementById.get(node.id);
     const moveSiblings = placement?.siblings ?? [];
     const moveIndex = moveSiblings.findIndex((sibling) => sibling.id === node.id);
     const reorderNode = (direction: -1 | 1) => {
@@ -267,7 +276,7 @@ export function TemplateStructureTree({
         ],
       },
     ];
-  }, [contextMenuNodeId, handlers, template]);
+  }, [contextMenuNodeId, handlers, structureIndex]);
 
   return (
     <>
