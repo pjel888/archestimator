@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
-import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
-import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
+import { workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, ClockCounterClockwise, CopySimple, Trash } from "@phosphor-icons/react/dist/ssr";
 import { useQueryClient } from "@tanstack/react-query";
@@ -780,10 +780,11 @@ function ProjectEstimatesTableComponent({
           },
           {
             // U19: warm the in-estimate panel's lite library on row hover so the
-            // sidebar is interactive without the cold-load skeleton. Workspace-
-            // global key — TanStack dedupes across rows and skips while fresh.
-            queryKey: WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY,
-            queryFn: () => loadCurrentWorkspaceComponentLibraryLite(),
+            // sidebar is interactive without the cold-load skeleton. Project-
+            // scoped key — TanStack dedupes across rows in this project
+            // without leaking tenant data across auth/workspace transitions.
+            queryKey: workspaceComponentLibraryLiteQueryKey(projectId),
+            queryFn: () => loadProjectComponentLibraryLite(projectId),
             staleTime: 5 * 60_000,
           },
         ],
