@@ -47,6 +47,12 @@ async function requireWorkspaceTemplate(supabase: SupabaseServerClient, workspac
   return template;
 }
 
+async function requireTemplateEditorAccess(supabase: SupabaseServerClient, workspaceId: string) {
+  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
+  if (error) throw new Error(`Could not verify template editor access: ${error.message}`);
+  if (data !== true) throw new Error("Only workspace editors/admins can edit estimate templates.");
+}
+
 async function requireTemplateNode(supabase: SupabaseServerClient, templateId: string, nodeId: string) {
   if (!isUuid(nodeId)) throw new Error("Template node not found.");
   const { data: node, error } = await supabase
@@ -81,6 +87,7 @@ export async function createEstimateTemplateNode(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
 
   const name = input.name.trim();
@@ -115,6 +122,7 @@ export async function createEstimateTemplateNode(input: {
 export async function renameEstimateTemplateNode(input: { templateId: string; nodeId: string; name: string }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
 
   const name = input.name.trim();
@@ -137,6 +145,7 @@ export async function renameEstimateTemplateNode(input: { templateId: string; no
 export async function deleteEstimateTemplateNode(input: { templateId: string; nodeId: string }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
   await requireTemplateNode(supabase, input.templateId, input.nodeId);
 
@@ -187,6 +196,7 @@ export async function moveEstimateTemplateNode(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
   const node = await requireTemplateNode(supabase, input.templateId, input.nodeId);
 
@@ -269,6 +279,7 @@ export async function addEstimateTemplateRowItems(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
   const node = await requireTemplateNode(supabase, input.templateId, input.nodeId);
   if (node.kind !== "area") throw new Error("Components can only be added to an area.");
@@ -309,6 +320,7 @@ export async function createEstimateTemplateAllowanceRow(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
   const node = await requireTemplateNode(supabase, input.templateId, input.nodeId);
   if (node.kind !== "area") throw new Error("Rows can only be added to an area.");
@@ -362,6 +374,7 @@ export async function updateEstimateTemplateRowItem(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
   if (!isUuid(input.rowId)) throw new Error("Template row not found.");
 
@@ -414,6 +427,7 @@ export async function updateEstimateTemplateRowItem(input: {
 export async function removeEstimateTemplateRowItem(input: { templateId: string; rowId: string }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
   if (!isUuid(input.rowId)) throw new Error("Template row not found.");
 
@@ -438,6 +452,7 @@ export async function reorderEstimateTemplateRowItems(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.templateId);
 
   for (const [index, rowId] of input.orderedRowIds.entries()) {
@@ -468,6 +483,7 @@ export async function insertTemplateIntoTemplate(input: {
 }) {
   const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await requireTemplateEditorAccess(supabase, workspace.id);
   await requireWorkspaceTemplate(supabase, workspace.id, input.targetTemplateId);
   await requireWorkspaceTemplate(supabase, workspace.id, input.sourceTemplateId);
   if (input.targetTemplateId === input.sourceTemplateId) {
