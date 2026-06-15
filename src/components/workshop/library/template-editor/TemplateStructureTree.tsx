@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Blueprint, FolderSimple, MapPin, PencilSimple, Plus
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { pesoFormatter } from "../../component-library/helpers";
 import {
@@ -266,7 +267,7 @@ export function TemplateStructureTree({
         ],
       },
     ];
-  }, [contextMenuNodeId, handlers, template.nodes]);
+  }, [contextMenuNodeId, handlers, template]);
 
   return (
     <>
@@ -302,6 +303,7 @@ export function TemplateStructureTree({
                 </span>
               </span>
             )}
+            virtualization={WORKSHOP_TREE_VIRTUALIZATION}
           />
         </div>
       </ContextMenuTrigger>

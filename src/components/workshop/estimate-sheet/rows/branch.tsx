@@ -46,6 +46,8 @@ export type EstimateSheetBranchProps = {
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
   nodeTotals?: ReadonlyMap<string, number>;
   depth?: number;
+  siblingIndex?: number;
+  renderChildBranches?: boolean;
 };
 
 /**
@@ -69,7 +71,7 @@ export type SheetMutationHandlers = Pick<
   | "onMoveRowComponent"
 >;
 
-export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0 }: EstimateSheetBranchProps) {
+export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
   // resolves the scroll container from its own DOM node.
@@ -87,6 +89,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   const hasOwnRows = estimateRowItems.length > 0;
   const hasContents = hasChildren || hasOwnRows;
   const leftIndent = Math.min(depth * 16, 96);
+  const headerTextOffset = leftIndent + 51;
   const total = nodeTotals?.get(node.id) ?? computeNodeTotal(node, editableRows);
   const showBreadcrumbs = !collapsed && ancestorPath.length > 0;
   // Sticky model: ONLY the displayed (depth-0) node header is sticky, pinned at
@@ -95,6 +98,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   // pinned theads at the bottom of small nested tables and clipped first rows;
   // a single non-accumulated sticky layer cannot collide, clip, or overlap.
   const isStickyHeader = depth === 0;
+  const headingLevel = Math.min(depth + 1, 6);
   // P6 single-node model: every node is a first-class area that can hold rows
   // AND child sub-areas, so a template/subtree drops directly into ANY node —
   // there is no area-wrap path anymore.
@@ -108,6 +112,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
   ].filter(Boolean).join(", ");
   const activeDrag = useEstimateWorkshopDrag();
   const templateDragActive = activeDrag?.kind === "estimate-template";
+  const componentDragActive = activeDrag?.kind === "library-item";
   const activeTemplateName = activeDrag?.kind === "estimate-template" ? activeDrag.templateName : "";
   const [templateDragOverCount, setTemplateDragOverCount] = useState(0);
 
@@ -145,6 +150,20 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     onInsertTemplates(node.id, payload.templateIds);
   }
 
+  function expandNode() {
+    setCollapsedNodeIds((prev) => {
+      if (!prev.has(node.id)) return prev;
+      const next = new Set(prev);
+      next.delete(node.id);
+      return next;
+    });
+  }
+
+  function handleInsertLibraryItem(targetNodeId: string, libraryItem: EstimateRowItem) {
+    expandNode();
+    onInsertLibraryItem(targetNodeId, libraryItem);
+  }
+
   function handleTemplateDrop(event: DragEvent<HTMLElement>) {
     if (!canReceiveTemplates) return;
     setTemplateDragOverCount(0);
@@ -157,6 +176,14 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
 
   return (
     <>
+    {depth > 0 && siblingIndex > 0 ? (
+      <div
+        aria-hidden="true"
+        data-estimate-sibling-divider=""
+        className="bg-white py-5"
+        style={{ marginLeft: `${leftIndent + 8}px` }}
+      />
+    ) : null}
     <section
       ref={sectionRef}
       className={cn(
@@ -177,7 +204,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     >
       <div className={cn("bg-white", isStickyHeader && "sticky top-0 z-[20]")}>
         <div
-          className={cn("flex h-10 items-center gap-2 border-t border-hairline bg-surfaceMuted/40 px-1", nodeHeaderClasses())}
+          className={cn("flex min-h-10 items-center gap-2 border-x border-t border-hairline bg-surfaceMuted/40 px-1 py-2", nodeHeaderClasses())}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
         >
           {/* L7 dual-content announcement as a real (visually-hidden) text
@@ -215,35 +242,42 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
           <span
             data-occupancy-dot=""
             aria-hidden="true"
-            className={cn("size-[3px] shrink-0 rounded-full opacity-50", hasOwnRows ? "bg-orange-600" : "bg-tertiary")}
+            className={cn("size-[3px] shrink-0 rounded-xs opacity-50", hasOwnRows ? "bg-orange-600" : "bg-tertiary")}
           />
           <div className="min-w-0 flex-1">
-            {nodeCode && (
-              <p className="text-[8px] font-sans leading-none tabular-nums text-tertiary">{nodeCode}</p>
-            )}
-            <p className={nodeNameClasses()}>{node.name}</p>
+            <p className={nodeNameClasses(depth)} role="heading" aria-level={headingLevel}>{node.name}</p>
           </div>
           <span className={nodeTotalClasses()}>{pesoFormatter.format(total)}</span>
         </div>
       </div>
 
+      {collapsed && componentDragActive ? (
+        <ComponentDropTarget
+          nodeId={node.id}
+          nodeName={node.name}
+          empty={!hasContents}
+          onInsertLibraryItem={handleInsertLibraryItem}
+          onAddBlankRow={onAddBlankRow}
+        />
+      ) : null}
+
       {!collapsed ? (
-        <div className="mt-1 space-y-2">
+        <div>
           {/* Breadcrumb path band — a normal scrolling band in the node body.
               It is contextual-on-arrival and scrolls away. */}
           {showBreadcrumbs && (
             <div
-              className="flex items-center gap-1 truncate text-[8px] text-muted"
+              className="flex items-center gap-1 truncate border-x border-hairline bg-surfaceMuted/40 pb-2 text-[8px] text-muted"
               aria-label={`${node.name} breadcrumbs`}
-              style={{ paddingLeft: `${leftIndent + 72}px` }}
+              style={{ paddingLeft: `${headerTextOffset}px` }}
             >
               {ancestorPath.map((ancestor, index) => (
                 <span key={ancestor.id}>
-                  {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
+                  {index > 0 && <span className="mx-0.5 text-current">›</span>}
                   {ancestor.name}
                 </span>
               ))}
-              <span className="mx-0.5 text-hairline">›</span>
+              <span className="mx-0.5 text-current">›</span>
               <span>{node.name}</span>
             </div>
           )}
@@ -280,12 +314,12 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
             nodeId={node.id}
             nodeName={node.name}
             empty={!hasContents}
-            onInsertLibraryItem={onInsertLibraryItem}
+            onInsertLibraryItem={handleInsertLibraryItem}
             onAddBlankRow={onAddBlankRow}
           />
           {/* Child sub-areas LAST (depth+1), pinned below this node's sticky
               header (and own-rows thead when present). */}
-          {childAreas.map((child, childIndex) => {
+          {renderChildBranches ? childAreas.map((child, childIndex) => {
             const childCode = getNodeCode(nodeCode, childIndex);
             const childPath = [...ancestorPath, { id: node.id, name: node.name }];
             return (
@@ -313,9 +347,10 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
                 onToggleRowsSelection={onToggleRowsSelection}
                 nodeTotals={nodeTotals}
                 depth={depth + 1}
+                siblingIndex={childIndex}
               />
             );
-          })}
+          }) : null}
           {/* Unified empty state (L5/P6). Every empty node now offers BOTH
               creatable paths (a row OR a sub-area) through ComponentDropTarget's
               empty state above — the promise gap held in P4 is closed, so the
@@ -333,7 +368,7 @@ export function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editabl
     {/* Default bottom breathing room (root only): a scroll buffer so the
         bottom-most node can scroll up into reach — and the layout doesn't jump
         when the mid-drag drop zones appear. Pairs with the drag edge-autoscroll. */}
-    {depth === 0 ? <div aria-hidden="true" className="h-32 shrink-0" /> : null}
+    {depth === 0 && renderChildBranches ? <div aria-hidden="true" className="h-32 shrink-0" /> : null}
     </>
   );
 }

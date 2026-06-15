@@ -24,6 +24,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { Tree, type TreeDropPosition, type TreeExternalDropOptions, type TreeNode as UiTreeNode } from "@/components/ui/tree";
 import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
+import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import {
   dedupeSelectedRoots,
   pruneSelection,
@@ -1470,6 +1471,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                       onContextMenu={handleTreeContextMenu}
                       rootDropZones
                       renderRow={renderEstimateTreeRowLabel}
+                      virtualization={WORKSHOP_TREE_VIRTUALIZATION}
                     />
                   </div>
                 </ContextMenuTrigger>

@@ -19,6 +19,7 @@ import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/
 import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
 import { findNode, getAllNodeIds } from "./helpers";
@@ -437,6 +438,7 @@ export function LibraryTree({
             onRowDoubleClick={handleRowDoubleClick}
             onContextMenu={handleTreeContextMenu}
             renderRow={renderLibraryRowLabel}
+            virtualization={WORKSHOP_TREE_VIRTUALIZATION}
           />
         </div>
       </ContextMenuTrigger>

@@ -19,6 +19,7 @@ import {
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { TREE_ROW_ICON_SIZE, Tree, type TreeNode as UiTreeNode } from "@/components/ui/tree";
+import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import type {
   ProjectEstimateReusableSource,
@@ -1219,6 +1220,7 @@ export function TemplatesTree({
             onRowClick={handleRowClick}
             onContextMenu={handleTreeContextMenu}
             renderRow={renderTemplatesRowLabel}
+            virtualization={WORKSHOP_TREE_VIRTUALIZATION}
           />
         </div>
       </ContextMenuTrigger>
