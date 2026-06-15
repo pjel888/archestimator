@@ -387,7 +387,11 @@ describe("estimate sheet cost inputs", () => {
   it("keeps area breadcrumbs as a compact node-body trail", () => {
     renderEstimateSheet("living-area");
 
-    expect(screen.getByLabelText("Living Area breadcrumbs")).toHaveClass("flex", "items-center", "gap-1");
+    const breadcrumbs = screen.getByLabelText("Living Area breadcrumbs");
+    expect(breadcrumbs).toHaveClass("flex", "items-center", "gap-1", "border-x", "border-hairline", "bg-surfaceMuted/40", "pb-2");
+    expect((breadcrumbs as HTMLElement).style.paddingLeft).toBe("51px");
+    expect(breadcrumbs.parentElement).not.toHaveClass("mt-1", "space-y-2");
+    expect(within(breadcrumbs).getAllByText("›").every((separator) => separator.className.includes("text-current"))).toBe(true);
   });
 
   it("uses group row rhythm when group and area nodes are siblings", () => {
@@ -435,8 +439,8 @@ describe("estimate sheet cost inputs", () => {
     const lotHeader = screen.getByRole("button", { name: "Collapse Lot" }).closest("div");
     if (!lotHeader) throw new Error("Expected Lot header to render.");
     expect(lotHeader).not.toHaveClass("bg-neutral-50");
-    expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-3");
-    expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-3");
+    expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-[60px]");
+    expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-[60px]");
   });
 
   it("keeps compact spacing when a group contains only area nodes", () => {
@@ -487,8 +491,8 @@ describe("estimate sheet cost inputs", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByLabelText("2-Car Parking")).toHaveClass("mt-2");
-    expect(screen.getByLabelText("Living Room")).toHaveClass("mt-2");
+    expect(screen.getByLabelText("2-Car Parking")).toHaveClass("mt-10");
+    expect(screen.getByLabelText("Living Room")).toHaveClass("mt-10");
     expect(screen.getByLabelText("Living Room")).not.toHaveClass("mt-4");
   });
 

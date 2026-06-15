@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -279,6 +279,50 @@ describe("ui tree", () => {
     expect(event.dataTransfer.getData("text/plain")).toBe("c");
     event.dataTransfer.setData("application/x-custom", "payload");
     expect(dataTransfer.getData("application/x-custom")).toBe("payload");
+  });
+
+  it("uses bounded virtual rows when virtualization is enabled past the threshold", async () => {
+    const nodes = Array.from({ length: 120 }, (_, index) => ({
+      id: `node-${index + 1}`,
+      label: `Node ${index + 1}`,
+      isLeaf: true,
+    }));
+    const scrollElement = document.createElement("div");
+    Object.defineProperty(scrollElement, "clientHeight", { value: 84 });
+    scrollElement.getBoundingClientRect = () => ({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 240,
+      bottom: 84,
+      width: 240,
+      height: 84,
+      toJSON: () => ({}),
+    });
+
+    render(
+      <Tree
+        nodes={nodes}
+        ariaLabel="Virtual tree"
+        virtualization={{
+          enabled: true,
+          minRows: 1,
+          estimateRowHeight: 28,
+          overscan: 2,
+          getScrollElement: () => scrollElement,
+        }}
+      />,
+    );
+
+    const virtualizer = document.querySelector("[data-tree-virtualizer]") as HTMLElement;
+    expect(virtualizer).not.toBeNull();
+    expect(virtualizer).toHaveAttribute("data-tree-virtual-total-count", "120");
+    await waitFor(() => expect(Number(virtualizer.getAttribute("data-tree-virtual-mounted-count"))).toBeGreaterThan(0));
+    const mountedCount = Number(virtualizer.getAttribute("data-tree-virtual-mounted-count"));
+    expect(mountedCount).toBeGreaterThan(0);
+    expect(mountedCount).toBeLessThan(120);
+    expect(document.querySelectorAll("[data-tree-virtual-row]").length).toBe(mountedCount);
   });
 
   describe("moveTreeNode", () => {

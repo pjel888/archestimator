@@ -30,7 +30,25 @@ export function focusEstimateCell(rowIndex: number, cellIndex: number) {
   if (nextCell instanceof HTMLInputElement) nextCell.select();
 }
 
-export function handleEstimateCellKeyDown(event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, cellIndex: number) {
+export function focusEstimateCellByRowId(rowId: string, cellIndex: number) {
+  const escapedRowId = typeof CSS !== "undefined" && CSS.escape
+    ? CSS.escape(rowId)
+    : rowId.replace(/"/g, '\\"');
+  const nextCell = document.querySelector<HTMLInputElement | HTMLSelectElement>(
+    `[data-estimate-row-id="${escapedRowId}"][data-estimate-cell-index="${cellIndex}"]`,
+  );
+  nextCell?.focus();
+  if (nextCell instanceof HTMLInputElement) nextCell.select();
+  return Boolean(nextCell);
+}
+
+export function handleEstimateCellKeyDown(
+  event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
+  rowIndex: number,
+  cellIndex: number,
+  rowIds?: readonly string[],
+  requestFocusByRowId?: (rowId: string, cellIndex: number) => void,
+) {
   if (event.key === "Enter") {
     event.preventDefault();
     event.currentTarget.blur();
@@ -46,6 +64,11 @@ export function handleEstimateCellKeyDown(event: KeyboardEvent<HTMLInputElement 
   const target = keyMap[event.key];
   if (!target) return;
   event.preventDefault();
+  const targetRowId = rowIds?.[target[0]];
+  if (targetRowId && requestFocusByRowId && !focusEstimateCellByRowId(targetRowId, target[1])) {
+    requestFocusByRowId(targetRowId, target[1]);
+    return;
+  }
   focusEstimateCell(target[0], target[1]);
 }
 

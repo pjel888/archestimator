@@ -7,6 +7,7 @@ import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
   type EstimateTemplate,
 } from "@/components/workshop/component-library/templates";
+import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import {
   beginEstimateWorkshopDrag,
@@ -139,10 +140,9 @@ describe("estimate sheet drag-aware drop zones", () => {
     expect(screen.queryByText(/Drag and drop estimate component/i)).not.toBeInTheDocument();
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
     expect(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" })).toBeInTheDocument();
-    // P6: an empty node ("annex") shows the unified, truthful empty state that
-    // offers BOTH a row and a sub-area (the old "No sub-areas yet" group-only
-    // copy is gone).
-    expect(screen.getByText(/Empty area\. Add a row/i)).toBeInTheDocument();
+    // Empty nodes use the same quiet add-row affordance as populated nodes.
+    expect(screen.queryByText(/Empty area\. Add a row/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add blank estimate row to Annex" })).toBeInTheDocument();
     expect(screen.queryByText(/No sub-areas yet/i)).not.toBeInTheDocument();
   });
 
@@ -155,6 +155,35 @@ describe("estimate sheet drag-aware drop zones", () => {
 
     act(() => endEstimateWorkshopDrag());
     expect(screen.queryByText("Drag and drop estimate component into Kitchen")).not.toBeInTheDocument();
+  });
+
+  it("shows component drop zones on collapsed nodes and expands after a drop", async () => {
+    renderSheet();
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse Lot" }));
+    expect(screen.getByRole("button", { name: "Expand Lot" })).toBeInTheDocument();
+    expect(screen.queryByText("Drag and drop estimate component into Lot")).not.toBeInTheDocument();
+    expect(screen.queryByText("Drag and drop estimate component into Kitchen")).not.toBeInTheDocument();
+
+    act(() => beginEstimateWorkshopDrag({ kind: "library-item" }));
+
+    const lotDropZoneLabel = screen.getByText("Drag and drop estimate component into Lot");
+    const lotDropZone = lotDropZoneLabel.closest(".py-1");
+    expect(lotDropZone).not.toBeNull();
+    expect(screen.queryByText("Drag and drop estimate component into Kitchen")).not.toBeInTheDocument();
+
+    const droppedLibraryItem = {
+      ...estimateLibraryItems[0],
+      id: "collapsed-lot-drop-row",
+      material: "Collapsed Lot Test Component",
+    };
+    const dataTransfer = createDataTransferStub([LIBRARY_ITEM_DRAG_MIME_TYPE]);
+    dataTransfer.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(droppedLibraryItem));
+    fireEvent.drop(lotDropZone as HTMLElement, { dataTransfer });
+    act(() => endEstimateWorkshopDrag());
+
+    expect(screen.getByRole("button", { name: "Collapse Lot" })).toBeInTheDocument();
+    expect(await screen.findByText("Collapsed Lot Test Component")).toBeInTheDocument();
   });
 
   it("reveals template drop zones on groups during a template drag and inserts on drop", async () => {

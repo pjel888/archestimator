@@ -17,6 +17,7 @@
   --warm-canvas: #f5f5f5;
   --hairline: #f2f2f2;
   --divider: #f2f2f2;
+  --divider-sibling: #d9d9d9;
   --muted: #7f7f7f;
   /* Deterministic muted foreground for secondary text. Previously undefined, so
      `text-muted-foreground` resolved non-deterministically (`06` A11Y-2/16).
@@ -58,6 +59,8 @@
   --color-warmCanvas: var(--warm-canvas);
   --color-hairline: var(--hairline);
   --color-divider: var(--divider);
+  --color-divider-sibling: var(--divider-sibling);
+  --color-dividerSibling: var(--divider-sibling);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
