@@ -336,6 +336,29 @@ describe("proposal xlsx export route", () => {
     expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
   });
 
+  it("rejects all-tabs exports above the tab cap before fetching workbook trees", async () => {
+    mocks.getEstimateTabs.mockResolvedValueOnce(
+      Array.from({ length: 51 }, (_, index) => ({
+        id: `tab-${index}`,
+        name: `Tab ${index}`,
+        sortOrder: index,
+        isDefault: index === 0,
+      })),
+    );
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toMatchObject({
+      limits: expect.objectContaining({ maxTabCount: 50 }),
+    });
+    expect(mocks.getEstimateTreesForTabs).not.toHaveBeenCalled();
+    expect(mocks.getEstimateTabTree).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
   it("rejects an oversized all-tabs export early via the batched over-fetch guard (P2-T7, F-24)", async () => {
     mocks.getEstimateTabs.mockResolvedValueOnce([
       { id: "tab-main", name: "Main", sortOrder: 0, isDefault: true },
@@ -523,6 +546,7 @@ describe("proposal xlsx export route", () => {
       limits: {
         maxNodeCount: 1200,
         maxRowItemCount: 3000,
+        maxTabCount: 50,
       },
     });
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
