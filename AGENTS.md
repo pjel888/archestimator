@@ -71,7 +71,7 @@ This project has an extensive toolkit of agents, skills, and commands. Use this 
 | Remove AI slop / code smells | `/remove-ai-slops` |
 | Review changes incrementally | `skill(name="Review Changes")` |
 | Safety review (security) | `skill(name="security-review")` |
-| Design audit | `npx impeccable detect --strict` or load `impeccable` with audit/critique sub-command |
+| Design audit | `bun run lint:design` or load `impeccable` with audit/critique sub-command |
 
 ### Debugging & Investigation
 
