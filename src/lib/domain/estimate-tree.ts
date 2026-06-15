@@ -1,3 +1,5 @@
+import type { EstimateRowMetadata } from "@/lib/estimates/express-components";
+
 export type EstimateNodeKind = "group" | "area";
 
 export type EstimateNode = {
@@ -29,6 +31,7 @@ export type EstimateRowItem = {
   sortOrder: number;
   sourceLibraryItemId: string | null;
   sourceSnapshot: Record<string, unknown> | null;
+  metadata?: EstimateRowMetadata;
   material: string;
   description: string;
   supplier: string;

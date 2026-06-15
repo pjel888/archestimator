@@ -1,11 +1,13 @@
 import type { TreeItemIndex } from "react-complex-tree";
 
+import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 
 export const LIBRARY_FOLDER_TREE_ID = "library-folder-tree";
 export const LIBRARY_FOLDER_TREE_ROOT_ITEM_ID = "library-folder-tree-root";
 export const LIBRARY_FOLDER_ID_PREFIX = "folder:";
 export const LIBRARY_FOLDER_SORT_ORDER_STEP = 10;
+const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
 
 export type LibraryFolderKind = "taxonomy" | "custom";
 
@@ -308,11 +310,23 @@ function collectFolderPlacement(node: LibraryFolderTreeNode) {
   return { folderIds, sourceCategoryNodeIds };
 }
 
+function isProjectComponentFolderId(folderId: string | null | undefined) {
+  return typeof folderId === "string" && folderId.startsWith(`${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-`);
+}
+
+function isProjectComponentProjectionItem(item: EstimateRowItem) {
+  return readProjectComponentProjectionMetadata(item.metadata) !== null;
+}
+
 export function getLibraryItemsForFolderNode(node: LibraryFolderTreeNode | null, items: EstimateRowItem[]): EstimateRowItem[] {
   if (!node) return items;
   const { folderIds, sourceCategoryNodeIds } = collectFolderPlacement(node);
   return items.filter((item) => {
-    if (item.libraryFolderId) return folderIds.has(item.libraryFolderId);
+    if (item.libraryFolderId) {
+      if (!folderIds.has(item.libraryFolderId)) return false;
+      if (isProjectComponentFolderId(item.libraryFolderId)) return isProjectComponentProjectionItem(item);
+      return true;
+    }
     return Boolean(item.categoryNodeId && sourceCategoryNodeIds.has(item.categoryNodeId));
   });
 }

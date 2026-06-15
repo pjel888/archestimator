@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { SelectionCheckbox } from "@/components/ui/selection-checkbox";
+import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { cn } from "@/lib/ui/cn";
 import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
-import { formatPeso, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history";
+import { formatPeso, isBlankEstimateRowItem, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history";
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "./constants";
-import { EstimateMaterialCell, MoneyInput, focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells";
+import { EstimateMaterialCell, MoneyInput, focusEstimateCellByRowId, handleEstimateCellKeyDown, type ExpressInsertDraftState } from "./cells";
+import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import {
   COST_ADJUSTMENT_MODE_OPTIONS,
   calculateContingencyValue,
@@ -41,6 +43,9 @@ export type EstimateRowItemsTableProps = {
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
+  onRetryExpressDraft?: (rowItemId: string) => void;
+  onDeleteExpressDraft?: (rowItemId: string) => void;
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
@@ -72,6 +77,9 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
+    prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
+    prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
     prev.virtualization !== next.virtualization
@@ -86,6 +94,7 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
 }
 
 const ROW_COLUMNS = "grid-cols-[36px_32px_minmax(160px,1fr)_58px_92px_106px_92px_108px_30px]";
+const noopExpressDraftHandler = () => undefined;
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
 
@@ -124,9 +133,13 @@ type EstimateRowItemTableRowProps = {
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  expressDraftState?: ExpressInsertDraftState;
+  onRetryExpressDraft: (rowItemId: string) => void;
+  onDeleteExpressDraft: (rowItemId: string) => void;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   rowIds: readonly string[];
   onRequestFocusByRowId: (rowId: string, cellIndex: number) => void;
+  onExpressEditorActiveChange: (rowId: string, active: boolean) => void;
   style?: CSSProperties;
 };
 
@@ -148,22 +161,41 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onClearRowComponent,
   onRequestProjectSpecific,
   onMoveRowComponent,
+  expressDraftState,
+  onRetryExpressDraft,
+  onDeleteExpressDraft,
   onToggleRowSelection,
   rowIds,
   onRequestFocusByRowId,
+  onExpressEditorActiveChange,
   style,
 }: EstimateRowItemTableRowProps) {
   reportEstimateRowItemRender(item.id);
+  const isInlineEditableComponentRow = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
   const computedItem = useMemo(() => {
     const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
+    const itemCost = isInlineEditableComponentRow ? parseNonNegativeEditableNumber(resolvedEditableRow.unitCost) : item.itemCost;
     const quantity = parseNonNegativeEditableNumber(resolvedEditableRow.quantity);
     const contingencyPercentage = parseEditableContingencyPercentage(resolvedEditableRow);
     const miscCost = parseNonNegativeEditableNumber(resolvedEditableRow.miscCost);
-    const subTotal = item.itemCost * quantity;
+    const subTotal = itemCost * quantity;
     const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
     return {
       ...item,
+      itemCost,
       storedQuantity: item.quantity,
+      storedMaterial: item.material,
+      storedDescription: item.description,
+      storedSupplier: item.supplier,
+      storedUnit: item.unit,
+      storedUnitCost: item.itemCost,
+      editableName: resolvedEditableRow.name,
+      editableDescription: resolvedEditableRow.description,
+      editableSupplier: resolvedEditableRow.supplier,
+      editableUnit: resolvedEditableRow.unit,
+      editableUnitCost: resolvedEditableRow.unitCost,
+      editableImageUrl: resolvedEditableRow.imageUrl,
+      editableSourceUrl: resolvedEditableRow.sourceUrl,
       storedContingencyPercentage: item.contingencyPercentage ?? 0,
       storedMiscCost: item.miscCost,
       editableQuantity: resolvedEditableRow.quantity,
@@ -177,12 +209,36 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       subTotal,
       totalItemCosts: subTotal + miscCost + contingencyValue,
     };
-  }, [editableRow, item]);
+  }, [editableRow, isInlineEditableComponentRow, item]);
+  const resolvedEditableRow = editableRow ?? getInitialEditableRow(item);
+  const computedItemLabel = isInlineEditableComponentRow
+    ? computedItem.editableName || "Express component"
+    : computedItem.material || "component";
+
+  function updateExpressEditableRow(values: Partial<EditableRowValue>) {
+    setEditableRows((current) => updateEditableRowValue(current, item, values));
+    onMarkRowDirty(item.id);
+  }
+
+  function commitExpressFields(values: Partial<EditableRowValue>) {
+    const nextValues = { ...resolvedEditableRow, ...values };
+    const patch: Partial<EditableRowValue> = {};
+    if (values.name !== undefined && nextValues.name !== item.material) patch.name = nextValues.name;
+    if (values.description !== undefined && nextValues.description !== item.description) patch.description = nextValues.description;
+    if (values.supplier !== undefined && nextValues.supplier !== item.supplier) patch.supplier = nextValues.supplier;
+    if (values.unit !== undefined && nextValues.unit !== item.unit) patch.unit = nextValues.unit;
+    if (values.unitCost !== undefined && parseNonNegativeEditableNumber(nextValues.unitCost) !== item.itemCost) patch.unitCost = nextValues.unitCost;
+    if (values.imageUrl !== undefined && nextValues.imageUrl !== (item.imageUrl ?? "")) patch.imageUrl = nextValues.imageUrl;
+    if (values.sourceUrl !== undefined && nextValues.sourceUrl !== (item.sourceUrl ?? "")) patch.sourceUrl = nextValues.sourceUrl;
+    if (Object.keys(patch).length > 0) onUpdateRowItem(item.id, patch);
+  }
+
 
   return (
     <tr
       className={cn(
-        "group/estimate-row grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50 [contain-intrinsic-size:96px] [content-visibility:auto]",
+        "group/estimate-row grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50",
+        !isInlineEditableComponentRow && "[contain-intrinsic-size:96px] [content-visibility:auto]",
         activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
         ROW_COLUMNS,
       )}
@@ -199,7 +255,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             a false affordance + false a11y announcement (OD-13/D5). */}
         <SelectionCheckbox
           checked={selected}
-          ariaLabel={`Select ${computedItem.material}`}
+          ariaLabel={`Select ${computedItemLabel}`}
           tabIndex={0}
           uncheckedRevealClassName="group-hover/estimate-row:opacity-100 group-focus-within/estimate-row:opacity-100"
           onClick={(event) => {
@@ -212,7 +268,16 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
       <td className="min-w-0">
         <EstimateMaterialCell
           item={computedItem}
+          editableRow={resolvedEditableRow}
           isReplaceTarget={isReplaceTarget}
+          onExpressEditorActiveChange={(active) => onExpressEditorActiveChange(computedItem.id, active)}
+          onExpressFieldChange={updateExpressEditableRow}
+          onExpressFieldCommit={commitExpressFields}
+          onExpressFieldRevert={(field) => {
+            const initialRow = getInitialEditableRow(item);
+            setEditableRows((current) => updateEditableRowValue(current, item, { [field]: initialRow[field] }));
+            onExpressEditorActiveChange(computedItem.id, false);
+          }}
           onReplaceDragOver={() => setReplaceTargetRowId(computedItem.id)}
           onReplaceDragLeave={() => setReplaceTargetRowId((current) => (current === computedItem.id ? "" : current))}
           onReplace={(libraryItem) =>
@@ -224,10 +289,16 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               miscCost: computedItem.miscCost,
             })
           }
-          onClearComponent={() => onClearRowComponent(computedItem.id)}
+          onClearComponent={() => {
+            if (isInlineEditableComponentRow) onDeleteRowItem(computedItem.id);
+            else onClearRowComponent(computedItem.id);
+          }}
           onRequestProjectSpecific={() => onRequestProjectSpecific(computedItem.id)}
           onMoveComponent={onMoveRowComponent}
           onOpenComponentDetails={(opener) => onOpenRowDetails(computedItem.id, opener, "component")}
+          expressDraftState={expressDraftState}
+          onRetryExpressDraft={() => onRetryExpressDraft(computedItem.id)}
+          onDeleteExpressDraft={() => onDeleteExpressDraft(computedItem.id)}
         />
       </td>
       <td
@@ -255,7 +326,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           data-estimate-row-index={rowIndex}
           data-estimate-row-id={computedItem.id}
           data-estimate-cell-index={0}
-          aria-label={`${computedItem.material} quantity`}
+          aria-label={`${computedItemLabel} quantity`}
           align="center"
           className="text-[10px] tabular-nums"
         />
@@ -272,7 +343,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         <div className="absolute left-1.5 top-1.5 w-[74px]">
           <DropdownSelect
             value={computedItem.editableContingencyMode}
-            aria-label={`${computedItem.material} adjustment type`}
+            aria-label={`${computedItemLabel} adjustment type`}
             options={COST_ADJUSTMENT_MODE_OPTIONS}
             className="h-3.5 border-0 bg-transparent pl-0 pr-0 text-left !text-[8px] leading-[10px] text-secondary"
             onValueChange={(nextValue) => {
@@ -311,7 +382,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
               data-estimate-row-index={rowIndex}
               data-estimate-row-id={computedItem.id}
               data-estimate-cell-index={1}
-              aria-label={`${computedItem.material} adjustment percentage`}
+              aria-label={`${computedItemLabel} adjustment percentage`}
               align="center"
               className="h-5 w-9 border-0 bg-transparent p-0 text-right text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
@@ -336,7 +407,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             setEditableRows((current) => updateEditableRowValue(current, computedItem, { miscCost: value }));
             onMarkRowDirty(computedItem.id);
           }}
-          ariaLabel={`${computedItem.material} misc cost`}
+          ariaLabel={`${computedItemLabel} misc cost`}
           onFocus={() => setFocusedCell({ rowId: computedItem.id, cellIndex: 2 })}
           onBlur={() => {
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 2 ? null : current));
@@ -357,7 +428,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           variant="ghost"
           size="icon-sm"
           className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label={`Open row details for ${computedItem.material}`}
+          aria-label={`Open row details for ${computedItemLabel}`}
           onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "details")}
         >
           <DotsThreeVertical size={14} weight="regular" aria-hidden="true" />
@@ -367,7 +438,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           variant="ghost"
           size="icon-sm"
           className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-          aria-label={`Open row activity for ${computedItem.material}`}
+          aria-label={`Open row activity for ${computedItemLabel}`}
           onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(computedItem.id, event.currentTarget, "activity")}
         >
           <ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />
@@ -377,7 +448,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
           variant="ghost"
           size="icon-sm"
           className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
-          aria-label={`Delete row ${computedItem.material}`}
+          aria-label={`Delete row ${computedItemLabel}`}
           onClick={() => onDeleteRowItem(computedItem.id)}
         >
           <Trash size={14} weight="regular" aria-hidden="true" />
@@ -401,6 +472,9 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onClearRowComponent,
   onRequestProjectSpecific,
   onMoveRowComponent,
+  expressInsertDraftStates = {},
+  onRetryExpressDraft = noopExpressDraftHandler,
+  onDeleteExpressDraft = noopExpressDraftHandler,
   selectedRowIds,
   onToggleRowSelection,
   onToggleRowsSelection,
@@ -410,11 +484,13 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
+  const [activeExpressRowId, setActiveExpressRowId] = useState<string | null>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
   const selectableRowIds = useMemo(() => items.map((item) => item.id), [items]);
   const allRowsSelected = selectableRowIds.length > 0 && selectableRowIds.every((rowId) => selectedRowIds.has(rowId));
   const someRowsSelected = !allRowsSelected && selectableRowIds.some((rowId) => selectedRowIds.has(rowId));
-  const virtualEnabled = Boolean(virtualization.enabled && items.length >= (virtualization.minRows ?? 75));
+  const hasActiveExpressEditor = activeExpressRowId !== null && items.some((item) => item.id === activeExpressRowId);
+  const virtualEnabled = Boolean(!hasActiveExpressEditor && virtualization.enabled && items.length >= (virtualization.minRows ?? 75));
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => findScrollParent(scrollRootRef.current),
@@ -435,6 +511,22 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
     },
     [rowVirtualizer, selectableRowIds, virtualEnabled]
   );
+  const handleExpressEditorActiveChange = useCallback((rowId: string, active: boolean) => {
+    setActiveExpressRowId(active ? rowId : null);
+  }, []);
+
+  useEffect(() => {
+    if (activeExpressRowId && !items.some((item) => item.id === activeExpressRowId)) setActiveExpressRowId(null);
+  }, [activeExpressRowId, items]);
+
+  useEffect(() => {
+    if (!hasActiveExpressEditor) return;
+    recordExpressComponentEvent("virtualization_disabled", {
+      rowId: activeExpressRowId ?? undefined,
+      nodeId: targetNodeId,
+      reason: "express-editor-active",
+    });
+  }, [activeExpressRowId, hasActiveExpressEditor, targetNodeId]);
 
   useEffect(() => {
     if (!focusedCell || focusEstimateCellByRowId(focusedCell.rowId, focusedCell.cellIndex)) return;
@@ -561,6 +653,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
           data-estimate-row-virtualizer={virtualEnabled ? "true" : undefined}
           data-estimate-row-virtual-total-count={virtualEnabled ? items.length : undefined}
           data-estimate-row-virtual-mounted-count={virtualEnabled ? renderedVirtualRows.length : undefined}
+          data-estimate-row-virtualizer-disabled-reason={!virtualEnabled && hasActiveExpressEditor ? "express-editor-active" : undefined}
+          data-active-express-editor-count={hasActiveExpressEditor ? 1 : undefined}
           data-estimate-row-scroll-margin={virtualEnabled ? Math.round(scrollMargin) : undefined}
           className={virtualEnabled ? "relative block" : undefined}
           style={virtualEnabled ? { height: rowVirtualizer.getTotalSize() } : undefined}
@@ -580,6 +674,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 setEditableRows={setEditableRows}
                 setFocusedCell={setFocusedCell}
                 setReplaceTargetRowId={setReplaceTargetRowId}
+                onExpressEditorActiveChange={handleExpressEditorActiveChange}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
                 onUpdateRowItem={onUpdateRowItem}
@@ -588,6 +683,9 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
                 onMoveRowComponent={onMoveRowComponent}
+                expressDraftState={expressInsertDraftStates[item.id]}
+                onRetryExpressDraft={onRetryExpressDraft}
+                onDeleteExpressDraft={onDeleteExpressDraft}
                 onToggleRowSelection={onToggleRowSelection}
                 rowIds={selectableRowIds}
                 onRequestFocusByRowId={requestFocusByRowId}

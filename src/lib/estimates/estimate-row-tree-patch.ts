@@ -1,11 +1,20 @@
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import type { Json } from "@/lib/supabase/types";
 
 export type EstimateRowItemPatch = {
+  material?: string;
+  description?: string;
+  supplier?: string;
+  unit?: string;
   quantity?: number;
   itemCost?: number;
   contingencyPercentage?: number;
   miscCost?: number;
   rowRevision?: number;
+  sourceSnapshot?: Json | null;
+  imageUrl?: string | null;
+  sourceUrl?: string | null;
+  metadata?: EstimateRowItem["metadata"];
   source?: EstimateRowItem["source"];
   sourceLibraryItemId?: string | null;
   linkState?: EstimateRowItem["linkState"];
@@ -38,7 +47,15 @@ function patchEstimateRowItem(item: EstimateRowItem, patch: EstimateRowItemPatch
     contingencyValue,
     miscCost,
     totalItemCosts: subTotal + miscCost + contingencyValue,
+    material: patch.material ?? item.material,
+    description: patch.description ?? item.description,
+    supplier: patch.supplier ?? item.supplier,
+    unit: patch.unit ?? item.unit,
     rowRevision: patch.rowRevision ?? item.rowRevision,
+    ...(patch.sourceSnapshot !== undefined ? { sourceSnapshot: patch.sourceSnapshot } : {}),
+    ...(patch.imageUrl !== undefined ? { imageUrl: patch.imageUrl ?? undefined } : {}),
+    ...(patch.sourceUrl !== undefined ? { sourceUrl: patch.sourceUrl ?? undefined } : {}),
+    ...(patch.metadata !== undefined ? { metadata: patch.metadata } : {}),
     source: patch.source ?? item.source,
     sourceLibraryItemId: patch.sourceLibraryItemId !== undefined ? patch.sourceLibraryItemId : item.sourceLibraryItemId,
     linkState: patch.linkState ?? item.linkState,

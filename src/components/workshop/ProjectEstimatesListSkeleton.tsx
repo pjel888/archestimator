@@ -19,7 +19,7 @@ export function ProjectEstimatesListSkeleton() {
       <span className="sr-only">Loading estimates…</span>
 
       <div data-skeleton="search" className="flex shrink-0 items-center gap-2 bg-white" aria-hidden="true">
-        <Skeleton className="h-8 w-full rounded-sm" />
+        <Skeleton className="h-8 w-full rounded-xs" />
       </div>
 
       <div data-skeleton="toolbar" className="flex h-9 shrink-0 items-center gap-1 px-2" aria-hidden="true">

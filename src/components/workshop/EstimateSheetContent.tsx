@@ -15,8 +15,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
-import { loadCurrentWorkspaceComponentLibraryLite } from "@/lib/component-library/actions";
-import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { loadCurrentWorkspaceComponentLibraryLite, loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
+import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
@@ -24,8 +24,10 @@ import { useEstimateUiStore } from "@/stores/estimate-ui-store";
 import { useEstimateHeaderActionsStore } from "./use-estimate-header-actions-store";
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, insertEstimateTemplateNodeIntoEstimate, insertEstimateTemplatesIntoEstimate, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
+import { recordExpressComponentEvent } from "@/lib/estimates/express-components-telemetry";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
+import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "./component-library";
@@ -97,6 +99,7 @@ import {
 import { getNodeCode } from "./estimate-sheet/rows/node-visuals";
 import {
   canMakeProjectSpecific,
+  type ExpressInsertDraftState,
 } from "./estimate-sheet/rows/cells";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
 import type { BreadcrumbNode } from "./estimate-sheet/rows/branch";
@@ -168,12 +171,6 @@ const EMPTY_SELECTED_NODE_PRESENTATION = {
   nodeCode: "",
   ancestorPath: EMPTY_BREADCRUMB_NODES,
 };
-
-
-
-
-
-
 function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTreeNode[] {
   reportEstimateSelectedNodePresentationCompute("path");
   for (const node of nodes) {
@@ -239,6 +236,48 @@ function createBlankEstimateRowTemplate(): EstimateRowItem {
     confidence: "unpriced",
   };
 }
+
+function createExpressEstimateRowTemplate(): EstimateRowItem {
+  const createdAt = new Date().toISOString();
+  return {
+    id: "express-estimate-row-template",
+    material: "",
+    description: "",
+    supplier: "",
+    source: "project",
+    unit: "",
+    itemCost: 0,
+    quantity: 1,
+    subTotal: 0,
+    contingencyPercentage: 0,
+    contingencyValue: 0,
+    miscCost: 0,
+    totalItemCosts: 0,
+    category: "Unassigned",
+    pricingSource: "Express component",
+    pricingDate: createdAt.slice(0, 10),
+    confidence: "unpriced",
+    discipline: "Unspecified",
+    designation: "",
+    sourceLibraryItemId: null,
+    linkState: "unlinked",
+    metadata: withExpressComponentMetadata({}, {
+      id: createEstimateRowItemId(),
+      createdFrom: "estimate-sheet-add-row",
+      sourceLabel: "Express component",
+      createdAt,
+    }),
+  };
+}
+
+type ExpressInsertDraft = {
+  targetNodeId: string;
+  libraryItem: EstimateRowItem;
+  mutationId: string;
+  status: ExpressInsertDraftState;
+  bufferedPatch?: Partial<EditableRowValue>;
+  errorMessage?: string;
+};
 
 
 function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>, metadata: ProposalExportMetadata | null) {
@@ -395,6 +434,22 @@ function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNode
   });
 }
 
+function removeEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateTreeNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    estimateRowItems: node.estimateRowItems?.filter((item) => item.id !== rowItemId),
+    children: node.children ? removeEstimateRowItem(node.children, rowItemId) : node.children,
+  }));
+}
+
+function getActiveExpressEditorRowId() {
+  if (typeof document === "undefined") return "";
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement)) return "";
+  if (!activeElement.dataset.expressField) return "";
+  return activeElement.dataset.estimateRowId || activeElement.closest<HTMLElement>("[data-estimate-row-id]")?.dataset.estimateRowId || "";
+}
+
 function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
   if (!editableRow) return libraryItem;
 
@@ -412,6 +467,18 @@ function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editable
     contingencyValue,
     miscCost,
     totalItemCosts: subTotal + miscCost + contingencyValue,
+  };
+}
+
+
+function getClearedEstimateRowMetadata(metadata: EstimateRowItem["metadata"]): EstimateRowItem["metadata"] {
+  const { expressComponent: _expressComponent, projectComponentProjection: _projectComponentProjection, ...rest } = readEstimateRowMetadata(metadata);
+  void _expressComponent;
+  void _projectComponentProjection;
+  return {
+    ...rest,
+    sourceComponentId: null,
+    tags: [BLANK_ESTIMATE_ROW_TAG],
   };
 }
 
@@ -1018,6 +1085,8 @@ export function EstimateSheetContent({
   } = dataTabId ? tabTreeQuery : legacyTreeQuery;
   const skipEditableRowsSyncRef = useRef(0);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
+  const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>({});
+  const [expressInsertDrafts, setExpressInsertDraftsState] = useState<Record<string, ExpressInsertDraft>>({});
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [collapsedNodeIdsByScope, setCollapsedNodeIdsByScope] = useState<Record<string, string[]>>({});
@@ -1029,6 +1098,20 @@ export function EstimateSheetContent({
   const [isDownloadingProposal, setIsDownloadingProposal] = useState(false);
   const [proposalDownloadError, setProposalDownloadError] = useState<string | null>(null);
   const [proposalExportSettings, setProposalExportSettings] = useState<ProposalExportUserSettings>(DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS);
+
+  const setExpressInsertDrafts = useStableCallback((updater: SetStateAction<Record<string, ExpressInsertDraft>>) => {
+    setExpressInsertDraftsState((current) => {
+      const next = typeof updater === "function"
+        ? (updater as (value: Record<string, ExpressInsertDraft>) => Record<string, ExpressInsertDraft>)(current)
+        : updater;
+      expressInsertDraftsRef.current = next;
+      return next;
+    });
+  });
+  const expressInsertDraftStates = useMemo<Record<string, ExpressInsertDraftState>>(
+    () => Object.fromEntries(Object.entries(expressInsertDrafts).map(([rowId, draft]) => [rowId, draft.status])),
+    [expressInsertDrafts],
+  );
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
   // P3-activity: per-node stored activity scope (direct-only vs descendants).
   // Stable identity (selector returns the same default {} until a flip), so the
@@ -1063,11 +1146,14 @@ export function EstimateSheetContent({
   // it. Server-provided props short-circuit the fetch for tests/embeds.
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
+  const lazyLibraryQueryKey = projectId
+    ? [...WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, "project", projectId] as const
+    : WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY;
   const libraryQuery = useQuery({
     // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
     // dataset under its own key — never the full-graph key the editor surfaces use.
-    queryKey: WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY,
-    queryFn: () => loadCurrentWorkspaceComponentLibraryLite(),
+    queryKey: lazyLibraryQueryKey,
+    queryFn: () => projectId ? loadProjectComponentLibraryLite(projectId) : loadCurrentWorkspaceComponentLibraryLite(),
     enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
     staleTime: 5 * 60 * 1000,
     // U19: keep the warmed cache long after navigate-away so returning to the
@@ -1089,6 +1175,10 @@ export function EstimateSheetContent({
   // reseeds fresh. Avoids a full-library refetch after common in-panel actions.
   const handleLibraryDataChanged = useStableCallback(() => {
     void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "none" });
+  });
+  const refetchProjectComponentProjection = useStableCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "active" });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
   });
   const availableTemplates = libraryTemplates ?? lazyLibrary?.templates ?? EMPTY_ESTIMATE_TEMPLATES;
   const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
@@ -1645,7 +1735,15 @@ export function EstimateSheetContent({
       return;
     }
     queueMicrotask(() => {
-      setEditableRows(collectEditableRows(estimateTree));
+      const nextRows = collectEditableRows(estimateTree);
+      const activeExpressRowId = getActiveExpressEditorRowId();
+      setEditableRows((currentRows) => {
+        if (!activeExpressRowId || !currentRows[activeExpressRowId]) return nextRows;
+        return {
+          ...nextRows,
+          [activeExpressRowId]: currentRows[activeExpressRowId],
+        };
+      });
     });
   }, [estimateTree, saveState]);
 
@@ -1655,11 +1753,13 @@ export function EstimateSheetContent({
     let frameId = 0;
 
     function tryFocus() {
-      const quantityInput = document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
-      if (quantityInput) {
-        quantityInput.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-        quantityInput.focus();
-        quantityInput.select();
+      const focusTarget =
+        document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"] [data-express-field="name"]`) ??
+        document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
+      if (focusTarget) {
+        focusTarget.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+        focusTarget.focus();
+        focusTarget.select();
         setPendingFocusRowId("");
         return;
       }
@@ -1673,28 +1773,162 @@ export function EstimateSheetContent({
     return () => window.cancelAnimationFrame(frameId);
   }, [pendingFocusRowId]);
 
-  const updateRowItem = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
+  const commitRowItemUpdate = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
     if (!projectId || !estimateId) return;
     const previousTree = estimateTree;
     const previousRows = collectEditableRows(estimateTree);
     const rollbackRevision = getEstimateTreeRevision();
+    const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
     const currentEditableRow = editableRows[rowItemId] ?? previousRows[rowItemId];
     const nextEditableRow: EditableRowValue = {
+      name: currentEditableRow?.name ?? "",
+      description: currentEditableRow?.description ?? "",
+      supplier: currentEditableRow?.supplier ?? "",
+      unit: currentEditableRow?.unit ?? "unit",
+      unitCost: currentEditableRow?.unitCost ?? "0",
+      imageUrl: currentEditableRow?.imageUrl ?? "",
+      sourceUrl: currentEditableRow?.sourceUrl ?? "",
       quantity: currentEditableRow?.quantity ?? "0",
       contingencyMode: currentEditableRow?.contingencyMode ?? "contingency",
       contingencyPercentage: currentEditableRow?.contingencyPercentage ?? "0",
       miscCost: currentEditableRow?.miscCost ?? "0",
       ...values,
     };
+    const expressFieldNames = ["name", "description", "supplier", "unit", "unitCost", "imageUrl", "sourceUrl"].filter((fieldName) => values[fieldName as keyof EditableRowValue] !== undefined);
+    if (expressFieldNames.length > 0) {
+      recordExpressComponentEvent("save_requested", { projectId, estimateId, rowId: rowItemId, fieldNames: expressFieldNames });
+    }
+    const sourceSnapshotPatch = values.imageUrl !== undefined || values.sourceUrl !== undefined
+      ? {
+          ...(values.imageUrl !== undefined ? { imageUrl: values.imageUrl.trim() || null } : {}),
+          ...(values.sourceUrl !== undefined ? { sourceUrl: values.sourceUrl.trim() || null } : {}),
+        }
+      : undefined;
+    const shouldPromoteLegacyBlankToExpress = Boolean(currentRowItem && isBlankEstimateRowItem(currentRowItem));
+
     updateRow({
       projectId,
       estimateId,
       rowId: rowItemId,
+      ...(values.name !== undefined ? { material: values.name } : {}),
+      ...(values.description !== undefined ? { description: values.description } : {}),
+      ...(values.supplier !== undefined ? { supplier: values.supplier } : {}),
+      ...(values.unit !== undefined ? { unit: values.unit } : {}),
+      ...(values.unitCost !== undefined ? { unitCost: parseNonNegativeEditableNumber(values.unitCost) } : {}),
+      ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
       ...(values.quantity !== undefined ? { quantity: parseNonNegativeEditableNumber(values.quantity) } : {}),
       ...(values.contingencyPercentage !== undefined || values.contingencyMode !== undefined ? { contingencyPercentage: parseEditableContingencyPercentage(nextEditableRow) } : {}),
       ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
+      ...(shouldPromoteLegacyBlankToExpress ? {
+        metadata: withExpressComponentMetadata(currentRowItem?.metadata, {
+          id: rowItemId,
+          createdFrom: "legacy-blank-row-inline-edit",
+          sourceLabel: "Express component",
+          createdAt: new Date().toISOString(),
+        }),
+      } : {}),
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      onSuccess: () => refetchProjectComponentProjection(),
     });
+  });
+
+  const updateRowItem = useStableCallback((rowItemId: string, values: Partial<EditableRowValue>) => {
+    const pendingExpressDraft = expressInsertDraftsRef.current[rowItemId];
+    if (pendingExpressDraft) {
+      setExpressInsertDrafts((current) => {
+        const draft = current[rowItemId];
+        if (!draft) return current;
+        return {
+          ...current,
+          [rowItemId]: {
+            ...draft,
+            bufferedPatch: {
+              ...(draft.bufferedPatch ?? {}),
+              ...values,
+            },
+          },
+        };
+      });
+      return;
+    }
+
+    commitRowItemUpdate(rowItemId, values);
+  });
+
+  const handleExpressInsertSuccess = useStableCallback((rowItemId: string) => {
+    const draft = expressInsertDraftsRef.current[rowItemId];
+    const bufferedPatch = draft?.bufferedPatch;
+    setExpressInsertDrafts((current) => {
+      const next = { ...current };
+      delete next[rowItemId];
+      return next;
+    });
+    recordExpressComponentEvent("insert_succeeded", { projectId, estimateId, rowId: rowItemId });
+    refetchProjectComponentProjection();
+    if (bufferedPatch && Object.keys(bufferedPatch).length > 0) {
+      queueMicrotask(() => commitRowItemUpdate(rowItemId, bufferedPatch));
+    }
+  });
+
+  const handleExpressInsertError = useStableCallback((rowItemId: string, error: Error) => {
+    setExpressInsertDrafts((current) => {
+      const draft = current[rowItemId];
+      if (!draft) return current;
+      return {
+        ...current,
+        [rowItemId]: {
+          ...draft,
+          status: "failed",
+          errorMessage: error.message,
+        },
+      };
+    });
+    recordExpressComponentEvent("insert_failed", { projectId, estimateId, rowId: rowItemId, reason: error.message });
+  });
+
+  const retryExpressDraft = useStableCallback((rowItemId: string) => {
+    if (!projectId || !estimateId) return;
+    const draft = expressInsertDraftsRef.current[rowItemId];
+    if (!draft) return;
+    setExpressInsertDrafts((current) => {
+      const currentDraft = current[rowItemId];
+      if (!currentDraft) return current;
+      return {
+        ...current,
+        [rowItemId]: {
+          ...currentDraft,
+          status: "creating",
+          errorMessage: undefined,
+        },
+      };
+    });
+    recordExpressComponentEvent("insert_requested", { projectId, estimateId, nodeId: draft.targetNodeId, rowId: rowItemId, retry: true });
+    insertRow({
+      projectId,
+      estimateId,
+      targetNodeId: draft.targetNodeId,
+      rowId: rowItemId,
+      libraryItem: draft.libraryItem,
+      mutationId: draft.mutationId,
+      rollback: () => undefined,
+      onSuccess: () => handleExpressInsertSuccess(rowItemId),
+      onError: (error) => handleExpressInsertError(rowItemId, error),
+    });
+  });
+
+  const deleteExpressDraft = useStableCallback((rowItemId: string) => {
+    setEstimateTree((current) => removeEstimateRowItem(current, rowItemId));
+    setEditableRows((current) => {
+      const next = { ...current };
+      delete next[rowItemId];
+      return next;
+    });
+    setExpressInsertDrafts((current) => {
+      const next = { ...current };
+      delete next[rowItemId];
+      return next;
+    });
+    recordExpressComponentEvent("draft_deleted", { projectId, estimateId, rowId: rowItemId });
   });
 
   const insertLibraryItem = useStableCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
@@ -1704,7 +1938,20 @@ export function EstimateSheetContent({
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const newItem = cloneLibraryItemForEstimate(libraryItem);
+    const isExpressInsert = isExpressComponentRow(newItem);
+    const mutationId = isExpressInsert ? createEstimateRowItemId() : undefined;
     setPendingFocusRowId(newItem.id);
+    if (isExpressInsert && mutationId) {
+      setExpressInsertDrafts((current) => ({
+        ...current,
+        [newItem.id]: {
+          targetNodeId,
+          libraryItem,
+          mutationId,
+          status: "creating",
+        },
+      }));
+    }
     const rollbackRevision = setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
@@ -1725,7 +1972,10 @@ export function EstimateSheetContent({
         targetNodeId,
         rowId: newItem.id,
         libraryItem,
-        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        ...(mutationId ? { mutationId } : {}),
+        rollback: isExpressInsert ? () => undefined : () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        onSuccess: isExpressInsert ? () => handleExpressInsertSuccess(newItem.id) : undefined,
+        onError: isExpressInsert ? (error) => handleExpressInsertError(newItem.id, error) : undefined,
       });
     }
   });
@@ -1959,9 +2209,10 @@ export function EstimateSheetContent({
 
   const insertBlankRow = useCallback(
     (targetNodeId: string) => {
-      insertLibraryItem(targetNodeId, createBlankEstimateRowTemplate());
+      recordExpressComponentEvent("insert_requested", { projectId, estimateId, nodeId: targetNodeId });
+      insertLibraryItem(targetNodeId, createExpressEstimateRowTemplate());
     },
-    [insertLibraryItem],
+    [estimateId, insertLibraryItem, projectId],
   );
 
   useEffect(() => {
@@ -2033,6 +2284,11 @@ export function EstimateSheetContent({
   }, [insertProjectSourceIntoParentById]);
 
   const replaceRowItem = useStableCallback((rowItemId: string, libraryItem: EstimateRowItem) => {
+    const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
+    if (currentRowItem && (isExpressComponentRow(currentRowItem) || isExpressComponentRow(libraryItem))) {
+      toast({ tone: "error", message: "Express component rows cannot be replaced yet. Delete the express row or promote it first." });
+      return;
+    }
     const previousTree = estimateTree;
     const previousRows = editableRows;
     const editableReplacement = previousRows[rowItemId];
@@ -2054,15 +2310,71 @@ export function EstimateSheetContent({
     );
     setEditableRows((current) => ({
       ...current,
-      [rowItemId]: current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
+      [rowItemId]: isBlankEstimateRowItem(replacementItem)
+        ? getInitialEditableRow(replacementItem)
+        : current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
     }));
     if (projectId && estimateId) {
-      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem: replacementLibraryItem, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
+      replaceRow({
+        projectId,
+        estimateId,
+        rowId: rowItemId,
+        libraryItem: replacementLibraryItem,
+        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        onSuccess: () => refetchProjectComponentProjection(),
+      });
     }
   });
 
   const clearRowComponent = useStableCallback((rowItemId: string) => {
-    replaceRowItem(rowItemId, createBlankEstimateRowTemplate());
+    const currentRowItem = findEstimateRowItem(estimateTree, rowItemId);
+    if (!currentRowItem || !isExpressComponentRow(currentRowItem)) {
+      replaceRowItem(rowItemId, createBlankEstimateRowTemplate());
+      return;
+    }
+
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
+    const editableReplacement = previousRows[rowItemId];
+    const blankLibraryItem = applyEditableValuesToLibraryItem(createBlankEstimateRowTemplate(), editableReplacement);
+    const replacementItem = replaceRowItemWithLibraryItem(rowItemId, blankLibraryItem);
+    const rollbackRevision = setEstimateTree((current) =>
+      current.map((node) => {
+        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
+          return {
+            ...areaNode,
+            estimateRowItems: areaNode.estimateRowItems?.map((item) =>
+              item.id === rowItemId ? replacementItem : item,
+            ),
+            children: areaNode.children?.map(visit),
+          };
+        }
+        return visit(node);
+      }),
+    );
+    setEditableRows((current) => ({
+      ...current,
+      [rowItemId]: getInitialEditableRow(replacementItem),
+    }));
+    if (projectId && estimateId) {
+      updateRow({
+        projectId,
+        estimateId,
+        rowId: rowItemId,
+        material: replacementItem.material,
+        description: replacementItem.description,
+        supplier: replacementItem.supplier,
+        unit: replacementItem.unit,
+        unitCost: replacementItem.itemCost,
+        quantity: replacementItem.quantity,
+        contingencyPercentage: replacementItem.contingencyPercentage ?? 0,
+        miscCost: replacementItem.miscCost,
+        sourceSnapshot: null,
+        metadata: getClearedEstimateRowMetadata(currentRowItem.metadata),
+        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        onSuccess: () => refetchProjectComponentProjection(),
+      });
+    }
   });
 
   const requestProjectSpecific = useStableCallback((rowItemId: string) => {
@@ -2086,12 +2398,18 @@ export function EstimateSheetContent({
       estimateId,
       rowId: rowItemId,
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      onSuccess: () => refetchProjectComponentProjection(),
     });
     setProjectSpecificRowId("");
   }
 
   const moveRowComponent = useStableCallback((sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => {
     if (sourceRowItemId === targetRowItemId) return;
+    const targetRowItem = findEstimateRowItem(estimateTree, targetRowItemId);
+    if (isExpressComponentRow(movedItem) || (targetRowItem && isExpressComponentRow(targetRowItem))) {
+      toast({ tone: "error", message: "Express component rows cannot be moved into another row yet. Delete or promote the express row first." });
+      return;
+    }
     replaceRowItem(targetRowItemId, movedItem);
     clearRowComponent(sourceRowItemId);
   });
@@ -2117,7 +2435,13 @@ export function EstimateSheetContent({
       return remainingRows;
     });
     if (projectId && estimateId) {
-      deleteRow({ projectId, estimateId, rowId: rowItemId, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
+      deleteRow({
+        projectId,
+        estimateId,
+        rowId: rowItemId,
+        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+        onSuccess: () => refetchProjectComponentProjection(),
+      });
     }
   });
 
@@ -2403,6 +2727,9 @@ export function EstimateSheetContent({
                     onClearRowComponent={clearRowComponent}
                     onRequestProjectSpecific={requestProjectSpecific}
                     onMoveRowComponent={moveRowComponent}
+                    expressInsertDraftStates={expressInsertDraftStates}
+                    onRetryExpressDraft={retryExpressDraft}
+                    onDeleteExpressDraft={deleteExpressDraft}
                     selectedRowIds={bulkSelectedRowIds}
                     onToggleRowSelection={toggleRowSelection}
                     onToggleRowsSelection={toggleRowsSelection}

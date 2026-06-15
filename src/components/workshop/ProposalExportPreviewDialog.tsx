@@ -88,7 +88,7 @@ export function clampRate(raw: string, fallback: number) {
   return Math.min(100, Math.max(0, value));
 }
 
-const settingsCheckboxLabelClass = "flex items-center gap-1.5 text-[12px] text-secondary";
+const settingsCheckboxLabelClass = "flex items-center gap-1.5 text-[10px] text-secondary";
 const settingsRateInputClass =
   "h-6 w-16 rounded-xs border border-hairline px-1.5 text-[12px] tabular-nums disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -210,8 +210,8 @@ export function ProposalExportPreviewDialog({
         <header className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
           <div className="min-w-0">
             <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
-            <h2 className="mt-0.5 text-[13px] font-semibold tracking-normal text-ink">Export contents</h2>
-            <p className="mt-1 max-w-2xl text-[12px] leading-5 text-secondary">
+            <h2 className="mt-0.5 text-[12px] font-medium tracking-normal text-ink">Export contents</h2>
+            <p className="mt-1 max-w-2xl text-[10px] leading-4 text-secondary">
               <span>A summary of the sheets the downloaded workbook will contain.</span>{" "}
               <span>It opens editable in Excel, Google Sheets, or LibreOffice.</span>
             </p>
@@ -322,7 +322,7 @@ export function ProposalExportPreviewDialog({
             ) : null}
             {exportSettings && onExportSettingsChange ? (
               <details className="border-b border-hairline px-3 py-2" data-testid="proposal-export-settings">
-                <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-normal text-tertiary">Export settings</summary>
+                <summary className="cursor-pointer text-[9px] font-medium uppercase tracking-normal text-tertiary">Export settings</summary>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
                   <label className={settingsCheckboxLabelClass}>
                     <span>Contingency %</span>
@@ -404,23 +404,23 @@ export function ProposalExportPreviewDialog({
                 <p className="text-[9px] font-medium uppercase tracking-normal text-tertiary">Grand total</p>
                 {isMultiTabAllTabs ? (
                   <p className="mt-0.5 text-[12px] font-medium leading-4 text-ink">
-                    All {scopeControls?.tabCount} tabs — total is in the downloaded Summary sheet
+                    All {scopeControls?.tabCount} tabs, total is in the downloaded Summary sheet
                   </p>
                 ) : (
-                  <p className="mt-0.5 font-semibold tabular-nums text-ink">{formatMoney(model.totals.grandTotalWithTaxes)}</p>
+                  <p className="mt-0.5 text-[12px] font-medium tabular-nums text-ink">{formatMoney(model.totals.grandTotalWithTaxes)}</p>
                 )}
               </div>
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto px-3 py-3">
-              <h3 className="text-[11px] font-semibold uppercase tracking-normal text-tertiary">This file will contain</h3>
+              <h3 className="text-[9px] font-medium uppercase tracking-normal text-tertiary">This file will contain</h3>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {contentSheets.map((sheet) => (
                   <li key={sheet.name} className="flex items-start gap-3 border border-hairline bg-white px-3 py-2">
                     <FileXls size={16} weight="regular" aria-hidden="true" className="mt-0.5 shrink-0 text-primary" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[12px] font-semibold text-ink">{sheet.name}</span>
+                        <span className="text-[12px] font-medium text-ink">{sheet.name}</span>
                         {sheet.flag === "review" ? (
                           <span className="inline-flex items-center rounded-xs bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                             Review before sending
@@ -437,13 +437,13 @@ export function ProposalExportPreviewDialog({
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-0.5 text-[12px] leading-5 text-secondary">{sheet.description}</p>
+                      <p className="mt-0.5 text-[10px] leading-4 text-secondary">{sheet.description}</p>
                     </div>
                   </li>
                 ))}
               </ul>
 
-              <p className="mt-3 text-[12px] leading-5 text-tertiary">
+              <p className="mt-3 text-[10px] leading-4 text-tertiary">
                 {model.proposalRows.length} consolidated BOQ rows · {model.summaryRows.length}{" "}
                 {model.summaryRows.length === 1 ? "section" : "sections"}
                 {scopeControls && scopeControls.selectedScope === "all-tabs"
@@ -459,10 +459,10 @@ export function ProposalExportPreviewDialog({
                   </summary>
                   <ul className="mt-1.5 flex flex-col gap-1">
                     {model.validationIssues.map((issue, index) => (
-                      <li key={`${issue.code}-${index}`} className="flex items-start gap-2 text-[12px] leading-5 text-secondary">
+                      <li key={`${issue.code}-${index}`} className="flex items-start gap-2 text-[10px] leading-4 text-secondary">
                         <span
                           className={cn(
-                            "mt-0.5 inline-block size-1.5 shrink-0 rounded-full",
+                            "mt-0.5 inline-block size-1.5 shrink-0 rounded-xs",
                             issue.severity === "error" ? "bg-rose-500" : issue.severity === "warning" ? "bg-amber-500" : "bg-sky-500",
                           )}
                           aria-hidden="true"
@@ -476,7 +476,7 @@ export function ProposalExportPreviewDialog({
             </div>
           </div>
         ) : (
-          <div className="flex min-h-[320px] items-center justify-center px-3 py-8 text-center text-[12px] text-tertiary">
+          <div className="flex min-h-[320px] items-center justify-center px-3 py-8 text-center text-[10px] text-tertiary">
             Build a preview to see what the export will contain.
           </div>
         )}

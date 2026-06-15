@@ -1,5 +1,6 @@
 import { moveEstimateRowItem as moveTreeRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
 import type { EstimateNode, EstimateNodeKind, EstimateRowItem, EstimateTree } from "@/lib/domain/estimate-tree";
+import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserEnv, type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
@@ -28,6 +29,7 @@ type EstimateRowItemRow = Pick<
   | "id"
   | "link_state"
   | "material"
+  | "metadata"
   | "contingency_percentage"
   | "misc_cost"
   | "node_id"
@@ -42,7 +44,7 @@ type EstimateRowItemRow = Pick<
 >;
 
 const ESTIMATE_NODE_SELECT = "id, estimate_id, parent_id, kind, name, sort_order";
-const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, row_revision, discipline, designation, link_state";
+const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, metadata, material, description, supplier, unit, quantity, unit_cost, contingency_percentage, misc_cost, row_revision, discipline, designation, link_state";
 
 const inMemoryTrees = new Map<string, EstimateTree>();
 
@@ -76,6 +78,7 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
     sortOrder: row.sort_order,
     sourceLibraryItemId: row.source_library_item_id,
     sourceSnapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot),
+    metadata: readEstimateRowMetadata(row.metadata),
     material: row.material,
     description: row.description,
     supplier: row.supplier,
@@ -99,6 +102,7 @@ function toEstimateRowItemUpdate(row: EstimateRowItem): TablesInsert<"estimate_r
     sort_order: row.sortOrder,
     source_library_item_id: row.sourceLibraryItemId,
     source_snapshot: sanitizeEstimateRowSourceSnapshot(row.sourceSnapshot) as Json | null,
+    metadata: readEstimateRowMetadata(row.metadata) as Json,
     material: row.material,
     description: row.description,
     supplier: row.supplier,

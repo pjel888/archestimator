@@ -5,6 +5,7 @@ import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassReq
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
 import type { EstimateRowItem, EstimateTabSummary, EstimateTreeNode } from "@/lib/estimates/types";
+import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -1671,7 +1672,9 @@ function toUiRow(row: EstimateTreeRowItemQueryRow): EstimateRowItem {
     designation: row.designation ?? undefined,
     tags,
     imageUrl: normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl) ?? undefined,
+    sourceUrl: typeof sourceSnapshot.sourceUrl === "string" ? sourceSnapshot.sourceUrl : undefined,
     sourceLibraryItemId: row.source_library_item_id,
+    metadata: readEstimateRowMetadata(row.metadata),
     linkState: row.link_state,
     componentVersionId: typeof sourceSnapshot.componentVersionId === "string" ? sourceSnapshot.componentVersionId : undefined,
     componentVersionNumber,
