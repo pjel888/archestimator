@@ -219,9 +219,12 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
 
   // The first rendered tab displays as "Page 001" even when the stored tab name
   // is "Main" or another raw name, so the DB tab-name ILIKE above cannot find a
-  // display-label-only search. Read tab summaries only for display-like queries;
-  // full tree materialization still happens only after an estimate matches.
-  if (textMatchesReusableSourceQuery(query, [formatEstimatePageTabName(1)])) {
+  // display-label-only search. Only treat the synthetic display label as a
+  // materialization pre-filter on an exact normalized label match: substring
+  // matching against a constant first-tab label would select every accessible
+  // estimate for short/common queries such as "p" or "page".
+  const firstPageDisplayQuery = normalizeReusableSourceSearchQuery(formatEstimatePageTabName(1));
+  if (query === firstPageDisplayQuery) {
     for (const estimateId of accessibleEstimateIds) {
       const ctx = estimateContextById.get(estimateId);
       if (!ctx) continue;
