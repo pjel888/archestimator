@@ -103,11 +103,11 @@ describe("DashboardEstimateList (Zone C)", () => {
     );
     expect(screen.getByRole("link", { name: "Compare Estimate row-1" })).toHaveAttribute(
       "href",
-      `/workshop/projects/${PROJECT_ID}/charts?left=${SELECTED_ID}&right=row-1&mode=supplier`,
+      `/workshop/projects/${PROJECT_ID}/data?left=${SELECTED_ID}&right=row-1&mode=supplier`,
     );
     expect(screen.getByRole("link", { name: "Compare Selected estimate" })).toHaveAttribute(
       "href",
-      `/workshop/projects/${PROJECT_ID}/charts?left=${SELECTED_ID}&mode=supplier`,
+      `/workshop/projects/${PROJECT_ID}/data?left=${SELECTED_ID}&mode=supplier`,
     );
   });
 

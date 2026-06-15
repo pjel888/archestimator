@@ -1214,7 +1214,7 @@ async function createEstimateWithDefaultTree({
 function revalidateProjectEstimatePaths(projectId: string) {
   revalidatePath(`/workshop/projects/${projectId}`);
   revalidatePath(`/workshop/projects/${projectId}/estimates`);
-  revalidatePath(`/workshop/projects/${projectId}/charts`);
+  revalidatePath(`/workshop/projects/${projectId}/data`);
 }
 
 export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {

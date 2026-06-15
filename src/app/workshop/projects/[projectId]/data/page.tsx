@@ -6,7 +6,7 @@ import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
 import { getProjectChartsData } from "@/lib/repositories/project-charts-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 
-type ProjectChartsPageProps = {
+type ProjectDataPageProps = {
   params: Promise<{ projectId: string }>;
   searchParams?: Promise<{
     left?: string;
@@ -15,10 +15,10 @@ type ProjectChartsPageProps = {
   }>;
 };
 
-export default async function ProjectChartsPage({ params, searchParams }: ProjectChartsPageProps) {
+export default async function ProjectDataPage({ params, searchParams }: ProjectDataPageProps) {
   const { projectId } = await params;
   const resolvedSearchParams = await searchParams;
-  assertRouteErrorSmoke({ routeLabel: "Project charts", searchParams: resolvedSearchParams });
+  assertRouteErrorSmoke({ routeLabel: "Project data", searchParams: resolvedSearchParams });
 
   const selectedEstimateIds = [resolvedSearchParams?.left, resolvedSearchParams?.right].filter(
     (value): value is string => typeof value === "string" && value.length > 0,

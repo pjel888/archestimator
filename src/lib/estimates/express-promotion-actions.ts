@@ -75,7 +75,6 @@ export async function promoteExpressRowToLibraryComponent({
 
   revalidatePath("/workshop/library");
   revalidatePath("/workshop/library/components");
-  revalidatePath(`/workshop/projects/${project.id}/components`);
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
   revalidatePath(`/workshop/projects/${project.id}/estimates/${estimateId}`);
 

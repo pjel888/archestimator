@@ -647,7 +647,7 @@ function buildRisks({
       detail: `${selectedEstimate.name} is above budget.`,
       severity: "danger",
       actionLabel: "Compare breakdown",
-      href: `${baseHref}/charts?left=${selectedEstimate.id}`,
+      href: `${baseHref}/data?left=${selectedEstimate.id}`,
     });
   }
 

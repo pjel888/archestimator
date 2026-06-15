@@ -226,7 +226,7 @@ export function ProjectDashboardClient({ project, fallback, summary, activity }:
           <EmptyState
             icon={<ClipboardText size={18} weight="regular" aria-hidden="true" />}
             title="Build this project from estimates"
-            description="Open the estimate list to create your first sheet, use Charts to review cost mix, or return to Projects when you are choosing another job."
+            description="Open the estimate list to create your first sheet, use Data to review cost mix, or return to Projects when you are choosing another job."
             action={
               <div className="flex flex-wrap items-center justify-center gap-1">
                 <ProjectDashboardLink
@@ -235,8 +235,8 @@ export function ProjectDashboardClient({ project, fallback, summary, activity }:
                   icon={<ListChecks size={12} weight="regular" aria-hidden="true" />}
                 />
                 <ProjectDashboardLink
-                  href={`${projectRoute}/charts`}
-                  label="View charts"
+                  href={`${projectRoute}/data`}
+                  label="View data"
                   icon={<ChartPieSlice size={12} weight="regular" aria-hidden="true" />}
                 />
                 <ProjectDashboardLink

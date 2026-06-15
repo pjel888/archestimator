@@ -166,7 +166,7 @@ describe("DashboardCostMix (Zone B)", () => {
     );
     expect(screen.getByRole("link", { name: "Compare breakdown" })).toHaveAttribute(
       "href",
-      "/workshop/projects/proj-1/charts?left=est-1&mode=category",
+      "/workshop/projects/proj-1/data?left=est-1&mode=category",
     );
     expect(screen.queryByText(/Open matching rows/i)).not.toBeInTheDocument();
   });

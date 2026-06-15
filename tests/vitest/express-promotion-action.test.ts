@@ -49,7 +49,7 @@ describe("promoteExpressRowToLibraryComponent", () => {
     });
     expect(result).toMatchObject({ rowId: ROW_ID, itemId: "66666666-6666-4666-8666-666666666666" });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/library/components");
-    expect(cacheMocks.revalidatePath).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/components`);
+    expect(cacheMocks.revalidatePath).not.toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/components`);
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith(`/workshop/projects/${PROJECT_ID}/estimates/${ESTIMATE_ID}`);
   });
 

@@ -1022,7 +1022,7 @@ function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, i
   if (isExpressComponentRow(item)) {
     return {
       label: "Express component",
-      description: "This project component is authored directly in the estimate row. Edit its fields inline in the sheet, or promote it from the project Components surface when it is ready for the shared library.",
+      description: "This project component is authored directly in the estimate row. Edit its fields inline in the sheet, or promote it to the shared library when it is ready.",
     };
   }
 
