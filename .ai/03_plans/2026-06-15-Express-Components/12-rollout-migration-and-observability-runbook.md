@@ -30,7 +30,7 @@ Suggested flags:
 2. Insert lifecycle behind flag: express template, insert return reconciliation, draft recovery.
 3. Update/editor: widened app patch, keyboard/focus/state, day-0 virtualization-disable fallback.
 4. History migration: row_blank classification predicate.
-5. Day-0 concurrency/permission gates: sort-order allocation/retry, draft cursor suppression, stale-revision recovery, viewer/editor mutation blocks, rollback fallback.
+5. Day-0 concurrency/permission gates: sort-order allocation/retry, draft cursor suppression, stale-revision recovery, viewer/editor mutation blocks on insert/update/replace, rollback fallback.
 6. Browser/mobile/realtime proof for U1-U4.
 7. Fast-follow Project folder projection if reapproved.
 8. Fast-follow promotion RPC and UI if reapproved.
@@ -74,7 +74,17 @@ If a code deploy is reverted:
 
 ## Observability
 
-Owner: the Express Components implementation owner wires these through the existing client/server logging or analytics surface. If no analytics surface is available in beta, write structured app logs and record test-session counts in the implementation evidence log.
+Owner: the Express Components implementation owner wires these through a concrete express telemetry sink before claiming release readiness.
+
+Day-0 sink: add a small `express-components-telemetry` module following the `realtime-telemetry.ts` `setSink/report` test seam pattern, or, if that is rejected during implementation, use structured app logs with the exact prefix `[express-components]` and record test-session counts in the implementation evidence log. The implementation evidence log must name the selected module or prefix.
+
+Minimum call sites:
+
+- insert attempt/success/failure/retry in the Add row mutation path
+- draft delete/abandon in the draft recovery path
+- save attempt/success/failure and stale-revision conflict in U3/U4
+- virtualization editor open/close/overlap detection in row-table/editor state
+- promotion attempt/success/failure/duplicate guard in U7 if promotion is implemented
 
 Track or log these event names or exact equivalents:
 
@@ -93,6 +103,7 @@ Track or log these event names or exact equivalents:
 - `express_promotion_duplicate_guard`
 - `express_projection_query`
 - `express_virtualization_editor_open`
+- `express_virtualization_editor_close`
 - `express_virtualization_overlap_detected`
 
 Alert thresholds for beta:
@@ -113,12 +124,15 @@ Before implementation starts, run or manually verify:
 - traceability matrix has no uncovered R/U/AE/Q/RSK rows
 - migration ledger names every DB change
 - audit remediation checklist has each P0/P1/P2 item mapped to a doc section
+- active third-pass audit path is linked and every `DB-N*`/`BR-N*`/`UX-N*`/`CO-N*`/`SEC-N*`/`STRAT-N*`/`PERF-N*`/`DM-N*`/`OB-N*` item is mapped in doc 08
 - SQL/provider evidence for promotion fast-follow is collected before U7 coding: current helper definitions, library write policies, function grants, target-folder workspace binding checks, and negative viewer/member/editor cases
+- UltraQA or equivalent adversarial report exists before day-0 ready-to-implement claim, covering viewer bypass, replace/move clobber after reload, copy rekey collision, no-realtime peer visibility, stale revision recovery, flag-off persisted express render, 300-500 row virtualization stress, and source-less renamed-row projection leak
 
 ## Audit Archive Policy
 
-The audit folder was archived after static documentation gates passed and an independent verifier confirmed the plan pack absorbed the documented audit findings.
+Older audit folders were archived after static documentation gates passed and an independent verifier confirmed the plan pack absorbed those documented findings. The active third-pass audit remains unarchived input until this remediation pass verifies every finding in doc 08 and the static gate.
 
+- Active third-pass audit: `.ai/02_audits/2026-06-15-Express-Components-claude-3rd-pass-audit/`
 - Archived readiness audit: `.ai/09_archive/store/2026-06-15-Express-Components-claude-readiness-verification-audit/`
 - Earlier deep audit: `.ai/09_archive/store/2026-06-15-Express-Components-claude-deep-audit/`
 - Active implementation source: `.ai/03_plans/2026-06-15-Express-Components/`

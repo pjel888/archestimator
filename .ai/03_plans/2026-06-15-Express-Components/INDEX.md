@@ -34,6 +34,7 @@ Day-0 implementation is deliberately narrower than the full pack: U1-U4 plus the
 - `evidence/subagent-summaries.md` preserves the parallel audit conclusions used by the pack.
 - `evidence/live-supabase-evidence.md` records the read-only live database evidence.
 - `evidence/u5-duplicate-instance-repro-note.md` records the U5 duplicate-instance proof boundary and the required real-project capture before implementation.
+- `evidence/inline-vs-modal-spike-result.md` must be created by the U4 spike owner before inline editor coding proceeds.
 
 ## Glossary And Canonical Vocabulary
 
@@ -50,8 +51,8 @@ Line numbers in this pack were captured against the live tree on 2026-06-15 and 
 | Cost field names | UI/domain often uses `itemCost`; RPC patch key is `unitCost`; DB column is `unit_cost`. `miscCost` maps to `misc_cost`; `contingencyPercentage` maps to `contingency_percentage`. |
 | JSON merge rule | Routine field edits omit `metadata` and `sourceSnapshot`, preserving both. Operations that intentionally mutate them must server-merge complete objects before sending the top-level key. |
 | Migration posture | U3 app-layer update widening needs no migration. U2 history reclassification needs an insert-RPC migration. U7 atomic promotion uses a new promotion RPC migration. |
-| Express metadata id | Row-lifetime UUIDv4 identity only. It is stable within one row, rekeyed on project-source/template copy, and is not reusable project-catalog identity. |
+| Express metadata id | Row-lifetime UUIDv4 identity only. It is stable within one row, must be rekeyed by the implementation on project-source/template copy, and is not reusable project-catalog identity. Current copy RPCs do not do this yet. |
 
 ## Stop Condition
 
-This plan is ready when a follow-on implementer can build U1-U4 without making a new express table by default, all audit P0/P1/P2 findings have an owning requirement/unit/QA row, docs 07-12 exist, the U5 icon bug is reproduced against a real project or explicitly reframed as normalization hardening in the required evidence note, virtualization/keyboard/focus/concurrency/permission/rollback contracts are explicit, migration boundaries are honest, U6/U7 are marked as fast-follow unless reapproved, and the only remaining product fork is deliberate: whether project-local reusable components are needed beyond estimate-row projection.
+This plan is ready when a follow-on implementer can build U1-U4 without making a new express table by default, every third-pass audit P1/P2 finding has an owning requirement/unit/QA row, docs 07-12 exist, the U5 icon bug is reproduced against a real project or explicitly reframed as normalization hardening in the required evidence note, virtualization/keyboard/focus/concurrency/permission/rollback contracts are explicit, migration boundaries are honest, U6/U7 are marked as fast-follow unless reapproved, the inline-vs-modal spike has a recorded owner/evidence artifact, and the only remaining product fork is deliberate: whether project-local reusable components are needed beyond estimate-row projection.

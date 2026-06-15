@@ -28,16 +28,19 @@ The plan pack may continue to specify U5-U7 because they shape data contracts an
 
 ## Inline Versus Modal Gate
 
+Owner: product + implementation lead. Evidence artifact required before U4 coding:
+`evidence/inline-vs-modal-spike-result.md`.
+
 The product preference remains inline authoring, not a modal. That preference is conditional on a one-day implementation spike before U4 coding:
 
-- Use an estimate with at least 75 rendered rows and one express editor in the middle of the list.
+- Use an estimate with at least 75 rendered rows and one express editor in the middle of the list, then repeat or extend the spike with 300-500 rows if the first run shows visible mount/scroll cost when virtualization is disabled.
 - Prove name, description, unit, unit cost, Retry/Delete, and inline error states can be edited without overlap, trapped focus, or incoherent scroll jumps.
 - Prove `content-visibility:auto`, `contain-intrinsic-size:96px`, and `translateY(start - scrollMargin)` do not hide active content when the day-0 virtualization fallback is applied.
 
 Go/no-go:
 
 - If the spike passes, U4 proceeds with inline editing and the day-0 virtualization fallback in doc 09.
-- If the spike fails, stop before coding U4 and rewrite the UX plan to a compact quick-add modal or popover. Do not implement unproven dynamic row measurement under the current row virtualizer as the day-0 path.
+- If the spike fails, stop before coding U4 and implement the compact quick-add modal/popover fallback specified in `03-ux-interaction-design.md`. Do not implement unproven dynamic row measurement under the current row virtualizer as the day-0 path.
 
 ## Table Versus Metadata Identity
 
@@ -49,7 +52,7 @@ Rules:
 
 - Mint the id client-side or server-side as UUIDv4 when the express row draft/template is created.
 - Keep the id stable for the lifetime of that row.
-- Rekey the id when an express row is copied from project-source/template/reusable-source context into another estimate row.
+- Rekey the id when an express row is copied from project-source/template/reusable-source context into another estimate row. This is implementation work, not current behavior: U8 must add the project-source copy RPC and template copy RPC to its mutator surfaces and use an RPC-side `jsonb_set`/merge or equivalent server-side step so the copied row receives a fresh `metadata.expressComponent.id`.
 - Never dedupe Project projection leaves by material/name alone; use row id plus row-lifetime express id where needed.
 - Do not use this id to imply reusable project-local components across rows or estimates.
 
@@ -58,3 +61,5 @@ If reusable project-local components become a near-term product requirement, sto
 ## Approval Boundary
 
 The implementation-ready stop condition for day-0 is U1-U4 plus the U9 gates above. U6/U7 readiness remains valuable design debt reduction, but it is not evidence that day-0 must ship Components-tab projection or library promotion.
+
+Day-0 is still intentionally narrow, but it is not "no net-new UX." The stale-revision recovery, local draft recovery, draft cursor suppression, and feature-flag fallback are first-ship safety work because the existing app does not already provide them for express text fields.
