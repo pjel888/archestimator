@@ -97,14 +97,21 @@ as $$
       -- SUPPLIER bucket
       cs.id::text as supplier_match_id,
       cs.name as supplier_match_name,
-      rt.source_snapshot->>'supplierId' as snapshot_supplier_id,
+      supplier_snapshot.supplier_id::text as snapshot_supplier_id,
       rt.legacy_supplier,
       rt.source_snapshot->>'supplier' as snapshot_supplier_name
     from row_totals rt
     left join node_area na on na.start_id = rt.node_id
     left join cat_top ct on ct.start_id = (rt.source_snapshot->>'categoryNodeId')
+    left join lateral (
+      select case
+        when nullif(rt.source_snapshot->>'supplierId', '') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+          then (rt.source_snapshot->>'supplierId')::uuid
+        else null
+      end as supplier_id
+    ) supplier_snapshot on true
     left join public.component_suppliers cs
-      on cs.id = nullif(rt.source_snapshot->>'supplierId', '')::uuid
+      on cs.id = supplier_snapshot.supplier_id
   ),
   bucketed as (
     select
