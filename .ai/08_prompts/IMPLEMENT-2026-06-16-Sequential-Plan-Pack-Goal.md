@@ -21,6 +21,7 @@ Target result: all three plan packs are implemented in the application, in seque
 
 Parallel-agent orchestration requirement:
 - For this task, write yourself a fresh aggregate goal and spawn coding/review/research agents in parallel as needed to do the work better and faster, while preserving the one-plan-at-a-time rule.
+- Every Codex coding AI agent must actively discover and use all available relevant skills, prompts, workflow surfaces, MCP/app tools, graph/index tools, browser tools, review tools, and project-local `.ai/11_skills` or `.codex/skills` instructions that can improve speed, quality, verification, or coordination for its assigned slice. Do not ignore useful installed skills just because the lead prompt already names the main workflows; load each relevant skill's instructions before acting and report which skills/tools were used in the handoff.
 - Give every spawned agent its own dedicated `/goal` or explicit subgoal tied to the current active plan only. A worker goal must name its scope, allowed files, non-goals, validation evidence, and handoff format.
 - Split the active plan into independent pieces before dispatching agents: repo exploration, implementation by disjoint file scope, test updates, browser/manual proof, graph/impact checks, adversarial QA, and review can run concurrently when they do not conflict.
 - Dispatch independent agents concurrently and synthesize their results as they return. Do not serialize work that is safely parallel.
