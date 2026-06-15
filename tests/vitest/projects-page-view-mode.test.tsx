@@ -2,7 +2,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectsPageClient } from "@/components/workshop/projects-page-client";
+import {
+  ProjectsPageClient,
+  type ProjectListItem,
+} from "@/components/workshop/projects-page-client";
+import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 import type { Tables } from "@/lib/supabase/types";
 
 const routerMock = vi.hoisted(() => ({
@@ -32,6 +36,36 @@ const PROJECT_FIXTURE = {
   updated_at: "2026-05-26T00:00:00.000Z",
   created_by: null,
 } satisfies Tables<"projects">;
+
+function createFavoriteEstimateSheet(
+  index: number,
+  name: string,
+): ProjectFavoriteEstimateSheetSummary {
+  return {
+    id: `00000000-0000-4000-8000-00000000010${index}`,
+    project_id: PROJECT_FIXTURE.id,
+    name,
+    sheet_code: `S-${index}`,
+    updated_at: "2026-05-26T00:00:00.000Z",
+    favoriteCreatedAt: `2026-05-2${index}T00:00:00.000Z`,
+  };
+}
+
+function createProjectItem(
+  project: Tables<"projects">,
+  favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[] = [],
+): ProjectListItem {
+  return {
+    project,
+    accessKind: "owned",
+    currentUserRole: "owner",
+    ownerWorkspaceName: null,
+    pendingInviteCount: 0,
+    publicationSummary: null,
+    sharedEstimateCount: 0,
+    favoriteEstimateSheets,
+  };
+}
 
 describe("ProjectsPageClient view modes", () => {
   beforeEach(() => {
@@ -112,6 +146,96 @@ describe("ProjectsPageClient view modes", () => {
       "data-project-card-view",
       "list",
     );
+  });
+
+  it("reserves aligned favorite estimate sheet space and caps visible sheets at five", () => {
+    window.localStorage.setItem(STORAGE_KEY, "large");
+
+    const secondProject = {
+      ...PROJECT_FIXTURE,
+      id: "11111111-1111-4111-8111-111111111112",
+      name: "Tropical House",
+      project_code: "AE-TH-002",
+    } satisfies Tables<"projects">;
+
+    render(
+      <ProjectsPageClient
+        projects={[
+          createProjectItem(PROJECT_FIXTURE, [
+            createFavoriteEstimateSheet(1, "Foundation BOQ"),
+            createFavoriteEstimateSheet(2, "Roof Framing"),
+            createFavoriteEstimateSheet(3, "Interior Fit-Out"),
+            createFavoriteEstimateSheet(4, "Electrical Works"),
+            createFavoriteEstimateSheet(5, "Plumbing Rough-In"),
+            createFavoriteEstimateSheet(6, "Landscape Package"),
+          ]),
+          createProjectItem(secondProject),
+        ]}
+      />,
+    );
+
+    const favoriteCard = screen.getByLabelText("Lewis Residence project, owned access");
+    const favoriteTray = favoriteCard.querySelector("[data-project-card-favorite-sheets]");
+    expect(favoriteTray).not.toBeNull();
+    expect(within(favoriteTray as HTMLElement).getByText("Favorite sheets")).toBeInTheDocument();
+    expect(within(favoriteTray as HTMLElement).queryByText("5/5")).not.toBeInTheDocument();
+    expect(within(favoriteTray as HTMLElement).getByText("Foundation BOQ")).toBeInTheDocument();
+    expect(within(favoriteTray as HTMLElement).getByText("Plumbing Rough-In")).toBeInTheDocument();
+    expect(within(favoriteTray as HTMLElement).queryByText("Landscape Package")).not.toBeInTheDocument();
+
+    const emptyCard = screen.getByLabelText("Tropical House project, owned access");
+    const emptyTray = emptyCard.querySelector("[data-project-card-favorite-sheets]");
+    expect(emptyTray).not.toBeNull();
+    expect(emptyTray).toHaveTextContent("");
+    expect(emptyTray).toHaveAttribute(
+      "aria-label",
+      "No favorite estimate sheets for Tropical House",
+    );
+  });
+
+  it("reserves shared-link and status rows without leaking empty placeholders", () => {
+    window.localStorage.setItem(STORAGE_KEY, "large");
+
+    const secondProject = {
+      ...PROJECT_FIXTURE,
+      id: "11111111-1111-4111-8111-111111111113",
+      name: "Harbour Box",
+      client_name: "Hong Kong Government",
+      project_code: "AE-HB-003",
+    } satisfies Tables<"projects">;
+
+    render(
+      <ProjectsPageClient
+        projects={[
+          {
+            ...createProjectItem(PROJECT_FIXTURE),
+            publicationSummary: {
+              status: "published",
+              clientLinkPath: "/p/lewis-residence",
+              openCount: 1,
+              latestOpenedAt: null,
+              passwordRequired: false,
+            },
+          },
+          createProjectItem(secondProject),
+        ]}
+      />,
+    );
+
+    const publishedCard = screen.getByLabelText("Lewis Residence project, owned access");
+    const plainCard = screen.getByLabelText("Harbour Box project, owned access");
+
+    const publishedStatusSlot = publishedCard.querySelector("[data-project-card-status-slot]");
+    const plainStatusSlot = plainCard.querySelector("[data-project-card-status-slot]");
+    expect(publishedStatusSlot).toHaveTextContent("Shared link");
+    expect(plainStatusSlot).toHaveTextContent("");
+
+    const publishedPublicationSlot = publishedCard.querySelector("[data-project-card-publication-meta-slot]");
+    const plainPublicationSlot = plainCard.querySelector("[data-project-card-publication-meta-slot]");
+    expect(publishedPublicationSlot).toHaveTextContent("1 open");
+    expect(publishedPublicationSlot).toHaveTextContent("Password off");
+    expect(plainPublicationSlot).not.toBeNull();
+    expect(plainPublicationSlot).toHaveTextContent("");
   });
 
   it("guides first-run users to create a live project while keeping samples as references", async () => {

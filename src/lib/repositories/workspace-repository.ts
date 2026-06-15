@@ -111,6 +111,14 @@ type WorkshopProjectListItem = {
   pendingInviteCount: number;
   publicationSummary: ProjectPublicationListSummary | null;
   sharedEstimateCount: number;
+  favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[];
+};
+
+export type ProjectFavoriteEstimateSheetSummary = Pick<
+  Tables<"estimates">,
+  "id" | "project_id" | "name" | "sheet_code" | "updated_at"
+> & {
+  favoriteCreatedAt: string;
 };
 
 const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
@@ -421,6 +429,7 @@ function createPendingInviteProjectListItem({
     pendingInviteCount: 0,
     publicationSummary: null,
     sharedEstimateCount: invite.scope === "estimate" ? 1 : 0,
+    favoriteEstimateSheets: [],
   };
 }
 
@@ -795,7 +804,7 @@ export async function listCurrentWorkspaceProjects() {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [projectsResult, favoritesResult, projectMembersResult, sheetMembersResult, workspaceMembershipResult] = await Promise.all([
+  const [projectsResult, favoritesResult, estimateFavoritesResult, projectMembersResult, sheetMembersResult, workspaceMembershipResult] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
@@ -806,6 +815,12 @@ export async function listCurrentWorkspaceProjects() {
       .select("project_id")
       .eq("workspace_id", workspace.id)
       .eq("user_id", profile.id),
+    supabase
+      .from("estimate_favorites")
+      .select("estimate_id, project_id, created_at")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false }),
     supabase
       .from("project_members")
       .select("project_id, workspace_id, role, user_id")
@@ -824,6 +839,7 @@ export async function listCurrentWorkspaceProjects() {
 
   if (projectsResult.error) throw projectsResult.error;
   if (favoritesResult.error) throw favoritesResult.error;
+  if (estimateFavoritesResult.error) throw estimateFavoritesResult.error;
   if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
   if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
   if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
@@ -853,6 +869,36 @@ export async function listCurrentWorkspaceProjects() {
     sharedProjects = data ?? [];
   }
 
+  const favoriteEstimateRows = estimateFavoritesResult.data ?? [];
+  const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
+  const favoriteEstimateCreatedAtById = new Map(
+    favoriteEstimateRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
+  );
+  let favoriteEstimateSheetsByProjectId = new Map<string, ProjectFavoriteEstimateSheetSummary[]>();
+
+  if (favoriteEstimateIds.length > 0) {
+    const { data, error } = await supabase
+      .from("estimates")
+      .select("id, project_id, name, sheet_code, updated_at")
+      .in("id", favoriteEstimateIds);
+
+    if (error) throw error;
+
+    const favoriteEstimateById = new Map((data ?? []).map((estimate) => [estimate.id, estimate]));
+    favoriteEstimateSheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
+      const estimate = favoriteEstimateById.get(favorite.estimate_id);
+      if (!estimate) return byProject;
+      const sheets = byProject.get(favorite.project_id) ?? [];
+      if (sheets.length >= 5) return byProject;
+      sheets.push({
+        ...estimate,
+        favoriteCreatedAt: favoriteEstimateCreatedAtById.get(estimate.id) ?? favorite.created_at,
+      });
+      byProject.set(favorite.project_id, sheets);
+      return byProject;
+    }, new Map<string, ProjectFavoriteEstimateSheetSummary[]>());
+  }
+
   const resolveProjectAccess = createWorkshopProjectAccessResolver({
     profileId: profile.id,
     projectMembers,
@@ -867,6 +913,7 @@ export async function listCurrentWorkspaceProjects() {
       ...resolveProjectAccess(project),
       pendingInviteCount: 0,
       publicationSummary: null,
+      favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
     };
   }
 
@@ -915,6 +962,7 @@ export async function listCurrentWorkspaceProjects() {
         pendingInvite: null,
         pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(item.project.id) ?? 0,
         publicationSummary: readProjectPublicationListSummary(publicationByProjectId.get(item.project.id) ?? null),
+        favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(item.project.id) ?? item.favoriteEstimateSheets,
       })),
       ...pendingInviteItemsByProjectId.values(),
     ],
