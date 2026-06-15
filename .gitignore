@@ -88,3 +88,4 @@ yarn-error.log*
 /.codex/tmp
 /.codex/local
 /.codex/*.local.*
+/.codex/*.sqlite*
