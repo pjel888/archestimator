@@ -9,5 +9,5 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return <WorkshopRouteErrorState error={error} reset={reset} routeLabel="Project charts" />;
+  return <WorkshopRouteErrorState error={error} reset={reset} routeLabel="Project data" />;
 }

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import LibraryRouteError from "@/app/workshop/library/error";
 import TemplatesRouteError from "@/app/workshop/library/templates/error";
-import ChartsRouteError from "@/app/workshop/projects/[projectId]/charts/error";
+import DataRouteError from "@/app/workshop/projects/[projectId]/data/error";
 import EstimatesListRouteError from "@/app/workshop/projects/[projectId]/estimates/error";
 import EstimateRouteError from "@/app/workshop/projects/[projectId]/estimates/[nodeId]/error";
 import { WorkshopRouteErrorState } from "@/components/workshop/WorkshopRouteErrorState";
@@ -39,7 +39,7 @@ describe("workshop route error boundaries", () => {
   it.each([
     ["Library", LibraryRouteError],
     ["Templates", TemplatesRouteError],
-    ["Project charts", ChartsRouteError],
+    ["Project data", DataRouteError],
     ["Project estimates", EstimatesListRouteError],
     ["Estimate workspace", EstimateRouteError],
   ])("renders sanitized retry UI for %s route failures", (routeLabel, ErrorComponent) => {
