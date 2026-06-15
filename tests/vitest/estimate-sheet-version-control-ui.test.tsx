@@ -1023,7 +1023,7 @@ describe("estimate sheet version control UI", () => {
       projectId: "project-1",
       estimateId: "estimate-1",
       nodeId: "living-area",
-      includeDescendants: false,
+      includeDescendants: true,
       scope: "node",
     }));
   });

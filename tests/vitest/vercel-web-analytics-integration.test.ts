@@ -1,8 +1,12 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
 import { redactVercelAnalyticsEvent } from "@/lib/analytics/vercel-web-analytics";
+
+const performancePlanDir = existsSync(".ai/03_plans/2026-06-05-performance-and-speed")
+  ? ".ai/03_plans/2026-06-05-performance-and-speed"
+  : ".ai/09_archive/2026-06-05-performance-and-speed";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   dependencies?: Record<string, string>;
@@ -10,7 +14,7 @@ const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
 const analyticsComponent = readFileSync("src/components/analytics/VercelWebAnalytics.tsx", "utf8");
 const telemetryDecision = readFileSync(
-  ".ai/03_plans/2026-06-05-performance-and-speed/20-telemetry-privacy-decision-record.md",
+  `${performancePlanDir}/20-telemetry-privacy-decision-record.md`,
   "utf8",
 );
 

@@ -212,16 +212,20 @@ describe("route transition peak-load profile", () => {
       />,
     );
 
-    const rowSelectors = estimateProfile.container.querySelectorAll('input[aria-label^="Select Performance Row "]');
+    const rowSelectors = estimateProfile.container.querySelectorAll('tr[data-estimate-row-id^="perf-row-"]');
     recordMetric({
       scenario: "estimate-sheet-content",
       estimateRowCount: PEAK_LOAD_PROFILE_SCALE.estimateRowCount,
       initialRenderMs: estimateProfile.initialRenderMs,
       renderedElementCount: rowSelectors.length,
-      virtualizationDecision: "defer-until-browser-profiler-proves-jank",
+      virtualizationDecision: "mounted-window-with-logical-row-count",
       memoizationDecision: "defer-broad-memo-until-profiler-proves-re-render-cost",
     });
-    expect(rowSelectors).toHaveLength(PEAK_LOAD_PROFILE_SCALE.estimateRowCount);
+    const virtualizedRows = estimateProfile.container.querySelector('[data-estimate-row-virtualizer="true"]');
+    expect(virtualizedRows).toHaveAttribute("data-estimate-row-virtual-total-count", String(PEAK_LOAD_PROFILE_SCALE.estimateRowCount));
+    expect(virtualizedRows).toHaveAttribute("data-estimate-row-virtual-mounted-count", String(rowSelectors.length));
+    expect(rowSelectors.length).toBeGreaterThan(0);
+    expect(rowSelectors.length).toBeLessThan(PEAK_LOAD_PROFILE_SCALE.estimateRowCount);
     expect(estimateProfile.initialRenderMs).toBeLessThan(10_000);
   }, 30_000);
 });

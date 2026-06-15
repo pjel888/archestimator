@@ -276,4 +276,67 @@ describe("library tree sibling ordering", () => {
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "c")).toEqual({ parentKey: "root", siblingIds: ["a", "b", "c"] });
     expect(findLibrarySiblingOrder(orderFixtureNodes, "a", "root")).toBeNull();
   });
+
+  it("renders project express components under project and estimate folders in the sidebar tree", async () => {
+    const { buildLibraryTreeWithComponentRows } = await import("@/components/workshop/component-library/tree");
+    const { buildLibraryFolderTree, getLibraryItemsForFolderNode } = await import("@/lib/component-library/library-folder-reorder");
+    const projectFolderId = "project-components-project-1";
+    const estimateFolderId = "project-components-project-1-estimate-estimate-1";
+    const projectItem: EstimateRowItem = {
+      ...base,
+      id: "express-row-1",
+      material: "Express Vanity",
+      supplier: "Project",
+      source: "project",
+      unit: "lot",
+      itemCost: 1500,
+      category: "Unassigned",
+      libraryFolderId: estimateFolderId,
+      metadata: {
+        projectComponentProjection: {
+          projectId: "project-1",
+          projectName: "Casa Miguel",
+          estimateId: "estimate-1",
+          estimateName: "Main Estimate",
+          classification: "express",
+        },
+      },
+    };
+    const ordinaryUsedItem: EstimateRowItem = {
+      ...base,
+      id: "ordinary-used-row",
+      material: "Used Library Sofa",
+      supplier: "Workspace library",
+      source: "library",
+      unit: "pc",
+      itemCost: 1200,
+      category: "Furniture",
+      libraryFolderId: estimateFolderId,
+      metadata: {},
+    };
+    const sidebarFolders = [
+      { id: projectFolderId, parent_id: null, name: "Casa Miguel", sort_order: -100 },
+      { id: estimateFolderId, parent_id: projectFolderId, name: "Main Estimate", sort_order: -90 },
+    ];
+
+    const tree = buildLibraryTreeWithComponentRows("categories", [projectItem, ordinaryUsedItem, ...items], [], [], {
+      categoryTree: [],
+      libraryFolders: sidebarFolders,
+      pruneEmptyFolders: true,
+    });
+
+    expect(tree[0].label).toBe("Casa Miguel");
+    expect(tree[0].children?.[0].label).toBe("Main Estimate");
+    expect(tree[0].children?.[0].children?.[0]).toMatchObject({ id: "express-row-1", label: "Express Vanity" });
+    expect(JSON.stringify(tree[0])).not.toContain("Used Library Sofa");
+    expect(JSON.stringify(tree.slice(1))).not.toContain("Express Vanity");
+
+    const managerFolders = buildLibraryFolderTree(sidebarFolders.map((folder) => ({
+      ...folder,
+      workspace_id: "workspace-1",
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    })));
+    expect(getLibraryItemsForFolderNode(managerFolders[0], [projectItem, ordinaryUsedItem, ...items]).map((item) => item.id)).toEqual(["express-row-1"]);
+  });
 });

@@ -805,6 +805,7 @@ describe("package-builder Apply", () => {
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "cost_library_items") return libraryQuery;
+        if (table === "estimate_row_items") return makeQueryResult([{ id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555", metadata: {} }]);
         throw new Error(`Unexpected table ${table}`);
       }),
       rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
@@ -1231,6 +1232,7 @@ describe("package-builder Apply", () => {
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "cost_library_items") return libraryQuery;
+        if (table === "estimate_row_items") return makeQueryResult([{ id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555", metadata: {} }]);
         throw new Error(`Unexpected table ${table}`);
       }),
       rpc: vi.fn(async (fn: string) => {
@@ -1299,6 +1301,48 @@ describe("package-builder Apply", () => {
       idempotencyKey: "idem-fill-current-replace",
     });
     expect(cacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111/estimates/dddddddd-4444-4ddd-8ddd-dddddddd4444");
+  });
+
+  it("blocks package-builder replacement of express component rows before the replace RPC", async () => {
+    const draft = makeFillCurrentEstimateRowReplacementDraft();
+    const libraryQuery = makeQueryResult(makeLibraryValidationRows());
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "cost_library_items") return libraryQuery;
+        if (table === "estimate_row_items") {
+          return makeQueryResult([
+            {
+              id: "eeeeeeee-5555-4eee-8eee-eeeeeeee5555",
+              metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-row-1" } },
+            },
+          ]);
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async (fn: string) => {
+        throw new Error(`Unexpected RPC ${fn}`);
+      }),
+    };
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+
+    const { applyPackageBuilderDraft } = await import("@/lib/ai/package-builder/apply");
+    await expect(applyPackageBuilderDraft({
+      mode: "apply",
+      draft,
+      draftHash: buildPackageDraftHash(draft),
+      draftToken: "server.token",
+      confirmation: { confirmed: true },
+      idempotencyKey: "idem-fill-current-replace-express",
+      userContext: {
+        userId: "44444444-4444-4444-8444-444444444444",
+        email: "user@example.com",
+        workspaceId: "55555555-5555-4555-8555-555555555555",
+        authMode: "supabase",
+      },
+      authorizationRunId: "99999999-9999-4999-8999-999999999999",
+    })).rejects.toThrow(/cannot replace express component rows/i);
+
+    expect(supabase.rpc).not.toHaveBeenCalledWith("replace_estimate_row_item_with_history", expect.anything());
   });
 
   it("deletes existing fill-current-estimate rows through the row-history RPC", async () => {

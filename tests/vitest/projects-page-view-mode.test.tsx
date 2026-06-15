@@ -158,7 +158,7 @@ describe("ProjectsPageClient view modes", () => {
 
     expect(container.querySelector('[data-project-access-kind="project-member"]')).toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
-    expect(screen.getByText("Viewer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Lewis Residence project, shared project, viewer access")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText("No live projects yet")).not.toBeInTheDocument();
   });

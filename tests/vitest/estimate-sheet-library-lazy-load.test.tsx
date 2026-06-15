@@ -31,6 +31,7 @@ const estimateActionMocks = vi.hoisted(() => ({
 }));
 
 const loadLibraryMock = vi.hoisted(() => vi.fn());
+const loadProjectLibraryMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/projects/lazy-project/estimates/lazy-node",
@@ -45,6 +46,7 @@ vi.mock("@/lib/component-library/actions", async (importOriginal) => ({
   // intercept holds regardless of which variant the component calls.
   loadCurrentWorkspaceComponentLibrary: loadLibraryMock,
   loadCurrentWorkspaceComponentLibraryLite: loadLibraryMock,
+  loadProjectComponentLibraryLite: loadProjectLibraryMock,
 }));
 
 const sampleDataset = {
@@ -92,7 +94,7 @@ describe("component library lazy load (U4)", () => {
 
   it("shows a sidebar skeleton, loads the library lazily, and reuses the cache on remount", async () => {
     let resolveLoad: (dataset: typeof sampleDataset) => void = () => {};
-    loadLibraryMock.mockImplementation(
+    loadProjectLibraryMock.mockImplementation(
       () => new Promise((resolve) => {
         resolveLoad = resolve;
       }),
@@ -102,7 +104,9 @@ describe("component library lazy load (U4)", () => {
     const view = renderSheet(queryClient);
 
     expect(await screen.findByRole("status", { name: "Loading component library" })).toBeInTheDocument();
-    expect(loadLibraryMock).toHaveBeenCalledTimes(1);
+    expect(loadProjectLibraryMock).toHaveBeenCalledTimes(1);
+    expect(loadProjectLibraryMock).toHaveBeenCalledWith("lazy-project");
+    expect(loadLibraryMock).not.toHaveBeenCalled();
 
     await act(async () => {
       resolveLoad(sampleDataset);
@@ -117,11 +121,12 @@ describe("component library lazy load (U4)", () => {
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
     });
-    expect(loadLibraryMock).toHaveBeenCalledTimes(1);
+    expect(loadProjectLibraryMock).toHaveBeenCalledTimes(1);
+    expect(loadLibraryMock).not.toHaveBeenCalled();
   });
 
   it("shows a visible, non-blocking error with retry when the library load fails", async () => {
-    loadLibraryMock.mockRejectedValueOnce(new Error("library backend down"));
+    loadProjectLibraryMock.mockRejectedValueOnce(new Error("library backend down"));
 
     const queryClient = makeQueryClient();
     const view = renderSheet(queryClient);
@@ -133,12 +138,13 @@ describe("component library lazy load (U4)", () => {
     // message renders because no nodes were passed.
     expect(view.container.querySelector("[data-estimate-center-column='sheet']")).toBeInTheDocument();
 
-    loadLibraryMock.mockResolvedValueOnce(sampleDataset);
+    loadProjectLibraryMock.mockResolvedValueOnce(sampleDataset);
     await userEvent.click(retryButton);
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
     });
-    expect(loadLibraryMock).toHaveBeenCalledTimes(2);
+    expect(loadProjectLibraryMock).toHaveBeenCalledTimes(2);
+    expect(loadLibraryMock).not.toHaveBeenCalled();
   });
 
   it("does not fetch when server-provided library props exist", async () => {
@@ -154,12 +160,14 @@ describe("component library lazy load (U4)", () => {
 
     expect(screen.getByRole("tab", { name: /components/i })).toBeInTheDocument();
     expect(loadLibraryMock).not.toHaveBeenCalled();
+    expect(loadProjectLibraryMock).not.toHaveBeenCalled();
   });
 
   it("does not fetch when the sidebar is not rendered", () => {
     const queryClient = makeQueryClient();
     renderSheet(queryClient, { renderSidebar: false });
     expect(loadLibraryMock).not.toHaveBeenCalled();
+    expect(loadProjectLibraryMock).not.toHaveBeenCalled();
   });
 
   it("invalidates the lazy library cache after sidebar library mutations", () => {

@@ -1,10 +1,13 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
 const seedSql = readFileSync("supabase/seed.sql", "utf8");
+const launchReadinessPlanDir = existsSync(".ai/03_plans/mvp-launch-readiness-2026-06-01")
+  ? ".ai/03_plans/mvp-launch-readiness-2026-06-01"
+  : ".ai/09_archive/mvp-launch-readiness-2026-06-01";
 const demoPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/28-investor-incubator-demo-readiness-plan.md",
+  `${launchReadinessPlanDir}/28-investor-incubator-demo-readiness-plan.md`,
   "utf8",
 );
 

@@ -150,11 +150,11 @@ describe("project invite entry schema", () => {
     expect(types).toContain("lifecycle_state: string");
     expect(types).toContain("accepted_via: string | null");
     expect(types).toContain("resolve_collaboration_invitation: {");
-    expect(types).toContain("inviter_email: string | null");
+    expect(types).toContain("inviter_email: string");
     expect(types).toContain("accept_collaboration_invitation: {");
     expect(types).toContain("accept_collaboration_invitation_by_id: {");
     expect(types).toContain("list_pending_collaboration_invitations: {");
-    expect(types).toContain("state: string | null");
-    expect(types).toContain("last_opened_at: string | null");
+    expect(types).toContain("state: string");
+    expect(types).toContain("last_opened_at: string");
   });
 });

@@ -1,14 +1,17 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
 const envExample = readFileSync(".env.example", "utf8");
+const launchReadinessPlanDir = existsSync(".ai/03_plans/mvp-launch-readiness-2026-06-01")
+  ? ".ai/03_plans/mvp-launch-readiness-2026-06-01"
+  : ".ai/09_archive/mvp-launch-readiness-2026-06-01";
 const infraPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/22-infrastructure-vercel-supabase-resend-plan.md",
+  `${launchReadinessPlanDir}/22-infrastructure-vercel-supabase-resend-plan.md`,
   "utf8",
 );
 const operationsRunbook = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/40-closed-beta-operations-runbook.md",
+  `${launchReadinessPlanDir}/40-closed-beta-operations-runbook.md`,
   "utf8",
 );
 

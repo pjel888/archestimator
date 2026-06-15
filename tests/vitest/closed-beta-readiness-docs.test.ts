@@ -3,24 +3,28 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+const launchReadinessPlanDir = existsSync(".ai/03_plans/mvp-launch-readiness-2026-06-01")
+  ? ".ai/03_plans/mvp-launch-readiness-2026-06-01"
+  : ".ai/09_archive/mvp-launch-readiness-2026-06-01";
+
 const launchReadinessReadme = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/00-README.md",
+  `${launchReadinessPlanDir}/00-README.md`,
   "utf8",
 );
 const releaseChecklist = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/09-release-readiness-checklist.md",
+  `${launchReadinessPlanDir}/09-release-readiness-checklist.md`,
   "utf8",
 );
 const manualProofMatrix = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md",
+  `${launchReadinessPlanDir}/46-manual-proof-matrix.md`,
   "utf8",
 );
 const goalCompletionAudit = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md",
+  `${launchReadinessPlanDir}/47-goal-completion-audit.md`,
   "utf8",
 );
 const manualProofPacketTemplate = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/48-manual-proof-packet-template.md",
+  `${launchReadinessPlanDir}/48-manual-proof-packet-template.md`,
   "utf8",
 );
 const consolidatedManualProofPacket = readFileSync(
@@ -39,71 +43,71 @@ const observabilityRoadmap = readFileSync(
   "utf8",
 );
 const technicalRiskRegister = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/10-technical-risk-register.md",
+  `${launchReadinessPlanDir}/10-technical-risk-register.md`,
   "utf8",
 );
 const finalLaunchGate = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/12-final-mvp-launch-gate.md",
+  `${launchReadinessPlanDir}/12-final-mvp-launch-gate.md`,
   "utf8",
 );
 const evidenceIndex = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/14-evidence-index.md",
+  `${launchReadinessPlanDir}/14-evidence-index.md`,
   "utf8",
 );
 const finalImplementationReport = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/final-codex-implementation-report.md",
+  `${launchReadinessPlanDir}/final-codex-implementation-report.md`,
   "utf8",
 );
 const testStrategy = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/19-test-strategy-and-fixtures.md",
+  `${launchReadinessPlanDir}/19-test-strategy-and-fixtures.md`,
   "utf8",
 );
 const performancePlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/23-performance-caching-redis-scalability-plan.md",
+  `${launchReadinessPlanDir}/23-performance-caching-redis-scalability-plan.md`,
   "utf8",
 );
 const launchRunbook = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/20-launch-runbook.md",
+  `${launchReadinessPlanDir}/20-launch-runbook.md`,
   "utf8",
 );
 const backupPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/30-data-backup-disaster-recovery-plan.md",
+  `${launchReadinessPlanDir}/30-data-backup-disaster-recovery-plan.md`,
   "utf8",
 );
 const zeroDefectMatrix = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/33-main-feature-zero-defect-test-matrix.md",
+  `${launchReadinessPlanDir}/33-main-feature-zero-defect-test-matrix.md`,
   "utf8",
 );
 const mvpFeatureCompletionPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/04-mvp-feature-completion-plan.md",
+  `${launchReadinessPlanDir}/04-mvp-feature-completion-plan.md`,
   "utf8",
 );
 const executiveBrief = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/36-final-executive-launch-brief.md",
+  `${launchReadinessPlanDir}/36-final-executive-launch-brief.md`,
   "utf8",
 );
 const architectureDecisionRecords = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/34-architecture-decision-records.md",
+  `${launchReadinessPlanDir}/34-architecture-decision-records.md`,
   "utf8",
 );
 const readinessScorecard = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/43-closed-beta-readiness-scorecard.md",
+  `${launchReadinessPlanDir}/43-closed-beta-readiness-scorecard.md`,
   "utf8",
 );
 const closedBetaCouncilReview = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/45-fourth-pass-closed-beta-council-review.md",
+  `${launchReadinessPlanDir}/45-fourth-pass-closed-beta-council-review.md`,
   "utf8",
 );
 const observabilityPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/27-observability-monitoring-support-plan.md",
+  `${launchReadinessPlanDir}/27-observability-monitoring-support-plan.md`,
   "utf8",
 );
 const betaProgramPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/29-beta-program-readiness-plan.md",
+  `${launchReadinessPlanDir}/29-beta-program-readiness-plan.md`,
   "utf8",
 );
 const closedBetaOperationsRunbook = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/40-closed-beta-operations-runbook.md",
+  `${launchReadinessPlanDir}/40-closed-beta-operations-runbook.md`,
   "utf8",
 );
 const vercelIgnore = readFileSync(".vercelignore", "utf8");

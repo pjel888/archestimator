@@ -134,6 +134,50 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     expect(JSON.stringify(sanitized)).not.toContain("contingencyPercentage");
   });
 
+  it("carries safe express component image URLs into publication snapshot rows", () => {
+    const snapshot = buildProjectPublicationSnapshot({
+      generatedAt: "2026-06-15T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "Quezon City",
+        currencyCode: "PHP",
+      },
+      estimates: [
+        {
+          id: "estimate-1",
+          name: "Main Estimate",
+          sheetCode: "ES-001",
+          updatedAt: "2026-06-15T00:00:00.000Z",
+          rows: [
+            {
+              id: "express-row-1",
+              description: "Inline-authored vanity",
+              designation: "",
+              discipline: "Unspecified",
+              material: "Express custom vanity",
+              quantity: 1,
+              unit: "lot",
+              unitCost: 12_000,
+              miscCost: 750,
+              contingencyPercentage: 10,
+              imageUrl: "/component-thumbnails/lib-vanity.jpg",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(snapshot.estimates[0]?.rows[0]).toMatchObject({
+      id: "express-row-1",
+      material: "Express custom vanity",
+      rowTotal: 13_950,
+      imageUrl: "/component-thumbnails/lib-vanity.jpg",
+    });
+  });
+
   it("builds v1.2 estimate-tab snapshots while preserving estimate-level legacy rows", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-06-13T00:00:00.000Z",

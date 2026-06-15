@@ -173,8 +173,8 @@ describe("TemplatesBrowseManager (Templates browse, Phase 2)", () => {
     renderManager();
 
     const gallery = getGallery();
-    expect(within(gallery).getByText("1 group · 1 area · 1 row")).toBeInTheDocument();
-    expect(within(gallery).getByText("1 group · 1 area · 2 rows")).toBeInTheDocument();
+    expect(within(gallery).getByText("2 areas · 1 row")).toBeInTheDocument();
+    expect(within(gallery).getByText("2 areas · 2 rows")).toBeInTheDocument();
     const contextStrip = document.querySelector('[data-template-sheet-context-strip="true"]');
     expect(contextStrip).toHaveTextContent("All Templates · 2 templates");
     expect(contextStrip).toHaveTextContent("Sorted by group");
