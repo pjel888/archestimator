@@ -691,6 +691,12 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
 
+  const { data: canEditEstimate, error: editAccessError } = await supabase.rpc("can_edit_estimate", {
+    target_estimate_id: input.estimateId,
+  });
+  if (editAccessError) throw new Error(`Could not verify estimate edit access: ${editAccessError.message}`);
+  if (canEditEstimate !== true) throw new Error("Estimate edit access denied.");
+
   const { data: nodeRows, error: nodesError } = await supabase
     .from("estimate_nodes")
     .select("id, parent_id, kind, name, sort_order")
@@ -862,6 +868,12 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .maybeSingle();
   if (estimateError) throw new Error(`Could not load the estimate: ${estimateError.message}`);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
+
+  const { data: canEditEstimate, error: editAccessError } = await supabase.rpc("can_edit_estimate", {
+    target_estimate_id: input.estimateId,
+  });
+  if (editAccessError) throw new Error(`Could not verify estimate edit access: ${editAccessError.message}`);
+  if (canEditEstimate !== true) throw new Error("Estimate edit access denied.");
 
   const { data: nodeRows, error: nodesError } = await supabase
     .from("estimate_nodes")

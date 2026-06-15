@@ -62,6 +62,25 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(read("src/lib/estimates/actions.ts")).toContain("assertCanEditEstimate");
   });
 
+  it("requires estimate edit access before copying estimate project sources into workspace templates", () => {
+    const actions = read("src/lib/component-library/actions.ts");
+    const assertTemplateSourceEditCheck = (functionName: string) => {
+      const actionStart = actions.indexOf(`export async function ${functionName}`);
+      const editCheckIndex = actions.indexOf('supabase.rpc("can_edit_estimate"', actionStart);
+      const nodeReadIndex = actions.indexOf('.from("estimate_nodes")', actionStart);
+      const templateInsertIndex = actions.indexOf('.from("estimate_templates")', actionStart);
+
+      expect(actionStart).toBeGreaterThanOrEqual(0);
+      expect(editCheckIndex).toBeGreaterThan(actionStart);
+      expect(actions.slice(editCheckIndex, nodeReadIndex)).toContain("Estimate edit access denied.");
+      expect(editCheckIndex).toBeLessThan(nodeReadIndex);
+      expect(editCheckIndex).toBeLessThan(templateInsertIndex);
+    };
+
+    assertTemplateSourceEditCheck("createEstimateTemplateFromEstimateNode");
+    assertTemplateSourceEditCheck("createEstimateTemplateFromEstimateTab");
+  });
+
   it("prevents estimate-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");
