@@ -149,14 +149,13 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? EMPTY_ESTIMATE_ROW_ITEMS;
-  // P6 single-node model: a node is "expandable" iff it has collapsible
-  // contents (own rows OR child sub-areas) -- NOT iff it has children. The
-  // disclosure caret and aria-expanded key off hasContents; only a truly-empty
-  // node (no rows, no children) is a non-collapsible leaf. hasChildren is still
-  // used for the rows-vs-sub-areas distinction and the sr-only content count.
+  // P6 single-node model: every node has a collapsible body, because even an
+  // empty area owns contextual chrome (breadcrumbs + Add row) and can receive
+  // rows. hasContents remains only for occupancy/empty-state presentation.
   const hasChildren = childAreas.length > 0;
   const hasOwnRows = estimateRowItems.length > 0;
   const hasContents = hasChildren || hasOwnRows;
+  const hasCollapsibleBody = true;
   const leftIndent = Math.min(depth * 16, 96);
   const headerTextOffset = leftIndent + 51;
   const total = nodeTotals?.get(node.id) ?? computeNodeTotal(node, editableRows);
@@ -273,7 +272,11 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
     >
       <div className={cn("bg-white", isStickyHeader && "sticky top-0 z-[20]")}>
         <div
-          className={cn("flex min-h-10 items-center gap-2 border-x border-t border-hairline bg-surfaceMuted/40 px-1 py-2", nodeHeaderClasses())}
+          className={cn(
+            "flex min-h-10 items-center gap-2 border-x border-t border-hairline bg-surfaceMuted/40 px-1 py-2",
+            collapsed && "border-b",
+            nodeHeaderClasses()
+          )}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
         >
           {/* L7 dual-content announcement as a real (visually-hidden) text
@@ -281,7 +284,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
               the node-name labelled region. "{name}, area{, N rows}{, M
               sub-areas}". */}
           <span className="sr-only">{headerAriaLabel}</span>
-          {hasContents && !searchActive ? (
+          {hasCollapsibleBody && !searchActive ? (
             <Button
               variant="ghost"
               size="icon-sm"
@@ -300,10 +303,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
               <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
             </Button>
           ) : (
-            // Reserve the caret slot so node names stay aligned. Rendered for a
-            // truly-empty node (nothing to collapse) AND while search is active
-            // (carets suppressed, OD-3). Non-focusable, no aria-expanded — it
-            // must not advertise expandability (L7).
+            // Reserve the caret slot so node names stay aligned while search is
+            // active (carets suppressed, OD-3). Non-focusable, no aria-expanded.
             <span className="size-6 shrink-0" aria-hidden="true" />
           )}
           {/* Occupancy dot between the caret and the name: orange iff this node
@@ -331,7 +332,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
       ) : null}
 
       {!collapsed ? (
-        <div>
+        <div className="space-y-2">
           {/* Breadcrumb path band — a normal scrolling band in the node body.
               It is contextual-on-arrival and scrolls away. */}
           {showBreadcrumbs && (
