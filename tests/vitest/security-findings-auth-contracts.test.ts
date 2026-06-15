@@ -62,6 +62,17 @@ describe("Codex auth and estimate-access hardening contracts", () => {
     expect(read("src/lib/estimates/actions.ts")).toContain("assertCanEditEstimate");
   });
 
+  it("requires estimate edit access for authenticated row insert history RPCs", () => {
+    const latestRowInsertRpc = latestFunction("insert_estimate_row_item_with_history");
+    const rowInsertAction = read("src/lib/estimates/actions.ts");
+
+    expect(latestRowInsertRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(latestRowInsertRpc).not.toContain("public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id)");
+    expect(latestRowInsertRpc).not.toContain("node.kind = 'area'");
+    expect(rowInsertAction).toContain(`await assertCanEditEstimate(supabase, estimateId);
+  const currentUser = await requireCurrentUserContext();`);
+  });
+
   it("prevents estimate-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");

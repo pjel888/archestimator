@@ -2496,6 +2496,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
   const currentUser = await requireCurrentUserContext();
   // P6 single-node model: a row may be inserted into ANY node, not only the
   // former "area" kind. We still scope the target to a node that exists in this

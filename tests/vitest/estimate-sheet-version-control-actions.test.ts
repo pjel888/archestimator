@@ -421,6 +421,7 @@ describe("estimate sheet version control server actions", () => {
       mutationId: "88888888-8888-4888-8888-888888888888",
     });
 
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -428,13 +429,34 @@ describe("estimate sheet version control server actions", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: "88888888-8888-4888-8888-888888888888",
     }));
-    expect(supabase.rpc.mock.calls[0][1].row_payload).toMatchObject({
+    const insertCall = supabase.rpc.mock.calls.find(([fn]) => fn === "insert_estimate_row_item_with_history");
+    expect(insertCall?.[1].row_payload).toMatchObject({
       id: "99999999-9999-4999-8999-999999999999",
       sortOrder: 5,
       material: "Porcelain Tile",
       contingencyPercentage: 0,
       sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
     });
+  });
+
+
+  it("rejects library row insertion before touching target nodes when estimate edit is denied", async () => {
+    const supabase = makeSupabase({ canEditEstimate: false });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
+
+    await expect(insertEstimateRowItemFromLibrary({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      targetNodeId: "node-1",
+      rowId: "99999999-9999-4999-8999-999999999999",
+      libraryItem: makeLibraryItem(),
+      mutationId: "88888888-8888-4888-8888-888888888888",
+    })).rejects.toThrow("Estimate edit access denied.");
+
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.rpc).not.toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.anything());
   });
 
   it("updates estimate details through the history RPC", async () => {
