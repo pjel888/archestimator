@@ -7,7 +7,6 @@ import { ChartPieSlice, ClipboardText, ListChecks } from "@phosphor-icons/react/
 import { ControlInput } from "@/components/ui/control-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { updateProjectDetails } from "@/lib/projects/actions";
-import type { ActivityViewModel } from "@/lib/activity/types";
 import type { Json, Tables } from "@/lib/supabase/types";
 import type { ProjectDashboardSummary } from "@/lib/workshop/dashboard-types";
 
@@ -15,7 +14,7 @@ import { DashboardCostMix } from "./dashboard/DashboardCostMix";
 import { DashboardEstimateList } from "./dashboard/DashboardEstimateList";
 import { DashboardReadinessPanel } from "./dashboard/DashboardReadinessPanel";
 import { DashboardWorkSummary } from "./dashboard/DashboardWorkSummary";
-import { ProjectActivityList } from "./dashboard/ProjectActivityList";
+import { ProjectActivityList, type ProjectActivityListItem } from "./dashboard/ProjectActivityList";
 
 type ProjectMetadata = {
   projectImageUrl?: string;
@@ -33,8 +32,8 @@ type ProjectDashboardClientProps = {
   };
   /** Server-assembled cost overview; null/empty renders the first-run next-step panel. */
   summary?: ProjectDashboardSummary | null;
-  /** Curated activity rows (flag-gated); null when the feature flag is off. */
-  activity?: ActivityViewModel[] | null;
+  /** Client-safe curated activity rows (flag-gated); null when the feature flag is off. */
+  activity?: ProjectActivityListItem[] | null;
 };
 
 function readProjectMetadata(value: Json): ProjectMetadata {

@@ -61,6 +61,13 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardClient).not.toContain("dispatchProjectBudgetChange");
   });
 
+  it("minimizes project activity before passing it into the client dashboard", () => {
+    expect(projectDashboardPage).toContain("toProjectActivityListItems(await getProjectActivity(projectId))");
+    expect(projectDashboardPage).toContain("return activity.map(({ id, title, occurredAt }) => ({ id, title, occurredAt }))");
+    expect(projectDashboardClient).toContain("activity?: ProjectActivityListItem[] | null");
+    expect(projectDashboardClient).not.toContain("ActivityViewModel[]");
+  });
+
   it("keeps the project cockpit URL-state contract on the route page", () => {
     expect(projectDashboardPage).toContain("searchParams");
     expect(projectDashboardPage).toContain("readFirstSearchParam(resolvedSearchParams.estimate)");

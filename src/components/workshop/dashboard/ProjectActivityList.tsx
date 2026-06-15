@@ -1,5 +1,4 @@
 import { SectionHeading } from "@/components/ui/section-heading";
-import type { ActivityViewModel } from "@/lib/activity/types";
 import { formatRelativeTime } from "@/lib/util/relative-time";
 
 /**
@@ -10,12 +9,18 @@ import { formatRelativeTime } from "@/lib/util/relative-time";
  */
 const MAX_VISIBLE_ROWS = 8;
 
-type ProjectActivityListProps = {
-  /** Curated rows, or `null` when the feature flag is off. */
-  activities: ActivityViewModel[] | null;
+export type ProjectActivityListItem = {
+  id: string;
+  title: string;
+  occurredAt: string;
 };
 
-type ActivityDayGroup = { key: string; label: string; items: ActivityViewModel[] };
+type ProjectActivityListProps = {
+  /** Narrow client-safe rows, or `null` when the feature flag is off. */
+  activities: ProjectActivityListItem[] | null;
+};
+
+type ActivityDayGroup = { key: string; label: string; items: ProjectActivityListItem[] };
 
 export function ProjectActivityList({ activities }: ProjectActivityListProps) {
   if (activities === null) {
@@ -69,7 +74,7 @@ export function ProjectActivityList({ activities }: ProjectActivityListProps) {
   );
 }
 
-function groupByDay(rows: ActivityViewModel[], now: Date = new Date()): ActivityDayGroup[] {
+function groupByDay(rows: ProjectActivityListItem[], now: Date = new Date()): ActivityDayGroup[] {
   const groups: ActivityDayGroup[] = [];
   const byKey = new Map<string, ActivityDayGroup>();
 

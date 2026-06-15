@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { ProjectDashboardClient } from "@/components/workshop/ProjectDashboardClient";
+import type { ProjectActivityListItem } from "@/components/workshop/dashboard/ProjectActivityList";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { isUuid } from "@/lib/ids";
 import { getProjectActivity } from "@/lib/repositories/project-activity-repository";
@@ -36,9 +37,13 @@ export default async function ProjectDashboardPage({ params, searchParams }: Pro
   };
 
   const summary = project ? await getProjectDashboardSummary(projectId, { selectedEstimateId, selectedGroupingMode }) : null;
-  const activity = project && isProjectActivityEnabled() ? await getProjectActivity(projectId) : null;
+  const activity = project && isProjectActivityEnabled() ? toProjectActivityListItems(await getProjectActivity(projectId)) : null;
 
   return <ProjectDashboardClient project={project} fallback={fallback} summary={summary} activity={activity} />;
+}
+
+function toProjectActivityListItems(activity: Awaited<ReturnType<typeof getProjectActivity>>): ProjectActivityListItem[] {
+  return activity.map(({ id, title, occurredAt }) => ({ id, title, occurredAt }));
 }
 
 function readFirstSearchParam(value: string | string[] | undefined): string | null {
