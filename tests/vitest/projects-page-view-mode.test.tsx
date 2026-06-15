@@ -225,17 +225,15 @@ describe("ProjectsPageClient view modes", () => {
     const publishedCard = screen.getByLabelText("Lewis Residence project, owned access");
     const plainCard = screen.getByLabelText("Harbour Box project, owned access");
 
-    const publishedStatusSlot = publishedCard.querySelector("[data-project-card-status-slot]");
     const plainStatusSlot = plainCard.querySelector("[data-project-card-status-slot]");
-    expect(publishedStatusSlot).toHaveTextContent("Shared link");
     expect(plainStatusSlot).toHaveTextContent("");
 
-    const publishedPublicationSlot = publishedCard.querySelector("[data-project-card-publication-meta-slot]");
-    const plainPublicationSlot = plainCard.querySelector("[data-project-card-publication-meta-slot]");
-    expect(publishedPublicationSlot).toHaveTextContent("1 open");
-    expect(publishedPublicationSlot).toHaveTextContent("Password off");
-    expect(plainPublicationSlot).not.toBeNull();
-    expect(plainPublicationSlot).toHaveTextContent("");
+    const publishedSharedLinkMeta = publishedCard.querySelector("[data-project-card-shared-link-meta]");
+    const plainSharedLinkMeta = plainCard.querySelector("[data-project-card-shared-link-meta]");
+    expect(publishedCard.querySelector("[data-project-card-shared-link-indicator]")).not.toBeNull();
+    expect(publishedSharedLinkMeta).toHaveTextContent("1 open");
+    expect(publishedSharedLinkMeta).not.toHaveTextContent("Password off");
+    expect(plainSharedLinkMeta).toHaveTextContent("No opens");
   });
 
   it("guides first-run users to create a live project while keeping samples as references", async () => {

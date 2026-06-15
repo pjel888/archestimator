@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
+import { ProjectEstimateFavoriteButton } from "@/components/workshop/ProjectEstimateFavoriteButton";
 import { duplicateEstimateSheet, executeBulkDeleteEstimateSheets, fetchEstimateTree, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
@@ -262,15 +263,21 @@ function ProjectEstimateRowActions({
     <div className="flex items-center gap-1">
       <input
         type="checkbox"
-        className="size-3 rounded-xs border-hairline accent-ink disabled:cursor-not-allowed disabled:opacity-40"
+        className="size-3 cursor-pointer rounded-xs border-hairline accent-ink disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Select ${estimate.name}`}
         checked={isSelected}
         disabled={isPendingRow}
         onChange={() => onToggleSelected(estimate.id)}
       />
+      <ProjectEstimateFavoriteButton
+        estimate={estimate}
+        disabled={isPendingRow}
+        optimistic={optimistic}
+        store={store}
+      />
       <button
         type="button"
-        className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
+        className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Delete ${estimate.name}`}
         title="Delete estimate"
         disabled={isPendingRow}
@@ -280,7 +287,7 @@ function ProjectEstimateRowActions({
       </button>
       <button
         type="button"
-        className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
+        className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Duplicate ${estimate.name}`}
         disabled={isDuplicating || isPendingRow}
         onClick={handleDuplicate}
@@ -304,7 +311,7 @@ function ProjectEstimateRowActions({
           onFocus={() => onPrefetchStart(estimateHref)}
           onMouseEnter={() => onPrefetchStart(estimateHref)}
           onMouseLeave={() => onPrefetchCancel(estimateHref)}
-          className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           aria-label={`Open ${estimate.name}`}
         >
           <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
@@ -902,9 +909,9 @@ function ProjectEstimatesTableComponent({
       {
         id: "row_actions",
         header: "",
-        size: 140,
-        minSize: 124,
-        maxSize: 160,
+        size: 168,
+        minSize: 156,
+        maxSize: 184,
         enableSorting: false,
         enableResizing: false,
         cell: ({ row }) => {

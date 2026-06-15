@@ -47,6 +47,8 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
     rowItemCount: 0,
     sheet_code: "EST-001",
     totalProjectCost: 0,
+    isFavorite: false,
+    favoriteCreatedAt: null,
     updated_at: "2026-05-19T10:00:00.000Z",
     ...overrides,
   };

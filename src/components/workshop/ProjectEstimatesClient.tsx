@@ -96,6 +96,8 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
       nodeCount: 0,
       rowItemCount: 0,
       totalProjectCost: 0,
+      isFavorite: false,
+      favoriteCreatedAt: null,
       pendingStatus: "creating",
       pendingError: null,
     };
