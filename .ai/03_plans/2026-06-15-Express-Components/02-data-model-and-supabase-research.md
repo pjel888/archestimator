@@ -50,7 +50,9 @@ Minimum row representation:
 }
 ```
 
-The express id is not a new table key and must not be used as catalog identity. It is a row-lifetime UUIDv4 for UI state, traceability, and safe project-source copy handling. It is minted when the draft/template is created, stays stable only for that row, and is rekeyed when an express row is copied from project-source/template/reusable-source context into another estimate row. If Archestimator later adds a canonical project-local component catalog, that catalog gets its own constrained identity and migration path; implementers must not infer reusable component identity from material text or from this row-lifetime id.
+The express id is not a new table key and must not be used as catalog identity. It is a row-lifetime UUIDv4 for UI state, traceability, and safe project-source copy handling. It is minted when the draft/template is created and stays stable only for that row.
+
+Rekey-on-copy is required implementation work, not existing behavior. The current project-source and template copy RPCs copy row metadata verbatim. U8 must add an RPC-side fresh-id merge, preferably `jsonb_set`/`jsonb_build_object` against `metadata.expressComponent.id`, to both `insert_estimate_subtree_into_estimate_with_history` and the estimate-template copy RPC so copied rows get fresh row ids and fresh row-lifetime express ids. If Archestimator later adds a canonical project-local component catalog, that catalog gets its own constrained identity and migration path; implementers must not infer reusable component identity from material text or from this row-lifetime id.
 
 Default grouping fields for the first implementation:
 
@@ -113,6 +115,8 @@ Inclusion rules:
 
 This projection can be backed by a repository query or by the existing reusable-source outline collector, but Components tab display should be purpose-built enough to avoid showing entire templates/projects when the user expects components.
 
+Before U6 or U8 relies on source-less-row classification, use the captured live source-less shape in `evidence/live-supabase-evidence.md`: material, description, metadata tags, app category label if mapped, `category_node_id`, `unit_cost`, image/source snapshot, and link state. A source-less row with edited material is not a legacy blank merely because `source_library_item_id` is null.
+
 ## Supabase Requirements
 
 Official Supabase docs separate API grants from RLS: grants decide whether roles can reach tables/functions through the Data API, and RLS decides which rows those roles can access. They also recommend bundling grants with RLS setup in the same migration. Source: <https://supabase.com/docs/guides/api/securing-your-api>
@@ -127,6 +131,7 @@ Implications:
 - If image upload stores files in Supabase Storage, the implementation must use an existing bucket/policy or add storage policies deliberately.
 - For the first implementation, optional image should be represented as an existing image URL/source value in `source_snapshot`; file upload is deferred unless storage bucket and RLS policy work is explicitly included.
 - Current row update RPC behavior is per-top-level-key replace, not deep merge. If a patch omits `metadata` or `sourceSnapshot`, the existing value is preserved. Routine express field edits must omit both keys. Any operation that intentionally changes `metadata` or `source_snapshot` must first read the current values and send complete server-merged objects, or use a purpose-built RPC merge path. Do not let partial client patches overwrite tags, detach metadata, promotion provenance, or source evidence.
+- The replace RPC is stricter: it wholesale replaces both JSON blobs and can null `source_snapshot` if omitted. Any replace/move of an express row must carry or server-merge `metadata.expressComponent` and relevant `source_snapshot` keys, or explicitly block replacement of express rows.
 - The app-layer server merge route must widen the current row validation SELECT to include `metadata` and `source_snapshot`; otherwise it cannot safely merge JSON.
 - If a future `project_components` table is added, the migration must include explicit grants, RLS, policies, typegen, and RPC audit/history boundaries.
 

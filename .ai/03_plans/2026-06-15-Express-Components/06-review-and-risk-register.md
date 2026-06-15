@@ -25,7 +25,7 @@ The plan chooses estimate-row scoped express components for day-0 U1-U4. Virtual
 | RSK9 | Express source-less inserts are mislabeled as blank row activity | High | Narrow `row_blank_added` to true blank placeholders; express insert uses `row_added` or a new composer-backed event |
 | RSK10 | Text-field keyboard editing conflicts with grid navigation | Critical | Express text fields opt out of `handleEstimateCellKeyDown`; doc 09 key table and tests are mandatory |
 | RSK11 | Realtime peers/stale revisions corrupt draft or field edits | High | Define two-client behavior, stale-revision UX, and cursor anchoring in doc 11 |
-| RSK12 | Promotion crosses the estimate-edit to workspace-library-write permission boundary | High | Gate promotion on both estimate edit and the exact strict library write predicate; do not rely on helpers that include plain members |
+| RSK12 | Promotion crosses the estimate-edit to workspace-library-write permission boundary | High | Gate promotion on both estimate edit and current library-write policy parity; do not invent a stricter predicate unless a new decision explicitly changes the policy |
 | RSK13 | Rollback leaves persisted express rows unreadable or hides recovery | High | Ship feature flag and fallback render path from doc 12 |
 | RSK14 | AI package-builder replacement clobbers express metadata | High | Require `src/lib/ai/package-builder/apply.ts` to merge or skip/block express replacements; prove with Q44 |
 | RSK15 | Concurrent inserts collide on sibling `sort_order` | High | Allocate inside the insert RPC lock or retry with same correlation id and no duplicate draft; prove with Q45 |

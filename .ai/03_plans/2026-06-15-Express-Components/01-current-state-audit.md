@@ -16,6 +16,7 @@ The current `Add row` affordance creates an unlinked manual placeholder row thro
 - `src/components/workshop/EstimateSheetContent.tsx:1700` optimistically clones and appends the row, then calls `insertRow` with the original template payload.
 - `src/hooks/use-estimate-row-mutations.ts:156` persists insertion through `insertEstimateRowItemFromLibrary`.
 - `src/lib/estimates/actions.ts:2493` validates the target node, calculates sort order, writes `sourceSnapshot`, `sourceLibraryItemId`, row fields, and `linkState` into the `insert_estimate_row_item_with_history` RPC.
+- Current authorization gap to fix before express writes ship: `assertCanEditEstimate` exists and is used by sibling estimate actions, but the row insert/update/replace actions that express will use do not call it today. The SECURITY DEFINER row RPCs resolve workspace membership and bypass table-write RLS, so viewer blocking must be added at the action layer or inside the RPC before R14/AE10 can be true.
 
 The existing tests encode this behavior:
 
@@ -49,9 +50,11 @@ The current update path is too narrow for express component authoring.
 - `src/hooks/use-estimate-row-mutations.ts:220` queues numeric row updates per row.
 - `src/lib/estimates/actions.ts:80` defines the server action input with only numeric row fields.
 - `src/lib/estimates/actions.ts:2561` forwards only numeric row fields into `update_estimate_row_item_with_history`.
-- `supabase/migrations/20260524033151_estimate_sheet_version_control.sql:478` already supports `sourceSnapshot` and `metadata` in the underlying row patch, so the RPC can carry richer row edits if the app action widens the contract safely.
+- The latest `update_estimate_row_item_with_history` body already supports `sourceSnapshot` and `metadata` in the underlying row patch, so the RPC can carry richer row edits if the app action widens the contract safely.
 
 Express editing needs an app-layer typed patch that can update `material`, `description`, `supplier`, `unit`, `unitCost`/`unit_cost`, `miscCost`, `discipline`, `designation`, `categoryNodeId`, `supplierId`, optional `sourceSnapshot.imageUrl`, and express metadata while preserving the current revision and history contract. The live update RPC already accepts these keys; the current narrowing is in the server-action input, mutation hook, optimistic patch, result reader, and row mapping.
+
+The row replace path is different from the routine update path. `replaceEstimateRowItemWithLibrary` builds new metadata from the replacement library item, and the replace RPC wholesale overwrites `metadata` and `source_snapshot`. That is a current clobber surface for express identity and must be handled by U8, not assumed safe because the client object spread preserves visible fields.
 
 ## Project-Specific Icon Bug Surface
 
@@ -105,5 +108,6 @@ Read-only provider checks against Archestimator project `ebxxqidacheyapmmzavr` c
 - The live insert RPC returns the persisted row snapshot, including `rowRevision`, and is idempotent by `correlation_id`; the current app action discards that result.
 - The live update RPC preserves `metadata` and `source_snapshot` when the patch omits those keys; it replaces a JSON value only when that top-level key is sent.
 - Live data includes 29 legacy source-less `unlinked` rows and two source-less rows with another link state. Compatibility is concrete, not hypothetical.
+- `evidence/live-supabase-evidence.md` captures the 29 unlinked source-less row shapes. Only three match the legacy blank placeholder shape; edited source-less rows exist and must not silently leak into Project projection as real project-local components.
 
 The live schema supports express-row authoring without a new table if express components remain estimate-row scoped.

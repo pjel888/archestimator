@@ -14,11 +14,17 @@ Covered surfaces:
 
 - `insert_estimate_row_item_with_history`
 - `update_estimate_row_item_with_history`
+- `replace_estimate_row_item_with_history`
 - `unlink_estimate_row_item_from_library_with_history`
+- `insert_estimate_subtree_into_estimate_with_history`
+- estimate-template copy RPC in `20260612094734_estimate_tabs_foundation.sql`
 - `create_cost_library_component`
 - new `promote_express_row_to_library_component`
 - `insertEstimateRowItemFromLibrary`
 - `updateEstimateRowItem`
+- `replaceEstimateRowItemWithLibrary`
+- `getEstimateRowMetadata`
+- `getValidatedEstimateRow`
 
 ## Field Key Map
 
@@ -67,6 +73,13 @@ The RPC replaces a JSON column when the top-level key is sent. Therefore:
 - the server-action merge path must read current `metadata` and `source_snapshot` in `getValidatedEstimateRow` or a dedicated loader
 - `src/lib/ai/package-builder/apply.ts` is a write surface, not just read blast radius. Any row replacement payload touching express rows must either server-merge the existing `metadata.expressComponent` and source snapshot keys or explicitly skip/block express replacement. A wholesale `metadata` payload that drops express identity is a release blocker.
 
+`replace_estimate_row_item_with_history` is not the same contract. It replaces `metadata` and `source_snapshot` from the payload, and omitted `sourceSnapshot` can persist as null. Therefore every express-aware replace path must choose one of two behaviors before release:
+
+- server-merge/carry the current row's `metadata.expressComponent` and required `source_snapshot` keys before calling the replace RPC, using a widened `getValidatedEstimateRow` or dedicated loader that selects both JSON blobs; or
+- block replace/move operations for express rows with explicit copy until a merge path exists.
+
+The owner files are `replaceEstimateRowItemWithLibrary`, `getEstimateRowMetadata`, `replace_estimate_row_item_with_history`, and the current-row validation SELECT. U8 and Q50 own the round-trip reload proof.
+
 ## Insert Contract
 
 `insert_estimate_row_item_with_history` already returns a row snapshot including `rowRevision` and is idempotent by `correlation_id`. The app action currently discards that data; implementation must return it.
@@ -86,7 +99,7 @@ Express insert payload:
 - `metadata.expressComponent.kind = "express"`
 - `metadata.expressComponent.id` as UUIDv4 row-lifetime identity
 - `metadata.tags` does not include `manual-row-placeholder`
-- project-source/template/reusable-source copy creates a fresh `metadata.expressComponent.id`; it does not preserve another row's express id
+- project-source/template/reusable-source copy must create a fresh `metadata.expressComponent.id`; current copy RPCs do not do this yet
 
 History migration:
 
@@ -97,6 +110,21 @@ History migration:
 Sort order:
 
 - Day-0 must not compute final `sort_order` outside the database lock without a retry plan. Preferred: the insert RPC allocates the next sibling `sort_order` while holding the node/parent lock. Acceptable fallback: on deferred `(node_id, sort_order)` collision, the app action retries the full insert with the same `correlation_id`, no duplicate draft row, and fresh sibling order.
+
+## Copy/Rekey Contract
+
+Project-source and template copy currently rekey row ids but preserve row metadata verbatim. Express copy work must update both:
+
+- `insert_estimate_subtree_into_estimate_with_history` in the project-source subtree copy path.
+- The estimate-template copy RPC body in `20260612094734_estimate_tabs_foundation.sql`.
+
+Preferred implementation: inside the copy RPC, when `metadata.expressComponent.kind = "express"`, merge a fresh UUIDv4 into `metadata.expressComponent.id` while preserving `kind`, `createdFrom`/provenance, and other express metadata. Use `jsonb_set` or equivalent JSON construction in SQL, not a post-copy client mutation that can race with reload/history.
+
+Required proof:
+
+- Q14 proves copied express rows get fresh row ids and fresh express ids.
+- Q51 copies the same express source into two targets and proves no express id collision.
+- U8 names both copy RPCs as mutator surfaces; no plan section may describe rekey-on-copy as already implemented until those tests pass.
 
 ## Unlink Contract
 
@@ -120,11 +148,12 @@ Inputs:
 Preconditions and authorization:
 
 - caller can edit the estimate
-- caller has the same workspace-library write role required by existing folder/item writes for the target workspace. Do not rely on a helper named `is_workspace_editor` if it grants plain member writes in this project; either use an existing strict admin/editor predicate or define the RPC's local role check to match the current library write policies exactly.
+- caller has the same workspace-library write role required by existing folder/item writes for the target workspace. For this plan, choose parity with current library-write behavior: `is_workspace_editor(folder_workspace_id)` or the exact policy-equivalent check, even though that helper is member-inclusive in this project. Do not invent a stricter editor/admin predicate while also claiming policy parity. If product wants promotion stricter than direct library creation, supersede this plan with a new decision and update permission copy/tests.
 - row is express and not already promoted, or the same correlation id is retrying
 - material/name is non-empty
 - target folder exists, belongs to the same target workspace, and is writable by the caller under the exact library-folder policy
 - exactly one default price option is created
+- a promotion correlation id is persisted on the created library item or metadata with a unique workspace-scoped lookup so retry can return the prior item before insert
 
 SECURITY DEFINER migration requirements:
 
@@ -139,7 +168,7 @@ Effects in one transaction:
 - lock the source row
 - create `cost_library_items`
 - create default `cost_library_item_price_options` with every NOT NULL field populated, including `item_id`, `workspace_id`, `label`, `currency`, unit/cost fields, active/default flags, and provenance/source fields required by the current schema
-- write provenance and promotion ids to metadata
+- write provenance, promotion ids, and promotion correlation id to metadata or a dedicated column/index chosen by the migration
 - write source snapshot
 - set `source_library_item_id`
 - set `link_state = "linked-clean"` unless post-promotion edit policy chooses otherwise

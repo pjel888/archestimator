@@ -8,17 +8,19 @@ date: 2026-06-15
 
 ## Virtualization Decision
 
-Day-0 disables estimate row virtualization while exactly one express editor is active. The active editor is still rendered in the normal row table, but the table must not rely on the current fixed 96px virtual estimate while the editor can expand for description, errors, image URL, and recovery actions.
+Day-0 disables estimate row virtualization while one or more express editors/drafts are active. The active editor is still rendered in the normal row table, but the table must not rely on the current fixed 96px virtual estimate while the editor can expand for description, errors, image URL, and recovery actions.
 
 Implementation requirements:
 
-- detect one active express editor by row id and field focus/dirty state
+- detect active express editors by row id and field focus/dirty state
+- either support `activeExpressEditorCount >= 1` by disabling virtualization for all active express editors, or enforce a single in-flight express draft/editor and test the constraint
 - switch the row table to the non-virtual rendering path while that editor is active
 - remove `content-visibility:auto` and `contain-intrinsic-size:96px` from the active express row path
 - restore virtualization after commit, cancel, blur out of the editor, draft delete, or row removal
 - add a QA hook such as `data-estimate-row-virtualizer="true"`
 - add a QA hook or observable state proving virtualization is disabled while the active editor is open
 - test with at least 75 rows and an active editor in the middle of the list
+- spike or smoke a 300-500 row estimate before coding any path that would make all-row mounting visible to beta users; if that cost is not acceptable, implement a bounded non-virtual window around the active editor instead of mounting every row
 
 Rejected:
 
@@ -29,6 +31,17 @@ Rejected:
 Follow-up:
 
 - dynamic row measurement may replace the day-0 fallback only after a separate spike proves `measureElement`, `data-index`, `scrollMargin`, active-row content visibility, and scroll anchoring together in the current row table
+
+## State Location And Render Isolation
+
+Express text state belongs in the per-row `EditableRowValue` model that already gates row memoization through `editableRows[item.id]`. Extend that model for express name, description, unit, supplier, image URL, and related dirty/error fields.
+
+Do not store express text drafts in a separate top-level map in `EstimateSheetContent`; that bypasses the existing row comparator and makes the "keystrokes do not rebuild the full row tree" claim unenforceable.
+
+Required test:
+
+- Add an express text-field render probe modeled on `tests/vitest/perf/estimate-sheet-render-relief.test.tsx`.
+- It must prove that typing in one express name field does not re-render unrelated row components across a large estimate.
 
 ## Keyboard Policy
 
@@ -117,7 +130,7 @@ Errors:
 - insert failure: `Component row was not created. Retry or delete this draft.`
 - save failure: `Changes were not saved. Retry or revert this field.`
 - stale revision: `This row changed elsewhere. Review the latest value before saving again.`
-- promotion permission: `You need workspace editor access to promote this component.`
+- promotion permission: `You need library write access to promote this component.`
 - promotion partial failure: `Promotion did not finish. Retry with the same component to avoid duplicates.`
 
 The app is currently English-only in this surface; these strings may be hard-coded until a repo-wide localization convention exists. If localization is introduced before implementation, these strings move to that convention.
@@ -127,6 +140,7 @@ The app is currently English-only in this surface; these strings may be hard-cod
 - Load-bearing text: `#5D5D5D` or stronger
 - Active values: `#3D3D3D`
 - Express labels, placeholders, helper text, badges, errors, and field values must meet WCAG AA contrast
+- Existing Project-specific badges and any new Express/Project badges are load-bearing state text and must use `#5D5D5D` or stronger, including the current badge in `src/components/workshop/estimate-sheet/rows/cells.tsx`.
 - `#7F7F7F` is reserved for non-text decoration only in this feature
 - Error id shape: `express-row-{rowId}-{field}-error`
 - Inputs with errors set `aria-invalid="true"` and `aria-describedby` to the error id
@@ -139,7 +153,7 @@ Minimum supported day-0 behavior:
 
 - no hover-only control is required to finish authoring or recovery
 - touch targets for Retry/Delete/Promote are at least as usable as existing toolbar icon buttons
-- active editor row does not overlap neighbors at the narrowest workshop viewport
+- active editor row does not overlap neighbors at a 375px-wide workshop viewport
 - on-screen keyboard viewport resize does not trap focus or hide the inline error/recovery action
 - use `window.visualViewport` when available to keep recovery actions visible during keyboard resize; otherwise scroll the focused field and inline error into view after focus/error state changes
 - drag handles remain optional; touch editing does not depend on drag/drop

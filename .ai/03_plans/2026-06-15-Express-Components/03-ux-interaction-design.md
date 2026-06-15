@@ -25,6 +25,31 @@ Fields:
 - Optional image URL/source, icon button for set/clear using existing image primitives only. File upload is out of the first pass unless storage policy work is added to scope.
 - Supplier, optional inline text in the first pass; an existing supplier picker can replace it later if that does not widen row height or focus behavior.
 
+### Quick-Add Modal/Popover Fallback
+
+This fallback is buildable if the inline spike in `00-scope-and-premise-decision.md` fails. It is not a second design direction to implement in parallel.
+
+Surface:
+
+- Compact modal or anchored popover launched from the same `Add row` affordance.
+- Fields in order: Component name, Description, Unit, Unit cost, Supplier, Image URL.
+- Footer actions: `Create component`, `Cancel`, and, after insert failure, `Retry` / `Delete draft`.
+- Width follows the existing product dialog scale; no marketing copy, no card-within-card layout, `rounded-xs`, app typography, and neutral surfaces per `DESIGN.md`.
+
+Focus and keyboard:
+
+- Focus opens on Component name.
+- Enter commits single-line fields; Cmd/Ctrl+Enter commits description; Escape closes only when no dirty unsaved draft exists, otherwise it asks whether to discard the local draft.
+- Tab order follows the field order above, then actions.
+- Failed fields use the same `aria-invalid`/`aria-describedby` ids as inline editing.
+
+U2/U3 interaction:
+
+- The modal may focus and collect text immediately, but it must not send update RPCs until the insert mutation returns a persisted row and row revision.
+- If insert succeeds, the buffered field values are sent through U3 in order and the modal closes to the newly created row.
+- If insert fails, the draft remains in the modal with Retry/Delete; retry uses the same mutation correlation id.
+- If the user cancels before persistence, only local draft state is removed.
+
 Commit model:
 
 - The row may focus immediately after `Add row`, but non-initial field commits are buffered until the insert mutation returns the persisted row and row revision.
@@ -100,18 +125,19 @@ The material column currently uses `minmax(160px,1fr)` in `src/components/worksh
 
 Implementation constraints:
 
-- Day-0 disables row virtualization while exactly one express editor is active. This avoids relying on unproven dynamic measurement while the current table uses `content-visibility:auto`, `contain-intrinsic-size:96px`, and manual `translateY(start - scrollMargin)` positioning. Dynamic `measureElement` work is a follow-up only after those constraints are reconciled.
+- Day-0 disables row virtualization while one or more express editors/drafts are active. This avoids relying on unproven dynamic measurement while the current table uses `content-visibility:auto`, `contain-intrinsic-size:96px`, and manual `translateY(start - scrollMargin)` positioning. Dynamic `measureElement` work is a follow-up only after those constraints are reconciled. If implementation chooses to allow only one active draft/editor per node or estimate, that constraint must be enforced in UI state and tests.
 - Use truncation in clean state and scrollable field interiors only after the measured active-row path is verified.
 - Avoid text overlap at narrow workshop widths.
 - Keep cards at `rounded-xs`, hairline borders, neutral surfaces, and regular Phosphor icons per `DESIGN.md`.
 - Express labels, placeholders, helper text, errors, badges, and field values meet WCAG AA. Load-bearing express text uses `#5D5D5D` or stronger; active values use `#3D3D3D`; `#7F7F7F` and opacity-muted text are non-text decoration only for this feature.
 - Product UI type stays on the app scale: 12px max for titles, 10px controls/table/body, 8-9px labels, zero letter spacing.
 - Clean-state row height should remain close to the current sheet density; active editor layout may expand but must keep field order name, description, unit, unit cost, supplier/image actions, then recovery/actions. Descriptions wrap or scroll within the active editor without covering numeric cells or row controls.
-- Keystrokes in one express editor must not rebuild the full row tree. Editor state is row-scoped, row props/callbacks stay stable where practical, Project projection data is indexed/memoized by row id plus express id, and promotion invalidates only the named cache families in docs 07 and 12.
+- Keystrokes in one express editor must not rebuild the full row tree. Express editor text state lives inside the per-row `EditableRowValue` record used by the existing row memo comparator; do not create a parallel top-level express draft map in `EstimateSheetContent`. Row props/callbacks stay stable where practical, Project projection data is indexed/memoized by row id plus express id, and promotion invalidates only the named cache families in docs 07 and 12.
+- Add a render-probe test mirroring the numeric render-relief test: typing in one express name field must re-render only that row and the minimal owning shell, not every row in the estimate.
 
 ## Mobile / Touch
 
-Day-0 is optimized for full-browser desktop/laptop estimate editing, but it must not be impossible on narrow/touch workshop viewports. Touch editing may use native text inputs and on-screen keyboard behavior, but no express action may be hover-only. Narrow/touch QA must prove name/description/unit/cost are reachable, recovery actions are tappable with at least the existing toolbar-icon hit target, the active row does not overlap neighbors while virtualization is disabled, and viewport resize during the on-screen keyboard does not trap focus. If implementation detects `window.visualViewport`, use it for recovery-action visibility checks; otherwise rely on focused-field scroll-into-view and browser default input behavior.
+Day-0 is optimized for full-browser desktop/laptop estimate editing, but it must not be impossible on narrow/touch workshop viewports. Touch editing may use native text inputs and on-screen keyboard behavior, but no express action may be hover-only. Narrow/touch QA must prove name/description/unit/cost are reachable at a 375px-wide viewport, recovery actions are tappable with at least the existing toolbar-icon hit target, the active row does not overlap neighbors while virtualization is disabled, and viewport resize during the on-screen keyboard does not trap focus. If implementation detects `window.visualViewport`, use it for recovery-action visibility checks; otherwise rely on focused-field scroll-into-view and browser default input behavior.
 
 ## Non-Goals
 
