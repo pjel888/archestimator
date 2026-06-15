@@ -56,11 +56,18 @@ function leafTree(): EstimateTreeNode[] {
   ];
 }
 
-// A truly-empty node: no rows, no children. Under P6 this is the only
-// non-collapsible node — it keeps the inert reserved caret slot for alignment.
-function emptyTree(): EstimateTreeNode[] {
+function nestedEmptyTree(): EstimateTreeNode[] {
   return [
-    { id: "empty-area", name: "Empty Area", kind: "area", total: "₱0.00", estimateRowItems: [], children: [] },
+    {
+      id: "parent-area",
+      name: "Parent Area",
+      kind: "area",
+      total: "₱0.00",
+      estimateRowItems: [],
+      children: [
+        { id: "empty-area", name: "Empty Area", kind: "area", total: "₱0.00", estimateRowItems: [], children: [] },
+      ],
+    },
   ];
 }
 
@@ -138,14 +145,22 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(kitchenToggle).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("renders no disclosure caret on a truly-empty node (no rows, no children)", () => {
-    renderSheet(emptyTree(), "empty-area");
+  it("renders a disclosure caret on a truly-empty node and collapses its body chrome", async () => {
+    const user = userEvent.setup();
+    renderSheet(nestedEmptyTree(), "parent-area");
+
     const section = screen.getByLabelText("Empty Area");
-    expect(within(section).queryByRole("button", { name: /Collapse Empty Area|Expand Empty Area/ })).not.toBeInTheDocument();
-    const header = section.querySelector(".sticky");
-    expect(header).not.toBeNull();
-    // The inert reserved slot keeps alignment but advertises no expandability.
-    expect((header as HTMLElement).querySelector("[aria-expanded]")).toBeNull();
+    const emptyToggle = within(section).getByRole("button", { name: /Collapse Empty Area|Expand Empty Area/ });
+    expect(emptyToggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(section).getByLabelText("Empty Area breadcrumbs")).toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "Add blank estimate row to Empty Area" })).toBeInTheDocument();
+
+    await user.click(emptyToggle);
+
+    expect(emptyToggle).toHaveAttribute("aria-expanded", "false");
+    expect(emptyToggle.closest("div")).toHaveClass("border-b");
+    expect(within(section).queryByLabelText("Empty Area breadcrumbs")).not.toBeInTheDocument();
+    expect(within(section).queryByRole("button", { name: "Add blank estimate row to Empty Area" })).not.toBeInTheDocument();
   });
 
   it("toggles a rows-only node via keyboard and keeps focus on the disclosure button", async () => {
@@ -160,6 +175,7 @@ describe("estimate mixed-content layout (P4)", () => {
     await user.keyboard("{Enter}");
     expect(kitchenToggle).toHaveFocus();
     expect(kitchenToggle).toHaveAttribute("aria-expanded", "false");
+    expect(kitchenToggle.closest("div")).toHaveClass("border-b");
     expect(within(kitchenSection).queryByRole("table")).toBeNull();
 
     await user.keyboard(" ");
@@ -178,7 +194,7 @@ describe("estimate mixed-content layout (P4)", () => {
 
     // Re-expand the parent: its rows-only child surfaces, still collapsed —
     // proof that collapse-all reached the rows-only node (per-node caret + bulk
-    // surface are consistent now that the caret keys off hasContents).
+    // surface are consistent now that every node has collapsible body chrome).
     await user.click(within(screen.getByLabelText("Building A")).getByRole("button", { name: /Expand Building A/ }));
     const kitchenSection = screen.getByLabelText("Kitchen");
     const kitchenToggle = within(kitchenSection).getByRole("button", { name: /Expand Kitchen/ });
