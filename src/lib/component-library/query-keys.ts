@@ -21,5 +21,11 @@ export const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY = ["workspace-component-
 // over one entry with different shapes/freshness. Reused by T4 cache invalidation.
 export const WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY = ["workspace-component-rows-library"] as const;
 
+export function workspaceComponentRowsLibraryQueryKey(workspaceId: string, projectId?: string) {
+  return projectId
+    ? [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "workspace", workspaceId, "project", projectId] as const
+    : [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "workspace", workspaceId] as const;
+}
+
 // Library Optimization Plan P0 T3 — the Templates browse tab caches EstimateTemplate[].
 export const WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY = ["workspace-estimate-templates"] as const;

@@ -48,7 +48,9 @@ export type ComponentLibraryDataset = {
   templates: EstimateTemplate[];
 };
 
-export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templates">;
+export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templates"> & {
+  workspaceId: string;
+};
 
 type EstimateTemplateRow = Tables<"estimate_templates">;
 type EstimateTemplateNodeRow = Tables<"estimate_template_nodes">;
@@ -734,6 +736,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   });
 
   return {
+    workspaceId,
     categoryTree,
     suppliers,
     brands,
@@ -1159,6 +1162,7 @@ export async function getCurrentWorkspaceComponentLibraryLite(): Promise<Compone
 }
 
 export const fallbackComponentRowsLibraryDataset: ComponentRowsLibraryDataset = {
+  workspaceId: "fallback",
   categoryTree: componentCategoryTree,
   suppliers: [],
   brands: [],
