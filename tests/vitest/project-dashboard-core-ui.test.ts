@@ -44,6 +44,12 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardLayout).toContain("<ProjectMiniSidebar projectId={projectId} />");
   });
 
+  it("does not expose the deleted project-level Components route", () => {
+    expect(projectMiniSidebar).not.toContain('label: "Components"');
+    expect(projectMiniSidebar).not.toContain("SquaresFour");
+    expect(projectMiniSidebar).not.toContain("/workshop/projects/${projectId}/components");
+  });
+
   it("keeps project details CRUD editing available from the project page", () => {
     expect(projectDashboardClient).toContain("updateProjectDetails");
     expect(projectDashboardClient).toContain("AutoSubmitForm");

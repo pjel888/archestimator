@@ -21,7 +21,7 @@ import type {
  *      into a returned bucket.
  *   2. The route renders dynamically (per-request server client + searchParams), so
  *      there is no static page cache for a component-library mutation to stale.
- * Together these mean a category/supplier rename can NOT leave a stale charts route
+ * Together these mean a category/supplier rename can NOT leave a stale data route
  * — no extra revalidation of the charts path is required.
  */
 
@@ -69,8 +69,8 @@ describe("project charts cache freshness (P2.8 / R-3)", () => {
     expect(after["estimate-a"].supplier.allBuckets[0].label).toBe("MegaBuild");
   });
 
-  it("renders the charts route dynamically so there is no static cache to stale", () => {
-    const page = readFileSync(join(process.cwd(), "src/app/workshop/projects/[projectId]/charts/page.tsx"), "utf8");
+  it("renders the data route dynamically so there is no static cache to stale", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/workshop/projects/[projectId]/data/page.tsx"), "utf8");
     const repository = readFileSync(join(process.cwd(), "src/lib/repositories/project-charts-repository.ts"), "utf8");
     // No opt-in to static rendering / ISR on the route.
     expect(page).not.toContain('export const dynamic = "force-static"');

@@ -15,12 +15,11 @@ import {
 } from "./project-dashboard-ui-fixtures";
 
 describe("project charts UI governance", () => {
-  it("reframes the project nav from 'Charts'/pie to a cost-comparison label and icon (`13` R-7)", () => {
-    // Route stays /charts for compatibility, but the chrome no longer presents it as pie decoration.
-    expect(projectMiniSidebar).toContain("`/workshop/projects/${projectId}/charts`");
+  it("reframes the project nav from 'Charts'/pie to a Data label and icon (`13` R-7)", () => {
+    expect(projectMiniSidebar).toContain("`/workshop/projects/${projectId}/data`");
     expect(projectMiniSidebar).not.toContain('label: "Charts"');
     expect(projectMiniSidebar).not.toContain("ChartPieSlice");
-    expect(projectMiniSidebar).toMatch(/label:\s*"(Compare|Cost comparison)"/);
+    expect(projectMiniSidebar).toContain('label: "Data"');
     expect(projectChartsPage).toContain("getProjectChartsData");
     expect(projectChartsPage).toContain("ProjectChartsClient");
   });

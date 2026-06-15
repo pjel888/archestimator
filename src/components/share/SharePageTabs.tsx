@@ -356,7 +356,7 @@ export default function SharePageTabs({
           (520×400 internal, scaled D3 logic + DESIGN ≤12px text). T1-C MVP: the compact donut
           has a fixed ~520-wide viewBox, so in the wider single-column ShareContainer it is
           constrained at this call-site (mx-auto max-w-[560px]) instead of floating meet-centered
-          in a wide band. CostDonutChart itself is untouched (ProjectChartsPage out of blast radius). */}
+          in a wide band. CostDonutChart itself is untouched (project Data route out of blast radius). */}
       <div className="mx-auto w-full max-w-[560px]">
         <CostDonutChart
           buckets={donutBuckets}

@@ -54,9 +54,9 @@ describe("ProjectDashboardClient", () => {
       "href",
       `/workshop/projects/${PROJECT_FIXTURE.id}/estimates`,
     );
-    expect(within(nextSteps).getByRole("link", { name: "View charts" })).toHaveAttribute(
+    expect(within(nextSteps).getByRole("link", { name: "View data" })).toHaveAttribute(
       "href",
-      `/workshop/projects/${PROJECT_FIXTURE.id}/charts`,
+      `/workshop/projects/${PROJECT_FIXTURE.id}/data`,
     );
     expect(within(nextSteps).getByRole("link", { name: "All projects" })).toHaveAttribute(
       "href",
