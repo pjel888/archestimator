@@ -4,8 +4,8 @@ import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
-import { loadCurrentWorkspaceComponentRowsLibrary } from "@/lib/component-library/actions";
+import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { loadCurrentWorkspaceComponentRowsLibrary, loadProjectComponentRowsLibrary } from "@/lib/component-library/actions";
 import type { EstimateRowItem } from "./estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
@@ -61,6 +61,8 @@ type LibraryPageClientProps = {
   brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
+  projectId?: string;
+  promotionEnabled?: boolean;
 };
 
 export function LibraryPageClient({
@@ -70,6 +72,8 @@ export function LibraryPageClient({
   brands,
   libraryFolders,
   libraryItems,
+  projectId,
+  promotionEnabled = false,
 }: LibraryPageClientProps = {}) {
   const queryClient = useQueryClient();
   const seed: ComponentRowsLibraryDataset | undefined =
@@ -83,9 +87,10 @@ export function LibraryPageClient({
           libraryItems: libraryItems ?? [],
         } as ComponentRowsLibraryDataset)
       : undefined);
+  const componentRowsQueryKey = projectId ? [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "project", projectId] : WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY;
   const { data } = useQuery({
-    queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
-    queryFn: () => loadCurrentWorkspaceComponentRowsLibrary(),
+    queryKey: componentRowsQueryKey,
+    queryFn: () => projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary(),
     initialData: seed,
     staleTime: 5 * 60 * 1000,
   });
@@ -94,16 +99,22 @@ export function LibraryPageClient({
   // T4: manager mutations patch this warm cache entry instead of router.refresh().
   const onLibraryItemsMutated = (updater: (items: EstimateRowItem[]) => EstimateRowItem[]) => {
     queryClient.setQueryData<ComponentRowsLibraryDataset>(
-      WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+      componentRowsQueryKey,
       (prev) => (prev ? { ...prev, libraryItems: updater(prev.libraryItems) } : prev),
     );
   };
   const onLibraryFoldersMutated = (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => {
     queryClient.setQueryData<ComponentRowsLibraryDataset>(
-      WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+      componentRowsQueryKey,
       (prev) =>
         prev ? { ...prev, libraryFolders: updater(prev.libraryFolders as LibraryFolderRecord[]) } : prev,
     );
+  };
+  const onProjectPromotionSucceeded = () => {
+    void queryClient.invalidateQueries({ queryKey: componentRowsQueryKey });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY });
   };
 
   return (
@@ -113,8 +124,11 @@ export function LibraryPageClient({
       brands={library?.brands}
       libraryFolders={library?.libraryFolders}
       libraryItems={library?.libraryItems}
+      projectId={projectId}
+      promotionEnabled={promotionEnabled}
       onLibraryItemsMutated={onLibraryItemsMutated}
       onLibraryFoldersMutated={onLibraryFoldersMutated}
+      onProjectPromotionSucceeded={onProjectPromotionSucceeded}
     />
   );
 }

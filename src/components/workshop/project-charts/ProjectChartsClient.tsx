@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Plus } from "@phosphor-icons/react/dist/ssr";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ export function ProjectChartsClient({
     const fallback = seed.length > 0 ? seed : [...loadedEstimateIds].slice(0, 2);
     return [...new Set(fallback)].slice(0, MAX_CHART_COLUMNS);
   });
-  const [baselineEstimateId, setBaselineEstimateId] = useState<string | null>(
+  const [preferredBaselineEstimateId, setPreferredBaselineEstimateId] = useState<string | null>(
     () => selectedEstimateIds[0] ?? null,
   );
   const [viewMode, setViewMode] = useState<ChartViewMode>(() =>
@@ -84,13 +84,10 @@ export function ProjectChartsClient({
   const [hoverBucketId, setHoverBucketId] = useState<string | null>(null);
   const [pinnedBucketId, setPinnedBucketId] = useState<string | null>(null);
 
-  // Keep the baseline pointed at a still-selected estimate.
-  useEffect(() => {
-    if (selectedEstimateIds.length === 0) return;
-    if (!baselineEstimateId || !selectedEstimateIds.includes(baselineEstimateId)) {
-      setBaselineEstimateId(selectedEstimateIds[0]);
-    }
-  }, [selectedEstimateIds, baselineEstimateId]);
+  const baselineEstimateId =
+    preferredBaselineEstimateId && selectedEstimateIds.includes(preferredBaselineEstimateId)
+      ? preferredBaselineEstimateId
+      : selectedEstimateIds[0] ?? null;
 
   const view = useMemo(
     () =>
@@ -132,7 +129,13 @@ export function ProjectChartsClient({
   }
 
   function removeEstimate(estimateId: string) {
-    setSelectedEstimateIds((current) => (current.length <= 1 ? current : current.filter((id) => id !== estimateId)));
+    if (selectedEstimateIds.length <= 1) return;
+
+    const nextSelectedEstimateIds = selectedEstimateIds.filter((id) => id !== estimateId);
+    setSelectedEstimateIds(nextSelectedEstimateIds);
+    setPreferredBaselineEstimateId((current) =>
+      current && nextSelectedEstimateIds.includes(current) ? current : nextSelectedEstimateIds[0] ?? null,
+    );
   }
 
   function setActiveBucket(bucketId: string | null) {
@@ -183,7 +186,7 @@ export function ProjectChartsClient({
                   aria-label="Baseline estimate"
                   options={estimateSelectOptions}
                   value={baselineEstimateId ?? undefined}
-                  onValueChange={setBaselineEstimateId}
+                  onValueChange={setPreferredBaselineEstimateId}
                 />
               </ControlField>
             ) : null}
@@ -200,7 +203,7 @@ export function ProjectChartsClient({
                       removable={selectedEstimateIds.length > 1}
                       onRemove={() => removeEstimate(id)}
                       removeLabel={`Remove ${estimate.name}`}
-                      onClick={() => setBaselineEstimateId(id)}
+                      onClick={() => setPreferredBaselineEstimateId(id)}
                     >
                       {estimate.name}
                     </Chip>

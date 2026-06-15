@@ -1,6 +1,9 @@
 import { componentCategoryTree, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import type { LibraryTreeNode, LibraryTreeTab } from "./types";
+
+const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
 
 export type ComponentLibrarySupplierOption = {
   id: string;
@@ -18,6 +21,18 @@ export type ComponentLibraryTreeSourceOptions = {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   brands?: ComponentLibraryBrandOption[];
+  libraryFolders?: Array<{
+    id: string;
+    parent_id: string | null;
+    name: string;
+    sort_order?: number | null;
+  }>;
+  /**
+   * In insertion surfaces, avoid rendering hundreds of empty taxonomy folders
+   * ahead of the actual matched components. Manager/navigation surfaces keep
+   * the full taxonomy by omitting this option.
+   */
+  pruneEmptyFolders?: boolean;
 };
 
 type BuildLibraryTreeOptions = ComponentLibraryTreeSourceOptions & {
@@ -149,6 +164,77 @@ function attachComponentsToTree(
   }
 }
 
+function isProjectComponentFolderId(folderId: string | null | undefined) {
+  return typeof folderId === "string" && folderId.startsWith(`${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-`);
+}
+
+function isProjectComponentProjectionItem(item: EstimateRowItem) {
+  return readProjectComponentProjectionMetadata(item.metadata) !== null;
+}
+
+function createComponentTreeNode(item: EstimateRowItem): LibraryTreeNode {
+  return {
+    id: item.id,
+    label: item.name ?? item.material,
+    kind: "component",
+    item,
+  };
+}
+
+function buildProjectComponentFolderTree(
+  items: EstimateRowItem[],
+  folders: NonNullable<ComponentLibraryTreeSourceOptions["libraryFolders"]> = [],
+): { nodes: LibraryTreeNode[]; itemIds: Set<string> } {
+  const projectFolders = folders.filter((folder) => isProjectComponentFolderId(folder.id));
+  if (projectFolders.length === 0) return { nodes: [], itemIds: new Set() };
+
+  const folderById = new Map(projectFolders.map((folder) => [folder.id, folder]));
+  const childrenByParentId = new Map<string | null, typeof projectFolders>();
+  for (const folder of projectFolders) {
+    const parentId = folder.parent_id && folderById.has(folder.parent_id) ? folder.parent_id : null;
+    childrenByParentId.set(parentId, [...(childrenByParentId.get(parentId) ?? []), folder]);
+  }
+  for (const siblings of childrenByParentId.values()) {
+    siblings.sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0) || left.name.localeCompare(right.name));
+  }
+
+  const itemsByFolderId = new Map<string, EstimateRowItem[]>();
+  const projectedItemIds = new Set<string>();
+  for (const item of items) {
+    const folderId = item.libraryFolderId;
+    if (!folderId || !folderById.has(folderId)) continue;
+    if (!isProjectComponentProjectionItem(item)) continue;
+    projectedItemIds.add(item.id);
+    itemsByFolderId.set(folderId, [...(itemsByFolderId.get(folderId) ?? []), item]);
+  }
+
+  function toFolderNode(folder: typeof projectFolders[number]): LibraryTreeNode | null {
+    const childFolders = (childrenByParentId.get(folder.id) ?? []).flatMap((child) => {
+      const node = toFolderNode(child);
+      return node ? [node] : [];
+    });
+    const childItems = (itemsByFolderId.get(folder.id) ?? [])
+      .slice()
+      .sort((left, right) => (left.name ?? left.material).localeCompare(right.name ?? right.material))
+      .map(createComponentTreeNode);
+    const children = [...childFolders, ...childItems];
+    if (children.length === 0) return null;
+    return {
+      id: folder.id,
+      label: folder.name,
+      kind: "folder",
+      children,
+    };
+  }
+
+  const nodes = (childrenByParentId.get(null) ?? []).flatMap((folder) => {
+    const node = toFolderNode(folder);
+    return node ? [node] : [];
+  });
+
+  return { nodes, itemIds: projectedItemIds };
+}
+
 function sortTreeNodes(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
   return nodes
     .map((node) => {
@@ -193,6 +279,20 @@ function stripComponentRows(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
         children: node.children ? stripComponentRows(node.children) : undefined,
       },
     ];
+  });
+}
+
+function pruneEmptyFolders(nodes: LibraryTreeNode[], depth = 0): LibraryTreeNode[] {
+  return nodes.flatMap((node) => {
+    if (node.item) return [node];
+
+    const children = node.children ? pruneEmptyFolders(node.children, depth + 1) : [];
+    // Keep top-level browse sections and their immediate category folders as
+    // navigation context in the estimate sidebar, but still prune deeper empty
+    // taxonomy leaves so insertion surfaces do not render the entire catalog.
+    if (children.length === 0 && depth > 1) return [];
+
+    return [{ ...node, children }];
   });
 }
 
@@ -376,22 +476,31 @@ function buildLibraryTree(
   const includeComponentRows = options.includeComponentRows ?? true;
 
   if (tab === "categories") {
+    const projectComponentFolders = buildProjectComponentFolderTree(items, options.libraryFolders);
+    const catalogItems = projectComponentFolders.itemIds.size > 0
+      ? items.filter((item) => !projectComponentFolders.itemIds.has(item.id))
+      : items;
     const tree = buildCategoryTreeShell(options.categoryTree);
-    attachComponentsToTree(tree, items, (item) => item.category);
-    if (!includeComponentRows) return stripComponentRows(tree);
+    attachComponentsToTree(tree, catalogItems, (item) => item.category);
+    if (!includeComponentRows) return [...stripComponentRows(projectComponentFolders.nodes), ...stripComponentRows(tree)];
 
-    return sortComponentRowsOnly(tree);
+    const sortedTree = sortComponentRowsOnly(tree);
+    const categoryNodes = options.pruneEmptyFolders ? pruneEmptyFolders(sortedTree) : sortedTree;
+    return [...projectComponentFolders.nodes, ...categoryNodes];
   }
 
   if (tab === "suppliers") {
-    return sortTreeNodes(buildSupplierTree(items, options.suppliers, includeComponentRows));
+    const sortedTree = sortTreeNodes(buildSupplierTree(items, options.suppliers, includeComponentRows));
+    return options.pruneEmptyFolders && includeComponentRows ? pruneEmptyFolders(sortedTree) : sortedTree;
   }
 
   if (tab === "brands") {
-    return sortTreeNodes(buildBrandTree(items, options.brands, includeComponentRows));
+    const sortedTree = sortTreeNodes(buildBrandTree(items, options.brands, includeComponentRows));
+    return options.pruneEmptyFolders && includeComponentRows ? pruneEmptyFolders(sortedTree) : sortedTree;
   }
 
-  return sortTreeNodes(buildCustomTree(items, favoriteIds, recentIds, includeComponentRows));
+  const sortedTree = sortTreeNodes(buildCustomTree(items, favoriteIds, recentIds, includeComponentRows));
+  return options.pruneEmptyFolders && includeComponentRows ? pruneEmptyFolders(sortedTree) : sortedTree;
 }
 
 export function buildLibraryTreeWithComponentRows(

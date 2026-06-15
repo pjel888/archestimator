@@ -10,6 +10,7 @@ import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { composeEstimateActivity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } from "@/lib/activity";
 import { fetchEstimateSheetVersionControl, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { isExpressComponentRow } from "@/lib/estimates/express-components";
 import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import { cn } from "@/lib/ui/cn";
@@ -1018,6 +1019,13 @@ function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, i
     };
   }
 
+  if (isExpressComponentRow(item)) {
+    return {
+      label: "Express component",
+      description: "This project component is authored directly in the estimate row. Edit its fields inline in the sheet, or promote it from the project Components surface when it is ready for the shared library.",
+    };
+  }
+
   switch (item.linkState) {
     case "detached":
       return {
@@ -1144,6 +1152,7 @@ export function RowDetailsModal({
   const contingencyValue = row?.contingencyValue ?? item?.contingencyValue ?? 0;
   const miscCost = row?.miscCost ?? item?.miscCost ?? 0;
   const componentStatus = getRowDetailComponentStatus(item, isBlankRow);
+  const showReferenceImage = Boolean(item && !isBlankRow && (!isExpressComponentRow(item) || item.imageUrl));
 
   return (
     <div
@@ -1181,7 +1190,7 @@ export function RowDetailsModal({
         <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] max-md:grid-cols-1">
           <aside className="min-h-0 overflow-auto border-r border-hairline bg-surfaceMuted/35 p-3 max-md:max-h-64 max-md:border-r-0 max-md:border-b">
             <div className="border border-hairline bg-white p-2">
-              {item && !isBlankRow ? (
+              {showReferenceImage && item ? (
                 <div
                   className="aspect-[4/3] bg-neutral-100 bg-cover bg-center"
                   style={{ backgroundImage: `url(${getComponentImageUrl(item)})` }}
@@ -1189,11 +1198,11 @@ export function RowDetailsModal({
                 />
               ) : (
                 <div className="grid aspect-[4/3] place-items-center border border-dashed border-hairline bg-surfaceMuted/50 text-center text-[10px] font-medium text-tertiary">
-                  No component selected
+                  {item && isExpressComponentRow(item) ? "No image yet" : "No component selected"}
                 </div>
               )}
               <div className="mt-2 min-w-0">
-                <p className="truncate text-[10px] font-medium text-ink">{item?.material ?? "Row not found"}</p>
+                <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Express component" : "Row not found")}</p>
                 <p className="truncate text-[9px] font-medium text-tertiary">{item?.supplier ?? "No supplier"}</p>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-x-3 border-t border-hairline">
@@ -1209,7 +1218,7 @@ export function RowDetailsModal({
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="min-w-0">
                   <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{componentStatus.label}</p>
-                  <p className="truncate text-[10px] font-medium text-ink">{item?.material ?? "Row item"}</p>
+                  <p className="truncate text-[10px] font-medium text-ink">{item?.material?.trim() || (item && isExpressComponentRow(item) ? "Express component" : "Row item")}</p>
                   <p className="mt-0.5 truncate text-[9px] text-tertiary">{row?.nodePath.join(" › ") ?? "Current estimate row"}</p>
                 </div>
                 <div className="text-right">

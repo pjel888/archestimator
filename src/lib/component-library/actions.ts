@@ -13,6 +13,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { buildEstimateTemplatesFromRows, getCurrentWorkspaceComponentLibrary, getCurrentWorkspaceComponentLibraryLite, getCurrentWorkspaceComponentRowsLibrary, getCurrentWorkspaceEstimateTemplates, type ComponentLibraryDataset, type ComponentRowsLibraryDataset } from "@/lib/repositories/component-library-repository";
+import { getProjectComponentRowsLibrary } from "@/lib/component-library/project-component-projection";
 import type { EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
   ensureDefaultWorkspace,
@@ -411,6 +412,21 @@ export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<Compon
   return getCurrentWorkspaceComponentLibraryLite();
 }
 
+// Estimate-sheet project context: the right sidebar must show project-scoped
+// express rows under the project's virtual folder while retaining templates.
+export async function loadProjectComponentLibraryLite(projectId: string): Promise<ComponentLibraryDataset> {
+  await requireCurrentUserContext();
+  const [componentRows, templates] = await Promise.all([
+    getProjectComponentRowsLibrary(projectId),
+    getCurrentWorkspaceEstimateTemplates(),
+  ]);
+
+  return {
+    ...componentRows,
+    templates,
+  };
+}
+
 // Library Optimization Plan P0 T3: client-callable loader for the Components
 // *management* tab. Returns ComponentRowsLibraryDataset (rows + tree + suppliers +
 // brands + folders, no templates). LibraryPageClient seeds a TanStack Query from the
@@ -420,6 +436,11 @@ export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<Compon
 export async function loadCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
   await requireCurrentUserContext();
   return getCurrentWorkspaceComponentRowsLibrary();
+}
+
+export async function loadProjectComponentRowsLibrary(projectId: string): Promise<ComponentRowsLibraryDataset> {
+  await requireCurrentUserContext();
+  return getProjectComponentRowsLibrary(projectId);
 }
 
 // Library Optimization Plan P0 T3: client-callable loader for the Templates browse tab.

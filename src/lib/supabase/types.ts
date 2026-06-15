@@ -3928,6 +3928,17 @@ export type Database = {
           total_cost: number
         }[]
       }
+      promote_express_row_to_library_component: {
+        Args: {
+          acting_user_id?: string
+          correlation_id?: string
+          target_estimate_id: string
+          target_library_folder_id?: string
+          target_project_id: string
+          target_row_id: string
+        }
+        Returns: Json
+      }
       read_closed_beta_allowlist_queue: {
         Args: { requested_status?: string }
         Returns: {

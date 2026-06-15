@@ -670,6 +670,16 @@ function reusableProjectSourceKey(source: ReusableEstimateSource) {
   return `project-node:${source.nodeId}`;
 }
 
+function hydrateSidebarLibraryItems(items: EstimateRowItem[]): EstimateRowItem[] {
+  return items.map((item, index) => ({
+    ...item,
+    createdAt: item.createdAt ?? new Date(Date.now() - (index % 18) * 86400000).toISOString(),
+    discipline: getComponentDiscipline(item),
+    designation: getComponentDesignation(item),
+    tags: item.tags ?? [item.category, item.supplier, getComponentDiscipline(item)].filter(Boolean),
+  }));
+}
+
 function mergeReusableProjectSources(
   currentSources: ReusableEstimateSource[],
   incomingSources: ReusableEstimateSource[],
@@ -798,23 +808,15 @@ function EstimateRightSidebarBase({
   // storage-aware initializer makes the client's first render diverge and
   // throws a hydration mismatch. Stored prefs apply in the mount effect below.
   const [recentIds, setRecentIds] = useState<string[]>([]);
-  const [libraryItems, setLibraryItems] = useState<EstimateRowItem[]>(() =>
-    initialLibraryItems.map((item, index) => ({
-      ...item,
-      createdAt: item.createdAt ?? new Date(Date.now() - (index % 18) * 86400000).toISOString(),
-      discipline: getComponentDiscipline(item),
-      designation: getComponentDesignation(item),
-      tags: item.tags ?? [item.category, item.supplier, getComponentDiscipline(item)].filter(Boolean),
-    })),
-  );
+  const [libraryItems, setLibraryItems] = useState<EstimateRowItem[]>(() => hydrateSidebarLibraryItems(initialLibraryItems));
 
   const [activeTab, setActiveTab] = useState<EstimateLibraryTab>("components");
   const [componentViewMode, setComponentViewMode] = useState<ComponentViewMode>("default");
   const [viewModeMenuOpen, setViewModeMenuOpen] = useState(false);
   const [expandedNodeIdsByViewMode, setExpandedNodeIdsByViewMode] = useState<Record<ComponentViewMode, string[]>>(() => ({
-    default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, [], [], { categoryTree, suppliers })),
+    default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, [], [], { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
     suppliers: [],
-    brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, [], [], { categoryTree, suppliers, brands })),
+    brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, [], [], { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
   }));
   // Like libraryItems, the template list seeds from the server prop once and
   // then evolves locally (created templates append without a route refresh).
@@ -898,6 +900,8 @@ function EstimateRightSidebarBase({
   const treeHeaderRef = useRef<HTMLDivElement>(null);
   const deleteUndoTimerRef = useRef<number | null>(null);
   const libraryPrefsHydratedRef = useRef(false);
+  const syncedInitialLibraryItemsRef = useRef(initialLibraryItems);
+  const syncedLibraryFoldersRef = useRef(libraryFolders);
 
   const selectedTargetNode = useMemo(() => {
     if (!nodes?.length || !activeSelectedNodeId) return null;
@@ -984,8 +988,8 @@ function EstimateRightSidebarBase({
         );
         setExpandedNodeIdsByViewMode((current) => ({
           ...current,
-          default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
-          brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands })),
+          default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, libraryFolders, pruneEmptyFolders: true })),
+          brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands, pruneEmptyFolders: true })),
         }));
       }
 
@@ -1010,6 +1014,33 @@ function EstimateRightSidebarBase({
     if (!libraryPrefsHydratedRef.current) return;
     safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
   }, [activeTab, componentViewMode]);
+
+  useEffect(() => {
+    if (
+      syncedInitialLibraryItemsRef.current === initialLibraryItems
+      && syncedLibraryFoldersRef.current === libraryFolders
+    ) {
+      return;
+    }
+
+    syncedInitialLibraryItemsRef.current = initialLibraryItems;
+    syncedLibraryFoldersRef.current = libraryFolders;
+    const nextItems = hydrateSidebarLibraryItems(initialLibraryItems);
+    setLibraryItems(nextItems);
+    setPreviewItemId((current) => current && nextItems.some((item) => item.id === current) ? current : null);
+    setExpandedNodeIdsByViewMode((current) => ({
+      ...current,
+      default: Array.from(new Set([
+        ...current.default,
+        ...getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, [], [], {
+          categoryTree,
+          suppliers,
+          libraryFolders,
+          pruneEmptyFolders: true,
+        })),
+      ])),
+    }));
+  }, [categoryTree, initialLibraryItems, libraryFolders, suppliers]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -1160,9 +1191,9 @@ function EstimateRightSidebarBase({
 
   const treeNodes = useMemo(() => {
     if (activeTab === "templates") return [];
-    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands });
+    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, facetFilteredItems, favoriteIds, recentIds, { categoryTree, suppliers, brands, libraryFolders, pruneEmptyFolders: true });
     return applyLibraryTreeOrder(tree, customOrderByViewMode[componentViewMode]);
-  }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, facetFilteredItems, favoriteIds, recentIds, suppliers]);
+  }, [activeTab, brands, categoryTree, componentTreeTab, componentViewMode, customOrderByViewMode, facetFilteredItems, favoriteIds, libraryFolders, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, deferredSearchQuery), [treeNodes, deferredSearchQuery]);
 

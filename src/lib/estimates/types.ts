@@ -1,3 +1,5 @@
+import type { EstimateRowMetadata } from "@/lib/estimates/express-components";
+
 export type EstimateRowItemSource = "project" | "supplier" | "library";
 export type EstimateRowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "detached" | "source-changed";
 
@@ -110,6 +112,7 @@ export type EstimateRowItem = {
   sku?: string;
   sourceUrl?: string;
   sourceLibraryItemId?: string | null;
+  metadata?: EstimateRowMetadata;
   linkState?: EstimateRowLinkState;
   componentVersionId?: string | null;
   componentVersionNumber?: number;

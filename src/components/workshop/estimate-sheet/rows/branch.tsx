@@ -19,6 +19,7 @@ import { useEstimateSheetExpansion } from "./expansion";
 import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeShellClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
 import { EstimateRowItemsTable } from "./row-table";
+import type { ExpressInsertDraftState } from "./cells";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
 
@@ -42,6 +43,9 @@ export type EstimateSheetBranchProps = {
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
+  expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
+  onRetryExpressDraft?: (rowItemId: string) => void;
+  onDeleteExpressDraft?: (rowItemId: string) => void;
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
@@ -70,6 +74,8 @@ export type SheetMutationHandlers = Pick<
   | "onClearRowComponent"
   | "onRequestProjectSpecific"
   | "onMoveRowComponent"
+  | "onRetryExpressDraft"
+  | "onDeleteExpressDraft"
 >;
 
 function areAncestorPathsEqual(prev: readonly BreadcrumbNode[], next: readonly BreadcrumbNode[]) {
@@ -118,6 +124,9 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
+    prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
+    prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
+    prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
     !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
@@ -139,7 +148,7 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -372,6 +381,9 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
             onClearRowComponent={onClearRowComponent}
             onRequestProjectSpecific={onRequestProjectSpecific}
             onMoveRowComponent={onMoveRowComponent}
+            expressInsertDraftStates={expressInsertDraftStates}
+            onRetryExpressDraft={onRetryExpressDraft}
+            onDeleteExpressDraft={onDeleteExpressDraft}
             selectedRowIds={selectedRowIds}
             onToggleRowSelection={onToggleRowSelection}
             onToggleRowsSelection={onToggleRowsSelection}
@@ -412,6 +424,9 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
                 onMoveRowComponent={onMoveRowComponent}
+                expressInsertDraftStates={expressInsertDraftStates}
+                onRetryExpressDraft={onRetryExpressDraft}
+                onDeleteExpressDraft={onDeleteExpressDraft}
                 selectedRowIds={selectedRowIds}
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}

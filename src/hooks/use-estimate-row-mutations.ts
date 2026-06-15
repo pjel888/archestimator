@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { Json } from "@/lib/supabase/types";
 import { deleteEstimateRowItem, detachEstimateRowItemFromLibrary, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
 import { findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { estimateQueryKeys } from "./use-estimate-query";
@@ -21,6 +22,8 @@ type InsertEstimateRowInput = SharedMutationInput & {
   libraryItem: EstimateRowItem;
   mutationId?: string;
   rollback?: () => void;
+  onSuccess?: (result: UpdateEstimateRowItemResult | undefined) => void;
+  onError?: (error: Error) => void;
 };
 
 type ReplaceEstimateRowInput = SharedMutationInput & {
@@ -29,6 +32,7 @@ type ReplaceEstimateRowInput = SharedMutationInput & {
   mutationId?: string;
   expectedRowRevision?: number;
   rollback?: () => void;
+  onSuccess?: () => void;
 };
 
 type DeleteEstimateRowInput = SharedMutationInput & {
@@ -36,6 +40,7 @@ type DeleteEstimateRowInput = SharedMutationInput & {
   mutationId?: string;
   expectedRowRevision?: number;
   rollback?: () => void;
+  onSuccess?: () => void;
 };
 
 type DetachEstimateRowInput = SharedMutationInput & {
@@ -44,22 +49,32 @@ type DetachEstimateRowInput = SharedMutationInput & {
   expectedRowRevision?: number;
   reason?: string;
   rollback?: () => void;
+  onSuccess?: (result: UpdateEstimateRowItemResult) => void;
 };
 
 type UpdateEstimateRowInput = SharedMutationInput & {
   rowId: string;
+  material?: string;
+  description?: string;
+  supplier?: string;
+  unit?: string;
+  unitCost?: number;
   quantity?: number;
   contingencyPercentage?: number;
   miscCost?: number;
+  sourceSnapshot?: Json | null;
+  metadata?: EstimateRowItem["metadata"];
   mutationId?: string;
   expectedRowRevision?: number;
   rollback?: () => void;
+  onSuccess?: (result: UpdateEstimateRowItemResult) => void;
 };
 
 type RollbackInput = {
   estimateId: string;
   rowId: string;
   rollback?: () => void;
+  onSuccess?: () => void;
 };
 
 type UpdateMutationContext = {
@@ -67,21 +82,52 @@ type UpdateMutationContext = {
   previousPatch?: EstimateRowItemPatch;
 };
 
+function readSnapshotRecord(value: Json | null | undefined): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function snapshotStringPatch(value: Json | null | undefined, key: "imageUrl" | "sourceUrl") {
+  const candidate = readSnapshotRecord(value)[key];
+  if (candidate === null) return null;
+  return typeof candidate === "string" ? candidate : undefined;
+}
+
 function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPatch {
   return {
+    ...(input.material !== undefined ? { material: input.material } : {}),
+    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.supplier !== undefined ? { supplier: input.supplier } : {}),
+    ...(input.unit !== undefined ? { unit: input.unit } : {}),
+    ...(input.unitCost !== undefined ? { itemCost: input.unitCost } : {}),
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: input.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: input.miscCost } : {}),
+    ...(input.sourceSnapshot !== undefined ? {
+      sourceSnapshot: input.sourceSnapshot,
+      imageUrl: snapshotStringPatch(input.sourceSnapshot, "imageUrl"),
+      sourceUrl: snapshotStringPatch(input.sourceSnapshot, "sourceUrl"),
+    } : {}),
+    ...(input.metadata !== undefined ? { metadata: input.metadata as EstimateRowItem["metadata"] } : {}),
   };
 }
 
 function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEstimateRowInput): EstimateRowItemPatch {
   return {
+    material: result.material,
+    description: result.description,
+    supplier: result.supplier,
+    unit: result.unit,
     itemCost: result.itemCost,
     rowRevision: result.rowRevision,
     ...(input.quantity !== undefined ? { quantity: result.quantity } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: result.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
+    ...(input.sourceSnapshot !== undefined ? {
+      sourceSnapshot: result.sourceSnapshot,
+      imageUrl: snapshotStringPatch(result.sourceSnapshot, "imageUrl"),
+      sourceUrl: snapshotStringPatch(result.sourceSnapshot, "sourceUrl"),
+    } : {}),
+    ...(input.metadata !== undefined ? { metadata: result.metadata as EstimateRowItem["metadata"] } : {}),
   };
 }
 
@@ -122,8 +168,10 @@ function useSaveState() {
   return { saveState, markRowDirty, markSaving, markSaved, markFailed };
 }
 
-function withoutRollback<T extends { rollback?: () => void }>(input: T): Omit<T, "rollback"> {
+function withoutClientCallbacks<T extends { onError?: unknown; onSuccess?: unknown; rollback?: () => void }>(input: T): Omit<T, "onError" | "onSuccess" | "rollback"> {
   const next = { ...input };
+  delete next.onError;
+  delete next.onSuccess;
   delete next.rollback;
   return next;
 }
@@ -139,8 +187,9 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
   const mutationOptions = useMemo(
     () => ({
       onMutate: () => markSaving(),
-      onSuccess: (_result: void, input: RollbackInput) => {
+      onSuccess: (_result: unknown, input: RollbackInput) => {
         markSaved();
+        input.onSuccess?.();
         void queryClient.invalidateQueries({ queryKey: estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
         if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       },
@@ -154,22 +203,57 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
   );
 
   const insertMutation = useMutation({
-    mutationFn: (input: InsertEstimateRowInput) => insertEstimateRowItemFromLibrary(withoutRollback(input)),
-    ...mutationOptions,
+    mutationFn: (input: InsertEstimateRowInput) => insertEstimateRowItemFromLibrary(withoutClientCallbacks(input)),
+    onMutate: () => markSaving(),
+    onSuccess: (result: UpdateEstimateRowItemResult | undefined, input) => {
+      markSaved();
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+      if (result) {
+        queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+          currentTree
+            ? patchEstimateRowItemInTree(currentTree, input.rowId, {
+                material: result.material,
+                description: result.description,
+                supplier: result.supplier,
+                unit: result.unit,
+                quantity: result.quantity,
+                itemCost: result.itemCost,
+                contingencyPercentage: result.contingencyPercentage,
+                miscCost: result.miscCost,
+                sourceSnapshot: result.sourceSnapshot,
+                imageUrl: snapshotStringPatch(result.sourceSnapshot, "imageUrl"),
+                sourceUrl: snapshotStringPatch(result.sourceSnapshot, "sourceUrl"),
+                metadata: result.metadata as EstimateRowItem["metadata"],
+                linkState: result.linkState,
+                rowRevision: result.rowRevision,
+              })
+            : currentTree,
+        );
+      }
+      input.onSuccess?.(result);
+      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+    },
+    onError: (error: Error, input) => {
+      input.rollback?.();
+      input.onError?.(error);
+      markFailed();
+      if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "none" });
+    },
   });
 
   const replaceMutation = useMutation({
-    mutationFn: (input: ReplaceEstimateRowInput) => replaceEstimateRowItemWithLibrary(withoutRollback(input)),
+    mutationFn: (input: ReplaceEstimateRowInput) => replaceEstimateRowItemWithLibrary(withoutClientCallbacks(input)),
     ...mutationOptions,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (input: DeleteEstimateRowInput) => deleteEstimateRowItem(withoutRollback(input)),
+    mutationFn: (input: DeleteEstimateRowInput) => deleteEstimateRowItem(withoutClientCallbacks(input)),
     ...mutationOptions,
   });
 
   const detachMutation = useMutation({
-    mutationFn: (input: DetachEstimateRowInput) => detachEstimateRowItemFromLibrary(withoutRollback(input)),
+    mutationFn: (input: DetachEstimateRowInput) => detachEstimateRowItemFromLibrary(withoutClientCallbacks(input)),
     onMutate: async (input): Promise<{ previousPatch?: EstimateRowItemPatch }> => {
       markSaving();
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
@@ -204,6 +288,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+      input.onSuccess?.(result);
     },
     onError: (_error: Error, input, context) => {
       const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
@@ -218,7 +303,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
   });
 
   const updateMutation = useMutation({
-    mutationFn: (input: UpdateEstimateRowInput) => updateEstimateRowItem(withoutRollback(input)),
+    mutationFn: (input: UpdateEstimateRowInput) => updateEstimateRowItem(withoutClientCallbacks(input)),
     onMutate: async (input): Promise<UpdateMutationContext> => {
       markSaving();
       const operationId = (rowOperationIdsRef.current[input.rowId] ?? 0) + 1;
@@ -227,13 +312,20 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       await queryClient.cancelQueries({ queryKey });
       const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
       const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
+      const previousRowJson = previousRow as (EstimateRowItem & { sourceSnapshot?: Json | null }) | null;
       const previousPatch = previousRow
         ? {
             itemCost: previousRow.itemCost,
             rowRevision: previousRow.rowRevision,
+            ...(input.material !== undefined ? { material: previousRow.material } : {}),
+            ...(input.description !== undefined ? { description: previousRow.description } : {}),
+            ...(input.supplier !== undefined ? { supplier: previousRow.supplier } : {}),
+            ...(input.unit !== undefined ? { unit: previousRow.unit } : {}),
             ...(input.quantity !== undefined ? { quantity: previousRow.quantity } : {}),
             ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: previousRow.contingencyPercentage ?? 0 } : {}),
             ...(input.miscCost !== undefined ? { miscCost: previousRow.miscCost } : {}),
+            ...(input.sourceSnapshot !== undefined ? { sourceSnapshot: previousRowJson?.sourceSnapshot ?? null } : {}),
+            ...(input.metadata !== undefined ? { metadata: previousRowJson?.metadata ?? {} } : {}),
           }
         : undefined;
       if (previousTree) {
@@ -253,6 +345,7 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
       markSaved();
       void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+      input.onSuccess?.(result);
     },
     onError: (_error: Error, input, context) => {
       if (!context || rowOperationIdsRef.current[input.rowId] !== context.operationId) return;

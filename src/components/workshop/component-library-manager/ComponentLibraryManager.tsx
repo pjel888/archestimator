@@ -30,6 +30,8 @@ import {
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
 import { ComponentInspectorDock } from "@/components/workshop/library/ComponentInspectorDock";
+import { promoteExpressRowToLibraryComponent } from "@/lib/estimates/express-promotion-actions";
+import { isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { EditComponentDrawer } from "@/components/workshop/library/EditComponentDrawer";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import {
@@ -324,17 +326,22 @@ function ComponentCatalogueCard({
   inspectorSelected,
   onToggleSelected,
   onInspect,
+  onPromote,
+  promotePending = false,
 }: {
   card: CatalogueCard;
   selected: boolean;
   inspectorSelected: boolean;
   onToggleSelected: (itemId: string) => void;
   onInspect: (itemId: string) => void;
+  onPromote?: (item: EstimateRowItem) => void;
+  promotePending?: boolean;
 }) {
   const item = card.item;
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
   const pricingSource = getItemPricingSourceLabel(item);
+  const canPromote = Boolean(onPromote && readProjectComponentProjectionMetadata(item.metadata)?.classification === "express");
   const lifecycleBadge = item.lifecycleState && item.lifecycleState !== "available"
     ? {
         label: COMPONENT_LIFECYCLE_FACET_LABELS[item.lifecycleState],
@@ -438,6 +445,21 @@ function ComponentCatalogueCard({
           <p className="truncate text-[9px] font-normal leading-3 text-tertiary">
             Cost / {item.unit}
           </p>
+          {canPromote ? (
+            <button
+              type="button"
+              className="mt-1 inline-flex h-6 items-center justify-center rounded-xs border border-hairline bg-white px-2 text-[9px] font-medium leading-none text-secondary transition hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+              aria-label={`Promote ${name} to library`}
+              title={`Promote ${name} to library`}
+              disabled={promotePending}
+              onClick={(event) => {
+                event.stopPropagation();
+                onPromote?.(item);
+              }}
+            >
+              {promotePending ? "Promoting…" : "Promote"}
+            </button>
+          ) : null}
           <div className="mt-1 space-y-0.5 border-t border-hairline pt-1">
             <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={pricingSource}>
               Source: {pricingSource}
@@ -464,6 +486,8 @@ function CatalogueCardGrid({
   inspectorItemId,
   onToggleSelected,
   onInspect,
+  onPromote,
+  promotingItemId,
 }: {
   cards: CatalogueCard[];
   label: string;
@@ -471,6 +495,8 @@ function CatalogueCardGrid({
   inspectorItemId: string | null;
   onToggleSelected: (itemId: string) => void;
   onInspect: (itemId: string) => void;
+  onPromote?: (item: EstimateRowItem) => void;
+  promotingItemId?: string | null;
 }) {
   if (cards.length === 0) return null;
 
@@ -487,6 +513,8 @@ function CatalogueCardGrid({
           inspectorSelected={inspectorItemId === card.item.id}
           onToggleSelected={onToggleSelected}
           onInspect={onInspect}
+          onPromote={onPromote}
+          promotePending={promotingItemId === card.item.id}
         />
       ))}
     </ul>
@@ -519,6 +547,8 @@ function ComponentCatalogueBranch({
   inspectorItemId,
   onToggleSelected,
   onInspect,
+  onPromote,
+  promotingItemId,
 }: {
   branch: CatalogueBranch;
   collapsedBranchIds: Set<string>;
@@ -527,6 +557,8 @@ function ComponentCatalogueBranch({
   inspectorItemId: string | null;
   onToggleSelected: (itemId: string) => void;
   onInspect: (itemId: string) => void;
+  onPromote?: (item: EstimateRowItem) => void;
+  promotingItemId?: string | null;
 }) {
   const collapsed = collapsedBranchIds.has(branch.id);
   const empty = branch.totalItemCount === 0;
@@ -575,6 +607,8 @@ function ComponentCatalogueBranch({
             inspectorItemId={inspectorItemId}
             onToggleSelected={onToggleSelected}
             onInspect={onInspect}
+            onPromote={onPromote}
+            promotingItemId={promotingItemId}
           />
           {branch.children.length > 0 ? (
             <div className={cn("flex flex-col gap-1", branch.directItems.length > 0 ? "mt-2" : "mt-1")}>
@@ -588,6 +622,8 @@ function ComponentCatalogueBranch({
                   inspectorItemId={inspectorItemId}
                   onToggleSelected={onToggleSelected}
                   onInspect={onInspect}
+                  onPromote={onPromote}
+                  promotingItemId={promotingItemId}
                 />
               ))}
             </div>
@@ -638,6 +674,15 @@ function getSupplierBackedItems(items: EstimateRowItem[]) {
 
 function getBrandBackedItems(items: EstimateRowItem[]) {
   return items.filter((item) => Boolean(item.brandId || item.brand?.trim()));
+}
+
+function isProjectProjectionItem(item: EstimateRowItem) {
+  return readProjectComponentProjectionMetadata(item.metadata) !== null;
+}
+
+function canPromoteProjectProjectionItem(item: EstimateRowItem, projectId?: string, promotionEnabled = false) {
+  const projection = readProjectComponentProjectionMetadata(item.metadata);
+  return Boolean(projectId && promotionEnabled && projection?.classification === "express" && projection.estimateId && isExpressComponentRow(item));
 }
 
 function toSupplierTreeNodeId(supplierId: string) {
@@ -764,6 +809,8 @@ function ComponentLibrarySheet({
   onSelectVisible,
   onToggleSelected,
   onInspectItem,
+  onPromoteItem,
+  promotingItemId,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedFolderId: string | null;
@@ -784,6 +831,8 @@ function ComponentLibrarySheet({
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
   onInspectItem: (itemId: string) => void;
+  onPromoteItem?: (item: EstimateRowItem) => void;
+  promotingItemId?: string | null;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -952,6 +1001,8 @@ function ComponentLibrarySheet({
                 inspectorItemId={inspectorItemId}
                 onToggleSelected={onToggleSelected}
                 onInspect={onInspectItem}
+                onPromote={onPromoteItem}
+                promotingItemId={promotingItemId}
               />
             ))}
             {catalogueOutline.items.length > 0 ? (
@@ -974,6 +1025,8 @@ function ComponentLibrarySheet({
                   inspectorItemId={inspectorItemId}
                   onToggleSelected={onToggleSelected}
                   onInspect={onInspectItem}
+                  onPromote={onPromoteItem}
+                  promotingItemId={promotingItemId}
                 />
               </section>
             ) : null}
@@ -1011,6 +1064,8 @@ function ComponentLibrarySheetPanel({
   onSelectVisible,
   onToggleSelected,
   onInspectItem,
+  onPromoteItem,
+  promotingItemId,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedFolderId: string | null;
@@ -1031,6 +1086,8 @@ function ComponentLibrarySheetPanel({
   onSelectVisible: (itemIds: string[]) => void;
   onToggleSelected: (itemId: string) => void;
   onInspectItem: (itemId: string) => void;
+  onPromoteItem?: (item: EstimateRowItem) => void;
+  promotingItemId?: string | null;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
@@ -1054,6 +1111,8 @@ function ComponentLibrarySheetPanel({
         onSelectVisible={onSelectVisible}
         onToggleSelected={onToggleSelected}
         onInspectItem={onInspectItem}
+        onPromoteItem={onPromoteItem}
+        promotingItemId={promotingItemId}
       />
     </div>
   );
@@ -1067,6 +1126,9 @@ export function ComponentLibraryManager({
   libraryItems = estimateLibraryItems,
   onLibraryItemsMutated = () => {},
   onLibraryFoldersMutated = () => {},
+  projectId,
+  promotionEnabled = false,
+  onProjectPromotionSucceeded = () => {},
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
@@ -1080,6 +1142,9 @@ export function ComponentLibraryManager({
   // be mounted bare in unit tests.
   onLibraryItemsMutated?: (updater: (items: EstimateRowItem[]) => EstimateRowItem[]) => void;
   onLibraryFoldersMutated?: (updater: (folders: LibraryFolderRecord[]) => LibraryFolderRecord[]) => void;
+  projectId?: string;
+  promotionEnabled?: boolean;
+  onProjectPromotionSucceeded?: () => void;
 } = {}) {
   // Mutations call these to keep the route shell's warm query cache coherent
   // (T4). No-ops when mounted bare (e.g. unit tests / surfaces without the shell).
@@ -1125,6 +1190,7 @@ export function ComponentLibraryManager({
     items: libraryItems,
   }));
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => new Set());
+  const [promotingItemId, setPromotingItemId] = useState<string | null>(null);
   const [archiveComponentTargetIds, setArchiveComponentTargetIds] = useState<string[]>([]);
   const [archiveComponentPreview, setArchiveComponentPreview] = useState<BulkActionPreviewResult | null>(null);
   const [archiveComponentError, setArchiveComponentError] = useState<string | null>(null);
@@ -1307,10 +1373,53 @@ export function ComponentLibraryManager({
     setSelectedItemIds(new Set());
   }
 
+  async function promoteProjectComponent(item: EstimateRowItem) {
+    const projection = readProjectComponentProjectionMetadata(item.metadata);
+    const targetProjectId = projection?.projectId ?? projectId;
+    const targetEstimateId = projection?.estimateId ?? null;
+    if (!targetProjectId || !targetEstimateId || !canPromoteProjectProjectionItem(item, projectId, promotionEnabled)) {
+      setSheetStatus({ state: "error", message: "This project component is not eligible for promotion." });
+      return;
+    }
+
+    setPromotingItemId(item.id);
+    setSheetStatus({ state: "saving", message: `Promoting ${getComponentName(item)} to the workspace library...` });
+    try {
+      await promoteExpressRowToLibraryComponent({
+        projectId: targetProjectId,
+        estimateId: targetEstimateId,
+        rowId: item.id,
+      });
+      setLibraryItemState((current) => ({
+        ...current,
+        items: current.items.filter((entry) => entry.id !== item.id),
+      }));
+      syncLibraryItemsCache((items) => items.filter((entry) => entry.id !== item.id));
+      setSelectedItemIds((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
+      if (inspectorItemId === item.id) setInspectorItemId(null);
+      onProjectPromotionSucceeded();
+      setSheetStatus({ state: "saved", message: `${getComponentName(item)} promoted to the workspace library.` });
+    } catch (error) {
+      setSheetStatus({ state: "error", message: error instanceof Error ? error.message : "Could not promote project component." });
+    } finally {
+      setPromotingItemId(null);
+    }
+  }
+
   function openArchiveComponentPreview(itemIds: string[]) {
-    const availableIds = new Set(localLibraryItems.map((item) => item.id));
-    const ids = Array.from(new Set(itemIds)).filter((id) => availableIds.has(id));
-    if (ids.length === 0) return;
+    const itemsById = new Map(localLibraryItems.map((item) => [item.id, item]));
+    const ids = Array.from(new Set(itemIds)).filter((id) => {
+      const item = itemsById.get(id);
+      return item && !isProjectProjectionItem(item);
+    });
+    if (ids.length === 0) {
+      setSheetStatus({ state: "error", message: "Project components cannot be archived from the workspace library." });
+      return;
+    }
     setArchiveComponentTargetIds(ids);
     setArchiveComponentPreview(null);
     setArchiveComponentError(null);
@@ -1508,6 +1617,8 @@ export function ComponentLibraryManager({
             onSelectVisible={selectVisibleComponents}
             onToggleSelected={toggleComponentSelection}
             onInspectItem={inspectComponent}
+            onPromoteItem={promotionEnabled ? promoteProjectComponent : undefined}
+            promotingItemId={promotingItemId}
           />
           {inspectorItem ? (
             <ComponentInspectorDock
@@ -1517,6 +1628,14 @@ export function ComponentLibraryManager({
               onDuplicate={duplicateInspectorComponent}
               onArchive={() => openArchiveComponentPreview([inspectorItem.id])}
               duplicatePending={isDuplicatePending}
+              canEdit={!isProjectProjectionItem(inspectorItem)}
+              canDuplicate={!isProjectProjectionItem(inspectorItem)}
+              canArchive={!isProjectProjectionItem(inspectorItem)}
+              promoteAction={canPromoteProjectProjectionItem(inspectorItem, projectId, promotionEnabled) ? {
+                label: "Promote to library",
+                pending: promotingItemId === inspectorItem.id,
+                onClick: () => void promoteProjectComponent(inspectorItem),
+              } : undefined}
             />
           ) : null}
         </section>

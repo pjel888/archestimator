@@ -25,6 +25,7 @@ import {
   type LibraryFolderReorderResult,
   type LibraryFolderTreeNode,
 } from "@/lib/component-library/library-folder-reorder";
+import { readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
@@ -151,6 +152,16 @@ function toLibraryComponentTreeItemId(folderId: string, itemId: string) {
   return `component:${folderId}:${itemId}`;
 }
 
+const PROJECT_COMPONENTS_FOLDER_ID_PREFIX = "project-components";
+
+function isProjectComponentFolderId(folderId: string | null | undefined) {
+  return typeof folderId === "string" && folderId.startsWith(`${PROJECT_COMPONENTS_FOLDER_ID_PREFIX}-`);
+}
+
+function isProjectComponentProjectionItem(item: EstimateRowItem) {
+  return readProjectComponentProjectionMetadata(item.metadata) !== null;
+}
+
 function buildComponentItemsByFolderId(nodes: LibraryFolderTreeNode[], libraryItems: EstimateRowItem[]) {
   const folderIds = new Set<string>();
   const folderIdBySourceCategoryNodeId = new Map<string, string>();
@@ -174,6 +185,7 @@ function buildComponentItemsByFolderId(nodes: LibraryFolderTreeNode[], libraryIt
         : undefined;
 
     if (!folderId) continue;
+    if (isProjectComponentFolderId(folderId) && !isProjectComponentProjectionItem(item)) continue;
     const folderItems = itemsByFolderId.get(folderId) ?? [];
     folderItems.push(item);
     itemsByFolderId.set(folderId, folderItems);

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateTabSummary, EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
+import { LEGACY_BLANK_ROW_TAG, isExpressComponentRow, readEstimateRowMetadata, withCopiedExpressComponentMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   normalizeEstimateTreeNodeKind,
@@ -81,9 +82,16 @@ type UpdateEstimateRowItemInput = {
   projectId: string;
   estimateId: string;
   rowId: string;
+  material?: string;
+  description?: string;
+  supplier?: string;
+  unit?: string;
+  unitCost?: number;
   quantity?: number;
   contingencyPercentage?: number;
   miscCost?: number;
+  sourceSnapshot?: Json | null;
+  metadata?: Json;
   mutationId?: string;
   expectedRowRevision?: number;
 };
@@ -100,11 +108,17 @@ type DetachEstimateRowItemInput = {
 export type UpdateEstimateRowItemResult = {
   rowId: string;
   nodeId: string;
+  material: string;
+  description: string;
+  supplier: string;
+  unit: string;
   quantity: number;
   itemCost: number;
   contingencyPercentage: number;
   contingencyValue: number;
   miscCost: number;
+  sourceSnapshot: Json | null;
+  metadata: Json;
   linkState: Tables<"estimate_row_items">["link_state"];
   rowRevision: number;
 };
@@ -324,15 +338,30 @@ type EstimateHistoryRowRpcResult = {
   row?: {
     id?: unknown;
     nodeId?: unknown;
+    material?: unknown;
+    description?: unknown;
+    supplier?: unknown;
+    unit?: unknown;
     quantity?: unknown;
     unitCost?: unknown;
     contingencyPercentage?: unknown;
     contingencyValue?: unknown;
     miscCost?: unknown;
+    sourceSnapshot?: unknown;
+    metadata?: unknown;
     linkState?: unknown;
     rowRevision?: unknown;
   };
 };
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function readJsonValue(value: unknown, fallback: Json): Json {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean" || Array.isArray(value) || isJsonObject(value)) return value as Json;
+  return fallback;
+}
 
 function readHistoryRowResult(value: unknown) {
   if (!value || typeof value !== "object") throw new Error("Estimate row history RPC returned an invalid result.");
@@ -347,11 +376,17 @@ function readHistoryRowResult(value: unknown) {
   return {
     rowId,
     nodeId,
+    material: typeof row.material === "string" ? row.material : "",
+    description: typeof row.description === "string" ? row.description : "",
+    supplier: typeof row.supplier === "string" ? row.supplier : "",
+    unit: typeof row.unit === "string" ? row.unit : "unit",
     quantity: readNumber(row.quantity),
     itemCost: readNumber(row.unitCost),
     contingencyPercentage: readNumber(row.contingencyPercentage),
     contingencyValue: readNumber(row.contingencyValue),
     miscCost: readNumber(row.miscCost),
+    sourceSnapshot: readJsonValue(row.sourceSnapshot, null) as Json | null,
+    metadata: readJsonValue(row.metadata, {}),
     linkState: row.linkState as Tables<"estimate_row_items">["link_state"],
     rowRevision: readNumber(row.rowRevision, 1),
   } satisfies UpdateEstimateRowItemResult;
@@ -683,14 +718,15 @@ async function resolveEstimateActivityNodeScope({
   };
 }
 
-async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string) {
+async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string, options?: { requireEdit?: boolean }) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  if (options?.requireEdit) await assertCanEditEstimate(supabase, estimateId);
   const { data: row, error } = await supabase
     .from("estimate_row_items")
-    .select("id, node_id, estimate_id, source_library_item_id, link_state, row_revision, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
+    .select("id, node_id, estimate_id, source_library_item_id, source_snapshot, metadata, link_state, row_revision, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
     .eq("id", rowId)
     .eq("estimate_id", estimateId)
     .eq("estimate_nodes.estimates.project_id", project.id)
@@ -765,18 +801,48 @@ function getSourceSnapshot(libraryItem: EstimateRowItem): Json {
   }) as Json;
 }
 
-function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
+function readJsonObject(value: unknown): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? { ...(value as Record<string, Json | undefined>) }
+    : {};
+}
+
+function mergeJsonObject(value: unknown, patch: Record<string, Json | undefined>): Json {
   return {
+    ...readJsonObject(value),
+    ...patch,
+  } as Json;
+}
+
+function getEstimateRowMetadata(libraryItem: EstimateRowItem): Json {
+  const existingMetadata = readEstimateRowMetadata(libraryItem.metadata);
+  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
+  const tags = (libraryItem.tags ?? (Array.isArray(existingMetadata.tags) ? existingMetadata.tags : []))
+    .filter((tag): tag is string => typeof tag === "string");
+  const metadata = {
+    ...existingMetadata,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
     brandId: libraryItem.brandId ?? null,
     supplierId: libraryItem.supplierId ?? null,
-    sourceComponentId: libraryItem.id,
+    sourceComponentId: sourceLibraryItemId,
     componentVersionId: libraryItem.componentVersionId ?? null,
     componentVersionNumber: libraryItem.componentVersionNumber ?? null,
     priceOptionId: libraryItem.priceOptionId ?? null,
-    tags: libraryItem.tags ?? [],
+    tags,
   };
+
+  if (isExpressComponentRow({ metadata })) {
+    return {
+      ...metadata,
+      sourceComponentId: null,
+      tags: tags.filter((tag) => tag !== LEGACY_BLANK_ROW_TAG),
+    } as Json;
+  }
+
+  return {
+    ...metadata,
+  } as Json;
 }
 
 function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
@@ -2450,6 +2516,12 @@ export async function insertEstimateTemplateNodeIntoEstimate({
   for (const row of subtreeRows) {
     const targetNodeId = createdNodeIdByTemplateNodeId.get(row.template_node_id);
     if (!targetNodeId) continue;
+    const copyProvenance = {
+      sourceTemplateId: templateId,
+      sourceTemplateNodeId: row.template_node_id,
+      sourceTemplateRowId: row.id,
+      sourceKind: "template",
+    } satisfies Record<string, Json>;
 
     const { error: rowInsertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
       target_project_id: project.id,
@@ -2459,7 +2531,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
         id: randomUUID(),
         sortOrder: row.sort_order,
         sourceLibraryItemId: row.source_library_item_id,
-        sourceSnapshot: row.source_snapshot,
+        sourceSnapshot: mergeJsonObject(row.source_snapshot, copyProvenance),
         categoryNodeId: row.category_node_id,
         supplierId: row.supplier_id,
         material: row.material,
@@ -2472,7 +2544,7 @@ export async function insertEstimateTemplateNodeIntoEstimate({
         miscCost: Number(row.misc_cost),
         discipline: row.discipline,
         designation: row.designation,
-        metadata: row.metadata,
+        metadata: withCopiedExpressComponentMetadata(row.metadata, copyProvenance, randomUUID),
         linkState: row.link_state ?? (row.source_library_item_id ? "linked-clean" : "unlinked"),
       },
       acting_user_id: currentUser.userId,
@@ -2495,6 +2567,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   if (!project) throw new Error("Project not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanEditEstimate(supabase, estimateId);
   const currentUser = await requireCurrentUserContext();
   // P6 single-node model: a row may be inserted into ANY node, not only the
   // former "area" kind. We still scope the target to a node that exists in this
@@ -2511,29 +2584,17 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   if (nodeError) throw nodeError;
   if (!targetNode) throw new Error("Target estimate node not found in the current project.");
 
-  const { data: existingRows, error: rowsError } = await supabase
-    .from("estimate_row_items")
-    .select("sort_order")
-    .eq("estimate_id", estimateId)
-    .eq("node_id", targetNodeId)
-    .order("sort_order", { ascending: false })
-    .limit(1);
-
-  if (rowsError) throw rowsError;
-
-  const nextSortOrder = (existingRows?.[0]?.sort_order ?? -1) + 1;
   const quantity = libraryItem.quantity || 1;
   const sourceSnapshot = getSourceSnapshot(libraryItem);
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
 
-  const { error: insertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
+  const { data: insertData, error: insertError } = await supabase.rpc("insert_estimate_row_item_with_history", {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_node_id: targetNodeId,
     row_payload: {
       id: persistedRowId,
-      sortOrder: nextSortOrder,
       sourceLibraryItemId,
       sourceSnapshot,
       categoryNodeId: libraryItem.categoryNodeId ?? null,
@@ -2556,15 +2617,28 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   });
 
   if (insertError) throw insertError;
+  return insertData ? readHistoryRowResult(insertData) : undefined;
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, quantity, contingencyPercentage, miscCost, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, material, description, supplier, unit, unitCost, quantity, contingencyPercentage, miscCost, sourceSnapshot, metadata, mutationId, expectedRowRevision }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
+  const sourceSnapshotPatch = sourceSnapshot === undefined
+    ? undefined
+    : sourceSnapshot === null
+      ? null
+      : mergeJsonObject(row.source_snapshot, readJsonObject(sourceSnapshot));
   const rowPatch = {
+    ...(material !== undefined ? { material } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(supplier !== undefined ? { supplier } : {}),
+    ...(unit !== undefined ? { unit } : {}),
+    ...(unitCost !== undefined ? { unitCost } : {}),
     ...(quantity !== undefined ? { quantity } : {}),
     ...(contingencyPercentage !== undefined ? { contingencyPercentage } : {}),
     ...(miscCost !== undefined ? { miscCost } : {}),
+    ...(sourceSnapshotPatch !== undefined ? { sourceSnapshot: sourceSnapshotPatch } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
     ...(row.source_library_item_id ? { linkState: "linked-overridden" } : {}),
   };
 
@@ -2584,7 +2658,10 @@ export async function updateEstimateRowItem({ projectId, estimateId, rowId, quan
 }
 
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem, mutationId, expectedRowRevision }: ReplaceEstimateRowItemInput) {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
+  if (isExpressComponentRow({ metadata: row.metadata })) {
+    throw new Error("Express component rows cannot be replaced with library components yet. Delete the express row or promote it before replacing.");
+  }
   const currentUser = await requireCurrentUserContext();
   const quantity = libraryItem.quantity || 1;
   const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
@@ -2647,7 +2724,7 @@ export async function detachEstimateRowItemFromLibrary({
 }
 
 export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput) {
-  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId, { requireEdit: true });
   const currentUser = await requireCurrentUserContext();
   const { error } = await supabase.rpc("delete_estimate_row_item_with_history", {
     target_project_id: project.id,

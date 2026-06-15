@@ -72,6 +72,10 @@ export function ComponentInspectorDock({
   onDuplicate,
   onArchive,
   duplicatePending = false,
+  canEdit = true,
+  canDuplicate = true,
+  canArchive = true,
+  promoteAction,
 }: {
   item: EstimateRowItem;
   onClose: () => void;
@@ -79,6 +83,10 @@ export function ComponentInspectorDock({
   onDuplicate: () => void;
   onArchive: () => void;
   duplicatePending?: boolean;
+  canEdit?: boolean;
+  canDuplicate?: boolean;
+  canArchive?: boolean;
+  promoteAction?: { label: string; pending?: boolean; onClick: () => void };
 }) {
   const [usageState, setUsageState] = useState<{
     itemId: string;
@@ -159,7 +167,7 @@ export function ComponentInspectorDock({
                   void navigator.clipboard?.writeText(item.id);
                 }}
               />
-              <DropdownMenu.Item label="Archive component" destructive onClick={onArchive} />
+              {canArchive ? <DropdownMenu.Item label="Archive component" destructive onClick={onArchive} /> : null}
             </DropdownMenu>
             <Button
               variant="ghost"
@@ -271,19 +279,35 @@ export function ComponentInspectorDock({
         </div>
 
         <footer className="flex shrink-0 items-center gap-2 border-t border-hairline p-2">
-          <Button type="button" variant="primary" size="xs" className="min-w-0 flex-1 px-2" onClick={onEdit}>
-            Edit component
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="xs"
-            className="min-w-0 px-2"
-            disabled={duplicatePending}
-            onClick={onDuplicate}
-          >
-            {duplicatePending ? "Duplicating…" : "Duplicate"}
-          </Button>
+          {promoteAction ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="xs"
+              className="min-w-0 flex-1 px-2"
+              disabled={promoteAction.pending}
+              onClick={promoteAction.onClick}
+            >
+              {promoteAction.pending ? "Promoting…" : promoteAction.label}
+            </Button>
+          ) : null}
+          {canEdit ? (
+            <Button type="button" variant={promoteAction ? "secondary" : "primary"} size="xs" className="min-w-0 flex-1 px-2" onClick={onEdit}>
+              Edit component
+            </Button>
+          ) : null}
+          {canDuplicate ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="xs"
+              className="min-w-0 px-2"
+              disabled={duplicatePending}
+              onClick={onDuplicate}
+            >
+              {duplicatePending ? "Duplicating…" : "Duplicate"}
+            </Button>
+          ) : null}
         </footer>
       </section>
     </ResizableSidePanel>

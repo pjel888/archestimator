@@ -29,7 +29,7 @@ export function FinancialTotalCard({
     >
       <div
         className={cn(
-          "text-[10px] font-medium uppercase tracking-wider",
+          "text-[9px] font-medium uppercase tracking-normal",
           variant === "primary" ? "text-white/70" : "text-tertiary"
         )}
       >
@@ -37,8 +37,7 @@ export function FinancialTotalCard({
       </div>
       <div
         className={cn(
-          "mt-1 font-semibold tabular-nums leading-tight",
-          variant === "primary" ? "text-[28px]" : "text-[24px]"
+          "mt-1 text-[12px] font-medium tabular-nums leading-tight"
         )}
       >
         {value}
