@@ -145,6 +145,9 @@ describe("ProjectTotalHeader", () => {
         <ProjectTotalHeader projectId="project-1" plannedBudget={0} />
         <ProjectEstimateMetadataPublisher
           metadata={{
+            projectId: "project-1",
+            estimateId: "estimate-1",
+            canEditEstimate: true,
             projectName: "Lewis Residence",
             estimateName: "Lewis Residence - 002",
             estimateSheetCode: "ES-002",

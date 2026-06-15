@@ -174,17 +174,22 @@ function makeEstimateSupabase({
   rpcData = { eventId: "event-1", versionId: "version-1", versionNumber: 2, versionLabel: "V2", summary: { total: 1000 } },
   estimate = makeEstimateRecord(),
   estimateCodes = [{ id: "estimate-1", sheet_code: "ES-001" }],
+  canEditEstimate = true,
 }: {
   rpcData?: unknown;
   estimate?: Record<string, unknown>;
   estimateCodes?: Array<Record<string, unknown>>;
+  canEditEstimate?: boolean;
 } = {}) {
   const estimateQueries = [
     queryResult({ data: estimateCodes, error: null }),
     queryResult({ data: estimate, error: null }),
   ];
   const supabase = {
-    rpc: vi.fn(async () => ({ data: rpcData, error: null })),
+    rpc: vi.fn(async (fn: string) => {
+      if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
+      return { data: rpcData, error: null };
+    }),
     from: vi.fn((table: string) => {
       if (table === "estimates") return estimateQueries.shift() ?? queryResult({ data: estimate, error: null });
       throw new Error(`Unexpected table ${table}`);
@@ -443,6 +448,7 @@ describe("estimate sheet version control server actions", () => {
       sheetCode: "ES-009",
     });
 
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
     expect(supabase.rpc).toHaveBeenCalledWith("update_estimate_details_with_history", expect.objectContaining({
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
@@ -451,6 +457,21 @@ describe("estimate sheet version control server actions", () => {
     }));
     expect(result.name).toBe("Renamed estimate");
     expect(result.sheet_code).toBe("ES-009");
+  });
+
+  it("blocks estimate detail updates when the caller cannot edit the estimate", async () => {
+    const supabase = makeEstimateSupabase({ canEditEstimate: false });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { updateEstimateDetails } = await import("@/lib/estimates/actions");
+
+    await expect(updateEstimateDetails({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      name: "Viewer rename",
+    })).rejects.toThrow("Estimate edit access denied.");
+
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("update_estimate_details_with_history", expect.anything());
   });
 
   it("does not expose named sheet version RPC helpers from estimate actions", async () => {

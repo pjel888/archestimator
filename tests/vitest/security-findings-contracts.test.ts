@@ -87,6 +87,20 @@ describe("Codex security findings hardening contracts", () => {
     expect(read("src/lib/estimates/actions.ts")).toContain("assertCanEditEstimate");
   });
 
+  it("requires estimate edit access for metadata history updates in RPC, server action, and header UI paths", () => {
+    const detailsRpc = latestFunction("update_estimate_details_with_history");
+    const actions = read("src/lib/estimates/actions.ts");
+    const metadataStrip = read("src/components/workshop/ProjectEstimateMetadataStrip.tsx");
+    const estimatePage = read("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx");
+
+    expect(detailsRpc).toContain("not public.can_edit_estimate(target_estimate_id)");
+    expect(actions).toContain("await assertCanEditEstimate(supabase, input.estimateId);");
+    expect(metadataStrip).toContain("canEditEstimate: boolean");
+    expect(metadataStrip).toContain("disabled={!metadata || !metadata.canEditEstimate || isPending}");
+    expect(estimatePage).toContain('rpc("can_edit_estimate", { target_estimate_id: estimate.id })');
+    expect(estimatePage).toContain("canEditEstimate: canEditEstimate === true");
+  });
+
   it("keeps library folder mutations limited to workspace editors", () => {
     const folderActions = read("src/lib/component-library/actions.ts");
     const libraryFolderHardening = latestMigrationBySuffix("_harden_library_folder_editor_access.sql");

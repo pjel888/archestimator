@@ -88,6 +88,9 @@ describe("estimate shell chrome", () => {
           <>
             <ProjectEstimateMetadataPublisher
               metadata={{
+                projectId: "project-1",
+                estimateId: "estimate-1",
+                canEditEstimate: true,
                 projectName: "Modern Bungalow",
                 estimateName: "Modern Bungalow - 001",
                 estimateSheetCode: "ES-001",

@@ -1611,6 +1611,7 @@ export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
+  await assertCanEditEstimate(supabase, input.estimateId);
   const payload: TablesUpdate<"estimates"> = {};
   const estimatePatch: Record<string, unknown> = {};
 
@@ -1658,6 +1659,7 @@ export async function regenerateEstimateSheetCode(input: { projectId: string; es
 
   const supabase = await createSupabaseServerClient();
   const currentUser = await requireCurrentUserContext();
+  await assertCanEditEstimate(supabase, input.estimateId);
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id, input.estimateId);
   const { error } = await asEstimateHistoryRpcClient(supabase).rpc("update_estimate_details_with_history", {
     target_project_id: project.id,

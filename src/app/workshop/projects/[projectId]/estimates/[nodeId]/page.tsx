@@ -6,6 +6,7 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 
 type ProjectEstimateNodePageProps = {
@@ -39,6 +40,8 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
   if (!project || !estimate) notFound();
 
   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
+  const supabase = await createSupabaseServerClient();
+  const { data: canEditEstimate } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimate.id });
   const estimateMetadata = {
     projectId: project.id,
     estimateId: estimate.id,
@@ -46,6 +49,7 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
     estimateName: estimate.name,
     estimateSheetCode: estimate.sheet_code,
     projectBudget: estimate.project_budget,
+    canEditEstimate: canEditEstimate === true,
   };
   const proposalExportMetadata = {
     projectId: project.id,
