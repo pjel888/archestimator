@@ -17,7 +17,10 @@ import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
-import type { WorkshopPendingInviteSummary } from "@/lib/repositories/workspace-repository";
+import type {
+  ProjectFavoriteEstimateSheetSummary,
+  WorkshopPendingInviteSummary,
+} from "@/lib/repositories/workspace-repository";
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
 import { ProjectCard } from "./ProjectCard";
@@ -38,6 +41,7 @@ export type ProjectListItem = {
   pendingInviteCount?: number;
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
+  favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
 };
 
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
@@ -79,6 +83,7 @@ function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectLis
     pendingInviteCount: 0,
     publicationSummary: null,
     sharedEstimateCount: 0,
+    favoriteEstimateSheets: [],
   };
 }
 
@@ -563,6 +568,7 @@ export function ProjectsPageClient({
                     pendingInviteCount={item.pendingInviteCount}
                     publicationSummary={item.publicationSummary}
                     sharedEstimateCount={item.sharedEstimateCount}
+                    favoriteEstimateSheets={item.favoriteEstimateSheets}
                     viewMode={projectViewMode}
                     isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
                     favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}

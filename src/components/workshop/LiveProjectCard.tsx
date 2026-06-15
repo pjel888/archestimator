@@ -19,7 +19,10 @@ import type { Json, Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
-import type { WorkshopPendingInviteSummary } from "@/lib/repositories/workspace-repository";
+import type {
+  ProjectFavoriteEstimateSheetSummary,
+  WorkshopPendingInviteSummary,
+} from "@/lib/repositories/workspace-repository";
 
 export type ProjectCardViewMode = "list" | "small" | "medium" | "large";
 export type ProjectAccessKind = "owned" | "pending-invite" | "project-member" | "sheet-member";
@@ -34,6 +37,7 @@ type LiveProjectCardProps = {
   pendingInviteCount?: number;
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
+  favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
   isFavorite?: boolean;
   favoriteBusy?: boolean;
   selectedForDeletion?: boolean;
@@ -52,7 +56,6 @@ const REVEAL_ON_INTENT =
   "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
 
 const CONTROL_BUTTON = "size-6 border-hairline bg-white";
-
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -119,6 +122,7 @@ export function LiveProjectCard({
   pendingInviteCount = 0,
   publicationSummary = null,
   sharedEstimateCount = 0,
+  favoriteEstimateSheets = [],
   isFavorite = false,
   favoriteBusy = false,
   selectedForDeletion = false,
@@ -133,7 +137,8 @@ export function LiveProjectCard({
   const isExpiredPendingInvite = isPendingInvite && pendingInvite?.state === "expired";
   const isSharedAccess = accessKind !== "owned" && !isPendingInvite;
   const canToggleFavorite = Boolean(onToggleFavorite) && !isPendingInvite;
-  const canSelect = Boolean(onToggleSelected) && !isPendingInvite;
+  const canShowSelect = !isPendingInvite;
+  const canSelect = Boolean(onToggleSelected) && canShowSelect;
   const livePublication = publicationSummary?.status === "published" ? publicationSummary : null;
   const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open estimate" : "Open";
   const projectHref = `/workshop/projects/${project.id}`;
@@ -149,43 +154,39 @@ export function LiveProjectCard({
   const showMeta = !isListView && viewMode !== "small";
   const showSecondaryMeta = viewMode === "large";
   const showFooter = !isListView && viewMode !== "small";
-  // Owned "small" tiles stay minimal, but a shared / estimate-only / pending tile —
-  // or an owned one with outstanding invites — keeps its chip even in small mode:
-  // that context is load-bearing, not decorative.
-  const showChips =
-    !isListView &&
-    (viewMode !== "small" || isSharedAccess || isPendingInvite || Boolean(livePublication) || hasInvites);
+  const visibleFavoriteEstimateSheets = favoriteEstimateSheets.slice(0, 5);
 
   const accessChip = isPendingInvite ? (
-    <span className="inline-flex shrink-0 items-center rounded-xs bg-warningSoft px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-warning">
-      {getAccessBadgeLabel(accessKind)}
+    <span key="access" className="inline-flex shrink-0 items-center rounded-xs bg-warningSoft px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-warning">
+      {isExpiredPendingInvite ? "Invite expired" : getAccessBadgeLabel(accessKind)}
     </span>
   ) : isSharedAccess ? (
-    <span className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
+    <span key="access" className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
       {getAccessBadgeLabel(accessKind)}
     </span>
   ) : null;
 
   const sharedLinkChip = livePublication ? (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
+    <span key="publication" className="inline-flex shrink-0 items-center gap-1 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
       <LinkSimple size={9} weight="regular" aria-hidden="true" />
       Shared link
     </span>
   ) : null;
 
   const invitesChip = hasInvites ? (
-    <span className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
+    <span key="invites" className="inline-flex shrink-0 items-center rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-secondary">
       {pendingInviteCount} {pendingInviteCount === 1 ? "invite" : "invites"}
     </span>
   ) : null;
 
-  const selectControl = canSelect ? (
+  const selectControl = canShowSelect ? (
     <label
       className={cn(
         "grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border border-hairline bg-white text-ink hover:bg-surfaceMuted",
         // When a selection is active the checkbox must stay clickable, so it drops
         // the reveal gate and re-asserts pointer-events over the wrapper's none.
         selectedForDeletion || selectionActive ? "opacity-100 pointer-events-auto" : REVEAL_ON_INTENT,
+        !canSelect ? "cursor-not-allowed text-tertiary hover:bg-white" : null,
       )}
       title="Select project for deletion"
     >
@@ -195,6 +196,7 @@ export function LiveProjectCard({
         className="size-3 rounded-xs border-hairline accent-danger"
         aria-label={`Select ${project.name} for deletion`}
         checked={selectedForDeletion}
+        disabled={!canSelect}
         onChange={() => onToggleSelected?.(project.id)}
       />
     </label>
@@ -208,13 +210,10 @@ export function LiveProjectCard({
       className={cn(
         CONTROL_BUTTON,
         "cursor-pointer aria-busy:cursor-wait aria-disabled:opacity-60",
-        // Favorited reads as a solid ink "pressed" toggle (not a hue change), so the
-        // state survives without color (WCAG 1.4.1) and stays legible even on the
-        // muted monogram thumb where a surfaceMuted fill would vanish. It also re-asserts
-        // pointer-events over the overlay wrapper's none. While a toggle is in flight it
-        // stays visible so the un-favorite transition doesn't ghost.
+        // Favorited stays visible with a quiet pressed surface instead of a
+        // louder accent color.
         isFavorite
-          ? "pointer-events-auto opacity-100 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
+          ? "pointer-events-auto opacity-100 aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink"
           : cn("text-secondary hover:text-ink", favoriteBusy ? "opacity-100" : REVEAL_ON_INTENT),
       )}
       aria-label={
@@ -235,6 +234,94 @@ export function LiveProjectCard({
       <Star size={13} weight="regular" aria-hidden="true" />
     </Button>
   ) : null;
+
+  const statusChips = [accessChip, sharedLinkChip, invitesChip].filter(Boolean);
+
+  function renderStatusSlot() {
+    return (
+      <div
+        data-project-card-status-slot=""
+        aria-label={statusChips.length > 0 ? "Project status" : "No project status"}
+        className={cn(
+          "flex h-[18px] min-w-0 flex-nowrap items-center gap-1 overflow-hidden",
+          statusChips.length === 0 ? "items-start" : null,
+        )}
+      >
+        {statusChips}
+      </div>
+    );
+  }
+
+  function renderPublicationMetaSlot() {
+    return (
+      <div
+        data-project-card-publication-meta-slot=""
+        aria-label={livePublication ? `Shared link activity for ${project.name}` : `No shared link activity for ${project.name}`}
+        className="flex h-3 min-w-0 items-center gap-1.5 overflow-hidden text-[9px] leading-3 text-secondary"
+      >
+        {livePublication ? (
+          <>
+            <LinkSimple size={12} weight="regular" aria-hidden="true" className="shrink-0" />
+            <span className="truncate">{formatOpenCount(livePublication.openCount)}</span>
+            <span className="shrink-0 text-tertiary">/</span>
+            <span className="shrink-0">{livePublication.passwordRequired ? "Password on" : "Password off"}</span>
+          </>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderFavoriteSheetsTray() {
+    const maxVisible = viewMode === "small" ? 2 : viewMode === "medium" ? 3 : 5;
+    const sheets = visibleFavoriteEstimateSheets.slice(0, maxVisible);
+    const hiddenCount = visibleFavoriteEstimateSheets.length - sheets.length;
+    const hasSheets = sheets.length > 0;
+
+    return (
+      <div
+        data-project-card-favorite-sheets=""
+        aria-label={
+          hasSheets
+            ? `Favorite estimate sheets for ${project.name}`
+            : `No favorite estimate sheets for ${project.name}`
+        }
+        className={cn(
+          "border-b border-hairline",
+          hasSheets ? "bg-white" : "bg-surfaceMuted/40",
+          viewMode === "small" ? "min-h-[42px] px-2 py-1.5" : null,
+          viewMode === "medium" ? "min-h-[58px] px-2 py-1.5" : null,
+          viewMode === "large" ? "min-h-[76px] px-3 py-2" : null,
+        )}
+      >
+        {hasSheets ? (
+          <>
+            <div className="flex min-w-0 items-center text-[8px] leading-[10px] text-tertiary">
+              <span className="font-medium text-secondary">Favorite sheets</span>
+            </div>
+            <div
+              className={cn(
+                "mt-1 min-w-0 text-[9px] leading-3 text-secondary",
+                viewMode === "large" ? "grid grid-cols-1 gap-0.5" : "space-y-0.5",
+              )}
+            >
+              {sheets.map((sheet) => (
+                <span
+                  key={sheet.id}
+                  className="block truncate text-secondary"
+                  title={sheet.sheet_code ? `${sheet.name} (${sheet.sheet_code})` : sheet.name}
+                >
+                  {sheet.name}
+                </span>
+              ))}
+              {hiddenCount > 0 ? (
+                <span className="block truncate text-tertiary">+{hiddenCount} more</span>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+    );
+  }
 
   const expandControl = isPendingInvite ? null : (
     <Button
@@ -384,14 +471,32 @@ export function LiveProjectCard({
             <h2 className="min-w-0 truncate text-[11px] font-medium leading-[1.2] tracking-normal text-ink">
               {project.name}
             </h2>
-            {accessChip}
-            {sharedLinkChip}
-            {invitesChip}
           </div>
           <p className="truncate text-[9px] leading-3 text-secondary">
             {project.client_name ?? "No client yet"}
           </p>
         </div>
+
+        <div
+          data-project-card-favorite-sheets=""
+          aria-label={
+            visibleFavoriteEstimateSheets.length > 0
+              ? `Favorite estimate sheets for ${project.name}`
+              : `No favorite estimate sheets for ${project.name}`
+          }
+          className="hidden min-w-0 flex-[0_0_220px] md:block"
+        >
+          {visibleFavoriteEstimateSheets.length > 0 ? (
+            <>
+              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Favorite sheets</p>
+              <p className="truncate text-[9px] leading-3 text-secondary">
+                {visibleFavoriteEstimateSheets.map((sheet) => sheet.name).join(", ")}
+              </p>
+            </>
+          ) : null}
+        </div>
+
+        <div className="hidden w-[156px] shrink-0 lg:block">{renderStatusSlot()}</div>
 
         <p className="hidden min-w-0 max-w-[180px] items-center gap-1 text-[9px] leading-3 text-secondary sm:flex">
           <MapPin size={12} aria-hidden="true" className="shrink-0" />
@@ -480,46 +585,45 @@ export function LiveProjectCard({
         motifSize,
         withOverlay: true,
       })}
+      {renderFavoriteSheetsTray()}
 
       <div className={cn("flex min-w-0 flex-1 flex-col", contentPad)}>
-        <div className="min-w-0 space-y-1">
-          {showChips && (isSharedAccess || isPendingInvite || livePublication || hasInvites) ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-1">
-              {accessChip}
-              {sharedLinkChip}
-              {invitesChip}
-            </div>
-          ) : null}
+        <div
+          className={cn(
+            "min-w-0 space-y-1",
+            viewMode === "large" ? "min-h-[70px]" : viewMode === "medium" ? "min-h-[64px]" : "min-h-[58px]",
+          )}
+        >
           <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
             {project.client_name ?? "No client yet"}
           </p>
           <h2
             className={cn(
               "font-medium tracking-normal text-ink [overflow-wrap:anywhere]",
-              viewMode === "large" ? "line-clamp-2 text-[12px] leading-[1.18]" : null,
-              viewMode === "medium" ? "line-clamp-2 text-[11px] leading-[1.18]" : null,
-              viewMode === "small" ? "line-clamp-2 text-[10px] leading-[1.2]" : null,
+              viewMode === "large" ? "line-clamp-2 min-h-[28px] text-[12px] leading-[1.18]" : null,
+              viewMode === "medium" ? "line-clamp-2 min-h-[26px] text-[11px] leading-[1.18]" : null,
+              viewMode === "small" ? "line-clamp-2 min-h-6 text-[10px] leading-[1.2]" : null,
             )}
           >
             {project.name}
           </h2>
+          {renderStatusSlot()}
         </div>
 
         {showMeta ? (
           <div className={cn("space-y-1", viewMode === "large" ? "mt-2.5" : "mt-2")}>
-            {showSecondaryMeta && livePublication ? (
-              <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
-                <LinkSimple size={12} weight="regular" aria-hidden="true" className="shrink-0" />
-                <span className="truncate">{formatOpenCount(livePublication.openCount)}</span>
-              </p>
-            ) : null}
-            {showSecondaryMeta && isSharedAccess ? (
+            {showSecondaryMeta ? renderPublicationMetaSlot() : null}
+            {isSharedAccess || isPendingInvite ? (
               <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
                 <span className="shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-secondary">
                   {roleLabels[currentUserRole]}
                 </span>
                 <span className="truncate">
-                  {accessKind === "sheet-member"
+                  {isPendingInvite
+                    ? ownerWorkspaceName
+                      ? `Invited by ${ownerWorkspaceName}`
+                      : "Invited project"
+                    : accessKind === "sheet-member"
                     ? `${sharedEstimateCount} ${sharedEstimateCount === 1 ? "shared estimate" : "shared estimates"}`
                     : ownerWorkspaceName
                       ? `Shared by ${ownerWorkspaceName}`
