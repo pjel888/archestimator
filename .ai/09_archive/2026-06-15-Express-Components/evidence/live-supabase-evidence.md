@@ -109,3 +109,108 @@ Sanitized row-shape sample:
 | 25-31 | mixed | unlinked | edited/named | other-tags | no | yes | nonzero | yes |
 
 Implementation implication: source-less is not a blank predicate. U2's `row_blank_added` migration and U6/U8 projection logic must classify true legacy blanks by material/tag shape, not by `source_library_item_id is null` or `link_state = "unlinked"` alone. Edited/named source-less rows need an explicit manual/project-local classification decision before Project projection ships.
+
+## Applied Provider Migrations — 2026-06-15
+
+Target project was confirmed through Supabase MCP before mutation:
+
+- Project: `Archestimator`
+- Ref: `ebxxqidacheyapmmzavr`
+- Region: `ap-southeast-2`
+- Status: `ACTIVE_HEALTHY`
+- Database: Postgres `17.6.1.121`
+- Non-target project visible but untouched: `SlateCamp` / `hrpdwqurngnyajuhbkdg`
+
+Applied with Supabase MCP `apply_migration` to `ebxxqidacheyapmmzavr` only:
+
+| Remote version | Name | Purpose |
+| --- | --- | --- |
+| `20260615093524` | `express_components_foundation` | Replaces insert-history RPC for server-owned row insertion, adds copied-express rekey trigger, adds atomic express-row promotion RPC, grants only app-facing RPCs to `authenticated`. |
+| `20260615093648` | `harden_express_trigger_execute` | Revokes `authenticated` execute on the trigger-only rekey helper so it is not exposed as a callable RPC endpoint. |
+
+Local migration filenames were reconciled to the provider-recorded versions:
+
+- `supabase/migrations/20260615093524_express_components_foundation.sql`
+- `supabase/migrations/20260615093648_harden_express_trigger_execute.sql`
+
+## Post-Apply Provider Probes
+
+All probes below were run against `ebxxqidacheyapmmzavr`; rollback behavior was verified so provider proof rows/items were not left behind.
+
+### Function and trigger presence
+
+SQL probe confirmed:
+
+- `insert_estimate_row_item_with_history(uuid, uuid, uuid, jsonb, uuid, uuid)` exists.
+- `promote_express_row_to_library_component(uuid, uuid, uuid, uuid, uuid, uuid)` exists.
+- `rekey_copied_express_component_row_metadata()` exists.
+- Trigger `rekey_copied_express_component_row_metadata` exists on `public.estimate_row_items`.
+
+### Execute grants
+
+SQL probe confirmed:
+
+- `insert_estimate_row_item_with_history`: `anon_execute=false`, `authenticated_execute=true`.
+- `promote_express_row_to_library_component`: `anon_execute=false`, `authenticated_execute=true`.
+- `rekey_copied_express_component_row_metadata`: after follow-up hardening, `anon_execute=false`, `authenticated_execute=false`, `service_role_execute=true`.
+
+Advisor note: the two app-facing RPCs are intentionally signed-in callable and follow the existing history-RPC pattern. The trigger helper was the accidental callable surface caught by advisors and fixed forward.
+
+### Insert + idempotency rollback probe
+
+Using signed-in claims for existing editor/owner `4e23801d-6fc2-4886-b980-d15ca2b164b8`, a rollback transaction called `insert_estimate_row_item_with_history` twice with the same `correlation_id`.
+
+Observed result:
+
+- requested `row_id` was preserved
+- inserted material was `Provider rollback express vanity`
+- returned `rowRevision` was `1`
+- first call `idempotent=false`
+- second call `idempotent=true`
+- second call preserved the same `row_id`
+
+### Copy rekey rollback probe
+
+A direct rollback insert with `metadata.sourceTemplateRowId` and `metadata.expressComponent.id = old-provider-proof-id` observed:
+
+- `metadata.expressComponent.kind = express`
+- `sourceTemplateRowId = template-row-provider-proof`
+- express id changed from `old-provider-proof-id`
+
+### Promotion rollback probe
+
+Within one rollback transaction, an express row was inserted through the insert RPC, promoted through `promote_express_row_to_library_component`, then promoted again.
+
+Observed result:
+
+- first promotion `idempotent=false`
+- first promotion created a library item result (`itemId` present)
+- second promotion `idempotent=true`
+- row had `source_library_item_id is not null`
+- `source_snapshot.sourceType = promoted_express_component`
+- `metadata.expressComponent` removed
+- `link_state = linked-clean`
+
+### Non-member denial rollback probe
+
+Using signed-in claims for a random non-member UUID, insert RPC returned `Workspace access denied.` before row mutation.
+
+### Rollback cleanliness
+
+Post-probe counts confirmed no rollback proof data remained:
+
+- `estimate_row_items` rows with provider-proof material names: `0`
+- `cost_library_items` with provider-proof names: `0`
+
+## Type Generation Evidence
+
+`supabase gen types typescript --project-id ebxxqidacheyapmmzavr` succeeded and confirmed the generated RPC surface now includes:
+
+- `insert_estimate_row_item_with_history`
+- `promote_express_row_to_library_component`
+
+The committed type update preserves existing local nullable-argument compatibility patches and helper exports while adding the new promotion RPC type.
+
+## Supabase Docs/Changelog Check
+
+Per Supabase skill guidance, `https://supabase.com/changelog.md` was checked on 2026-06-15. Recent breaking-change entries relevant to database/API exposure were reviewed; the applied Express migrations add functions/triggers only, no new exposed tables, no pg_graphql dependency, and no Auth/OAuth behavior changes. The April 28, 2026 Data/GraphQL table auto-exposure breaking change does not affect this no-new-table migration.
