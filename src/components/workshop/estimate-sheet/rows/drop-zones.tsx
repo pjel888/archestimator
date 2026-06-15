@@ -54,9 +54,8 @@ export function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
 /**
  * Library-item drop target for a node. The dashed zone only exists while a
  * component drag is in flight; at rest the node keeps a quiet add-row
- * affordance (and, when empty, a short truthful empty-state line offering both
- * a row and a sub-area) so the sheet is not littered with permanent drop
- * targets.
+ * affordance so the sheet is not littered with permanent drop targets or
+ * explanatory copy.
  */
 export function ComponentDropTarget({
   nodeId,
@@ -81,17 +80,8 @@ export function ComponentDropTarget({
   if (!componentDragActive && dragCount !== 0) setDragCount(0);
 
   if (!componentDragActive) {
-    if (!empty) return <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />;
-    return (
-      <div className="flex min-h-9 items-center justify-between gap-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted/20 px-1.5 py-0.5">
-        <span className="text-[9px] leading-3 text-tertiary">
-          Empty area. Add a row, drag components from the library, or add a sub-area from the tree.
-        </span>
-        <span className="w-24 shrink-0">
-          <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
-        </span>
-      </div>
-    );
+    void empty;
+    return <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />;
   }
 
   return (

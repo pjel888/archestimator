@@ -3,23 +3,24 @@ version: alpha
 name: Archestimator Product Design System
 description: SF Pro, crisp-xs, neutral product UI for every non-landing Archestimator surface; landing pages may stay more experimental.
 colors:
-  primary: "#292929"
-  ink: "#292929"
+  primary: "#3D3D3D"
+  ink: "#3D3D3D"
   secondary: "#5D5D5D"
   tertiary: "#7F7F7F"
   muted: "#7F7F7F"
   hairline: "#F2F2F2"
   divider: "#F2F2F2"
+  dividerSibling: "#D9D9D9"
   background: "#FFFFFF"
   canvas: "#F5F5F5"
   warmCanvas: "#F5F5F5"
   surface: "#FFFFFF"
   surfaceMuted: "#F5F5F5"
   surfaceWarm: "#F5F5F5"
-  accent: "#292929"
+  accent: "#3D3D3D"
   accentSoft: "#F5F5F5"
   sourceBoundary: "#E8D8CF"
-  focus: "#292929"
+  focus: "#3D3D3D"
   success: "#15803D"
   successSoft: "#DCFCE7"
   warning: "#B45309"
@@ -335,12 +336,13 @@ Primary product surfaces:
 
 ## Colors
 
-- **Strong (`#292929`)** anchors headings, active actions, totals, and high-emphasis UI.
+- **Strong (`#3D3D3D`)** anchors headings, active actions, totals, and high-emphasis UI.
 - **Default (`#5D5D5D`)** is the normal app/workshop text color for body copy and controls.
 - **Subtle (`#7F7F7F`)** supports navigation, metadata, descriptions, empty states, labels, and passive states. Do not use subtle text for financial totals or critical risk indicators.
 - **Selected background (`#F5F5F5`)** is the only neutral selected/hover surface outside semantic success/warning/danger states.
 - **Surface (`#FFFFFF`)** is the dominant canvas for landing, cards, grid cells, forms, panels, and modals.
 - **Border (`#F2F2F2`)** replaces heavy shadows. Use thin borders and whitespace for separation.
+- **Sibling divider (`#D9D9D9`)** is reserved for inset estimate-sheet sibling rules where `#F2F2F2` is too quiet to show hierarchy.
 - **Functional colors** retain meaning only: success for approved/current/safe, warning for provisional/source-review/cost-risk, danger for destructive/error/excluded/cost increase.
 - **Proposal paper (`#FFFDF8`)** distinguishes client-facing documents from app dashboards.
 
