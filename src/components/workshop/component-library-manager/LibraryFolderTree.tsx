@@ -27,6 +27,7 @@ import {
 } from "@/lib/component-library/library-folder-reorder";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import {
   pruneSelection,
   toggleCascadeSelection,
@@ -758,6 +759,7 @@ export function LibraryFolderTree({
               onRowClick={handleRowClick}
               onContextMenu={(nodeId) => setContextMenuNodeId(nodeId)}
               renderRow={renderRow}
+              virtualization={WORKSHOP_TREE_VIRTUALIZATION}
             />
           </nav>
         </ContextMenuTrigger>

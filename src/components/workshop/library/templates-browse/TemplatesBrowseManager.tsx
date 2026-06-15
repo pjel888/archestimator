@@ -26,6 +26,7 @@ import {
   type TreeDropPosition,
   type TreeNode as UiTreeNode,
 } from "@/components/ui/tree";
+import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import { pesoFormatter } from "@/components/workshop/component-library/helpers";
@@ -484,6 +485,7 @@ function TemplatesBrowseTreePanel({
                     onRowDoubleClick={handleRowDoubleClick}
                     onContextMenu={(nodeId) => setContextMenuNodeId(nodeId)}
                     renderRow={renderBrowseRow}
+                    virtualization={WORKSHOP_TREE_VIRTUALIZATION}
                   />
                 </div>
               </ContextMenuTrigger>

@@ -6,13 +6,16 @@ import {
   memo,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   CaretDown,
   CaretRight,
@@ -136,6 +139,16 @@ export interface TreeExternalDropOptions {
   ) => void;
 }
 
+export interface TreeVirtualizationOptions {
+  enabled?: boolean;
+  minRows?: number;
+  estimateRowHeight?: number;
+  overscan?: number;
+  useFlushSync?: boolean;
+  initialViewportHeight?: number;
+  getScrollElement?: () => HTMLElement | null;
+}
+
 export interface TreeProps {
   nodes: TreeNode[];
   /** Accessible name for the tree container. */
@@ -214,6 +227,8 @@ export interface TreeProps {
   indentStep?: number;
   /** Full row control: replaces the default row entirely. Spread `rowProps` onto your row element. */
   renderItem?: (state: TreeItemState, rowProps: TreeRowDomProps) => ReactNode;
+  /** Optional default-off virtual rendering for very large flat trees. */
+  virtualization?: TreeVirtualizationOptions;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -264,6 +279,18 @@ function indexTree(nodes: TreeNode[], into = new Map<string, TreeNode>()): Map<s
     if (node.children?.length) indexTree(node.children, into);
   }
   return into;
+}
+
+function findScrollParent(element: HTMLElement | null): HTMLElement | null {
+  let parent = element?.parentElement ?? null;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    if (/(auto|scroll|overlay)/.test(`${style.overflow}${style.overflowY}${style.overflowX}`)) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return element;
 }
 
 function containsDescendant(node: TreeNode, targetId: string): boolean {
@@ -554,10 +581,13 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       renderRow,
       indentStep = TREE_INDENT_STEP,
       renderItem,
+      virtualization,
     },
     ref
   ) => {
     const isControlled = controlledExpandedIds !== undefined;
+    const treeRootRef = useRef<HTMLDivElement | null>(null);
+    useImperativeHandle(ref, () => treeRootRef.current as HTMLDivElement, []);
 
     const [uncontrolledExpanded, setUncontrolledExpanded] = useState<Set<string>>(
       new Set(defaultExpandedIds)
@@ -577,8 +607,29 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       () => flattenTree(nodes, expandedSet),
       [nodes, expandedSet]
     );
+    const virtualMinRows = virtualization?.minRows ?? 150;
+    const virtualEnabled = Boolean(virtualization?.enabled && flatNodes.length >= virtualMinRows);
+    const rowVirtualizer = useVirtualizer({
+      count: flatNodes.length,
+      getScrollElement: () => virtualization?.getScrollElement?.() ?? findScrollParent(treeRootRef.current),
+      estimateSize: () => virtualization?.estimateRowHeight ?? 28,
+      overscan: virtualization?.overscan ?? 8,
+      getItemKey: (index) => flatNodes[index]?.id ?? index,
+      enabled: virtualEnabled,
+      useFlushSync: virtualization?.useFlushSync ?? false,
+      initialRect: { height: virtualization?.initialViewportHeight ?? 480, width: 0 },
+    });
 
     const nodeIndex = useMemo(() => indexTree(nodes), [nodes]);
+
+    const focusFlatNode = useCallback(
+      (index: number) => {
+        const nextId = flatNodes[index]?.id ?? null;
+        if (nextId && virtualEnabled) rowVirtualizer.scrollToIndex(index, { align: "auto" });
+        setFocusId(nextId);
+      },
+      [flatNodes, rowVirtualizer, virtualEnabled]
+    );
 
     const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
@@ -980,23 +1031,23 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
           case "ArrowDown": {
             e.preventDefault();
             const nextIdx = Math.min(currentIdx + 1, flatNodes.length - 1);
-            setFocusId(flatNodes[nextIdx]?.id ?? null);
+            focusFlatNode(nextIdx);
             break;
           }
           case "ArrowUp": {
             e.preventDefault();
             const prevIdx = Math.max(currentIdx - 1, 0);
-            setFocusId(flatNodes[prevIdx]?.id ?? null);
+            focusFlatNode(prevIdx);
             break;
           }
           case "Home": {
             e.preventDefault();
-            setFocusId(flatNodes[0]?.id ?? null);
+            focusFlatNode(0);
             break;
           }
           case "End": {
             e.preventDefault();
-            setFocusId(flatNodes[flatNodes.length - 1]?.id ?? null);
+            focusFlatNode(flatNodes.length - 1);
             break;
           }
           case "ArrowRight": {
@@ -1033,16 +1084,27 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
           }
         }
       },
-      [flatNodes, effectiveFocusId, handleToggle, onRowClick, triggerSelection]
+      [flatNodes, effectiveFocusId, focusFlatNode, handleToggle, onRowClick, triggerSelection]
     );
 
     // Focus the matching DOM element when focusId changes
     useEffect(() => {
-      if (focusId) {
-        const el = document.querySelector(`[data-tree-row="${focusId}"]`);
+      if (!focusId) return;
+      const focusElement = () => {
+        const escapedId = typeof CSS !== "undefined" && CSS.escape
+          ? CSS.escape(focusId)
+          : focusId.replace(/"/g, '\\"');
+        const el = document.querySelector(`[data-tree-row="${escapedId}"]`);
         if (el instanceof HTMLElement) el.focus();
+      };
+      if (virtualEnabled) {
+        const index = flatNodes.findIndex((flat) => flat.id === focusId);
+        if (index >= 0) rowVirtualizer.scrollToIndex(index, { align: "auto" });
+        requestAnimationFrame(focusElement);
+      } else {
+        focusElement();
       }
-    }, [focusId]);
+    }, [flatNodes, focusId, rowVirtualizer, virtualEnabled]);
 
     // ─── Mouse handlers ────────────────────────────────────────────
 
@@ -1149,9 +1211,67 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
       [dropTarget, selectedSet, indeterminateIds, currentId, effectiveFocusId, dragSourceId, handleToggle]
     );
 
+    const renderFlatRow = useCallback(
+      (flat: FlatNode) => {
+        const state = buildItemState(flat);
+        const rowProps = buildRowProps(flat);
+        if (renderItem) {
+          return <Fragment key={flat.id}>{renderItem(state, rowProps)}</Fragment>;
+        }
+        return (
+          <DefaultTreeRow
+            key={flat.id}
+            state={state}
+            rowProps={rowProps}
+            draggable={draggable}
+            selectable={selectable}
+            expandable={expandable}
+            nodeDraggable={isNodeDraggable(flat.node)}
+            railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
+            indentStep={indentStep}
+            onCheckboxClick={handleCheckboxClick}
+            renderRow={renderRow}
+          />
+        );
+      },
+      [
+        buildItemState,
+        buildRowProps,
+        draggable,
+        expandable,
+        handleCheckboxClick,
+        indentStep,
+        isNodeDraggable,
+        railsPinned,
+        renderItem,
+        renderRow,
+        selectable,
+        selectedSet.size,
+      ]
+    );
+    const virtualEstimateRowHeight = virtualization?.estimateRowHeight ?? 28;
+    const virtualOverscan = virtualization?.overscan ?? 8;
+    const virtualInitialViewportHeight = virtualization?.initialViewportHeight ?? 480;
+    const measuredVirtualRows = rowVirtualizer.getVirtualItems();
+    const renderedVirtualRows = virtualEnabled && measuredVirtualRows.length === 0
+      ? Array.from(
+          {
+            length: Math.min(
+              flatNodes.length,
+              Math.ceil(virtualInitialViewportHeight / virtualEstimateRowHeight) + virtualOverscan * 2
+            ),
+          },
+          (_, index) => ({
+            index,
+            key: flatNodes[index]?.id ?? index,
+            start: index * virtualEstimateRowHeight,
+          })
+        )
+      : measuredVirtualRows;
+
     return (
       <div
-        ref={ref}
+        ref={treeRootRef}
         role="tree"
         aria-label={ariaLabel}
         className={cn("group/tree overflow-auto outline-none", className)}
@@ -1160,28 +1280,38 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         onClick={() => flatNodes.length > 0 && !focusId && setFocusId(effectiveFocusId)}
       >
         {rootDropZonesEnabled && renderRootEdge("top")}
-        {flatNodes.map((flat) => {
-          const state = buildItemState(flat);
-          const rowProps = buildRowProps(flat);
-          if (renderItem) {
-            return <Fragment key={flat.id}>{renderItem(state, rowProps)}</Fragment>;
-          }
-          return (
-            <DefaultTreeRow
-              key={flat.id}
-              state={state}
-              rowProps={rowProps}
-              draggable={draggable}
-              selectable={selectable}
-              expandable={expandable}
-              nodeDraggable={isNodeDraggable(flat.node)}
-              railsPinned={railsPinned || (selectable && selectedSet.size > 0)}
-              indentStep={indentStep}
-              onCheckboxClick={handleCheckboxClick}
-              renderRow={renderRow}
-            />
-          );
-        })}
+        {virtualEnabled ? (
+          <div
+            data-tree-virtualizer="true"
+            data-tree-virtual-total-count={flatNodes.length}
+            data-tree-virtual-mounted-count={renderedVirtualRows.length}
+            style={{ height: rowVirtualizer.getTotalSize(), position: "relative", width: "100%" }}
+          >
+            {renderedVirtualRows.map((virtualRow) => {
+              const flat = flatNodes[virtualRow.index];
+              if (!flat) return null;
+              return (
+                <div
+                  key={virtualRow.key}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  data-tree-virtual-row={flat.id}
+                  style={{
+                    left: 0,
+                    position: "absolute",
+                    top: 0,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    width: "100%",
+                  }}
+                >
+                  {renderFlatRow(flat)}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          flatNodes.map((flat) => renderFlatRow(flat))
+        )}
         {rootDropZonesEnabled && renderRootEdge("bottom")}
         {nodes.length === 0 && (
           emptyState ?? (

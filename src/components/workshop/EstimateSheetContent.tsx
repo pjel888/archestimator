@@ -94,7 +94,7 @@ import { getNodeCode } from "./estimate-sheet/rows/node-visuals";
 import {
   canMakeProjectSpecific,
 } from "./estimate-sheet/rows/cells";
-import { EstimateSheetBranch } from "./estimate-sheet/rows/branch";
+import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
 
 /* Re-export component library helpers and sidebar so existing imports don't break */
 export {
@@ -2364,7 +2364,7 @@ export function EstimateSheetContent({
                 <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
                 {displayedSheetNode ? (
                 <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
-                  <EstimateSheetBranch
+                  <EstimateSheetVirtualBranchList
                     node={displayedSheetNode}
                     nodeCode={resolvedSelectedNodeId ? computeNodeCode(estimateTree, resolvedSelectedNodeId) : ""}
                     ancestorPath={resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId).slice(0, -1).map((n) => ({ id: n.id, name: n.name })) : []}

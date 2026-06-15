@@ -1,17 +1,19 @@
 "use client";
 
-import { memo, useMemo, useState, type Dispatch, type DragEvent, type MouseEvent, type SetStateAction } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type DragEvent, type MouseEvent, type SetStateAction } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowsOutSimple, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { cn } from "@/lib/ui/cn";
+import { WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import { formatPeso, pesoFormatter, type CostAdjustmentMode, type RowDetailTab } from "../activity-history";
 import { reportEstimateRowItemRender, reportEstimateRowItemsTableRender } from "../../estimate-sheet-render-probe";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "./constants";
-import { EstimateMaterialCell, MoneyInput, handleEstimateCellKeyDown } from "./cells";
+import { EstimateMaterialCell, MoneyInput, focusEstimateCellByRowId, handleEstimateCellKeyDown } from "./cells";
 import {
   COST_ADJUSTMENT_MODE_OPTIONS,
   calculateContingencyValue,
@@ -41,6 +43,14 @@ export type EstimateRowItemsTableProps = {
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
+  virtualization?: {
+    enabled?: boolean;
+    minRows?: number;
+    estimateRowHeight?: number;
+    overscan?: number;
+    useFlushSync?: boolean;
+    initialViewportHeight?: number;
+  };
 };
 
 // The comparator slices shared sheet state per table: a keystroke in one
@@ -62,7 +72,8 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
-    prev.onToggleRowsSelection !== next.onToggleRowsSelection
+    prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
+    prev.virtualization !== next.virtualization
   ) {
     return false;
   }
@@ -76,6 +87,16 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
 const ROW_COLUMNS = "grid-cols-[36px_32px_minmax(160px,1fr)_58px_92px_106px_92px_108px_30px]";
 
 type FocusedEstimateCell = { rowId: string; cellIndex: number };
+
+function findScrollParent(element: HTMLElement | null): HTMLElement | null {
+  let parent = element?.parentElement ?? null;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    if (/(auto|scroll|overlay)/.test(`${style.overflow}${style.overflowY}${style.overflowX}`)) return parent;
+    parent = parent.parentElement;
+  }
+  return element;
+}
 
 type EstimateRowItemTableRowProps = {
   item: EstimateRowItem;
@@ -96,6 +117,9 @@ type EstimateRowItemTableRowProps = {
   onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
+  rowIds: readonly string[];
+  onRequestFocusByRowId: (rowId: string, cellIndex: number) => void;
+  style?: CSSProperties;
 };
 
 const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
@@ -117,6 +141,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onRequestProjectSpecific,
   onMoveRowComponent,
   onToggleRowSelection,
+  rowIds,
+  onRequestFocusByRowId,
+  style,
 }: EstimateRowItemTableRowProps) {
   reportEstimateRowItemRender(item.id);
   const computedItem = useMemo(() => {
@@ -151,7 +178,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
         activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
         ROW_COLUMNS,
       )}
+      style={style}
       data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
+      data-estimate-row-id={computedItem.id}
     >
       <td className="flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
         {String(rowIndex + 1).padStart(2, "0")}
@@ -209,7 +238,7 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 0 ? null : current));
             if (computedItem.quantity !== computedItem.storedQuantity) onUpdateRowItem(computedItem.id, { quantity: computedItem.editableQuantity });
           }}
-          onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0)}
+          onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0, rowIds, onRequestFocusByRowId)}
           data-estimate-row-index={rowIndex}
           data-estimate-row-id={computedItem.id}
           data-estimate-cell-index={0}
@@ -265,8 +294,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
                   onUpdateRowItem(computedItem.id, { contingencyMode: computedItem.editableContingencyMode, contingencyPercentage: nextContingencyPercentage });
                 }
               }}
-              onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
+              onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1, rowIds, onRequestFocusByRowId)}
               data-estimate-row-index={rowIndex}
+              data-estimate-row-id={computedItem.id}
               data-estimate-cell-index={1}
               aria-label={`${computedItem.material} adjustment percentage`}
               align="center"
@@ -299,8 +329,9 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             setFocusedCell((current) => (current?.rowId === computedItem.id && current.cellIndex === 2 ? null : current));
             if (computedItem.miscCost !== computedItem.storedMiscCost) onUpdateRowItem(computedItem.id, { miscCost: computedItem.editableMiscCost });
           }}
-          onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2)}
+          onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2, rowIds, onRequestFocusByRowId)}
           data-estimate-row-index={rowIndex}
+          data-estimate-row-id={computedItem.id}
           data-estimate-cell-index={2}
         />
       </td>
@@ -360,13 +391,105 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   selectedRowIds,
   onToggleRowSelection,
   onToggleRowsSelection,
+  virtualization = WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION,
 }: EstimateRowItemsTableProps) {
   reportEstimateRowItemsTableRender(targetNodeId);
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
+  const [scrollMargin, setScrollMargin] = useState(0);
   const selectableRowIds = useMemo(() => items.map((item) => item.id), [items]);
   const allRowsSelected = selectableRowIds.length > 0 && selectableRowIds.every((rowId) => selectedRowIds.has(rowId));
   const someRowsSelected = !allRowsSelected && selectableRowIds.some((rowId) => selectedRowIds.has(rowId));
+  const virtualEnabled = Boolean(virtualization.enabled && items.length >= (virtualization.minRows ?? 75));
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => findScrollParent(scrollRootRef.current),
+    estimateSize: () => virtualization.estimateRowHeight ?? 96,
+    overscan: virtualization.overscan ?? 6,
+    getItemKey: (index) => items[index]?.id ?? index,
+    enabled: virtualEnabled,
+    scrollMargin,
+    useFlushSync: virtualization.useFlushSync ?? false,
+    initialRect: { height: virtualization.initialViewportHeight ?? 720, width: 0 },
+  });
+
+  const requestFocusByRowId = useCallback(
+    (rowId: string, cellIndex: number) => {
+      const rowIndex = selectableRowIds.indexOf(rowId);
+      if (rowIndex >= 0 && virtualEnabled) rowVirtualizer.scrollToIndex(rowIndex, { align: "auto" });
+      setFocusedCell({ rowId, cellIndex });
+    },
+    [rowVirtualizer, selectableRowIds, virtualEnabled]
+  );
+
+  useEffect(() => {
+    if (!focusedCell || focusEstimateCellByRowId(focusedCell.rowId, focusedCell.cellIndex)) return;
+    const rowIndex = selectableRowIds.indexOf(focusedCell.rowId);
+    if (rowIndex >= 0 && virtualEnabled) rowVirtualizer.scrollToIndex(rowIndex, { align: "auto" });
+    const frame = requestAnimationFrame(() => {
+      focusEstimateCellByRowId(focusedCell.rowId, focusedCell.cellIndex);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusedCell, rowVirtualizer, selectableRowIds, virtualEnabled]);
+
+  useEffect(() => {
+    if (!virtualEnabled) {
+      setScrollMargin(0);
+      return undefined;
+    }
+
+    const tableRoot = scrollRootRef.current;
+    const scrollElement = findScrollParent(tableRoot);
+    if (!tableRoot || !scrollElement || scrollElement === tableRoot) {
+      setScrollMargin(0);
+      return undefined;
+    }
+
+    const measureScrollMargin = () => {
+      const tableRect = tableRoot.getBoundingClientRect();
+      const scrollRect = scrollElement.getBoundingClientRect();
+      const nextScrollMargin = Math.max(0, tableRect.top - scrollRect.top + scrollElement.scrollTop);
+      setScrollMargin((current) => (Math.abs(current - nextScrollMargin) < 0.5 ? current : nextScrollMargin));
+    };
+
+    measureScrollMargin();
+    scrollElement.addEventListener("scroll", measureScrollMargin, { passive: true });
+    window.addEventListener("resize", measureScrollMargin);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(measureScrollMargin);
+      resizeObserver.observe(tableRoot);
+      resizeObserver.observe(scrollElement);
+    }
+
+    return () => {
+      scrollElement.removeEventListener("scroll", measureScrollMargin);
+      window.removeEventListener("resize", measureScrollMargin);
+      resizeObserver?.disconnect();
+    };
+  }, [items.length, targetNodeId, virtualEnabled]);
+
+  const virtualEstimateRowHeight = virtualization.estimateRowHeight ?? 96;
+  const virtualOverscan = virtualization.overscan ?? 6;
+  const virtualInitialViewportHeight = virtualization.initialViewportHeight ?? 720;
+  const measuredVirtualRows = rowVirtualizer.getVirtualItems();
+  const renderedVirtualRows = virtualEnabled && measuredVirtualRows.length === 0
+    ? Array.from(
+        {
+          length: Math.min(
+            items.length,
+            Math.ceil(virtualInitialViewportHeight / virtualEstimateRowHeight) + virtualOverscan * 2
+          ),
+        },
+        (_, index) => ({
+          index,
+          key: items[index]?.id ?? index,
+          start: index * virtualEstimateRowHeight,
+        })
+      )
+    : measuredVirtualRows;
 
   if (!items.length) return null;
 
@@ -386,7 +509,13 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   }
 
   return (
-    <div className="overflow-hidden border border-hairline bg-white" onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div
+      ref={scrollRootRef}
+      className="overflow-hidden border border-hairline bg-white"
+      data-estimate-row-table-root={targetNodeId}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <table className="w-full border-collapse text-[10px] text-ink">
         <thead className="bg-white text-left text-[10px] font-medium text-ink">
           <tr className={cn("grid min-h-10 border-b border-hairline", ROW_COLUMNS)}>
@@ -411,30 +540,50 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
             <th aria-hidden="true" />
           </tr>
         </thead>
-        <tbody>
-          {items.map((item, rowIndex) => (
-            <EstimateRowItemTableRow
-              key={item.id}
-              item={item}
-              editableRow={editableRows[item.id]}
-              rowIndex={rowIndex}
-              selected={selectedRowIds.has(item.id)}
-              activeCellIndex={focusedCell?.rowId === item.id ? focusedCell.cellIndex : null}
-              isReplaceTarget={replaceTargetRowId === item.id}
-              setEditableRows={setEditableRows}
-              setFocusedCell={setFocusedCell}
-              setReplaceTargetRowId={setReplaceTargetRowId}
-              onReplaceRowItem={onReplaceRowItem}
-              onDeleteRowItem={onDeleteRowItem}
-              onUpdateRowItem={onUpdateRowItem}
-              onMarkRowDirty={onMarkRowDirty}
-              onOpenRowDetails={onOpenRowDetails}
-              onClearRowComponent={onClearRowComponent}
-              onRequestProjectSpecific={onRequestProjectSpecific}
-              onMoveRowComponent={onMoveRowComponent}
-              onToggleRowSelection={onToggleRowSelection}
-            />
-          ))}
+        <tbody
+          data-estimate-row-virtualizer={virtualEnabled ? "true" : undefined}
+          data-estimate-row-virtual-total-count={virtualEnabled ? items.length : undefined}
+          data-estimate-row-virtual-mounted-count={virtualEnabled ? renderedVirtualRows.length : undefined}
+          data-estimate-row-scroll-margin={virtualEnabled ? Math.round(scrollMargin) : undefined}
+          className={virtualEnabled ? "relative block" : undefined}
+          style={virtualEnabled ? { height: rowVirtualizer.getTotalSize() } : undefined}
+        >
+          {(virtualEnabled ? renderedVirtualRows : items.map((_, index) => ({ index, key: items[index]?.id ?? index, start: 0 }))).map((virtualRow) => {
+            const item = items[virtualRow.index];
+            if (!item) return null;
+            return (
+              <EstimateRowItemTableRow
+                key={item.id}
+                item={item}
+                editableRow={editableRows[item.id]}
+                rowIndex={virtualRow.index}
+                selected={selectedRowIds.has(item.id)}
+                activeCellIndex={focusedCell?.rowId === item.id ? focusedCell.cellIndex : null}
+                isReplaceTarget={replaceTargetRowId === item.id}
+                setEditableRows={setEditableRows}
+                setFocusedCell={setFocusedCell}
+                setReplaceTargetRowId={setReplaceTargetRowId}
+                onReplaceRowItem={onReplaceRowItem}
+                onDeleteRowItem={onDeleteRowItem}
+                onUpdateRowItem={onUpdateRowItem}
+                onMarkRowDirty={onMarkRowDirty}
+                onOpenRowDetails={onOpenRowDetails}
+                onClearRowComponent={onClearRowComponent}
+                onRequestProjectSpecific={onRequestProjectSpecific}
+                onMoveRowComponent={onMoveRowComponent}
+                onToggleRowSelection={onToggleRowSelection}
+                rowIds={selectableRowIds}
+                onRequestFocusByRowId={requestFocusByRowId}
+	                style={virtualEnabled ? {
+	                  left: 0,
+	                  position: "absolute",
+	                  top: 0,
+	                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+	                  width: "100%",
+	                } : undefined}
+              />
+            );
+          })}
         </tbody>
       </table>
     </div>
