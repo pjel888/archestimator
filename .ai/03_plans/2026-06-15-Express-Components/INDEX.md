@@ -19,6 +19,7 @@ Day-0 implementation is deliberately narrower than the full pack: U1-U4 plus the
 ## Files
 
 - `00-scope-and-premise-decision.md` records the day-0 cut, inline-vs-modal spike gate, and table-versus-metadata identity decision.
+- `IMPLEMENTATION_GOAL.md` is the copy-pasteable AI entrypoint for implementing this pack through durable goals, parallel work lanes, and UltraQA.
 - `01-current-state-audit.md` records the current Add row, material-cell, project-specific, Components tab, and live Supabase state.
 - `02-data-model-and-supabase-research.md` compares persistence alternatives and records Supabase docs/provider evidence.
 - `03-ux-interaction-design.md` defines the inline editing, project folder, keyboard, and visual behavior.
