@@ -679,6 +679,33 @@ export async function rotateProjectPublicationLink({
     .eq("id", latest.id);
 
   if (error) throw error;
+
+  const { data: recipients, error: recipientsError } = await context.admin
+    .from("shared_link_recipients")
+    .select("id")
+    .eq("publication_id", latest.id);
+
+  if (recipientsError) throw recipientsError;
+
+  // Rotating the base shared-link token must also revoke previously emailed recipient credentials.
+  // The publication row stays in place so the Recipients tab can keep its invite list, but any raw
+  // recipient tokens issued for the old base URL are replaced with unreachable per-recipient hashes.
+  // Managers can mint a fresh usable recipient credential through the existing resend flow.
+  const recipientTokenSecret = readPublicationTokenHashSecret();
+  for (const recipient of recipients ?? []) {
+    const revokedRecipientToken = `${token}:${recipient.id}:${createPublicationToken()}`;
+    const { error: recipientError } = await context.admin
+      .from("shared_link_recipients")
+      .update({
+        recipient_token_hash: hashPublicationToken(revokedRecipientToken, recipientTokenSecret),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("publication_id", latest.id)
+      .eq("id", recipient.id);
+
+    if (recipientError) throw recipientError;
+  }
+
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
   return { ok: true, message: "New shared link ready.", clientLinkPath };
 }

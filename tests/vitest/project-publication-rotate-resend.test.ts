@@ -178,6 +178,12 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
                 error: null,
               };
             }
+            if (query.table === "shared_link_recipients" && query.operation === "select") {
+              return {
+                data: [{ id: RECIPIENT_ID }, { id: "55555555-5555-4555-8555-555555555555" }],
+                error: null,
+              };
+            }
             // estimates / nodes / rows / tabs for snapshot building
             return { data: [], error: null };
           },
@@ -235,6 +241,23 @@ describe("AC-MOD-02 rotateProjectPublicationLink rotates the token in place", ()
           (query.payload as Record<string, unknown> | undefined)?.status === "revoked",
       ),
     ).toBe(false);
+
+    const recipientInvalidations = recorded.filter(
+      (query) => query.table === "shared_link_recipients" && query.operation === "update",
+    );
+    expect(recipientInvalidations).toHaveLength(2);
+    expect(
+      recipientInvalidations.every((query) => findFilter(query, "publication_id")?.value === PUBLICATION_ID),
+    ).toBe(true);
+    expect(recipientInvalidations.map((query) => findFilter(query, "id")?.value)).toEqual([
+      RECIPIENT_ID,
+      "55555555-5555-4555-8555-555555555555",
+    ]);
+    const invalidatedHashes = recipientInvalidations.map(
+      (query) => (query.payload as Record<string, unknown>).recipient_token_hash,
+    );
+    expect(invalidatedHashes).toHaveLength(new Set(invalidatedHashes).size);
+    expect(invalidatedHashes.every((hash) => typeof hash === "string" && hash.length > 20)).toBe(true);
   });
 });
 
