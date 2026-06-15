@@ -11,6 +11,7 @@ export type ReusableSourceLiveMetadata = {
   estimateName?: string;
   sheetCode?: string | null;
   tabName?: string;
+  tabDisplayName?: string;
   nodePath?: string[];
   updatedAt?: string | null;
   rowCount?: number | null;
@@ -39,6 +40,8 @@ export type ProjectTabReusableSource = {
   estimateId: string;
   tabId: string;
   name: string;
+  displayName?: string;
+  sortOrder?: number;
   metadata?: ReusableSourceLiveMetadata;
 };
 

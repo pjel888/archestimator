@@ -206,8 +206,11 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: tabAId,
         name: "Lobby Main",
+        displayName: "Page 001",
+        sortOrder: 0,
         metadata: {
           tabName: "Lobby Main",
+          tabDisplayName: "Page 001",
           updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 3,
           totalCost: 350,
@@ -219,11 +222,14 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: tabAId,
         nodeId: "group-1",
+        parentNodeId: null,
         nodeKind: "group",
         name: "Amenity Millwork",
+        rowItems: [{ totalItemCosts: 100 }],
         metadata: {
           tabName: "Lobby Main",
-          nodePath: ["Lobby Main", "Amenity Millwork"],
+          tabDisplayName: "Page 001",
+          nodePath: ["Page 001", "Amenity Millwork"],
           updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 3,
           totalCost: 350,
@@ -235,11 +241,14 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: tabAId,
         nodeId: "area-1",
+        parentNodeId: "group-1",
         nodeKind: "area",
         name: "Reception Feature Wall",
+        rowItems: [{ totalItemCosts: 200 }, { totalItemCosts: 50 }],
         metadata: {
           tabName: "Lobby Main",
-          nodePath: ["Lobby Main", "Amenity Millwork", "Reception Feature Wall"],
+          tabDisplayName: "Page 001",
+          nodePath: ["Page 001", "Amenity Millwork", "Reception Feature Wall"],
           updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 2,
           totalCost: 250,
@@ -328,11 +337,14 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: tabAId,
         name: "Lobby Main",
+        displayName: "Page 001",
+        sortOrder: 0,
         metadata: {
           projectName: "Accessible Project",
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
           tabName: "Lobby Main",
+          tabDisplayName: "Page 001",
           updatedAt: "2026-06-12T08:45:00.000Z",
           rowCount: 1,
           totalCost: 125000,
@@ -344,17 +356,91 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: tabAId,
         nodeId: "group-1",
+        parentNodeId: null,
         nodeKind: "group",
         name: "Amenity Millwork",
+        rowItems: [{ totalItemCosts: 125000 }],
         metadata: {
           projectName: "Accessible Project",
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
           tabName: "Lobby Main",
-          nodePath: ["Lobby Main", "Amenity Millwork"],
+          tabDisplayName: "Page 001",
+          nodePath: ["Page 001", "Amenity Millwork"],
           updatedAt: "2026-06-12T08:45:00.000Z",
           rowCount: 1,
           totalCost: 125000,
+        },
+      },
+    ]);
+  });
+
+  it("searches derived display tab labels before an outline is loaded", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: { data: [], error: null },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Page 001" });
+
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(1);
+    expect(result.sources).toEqual([
+      {
+        kind: "project",
+        projectId: projectAId,
+        name: "Accessible Project",
+        metadata: {
+          projectName: "Accessible Project",
+        },
+      },
+      {
+        kind: "project-estimate",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        metadata: {
+          projectName: "Accessible Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
+      },
+      {
+        kind: "project-tab",
+        projectId: projectAId,
+        estimateId: estimateAId,
+        tabId: tabAId,
+        name: "Lobby Main",
+        displayName: "Page 001",
+        sortOrder: 0,
+        metadata: {
+          projectName: "Accessible Project",
+          estimateName: "Lobby Estimate",
+          sheetCode: "EST-002",
+          tabName: "Lobby Main",
+          tabDisplayName: "Page 001",
+          updatedAt: "2026-06-12T08:45:00.000Z",
+          rowCount: 0,
+          totalCost: 0,
         },
       },
     ]);
@@ -395,8 +481,11 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: "legacy-main",
         name: "Main",
+        displayName: "Page 001",
+        sortOrder: 0,
         metadata: {
           tabName: "Main",
+          tabDisplayName: "Page 001",
           updatedAt: "2026-06-12T09:00:00.000Z",
           rowCount: 1,
           totalCost: 5000,
@@ -408,11 +497,14 @@ describe("reusable project source actions", () => {
         estimateId: estimateAId,
         tabId: "legacy-main",
         nodeId: "group-1",
+        parentNodeId: null,
         nodeKind: "group",
         name: "Site Works",
+        rowItems: [{ totalItemCosts: 5000 }],
         metadata: {
           tabName: "Main",
-          nodePath: ["Main", "Site Works"],
+          tabDisplayName: "Page 001",
+          nodePath: ["Page 001", "Site Works"],
           updatedAt: "2026-06-12T09:00:00.000Z",
           rowCount: 1,
           totalCost: 5000,

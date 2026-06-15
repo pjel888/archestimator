@@ -151,6 +151,21 @@ describe("estimate sheet cost inputs", () => {
     });
   });
 
+  it("uses the shared hover-revealed selection checkbox for estimate rows", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const selector = screen.getByRole("checkbox", { name: "Select Hardwood Oak Flooring" });
+    expect(selector).toHaveAttribute("aria-checked", "false");
+    expect(selector).toHaveClass("opacity-0", "group-hover/estimate-row:opacity-100", "group-focus-within/estimate-row:opacity-100");
+
+    await user.click(selector);
+
+    await waitFor(() => expect(selector).toHaveAttribute("aria-checked", "true"));
+    expect(selector).toHaveClass("bg-[#ABABAB]", "opacity-100");
+    expect(selector).not.toHaveClass("opacity-0");
+  });
+
   it("displays the misc cost input as pesos when idle but keeps focused typing uninterrupted", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("main-house");
@@ -385,13 +400,19 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("keeps area breadcrumbs as a compact node-body trail", () => {
-    renderEstimateSheet("living-area");
+    const { container } = renderEstimateSheet("living-area");
 
     const breadcrumbs = screen.getByLabelText("Living Area breadcrumbs");
-    expect(breadcrumbs).toHaveClass("flex", "items-center", "gap-1", "border-x", "border-hairline", "bg-surfaceMuted/40", "pb-2");
+    expect(breadcrumbs).toHaveClass("flex", "items-center", "gap-1", "border-x", "border-b", "border-hairline", "bg-surfaceMuted/40", "pb-2");
     expect((breadcrumbs as HTMLElement).style.paddingLeft).toBe("51px");
     expect(breadcrumbs.parentElement).not.toHaveClass("mt-1", "space-y-2");
     expect(within(breadcrumbs).getAllByText("›").every((separator) => separator.className.includes("text-current"))).toBe(true);
+
+    const rowTable = container.querySelector("[data-estimate-row-table-root='living-area']");
+    expect(rowTable).not.toBeNull();
+    if (!rowTable) throw new Error("Expected living area row table to render");
+    expect(rowTable).toHaveClass("border-x", "border-b", "border-hairline");
+    expect(rowTable).not.toHaveClass("border", "border-t");
   });
 
   it("uses group row rhythm when group and area nodes are siblings", () => {

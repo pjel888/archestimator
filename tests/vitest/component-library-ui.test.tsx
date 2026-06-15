@@ -3,6 +3,7 @@ import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testi
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_PREFS_KEY, LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
+import { NewTemplateModal } from "@/components/workshop/component-library/NewTemplateModal";
 import { PROJECT_SOURCE_DRAG_MIME_TYPE, type EstimateTemplate } from "@/components/workshop/component-library/templates";
 import { estimateLibraryItems, type EstimateRowItem, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { useEstimateWorkshopDragState } from "@/components/workshop/estimate-workshop-drag";
@@ -117,6 +118,60 @@ describe("component library UI", () => {
     reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
     reusableSourceActionMocks.searchReusableProjectSources.mockReset();
+  });
+
+  it("saves project-tab templates with the raw tab name while showing the display label", async () => {
+    templateActionMocks.createEstimateTemplateFromEstimateTab.mockResolvedValue({
+      template: {
+        id: "tpl-project-tab",
+        name: "Saved Tab Template",
+        description: "",
+        category: "Rooms",
+        nodes: [],
+      },
+    });
+    const onCreated = vi.fn();
+
+    render(
+      <NewTemplateModal
+        open
+        onOpenChange={vi.fn()}
+        mode="estimate-tab"
+        projectId="project-2"
+        estimateId="estimate-2"
+        sourceTabId="tab-2"
+        sourceTabName="Lobby Main"
+        sourceDisplayName="Page 001"
+        sourceNode={{
+          id: "tab-2",
+          name: "Lobby Main",
+          kind: "group",
+          total: "",
+          children: [],
+          estimateRowItems: [],
+        }}
+        existingCategories={["Rooms"]}
+        onCreated={onCreated}
+      />,
+    );
+
+    expect(screen.getByText("Page 001")).toBeInTheDocument();
+    expect(screen.getByLabelText("Template name")).toHaveAttribute("placeholder", "Page 001 template");
+
+    fireEvent.change(screen.getByLabelText("Template name"), { target: { value: "Saved Tab Template" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save template" }));
+
+    await waitFor(() => expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledTimes(1));
+    expect(templateActionMocks.createEstimateTemplateFromEstimateTab).toHaveBeenCalledWith({
+      projectId: "project-2",
+      estimateId: "estimate-2",
+      tabId: "tab-2",
+      tabName: "Lobby Main",
+      name: "Saved Tab Template",
+      category: "",
+      description: "",
+    });
+    expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "tpl-project-tab" }));
   });
 
   afterEach(() => {
@@ -716,6 +771,8 @@ describe("templates tree", () => {
       estimateId: "estimate-2",
       tabId: "tab-2",
       name: "Lobby Main",
+      displayName: "Page 001",
+      sortOrder: 0,
     },
     {
       kind: "project-node",
@@ -748,7 +805,8 @@ describe("templates tree", () => {
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
           tabName: "Lobby Main",
-          nodePath: ["Lobby Main", "Amenity Millwork"],
+          tabDisplayName: "Page 001",
+          nodePath: ["Page 001", "Amenity Millwork"],
           updatedAt: "2026-06-12T08:30:00.000Z",
           rowCount: 7,
           totalCost: 125000,
@@ -763,6 +821,7 @@ describe("templates tree", () => {
           estimateName: "Lobby Estimate",
           sheetCode: "EST-002",
           tabName: "Lobby Main",
+          tabDisplayName: "Page 001",
           updatedAt: "2026-06-12T08:15:00.000Z",
           rowCount: 11,
           totalCost: 180000,
@@ -949,9 +1008,9 @@ describe("templates tree", () => {
     expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Page 001 project tab source" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     const nodeRow = screen.getByRole("treeitem", { name: "Amenity Millwork project area" });
     expect(nodeRow).toBeInTheDocument();
     expect(within(nodeRow).queryByText("Group")).not.toBeInTheDocument();
@@ -969,7 +1028,7 @@ describe("templates tree", () => {
     fireEvent.click(projectRow);
     const estimateRow = screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" });
     fireEvent.click(estimateRow);
-    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+    const tabRow = screen.getByRole("treeitem", { name: "Page 001 project tab source" });
     fireEvent.click(tabRow);
     const nodeRow = screen.getByRole("treeitem", { name: "Amenity Millwork project area" });
     fireEvent.click(nodeRow);
@@ -1094,8 +1153,8 @@ describe("templates tree", () => {
         estimateId: "estimate-2",
       }),
     );
-    expect(await screen.findByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(await screen.findByRole("treeitem", { name: "Page 001 project tab source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     expect(screen.getByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
   });
 
@@ -1248,7 +1307,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+    const tabRow = screen.getByRole("treeitem", { name: "Page 001 project tab source" });
 
     const dataTransfer = createDataTransferStub();
     fireEvent.dragStart(tabRow, { dataTransfer });
@@ -1264,7 +1323,7 @@ describe("templates tree", () => {
     );
     expect(useEstimateWorkshopDragState.getState().activeDrag).toEqual({
       kind: "project-source",
-      sourceName: "Lobby Main",
+      sourceName: "Page 001",
     });
 
     fireEvent.dragEnd(tabRow, { dataTransfer });
@@ -1277,7 +1336,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }), { clientX: 16, clientY: 16 });
 
     fireEvent.click(await screen.findByRole("menuitem", { name: "Add to Main House" }));
@@ -1295,7 +1354,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }), { clientX: 16, clientY: 16 });
 
     // Pulling the source into the current estimate is allowed (the drag-drop
@@ -1311,7 +1370,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }), { clientX: 16, clientY: 16 });
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Page 001 project tab source" }), { clientX: 16, clientY: 16 });
 
     expect(await screen.findByRole("menuitem", { name: /^Add to / })).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Save as template" })).not.toBeInTheDocument();
@@ -1329,7 +1388,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }));
 
     const preview = screen.getByRole("region", { name: "Project source preview" });
@@ -1339,7 +1398,7 @@ describe("templates tree", () => {
     expect(within(preview).getByText("Renovation Project")).toBeInTheDocument();
     expect(within(preview).getByText("Lobby Estimate")).toBeInTheDocument();
     expect(within(preview).getByText("EST-002")).toBeInTheDocument();
-    expect(within(preview).getByText("Lobby Main / Amenity Millwork")).toBeInTheDocument();
+    expect(within(preview).getByText("Page 001 / Amenity Millwork")).toBeInTheDocument();
     expect(within(preview).getByText("7")).toBeInTheDocument();
     expect(within(preview).getByText("₱125,000.00")).toBeInTheDocument();
     expect(within(preview).queryByRole("button", { name: "Rename" })).not.toBeInTheDocument();
@@ -1364,7 +1423,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
 
     const preview = screen.getByRole("region", { name: "Project source preview" });
     expect(within(preview).getByText("Source outline")).toBeInTheDocument();
@@ -1378,7 +1437,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Select Lobby Main" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Page 001" }));
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
     expect(onInsertProjectSource).toHaveBeenCalledTimes(1);
@@ -1401,7 +1460,7 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Amenity Millwork project area" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Select Project Stone Panel" }));
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
@@ -1416,11 +1475,11 @@ describe("templates tree", () => {
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    const tabRow = screen.getByRole("treeitem", { name: "Lobby Main project tab source" });
+    const tabRow = screen.getByRole("treeitem", { name: "Page 001 project tab source" });
     fireEvent.click(tabRow);
     fireEvent.keyDown(tabRow, { key: " " });
 
-    expect(screen.getByRole("checkbox", { name: "Select Lobby Main" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: "Select Page 001" })).toHaveAttribute("aria-checked", "true");
 
     fireEvent.click(screen.getByRole("button", { name: "Add selected to estimate" }));
 
@@ -1441,8 +1500,8 @@ describe("templates tree", () => {
     fireEvent.click(screen.getByRole("treeitem", { name: "Renovation Project project source" }));
     expect(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Estimate estimate EST-002" }));
-    expect(screen.getByRole("treeitem", { name: "Lobby Main project tab source" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("treeitem", { name: "Lobby Main project tab source" }));
+    expect(screen.getByRole("treeitem", { name: "Page 001 project tab source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: "Page 001 project tab source" }));
     expect(screen.getByRole("treeitem", { name: "Amenity Millwork project area" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Rooms templates" })).not.toBeInTheDocument();
   });

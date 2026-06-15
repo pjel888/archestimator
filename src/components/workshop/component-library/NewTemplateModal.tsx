@@ -54,6 +54,8 @@ export type NewTemplateModalProps = {
   estimateId?: string;
   sourceNode: EstimateTreeNode | null;
   sourceTabId?: string;
+  sourceTabName?: string;
+  sourceDisplayName?: string;
   existingCategories: string[];
   defaultCategory?: string;
   onCreated: (template: EstimateTemplate) => void;
@@ -67,6 +69,8 @@ export function NewTemplateModal({
   estimateId,
   sourceNode,
   sourceTabId,
+  sourceTabName,
+  sourceDisplayName,
   existingCategories,
   defaultCategory,
   onCreated,
@@ -79,9 +83,10 @@ export function NewTemplateModal({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
-  const summary = useMemo(() => (sourceNode ? summarizeSourceNode(sourceNode) : null), [sourceNode]);
   const scratchMode = mode === "scratch";
   const tabMode = mode === "estimate-tab";
+  const summary = useMemo(() => (sourceNode ? summarizeSourceNode(sourceNode) : null), [sourceNode]);
+  const sourceLabel = sourceDisplayName ?? sourceNode?.name ?? "";
   const canSubmit = scratchMode
     ? !pending
     : tabMode
@@ -125,7 +130,7 @@ export function NewTemplateModal({
           projectId,
           estimateId,
           tabId: sourceTabId,
-          tabName: sourceNode.name,
+          tabName: sourceTabName ?? sourceNode.name,
           name,
           category,
           description,
@@ -149,7 +154,7 @@ export function NewTemplateModal({
     } finally {
       setPending(false);
     }
-  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, scratchMode, sourceNode, sourceTabId, tabMode]);
+  }, [category, description, estimateId, name, onCreated, onOpenChange, pending, projectId, resetForm, scratchMode, sourceNode, sourceTabId, sourceTabName, tabMode]);
 
   return (
     <Modal
@@ -175,7 +180,7 @@ export function NewTemplateModal({
               <Circle size={14} weight="regular" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[10px] font-medium text-ink">{sourceNode.name}</p>
+              <p className="truncate text-[10px] font-medium text-ink">{sourceLabel}</p>
               <p className="text-[9px] leading-3 text-tertiary">
                 {tabMode ? "Tab source" : "Area"} · {pluralize(summary.subAreaCount, "sub-area")} · {pluralize(summary.rowCount, "row")}
               </p>
@@ -192,7 +197,7 @@ export function NewTemplateModal({
             aria-label="Template name"
             className={inputClass}
             value={name}
-            placeholder={sourceNode ? `${sourceNode.name} template` : "Template name"}
+            placeholder={sourceLabel ? `${sourceLabel} template` : "Template name"}
             onChange={(event) => {
               setName(event.target.value);
               if (error) setError("");

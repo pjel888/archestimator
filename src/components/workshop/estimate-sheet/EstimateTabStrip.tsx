@@ -13,6 +13,11 @@ import {
   renameEstimateTab,
   reorderEstimateTabs,
 } from "@/lib/estimates/actions";
+import {
+  formatEstimatePageTabName,
+  getEstimateTabDisplayName,
+  sortEstimateTabsForDisplay,
+} from "@/lib/estimates/tab-display";
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
 import { useToast } from "@/components/ui/toast";
@@ -70,23 +75,10 @@ function canSpringLoadTabDrag(event: DragEvent<HTMLElement>) {
 }
 
 function getNextTabName(tabs: readonly EstimateTabSummary[]) {
-  const usedNames = new Set(tabs.map((tab, index) => getTabDisplayName(tab, index).toLowerCase()));
+  const usedNames = new Set(sortEstimateTabsForDisplay(tabs).map((tab, index) => getEstimateTabDisplayName(tab, index).toLowerCase()));
   let index = tabs.length + 1;
-  while (usedNames.has(formatPageTabName(index).toLowerCase())) index += 1;
-  return formatPageTabName(index);
-}
-
-function sortTabs(tabs: readonly EstimateTabSummary[]) {
-  return [...tabs].sort((left, right) => left.sortOrder - right.sortOrder || left.name.localeCompare(right.name));
-}
-
-function formatPageTabName(index: number) {
-  return `Page ${String(index).padStart(3, "0")}`;
-}
-
-function getTabDisplayName(tab: EstimateTabSummary, index: number) {
-  if (index === 0) return "Page 001";
-  return tab.name;
+  while (usedNames.has(formatEstimatePageTabName(index).toLowerCase())) index += 1;
+  return formatEstimatePageTabName(index);
 }
 
 export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabStripProps>(function EstimateTabStrip({
@@ -102,7 +94,7 @@ export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabSt
   className,
 }: EstimateTabStripProps, ref) {
   const { toast } = useToast();
-  const orderedTabs = useMemo(() => sortTabs(tabs), [tabs]);
+  const orderedTabs = useMemo(() => sortEstimateTabsForDisplay(tabs), [tabs]);
   const resolvedActiveTabId = orderedTabs.some((tab) => tab.id === activeTabId)
     ? activeTabId
     : orderedTabs[0]?.id ?? activeTabId;
@@ -578,7 +570,7 @@ export const EstimateTabStrip = forwardRef<EstimateTabStripHandle, EstimateTabSt
   const navigationTabs = useMemo<readonly TabItem[]>(() =>
     orderedTabs.map((tab, index) => {
         const isEditing = editingTabId === tab.id;
-        const displayName = getTabDisplayName(tab, index);
+        const displayName = getEstimateTabDisplayName(tab, index);
         return {
           id: tab.id,
           label: isEditing ? (

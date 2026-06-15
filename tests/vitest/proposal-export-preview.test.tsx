@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import { ProposalExportPreviewDialog, clampRate } from "@/components/workshop/ProposalExportPreviewDialog";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { setEstimateProposalPreviewSignatureProbe } from "@/components/workshop/estimate-sheet-render-probe";
 // Req 1 / D2: the "Preview Excel Export" opener moved to the project chrome
 // header (`EstimateHeaderActions`), fed by the page via a shared store. Render it
 // alongside the sheet so the relocated opener is reachable here.
@@ -74,6 +75,10 @@ const nodes: EstimateTreeNode[] = [
     ],
   },
 ];
+
+afterEach(() => {
+  setEstimateProposalPreviewSignatureProbe(null);
+});
 
 describe("ProposalExportPreviewDialog", () => {
   it("shows a read-only contractor-format preview with stale refresh and download controls", async () => {
@@ -190,8 +195,8 @@ describe("ProposalExportPreviewDialog", () => {
     render(<ProposalExportPreviewDialog open model={model} onDownload={vi.fn()} onRefresh={vi.fn()} onClose={vi.fn()} />);
 
     const issues = screen.getByTestId("proposal-validation-issues");
-    expect(within(issues).getByText(/Rows on group node/i)).toBeInTheDocument();
     expect(within(issues).getByText(/do not yet separate material and labor/i)).toBeInTheDocument();
+    expect(within(issues).queryByText(/Rows on group node/i)).not.toBeInTheDocument();
   });
 
   it("is keyboard accessible: initial focus, Esc-to-close, and overlay-click-to-close (P1-T3, F-06)", async () => {
@@ -220,8 +225,6 @@ describe("ProposalExportPreviewDialog", () => {
         <EstimateSheetContent
           selectedNodeId="main-house"
           nodes={nodes}
-          projectId="project-1"
-          estimateId="estimate-1"
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
@@ -249,8 +252,6 @@ describe("ProposalExportPreviewDialog", () => {
         <EstimateSheetContent
           selectedNodeId="main-house"
           nodes={nodes}
-          projectId="project-1"
-          estimateId="estimate-1"
           proposalExportMetadata={metadata}
           renderSidebar={false}
         />
@@ -269,6 +270,52 @@ describe("ProposalExportPreviewDialog", () => {
     // the file's Summary Grand Total: 21,700 Direct + 2,170 contingency + 2,864.40 VAT.
     expect(screen.getByText("₱ 26,734.40")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download editable XLSX" })).toBeInTheDocument();
+  });
+
+  it("computes proposal signatures lazily and rebuilds preview from current row values", async () => {
+    const user = userEvent.setup();
+    let signatureComputes = 0;
+    setEstimateProposalPreviewSignatureProbe(() => {
+      signatureComputes += 1;
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId="main-house"
+          nodes={nodes}
+          proposalExportMetadata={metadata}
+          renderSidebar={false}
+        />
+        <EstimateHeaderActions />
+      </QueryClientProvider>,
+    );
+
+    const quantityInput = within(container).getAllByLabelText("Porcelain Tile quantity")[0] as HTMLInputElement;
+
+    await user.click(quantityInput);
+    await user.keyboard("{Backspace}{Backspace}13");
+    expect(quantityInput.value).toBe("13");
+    expect(signatureComputes).toBe(0);
+
+    await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
+    expect(signatureComputes).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getByText("₱ 27,904.80")).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Close preview" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Excel export preview" })).not.toBeInTheDocument());
+
+    signatureComputes = 0;
+    const previewQuantityInput = within(container).getAllByLabelText("Porcelain Tile quantity")[0] as HTMLInputElement;
+    await user.click(previewQuantityInput);
+    await user.keyboard("{Backspace}{Backspace}14");
+    expect(previewQuantityInput.value).toBe("14");
+    expect(signatureComputes).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Preview Excel Export" }));
+    await waitFor(() => expect(screen.getByText("₱ 29,075.20")).toBeInTheDocument());
+    expect(screen.getByText("Preview current")).toBeInTheDocument();
   });
 
   it("defaults multi-tab preview downloads to all-tabs export and lets users switch to the active-tab route", async () => {

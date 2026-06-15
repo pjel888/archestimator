@@ -22,7 +22,7 @@ import { TREE_ROW_ICON_SIZE, Tree, type TreeDropPosition, type TreeNode as UiTre
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../helpers";
-import { findNode, getAllNodeIds } from "./helpers";
+import { getAllNodeIds } from "./helpers";
 import type { LibraryTreeProps, LibraryTreeNode } from "./types";
 
 function menuIcon(Icon: typeof Plus) {
@@ -233,6 +233,14 @@ function buildParentMap(
   return into;
 }
 
+function buildNodeMap(nodes: LibraryTreeNode[], into = new Map<string, LibraryTreeNode>()): Map<string, LibraryTreeNode> {
+  for (const node of nodes) {
+    into.set(node.id, node);
+    if (node.children?.length) buildNodeMap(node.children, into);
+  }
+  return into;
+}
+
 function getLibraryNode(node: UiTreeNode): LibraryTreeNode | undefined {
   return node.data?.libraryNode as LibraryTreeNode | undefined;
 }
@@ -267,6 +275,7 @@ export function LibraryTree({
   const reorderEnabled = Boolean(onReorder) && !reorderDisabled;
   const uiNodes = useMemo(() => toUiNodes(nodes, reorderEnabled), [nodes, reorderEnabled]);
   const parentByNodeId = useMemo(() => buildParentMap(nodes), [nodes]);
+  const nodeById = useMemo(() => buildNodeMap(nodes), [nodes]);
   const searchActive = searchQuery.trim().length > 0;
   // Active searches reveal every match: the filtered tree renders fully
   // expanded instead of hiding hits under collapsed folders.
@@ -299,10 +308,10 @@ export function LibraryTree({
   const handleNodeDragStart = useCallback(
     (nodeId: string, event: DragEvent<HTMLElement>) => {
       if (!onItemDragStart) return;
-      const item = findNode(nodes, nodeId)?.item;
+      const item = nodeById.get(nodeId)?.item;
       if (item) onItemDragStart(event, item);
     },
-    [nodes, onItemDragStart],
+    [nodeById, onItemDragStart],
   );
 
   const handleCanDrag = useCallback(
@@ -335,7 +344,7 @@ export function LibraryTree({
   }, []);
 
   const contextMenuGroups = useMemo<ActionMenuGroup[]>(() => {
-    const contextNode = contextMenuNodeId ? findNode(nodes, contextMenuNodeId) : null;
+    const contextNode = contextMenuNodeId ? nodeById.get(contextMenuNodeId) : null;
     if (!contextNode) return [];
     if (contextNode.item) {
       const item = contextNode.item;
@@ -364,7 +373,7 @@ export function LibraryTree({
     canShowAddAction,
     contextMenuNodeId,
     effectiveExpandedIds,
-    nodes,
+    nodeById,
     onCreateComponent,
     onItemAdd,
     onItemDelete,
