@@ -197,6 +197,15 @@ async function assertCanManageLibrary(
   if (data !== true) throw new Error("Only workspace editors/admins can manage the library.");
 }
 
+async function assertCanPublishEstimateTemplateFromEstimate(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  estimateId: string,
+) {
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  if (error) throwActionError("Could not verify estimate edit access.", error);
+  if (data !== true) throw new Error("Estimate edit access is required to save this estimate as a template.");
+}
+
 // Library Optimization Plan P3 T19 (F24): a generous per-workspace creation quota so a
 // runaway client / abuse cannot create unbounded library rows. Enforced at the app layer
 // (a head count, no migration). The caps are far above any legitimate workspace today.
@@ -765,8 +774,8 @@ type EstimateNodeSubtreeRow = {
  * Saves an estimate node (group or area) and its whole subtree — child
  * nodes plus estimate rows — as a reusable workspace template. The server
  * reads the subtree authoritatively; clients only send identifiers, never
- * tree payloads. RLS on the template tables limits writes to workspace
- * members.
+ * tree payloads. Workspace editors also need edit access to the source
+ * estimate before its nodes and rows can be copied into shared templates.
  */
 export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
@@ -790,6 +799,7 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
     .maybeSingle();
   if (estimateError) throwActionError("Could not load the estimate.", estimateError);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
+  await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);
 
   const { data: nodeRows, error: nodesError } = await supabase
     .from("estimate_nodes")
@@ -963,6 +973,7 @@ export async function createEstimateTemplateFromEstimateTab(input: CreateEstimat
     .maybeSingle();
   if (estimateError) throwActionError("Could not load the estimate.", estimateError);
   if (!estimate) throw new Error("Estimate not found in the current workspace.");
+  await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);
 
   const { data: nodeRows, error: nodesError } = await supabase
     .from("estimate_nodes")

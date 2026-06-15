@@ -23,11 +23,16 @@ const repositoryMocks = vi.hoisted(() => ({
   getEstimateTree: vi.fn(),
 }));
 
+const workshopActionMocks = vi.hoisted(() => ({
+  setEstimateFavorite: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
 }));
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/workshop/actions", () => workshopActionMocks);
 vi.mock("@/lib/repositories/estimate-repository", () => ({
   estimateRepository: repositoryMocks,
 }));
@@ -48,6 +53,8 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
     rowItemCount: 1,
     sheet_code: "EST-001",
     totalProjectCost: 1250,
+    isFavorite: false,
+    favoriteCreatedAt: null,
     updated_at: "2026-05-19T10:00:00.000Z",
     ...overrides,
   };
@@ -75,6 +82,8 @@ describe("project estimates table inline editing", () => {
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
     repositoryMocks.getEstimateTree.mockReset();
+    workshopActionMocks.setEstimateFavorite.mockReset();
+    workshopActionMocks.setEstimateFavorite.mockResolvedValue(undefined);
     actionMocks.fetchEstimateTree.mockResolvedValue([]);
     actionMocks.previewBulkDeleteEstimateSheets.mockResolvedValue({
       ok: true,
@@ -135,6 +144,53 @@ describe("project estimates table inline editing", () => {
       projectId: "project-1",
       estimateId: "estimate-1",
     });
+  });
+
+  it("places the favorite star after row selection and gives row icons pointer affordance", async () => {
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const favoriteButton = screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" });
+    const selectInput = screen.getByRole("checkbox", { name: "Select Original Estimate" });
+    const deleteButton = screen.getByRole("button", { name: "Delete Original Estimate" });
+    const duplicateButton = screen.getByRole("button", { name: "Duplicate Original Estimate" });
+    const openLink = screen.getByRole("link", { name: "Open Original Estimate" });
+    const actionCluster = favoriteButton.parentElement;
+    const actionChildren = Array.from(actionCluster?.children ?? []);
+
+    expect(actionCluster).not.toBeNull();
+    expect(actionChildren.indexOf(favoriteButton)).toBeGreaterThan(actionChildren.indexOf(selectInput));
+    expect(selectInput).toHaveClass("cursor-pointer");
+    expect(favoriteButton).toHaveClass("cursor-pointer");
+    expect(deleteButton).toHaveClass("cursor-pointer");
+    expect(duplicateButton).toHaveClass("cursor-pointer");
+    expect(openLink).toHaveClass("cursor-pointer");
+
+    await user.click(favoriteButton);
+
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledTimes(1));
+    expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledWith({
+      estimateId: "estimate-1",
+      favorite: true,
+    });
+  });
+
+  it("rolls back an estimate favorite toggle when persistence fails", async () => {
+    workshopActionMocks.setEstimateFavorite.mockRejectedValueOnce(new Error("Favorite write failed."));
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const favoriteButton = screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" });
+    await user.click(favoriteButton);
+
+    await waitFor(() => expect(favoriteButton).toHaveAttribute("aria-pressed", "false"));
+    expect(screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" })).toHaveAttribute(
+      "title",
+      "Favorite write failed.",
+    );
   });
 
   it("saves an inline estimate name edit once when Enter blurs the field", async () => {
