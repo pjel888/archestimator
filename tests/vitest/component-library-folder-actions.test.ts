@@ -142,3 +142,67 @@ describe("component library folder server actions", () => {
     expect(supabase.componentQuery.select).toHaveBeenCalledWith("id");
   });
 });
+
+describe("estimate template server action authorization", () => {
+  const templateId = "00000000-0000-4000-8000-000000000011";
+  const estimateId = "00000000-0000-4000-8000-000000000012";
+  const sourceNodeId = "00000000-0000-4000-8000-000000000013";
+
+  it("blocks workspace viewers before any template mutation path", async () => {
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "is_workspace_editor") return { data: false, error: null };
+      return { data: null, error: null };
+    });
+    const from = vi.fn(() => {
+      throw new Error("viewer template mutations must stop before table access");
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(
+      actions.createEstimateTemplateFromEstimateNode({
+        projectId: "project-1",
+        estimateId,
+        sourceNodeId,
+        name: "Viewer copy",
+      }),
+    ).rejects.toThrow("Only workspace editors/admins can manage estimate templates.");
+    await expect(actions.renameEstimateTemplate({ templateId, name: "Viewer rename" })).rejects.toThrow(
+      "Only workspace editors/admins can manage estimate templates.",
+    );
+    await expect(actions.deleteEstimateTemplate({ templateId })).rejects.toThrow(
+      "Only workspace editors/admins can manage estimate templates.",
+    );
+
+    expect(rpc).toHaveBeenCalledTimes(3);
+    expect(rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
+    expect(rpc).not.toHaveBeenCalledWith("can_edit_estimate", expect.anything());
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("requires edit access to the source estimate before saving an estimate node as a template", async () => {
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "is_workspace_editor") return { data: true, error: null };
+      if (name === "can_edit_estimate") return { data: false, error: null };
+      return { data: null, error: null };
+    });
+    const from = vi.fn(() => {
+      throw new Error("read-only estimate template save must stop before table access");
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+    const actions = await import("@/lib/component-library/actions");
+
+    await expect(
+      actions.createEstimateTemplateFromEstimateNode({
+        projectId: "project-1",
+        estimateId,
+        sourceNodeId,
+        name: "Read-only estimate copy",
+      }),
+    ).rejects.toThrow("Estimate edit access is required to save estimate templates.");
+
+    expect(rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
+    expect(rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: estimateId });
+    expect(from).not.toHaveBeenCalled();
+  });
+});

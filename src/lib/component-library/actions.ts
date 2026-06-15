@@ -166,6 +166,24 @@ async function assertCanManageLibraryFolders(
   if (data !== true) throw new Error("Only workspace editors/admins can manage library folders.");
 }
 
+async function assertCanManageEstimateTemplates(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+) {
+  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
+  if (error) throw new Error(`Could not verify template access: ${error.message}`);
+  if (data !== true) throw new Error("Only workspace editors/admins can manage estimate templates.");
+}
+
+async function assertCanPublishEstimateTemplateFromEstimate(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  estimateId: string,
+) {
+  const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  if (error) throw new Error(`Could not verify estimate edit access: ${error.message}`);
+  if (data !== true) throw new Error("Estimate edit access is required to save estimate templates.");
+}
+
 function readRequiredComponentText(value: string | undefined | null, label: string) {
   const text = String(value ?? "").trim();
   if (!text) throw new Error(`${label} is required.`);
@@ -660,8 +678,8 @@ type EstimateNodeSubtreeRow = {
  * Saves an estimate node (group or area) and its whole subtree — child
  * nodes plus estimate rows — as a reusable workspace template. The server
  * reads the subtree authoritatively; clients only send identifiers, never
- * tree payloads. RLS on the template tables limits writes to workspace
- * members.
+ * tree payloads. Publishing estimate data to workspace templates requires both
+ * workspace-template management and source-estimate edit authorization.
  */
 export async function createEstimateTemplateFromEstimateNode(input: CreateEstimateTemplateFromNodeInput) {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
@@ -674,6 +692,9 @@ export async function createEstimateTemplateFromEstimateNode(input: CreateEstima
   if (!isUuid(input.estimateId) || !isUuid(input.sourceNodeId)) {
     throw new Error("Estimate node not found in the current workspace.");
   }
+
+  await assertCanManageEstimateTemplates(supabase, workspace.id);
+  await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);
 
   const { data: estimate, error: estimateError } = await supabase
     .from("estimates")
@@ -828,6 +849,8 @@ export async function renameEstimateTemplate(input: { templateId: string; name: 
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageEstimateTemplates(supabase, workspace.id);
+
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .update({ name: templateName })
@@ -848,6 +871,8 @@ export async function deleteEstimateTemplate(input: { templateId: string }) {
   if (!isUuid(input.templateId)) throw new Error("Template not found in the current workspace.");
 
   const supabase = await createSupabaseServerClient();
+  await assertCanManageEstimateTemplates(supabase, workspace.id);
+
   const { data: template, error } = await supabase
     .from("estimate_templates")
     .delete()

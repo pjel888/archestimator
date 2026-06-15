@@ -118,6 +118,30 @@ describe("Codex security findings hardening contracts", () => {
     );
   });
 
+  it("keeps estimate template mutations limited to workspace editors with source estimate edit checks", () => {
+    const templateActions = read("src/lib/component-library/actions.ts");
+    const templateHardening = latestMigrationBySuffix("_harden_estimate_template_editor_access.sql");
+
+    expect(templateActions).toContain("assertCanManageEstimateTemplates");
+    expect(templateActions).toContain("assertCanPublishEstimateTemplateFromEstimate");
+    expect(templateActions).toContain('supabase.rpc("is_workspace_editor"');
+    expect(templateActions).toContain('supabase.rpc("can_edit_estimate"');
+    expect(templateActions.indexOf("await assertCanManageEstimateTemplates(supabase, workspace.id)")).toBeLessThan(
+      templateActions.indexOf('.from("estimates")'),
+    );
+    expect(templateActions.indexOf("await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId)")).toBeLessThan(
+      templateActions.indexOf('.from("estimate_nodes")'),
+    );
+    expect(templateHardening).toContain('drop policy if exists "members can manage estimate templates" on public.estimate_templates');
+    expect(templateHardening).toContain('create policy "members can view estimate templates" on public.estimate_templates');
+    expect(templateHardening).toContain('create policy "workspace editors can insert estimate templates" on public.estimate_templates');
+    expect(templateHardening).toContain('create policy "workspace editors can update estimate templates" on public.estimate_templates');
+    expect(templateHardening).toContain('create policy "workspace editors can delete estimate templates" on public.estimate_templates');
+    expect(templateHardening).toContain("public.is_workspace_editor(workspace_id)");
+    expect(templateHardening).toContain("public.is_workspace_editor(template.workspace_id)");
+    expect(templateHardening).not.toContain("for all to authenticated");
+  });
+
   it("pins MCP tooling package specs instead of auto-resolving floating uvx packages", () => {
     const expectedPackage = "code-review-graph==2.3.5";
     const rootMcp = JSON.parse(read(".mcp.json"));
