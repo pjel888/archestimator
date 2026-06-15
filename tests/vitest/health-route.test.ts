@@ -1,15 +1,19 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
 import { dynamic, GET } from "@/app/api/health/route";
 
+const launchReadinessPlanDir = existsSync(".ai/03_plans/mvp-launch-readiness-2026-06-01")
+  ? ".ai/03_plans/mvp-launch-readiness-2026-06-01"
+  : ".ai/09_archive/mvp-launch-readiness-2026-06-01";
+
 const observabilityPlan = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/27-observability-monitoring-support-plan.md",
+  `${launchReadinessPlanDir}/27-observability-monitoring-support-plan.md`,
   "utf8",
 );
 const operationsRunbook = readFileSync(
-  ".ai/03_plans/mvp-launch-readiness-2026-06-01/40-closed-beta-operations-runbook.md",
+  `${launchReadinessPlanDir}/40-closed-beta-operations-runbook.md`,
   "utf8",
 );
 

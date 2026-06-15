@@ -7,6 +7,7 @@ import {
 } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 const metadata: ProposalExportMetadata = {
   projectId: "project-1",
@@ -53,6 +54,7 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     pricingDate: overrides.pricingDate ?? "2026-05-23",
     confidence: overrides.confidence ?? "allowance",
     notes: overrides.notes,
+    metadata: overrides.metadata,
     laborUnitCost: overrides.laborUnitCost,
     scopeStatus: overrides.scopeStatus,
   };
@@ -197,6 +199,45 @@ describe("proposal export model", () => {
         code: "cost_split_compatibility_mode",
       }),
     );
+  });
+
+  it("carries express component rows through fallback proposal grouping and totals", () => {
+    const expressRow = row({
+      id: "express-vanity",
+      material: "Express custom vanity",
+      description: "Inline-authored vanity allowance",
+      supplier: "",
+      source: "project",
+      category: "Unassigned",
+      discipline: "Unspecified",
+      designation: "",
+      unit: "lot",
+      itemCost: 12_000,
+      quantity: 2,
+      miscCost: 750,
+      contingencyPercentage: 10,
+      metadata: withExpressComponentMetadata({}, { id: "express-1" }),
+    });
+
+    const model = buildProposalExportModel({
+      metadata,
+      nodes: treeWithBedrooms([expressRow], []),
+      generatedAt: "2026-06-15T00:00:00.000Z",
+    });
+
+    expect(model.proposalRows).toHaveLength(1);
+    expect(model.proposalRows[0]).toMatchObject({
+      sectionLabel: "Unassigned",
+      tag: "Unspecified",
+      particulars: "Express custom vanity — Inline-authored vanity allowance",
+      quantity: 2,
+      unit: "lot",
+      materialSubtotal: 24_000,
+      contingencySubtotal: 2_400,
+      miscSubtotal: 750,
+      costAmount: 27_150,
+    });
+    expect(model.totals.grandTotal).toBe(27_150);
   });
 
   it("carries row contingency through model totals and source breakdown rows", () => {

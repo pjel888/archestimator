@@ -1,8 +1,9 @@
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EstimateRowItemsTable } from "@/components/workshop/estimate-sheet/rows/row-table";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 const noop = vi.fn();
 
@@ -61,6 +62,91 @@ describe("estimate row table virtualization", () => {
     expect(mountedCount).toBeGreaterThan(0);
     expect(mountedCount).toBeLessThan(120);
     expect(container.querySelectorAll("tr[data-estimate-row-id]").length).toBe(mountedCount);
+  });
+
+  it("disables row virtualization while an express editor is active", async () => {
+    const rows = makeRows(80);
+    rows[10] = {
+      ...rows[10],
+      metadata: withExpressComponentMetadata({}, { id: "express-row-11" }),
+      sourceLibraryItemId: null,
+      source: "project",
+    };
+
+    const { container } = render(
+      <EstimateRowItemsTable
+        items={rows}
+        editableRows={{}}
+        setEditableRows={noop}
+        targetNodeId="express-virtual-node"
+        onInsertLibraryItem={noop}
+        onReplaceRowItem={noop}
+        onDeleteRowItem={noop}
+        onUpdateRowItem={noop}
+        onMarkRowDirty={noop}
+        onOpenRowDetails={noop}
+        onClearRowComponent={noop}
+        onRequestProjectSpecific={noop}
+        onMoveRowComponent={noop}
+        selectedRowIds={new Set()}
+        onToggleRowSelection={noop}
+        onToggleRowsSelection={noop}
+        virtualization={{ enabled: true, minRows: 1, estimateRowHeight: 96, overscan: 2 }}
+      />
+    );
+
+    expect(container.querySelector("[data-estimate-row-virtualizer]")).not.toBeNull();
+
+    fireEvent.focus(screen.getByLabelText("Component name"));
+
+    await waitFor(() => expect(container.querySelector("[data-estimate-row-virtualizer]")).toBeNull());
+    expect(container.querySelector("[data-estimate-row-virtualizer-disabled-reason='express-editor-active']")).not.toBeNull();
+    expect(container.querySelector("[data-active-express-editor-count='1']")).not.toBeNull();
+    expect(container.querySelectorAll("tr[data-estimate-row-id]")).toHaveLength(80);
+  });
+
+  it("keeps the active express editor visible under a 500-row fallback window", async () => {
+    const rows = makeRows(500, "stress");
+    rows[2] = {
+      ...rows[2],
+      metadata: withExpressComponentMetadata({}, { id: "express-stress-row-3" }),
+      sourceLibraryItemId: null,
+      source: "project",
+    };
+
+    const { container } = render(
+      <EstimateRowItemsTable
+        items={rows}
+        editableRows={{}}
+        setEditableRows={noop}
+        targetNodeId="express-stress-node"
+        onInsertLibraryItem={noop}
+        onReplaceRowItem={noop}
+        onDeleteRowItem={noop}
+        onUpdateRowItem={noop}
+        onMarkRowDirty={noop}
+        onOpenRowDetails={noop}
+        onClearRowComponent={noop}
+        onRequestProjectSpecific={noop}
+        onMoveRowComponent={noop}
+        selectedRowIds={new Set()}
+        onToggleRowSelection={noop}
+        onToggleRowsSelection={noop}
+        virtualization={{ enabled: true, minRows: 1, estimateRowHeight: 96, overscan: 2, initialViewportHeight: 240 }}
+      />
+    );
+
+    const virtualizer = container.querySelector("[data-estimate-row-virtualizer]") as HTMLElement;
+    expect(virtualizer).not.toBeNull();
+    expect(virtualizer).toHaveAttribute("data-estimate-row-virtual-total-count", "500");
+
+    fireEvent.focus(screen.getByLabelText("Component name"));
+
+    await waitFor(() => expect(container.querySelector("[data-estimate-row-virtualizer]")).toBeNull());
+    expect(container.querySelector("[data-estimate-row-virtualizer-disabled-reason='express-editor-active']")).not.toBeNull();
+    expect(container.querySelector("[data-active-express-editor-count='1']")).not.toBeNull();
+    expect(container.querySelector("[data-estimate-row-id='stress-row-3']")).not.toBeNull();
+    expect(container.querySelectorAll("tr[data-estimate-row-id]")).toHaveLength(500);
   });
 
   it("compensates lower row tables inside a shared sheet scroller", async () => {

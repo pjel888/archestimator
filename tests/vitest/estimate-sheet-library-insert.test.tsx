@@ -7,6 +7,7 @@ import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
+import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
@@ -161,6 +162,41 @@ const nodesWithLinkedRow: EstimateTreeNode[] = [
   },
 ];
 
+const legacyBlankRowId = "66666666-6666-4666-8666-666666666663";
+const nodesWithLegacyBlankRow: EstimateTreeNode[] = [
+  {
+    id: targetNodeId,
+    name: "Kitchen",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [
+      {
+        id: legacyBlankRowId,
+        material: "Drag or add a component here",
+        description: "",
+        supplier: "",
+        source: "project",
+        unit: "unit",
+        itemCost: 0,
+        quantity: 1,
+        subTotal: 0,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 0,
+        totalItemCosts: 0,
+        rowRevision: 1,
+        category: "Unassigned",
+        tags: ["manual-row-placeholder"],
+        pricingSource: "Manual estimate row",
+        pricingDate: "2026-06-15",
+        linkState: "unlinked",
+        sourceLibraryItemId: null,
+      },
+    ],
+    children: [],
+  },
+];
+
 const nodesWithOverriddenLinkedRow: EstimateTreeNode[] = [
   {
     ...nodesWithLinkedRow[0],
@@ -170,6 +206,33 @@ const nodesWithOverriddenLinkedRow: EstimateTreeNode[] = [
         linkState: "linked-overridden",
       },
     ],
+  },
+];
+
+const nodesWithDuplicateLinkedRows: EstimateTreeNode[] = [
+  {
+    id: targetNodeId,
+    name: "Kitchen",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [
+      {
+        ...nodesWithRow[0].estimateRowItems![0],
+        id: cabinetRowId,
+        source: "library",
+        sourceLibraryItemId: "99999999-9999-4999-8999-999999999901",
+        linkState: "linked-clean",
+      },
+      {
+        ...nodesWithRow[0].estimateRowItems![0],
+        id: sinkRowId,
+        source: "library",
+        sourceLibraryItemId: "99999999-9999-4999-8999-999999999901",
+        linkState: "linked-clean",
+        rowRevision: 3,
+      },
+    ],
+    children: [],
   },
 ];
 
@@ -202,6 +265,7 @@ describe("estimate sheet library insertion persistence", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
+    delete process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED;
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
@@ -244,7 +308,47 @@ describe("estimate sheet library insertion persistence", () => {
     expect(input.rowId).not.toContain(libraryItem.id);
   });
 
-  it("sends an unlinked manual row template when the area drop zone is clicked", async () => {
+  it("still renders and persists an editable express row when the legacy flag is disabled", async () => {
+    process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "false";
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+
+    expect(await screen.findByLabelText("Express component replaceable estimate component")).toBeInTheDocument();
+    expect(screen.getByLabelText("Image URL")).toBeInTheDocument();
+    const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
+    expect(nameInput.value).toBe("");
+    expect(screen.getByLabelText("Supplier")).toBeInTheDocument();
+    expect(screen.getByLabelText("Unit cost")).toBeInTheDocument();
+    expect(screen.getByLabelText("Component description")).toBeInTheDocument();
+    expect(screen.getByLabelText("Unit")).toBeInTheDocument();
+    expect(screen.queryByText("Drag or add a component here")).not.toBeInTheDocument();
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    const input = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    expect(input).toMatchObject({ projectId, estimateId, targetNodeId });
+    expect(isUuid(input.rowId)).toBe(true);
+    expect(input.libraryItem).toMatchObject({
+      material: "",
+      supplier: "",
+      source: "project",
+      sourceLibraryItemId: null,
+      itemCost: 0,
+      quantity: 1,
+      miscCost: 0,
+      category: "Unassigned",
+      pricingSource: "Express component",
+    });
+    expect(input.libraryItem.metadata?.expressComponent).toMatchObject({
+      kind: "express",
+      schemaVersion: 1,
+      createdFrom: "estimate-sheet-add-row",
+      sourceLabel: "Express component",
+    });
+    expect(input.libraryItem.tags ?? []).not.toContain("manual-row-placeholder");
+  });
+
+  it("sends an express row template by default when the area drop zone is clicked", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet();
 
@@ -255,15 +359,246 @@ describe("estimate sheet library insertion persistence", () => {
     expect(input).toMatchObject({ projectId, estimateId, targetNodeId });
     expect(isUuid(input.rowId)).toBe(true);
     expect(input.libraryItem).toMatchObject({
-      material: "Drag or add a component here",
+      material: "",
       supplier: "",
       source: "project",
+      sourceLibraryItemId: null,
       itemCost: 0,
+      quantity: 1,
       miscCost: 0,
       category: "Unassigned",
-      pricingSource: "Manual estimate row",
+      pricingSource: "Express component",
+      discipline: "Unspecified",
+      designation: "",
     });
-    expect(input.libraryItem.tags).toContain("manual-row-placeholder");
+    expect(await screen.findByLabelText("Express component replaceable estimate component")).toBeInTheDocument();
+    expect(screen.getByLabelText("Image URL")).toBeInTheDocument();
+    const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
+    expect(nameInput.value).toBe("");
+    expect(screen.getByLabelText("Supplier")).toBeInTheDocument();
+    expect(screen.getByLabelText("Unit cost")).toBeInTheDocument();
+    expect(screen.getByLabelText("Component description")).toBeInTheDocument();
+    expect(screen.getByLabelText("Unit")).toBeInTheDocument();
+    expect(screen.queryByText("Drag or add a component here")).not.toBeInTheDocument();
+    expect(input.libraryItem.metadata?.expressComponent).toMatchObject({
+      kind: "express",
+      schemaVersion: 1,
+      createdFrom: "estimate-sheet-add-row",
+      sourceLabel: "Express component",
+    });
+    expect(input.libraryItem.tags ?? []).not.toContain("manual-row-placeholder");
+  });
+
+  it("opens empty express row component details as an express component", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    expect(await within(kitchenSection).findByLabelText("Express component replaceable estimate component")).toBeInTheDocument();
+    await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Express component" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    expect(within(dialog).getAllByText("Express component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText(/authored directly in the estimate row/i).length).toBeGreaterThan(0);
+    expect(within(dialog).getByText("No image yet")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Manual component")).not.toBeInTheDocument();
+  });
+
+  it("buffers express field edits until insert returns a row revision", async () => {
+    process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "true";
+    const user = userEvent.setup();
+    const insert = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateRowItemFromLibrary>>>();
+    actionMocks.insertEstimateRowItemFromLibrary.mockReturnValueOnce(insert.promise);
+    renderPersistedEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+    const insertInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    const nameInput = await screen.findByLabelText("Component name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Custom Vanity");
+    fireEvent.blur(nameInput);
+
+    expect(actionMocks.updateEstimateRowItem).not.toHaveBeenCalled();
+
+    await act(async () => {
+      insert.resolve({
+        rowId: insertInput.rowId,
+        nodeId: targetNodeId,
+        material: "",
+        description: "",
+        supplier: "",
+        unit: "",
+        quantity: 1,
+        itemCost: 0,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 0,
+        sourceSnapshot: null,
+        metadata: insertInput.libraryItem.metadata,
+        linkState: "unlinked",
+        rowRevision: 1,
+      });
+      await insert.promise;
+    });
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: insertInput.rowId,
+      material: "Custom Vanity",
+      expectedRowRevision: 1,
+    }));
+  });
+
+  it("keeps failed express drafts visible with retry and delete recovery", async () => {
+    process.env.NEXT_PUBLIC_EXPRESS_COMPONENTS_ENABLED = "true";
+    const user = userEvent.setup();
+    actionMocks.insertEstimateRowItemFromLibrary.mockRejectedValueOnce(new Error("Network offline"));
+    renderPersistedEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+
+    expect(await screen.findByText("Component row was not created. Retry or delete this draft.")).toBeInTheDocument();
+    const firstInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[0][0];
+    actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValueOnce({
+        rowId: firstInput.rowId,
+        nodeId: targetNodeId,
+        material: "",
+        description: "",
+        supplier: "",
+        unit: "",
+      quantity: 1,
+      itemCost: 0,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 0,
+      sourceSnapshot: null,
+      metadata: firstInput.libraryItem.metadata,
+      linkState: "unlinked",
+      rowRevision: 1,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(actionMocks.insertEstimateRowItemFromLibrary).toHaveBeenCalledTimes(2));
+    const retryInput = actionMocks.insertEstimateRowItemFromLibrary.mock.calls[1][0];
+    expect(retryInput.rowId).toBe(firstInput.rowId);
+    expect(retryInput.mutationId).toBe(firstInput.mutationId);
+    await waitFor(() => expect(screen.queryByText("Component row was not created. Retry or delete this draft.")).not.toBeInTheDocument());
+
+    actionMocks.insertEstimateRowItemFromLibrary.mockRejectedValueOnce(new Error("Still offline"));
+    await user.click(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+    expect(await screen.findByText("Component row was not created. Retry or delete this draft.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete draft" }));
+    await waitFor(() => expect(screen.queryByText("Component row was not created. Retry or delete this draft.")).not.toBeInTheDocument());
+  });
+
+  it("renders legacy blank rows as empty inline express editors and upgrades them on edit", async () => {
+    const user = userEvent.setup();
+    actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
+      rowId: legacyBlankRowId,
+      nodeId: targetNodeId,
+      material: "Custom Vanity",
+      description: "",
+      supplier: "",
+      unit: "",
+      quantity: 1,
+      itemCost: 0,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 0,
+      sourceSnapshot: null,
+      metadata: withExpressComponentMetadata({}, { id: legacyBlankRowId }),
+      linkState: "unlinked",
+      rowRevision: 2,
+    });
+    renderPersistedEstimateSheet(nodesWithLegacyBlankRow);
+
+    const nameInput = await screen.findByLabelText("Component name") as HTMLInputElement;
+    expect(nameInput.value).toBe("");
+    expect(screen.queryByText("Drag or add a component here")).not.toBeInTheDocument();
+
+    await user.type(nameInput, "Custom Vanity");
+    fireEvent.blur(nameInput);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      projectId,
+      estimateId,
+      rowId: legacyBlankRowId,
+      material: "Custom Vanity",
+      metadata: expect.objectContaining({
+        expressComponent: expect.objectContaining({
+          kind: "express",
+          schemaVersion: 1,
+          createdFrom: "legacy-blank-row-inline-edit",
+          sourceLabel: "Express component",
+        }),
+      }),
+      expectedRowRevision: 1,
+    }));
+  });
+
+
+  it("persists express image URLs through source snapshot merge patches", async () => {
+    const expressRowId = "66666666-6666-4666-8666-666666666699";
+    const expressMetadata = withExpressComponentMetadata({}, { id: "express-row-1" });
+    const nodesWithExpressRow: EstimateTreeNode[] = [
+      {
+        ...nodes[0],
+        estimateRowItems: [
+          {
+            id: expressRowId,
+            material: "Express Vanity",
+            description: "",
+            supplier: "",
+            source: "project",
+            unit: "unit",
+            itemCost: 0,
+            quantity: 1,
+            subTotal: 0,
+            contingencyPercentage: 0,
+            contingencyValue: 0,
+            miscCost: 0,
+            totalItemCosts: 0,
+            rowRevision: 1,
+            category: "Unassigned",
+            pricingSource: "Express component",
+            pricingDate: "2026-06-15",
+            metadata: expressMetadata,
+            linkState: "unlinked",
+            sourceLibraryItemId: null,
+          },
+        ],
+      },
+    ];
+    actionMocks.updateEstimateRowItem.mockResolvedValue({
+      rowId: expressRowId,
+      nodeId: targetNodeId,
+      material: "Express Vanity",
+      description: "",
+      supplier: "",
+      unit: "unit",
+      quantity: 1,
+      itemCost: 0,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 0,
+        sourceSnapshot: { imageUrl: "https://example.com/vanity.jpg" },
+      metadata: expressMetadata,
+      linkState: "unlinked",
+      rowRevision: 2,
+    });
+    renderPersistedEstimateSheet(nodesWithExpressRow);
+
+    const imageUrl = screen.getByLabelText("Image URL");
+    fireEvent.change(imageUrl, { target: { value: "https://example.com/vanity.jpg" } });
+    fireEvent.blur(imageUrl);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalled());
+    expect(actionMocks.updateEstimateRowItem.mock.calls.map(([input]) => input.sourceSnapshot)).toEqual([
+      { imageUrl: "https://example.com/vanity.jpg" },
+    ]);
   });
 
   it("adds estimate templates from the right sidebar to the selected group node", async () => {
@@ -454,6 +789,27 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
+  });
+
+  it("keeps duplicate linked rows independently eligible for project-specific detach", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet(nodesWithDuplicateLinkedRows);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })).toHaveLength(2);
+
+    await user.click(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })[0]);
+    const dialog = screen.getByRole("dialog", { name: "Make component project-specific" });
+    await user.click(within(dialog).getByRole("button", { name: "Make project-specific" }));
+
+    await waitFor(() => expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      expectedRowRevision: 7,
+    }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make component project-specific" })).not.toBeInTheDocument());
+    expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
+    expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })).toHaveLength(1);
   });
 
   it("shows exact library sync state in row component details", async () => {

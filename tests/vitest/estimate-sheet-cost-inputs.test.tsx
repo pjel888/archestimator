@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "@/components/workshop/estimate-sheet/rows/constants";
 // Req 1 / D2: "Activity" + "Preview Excel Export" moved to the project chrome
 // header (`EstimateHeaderActions`), fed by the page via a shared store. Render it
 // alongside the sheet so the relocated buttons are reachable here.
@@ -13,6 +14,7 @@ import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectE
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: vi.fn(async () => null),
@@ -201,18 +203,18 @@ describe("estimate sheet cost inputs", () => {
     expect(within(kitchenSection).getAllByText("HEMLINGBY Loveseat")).toHaveLength(1);
   });
 
-  it("adds a blank estimate row when the area drop zone is clicked", async () => {
+  it("adds an empty editable express component row when the area drop zone is clicked", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("kitchen");
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     await user.click(within(kitchenSection).getByRole("button", { name: "Add blank estimate row to Kitchen" }));
 
-    const emptyComponentSlot = await within(kitchenSection).findByLabelText("Drag or add a component here empty estimate component slot");
-    expect(within(emptyComponentSlot).getByText("Drag or add a component here")).toBeInTheDocument();
+    const componentName = await within(kitchenSection).findByLabelText("Component name") as HTMLInputElement;
+    expect(componentName).toHaveValue("");
+    expect(within(kitchenSection).queryByText("Drag or add a component here")).not.toBeInTheDocument();
 
-    const insertedQuantity = within(kitchenSection).getByLabelText("Drag or add a component here quantity");
-    await waitFor(() => expect(insertedQuantity).toHaveFocus());
+    await waitFor(() => expect(componentName).toHaveFocus());
   });
 
   it("adds a blank estimate row when the area drop zone is keyboard-activated", async () => {
@@ -224,10 +226,12 @@ describe("estimate sheet cost inputs", () => {
     addBlankRowButton.focus();
     await user.keyboard("{Enter}");
 
-    expect(await within(kitchenSection).findByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+    const componentName = await within(kitchenSection).findByLabelText("Component name") as HTMLInputElement;
+    expect(componentName).toHaveValue("");
+    expect(within(kitchenSection).queryByText("Drag or add a component here")).not.toBeInTheDocument();
   });
 
-  it("keeps persisted blank estimate rows as placeholder slots without thumbnail fallbacks", () => {
+  it("renders persisted legacy blank estimate rows as editable empty component rows", () => {
     const persistedBlankRowTree: EstimateTreeNode[] = [
       {
         id: "manual-area",
@@ -263,7 +267,8 @@ describe("estimate sheet cost inputs", () => {
     );
 
     const manualAreaSection = screen.getByLabelText("Manual Area");
-    expect(within(manualAreaSection).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+    expect(within(manualAreaSection).getByLabelText("Component name")).toHaveValue("");
+    expect(within(manualAreaSection).queryByText("Drag or add a component here")).not.toBeInTheDocument();
     expect(within(manualAreaSection).queryByLabelText("Drag or add a component here reference image")).not.toBeInTheDocument();
   });
 
@@ -658,8 +663,8 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" }));
 
-    expect(within(row as HTMLElement).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
-    expect(within(row as HTMLElement).getByLabelText("Drag or add a component here quantity")).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByLabelText("Component name")).toHaveValue("");
+    expect(within(row as HTMLElement).getByLabelText("Express component quantity")).toBeInTheDocument();
     expect(screen.queryByLabelText("Hardwood Oak Flooring quantity")).not.toBeInTheDocument();
   });
 
@@ -679,9 +684,55 @@ describe("estimate sheet cost inputs", () => {
     fireEvent.drop(targetComponent, { dataTransfer });
 
     await waitFor(() => {
-      expect(within(sourceRow as HTMLElement).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+      expect(within(sourceRow as HTMLElement).getByLabelText("Component name")).toHaveValue("");
     });
     expect(within(targetRow as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
+  });
+
+  it("blocks express row replace and move before optimistic metadata clobber", () => {
+    const expressRow = {
+      ...estimateLibraryItems[0],
+      id: "express-row-1",
+      material: "Express Sink",
+      source: "project" as const,
+      sourceLibraryItemId: null,
+      linkState: "unlinked" as const,
+      metadata: withExpressComponentMetadata({}, { id: "express-component-1" }),
+    };
+    const targetRow = {
+      ...estimateLibraryItems[1],
+      id: "target-row-1",
+      material: "Library Target",
+    };
+    const expressTree: EstimateTreeNode[] = [
+      {
+        id: "express-area",
+        name: "Express Area",
+        kind: "area",
+        total: "PHP 0.00",
+        estimateRowItems: [expressRow, targetRow],
+        children: [],
+      },
+    ];
+    renderEstimateSheet("express-area", { nodes: expressTree });
+
+    const expressCell = screen.getByLabelText("Express Sink replaceable estimate component");
+    const libraryDrop = createDataTransferStub("none");
+    libraryDrop.setData(LIBRARY_ITEM_DRAG_MIME_TYPE, JSON.stringify(estimateLibraryItems[2]));
+    fireEvent.dragOver(expressCell, { dataTransfer: libraryDrop });
+    fireEvent.drop(expressCell, { dataTransfer: libraryDrop });
+
+    expect(screen.getByLabelText("Express Sink replaceable estimate component")).toBeInTheDocument();
+    expect(screen.queryByLabelText(`${estimateLibraryItems[2].material} replaceable estimate component`)).not.toBeInTheDocument();
+
+    const targetCell = screen.getByLabelText("Library Target replaceable estimate component");
+    const moveDrop = createDataTransferStub("none");
+    fireEvent.dragStart(within(expressCell).getByRole("button", { name: "Drag component Express Sink" }), { dataTransfer: moveDrop });
+    fireEvent.dragOver(targetCell, { dataTransfer: moveDrop });
+    fireEvent.drop(targetCell, { dataTransfer: moveDrop });
+
+    expect(screen.getByLabelText("Express Sink replaceable estimate component")).toBeInTheDocument();
+    expect(screen.getByLabelText("Library Target replaceable estimate component")).toBeInTheDocument();
   });
 
   it("treats a cancelled component drag as non-destructive", async () => {

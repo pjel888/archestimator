@@ -1,10 +1,16 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 export const repo = process.cwd();
 
 export function read(path: string): string {
-  return readFileSync(join(repo, path), "utf8");
+  const primaryPath = join(repo, path);
+  if (existsSync(primaryPath)) return readFileSync(primaryPath, "utf8");
+  if (path.startsWith(".ai/08_prompts/")) {
+    const archivedPromptPath = join(repo, path.replace(".ai/08_prompts/", ".ai/09_archive/08_prompts/"));
+    if (existsSync(archivedPromptPath)) return readFileSync(archivedPromptPath, "utf8");
+  }
+  return readFileSync(primaryPath, "utf8");
 }
 
 export function listDirectory(path: string): string[] {

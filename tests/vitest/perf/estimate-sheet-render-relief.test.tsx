@@ -6,6 +6,7 @@ import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent
 import { setEstimateRowItemRenderProbe, setEstimateSheetRenderProbe } from "@/components/workshop/estimate-sheet-render-probe";
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 const routerMock = vi.hoisted(() => ({
   prefetch: vi.fn(),
@@ -76,7 +77,28 @@ function makeTree(areaCount: number, rowsPerArea: number): EstimateTreeNode[] {
   ];
 }
 
-function renderSheet() {
+function makeExpressTree(): EstimateTreeNode[] {
+  const tree = makeTree(3, 3);
+  const firstArea = tree[0]?.children?.[0];
+  const firstRow = firstArea?.estimateRowItems?.[0];
+  if (firstArea && firstRow) {
+    firstArea.estimateRowItems = [
+      {
+        ...firstRow,
+        source: "project",
+        sourceLibraryItemId: null,
+        metadata: withExpressComponentMetadata({}, {
+          id: "express-render-relief-row",
+          componentName: firstRow.material,
+        }),
+      },
+      ...firstArea.estimateRowItems!.slice(1),
+    ];
+  }
+  return tree;
+}
+
+function renderSheet({ expressFirstRow = false }: { expressFirstRow?: boolean } = {}) {
   const renderCounts = new Map<string, number>();
   setEstimateSheetRenderProbe((tableNodeId) => {
     renderCounts.set(tableNodeId, (renderCounts.get(tableNodeId) ?? 0) + 1);
@@ -86,7 +108,7 @@ function renderSheet() {
     <QueryClientProvider client={queryClient}>
       <EstimateSheetContent
         selectedNodeId="relief-group"
-        nodes={makeTree(3, 3)}
+        nodes={expressFirstRow ? makeExpressTree() : makeTree(3, 3)}
         projectId="relief-project"
         estimateId="relief-estimate"
         renderSidebar={false}
@@ -156,6 +178,32 @@ describe("estimate sheet render relief (U1)", () => {
       });
     }
 
+    expect(rowRenderCounts.get("relief-row-1-1") ?? 0).toBeGreaterThan(0);
+    expect(rowRenderCounts.get("relief-row-1-2") ?? 0).toBe(0);
+    expect(rowRenderCounts.get("relief-row-1-3") ?? 0).toBe(0);
+  });
+
+  it("typing in one express text field re-renders only that row and area table", () => {
+    const rowRenderCounts = new Map<string, number>();
+    setEstimateRowItemRenderProbe((rowItemId) => {
+      rowRenderCounts.set(rowItemId, (rowRenderCounts.get(rowItemId) ?? 0) + 1);
+    });
+    const { view, renderCounts } = renderSheet({ expressFirstRow: true });
+    const input = within(view.container as HTMLElement).getByLabelText("Component name") as HTMLInputElement;
+    act(() => input.focus());
+
+    renderCounts.clear();
+    rowRenderCounts.clear();
+    for (const value of ["Custom vanity", "Custom vanity long", "Custom vanity long run"]) {
+      act(() => {
+        fireEvent.change(input, { target: { value } });
+      });
+    }
+
+    expect(input.value).toBe("Custom vanity long run");
+    expect(document.activeElement).toBe(input);
+    expect(renderCounts.get("relief-area-1") ?? 0).toBeGreaterThan(0);
+    expect(rendersOutside(renderCounts, "relief-area-1")).toBe(0);
     expect(rowRenderCounts.get("relief-row-1-1") ?? 0).toBeGreaterThan(0);
     expect(rowRenderCounts.get("relief-row-1-2") ?? 0).toBe(0);
     expect(rowRenderCounts.get("relief-row-1-3") ?? 0).toBe(0);

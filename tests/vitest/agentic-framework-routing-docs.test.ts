@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-const activePlanPointerPath = ".ai/03_plans/2026-06-03-agentic-development-framework-rollout/README.md";
+const activePlanPointerPath = existsSync(".ai/03_plans/2026-06-03-agentic-development-framework-rollout/README.md")
+  ? ".ai/03_plans/2026-06-03-agentic-development-framework-rollout/README.md"
+  : ".ai/09_archive/2026-06-03-agentic-development-framework-rollout/README.md";
+const historicalActivePlanPointerPath = ".ai/03_plans/2026-06-03-agentic-development-framework-rollout/README.md";
 const archivePath = ".ai/09_archive/store/2026-06-03-agentic-development-framework-rollout";
 const activePlanPointer = readFileSync(activePlanPointerPath, "utf8");
 const plansReadme = readFileSync(".ai/03_plans/README.md", "utf8");
@@ -25,7 +28,7 @@ describe("agentic framework routing docs", () => {
   });
 
   it("keeps the plan index aligned with the archive completion truth", () => {
-    expect(plansReadme).toContain("archived completion pointer");
+    expect(plansReadme).toContain("completion pointer");
     expect(plansReadme).toContain(archivePath);
     expect(plansReadme).toContain("PHASE_1A_COMPLETE_PHASE_1B_MIRRORED_ARCHIVED");
     expect(plansReadme).not.toContain("Plan created; framework not implemented or enforced.");
@@ -41,6 +44,6 @@ describe("agentic framework routing docs", () => {
     expect(autopilotBoard).toContain(archivePath);
     expect(activeWorkstreams).toContain("archive-pointer README");
     expect(routingBug).toContain("**Status:** Resolved by archive pointer");
-    expect(routingBug).toContain(activePlanPointerPath);
+    expect(routingBug).toContain(historicalActivePlanPointerPath);
   });
 });

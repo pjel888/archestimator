@@ -72,16 +72,17 @@ describe("project creation UI governance", () => {
     expect(liveProjectCard).toContain('project: Tables<"projects">');
     expect(liveProjectCard).toContain('viewMode?: ProjectCardViewMode;');
     expect(liveProjectCard).toContain('data-project-card-view={viewMode}');
-    expect(liveProjectCard).toContain('viewMode === "large" ? "aspect-square"');
-    expect(liveProjectCard).toContain('"h-auto w-28 shrink-0 border-r border-hairline sm:w-32"');
-    expect(liveProjectCard).toContain("line-clamp-3");
-    expect(liveProjectCard).toContain("absolute left-2 top-2");
+    expect(liveProjectCard).toContain('viewMode === "small" ? "aspect-square"');
+    expect(liveProjectCard).toContain('viewMode === "medium" ? "aspect-[3/2]" : "aspect-[4/3]"');
+    expect(liveProjectCard).toContain('"size-12 shrink-0 rounded-xs border border-hairline"');
+    expect(liveProjectCard).toContain("line-clamp-2");
+    expect(liveProjectCard).toContain("absolute left-1.5 top-1.5");
     expect(liveProjectCard).toContain("aria-pressed={isFavorite}");
     expect(liveProjectCard).toContain('weight="regular"');
-    expect(liveProjectCard).toContain("text-orange-600");
+    expect(liveProjectCard).toContain("aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white");
     expect(liveProjectCard).not.toContain("h-32");
     expect(liveProjectCard).not.toContain("min-h-[260px]");
-    expect(projectsPageClient).toContain("2xl:grid-cols-5");
+    expect(projectsPageClient).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");
   });
 
   it("keeps the project create action icon-only", () => {

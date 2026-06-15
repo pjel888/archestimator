@@ -53,6 +53,24 @@ describe("activity view model", () => {
     expect(formatActivityValue("linkState", "linked-overridden")).toBe("Customized from library");
   });
 
+  it("does not summarize express component insertion as a blank row", () => {
+    const activity = composeEstimateActivity(makeEstimateEvent("row_added", {
+      rowContext: {
+        material: "Express custom vanity",
+        areaName: "Powder Room",
+        metadata: { expressComponent: { kind: "express", id: "express-row-1" } },
+      },
+      newSnapshot: {
+        material: "Express custom vanity",
+        metadata: { expressComponent: { kind: "express", id: "express-row-1" } },
+      },
+    }));
+
+    expect(activity.title).toContain("added Express custom vanity");
+    expect(activity.title).not.toContain("empty row slot");
+    expect(activity.title).not.toContain("Blank row");
+  });
+
   it("client visibility strips raw and target ids", () => {
     const owner = composeEstimateActivity(makeEstimateEvent("row_added"));
     const [client] = filterActivityForVisibility([owner], "client");

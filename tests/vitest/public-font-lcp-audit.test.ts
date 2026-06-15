@@ -1,10 +1,13 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
+const performancePlanDir = existsSync(".ai/03_plans/2026-06-05-performance-and-speed")
+  ? ".ai/03_plans/2026-06-05-performance-and-speed"
+  : ".ai/09_archive/2026-06-05-performance-and-speed";
 const globals = readFileSync("src/app/globals.css", "utf8");
 const evidenceSummary = readFileSync(
-  ".ai/03_plans/2026-06-05-performance-and-speed/evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-summary.json",
+  `${performancePlanDir}/evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-summary.json`,
   "utf8",
 );
 

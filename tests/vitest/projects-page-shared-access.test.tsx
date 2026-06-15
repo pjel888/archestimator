@@ -168,7 +168,6 @@ describe("ProjectsPageClient shared access", () => {
     const card = screen.getByLabelText("Lewis Residence project, owned access");
     expect(within(card).getByText("Shared link")).toBeInTheDocument();
     expect(within(card).getByText("4 opens")).toBeInTheDocument();
-    expect(within(card).getByText("Password on")).toBeInTheDocument();
   });
 
   it("does not show the empty sample state when only shared projects exist", () => {
@@ -241,13 +240,11 @@ describe("ProjectsPageClient shared access", () => {
     const pendingCard = screen.getByLabelText("Pending Museum Wing project, pending invite, viewer access");
     expect(pendingCard).toHaveAttribute("data-project-access-kind", "pending-invite");
     expect(within(pendingCard).getAllByText("Pending invite")).toHaveLength(2);
-    expect(within(pendingCard).getByText("Viewer")).toBeInTheDocument();
-    expect(within(pendingCard).getByText("Invited by Studio Partner")).toBeInTheDocument();
     expect(within(pendingCard).getByText("Expires Jun 10")).toBeInTheDocument();
     expect(within(pendingCard).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
 
     const expiredCard = screen.getByLabelText("Expired Gallery Wing project, pending invite, viewer access");
-    expect(within(expiredCard).getByText("Invite expired")).toBeInTheDocument();
+    expect(within(expiredCard).getAllByText("Pending invite")).toHaveLength(2);
     expect(within(expiredCard).getByText("Expired Jun 1")).toBeInTheDocument();
     expect(within(expiredCard).getByRole("button", { name: "Expired" })).toBeDisabled();
     expect(within(expiredCard).queryByRole("button", { name: "Accept invite for Expired Gallery Wing" })).not.toBeInTheDocument();

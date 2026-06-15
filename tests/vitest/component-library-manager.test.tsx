@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ComponentLibraryManager } from "@/components/workshop/component-library-manager/ComponentLibraryManager";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+import { withExpressComponentMetadata, withProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 
 const actionMocks = vi.hoisted(() => ({
   changeCostLibraryComponentLifecycleState: vi.fn(),
@@ -26,7 +27,12 @@ const navigationMocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
 }));
 
+const promotionMocks = vi.hoisted(() => ({
+  promoteExpressRowToLibraryComponent: vi.fn(),
+}));
+
 vi.mock("@/lib/component-library/actions", () => actionMocks);
+vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: navigationMocks.refresh }),
@@ -140,6 +146,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     actionMocks.updateCostLibraryComponent.mockReset();
     actionMocks.updateCostLibraryComponent.mockResolvedValue({ itemId: "item-fresh", versionNumber: 2 });
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
+    promotionMocks.promoteExpressRowToLibraryComponent.mockReset();
   });
 
   it("hosts the folder tree panel before the sheet (tree on the left)", async () => {
@@ -309,4 +316,65 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
 
     expect(await screen.findByText('1 of 3 match "Stale"')).toBeInTheDocument();
   });
+  it("promotes project express components from the Project catalogue card", async () => {
+    promotionMocks.promoteExpressRowToLibraryComponent.mockResolvedValue({
+      rowId: "project-row-1",
+      itemId: "library-item-1",
+    });
+    const projectFolder = {
+      id: "project-components-project-1",
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Project",
+      sort_order: -100,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    const expressFolder = {
+      id: "project-components-project-1-express",
+      workspace_id: "workspace-1",
+      parent_id: projectFolder.id,
+      name: "Express",
+      sort_order: -90,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    const expressMetadata = withProjectComponentProjectionMetadata(
+      withExpressComponentMetadata({}, { id: "express-1" }),
+      { projectId: "project-1", estimateId: "estimate-1", nodeId: "node-1", classification: "express" },
+    );
+    const projectItem = makeItem({
+      id: "project-row-1",
+      material: "Express Vanity",
+      source: "project",
+      sourceLibraryItemId: null,
+      linkState: "unlinked",
+      libraryFolderId: expressFolder.id,
+      metadata: expressMetadata,
+    });
+
+    render(
+      <ComponentLibraryManager
+        categoryTree={categoryTree}
+        libraryFolders={[projectFolder, expressFolder]}
+        libraryItems={[projectItem]}
+        projectId="project-1"
+        promotionEnabled
+      />,
+    );
+    await waitForSheet();
+
+    fireEvent.click(screen.getByRole("button", { name: "Promote Express Vanity to library" }));
+
+    await waitFor(() => {
+      expect(promotionMocks.promoteExpressRowToLibraryComponent).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        rowId: "project-row-1",
+      });
+    });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Promote Express Vanity to library" })).not.toBeInTheDocument());
+    expect(screen.getByText("Express Vanity promoted to the workspace library.")).toBeInTheDocument();
+  });
+
 });

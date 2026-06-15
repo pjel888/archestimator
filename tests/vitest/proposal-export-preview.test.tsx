@@ -123,7 +123,7 @@ describe("ProposalExportPreviewDialog", () => {
     expect(screen.getByText("Source Breakdown")).toBeInTheDocument();
     expect(screen.getByText("Not in this export")).toBeInTheDocument();
     // D8=a: a multi-tab all-tabs export hides the single-tab number, which would be wrong.
-    expect(screen.getByText(/All 2 tabs — total is in the downloaded Summary/i)).toBeInTheDocument();
+    expect(screen.getByText(/All 2 tabs, total is in the downloaded Summary/i)).toBeInTheDocument();
     expect(screen.queryByText("₱ 21,700.00")).not.toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "PARTICULARS" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
@@ -308,8 +308,8 @@ describe("ProposalExportPreviewDialog", () => {
 
     signatureComputes = 0;
     const previewQuantityInput = within(container).getAllByLabelText("Porcelain Tile quantity")[0] as HTMLInputElement;
-    await user.click(previewQuantityInput);
-    await user.keyboard("{Backspace}{Backspace}14");
+    await user.clear(previewQuantityInput);
+    await user.type(previewQuantityInput, "14");
     expect(previewQuantityInput.value).toBe("14");
     expect(signatureComputes).toBeGreaterThan(0);
 
@@ -348,7 +348,7 @@ describe("ProposalExportPreviewDialog", () => {
 
     expect(screen.getByRole("button", { name: /All tabs/i })).toHaveAttribute("aria-pressed", "true");
     // D8=a: the all-tabs default hides the active-tab number and points to the Summary sheet.
-    expect(screen.getByText(/All 2 tabs — total is in the downloaded Summary/i)).toBeInTheDocument();
+    expect(screen.getByText(/All 2 tabs, total is in the downloaded Summary/i)).toBeInTheDocument();
 
     // The download button fetches the scoped route and blobs the result; assert the
     // fetched URL changes with scope rather than an <a href>.

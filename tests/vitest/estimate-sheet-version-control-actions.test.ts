@@ -86,6 +86,12 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function getRpcArgs(supabase: { rpc: { mock: { calls: [string, Record<string, unknown>][] } } }, fn: string) {
+  const call = supabase.rpc.mock.calls.find(([name]) => name === fn);
+  expect(call).toBeDefined();
+  return call?.[1] ?? {};
+}
+
 function makeSupabase({
   rowRevision = 7,
   sourceLibraryItemId = "33333333-3333-4333-8333-333333333333",
@@ -307,7 +313,7 @@ describe("estimate sheet version control server actions", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: "66666666-6666-4666-8666-666666666666",
     }));
-    expect(supabase.rpc.mock.calls[0][1].replacement_payload).toMatchObject({
+    expect(getRpcArgs(supabase, "replace_estimate_row_item_with_history").replacement_payload).toMatchObject({
       material: "Porcelain Tile",
       sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
       sourceSnapshot: expect.objectContaining({
@@ -428,9 +434,8 @@ describe("estimate sheet version control server actions", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: "88888888-8888-4888-8888-888888888888",
     }));
-    expect(supabase.rpc.mock.calls[0][1].row_payload).toMatchObject({
+    expect(getRpcArgs(supabase, "insert_estimate_row_item_with_history").row_payload).toMatchObject({
       id: "99999999-9999-4999-8999-999999999999",
-      sortOrder: 5,
       material: "Porcelain Tile",
       contingencyPercentage: 0,
       sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",

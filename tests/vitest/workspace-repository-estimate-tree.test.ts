@@ -18,7 +18,7 @@ function node(input: Pick<Tables<"estimate_nodes">, "id" | "parent_id" | "kind" 
 
 function row(
   input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order"> &
-    Partial<Pick<Tables<"estimate_row_items">, "link_state" | "source_library_item_id" | "source_snapshot">>,
+    Partial<Pick<Tables<"estimate_row_items">, "link_state" | "source_library_item_id" | "source_snapshot" | "metadata">>,
 ): Tables<"estimate_row_items"> {
   return {
     estimate_id: "estimate-1",
@@ -103,6 +103,32 @@ describe("workspace repository estimate tree projection", () => {
       source: "project",
       linkState: "detached",
       sourceLibraryItemId: null,
+    });
+  });
+
+  it("preserves express component metadata through estimate tree reloads", () => {
+    const tree = buildEstimateTree(
+      [
+        node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
+        node({ id: "kitchen", parent_id: "scope", kind: "area", name: "Kitchen", sort_order: 10 }),
+      ],
+      [
+        row({
+          id: "express-row",
+          node_id: "kitchen",
+          material: "Express vanity",
+          quantity: 1,
+          unit_cost: 1000,
+          misc_cost: 0,
+          sort_order: 0,
+          metadata: { expressComponent: { kind: "express", schemaVersion: 1, id: "express-1" } },
+        }),
+      ],
+    );
+
+    expect(tree[0]?.children?.[0]?.estimateRowItems?.[0]).toMatchObject({
+      id: "express-row",
+      metadata: { expressComponent: { kind: "express", id: "express-1" } },
     });
   });
 

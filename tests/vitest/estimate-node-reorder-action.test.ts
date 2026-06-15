@@ -783,7 +783,10 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
         if (table === "estimate_row_items") return existingRowsQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: { rowId: "row-1", row: { id: "row-1", nodeId: "55555555-5555-4555-8555-555555555561" } }, error: null })),
+      rpc: vi.fn(async (name: string) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        return { data: { rowId: "row-1", row: { id: "row-1", nodeId: "55555555-5555-4555-8555-555555555561" } }, error: null };
+      }),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
@@ -811,7 +814,8 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
       },
     });
 
-    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "77777777-7777-4777-8777-777777777719" });
     expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
       target_project_id: "project-1",
       target_estimate_id: "77777777-7777-4777-8777-777777777719",
@@ -819,7 +823,9 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
       acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       correlation_id: expect.any(String),
     }));
-    const payload = supabase.rpc.mock.calls[0][1].row_payload;
+    const insertCall = supabase.rpc.mock.calls.find(([name]) => name === "insert_estimate_row_item_with_history");
+    expect(insertCall).toBeDefined();
+    const payload = insertCall?.[1].row_payload;
     expect(payload.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     expect(payload.id).not.toContain("lib-sofa");
     expect(payload.sourceLibraryItemId).toBeNull();

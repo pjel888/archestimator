@@ -347,8 +347,8 @@ describe("ProjectsPageClient access tabs", () => {
     await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
 
     expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
-    expect(within(getActivePanel()).getByRole("checkbox", { name: "Select Shared Clinic for deletion" })).toBeDisabled();
-    expect(within(getActivePanel()).getByRole("checkbox", { name: "Select Shared Sheet Tower for deletion" })).toBeDisabled();
+    expect(within(getActivePanel()).queryByRole("checkbox", { name: "Select Shared Clinic for deletion" })).not.toBeInTheDocument();
+    expect(within(getActivePanel()).queryByRole("checkbox", { name: "Select Shared Sheet Tower for deletion" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Your Projects/i }));
 

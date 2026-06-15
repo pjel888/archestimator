@@ -53,6 +53,38 @@ describe("patchEstimateRowItemInTree", () => {
     expect(patchEstimateRowItemInTree(tree, "missing-row", { quantity: 7 })).toBe(tree);
   });
 
+  it("patches editable identity, cost, and JSON fields without touching omitted JSON", () => {
+    const metadata = { scopeStatus: "included" };
+    const sourceSnapshot = { sourceType: "express_component" };
+    const nextTree = patchEstimateRowItemInTree(tree, "row-1", {
+      material: "Express vanity",
+      description: "Updated desc",
+      supplier: "Supplier B",
+      unit: "lot",
+      itemCost: 1500,
+      sourceSnapshot,
+      imageUrl: "https://example.com/vanity.jpg",
+      sourceUrl: "https://example.com/source",
+      metadata,
+    });
+    const row = nextTree[0].children?.[0].estimateRowItems?.[0] as typeof tree[number]["children"] extends Array<infer C> ? C extends { estimateRowItems?: Array<infer R> } ? R & { sourceSnapshot?: unknown; metadata?: unknown } : never : never;
+
+    expect(row?.material).toBe("Express vanity");
+    expect(row?.description).toBe("Updated desc");
+    expect(row?.supplier).toBe("Supplier B");
+    expect(row?.unit).toBe("lot");
+    expect(row?.subTotal).toBe(3000);
+    expect(row?.sourceSnapshot).toEqual(sourceSnapshot);
+    expect(row?.imageUrl).toBe("https://example.com/vanity.jpg");
+    expect(row?.sourceUrl).toBe("https://example.com/source");
+    expect(row?.metadata).toEqual(metadata);
+
+    const routineNextTree = patchEstimateRowItemInTree(nextTree, "row-1", { quantity: 3 });
+    const routineRow = routineNextTree[0].children?.[0].estimateRowItems?.[0] as typeof row;
+    expect(routineRow?.sourceSnapshot).toBe(sourceSnapshot);
+    expect(routineRow?.metadata).toBe(metadata);
+  });
+
   it("patches misc cost without changing quantity", () => {
     const nextTree = patchEstimateRowItemInTree(tree, "row-1", { miscCost: 400 });
     const row = nextTree[0].children?.[0].estimateRowItems?.[0];
