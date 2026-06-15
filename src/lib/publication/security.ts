@@ -303,6 +303,13 @@ export type SharedLinkSessionContext = {
   token: string;
   publicationId: string;
   credentialVersion: string;
+  /**
+   * Snapshot version rendered when this recipient session was issued.
+   * Verification intentionally does not compare this value so recipient
+   * identity can survive content-only republishes; mutation routes must pass
+   * this viewed version to optimistic-lock RPCs.
+   */
+  snapshotVersion?: number;
   recipientId?: string;
 };
 
@@ -311,11 +318,12 @@ type SharedLinkSessionCookiePayload = {
   publicationId: string;
   credentialVersion: string;
   tokenDigest: string;
+  snapshotVersion?: number;
   recipientId?: string;
 };
 
 function createSharedLinkSessionCookiePayload(
-  { token, publicationId, credentialVersion, recipientId }: SharedLinkSessionContext,
+  { token, publicationId, credentialVersion, snapshotVersion, recipientId }: SharedLinkSessionContext,
   expiresAt: number,
 ): SharedLinkSessionCookiePayload {
   return {
@@ -323,6 +331,7 @@ function createSharedLinkSessionCookiePayload(
     publicationId,
     credentialVersion: String(credentialVersion),
     tokenDigest: createHash("sha256").update(token).digest("base64url"),
+    snapshotVersion,
     recipientId,
   };
 }
@@ -344,7 +353,9 @@ function parseSharedLinkSessionCookiePayload(value: string, secret: string) {
       typeof payload.expiresAt !== "number" ||
       typeof payload.publicationId !== "string" ||
       typeof payload.credentialVersion !== "string" ||
-      typeof payload.tokenDigest !== "string"
+      typeof payload.tokenDigest !== "string" ||
+      (payload.snapshotVersion !== undefined &&
+        (!Number.isInteger(payload.snapshotVersion) || payload.snapshotVersion < 1))
     ) {
       return null;
     }
@@ -385,6 +396,16 @@ export function readSharedLinkSessionCookieRecipientId(
   const payload = parseSharedLinkSessionCookiePayload(value, secret);
   if (!payload || payload.expiresAt <= now) return undefined;
   return payload.recipientId;
+}
+
+export function readSharedLinkSessionCookieSnapshotVersion(
+  value: string | undefined,
+  { now = Date.now(), secret = readPublicationAccessCookieSecret() }: PublicationAccessCookieOptions = {},
+) {
+  if (!value) return undefined;
+  const payload = parseSharedLinkSessionCookiePayload(value, secret);
+  if (!payload || payload.expiresAt <= now) return undefined;
+  return payload.snapshotVersion;
 }
 
 export function getSharedLinkSessionCookieParts(

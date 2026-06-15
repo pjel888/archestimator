@@ -7,6 +7,7 @@ import React from "react";
 const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
+  readSharedLinkSessionCookieSnapshotVersion: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   // For component
   useSharedLinkSession: vi.fn(),
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
+  readSharedLinkSessionCookieSnapshotVersion: mocks.readSharedLinkSessionCookieSnapshotVersion,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
 }));
 
@@ -63,6 +65,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
+    mocks.readSharedLinkSessionCookieSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.insertSharedLinkComment.mockResolvedValue({ id: "comment-123" });
     mocks.checkSharedLinkCommentRateLimit.mockResolvedValue({ allowed: true });
@@ -184,6 +187,40 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       );
       expect(mocks.checkSharedLinkCommentRateLimit).not.toHaveBeenCalled();
       expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
+    });
+
+    it("uses the recipient-viewed snapshot from the signed session for content-only republishes", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.readSharedLinkSessionCookieSnapshotVersion.mockReturnValue(1);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        status: "published",
+        passwordRequired: false,
+        snapshotVersion: 2,
+        credentialVersion: "open",
+      });
+
+      const response = await POST(
+        makeRequest(
+          { body: "comment from old tab" },
+          {
+            cookie: validSessionCookie(),
+            "x-archestimator-csrf": "csrf",
+          },
+        ),
+        params(),
+      );
+
+      expect(response.status).toBe(201);
+      expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicationToken: "client-pub-token-123",
+          recipientId: "recip-123",
+          expectedSnapshotVersion: 1,
+          body: "comment from old tab",
+        }),
+      );
     });
 
     it("rejects malformed optional target UUIDs before rate limits, RPC calls, or circuit failures", async () => {

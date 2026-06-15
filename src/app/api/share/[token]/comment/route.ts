@@ -2,6 +2,7 @@ import {
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
   hasPublicationAccessCookie,
+  readSharedLinkSessionCookieSnapshotVersion,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
 import {
@@ -222,7 +223,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Publication not found." }, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
-  // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.
+  const viewedSnapshotVersion = readSharedLinkSessionCookieSnapshotVersion(sessionValue);
+
+  // Verify P5 session against the current credential while preserving the snapshot the recipient viewed.
   const sessionOk = Boolean(recipientIdFromCookie) && verifySharedLinkSessionCookieValue(sessionValue, {
     token,
     publicationId: access.publicationId,
@@ -233,6 +236,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const ipHash = getIpHash(request);
     logStructured("error", "/api/share/[token]/comment", "SESSION_INVALID", ipHash);
     return Response.json({ error: "Valid recipient session required for comments." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (!viewedSnapshotVersion) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/comment", "SESSION_SNAPSHOT_MISSING", ipHash);
+    return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
   }
 
   const recipientId = recipientIdFromCookie;
@@ -288,7 +297,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const { id } = await insertSharedLinkComment({
       publicationToken: token,
       recipientId,
-      expectedSnapshotVersion: access.snapshotVersion,
+      expectedSnapshotVersion: viewedSnapshotVersion,
       body: sanitized,
       estimateId: estimateId.value,
       rowId: rowId.value,

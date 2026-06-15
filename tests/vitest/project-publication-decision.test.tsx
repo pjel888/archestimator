@@ -7,6 +7,7 @@ import React from "react";
 const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
+  readSharedLinkSessionCookieSnapshotVersion: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   useSharedLinkSession: vi.fn(),
   // P7 repo extension (additive)
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
+  readSharedLinkSessionCookieSnapshotVersion: mocks.readSharedLinkSessionCookieSnapshotVersion,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
 }));
 
@@ -56,6 +58,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
+    mocks.readSharedLinkSessionCookieSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "pub1",
@@ -152,6 +155,38 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       );
       expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
       expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
+    });
+
+    it("uses the recipient-viewed snapshot from the signed session for content-only republishes", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.readSharedLinkSessionCookieSnapshotVersion.mockReturnValue(1);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
+        publicationId: "pub1",
+        snapshotVersion: 2,
+        passwordRequired: false,
+        status: "published",
+        expiresAt: null,
+        credentialVersion: "open",
+      });
+      mocks.submitSharedLinkDecision.mockResolvedValue({ id: "resp-uuid-stale" });
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted", note: "Looks good from my old tab" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(201);
+      expect(mocks.submitSharedLinkDecision).toHaveBeenCalledWith(
+        expect.objectContaining({
+          publicationToken: "client-pub-token-123",
+          recipientId: "recip-123",
+          expectedSnapshotVersion: 1,
+          decision: "accepted",
+        }),
+      );
     });
 
     it("accepts valid CSRF + session, calls submitSharedLinkDecision with correct payload, returns 201", async () => {

@@ -76,6 +76,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     token,
     publicationId: verified.publicationId,
     credentialVersion: verified.credentialVersion,
+    snapshotVersion: verified.snapshotVersion,
     recipientId: verified.recipientId,
   });
   const response = NextResponse.json({ ok: true }, { headers: noStoreHeaders });
