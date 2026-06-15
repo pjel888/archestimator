@@ -1,0 +1,34 @@
+{
+  "target": "http://localhost:3010/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/33333333-3333-4333-8333-333333333333",
+  "finalUrl": "http://localhost:3010/login?next=%2Fworkshop%2Fprojects%2F22222222-2222-4222-8222-222222222222%2Festimates%2F33333333-3333-4333-8333-333333333333",
+  "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+  "heading": "Sign in to Archestimator",
+  "emailVisible": true,
+  "buttonVisible": true,
+  "messages": [
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "log",
+      "text": "%c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit"
+    },
+    {
+      "type": "log",
+      "text": "%c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {route: /login, path: /login}"
+    },
+    {
+      "type": "log",
+      "text": "%c[Vercel Web Analytics]%c Event transformed by `beforeSend` color: rgb(120, 120, 120) color: inherit {before: Object, after: Object}"
+    },
+    {
+      "type": "log",
+      "text": "%c[Vercel Web Analytics]%c [view] http://localhost:3010/login color: rgb(120, 120, 120) color: inherit {o: http://localhost:3010/login, sv: 0.1.3, sdkn: @vercel/analytics/next, sdkv: 2.0.1, ts: 1781516882173} /_vercel/insights/view"
+    }
+  ]
+}
