@@ -44,7 +44,7 @@
     "perf:seed-fixture": "bun run scripts/seed-performance-test-data.ts",
     "perf:profile-peak-load": "vitest run tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1",
     "validate": "bun run type-check && bun run lint && bun run lint:design-system && bun run lint:design && bun run test && bun run test:dom",
-    "lint:design": "npx impeccable detect --strict",
+    "lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict",
     "launch:verify-hosted-sensitive-routes": "bun run scripts/verify-hosted-sensitive-route-fail-closed.ts",
     "perf:check-speed-insights": "bun run scripts/check-vercel-speed-insights-readiness.ts"
   },

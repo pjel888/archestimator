@@ -70,6 +70,40 @@ describe("Codex component-library and tooling hardening contracts", () => {
     ).toEqual([]);
   });
 
+  it("uses the repo-pinned Impeccable detector instead of mutable npx resolution", () => {
+    const packageJson = read("package.json");
+    const ciWorkflow = read(".github/workflows/ci.yml");
+    const validationMatrix = read(".ai/00_system/VALIDATION_MATRIX.md");
+    const floatingCommand = ["npx", "impeccable", "detect", "--strict"].join(" ");
+
+    expect(packageJson).toContain('"lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict"');
+    expect(packageJson).not.toContain(floatingCommand);
+    expect(ciWorkflow).toContain("run: bun run lint:design");
+    expect(ciWorkflow).not.toContain(floatingCommand);
+    expect(validationMatrix).toContain("bun run lint:design");
+    expect(validationMatrix).not.toContain(floatingCommand);
+  });
+
+  it("keeps estimate-template tables readable by members but writable only by workspace editors", () => {
+    const templateRlsHardening = latestMigrationBySuffix("_harden_estimate_template_editor_rls.sql");
+
+    expect(templateRlsHardening).toContain('drop policy if exists "members can manage estimate templates" on public.estimate_templates');
+    expect(templateRlsHardening).toContain('drop policy if exists "members can manage estimate template nodes" on public.estimate_template_nodes');
+    expect(templateRlsHardening).toContain('drop policy if exists "members can manage estimate template row items" on public.estimate_template_row_items');
+    expect(templateRlsHardening).toContain('create policy "members can view estimate templates" on public.estimate_templates');
+    expect(templateRlsHardening).toContain("using (public.is_workspace_member(workspace_id))");
+    expect(templateRlsHardening).toContain('create policy "workspace editors can insert estimate templates" on public.estimate_templates');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can update estimate templates" on public.estimate_templates');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can delete estimate templates" on public.estimate_templates');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can insert estimate template nodes" on public.estimate_template_nodes');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can update estimate template nodes" on public.estimate_template_nodes');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can delete estimate template nodes" on public.estimate_template_nodes');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can insert estimate template row items" on public.estimate_template_row_items');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can update estimate template row items" on public.estimate_template_row_items');
+    expect(templateRlsHardening).toContain('create policy "workspace editors can delete estimate template row items" on public.estimate_template_row_items');
+    expect(templateRlsHardening).toContain("public.is_workspace_editor(template.workspace_id)");
+  });
+
   it("keeps component-library taxonomy seed IDs scoped per workspace", () => {
     const taxonomySeed = read("supabase/migrations/20260522064018_component_library_taxonomy_source.sql");
     const identityMigration = read("supabase/migrations/20260524141347_component_library_identity_variant_sku_brand_view.sql");
