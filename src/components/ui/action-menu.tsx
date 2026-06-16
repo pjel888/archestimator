@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 
 import {
@@ -18,6 +19,12 @@ export type ActionMenuItem = {
   tone?: "default" | "destructive";
   disabled?: boolean;
   disabledReason?: string;
+  /**
+   * When true, the item renders a trailing check mark to signal it is the
+   * currently selected choice within its group. Purely additive: items that
+   * omit `selected` render exactly as before (no check, no reserved slot).
+   */
+  selected?: boolean;
   onSelect: () => void;
 };
 
@@ -84,6 +91,14 @@ export function ContextActionMenuContent({ groups, renderer = contextMenuRendere
             ) : null}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {item.shortcut ? <Shortcut>{item.shortcut}</Shortcut> : null}
+            {item.selected ? (
+              <span
+                className={item.shortcut ? "flex size-3 shrink-0 items-center justify-center" : "ml-auto flex size-3 shrink-0 items-center justify-center"}
+                data-action-menu-item-check="true"
+              >
+                <Check aria-hidden="true" weight="bold" />
+              </span>
+            ) : null}
           </Item>
         ))}
       </Group>

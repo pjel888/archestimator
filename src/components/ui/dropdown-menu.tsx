@@ -22,6 +22,13 @@ export type DropdownMenuItemProps = {
   disabled?: boolean;
   destructive?: boolean;
   shortcut?: string;
+  /**
+   * When true, the item renders a trailing check mark to signal it is the
+   * currently selected choice (e.g. the active group/color in a picker menu).
+   * Purely additive: omitting `selected` renders the item exactly as before.
+   * Selection does not disable the item — its `onClick` still fires.
+   */
+  selected?: boolean;
 };
 
 export type DropdownMenuGroupProps = {
@@ -296,6 +303,7 @@ function toActionItem(props: DropdownMenuItemProps, close: () => void, fallbackI
     shortcut: props.shortcut,
     tone: props.destructive ? "destructive" : "default",
     disabled: props.disabled,
+    selected: props.selected,
     onSelect: () => {
       props.onClick();
       close();
