@@ -358,6 +358,239 @@ describe("reusable project source actions", () => {
     ).not.toHaveBeenCalled();
   });
 
+  it("bounds project and estimate retrieval before prefilter work", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Large Project" },
+        },
+        {
+          accessKind: "owner",
+          project: { id: projectBId, name: "Skipped Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce(
+      Array.from({ length: 100 }, (_, index) => ({
+        id: `estimate-${String(index + 1).padStart(3, "0")}`,
+        name: `Estimate ${index + 1}`,
+        sheetCode: `EST-${index + 1}`,
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      })),
+    );
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    await searchReusableProjectSources({ query: "missing" });
+
+    expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
+      limit: 20,
+    });
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 100 },
+    );
+  });
+
+  it("materializes only tabs identified by the search prefilter", async () => {
+    const matchingTabId = "tab-22";
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue(
+      Array.from({ length: 25 }, (_, index) => ({
+        id: `tab-${index + 1}`,
+        name: index === 21 ? "Mechanical Scope" : `Tab ${index + 1}`,
+        sortOrder: index,
+        isDefault: index === 0,
+      })),
+    );
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: { data: [], error: null },
+      estimate_tabs: {
+        data: [{ id: matchingTabId, estimate_id: estimateAId }],
+        error: null,
+      },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "mechanical" });
+
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      matchingTabId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources.map((source) => source.kind)).toContain(
+      "project-tab",
+    );
+  });
+
+  it("returns a node matched by the prefilter when the bounded tree omits it", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "late-node",
+            estimate_id: estimateAId,
+            estimate_tab_id: tabAId,
+            parent_id: "parent-node",
+            kind: "area",
+            name: "Late Match",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "late" });
+
+    expect(result.sources).toContainEqual({
+      kind: "project-node",
+      projectId: projectAId,
+      estimateId: estimateAId,
+      tabId: tabAId,
+      nodeId: "late-node",
+      parentNodeId: "parent-node",
+      nodeKind: "area",
+      name: "Late Match",
+      rowItems: [],
+      metadata: {
+        projectName: "Accessible Project",
+        estimateName: "Lobby Estimate",
+        sheetCode: "EST-002",
+        tabName: "Lobby Main",
+        tabDisplayName: "Page 001",
+        nodePath: ["Page 001", "Late Match"],
+        updatedAt: "2026-06-12T08:45:00.000Z",
+        rowCount: 0,
+        totalCost: 0,
+      },
+    });
+  });
+
+  it("reserves the final result slot for a matched node instead of ancestors", async () => {
+    const saturatedEstimateCount = 48;
+    const matchingEstimateId = "node-estimate";
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Project A" },
+        },
+        {
+          accessKind: "owner",
+          project: { id: projectBId, name: "Project B" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets
+      .mockResolvedValueOnce(
+        Array.from({ length: saturatedEstimateCount }, (_, index) => ({
+          id: `saturated-estimate-${index + 1}`,
+          name: `Target Estimate ${index + 1}`,
+          sheetCode: `T-${index + 1}`,
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        })),
+      )
+      .mockResolvedValueOnce([
+        {
+          id: matchingEstimateId,
+          name: "Other Estimate",
+          sheetCode: "O-1",
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
+      ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "reserved-node",
+            estimate_id: matchingEstimateId,
+            estimate_tab_id: tabAId,
+            parent_id: null,
+            kind: "group",
+            name: "Target Node",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "target" });
+
+    expect(result.sources).toHaveLength(50);
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        estimateId: matchingEstimateId,
+        nodeId: "reserved-node",
+      }),
+    );
+  });
+
   it("searches readable project source outlines without returning pending invites", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
@@ -398,7 +631,19 @@ describe("reusable project source actions", () => {
 
     // U5: the node pre-filter resolves the matching estimate, so only it is materialized.
     mockSearchPrefilter({
-      estimate_nodes: { data: [{ estimate_id: estimateAId }], error: null },
+      estimate_nodes: {
+        data: [
+          {
+            id: "group-1",
+            estimate_id: estimateAId,
+            estimate_tab_id: tabAId,
+            parent_id: null,
+            kind: "group",
+            name: "Amenity Millwork",
+          },
+        ],
+        error: null,
+      },
     });
 
     const { searchReusableProjectSources } =
@@ -408,6 +653,7 @@ describe("reusable project source actions", () => {
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
       projectAId,
+      { limit: 100 },
     );
     expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(
       projectAId,

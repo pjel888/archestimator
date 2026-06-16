@@ -7,13 +7,19 @@ export type ProjectEstimateSheetSummary = {
   updatedAt: string | null;
 };
 
-export async function listProjectEstimateSheetsForProject(projectId: string): Promise<ProjectEstimateSheetSummary[]> {
+export async function listProjectEstimateSheetsForProject(
+  projectId: string,
+  options: { limit?: number } = {},
+): Promise<ProjectEstimateSheetSummary[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  const query = supabase
     .from("estimates")
     .select("id, name, sheet_code, updated_at")
     .eq("project_id", projectId)
     .order("sheet_code", { ascending: true });
+  const { data, error } = options.limit
+    ? await query.limit(options.limit)
+    : await query;
 
   if (error) throw error;
 
