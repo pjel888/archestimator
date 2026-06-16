@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { replaceOptimisticTemplateRoots } from "@/components/workshop/estimate-sheet/template-insert-reconciliation";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
@@ -17,6 +18,7 @@ const actionMocks = vi.hoisted(() => ({
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
+  insertEstimateTemplatesIntoEstimate: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
@@ -269,6 +271,7 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ tree: nodesWithGroup, insertedRootNodeIds: [] });
     actionMocks.updateEstimateRowItem.mockResolvedValue({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
@@ -681,6 +684,72 @@ describe("estimate sheet library insertion persistence", () => {
       templateId: starterTemplate.id,
     });
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).not.toHaveProperty("template");
+  });
+
+  it("reconciles partial batch template failures without overwriting later tree edits", () => {
+    const kitchenWithRows = nodesWithRow.find((node) => node.id === targetNodeId);
+    expect(kitchenWithRows).toBeDefined();
+    if (!kitchenWithRows) throw new Error("Kitchen fixture is missing.");
+    const [cabinetRow, sinkRow] = kitchenWithRows.estimateRowItems ?? [];
+    expect(cabinetRow).toBeDefined();
+    expect(sinkRow).toBeDefined();
+    if (!cabinetRow || !sinkRow) throw new Error("Kitchen row fixtures are missing.");
+
+    const laterEditedKitchen: EstimateTreeNode = {
+      ...kitchenWithRows,
+      estimateRowItems: [
+        {
+          ...cabinetRow,
+          quantity: 7,
+          subTotal: 700,
+          totalItemCosts: 710,
+        },
+        sinkRow,
+      ],
+    };
+    const optimisticCommittedRoot: EstimateTreeNode = {
+      id: "optimistic-template-committed",
+      name: "Interior Fit-Out",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const optimisticFailedRoot: EstimateTreeNode = {
+      id: "optimistic-template-failed",
+      name: "Failed Package",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const committedServerRoot: EstimateTreeNode = {
+      ...optimisticCommittedRoot,
+      id: "server-template-committed",
+    };
+    const currentTreeAfterLaterEdit: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        children: [laterEditedKitchen, optimisticCommittedRoot, optimisticFailedRoot],
+      },
+    ];
+
+    const reconciledTree = replaceOptimisticTemplateRoots(
+      currentTreeAfterLaterEdit,
+      groupNodeId,
+      new Set([optimisticCommittedRoot.id, optimisticFailedRoot.id]),
+      [committedServerRoot],
+    );
+
+    const reconciledGroup = reconciledTree[0];
+    expect(reconciledGroup).toBeDefined();
+    if (!reconciledGroup) throw new Error("Reconciled group is missing.");
+    expect(reconciledGroup.children?.map((node) => node.id)).toEqual([targetNodeId, committedServerRoot.id]);
+    expect(reconciledGroup.children?.[0].estimateRowItems?.[0]).toMatchObject({
+      id: cabinetRowId,
+      quantity: 7,
+      totalItemCosts: 710,
+    });
   });
 
   it("keeps a committed quantity edit visible while the server save is delayed", async () => {
