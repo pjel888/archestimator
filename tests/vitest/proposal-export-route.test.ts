@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserContext: vi.fn(),
   checkProposalExportRateLimit: vi.fn(),
   createSupabaseServerClient: vi.fn(),
+  getCurrentUserTermsAcceptanceStatus: vi.fn(),
 }));
 
 const baseProjectEstimate = {
@@ -44,6 +45,10 @@ vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: mocks.getCurrentUserContext,
+}));
+
+vi.mock("@/lib/legal/terms-acceptance", () => ({
+  getCurrentUserTermsAcceptanceStatus: mocks.getCurrentUserTermsAcceptanceStatus,
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
@@ -108,6 +113,7 @@ describe("proposal xlsx export route", () => {
     vi.clearAllMocks();
     mocks.getCurrentUserContext.mockResolvedValue(authedContext);
     mocks.checkProposalExportRateLimit.mockResolvedValue({ allowed: true });
+    mocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({ requiresAcceptance: false });
     mocks.createSupabaseServerClient.mockResolvedValue(membershipClient(null));
     mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
     mocks.getEstimateTabs.mockResolvedValue([]);
@@ -204,6 +210,22 @@ describe("proposal xlsx export route", () => {
     expect(await response.json()).toEqual({ error: "Unauthorized" });
     expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
     expect(mocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
+  it("requires current Terms acceptance before exporting proposal data", async () => {
+    mocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValueOnce({ requiresAcceptance: true });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: "Current Terms acceptance is required before using protected workshop APIs.",
+    });
+    expect(mocks.checkProposalExportRateLimit).not.toHaveBeenCalled();
+    expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
