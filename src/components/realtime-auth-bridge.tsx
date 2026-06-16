@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { reportRealtimeEvent } from "@/lib/collaboration/realtime-telemetry";
+import { favoritesQueryKeys } from "@/lib/favorites/query-keys";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /**
@@ -16,6 +18,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
  * stay authorized without a reconnect.
  */
 export function RealtimeAuthBridge() {
+  const queryClient = useQueryClient();
   useEffect(() => {
     let supabase: ReturnType<typeof createSupabaseBrowserClient>;
     try {
@@ -49,6 +52,9 @@ export function RealtimeAuthBridge() {
       if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN" || event === "INITIAL_SESSION") {
         void applyAuth(session?.access_token);
       } else if (event === "SIGNED_OUT") {
+        // 13 C5 / QA-17: evict every favorites entry so a signed-out user can't
+        // read residual favorites from the prior session's cache.
+        queryClient.removeQueries({ queryKey: favoritesQueryKeys.all() });
         void applyAuth(undefined);
       }
     });
@@ -57,7 +63,7 @@ export function RealtimeAuthBridge() {
       active = false;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   return null;
 }
