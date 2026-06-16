@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -13,7 +13,7 @@ const psql = join(pgBin, "psql");
 const tempRoot = mkdtempSync(join(tmpdir(), "archestimator-notification-rls-"));
 const dataDir = join(tempRoot, "data");
 const logFile = join(tempRoot, "postgres.log");
-const port = String(55432 + Math.floor(Math.random() * 1000));
+const socketDir = join(tempRoot, "socket");
 let serverStarted = false;
 
 const ids = {
@@ -54,9 +54,7 @@ function run(command, args, options = {}) {
 function runPsql(sql, options = {}) {
   return run(psql, [
     "-h",
-    "127.0.0.1",
-    "-p",
-    port,
+    socketDir,
     "-U",
     "postgres",
     "-d",
@@ -99,8 +97,19 @@ function requireBinary(path) {
 try {
   [initdb, pgCtl, psql].forEach(requireBinary);
 
+  chmodSync(tempRoot, 0o700);
+  mkdirSync(socketDir, { mode: 0o700 });
   run(initdb, ["-D", dataDir, "-A", "trust", "-U", "postgres", "--no-locale"]);
-  run(pgCtl, ["-D", dataDir, "-l", logFile, "-o", `-p ${port} -c listen_addresses=127.0.0.1`, "-w", "start"]);
+  run(pgCtl, [
+    "-D",
+    dataDir,
+    "-l",
+    logFile,
+    "-o",
+    `-k ${socketDir} -c listen_addresses='' -c unix_socket_permissions=0700`,
+    "-w",
+    "start",
+  ]);
   serverStarted = true;
 
   const bootstrapSql = `
@@ -153,9 +162,7 @@ try {
   writeFileSync(migrationPath, migration);
   run(psql, [
     "-h",
-    "127.0.0.1",
-    "-p",
-    port,
+    socketDir,
     "-U",
     "postgres",
     "-d",
