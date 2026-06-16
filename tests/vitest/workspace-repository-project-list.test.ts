@@ -20,5 +20,7 @@ describe("workspace project list repository contract", () => {
     expect(workspaceRepository).toContain("function toWorkspaceProjectSearchPatterns");
     expect(workspaceRepository).toContain('.replace(/[,()"]/g, " ")');
     expect(workspaceRepository).toContain('query.ilike("name", pattern)');
+    expect(workspaceRepository).toContain("export async function listCurrentWorkspaceProjectSearchCandidates");
+    expect(workspaceRepository).toContain("readSharedProjectsQuery(pattern)");
   });
 });

@@ -8,6 +8,7 @@ const repositoryMocks = vi.hoisted(() => ({
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
+  listCurrentWorkspaceProjectSearchCandidates: vi.fn(),
   listCurrentWorkspaceProjects: vi.fn(),
   listProjectEstimateSheets: vi.fn(),
 }));
@@ -31,6 +32,8 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabTree: repositoryMocks.getEstimateTabTree,
   getProjectEstimateTreeByEstimate:
     repositoryMocks.getProjectEstimateTreeByEstimate,
+  listCurrentWorkspaceProjectSearchCandidates:
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates,
   listCurrentWorkspaceProjects: repositoryMocks.listCurrentWorkspaceProjects,
   listProjectEstimateSheets: repositoryMocks.listProjectEstimateSheets,
 }));
@@ -167,6 +170,7 @@ beforeEach(() => {
   repositoryMocks.getEstimateTabs.mockReset();
   repositoryMocks.getEstimateTabTree.mockReset();
   repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
+  repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockReset();
   repositoryMocks.listCurrentWorkspaceProjects.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockResolvedValue([]);
@@ -449,7 +453,7 @@ describe("reusable project source actions", () => {
     const result = await searchReusableProjectSources({ query: "a" });
 
     expect(result.sources).toEqual([]);
-    expect(repositoryMocks.listCurrentWorkspaceProjects).not.toHaveBeenCalled();
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).not.toHaveBeenCalled();
     expect(repositoryMocks.listProjectEstimateSheets).not.toHaveBeenCalled();
     expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
     expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
@@ -460,7 +464,7 @@ describe("reusable project source actions", () => {
 
   it("rate-limits repeated project source searches per authenticated user", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "rate-user" });
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects: [] });
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({ projects: [] });
     const rateLimit = mockReusableSearchRateLimit();
     const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
 
@@ -478,7 +482,7 @@ describe("reusable project source actions", () => {
   });
 
   it("bounds project and estimate retrieval before prefilter work", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -503,10 +507,10 @@ describe("reusable project source actions", () => {
       await import("@/lib/reusable-sources/actions");
     await searchReusableProjectSources({ query: "missing" });
 
-    expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).toHaveBeenCalledWith({
       limit: 50,
     });
-    expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).toHaveBeenCalledWith({
       limit: 50,
       search: "missing",
     });
@@ -537,7 +541,7 @@ describe("reusable project source actions", () => {
         name: `Recent Project ${index + 1}`,
       },
     }));
-    repositoryMocks.listCurrentWorkspaceProjects
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates
       .mockResolvedValueOnce({ projects: recentProjects })
       .mockResolvedValueOnce({
         projects: [
@@ -552,7 +556,7 @@ describe("reusable project source actions", () => {
       await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "Smith, LLC" });
 
-    expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).toHaveBeenCalledWith({
       limit: 50,
       search: "Smith, LLC",
     });
@@ -566,7 +570,7 @@ describe("reusable project source actions", () => {
   });
 
   it("includes estimate matches from the search-aware estimate read before applying the cap", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -611,7 +615,7 @@ describe("reusable project source actions", () => {
 
   it("materializes only tabs identified by the search prefilter", async () => {
     const matchingTabId = "tab-22";
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -668,7 +672,7 @@ describe("reusable project source actions", () => {
   });
 
   it("returns a node matched by the prefilter when the bounded tree omits it", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -737,7 +741,7 @@ describe("reusable project source actions", () => {
   });
 
   it("retries legacy node prefilter without estimate_tab_id when the column is missing", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -818,7 +822,7 @@ describe("reusable project source actions", () => {
   });
 
   it("retries legacy node prefilter without the active-tab join when estimate_tabs is missing", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -909,7 +913,7 @@ describe("reusable project source actions", () => {
   });
 
   it("uses raw and normalized query patterns for database prefiltering", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -983,7 +987,7 @@ describe("reusable project source actions", () => {
 
   it("does not let an archived prefilter tab pin hide active matching nodes", async () => {
     const archivedTabId = "archived-tab";
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -1058,7 +1062,7 @@ describe("reusable project source actions", () => {
   it("reserves the final result slot for a matched node instead of ancestors", async () => {
     const saturatedEstimateCount = 48;
     const matchingEstimateId = "node-estimate";
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
@@ -1125,16 +1129,12 @@ describe("reusable project source actions", () => {
     );
   });
 
-  it("searches readable project source outlines without returning pending invites", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+  it("searches readable project source outlines from lightweight project candidates", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
           project: { id: projectAId, name: "Accessible Project" },
-        },
-        {
-          accessKind: "pending-invite",
-          project: { id: projectBId, name: "Pending Invite Project" },
         },
       ],
     });
@@ -1275,7 +1275,7 @@ describe("reusable project source actions", () => {
   });
 
   it("searches derived display tab labels before an outline is loaded", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
         {
           accessKind: "owner",
