@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ProjectsPageClient, type ProjectListItem } from "@/components/workshop/projects-page-client";
+import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
 import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type { Tables } from "@/lib/supabase/types";
@@ -78,6 +78,19 @@ describe("Projects page card layout", () => {
     const card = screen.getByLabelText("Lewis Residence project, owned access");
     expect(card).toHaveClass("min-h-[360px]");
 
+    const tileContent = card.querySelector("[data-project-card-tile-content]");
+    expect(tileContent).not.toBeNull();
+    expect(tileContent).toHaveClass("p-0");
+    expect(tileContent).toHaveClass("justify-between");
+    expect(tileContent).not.toHaveClass("p-3");
+
+    const titleBlock = card.querySelector("[data-project-card-title-block]");
+    expect(titleBlock).not.toBeNull();
+    expect(titleBlock).toHaveClass("p-2");
+    expect(titleBlock).not.toHaveClass("pt-2");
+    expect(titleBlock).not.toHaveClass("pr-2");
+    expect(within(titleBlock as HTMLElement).getByText("Quezon City, Metro Manila, Philippines")).toBeInTheDocument();
+
     const thumbnail = card.querySelector("[data-project-card-thumbnail]");
     expect(thumbnail).toHaveClass("aspect-[4/3]");
     expect(thumbnail).toHaveClass("shrink-0");
@@ -109,7 +122,36 @@ describe("Projects page card layout", () => {
 
     const metaStack = card.querySelector("[data-project-card-meta-stack]");
     expect(metaStack).not.toBeNull();
-    expect(metaStack).toHaveClass("pb-3");
+    expect(metaStack).not.toHaveClass("pb-3");
+    expect(metaStack).not.toHaveClass("pb-2");
+
+    const dateBand = card.querySelector("[data-project-card-date-band]");
+    expect(dateBand).not.toBeNull();
+    expect(dateBand).toHaveClass("grid");
+    expect(dateBand).toHaveClass("grid-cols-2");
+    expect(dateBand).not.toHaveClass("border-x");
+    expect(dateBand).toHaveClass("border-t");
+    expect(dateBand).not.toHaveClass("border-b");
+    expect(within(dateBand as HTMLElement).getByText("Created")).toHaveClass("text-[8px]");
+    expect(within(dateBand as HTMLElement).getByText("Updated")).toHaveClass("text-[8px]");
+    expect(within(dateBand as HTMLElement).getByText("May 20")).toHaveClass("text-ink");
+    expect(within(dateBand as HTMLElement).getByText("May 26")).toHaveClass("text-ink");
+    expect(within(metaStack as HTMLElement).queryByText("Created May 20")).not.toBeInTheDocument();
+    expect(within(metaStack as HTMLElement).queryByText("Updated May 26")).not.toBeInTheDocument();
+
+    const openAction = within(card).getByRole("link", { name: "Open" });
+    expect(openAction.textContent).toBe("");
+    expect(openAction).toHaveClass("size-6");
+    expect(openAction).toHaveClass("border-hairline");
+    expect(openAction).toHaveClass("bg-white");
+    expect(openAction.querySelector('[data-project-card-open-icon="square-out"]')).not.toBeNull();
+
+    const footer = card.querySelector("[data-project-card-footer]");
+    expect(footer).not.toBeNull();
+    expect(footer).toHaveClass("mt-0");
+    expect(footer).toHaveClass("p-2");
+    expect(footer).not.toHaveClass("mt-auto");
+    expect(footer).not.toHaveClass("pt-3");
   });
 
   it("places shared link details in the reference title and meta stack instead of the generic status row", () => {
@@ -137,9 +179,7 @@ describe("Projects page card layout", () => {
     expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
     expect(within(card).getByRole("button", { name: "Expand Lewis Residence details" })).toBeInTheDocument();
 
-    const sharedLinkMeta = card.querySelector("[data-project-card-shared-link-meta]");
-    expect(sharedLinkMeta).not.toBeNull();
-    expect(sharedLinkMeta).toHaveTextContent("4 opens");
-    expect(sharedLinkMeta).not.toHaveTextContent("Password on");
+    expect(card.querySelector("[data-project-card-shared-link-meta]")).toBeNull();
+    expect(card).not.toHaveTextContent("4 opens");
   });
 });

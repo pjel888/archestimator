@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectsPageClient, type ProjectListItem } from "@/components/workshop/projects-page-client";
+import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
 import type { Tables } from "@/lib/supabase/types";
 
 const routerMock = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ vi.mock("@/lib/workshop/actions", () => ({
 }));
 
 vi.mock("@/lib/projects/actions", () => ({
+  updateProjectDetails: vi.fn(async () => undefined),
   previewBulkDeleteProjects: vi.fn(async (input: { projectIds: string[] }) => ({
     ok: true,
     targetType: "project",
@@ -265,6 +266,45 @@ describe("ProjectsPageClient shared access", () => {
 
     expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
     expect(screen.queryByText("Shared Sheet Project")).not.toBeInTheDocument();
+  });
+
+  it("hides project deletion from shared viewer details", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPageClient projects={PROJECTS} />);
+
+    await user.click(screen.getByRole("button", { name: "Expand Lewis Residence details" }));
+    expect(await screen.findByRole("dialog", { name: "Lewis Residence" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete project" })).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: "Close project details" })[1]);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Lewis Residence" })).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
+    await user.click(screen.getByRole("button", { name: "Expand Shared Clinic Fit-Out details" }));
+
+    expect(await screen.findByRole("dialog", { name: "Shared Clinic Fit-Out" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete project" })).not.toBeInTheDocument();
+  });
+
+  it("keeps project deletion available for shared project admins", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          {
+            ...PROJECTS[1],
+            currentUserRole: "admin",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Expand Shared Clinic Fit-Out details" }));
+
+    expect(await screen.findByRole("dialog", { name: "Shared Clinic Fit-Out" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete project" })).toBeInTheDocument();
   });
 
   it("all card density modes preserve shared badges", async () => {

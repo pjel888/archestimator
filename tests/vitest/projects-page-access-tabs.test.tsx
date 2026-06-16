@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectsPageClient,
   type ProjectListItem,
-} from "@/components/workshop/projects-page-client";
+} from "./projects-page-test-harness";
 import type { ProjectAccessKind } from "@/components/workshop/LiveProjectCard";
 import type { Tables } from "@/lib/supabase/types";
 

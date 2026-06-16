@@ -59,4 +59,21 @@ describe("useToggleProjectFavorite", () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("src/hooks/use-toggle-project-favorite.ts", "utf8")).not.toContain("router.refresh");
   });
+  it("projects-page-client toggleProjectFavorite no longer calls router.refresh (delete path preserved)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/components/workshop/projects-page-client.tsx", "utf8");
+    // Slice ONLY the favorite-toggle function body: from its declaration to the next
+    // top-level `function ` declaration. This intentionally excludes the unrelated
+    // delete path (executeProjectDeletePreview), which legitimately keeps router.refresh.
+    const start = src.indexOf("function toggleProjectFavorite");
+    expect(start).toBeGreaterThan(-1);
+    const nextFn = src.indexOf("\n  function ", start + 1);
+    expect(nextFn).toBeGreaterThan(start);
+    const favoriteBody = src.slice(start, nextFn);
+    expect(favoriteBody).not.toContain("router.refresh");
+    // The delete path's router.refresh must survive elsewhere in the file (unrelated work).
+    expect(src).toContain("router.refresh");
+    // The favorite toggle is now routed through the shared optimistic hook.
+    expect(src).toContain("useToggleProjectFavorite");
+  });
 });

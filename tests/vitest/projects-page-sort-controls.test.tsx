@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ProjectsPageClient, type ProjectListItem } from "@/components/workshop/projects-page-client";
+import { ProjectsPageClient, type ProjectListItem } from "./projects-page-test-harness";
 import type { Tables } from "@/lib/supabase/types";
 
 const mocks = vi.hoisted(() => ({
@@ -97,12 +97,12 @@ function liveProjectNames() {
 }
 
 function projectDateGroupLabels() {
-  return Array.from(screen.getByLabelText("Live projects").querySelectorAll("[data-project-date-group-label]"))
+  return Array.from(screen.getByLabelText("Live projects").querySelectorAll("[data-project-group-label]"))
     .map((label) => label.textContent);
 }
 
 function projectDateGroupLabelWrapper(label: string) {
-  return screen.getByText(label).closest("[data-project-date-group-label]")?.parentElement;
+  return screen.getByText(label).closest("[data-project-group-label]")?.parentElement;
 }
 
 function localNoonIsoDaysAgo(daysAgo: number) {
@@ -149,11 +149,31 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByRole("combobox", { name: "View" })).toHaveAttribute("title", "Large");
     expect(screen.getByRole("combobox", { name: "Sort field" })).toHaveAttribute("title", "Last updated");
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Newest first");
+    for (const controlName of ["View", "Sort field", "Sort direction"]) {
+      const control = screen.getByRole("combobox", { name: controlName });
+      expect(control).toHaveClass("border-0", "gap-1.5", "px-1.5");
+      expect(control).not.toHaveClass("border-hairline");
+      expect(control).not.toHaveClass("px-2");
+    }
+    const viewDivider = screen.getByRole("combobox", { name: "View" }).parentElement?.nextElementSibling;
+    expect(viewDivider).toHaveAttribute("data-project-toolbar-view-divider", "");
+    expect(viewDivider).toHaveAttribute("aria-hidden", "true");
+    expect(viewDivider).toHaveClass("h-4", "w-px", "shrink-0", "bg-hairline");
     expect(screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement).toHaveClass("ml-auto");
     expect(liveProjectNames()).toEqual(["Zulu Project", "Alpha Project"]);
     expect(projectDateGroupLabels()).toEqual(["2026 · February"]);
     expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
-    expect(screen.getByText("2026 · February")).toHaveClass("border-x", "border-b", "border-hairline");
+    expect(screen.getByText("2026 · February")).toHaveClass("border-x", "border-b", "text-brand-orange-dark");
+    expect(screen.getByText("2026 · February").getAttribute("style")).toContain(
+      "color-mix(in srgb, var(--brand-orange) 25%, white)",
+    );
+    expect(screen.getByText("2026 · February").getAttribute("style")).toContain(
+      "color-mix(in srgb, var(--brand-orange) 35%, white)",
+    );
+    expect(screen.getByText("2026 · February")).not.toHaveClass("bg-hairline");
+    expect(screen.getByLabelText("2026 · February").querySelector("[data-project-group-rule]")?.getAttribute("style")).toContain(
+      "color-mix(in srgb, var(--brand-orange) 35%, white)",
+    );
   });
 
   it("sorts by created date and flips date direction labels", async () => {
@@ -270,10 +290,34 @@ describe("ProjectsPageClient sort controls", () => {
     await selectSortField(user, "Client");
     expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "A to Z");
     expect(liveProjectNames()).toEqual(["project 2", "Project 10", "Project 1"]);
-    expect(projectDateGroupLabels()).toEqual([]);
+    expect(projectDateGroupLabels()).toEqual(["alpha", "Beta", "No client yet"]);
+    expect(screen.getByLabelText("alpha").querySelector("[data-project-group-label]")).toHaveClass(
+      "border-x",
+      "border-b",
+      "text-brand-orange-dark",
+    );
+    expect(screen.getByLabelText("alpha").querySelector("[data-project-group-label]")?.getAttribute("style")).toContain(
+      "color-mix(in srgb, var(--brand-orange) 25%, white)",
+    );
+    expect(screen.getByLabelText("alpha").querySelector("[data-project-group-label]")?.getAttribute("style")).toContain(
+      "color-mix(in srgb, var(--brand-orange) 35%, white)",
+    );
+    expect(within(screen.getByLabelText("alpha")).getByRole("article")).toHaveAttribute(
+      "aria-label",
+      "project 2 project, owned access",
+    );
+    expect(within(screen.getByLabelText("Beta")).getByRole("article")).toHaveAttribute(
+      "aria-label",
+      "Project 10 project, owned access",
+    );
+    expect(within(screen.getByLabelText("No client yet")).getByRole("article")).toHaveAttribute(
+      "aria-label",
+      "Project 1 project, owned access",
+    );
 
     await selectSortDirection(user, "Z to A");
     expect(liveProjectNames()).toEqual(["Project 10", "project 2", "Project 1"]);
+    expect(projectDateGroupLabels()).toEqual(["Beta", "alpha", "No client yet"]);
 
     await selectSortField(user, "Project name");
     expect(liveProjectNames()).toEqual(["Project 1", "project 2", "Project 10"]);
@@ -343,11 +387,16 @@ describe("ProjectsPageClient sort controls", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[item({ id: "p1", name: "Created Visible", created_at: "2026-01-05T00:00:00.000Z" })]} />);
 
-    expect(screen.getByText("Created Jan 5").closest("p")).toHaveAttribute("title", "January 5, 2026");
+    const createdDate = screen.getByText("Jan 5");
+    expect(screen.getByText("Created")).toBeInTheDocument();
+    expect(createdDate.closest("[data-project-card-date-band]")).toHaveAttribute(
+      "title",
+      "Created January 5, 2026; updated January 2, 2026",
+    );
 
     await user.click(screen.getByRole("combobox", { name: "View" }));
     await user.click(screen.getByRole("option", { name: "Medium" }));
 
-    await waitFor(() => expect(screen.queryByText("Created Jan 5")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText("Jan 5")).not.toBeInTheDocument());
   });
 });

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectsPageClient,
   type ProjectListItem,
-} from "@/components/workshop/projects-page-client";
+} from "./projects-page-test-harness";
 import type { ProjectFavoriteEstimateSheetSummary } from "@/lib/repositories/workspace-repository";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -239,15 +239,12 @@ describe("ProjectsPageClient view modes", () => {
     const plainStatusSlot = plainCard.querySelector("[data-project-card-status-slot]");
     expect(plainStatusSlot).toHaveTextContent("");
 
-    const publishedSharedLinkMeta = publishedCard.querySelector("[data-project-card-shared-link-meta]");
-    const plainSharedLinkMeta = plainCard.querySelector("[data-project-card-shared-link-meta]");
     expect(publishedCard.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
     expect(publishedCard.querySelector("[data-project-card-details-action]")).not.toBeNull();
     expect(plainCard.querySelector("[data-project-card-details-action]")).not.toBeNull();
-    expect(publishedSharedLinkMeta).toHaveTextContent("1 open");
-    expect(publishedSharedLinkMeta).not.toHaveTextContent("Password off");
-    expect(plainSharedLinkMeta?.textContent).toBe("");
-    expect(plainSharedLinkMeta?.querySelector("[data-project-card-shared-link-meta-icon]")).toHaveClass("opacity-35");
+    expect(publishedCard.querySelector("[data-project-card-shared-link-meta]")).toBeNull();
+    expect(plainCard.querySelector("[data-project-card-shared-link-meta]")).toBeNull();
+    expect(publishedCard).not.toHaveTextContent("1 open");
   });
 
   it("guides first-run users to create a live project while keeping samples as references", async () => {
