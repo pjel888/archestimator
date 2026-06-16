@@ -210,11 +210,25 @@ export async function renameProjectGroup(input: { groupId: string; name: string 
   revalidateWorkshop();
 }
 
-export async function recolorProjectGroup(_input: {
+export async function recolorProjectGroup(input: {
   groupId: string;
   accentId: string | null;
 }): Promise<void> {
-  throw new Error("not implemented");
+  assertUuid(input.groupId, "Group");
+  const accentId = normalizeAccentId(input.accentId);
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("project_groups")
+    .update({ accent_id: accentId, updated_at: new Date().toISOString() })
+    .eq("id", input.groupId)
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id);
+
+  if (error) throw error;
+  revalidateWorkshop();
 }
 
 export async function deleteProjectGroup(_input: { groupId: string }): Promise<void> {

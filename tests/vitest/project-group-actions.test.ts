@@ -271,3 +271,68 @@ describe("renameProjectGroup", () => {
     );
   });
 });
+
+describe("recolorProjectGroup", () => {
+  it("rejects a non-uuid group id", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { recolorProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(recolorProjectGroup({ groupId: "x", accentId: "teal" })).rejects.toThrow(/invalid/i);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("rejects an unknown accent token before any write", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { recolorProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(recolorProjectGroup({ groupId: GROUP_ID, accentId: "chartreuse" })).rejects.toThrow(
+      /accent/i,
+    );
+    expect(stub.calls.some((c) => c.op === "update")).toBe(false);
+  });
+
+  it("persists a valid accent token", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { recolorProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await recolorProjectGroup({ groupId: GROUP_ID, accentId: "plum" });
+
+    const update = stub.calls.find((c) => c.op === "update");
+    expect((update?.payload as { accent_id: string | null }).accent_id).toBe("plum");
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects");
+  });
+
+  it("clears the accent to the default swatch when accentId is null", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { recolorProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await recolorProjectGroup({ groupId: GROUP_ID, accentId: null });
+
+    const update = stub.calls.find((c) => c.op === "update");
+    expect((update?.payload as { accent_id: string | null }).accent_id).toBeNull();
+  });
+});
+
+describe("accent token contract", () => {
+  it("keeps the action accent allowlist in sync with group-accent.ts when it exists", () => {
+    const actionsSrc = readFileSync("src/lib/workshop/group-actions.ts", "utf8");
+    const actionTokens = new Set(
+      [...actionsSrc.matchAll(/"(slate|stone|sage|teal|indigo|plum|rose|clay)"/g)].map((m) => m[1]),
+    );
+    expect(actionTokens.size).toBe(8);
+
+    const accentPath = "src/lib/workshop/group-accent.ts";
+    if (existsSync(accentPath)) {
+      const accentSrc = readFileSync(accentPath, "utf8");
+      for (const token of actionTokens) {
+        expect(accentSrc).toContain(`"${token}"`);
+      }
+    }
+  });
+});
