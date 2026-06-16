@@ -10,6 +10,7 @@ import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
+import { useSidebarFavoritesAnnouncer } from "@/hooks/use-sidebar-favorites-announcer";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
 import {
@@ -91,6 +92,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
   });
   const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
   const showEmptyHint = !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
+  const { politeText, assertiveText } = useSidebarFavoritesAnnouncer();
   const favoritePrefetchRoutes = useMemo(() => createFavoritePrefetchRoutes(liveFavoriteProjects), [liveFavoriteProjects]);
   const prefetchRoutes = useMemo(() => [...sidebarPrefetchRoutes, ...favoritePrefetchRoutes], [favoritePrefetchRoutes]);
   const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
@@ -188,7 +190,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
         <SidebarHeader expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
 
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex h-[72px] shrink-0 items-center xl:h-[76px]" style={{ paddingInline: SIDEBAR_PADDING }}>
+          <div className="flex h-[72px] shrink-0 items-center xl:h-[80px]" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs">
               <div className="flex h-10 w-12 shrink-0 items-center justify-center">
                 <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-xs bg-linear-to-br from-secondary to-primary text-[10px] font-medium leading-none text-white ring-1 ring-black/10">
@@ -313,6 +315,28 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                 Star a project to pin it here.
               </p>
             ) : null}
+
+            {/* Always-mounted live regions: the estimate-favorite button announces
+                through the module-scoped bridge, so these must persist even when the
+                favorites list is empty (08 / D5). */}
+            <span
+              data-sidebar-favorites-status
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+            >
+              {politeText}
+            </span>
+            <span
+              data-sidebar-favorites-alert
+              role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
+              className="sr-only"
+            >
+              {assertiveText}
+            </span>
           </div>
         </div>
       </nav>

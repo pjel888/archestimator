@@ -7,6 +7,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
 import { fetchSidebarFavoriteProjects } from "@/lib/favorites/sidebar-favorites-actions";
+import {
+  announceSidebarFavoriteAssertive,
+  announceSidebarFavoritePolite,
+} from "@/hooks/use-sidebar-favorites-announcer";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop/projects/project-1/estimates/sheet-1",
@@ -149,5 +153,75 @@ describe("MainSidebar favorites", () => {
     });
     expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
     expect(within(nav).queryByRole("link", { name: "Lewis Residence" })).not.toBeInTheDocument();
+  });
+
+  it("mounts two sr-only live regions with the correct ARIA wiring, always present", () => {
+    const { container } = renderWithClient(
+      <MainSidebar favoritesScope={scope} favoriteProjects={[]} user={{ displayName: "Philip Lewis" }} />,
+    );
+
+    const politeRegion = container.querySelector("[data-sidebar-favorites-status]");
+    const alertRegion = container.querySelector("[data-sidebar-favorites-alert]");
+
+    expect(politeRegion).not.toBeNull();
+    expect(politeRegion).toHaveAttribute("role", "status");
+    expect(politeRegion).toHaveAttribute("aria-live", "polite");
+    expect(politeRegion).toHaveAttribute("aria-atomic", "true");
+    expect(politeRegion).toHaveClass("sr-only");
+
+    expect(alertRegion).not.toBeNull();
+    expect(alertRegion).toHaveAttribute("role", "alert");
+    expect(alertRegion).toHaveAttribute("aria-live", "assertive");
+    expect(alertRegion).toHaveAttribute("aria-atomic", "true");
+    expect(alertRegion).toHaveClass("sr-only");
+  });
+
+  it("routes the polite cue into the status live region when a non-favorited parent is toggled", async () => {
+    const { container } = renderWithClient(
+      <MainSidebar favoritesScope={scope} favoriteProjects={[]} user={{ displayName: "Philip Lewis" }} />,
+    );
+    const politeRegion = () => container.querySelector("[data-sidebar-favorites-status]");
+
+    act(() => {
+      announceSidebarFavoritePolite("Estimate favorited. Favorite the project to pin it in the sidebar.");
+    });
+
+    await waitFor(() =>
+      expect(politeRegion()).toHaveTextContent(
+        "Estimate favorited. Favorite the project to pin it in the sidebar.",
+      ),
+    );
+  });
+
+  it("clears the prior polite text before writing the next cue on a rapid second toggle (no stacking)", async () => {
+    const { container } = renderWithClient(
+      <MainSidebar favoritesScope={scope} favoriteProjects={[]} user={{ displayName: "Philip Lewis" }} />,
+    );
+    const politeRegion = () => container.querySelector("[data-sidebar-favorites-status]");
+
+    act(() => {
+      announceSidebarFavoritePolite("First cue.");
+    });
+    await waitFor(() => expect(politeRegion()).toHaveTextContent("First cue."));
+
+    act(() => {
+      announceSidebarFavoritePolite("Second cue.");
+    });
+    await waitFor(() => expect(politeRegion()).toHaveTextContent("Second cue."));
+    // The first cue must not still be present (cleared before the second write, QA-20).
+    expect(politeRegion()).not.toHaveTextContent("First cue.");
+  });
+
+  it("routes failure copy into the assertive alert region", async () => {
+    const { container } = renderWithClient(
+      <MainSidebar favoritesScope={scope} favoriteProjects={[]} user={{ displayName: "Philip Lewis" }} />,
+    );
+    const alertRegion = () => container.querySelector("[data-sidebar-favorites-alert]");
+
+    act(() => {
+      announceSidebarFavoriteAssertive("Could not update favorite. Try again.");
+    });
+
+    await waitFor(() => expect(alertRegion()).toHaveTextContent("Could not update favorite. Try again."));
   });
 });
