@@ -186,8 +186,28 @@ export async function createProjectGroup(input: {
   return { id: inserted.id };
 }
 
-export async function renameProjectGroup(_input: { groupId: string; name: string }): Promise<void> {
-  throw new Error("not implemented");
+export async function renameProjectGroup(input: { groupId: string; name: string }): Promise<void> {
+  assertUuid(input.groupId, "Group");
+  const name = normalizeGroupName(input.name);
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("project_groups")
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq("id", input.groupId)
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id);
+
+  if (error) {
+    if (isDuplicateNameViolation(error)) {
+      throw new ProjectGroupNameError("A group with this name already exists.");
+    }
+    throw error;
+  }
+
+  revalidateWorkshop();
 }
 
 export async function recolorProjectGroup(_input: {

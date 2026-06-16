@@ -220,3 +220,54 @@ describe("createProjectGroup", () => {
     await expect(createProjectGroup({ name: "Pipeline" })).rejects.toBeInstanceOf(ProjectGroupNameError);
   });
 });
+
+describe("renameProjectGroup", () => {
+  it("rejects a non-uuid group id", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { renameProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(renameProjectGroup({ groupId: "nope", name: "X" })).rejects.toThrow(/invalid/i);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("rejects an empty trimmed name", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { renameProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+
+    await expect(renameProjectGroup({ groupId: GROUP_ID, name: "  " })).rejects.toBeInstanceOf(
+      ProjectGroupNameError,
+    );
+    expect(stub.calls.some((c) => c.op === "update")).toBe(false);
+  });
+
+  it("updates the trimmed name scoped to the owning user + workspace", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: null, error: null }); // update resolves ok
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { renameProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await renameProjectGroup({ groupId: GROUP_ID, name: "  Renamed  " });
+
+    const update = stub.calls.find((c) => c.op === "update");
+    expect(update?.table).toBe("project_groups");
+    expect((update?.payload as { name: string }).name).toBe("Renamed");
+    expect((update?.payload as { updated_at?: string }).updated_at).toEqual(expect.any(String));
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop");
+  });
+
+  it("translates a duplicate name (23505 from the name index) into a name error", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", {
+      data: null,
+      error: { code: "23505", constraint: "project_groups_user_workspace_lower_name_idx", message: "dup name" },
+    });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { renameProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+
+    await expect(renameProjectGroup({ groupId: GROUP_ID, name: "Taken" })).rejects.toBeInstanceOf(
+      ProjectGroupNameError,
+    );
+  });
+});
