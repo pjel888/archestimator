@@ -15,6 +15,7 @@
     "lint:design-system": "node scripts/enforce-app-design-system.mjs",
     "lint:font-size": "bun run lint:design-system",
     "type-check": "tsc --noEmit",
+    "gen:types": "supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > src/lib/supabase/types.ts",
     "test": "bun test tests/unit",
     "test:dom": "vitest run --maxWorkers=1",
     "test:dom:watch": "vitest",
