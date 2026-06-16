@@ -40,6 +40,7 @@ import { cn } from "@/lib/ui/cn";
 export type ProjectEstimateTableRow = ProjectEstimateListRow;
 
 type ProjectEstimatesTableProps = {
+  canEditEstimateById?: Record<string, boolean>;
   estimates: ProjectEstimateTableRow[];
   projectId: string;
   emptyMessage?: string;
@@ -192,6 +193,7 @@ function ProjectEstimateFillerRows({
 ProjectEstimateFillerRows.displayName = "ProjectEstimateFillerRows";
 
 type ProjectEstimateRowActionsProps = {
+  canEditEstimate: boolean;
   estimate: ProjectEstimateTableRow;
   isSelected: boolean;
   onDuplicateError: (message: string | null) => void;
@@ -205,6 +207,7 @@ type ProjectEstimateRowActionsProps = {
 };
 
 function ProjectEstimateRowActions({
+  canEditEstimate,
   estimate,
   isSelected,
   onDuplicateError,
@@ -223,7 +226,7 @@ function ProjectEstimateRowActions({
   const isPendingRow = Boolean(estimate.pendingStatus);
 
   function handleDuplicate() {
-    if (duplicateInFlightRef.current || isPendingRow) return;
+    if (!canEditEstimate || duplicateInFlightRef.current || isPendingRow) return;
 
     duplicateInFlightRef.current = true;
     setIsDuplicating(true);
@@ -266,7 +269,7 @@ function ProjectEstimateRowActions({
         className="size-3 cursor-pointer rounded-xs border-hairline accent-ink disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Select ${estimate.name}`}
         checked={isSelected}
-        disabled={isPendingRow}
+        disabled={!canEditEstimate || isPendingRow}
         onChange={() => onToggleSelected(estimate.id)}
       />
       <ProjectEstimateFavoriteButton
@@ -279,8 +282,8 @@ function ProjectEstimateRowActions({
         type="button"
         className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Delete ${estimate.name}`}
-        title="Delete estimate"
-        disabled={isPendingRow}
+        title={canEditEstimate ? "Delete estimate" : "View-only estimate."}
+        disabled={!canEditEstimate || isPendingRow}
         onClick={() => onDeleteRequested(estimate.id)}
       >
         <Trash size={12} weight="regular" aria-hidden="true" />
@@ -289,9 +292,9 @@ function ProjectEstimateRowActions({
         type="button"
         className="grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Duplicate ${estimate.name}`}
-        disabled={isDuplicating || isPendingRow}
+        disabled={!canEditEstimate || isDuplicating || isPendingRow}
         onClick={handleDuplicate}
-        title={isDuplicating ? "Duplicating estimate..." : "Duplicate estimate"}
+        title={!canEditEstimate ? "View-only estimate." : isDuplicating ? "Duplicating estimate..." : "Duplicate estimate"}
       >
         <CopySimple size={12} weight="regular" aria-hidden="true" />
       </button>
@@ -334,6 +337,7 @@ ProjectEstimateRowActions.displayName = "ProjectEstimateRowActions";
 
 function ProjectEstimateEditableTextCell({
   className,
+  canEditEstimate,
   estimate,
   field,
   inputClassName,
@@ -344,6 +348,7 @@ function ProjectEstimateEditableTextCell({
   optimistic,
 }: {
   className?: string;
+  canEditEstimate: boolean;
   estimate: ProjectEstimateTableRow;
   field: EditableEstimateTextField;
   inputClassName?: string;
@@ -364,6 +369,7 @@ function ProjectEstimateEditableTextCell({
   const skipNextBlurCommitRef = useRef(false);
 
   const commitDraft = useCallback(() => {
+    if (!canEditEstimate) return;
     const nextValue = draft.trim();
     if (nextValue === savedValue.trim()) {
       setDraft(savedValue);
@@ -409,7 +415,7 @@ function ProjectEstimateEditableTextCell({
           setErrorMessage(getErrorMessage(error));
         });
     });
-  }, [draft, estimate.id, field, isRequired, label, optimistic, projectId, router, savedValue, store]);
+  }, [canEditEstimate, draft, estimate.id, field, isRequired, label, optimistic, projectId, router, savedValue, store]);
 
   if (estimate.pendingStatus) {
     return (
@@ -458,7 +464,7 @@ function ProjectEstimateEditableTextCell({
             status === "error" && "border-danger bg-dangerSoft/40",
             inputClassName,
           )}
-          disabled={isPending}
+          disabled={!canEditEstimate || isPending}
           onBlur={handleBlur}
           onChange={(event) => {
             setDraft(event.currentTarget.value);
@@ -467,7 +473,7 @@ function ProjectEstimateEditableTextCell({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          title="Edit inline. Press Enter or leave the cell to save. Press Esc to cancel."
+          title={canEditEstimate ? "Edit inline. Press Enter or leave the cell to save. Press Esc to cancel." : "View-only estimate."}
           value={draft}
         />
         {status === "saving" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-tertiary">Saving</span> : null}
@@ -490,11 +496,13 @@ function ProjectEstimateEditableTextCell({
 ProjectEstimateEditableTextCell.displayName = "ProjectEstimateEditableTextCell";
 
 function ProjectEstimateBudgetCell({
+  canEditEstimate,
   estimate,
   projectId,
   store,
   optimistic,
 }: {
+  canEditEstimate: boolean;
   estimate: ProjectEstimateTableRow;
   projectId: string;
   store?: ProjectEstimatesStore;
@@ -511,6 +519,7 @@ function ProjectEstimateBudgetCell({
   const skipNextBlurCommitRef = useRef(false);
 
   const commitDraft = useCallback(() => {
+    if (!canEditEstimate) return;
     let nextBudget: number | null;
     try {
       nextBudget = parseBudgetInput(draft);
@@ -549,7 +558,7 @@ function ProjectEstimateBudgetCell({
           setErrorMessage(getErrorMessage(error));
         });
     });
-  }, [draft, estimate.id, optimistic, projectId, router, savedBudget, savedValue, store]);
+  }, [canEditEstimate, draft, estimate.id, optimistic, projectId, router, savedBudget, savedValue, store]);
 
   if (estimate.pendingStatus) {
     return (
@@ -599,7 +608,7 @@ function ProjectEstimateBudgetCell({
               "h-6 min-w-0 w-full rounded-xs border border-transparent bg-transparent px-1 pl-4 text-left font-sans !text-[10px] leading-none tabular-nums text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
               status === "error" && "border-danger bg-dangerSoft/40",
             )}
-            disabled={isPending}
+            disabled={!canEditEstimate || isPending}
             inputMode="decimal"
             onBlur={handleBlur}
             onChange={(event) => {
@@ -610,7 +619,7 @@ function ProjectEstimateBudgetCell({
             onFocus={(event) => event.currentTarget.select()}
             onKeyDown={handleKeyDown}
             placeholder="0.00"
-            title="Edit the project budget for this estimate. Press Enter or leave the cell to save. Press Esc to cancel."
+            title={canEditEstimate ? "Edit the project budget for this estimate. Press Enter or leave the cell to save. Press Esc to cancel." : "View-only estimate."}
             value={draft}
           />
         </div>
@@ -634,11 +643,13 @@ function ProjectEstimateBudgetCell({
 ProjectEstimateBudgetCell.displayName = "ProjectEstimateBudgetCell";
 
 function ProjectEstimateSheetCodeCell({
+  canEditEstimate,
   estimate,
   projectId,
   store,
   optimistic,
 }: {
+  canEditEstimate: boolean;
   estimate: ProjectEstimateTableRow;
   projectId: string;
   store?: ProjectEstimatesStore;
@@ -650,6 +661,7 @@ function ProjectEstimateSheetCodeCell({
   const isPendingRow = Boolean(estimate.pendingStatus);
 
   function handleAutoGenerate() {
+    if (!canEditEstimate) return;
     setErrorMessage(null);
     startTransition(() => {
       void regenerateEstimateSheetCode({ projectId, estimateId: estimate.id })
@@ -676,15 +688,16 @@ function ProjectEstimateSheetCodeCell({
         projectId={projectId}
         store={store}
         optimistic={optimistic}
+        canEditEstimate={canEditEstimate}
       />
       {isPendingRow ? null : (
         <button
           type="button"
           aria-label={`Auto-generate estimate code for ${estimate.name}`}
           className="h-5 shrink-0 rounded-xs border border-hairline bg-white px-1.5 text-[8px] font-medium uppercase tracking-normal text-tertiary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isPending}
+          disabled={!canEditEstimate || isPending}
           onClick={handleAutoGenerate}
-          title={errorMessage ?? "Auto-generate the next estimate code"}
+          title={errorMessage ?? (canEditEstimate ? "Auto-generate the next estimate code" : "View-only estimate.")}
         >
           Auto
         </button>
@@ -751,6 +764,7 @@ function ProjectEstimatesColumnResizeHandle({
 ProjectEstimatesColumnResizeHandle.displayName = "ProjectEstimatesColumnResizeHandle";
 
 function ProjectEstimatesTableComponent({
+  canEditEstimateById,
   estimates,
   projectId,
   emptyMessage = "No estimates yet",
@@ -798,6 +812,10 @@ function ProjectEstimatesTableComponent({
     [estimates, projectId, queryClient],
   );
   const { prefetch: prefetchEstimateRoute, cancel: cancelEstimateRoute } = usePrefetchOnHover(prefetchRoutes);
+  const editableEstimateIds = useMemo(
+    () => new Set(estimates.filter((estimate) => (canEditEstimateById ? canEditEstimateById[estimate.id] === true : true)).map((estimate) => estimate.id)),
+    [canEditEstimateById, estimates],
+  );
 
   useEffect(() => {
     setColumnSizing(readColumnSizingFromStorage(columnWidthStorageKey));
@@ -808,12 +826,12 @@ function ProjectEstimatesTableComponent({
   }, [columnSizing, columnWidthStorageKey]);
 
   useEffect(() => {
-    const availableIds = new Set(estimates.map((estimate) => estimate.id));
+    const availableIds = editableEstimateIds;
     setSelectedEstimateIds((current) => {
       const next = new Set([...current].filter((id) => availableIds.has(id)));
       return next.size === current.size ? current : next;
     });
-  }, [estimates]);
+  }, [editableEstimateIds]);
 
   const toggleEstimateSelection = useCallback((estimateId: string) => {
     setSelectedEstimateIds((current) => {
@@ -825,8 +843,8 @@ function ProjectEstimatesTableComponent({
   }, []);
 
   const selectedVisibleEstimateIds = useMemo(
-    () => estimates.filter((estimate) => selectedEstimateIds.has(estimate.id)).map((estimate) => estimate.id),
-    [estimates, selectedEstimateIds],
+    () => estimates.filter((estimate) => editableEstimateIds.has(estimate.id) && selectedEstimateIds.has(estimate.id)).map((estimate) => estimate.id),
+    [editableEstimateIds, estimates, selectedEstimateIds],
   );
   const deleteEstimatePhrase = deleteEstimateTargetIds.length === 1 ? "DELETE ESTIMATE" : `DELETE ${deleteEstimateTargetIds.length} ESTIMATES`;
   const deleteEstimateModalTitle = deleteEstimateTargetIds.length === 1 ? "Delete estimate" : `Delete ${deleteEstimateTargetIds.length} estimates`;
@@ -916,9 +934,11 @@ function ProjectEstimatesTableComponent({
         enableResizing: false,
         cell: ({ row }) => {
           const estimate = row.original;
+          const canEditEstimate = editableEstimateIds.has(estimate.id);
 
           return (
             <ProjectEstimateRowActions
+              canEditEstimate={canEditEstimate}
               estimate={estimate}
               isSelected={selectedEstimateIds.has(estimate.id)}
               onDeleteRequested={(estimateId) => openDeleteEstimatePreview([estimateId])}
@@ -939,7 +959,7 @@ function ProjectEstimatesTableComponent({
         size: 176,
         minSize: 132,
         maxSize: 260,
-        cell: ({ row }) => <ProjectEstimateSheetCodeCell estimate={row.original} projectId={projectId} store={store} optimistic={optimistic} />,
+        cell: ({ row }) => <ProjectEstimateSheetCodeCell canEditEstimate={editableEstimateIds.has(row.original.id)} estimate={row.original} projectId={projectId} store={store} optimistic={optimistic} />,
       },
       {
         accessorKey: "name",
@@ -951,6 +971,7 @@ function ProjectEstimatesTableComponent({
           <ProjectEstimateEditableTextCell
             key={`estimate-name-${row.original.id}-${row.original.name}`}
             estimate={row.original}
+            canEditEstimate={editableEstimateIds.has(row.original.id)}
             field="name"
             inputClassName="font-medium tracking-normal"
             label="Estimate name"
@@ -971,6 +992,7 @@ function ProjectEstimatesTableComponent({
           <ProjectEstimateEditableTextCell
             key={`estimate-notes-${row.original.id}-${row.original.notes ?? ""}`}
             estimate={row.original}
+            canEditEstimate={editableEstimateIds.has(row.original.id)}
             field="notes"
             label="Notes"
             placeholder="Add notes"
@@ -990,6 +1012,7 @@ function ProjectEstimatesTableComponent({
           <ProjectEstimateBudgetCell
             key={`estimate-budget-${row.original.id}-${row.original.project_budget ?? "none"}`}
             estimate={row.original}
+            canEditEstimate={editableEstimateIds.has(row.original.id)}
             projectId={projectId}
             store={store}
             optimistic={optimistic}
@@ -1038,7 +1061,7 @@ function ProjectEstimatesTableComponent({
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
     ],
-    [cancelEstimateRoute, openDeleteEstimatePreview, optimistic, prefetchEstimateRoute, projectId, selectedEstimateIds, store, toggleEstimateSelection],
+    [cancelEstimateRoute, editableEstimateIds, openDeleteEstimatePreview, optimistic, prefetchEstimateRoute, projectId, selectedEstimateIds, store, toggleEstimateSelection],
   );
 
   const table = useReactTable({
@@ -1074,7 +1097,7 @@ function ProjectEstimatesTableComponent({
         helperText="Preview dependencies before deleting estimates."
         onAction={() => openDeleteEstimatePreview(selectedVisibleEstimateIds)}
         onClear={() => setSelectedEstimateIds(new Set())}
-        onSelectVisible={() => setSelectedEstimateIds(new Set(estimates.map((estimate) => estimate.id)))}
+        onSelectVisible={() => setSelectedEstimateIds(new Set(estimates.filter((estimate) => editableEstimateIds.has(estimate.id)).map((estimate) => estimate.id)))}
       />
       <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>

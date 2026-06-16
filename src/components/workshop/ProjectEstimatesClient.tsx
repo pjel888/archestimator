@@ -20,6 +20,8 @@ import { createProjectEstimatesStore } from "@/stores/project-estimates-store";
 const OPTIMISTIC_ESTIMATE_LIST_ENABLED = true;
 
 type ProjectEstimatesClientProps = {
+  canCreateEstimates: boolean;
+  canEditEstimateById: Record<string, boolean>;
   estimates: ProjectEstimateTableRow[];
   projectId: string;
   projectName: string;
@@ -35,7 +37,7 @@ function filterEstimateSheets(estimates: ProjectEstimateTableRow[], query: strin
   });
 }
 
-export function ProjectEstimatesClient({ estimates, projectId, projectName }: ProjectEstimatesClientProps) {
+export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById, estimates, projectId, projectName }: ProjectEstimatesClientProps) {
   const router = useNavigationRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -61,7 +63,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
   const hasFilteredEstimates = filteredEstimates.length > 0;
 
   function handleCreateEstimateSheet() {
-    if (createInFlightRef.current) return;
+    if (!canCreateEstimates || createInFlightRef.current) return;
 
     createInFlightRef.current = true;
     setIsCreating(true);
@@ -127,7 +129,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
         addActions={[
           {
             label: isCreating ? "Creating estimate" : "Create Estimate",
-            disabled: isCreating,
+            disabled: !canCreateEstimates || isCreating,
             onClick: handleCreateEstimateSheet,
           },
         ]}
@@ -143,6 +145,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
           <ProjectEstimatesTable
             projectId={projectId}
             estimates={filteredEstimates}
+            canEditEstimateById={canEditEstimateById}
             emptyMessage={emptyMessage}
             store={OPTIMISTIC_ESTIMATE_LIST_ENABLED ? store : undefined}
             optimistic={OPTIMISTIC_ESTIMATE_LIST_ENABLED}
@@ -163,8 +166,9 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
                   variant="primary"
                   size="sm"
                   onClick={handleCreateEstimateSheet}
-                  disabled={isCreating}
+                  disabled={!canCreateEstimates || isCreating}
                   aria-label={isCreating ? "Creating first estimate" : "Create first estimate"}
+                  title={canCreateEstimates ? undefined : "View-only project."}
                 >
                   <Plus size={12} weight="regular" aria-hidden="true" />
                   {isCreating ? "Creating" : "Create estimate"}
