@@ -122,6 +122,16 @@ export type ProjectFavoriteEstimateSheetSummary = Pick<
   favoriteCreatedAt: string;
 };
 
+// Part 7c (Project Groups): camelCase client-facing summary of a per-user project group.
+// Single source of truth — the client imports this type, never redefines it (contracts §3.1).
+// `accentId` maps from the snake_case `accent_id` row; `position` carries the manual order.
+export type ProjectGroupSummary = {
+  id: string;
+  name: string;
+  accentId: string | null;
+  position: number;
+};
+
 const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
 const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
