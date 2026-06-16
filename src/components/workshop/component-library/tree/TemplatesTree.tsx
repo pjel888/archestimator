@@ -22,6 +22,7 @@ import { TREE_ROW_ICON_SIZE, Tree, type TreeNode as UiTreeNode } from "@/compone
 import { WORKSHOP_TREE_VIRTUALIZATION } from "@/lib/workshop/virtualization-flags";
 import type { TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { getProjectReusableSourceDisplayName, getProjectTabReusableSourceDisplayName } from "@/lib/reusable-sources/display";
+import { textMatchesReusableSourceQuery } from "@/lib/reusable-sources/source-collectors";
 import type {
   ProjectEstimateReusableSource,
   ProjectNodeReusableSource,
@@ -634,8 +635,7 @@ function SourceFolderRowContent({ label, meta }: { label: string; meta?: string 
 }
 
 function projectSourceMatchesQuery(source: ReusableEstimateSource, query: string) {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (!normalizedQuery) return true;
+  if (!query.trim()) return true;
   if (source.kind === "custom-template") return templateMatchesQuery(source.template, query);
   const values: Array<string | null | undefined> = [
     source.name,
@@ -653,7 +653,7 @@ function projectSourceMatchesQuery(source: ReusableEstimateSource, query: string
       values.push(item.name, item.material, item.description, item.supplier);
     }
   }
-  return values.some((value) => value?.toLowerCase().includes(normalizedQuery));
+  return textMatchesReusableSourceQuery(query, values);
 }
 
 export function filterProjectSourcesByQuery(projectSources: ReusableEstimateSource[], query: string) {

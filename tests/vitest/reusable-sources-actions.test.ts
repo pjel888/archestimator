@@ -97,6 +97,7 @@ beforeEach(() => {
   repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
   repositoryMocks.listCurrentWorkspaceProjects.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockReset();
+  repositoryMocks.listProjectEstimateSheets.mockResolvedValue([]);
   supabaseServerMocks.createSupabaseServerClient.mockReset();
   // Default: no estimate matches the pre-filter (the search test sets the match).
   mockSearchPrefilter({});
@@ -412,10 +413,14 @@ describe("reusable project source actions", () => {
     expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
       limit: 20,
     });
+    expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
+      limit: 20,
+      search: "missing",
+    });
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
       projectAId,
-      { limit: 100 },
+      { limit: 100, search: "missing" },
     );
     expect(
       searchPrefilterCalls.filter(
@@ -427,6 +432,86 @@ describe("reusable project source actions", () => {
         table: "estimate_nodes",
         method: "eq",
         args: expect.arrayContaining(["estimate_id"]),
+      }),
+    );
+  });
+
+  it("includes project name matches from the search-aware project read before applying the cap", async () => {
+    const recentProjects = Array.from({ length: 20 }, (_, index) => ({
+      accessKind: "owner",
+      project: {
+        id: `recent-project-${index + 1}`,
+        name: `Recent Project ${index + 1}`,
+      },
+    }));
+    repositoryMocks.listCurrentWorkspaceProjects
+      .mockResolvedValueOnce({ projects: recentProjects })
+      .mockResolvedValueOnce({
+        projects: [
+          {
+            accessKind: "owner",
+            project: { id: projectBId, name: "Smith LLC Medical Office" },
+          },
+        ],
+      });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Smith, LLC" });
+
+    expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
+      limit: 20,
+      search: "Smith, LLC",
+    });
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project",
+        projectId: projectBId,
+        name: "Smith LLC Medical Office",
+      }),
+    );
+  });
+
+  it("includes estimate matches from the search-aware estimate read before applying the cap", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Large Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets
+      .mockResolvedValueOnce([
+        {
+          id: estimateAId,
+          name: "Smith LLC Late Estimate",
+          sheetCode: "EST-250",
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
+      ])
+      .mockResolvedValueOnce(
+        Array.from({ length: 99 }, (_, index) => ({
+          id: `recent-estimate-${index + 1}`,
+          name: `Recent Estimate ${index + 1}`,
+          sheetCode: `EST-${index + 1}`,
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        })),
+      );
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Smith, LLC" });
+
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 100, search: "Smith, LLC" },
+    );
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-estimate",
+        estimateId: estimateAId,
+        name: "Smith LLC Late Estimate",
       }),
     );
   });
@@ -639,7 +724,7 @@ describe("reusable project source actions", () => {
     );
   });
 
-  it("uses the raw punctuated query for database prefiltering while matching normalized candidates", async () => {
+  it("uses raw and normalized query patterns for database prefiltering", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
         {
@@ -664,7 +749,7 @@ describe("reusable project source actions", () => {
       tree: [
         {
           id: "smith-node",
-          name: "Smith, LLC",
+          name: "Smith LLC",
           kind: "area",
           total: "₱0.00",
           children: [],
@@ -681,7 +766,7 @@ describe("reusable project source actions", () => {
             estimate_tab_id: tabAId,
             parent_id: null,
             kind: "area",
-            name: "Smith, LLC",
+            name: "Smith LLC",
           },
         ],
         error: null,
@@ -698,11 +783,16 @@ describe("reusable project source actions", () => {
       method: "ilike",
       args: ["name", "%Smith, LLC%"],
     });
+    expect(searchPrefilterCalls).toContainEqual({
+      table: "estimate_nodes",
+      method: "ilike",
+      args: ["name", "%smith llc%"],
+    });
     expect(result.sources).toContainEqual(
       expect.objectContaining({
         kind: "project-node",
         nodeId: "smith-node",
-        name: "Smith, LLC",
+        name: "Smith LLC",
       }),
     );
   });
@@ -910,10 +1000,14 @@ describe("reusable project source actions", () => {
       await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "amenity" });
 
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(2);
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
       projectAId,
-      { limit: 100 },
+      { limit: 100, search: "amenity" },
+    );
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 99 },
     );
     expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(
       projectAId,

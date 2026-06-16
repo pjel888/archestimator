@@ -800,21 +800,53 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
   return { workspace, profile };
 });
 
-export async function listCurrentWorkspaceProjects(options: { limit?: number } = {}) {
+function toWorkspaceProjectSearchPatterns(search: string | undefined) {
+  const rawSearch = search?.trim().replace(/\s+/g, " ") ?? "";
+  const normalizedSearch = rawSearch
+    .replace(/[,()"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return Array.from(
+    new Set([rawSearch, normalizedSearch].filter(Boolean)),
+  ).map((value) => `%${value.replace(/[\\%_]/g, "\\$&")}%`);
+}
+
+export async function listCurrentWorkspaceProjects(options: { limit?: number; search?: string } = {}) {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   const projectLimit =
     typeof options.limit === "number" && options.limit > 0
       ? Math.floor(options.limit)
       : null;
-  const projectsQuery = supabase
-    .from("projects")
-    .select("*")
-    .eq("workspace_id", workspace.id)
-    .order("updated_at", { ascending: false });
+  const projectSearchPatterns = toWorkspaceProjectSearchPatterns(options.search);
+  const readProjectsQuery = (pattern?: string) => {
+    let query = supabase
+      .from("projects")
+      .select("*")
+      .eq("workspace_id", workspace.id);
+    if (pattern) query = query.ilike("name", pattern);
+    query = query.order("updated_at", { ascending: false });
+    return projectLimit ? query.limit(projectLimit) : query;
+  };
+  const readProjectsResult = async () => {
+    const results = projectSearchPatterns.length > 0
+      ? await Promise.all(projectSearchPatterns.map((pattern) => readProjectsQuery(pattern)))
+      : [await readProjectsQuery()];
+    const error = results.find((result) => result.error)?.error;
+    if (error) return { data: null, error };
+    const projectsById = new Map(
+      results
+        .flatMap((result) => result.data ?? [])
+        .map((project) => [project.id, project]),
+    );
+    const data = Array.from(projectsById.values())
+      .sort((left, right) => Date.parse(right.updated_at ?? "") - Date.parse(left.updated_at ?? ""))
+      .slice(0, projectLimit ?? undefined);
+    return { data, error: null };
+  };
 
   const [projectsResult, favoritesResult, estimateFavoritesResult, projectMembersResult, sheetMembersResult, workspaceMembershipResult] = await Promise.all([
-    projectLimit ? projectsQuery.limit(projectLimit) : projectsQuery,
+    readProjectsResult(),
     supabase
       .from("project_favorites")
       .select("project_id")
@@ -861,12 +893,7 @@ export async function listCurrentWorkspaceProjects(options: { limit?: number } =
       ...projectMembers.map((member) => member.project_id),
       ...sheetMembers.map((member) => member.project_id),
     ]),
-  )
-    .filter((projectId) => !ownedProjectIds.has(projectId))
-    .slice(
-      0,
-      projectLimit ? Math.max(projectLimit - ownedProjects.length, 0) : undefined,
-    );
+  ).filter((projectId) => !ownedProjectIds.has(projectId));
 
   let sharedProjects: Tables<"projects">[] = [];
   if (sharedProjectIds.length > 0) {
@@ -1554,7 +1581,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
  */
 export async function listProjectEstimateSheets(
   projectId: string,
-  options: { limit?: number } = {},
+  options: { limit?: number; search?: string } = {},
 ): Promise<ProjectEstimateSheetSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
