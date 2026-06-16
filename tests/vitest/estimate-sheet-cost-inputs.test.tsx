@@ -321,8 +321,10 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
+    const materialHeader = within(livingAreaSection).getByRole("columnheader", { name: "Materials" });
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Adjustment" })).toBeInTheDocument();
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
+    expect(materialHeader.querySelector("[data-estimate-material-header-rail='true']")).toHaveClass("w-[3px]", "bg-divider");
     expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
     expect(
@@ -760,6 +762,7 @@ describe("estimate sheet cost inputs", () => {
 
     const actionHeader = screen.getByLabelText("Tab controls");
     const tabList = screen.getByRole("tablist", { name: "Estimate tabs" });
+    expect(actionHeader).toHaveClass("border-b", "border-hairline");
     expect(actionHeader.compareDocumentPosition(tabList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(actionHeader).queryByRole("heading", { name: "Sheet" })).not.toBeInTheDocument();
     expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();

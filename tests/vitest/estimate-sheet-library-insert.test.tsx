@@ -23,7 +23,12 @@ const actionMocks = vi.hoisted(() => ({
   updateEstimateRowItem: vi.fn(),
 }));
 
+const promotionMocks = vi.hoisted(() => ({
+  promoteEstimateRowToLibraryComponent: vi.fn(),
+}));
+
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/estimates/express-promotion-actions", () => promotionMocks);
 
 const projectId = "22222222-2222-4222-8222-222222222222";
 const estimateId = "77777777-7777-4777-8777-777777777719";
@@ -162,6 +167,28 @@ const nodesWithLinkedRow: EstimateTreeNode[] = [
   },
 ];
 
+const nodesWithDetachedProjectSpecificRow: EstimateTreeNode[] = [
+  {
+    id: targetNodeId,
+    name: "Kitchen",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [
+      {
+        ...nodesWithRow[0].estimateRowItems![0],
+        source: "project",
+        sourceLibraryItemId: null,
+        sourceSnapshot: {
+          sourceLibraryItemId: "99999999-9999-4999-8999-999999999901",
+          sourceType: "library_component",
+        },
+        linkState: "detached",
+      },
+    ],
+    children: [],
+  },
+];
+
 const legacyBlankRowId = "66666666-6666-4666-8666-666666666663";
 const nodesWithLegacyBlankRow: EstimateTreeNode[] = [
   {
@@ -290,6 +317,11 @@ describe("estimate sheet library insertion persistence", () => {
       miscCost: 10,
       linkState: "detached",
       rowRevision: 8,
+    });
+    promotionMocks.promoteEstimateRowToLibraryComponent.mockResolvedValue({
+      rowId: cabinetRowId,
+      itemId: "99999999-9999-4999-8999-999999999999",
+      activePriceOptionId: "88888888-8888-4888-8888-888888888888",
     });
   });
 
@@ -789,6 +821,24 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
+  });
+
+  it("promotes a project-specific component to a new library component from the sheet", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet(nodesWithDetachedProjectSpecificRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const promoteButton = within(kitchenSection).getByRole("button", { name: "Promote Kitchen Cabinet to library" });
+    await user.click(promoteButton);
+
+    await waitFor(() => {
+      expect(promotionMocks.promoteEstimateRowToLibraryComponent).toHaveBeenCalledWith({
+        projectId,
+        estimateId,
+        rowId: cabinetRowId,
+        mutationId: expect.any(String),
+      });
+    });
   });
 
   it("keeps duplicate linked rows independently eligible for project-specific detach", async () => {

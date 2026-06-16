@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ProjectsPageClient, type ProjectListItem } from "@/components/workshop/projects-page-client";
@@ -76,7 +76,11 @@ describe("Projects page card layout", () => {
     );
 
     const card = screen.getByLabelText("Lewis Residence project, owned access");
-    expect(card).toHaveClass("h-[360px]");
+    expect(card).toHaveClass("min-h-[360px]");
+
+    const thumbnail = card.querySelector("[data-project-card-thumbnail]");
+    expect(thumbnail).toHaveClass("aspect-[4/3]");
+    expect(thumbnail).toHaveClass("shrink-0");
 
     const hoverReveal = card.querySelector("[data-project-card-hover-reveal]");
     expect(hoverReveal).not.toBeNull();
@@ -90,6 +94,18 @@ describe("Projects page card layout", () => {
     const favoriteTray = card.querySelector("[data-project-card-favorite-sheets]");
     expect(favoriteTray).not.toBeNull();
     expect(favoriteTray).not.toHaveClass("min-h-[76px]");
+    expect(within(favoriteTray as HTMLElement).queryByText("Favorite sheets")).not.toBeInTheDocument();
+
+    expect(within(favoriteTray as HTMLElement).getByRole("link", { name: "Concept Budget" })).toHaveAttribute(
+      "href",
+      "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-concept0budg",
+    );
+    expect(
+      within(favoriteTray as HTMLElement).getByRole("link", { name: "Kitchen Fit-out Estimate" }),
+    ).toHaveAttribute(
+      "href",
+      "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-kitchen0fit-",
+    );
 
     const metaStack = card.querySelector("[data-project-card-meta-stack]");
     expect(metaStack).not.toBeNull();
@@ -117,8 +133,9 @@ describe("Projects page card layout", () => {
     const statusSlot = card.querySelector("[data-project-card-status-slot]");
     expect(statusSlot).not.toHaveTextContent("Shared link");
 
-    const sharedLinkIndicator = card.querySelector("[data-project-card-shared-link-indicator]");
-    expect(sharedLinkIndicator).not.toBeNull();
+    expect(card.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
+    expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
+    expect(within(card).getByRole("button", { name: "Expand Lewis Residence details" })).toBeInTheDocument();
 
     const sharedLinkMeta = card.querySelector("[data-project-card-shared-link-meta]");
     expect(sharedLinkMeta).not.toBeNull();

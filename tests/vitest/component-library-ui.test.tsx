@@ -273,11 +273,14 @@ describe("component library UI", () => {
     // or not the view-by popover is open — the popover is now an external sibling.
     const stickyHeader = screen.getByLabelText("Library tree tools").closest(".sticky");
     expect(stickyHeader?.children).toHaveLength(2); // toolbar + search disclosure, tabs
+    expect(stickyHeader).not.toHaveClass("border-b");
+    expect(stickyHeader?.firstElementChild).toHaveClass("border-b");
     expect(container.querySelector(".min-h-0.flex-1.overflow-auto > .h-8.w-full.bg-white")).toBeNull();
 
     // The new under-tabs toolbar row has Filter, View-by, and Add buttons.
     const toolsRow = screen.getByRole("toolbar", { name: "Library tools" });
     expect(toolsRow).toBeInTheDocument();
+    expect(toolsRow).not.toHaveClass("border-t");
     // After D1 wiring the placeholder is replaced by ComponentFacetFilterPopover,
     // whose trigger aria-label is "Filter components" (inactive state).
     expect(within(toolsRow).getByRole("button", { name: "Filter components" })).toBeInTheDocument();

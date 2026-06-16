@@ -96,8 +96,35 @@ function liveProjectNames() {
     .map((card) => card.getAttribute("aria-label")?.replace(" project, owned access", ""));
 }
 
+function projectDateGroupLabels() {
+  return Array.from(screen.getByLabelText("Live projects").querySelectorAll("[data-project-date-group-label]"))
+    .map((label) => label.textContent);
+}
+
+function projectDateGroupLabelWrapper(label: string) {
+  return screen.getByText(label).closest("[data-project-date-group-label]")?.parentElement;
+}
+
+function localNoonIsoDaysAgo(daysAgo: number) {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() - daysAgo);
+  return date.toISOString();
+}
+
+function currentProjectDateGroupLabel() {
+  const date = new Date();
+  const month = new Intl.DateTimeFormat("en", { month: "long" }).format(date);
+  return `${date.getFullYear()} · ${month}`;
+}
+
 async function selectSortField(user: ReturnType<typeof userEvent.setup>, label: string) {
   await user.click(screen.getByRole("combobox", { name: "Sort field" }));
+  await user.click(screen.getByRole("option", { name: label }));
+}
+
+async function selectSortDirection(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole("combobox", { name: "Sort direction" }));
   await user.click(screen.getByRole("option", { name: label }));
 }
 
@@ -119,11 +146,14 @@ describe("ProjectsPageClient sort controls", () => {
       />,
     );
 
-    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: Large");
-    expect(screen.getByRole("combobox", { name: "Sort field" })).toHaveTextContent("Sort: Last updated");
-    expect(screen.getByRole("button", { name: "Newest first" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "View" })).toHaveAttribute("title", "Large");
+    expect(screen.getByRole("combobox", { name: "Sort field" })).toHaveAttribute("title", "Last updated");
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Newest first");
     expect(screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement).toHaveClass("ml-auto");
     expect(liveProjectNames()).toEqual(["Zulu Project", "Alpha Project"]);
+    expect(projectDateGroupLabels()).toEqual(["2026 · February"]);
+    expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
+    expect(screen.getByText("2026 · February")).toHaveClass("border-x", "border-b", "border-hairline");
   });
 
   it("sorts by created date and flips date direction labels", async () => {
@@ -138,12 +168,91 @@ describe("ProjectsPageClient sort controls", () => {
       />,
     );
 
-    await selectSortField(user, "Sort: Date created");
+    await selectSortField(user, "Date created");
     expect(liveProjectNames()).toEqual(["Newer", "Middle", "Older"]);
+    expect(projectDateGroupLabels()).toEqual([
+      "2026 · March",
+      "2026 · February",
+      "2026 · January",
+    ]);
+    expect(screen.getByLabelText("2026 · March")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Newest first" }));
-    expect(screen.getByRole("button", { name: "Oldest first" })).not.toHaveAttribute("aria-pressed");
+    await selectSortDirection(user, "Oldest first");
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "Oldest first");
     expect(liveProjectNames()).toEqual(["Older", "Middle", "Newer"]);
+    expect(projectDateGroupLabels()).toEqual([
+      "2026 · January",
+      "2026 · February",
+      "2026 · March",
+    ]);
+  });
+
+  it("groups same-month date sorted projects under one divider", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "March Later", created_at: "2026-03-28T00:00:00.000Z" }),
+          item({ id: "p2", name: "February Project", created_at: "2026-02-12T00:00:00.000Z" }),
+          item({ id: "p3", name: "March Earlier", created_at: "2026-03-02T00:00:00.000Z" }),
+        ]}
+      />,
+    );
+
+    await selectSortField(user, "Date created");
+
+    const marchGroup = screen.getByLabelText("2026 · March");
+    expect(within(marchGroup).getAllByRole("article").map((card) => card.getAttribute("aria-label"))).toEqual([
+      "March Later project, owned access",
+      "March Earlier project, owned access",
+    ]);
+    expect(screen.getByLabelText("2026 · February")).toBeInTheDocument();
+  });
+
+  it("uses the small thumbnail width for date flags in list view", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "List First", updated_at: "2026-02-01T00:00:00.000Z" }),
+          item({ id: "p2", name: "List Second", updated_at: "2026-02-02T00:00:00.000Z" }),
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "View" }));
+    await user.click(screen.getByRole("option", { name: "List" }));
+
+    expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "list");
+    expect(projectDateGroupLabelWrapper("2026 · February")).toHaveClass(
+      "grid",
+      "grid-cols-[repeat(auto-fill,minmax(132px,1fr))]",
+      "gap-2",
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "View" }));
+    await user.click(screen.getByRole("option", { name: "Large" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "large");
+    });
+  });
+
+  it("keeps default date groups contiguous even when incoming projects are shuffled", () => {
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "March First", updated_at: "2026-03-20T00:00:00.000Z" }),
+          item({ id: "p2", name: "January Project", updated_at: "2026-01-20T00:00:00.000Z" }),
+          item({ id: "p3", name: "March Second", updated_at: "2026-03-02T00:00:00.000Z" }),
+        ]}
+      />,
+    );
+
+    expect(projectDateGroupLabels()).toEqual(["2026 · March", "2026 · January"]);
+    expect(within(screen.getByLabelText("2026 · March")).getAllByRole("article").map((card) => card.getAttribute("aria-label"))).toEqual([
+      "March First project, owned access",
+      "March Second project, owned access",
+    ]);
   });
 
   it("sorts text fields with numeric/case-insensitive order and nulls last", async () => {
@@ -158,15 +267,34 @@ describe("ProjectsPageClient sort controls", () => {
       />,
     );
 
-    await selectSortField(user, "Sort: Client");
-    expect(screen.getByRole("button", { name: "A to Z" })).toBeInTheDocument();
+    await selectSortField(user, "Client");
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toHaveAttribute("title", "A to Z");
     expect(liveProjectNames()).toEqual(["project 2", "Project 10", "Project 1"]);
+    expect(projectDateGroupLabels()).toEqual([]);
 
-    await user.click(screen.getByRole("button", { name: "A to Z" }));
+    await selectSortDirection(user, "Z to A");
     expect(liveProjectNames()).toEqual(["Project 10", "project 2", "Project 1"]);
 
-    await selectSortField(user, "Sort: Project name");
+    await selectSortField(user, "Project name");
     expect(liveProjectNames()).toEqual(["Project 1", "project 2", "Project 10"]);
+    expect(projectDateGroupLabels()).toEqual([]);
+  });
+
+  it("uses year-month buckets for current projects", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "Today Project", created_at: localNoonIsoDaysAgo(0) }),
+        ]}
+      />,
+    );
+
+    await selectSortField(user, "Date created");
+
+    expect(projectDateGroupLabels()).toEqual([currentProjectDateGroupLabel()]);
+    expect(screen.queryByLabelText("Today")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Earlier this month")).not.toBeInTheDocument();
   });
 
   it("composes search and sort without clearing selected rows", async () => {
@@ -182,7 +310,7 @@ describe("ProjectsPageClient sort controls", () => {
     );
 
     await user.click(within(screen.getByLabelText("Clinic 10 project, owned access")).getByRole("checkbox", { name: "Select Clinic 10 for deletion" }));
-    await selectSortField(user, "Sort: Project name");
+    await selectSortField(user, "Project name");
     expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
     expect(within(screen.getByLabelText("Clinic 10 project, owned access")).getByRole("checkbox", { name: "Select Clinic 10 for deletion" })).toBeChecked();
 
@@ -199,6 +327,7 @@ describe("ProjectsPageClient sort controls", () => {
 
     expect(screen.getByRole("combobox", { name: /View, disabled until this tab has projects/i })).toBeDisabled();
     expect(screen.queryByRole("combobox", { name: "Sort field" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Sort direction" })).not.toBeInTheDocument();
 
     rerender(<ProjectsPageClient projects={[item({ id: "p1", name: "Live Project" })]} />);
     await user.click(screen.getByRole("button", { name: "Show projects search" }));
@@ -206,6 +335,7 @@ describe("ProjectsPageClient sort controls", () => {
 
     expect(screen.getByRole("combobox", { name: "View" })).not.toBeDisabled();
     expect(screen.getByRole("combobox", { name: "Sort field" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Sort direction" })).toBeInTheDocument();
     expect(screen.getByText("No projects match your search")).toBeInTheDocument();
   });
 
@@ -216,7 +346,7 @@ describe("ProjectsPageClient sort controls", () => {
     expect(screen.getByText("Created Jan 5").closest("p")).toHaveAttribute("title", "January 5, 2026");
 
     await user.click(screen.getByRole("combobox", { name: "View" }));
-    await user.click(screen.getByRole("option", { name: "View: Medium" }));
+    await user.click(screen.getByRole("option", { name: "Medium" }));
 
     await waitFor(() => expect(screen.queryByText("Created Jan 5")).not.toBeInTheDocument());
   });
