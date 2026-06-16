@@ -62,6 +62,9 @@ describe("project dashboard side-panel UI governance", () => {
     expect(projectEstimatesPage).toContain("resolveEstimateListEditCapabilities(projectId, estimateIds)");
     expect(projectEstimatesPage).toContain('supabase.rpc("can_edit_project"');
     expect(projectEstimatesPage).toContain('supabase.rpc("can_edit_estimate"');
+    expect(projectEstimatesPage).toContain("ESTIMATE_EDIT_CAPABILITY_RPC_CONCURRENCY = 4");
+    expect(projectEstimatesPage).toContain("mapWithConcurrency(estimateIds, ESTIMATE_EDIT_CAPABILITY_RPC_CONCURRENCY");
+    expect(projectEstimatesPage).not.toContain("Promise.all(\n      estimateIds.map");
     expect(projectEstimatesPage).toContain("canCreateEstimates={editCapabilities.canCreateEstimates}");
     expect(projectEstimatesPage).toContain("canEditEstimateById={editCapabilities.canEditEstimateById}");
     expect(projectEstimatesClient).toContain("canCreateEstimates");
