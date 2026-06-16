@@ -188,6 +188,9 @@ describe("shared modal and toolbar tooltip primitives", () => {
                 <DialogTitle>Modal focus trap</DialogTitle>
               </DialogHeader>
               <DialogBody>
+                <button type="button" hidden>
+                  Hidden action
+                </button>
                 <button type="button">First action</button>
                 <button type="button">Last action</button>
               </DialogBody>
@@ -201,6 +204,7 @@ describe("shared modal and toolbar tooltip primitives", () => {
     fireEvent.keyDown(document, { key: "Tab" });
 
     expect(screen.getByRole("button", { name: "First action" })).toHaveFocus();
+    expect(document.querySelector("[hidden]")).not.toHaveFocus();
   });
 
   it("renders generic tooltip content for pinned Storybook review states", () => {

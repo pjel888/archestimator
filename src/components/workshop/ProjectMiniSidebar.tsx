@@ -13,7 +13,7 @@ type ProjectSectionLink = {
   href: string;
   label: string;
   icon: PhosphorIcon;
-  exact: boolean;
+  active: boolean;
 };
 
 export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
@@ -21,31 +21,34 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
   const searchParams = useSearchParams();
   const estimateSheetPathPrefix = `/workshop/projects/${projectId}/estimates/`;
   const isEstimateSheetRoute = Boolean(pathname?.startsWith(estimateSheetPathPrefix));
-  const currentHref = `${pathname ?? ""}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
+  const dashboardHref = `/workshop/projects/${projectId}`;
+  const estimatesHref = `/workshop/projects/${projectId}/estimates`;
+  const dataHref = `/workshop/projects/${projectId}/data`;
+  const activeSurface = searchParams.get("surface");
   const links: ProjectSectionLink[] = [
     {
-      href: `/workshop/projects/${projectId}`,
+      href: dashboardHref,
       label: "Dashboard",
       icon: ChartBar,
-      exact: true,
+      active: pathname === dashboardHref,
     },
     {
-      href: `/workshop/projects/${projectId}/estimates`,
+      href: estimatesHref,
       label: "Estimates",
       icon: ClipboardText,
-      exact: false,
+      active: pathname === estimatesHref || Boolean(pathname?.startsWith(`${estimatesHref}/`)),
     },
     {
-      href: `/workshop/projects/${projectId}/data`,
+      href: dataHref,
       label: "Data",
       icon: ChartBarHorizontal,
-      exact: true,
+      active: pathname === dataHref && activeSurface !== "components",
     },
     {
-      href: `/workshop/projects/${projectId}/data?surface=components`,
+      href: `${dataHref}?surface=components`,
       label: "Components",
       icon: Rows,
-      exact: true,
+      active: pathname === dataHref && activeSurface === "components",
     },
   ];
 
@@ -56,16 +59,15 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
         {links.map((link) => {
           const Icon = link.icon;
-          const active = link.exact ? currentHref === link.href : pathname === link.href || Boolean(pathname?.startsWith(`${link.href}/`));
 
           return (
             <Link
               key={link.href}
               href={link.href}
-              aria-current={active ? "page" : undefined}
+              aria-current={link.active ? "page" : undefined}
               className={[
                 "flex h-7 items-center gap-1 rounded-xs p-1 text-[10px] font-medium leading-none transition-colors",
-                active ? "bg-surface-muted text-ink" : "text-tertiary hover:bg-surface-muted hover:text-ink",
+                link.active ? "bg-surface-muted text-ink" : "text-tertiary hover:bg-surface-muted hover:text-ink",
               ].join(" ")}
             >
               <Icon size={14} aria-hidden="true" />

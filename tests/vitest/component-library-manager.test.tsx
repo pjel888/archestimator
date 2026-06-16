@@ -360,6 +360,7 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
         changeReason: "Edited from the component inspector",
       });
     });
+    expect(actionMocks.updateCostLibraryComponent).not.toHaveBeenCalled();
   });
 
   it("announces search result counts in the context strip", async () => {

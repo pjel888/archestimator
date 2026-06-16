@@ -51,8 +51,17 @@ const FOCUSABLE_SELECTOR = [
 
 function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true",
+    (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true" && isRenderedElement(element),
   );
+}
+
+function isRenderedElement(element: HTMLElement) {
+  if (element.hidden) return false;
+  const ownerWindow = element.ownerDocument.defaultView;
+  const style = ownerWindow?.getComputedStyle(element);
+  if (style?.display === "none" || style?.visibility === "hidden") return false;
+  if (element.getClientRects().length > 0) return true;
+  return ownerWindow?.navigator.userAgent.toLowerCase().includes("jsdom") ?? false;
 }
 
 function focusFirstElement(content: HTMLElement) {

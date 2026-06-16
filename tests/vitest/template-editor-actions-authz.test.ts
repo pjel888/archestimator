@@ -41,11 +41,13 @@ function createQueryResult<T>(data: T) {
   const query = {
     select: vi.fn(),
     eq: vi.fn(),
+    in: vi.fn(),
     update: vi.fn(),
     maybeSingle: vi.fn(async () => ({ data, error: null })),
   };
   query.select.mockReturnValue(query);
   query.eq.mockReturnValue(query);
+  query.in.mockResolvedValue({ data: Array.isArray(data) ? data : [data], error: null });
   query.update.mockReturnValue(query);
   return query;
 }
@@ -72,13 +74,35 @@ function mockEditorMoveNodeSupabaseClient() {
     return { data: null, error: null };
   });
   const templateQuery = createQueryResult({ id: templateId, workspace_id: workspaceId, name: "Editor-safe template" });
-  const nodeQuery = createQueryResult({
+  const siblingId = "00000000-0000-4000-8000-000000000006";
+  const nodeQuery = createQueryResult([
+    {
+      id: siblingId,
+      template_id: templateId,
+      parent_id: null,
+      kind: "group",
+      name: "Group B",
+      sort_order: 1,
+    },
+    {
+      id: nodeId,
+      template_id: templateId,
+      parent_id: null,
+      kind: "group",
+      name: "Group A",
+      sort_order: 0,
+    },
+  ]);
+  nodeQuery.maybeSingle.mockResolvedValue({
+    data: {
     id: nodeId,
     template_id: templateId,
     parent_id: null,
     kind: "group",
     name: "Group A",
     sort_order: 0,
+    },
+    error: null,
   });
   const from = vi.fn((table: string) => {
     if (table === "estimate_templates") return templateQuery;
@@ -176,7 +200,6 @@ describe("template editor server action authorization", () => {
     ).resolves.toEqual({ nodeId, parentId: null });
 
     expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(1, {
-      parent_id: null,
       sort_order: 1_000_000,
     });
     expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(2, {
@@ -185,6 +208,7 @@ describe("template editor server action authorization", () => {
     });
     expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(3, { sort_order: 0 });
     expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(4, { sort_order: 1 });
+    expect(supabase.nodeQuery.in).toHaveBeenCalledWith("id", [siblingId, nodeId]);
   });
 });
 

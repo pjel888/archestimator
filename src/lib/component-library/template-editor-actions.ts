@@ -231,10 +231,35 @@ export async function moveEstimateTemplateNode(input: {
     }
   }
 
+  if (!input.orderedSiblingIds.includes(input.nodeId)) {
+    throw new Error("The moved node must be included in the sibling order.");
+  }
+  if (new Set(input.orderedSiblingIds).size !== input.orderedSiblingIds.length) {
+    throw new Error("The sibling order cannot contain duplicate nodes.");
+  }
+  const { data: orderedSiblings, error: orderedSiblingsError } = await supabase
+    .from("estimate_template_nodes")
+    .select("id, parent_id")
+    .eq("template_id", input.templateId)
+    .in("id", input.orderedSiblingIds);
+  if (orderedSiblingsError) throwActionError("Could not load the sibling order.", orderedSiblingsError);
+  if ((orderedSiblings ?? []).length !== input.orderedSiblingIds.length) {
+    throw new Error("The sibling order contains nodes outside this template.");
+  }
+  for (const sibling of orderedSiblings ?? []) {
+    if (sibling.id !== input.nodeId && sibling.parent_id !== input.parentId) {
+      throw new Error("The sibling order contains nodes outside the target parent.");
+    }
+  }
+
   for (const [index, siblingId] of input.orderedSiblingIds.entries()) {
+    const temporaryPatch =
+      siblingId === input.nodeId
+        ? { parent_id: input.parentId, sort_order: TEMPORARY_TEMPLATE_NODE_SORT_OFFSET + index }
+        : { sort_order: TEMPORARY_TEMPLATE_NODE_SORT_OFFSET + index };
     const { error: temporaryOrderError } = await supabase
       .from("estimate_template_nodes")
-      .update({ parent_id: input.parentId, sort_order: TEMPORARY_TEMPLATE_NODE_SORT_OFFSET + index })
+      .update(temporaryPatch)
       .eq("id", siblingId)
       .eq("template_id", input.templateId);
     if (temporaryOrderError) throwActionError("Could not move the node.", temporaryOrderError);

@@ -47,7 +47,10 @@ describe("project dashboard core UI governance", () => {
   it("does not expose the deleted project-level Components route", () => {
     expect(projectMiniSidebar).not.toContain("SquaresFour");
     expect(projectMiniSidebar).not.toContain("/workshop/projects/${projectId}/components");
-    expect(projectMiniSidebar).toContain("`/workshop/projects/${projectId}/data?surface=components`");
+    expect(projectMiniSidebar).toContain("`${dataHref}?surface=components`");
+    expect(projectMiniSidebar).toContain('const activeSurface = searchParams.get("surface")');
+    expect(projectMiniSidebar).toContain('active: pathname === dataHref && activeSurface !== "components"');
+    expect(projectMiniSidebar).toContain('active: pathname === dataHref && activeSurface === "components"');
   });
 
   it("keeps project details CRUD editing available from the project page", () => {

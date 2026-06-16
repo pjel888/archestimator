@@ -129,23 +129,33 @@ export function EditComponentDrawer({
     const supplierId = supplier && supplier === (item.supplier ?? "").trim() ? item.supplierId ?? null : null;
     const brandId = brand && brand === (item.brand ?? "").trim() ? item.brandId ?? null : null;
     const lifecycleChanged = form.lifecycleState !== (item.lifecycleState ?? "available");
+    const componentChanged =
+      name !== (item.name?.trim() || item.material) ||
+      form.description.trim() !== (item.description ?? "") ||
+      unit !== item.unit ||
+      supplier !== (item.supplier ?? "") ||
+      supplierId !== (item.supplierId ?? null) ||
+      brand !== (item.brand ?? "") ||
+      brandId !== (item.brandId ?? null);
 
     startSaving(async () => {
       try {
-        await updateCostLibraryComponent(item.id, {
-          name,
-          description: form.description.trim(),
-          unit,
-          supplier: supplier || null,
-          supplierId,
-          brand: brand || null,
-          brandId,
-          category: item.category,
-          categoryNodeId: item.categoryNodeId ?? null,
-          libraryFolderId: item.libraryFolderId ?? null,
-          lifecycleState: form.lifecycleState,
-          changeReason: "Edited from the component inspector",
-        });
+        if (componentChanged) {
+          await updateCostLibraryComponent(item.id, {
+            name,
+            description: form.description.trim(),
+            unit,
+            supplier: supplier || null,
+            supplierId,
+            brand: brand || null,
+            brandId,
+            category: item.category,
+            categoryNodeId: item.categoryNodeId ?? null,
+            libraryFolderId: item.libraryFolderId ?? null,
+            lifecycleState: form.lifecycleState,
+            changeReason: "Edited from the component inspector",
+          });
+        }
 
         if (lifecycleChanged) {
           await changeCostLibraryComponentLifecycleState({
