@@ -27,13 +27,4 @@ if [[ ! -x "$helper_real" ]]; then
   exit 1
 fi
 
-printf 'Paste Supabase Management API token, then press Enter: ' >&2
-IFS= read -rs SUPABASE_ACCESS_TOKEN
-printf '\n' >&2
-
-if [[ -z "$SUPABASE_ACCESS_TOKEN" ]]; then
-  printf 'No token provided.\n' >&2
-  exit 2
-fi
-
-SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" "$helper_real"
+exec "$helper_real"
