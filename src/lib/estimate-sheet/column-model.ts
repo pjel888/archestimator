@@ -120,4 +120,3 @@ export function buildEstimateColumnVars(widths: EstimateColumnWidths | null | un
   }
   return vars as CSSProperties;
 }
-

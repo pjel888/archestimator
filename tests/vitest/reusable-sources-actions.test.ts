@@ -8,69 +8,102 @@ const repositoryMocks = vi.hoisted(() => ({
   getEstimateTabs: vi.fn(),
   getEstimateTabTree: vi.fn(),
   getProjectEstimateTreeByEstimate: vi.fn(),
+  listCurrentWorkspaceProjectSearchCandidates: vi.fn(),
   listCurrentWorkspaceProjects: vi.fn(),
   listProjectEstimateSheets: vi.fn(),
 }));
 
-const supabaseServerMocks = vi.hoisted(() => ({ createSupabaseServerClient: vi.fn() }));
-const supabaseServiceRoleMocks = vi.hoisted(() => ({ createSupabaseServiceRoleClient: vi.fn() }));
+const supabaseServerMocks = vi.hoisted(() => ({
+  createSupabaseServerClient: vi.fn(),
+}));
+const supabaseServiceRoleMocks = vi.hoisted(() => ({
+  createSupabaseServiceRoleClient: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext: authMocks.requireCurrentUserContext,
 }));
 
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
-
 vi.mock("@/lib/supabase/service-role", () => supabaseServiceRoleMocks);
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabs: repositoryMocks.getEstimateTabs,
   getEstimateTabTree: repositoryMocks.getEstimateTabTree,
-  getProjectEstimateTreeByEstimate: repositoryMocks.getProjectEstimateTreeByEstimate,
+  getProjectEstimateTreeByEstimate:
+    repositoryMocks.getProjectEstimateTreeByEstimate,
+  listCurrentWorkspaceProjectSearchCandidates:
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates,
   listCurrentWorkspaceProjects: repositoryMocks.listCurrentWorkspaceProjects,
   listProjectEstimateSheets: repositoryMocks.listProjectEstimateSheets,
 }));
 
-type MockSearchPrefilterResult = { data: unknown; error: unknown };
+// U5: the server-side search pre-filters matching estimates via two bounded
+// ILIKE queries (estimate_nodes + estimate_tabs) before materializing trees. This
+// chainable stub resolves each `.from(table)...` chain to the configured result.
+type SearchPrefilterResult = { data: unknown; error: unknown };
+type SearchPrefilterCall = {
+  table: string;
+  method: string;
+  args: unknown[];
+};
+const searchPrefilterCalls: SearchPrefilterCall[] = [];
 
-// U5: the server-side search pre-filters matching estimates via bounded ILIKE
-// queries (estimate_nodes + estimate_tabs) before materializing trees. This
-// chainable stub resolves each `.from(table)...` chain to the configured result
-// and supports paged `.range()` reads for distinct-estimate grouping.
-function mockSearchPrefilter(resultByTable: Record<string, MockSearchPrefilterResult | MockSearchPrefilterResult[]>) {
-  const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
+function mockSearchPrefilter(
+  resultByTable: Record<
+    string,
+    | SearchPrefilterResult
+    | SearchPrefilterResult[]
+    | ((calls: SearchPrefilterCall[]) => SearchPrefilterResult)
+  >,
+) {
   const callCountByTable = new Map<string, number>();
   const makeBuilder = (table: string) => {
-    const tableResult = resultByTable[table] ?? { data: [], error: null };
+    const builderCalls: SearchPrefilterCall[] = [];
+    let rangeBounds: { from: number; to: number } | null = null;
+    const readResult = () => {
+      const configured = resultByTable[table] ?? { data: [], error: null };
+      const callCount = callCountByTable.get(table) ?? 0;
+      callCountByTable.set(table, callCount + 1);
+      const result = typeof configured === "function"
+        ? configured(builderCalls)
+        : Array.isArray(configured)
+          ? configured[Math.min(callCount, configured.length - 1)] ?? { data: [], error: null }
+          : configured;
+      return rangeBounds && Array.isArray(result.data)
+        ? { ...result, data: result.data.slice(rangeBounds.from, rangeBounds.to + 1) }
+        : result;
+    };
     const builder: Record<string, unknown> = {};
-    for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit", "range"]) {
+    for (const method of [
+      "select",
+      "in",
+      "ilike",
+      "is",
+      "eq",
+      "order",
+      "limit",
+      "range",
+    ]) {
       builder[method] = (...args: unknown[]) => {
-        calls.push({ table, method, args });
+        const call = { table, method, args };
+        builderCalls.push(call);
+        searchPrefilterCalls.push(call);
+        if (method === "range") {
+          rangeBounds = { from: Number(args[0]), to: Number(args[1]) };
+        }
         return builder;
       };
     }
-    let rangeBounds: { from: number; to: number } | null = null;
-    builder.range = (from: number, to: number) => {
-      calls.push({ table, method: "range", args: [from, to] });
-      rangeBounds = { from, to };
-      return builder;
-    };
-    builder.then = (resolve: (value: unknown) => unknown) => {
-      const callCount = callCountByTable.get(table) ?? 0;
-      callCountByTable.set(table, callCount + 1);
-      const result = Array.isArray(tableResult)
-        ? tableResult[Math.min(callCount, tableResult.length - 1)] ?? { data: [], error: null }
-        : tableResult;
-      const rangedResult = rangeBounds && Array.isArray(result.data)
-        ? { ...result, data: result.data.slice(rangeBounds.from, rangeBounds.to + 1) }
-        : result;
-      return resolve(rangedResult);
-    };
-    builder.maybeSingle = async () => (Array.isArray(tableResult) ? tableResult[0] : tableResult);
+    builder.then = (resolve: (value: unknown) => unknown) =>
+      resolve(readResult());
+    builder.maybeSingle = async () => readResult();
     return builder;
   };
-  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from: (table: string) => makeBuilder(table) });
-  return { calls };
+  searchPrefilterCalls.length = 0;
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+    from: (table: string) => makeBuilder(table),
+  });
 }
 
 function mockReusableSearchRateLimit() {
@@ -130,17 +163,17 @@ function mockReusableSearchRateLimit() {
 const projectAId = "11111111-1111-4111-8111-111111111111";
 const projectBId = "22222222-2222-4222-8222-222222222222";
 const estimateAId = "33333333-3333-4333-8333-333333333333";
-const estimateBId = "55555555-5555-4555-8555-555555555555";
 const tabAId = "44444444-4444-4444-8444-444444444444";
-const tabBId = "66666666-6666-4666-8666-666666666666";
 
 beforeEach(() => {
   authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1" });
   repositoryMocks.getEstimateTabs.mockReset();
   repositoryMocks.getEstimateTabTree.mockReset();
   repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
+  repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockReset();
   repositoryMocks.listCurrentWorkspaceProjects.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockReset();
+  repositoryMocks.listProjectEstimateSheets.mockResolvedValue([]);
   supabaseServerMocks.createSupabaseServerClient.mockReset();
   supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReset();
   // Default: no estimate matches the pre-filter (the search test sets the match).
@@ -152,12 +185,19 @@ describe("reusable project source actions", () => {
   it("lists only readable project roots without eager estimate or outline reads", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
-        { accessKind: "pending-invite", project: { id: projectBId, name: "Pending Invite Project" } },
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+        {
+          accessKind: "pending-invite",
+          project: { id: projectBId, name: "Pending Invite Project" },
+        },
       ],
     });
 
-    const { listReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const { listReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
     const result = await listReusableProjectSources();
 
     expect(repositoryMocks.listProjectEstimateSheets).not.toHaveBeenCalled();
@@ -171,19 +211,35 @@ describe("reusable project source actions", () => {
   it("loads readable estimates for one expanded project", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
-        { accessKind: "pending-invite", project: { id: projectBId, name: "Pending Invite Project" } },
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+        {
+          accessKind: "pending-invite",
+          project: { id: projectBId, name: "Pending Invite Project" },
+        },
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
     ]);
 
-    const { listReusableProjectEstimateSources } = await import("@/lib/reusable-sources/actions");
-    const result = await listReusableProjectEstimateSources({ projectId: projectAId });
+    const { listReusableProjectEstimateSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await listReusableProjectEstimateSources({
+      projectId: projectAId,
+    });
 
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+    );
     expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
     expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
     expect(result.sources).toEqual([
@@ -211,9 +267,15 @@ describe("reusable project source actions", () => {
         name: `Project ${index + 1}`,
       },
     }));
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects });
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects,
+    });
 
-    const { getReusableEstimateOutline, listReusableProjectEstimateSources, listReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const {
+      getReusableEstimateOutline,
+      listReusableProjectEstimateSources,
+      listReusableProjectSources,
+    } = await import("@/lib/reusable-sources/actions");
     const rootResult = await listReusableProjectSources();
 
     expect(rootResult.sources).toHaveLength(20);
@@ -229,10 +291,14 @@ describe("reusable project source actions", () => {
         updatedAt: "2026-06-12T08:00:00.000Z",
       })),
     );
-    const estimateResult = await listReusableProjectEstimateSources({ projectId: "project-10" });
+    const estimateResult = await listReusableProjectEstimateSources({
+      projectId: "project-10",
+    });
 
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith("project-10");
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      "project-10",
+    );
     expect(estimateResult.sources).toHaveLength(5);
 
     repositoryMocks.getEstimateTabs.mockResolvedValue(
@@ -248,7 +314,10 @@ describe("reusable project source actions", () => {
       tree: [],
     });
 
-    await getReusableEstimateOutline({ projectId: "project-10", estimateId: "estimate-1" });
+    await getReusableEstimateOutline({
+      projectId: "project-10",
+      estimateId: "estimate-1",
+    });
 
     expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(3);
@@ -273,18 +342,34 @@ describe("reusable project source actions", () => {
               name: "Reception Feature Wall",
               kind: "area",
               total: "₱0.00",
-              estimateRowItems: [{ totalItemCosts: 200 }, { totalItemCosts: 50 }],
+              estimateRowItems: [
+                { totalItemCosts: 200 },
+                { totalItemCosts: 50 },
+              ],
             },
           ],
         },
       ],
     });
 
-    const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
-    const result = await getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId });
+    const { getReusableEstimateOutline } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await getReusableEstimateOutline({
+      projectId: projectAId,
+      estimateId: estimateAId,
+    });
 
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      { allowLegacyFallback: true },
+    );
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      { allowLegacyFallback: true },
+    );
     expect(result.sources).toEqual([
       {
         kind: "project-tab",
@@ -351,27 +436,35 @@ describe("reusable project source actions", () => {
     const accessError = new Error("permission denied for table estimate_nodes");
     repositoryMocks.getEstimateTabs.mockRejectedValue(accessError);
 
-    const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
+    const { getReusableEstimateOutline } =
+      await import("@/lib/reusable-sources/actions");
     await expect(
-      getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId }),
+      getReusableEstimateOutline({
+        projectId: projectAId,
+        estimateId: estimateAId,
+      }),
     ).rejects.toThrow(accessError);
     expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
   });
 
-  it("rejects too-short project source searches before workspace enumeration", async () => {
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+  it("rejects one-character searches before workspace traversal", async () => {
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "a" });
 
-    expect(result).toEqual({ sources: [] });
-    expect(repositoryMocks.listCurrentWorkspaceProjects).not.toHaveBeenCalled();
+    expect(result.sources).toEqual([]);
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).not.toHaveBeenCalled();
     expect(repositoryMocks.listProjectEstimateSheets).not.toHaveBeenCalled();
     expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
     expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+    expect(
+      supabaseServerMocks.createSupabaseServerClient,
+    ).not.toHaveBeenCalled();
   });
 
   it("rate-limits repeated project source searches per authenticated user", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "rate-user" });
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects: [] });
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({ projects: [] });
     const rateLimit = mockReusableSearchRateLimit();
     const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
 
@@ -388,146 +481,670 @@ describe("reusable project source actions", () => {
     expect(rateLimit.events).toHaveLength(21);
   });
 
-  it("searches project names before applying the returned project cap", async () => {
-    const projects = Array.from({ length: 51 }, (_, index) => ({
-      accessKind: "owner",
-      project: {
-        id: `project-${String(index + 1).padStart(2, "0")}`,
-        name: index === 50 ? "Needle Project" : `Project ${index + 1}`,
-      },
-    }));
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects });
-    repositoryMocks.listProjectEstimateSheets.mockResolvedValue([]);
-
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "needle" });
-
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(51);
-    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
-    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
-    expect(result.sources).toEqual([
-      {
-        kind: "project",
-        projectId: "project-51",
-        name: "Needle Project",
-        metadata: {
-          projectName: "Needle Project",
-        },
-      },
-    ]);
-  });
-
-  it("searches estimate names before applying the per-project materialization cap", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+  it("bounds project and estimate retrieval before prefilter work", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Large Project" },
+        },
+        {
+          accessKind: "owner",
+          project: { id: projectBId, name: "Skipped Project" },
+        },
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce(
-      Array.from({ length: 26 }, (_, index) => ({
-        id: `estimate-${String(index + 1).padStart(2, "0")}`,
-        name: index === 25 ? "Needle Estimate" : `Estimate ${index + 1}`,
+      Array.from({ length: 100 }, (_, index) => ({
+        id: `estimate-${String(index + 1).padStart(3, "0")}`,
+        name: `Estimate ${index + 1}`,
         sheetCode: `EST-${index + 1}`,
         updatedAt: "2026-06-12T08:00:00.000Z",
       })),
     );
 
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "needle" });
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    await searchReusableProjectSources({ query: "missing" });
 
-    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
-    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
-    expect(result.sources).toEqual([
-      {
-        kind: "project",
-        projectId: projectAId,
-        name: "Accessible Project",
-        metadata: {
-          projectName: "Accessible Project",
-        },
-      },
-      {
-        kind: "project-estimate",
-        projectId: projectAId,
-        estimateId: "estimate-26",
-        name: "Needle Estimate",
-        sheetCode: "EST-26",
-        metadata: {
-          projectName: "Accessible Project",
-          estimateName: "Needle Estimate",
-          sheetCode: "EST-26",
-          updatedAt: "2026-06-12T08:00:00.000Z",
-        },
-      },
-    ]);
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).toHaveBeenCalledWith({
+      limit: 50,
+    });
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).toHaveBeenCalledWith({
+      limit: 50,
+      search: "missing",
+    });
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 100, search: "missing" },
+    );
+    expect(
+      searchPrefilterCalls.filter(
+        (call) => call.table === "estimate_nodes" && call.method === "in" && call.args[0] === "estimate_id",
+      ),
+    ).toHaveLength(1);
+    expect(searchPrefilterCalls).not.toContainEqual(
+      expect.objectContaining({
+        table: "estimate_nodes",
+        method: "eq",
+        args: expect.arrayContaining(["estimate_id"]),
+      }),
+    );
   });
 
-  it("groups DB prefilter rows by distinct estimate before materializing", async () => {
-    const crowdedEstimateId = "55555555-5555-4555-8555-555555555555";
-    const targetEstimateId = "66666666-6666-4666-8666-666666666666";
-    const targetTabId = "77777777-7777-4777-8777-777777777777";
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+  it("includes project name matches from the search-aware project read before applying the cap", async () => {
+    const recentProjects = Array.from({ length: 50 }, (_, index) => ({
+      accessKind: "owner",
+      project: {
+        id: `recent-project-${index + 1}`,
+        name: `Recent Project ${index + 1}`,
+      },
+    }));
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates
+      .mockResolvedValueOnce({ projects: recentProjects })
+      .mockResolvedValueOnce({
+        projects: [
+          {
+            accessKind: "owner",
+            project: { id: projectBId, name: "Smith LLC Medical Office" },
+          },
+        ],
+      });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Smith, LLC" });
+
+    expect(repositoryMocks.listCurrentWorkspaceProjectSearchCandidates).toHaveBeenCalledWith({
+      limit: 50,
+      search: "Smith, LLC",
+    });
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project",
+        projectId: projectBId,
+        name: "Smith LLC Medical Office",
+      }),
+    );
+  });
+
+  it("includes estimate matches from the search-aware estimate read before applying the cap", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Large Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets
+      .mockResolvedValueOnce([
+        {
+          id: estimateAId,
+          name: "Smith LLC Late Estimate",
+          sheetCode: "EST-250",
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
+      ])
+      .mockResolvedValueOnce(
+        Array.from({ length: 99 }, (_, index) => ({
+          id: `recent-estimate-${index + 1}`,
+          name: `Recent Estimate ${index + 1}`,
+          sheetCode: `EST-${index + 1}`,
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        })),
+      );
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Smith, LLC" });
+
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 100, search: "Smith, LLC" },
+    );
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-estimate",
+        estimateId: estimateAId,
+        name: "Smith LLC Late Estimate",
+      }),
+    );
+  });
+
+  it("materializes only tabs identified by the search prefilter", async () => {
+    const matchingTabId = "tab-22";
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: crowdedEstimateId, name: "Crowded Estimate", sheetCode: "EST-001", updatedAt: "2026-06-12T08:00:00.000Z" },
-      { id: targetEstimateId, name: "Target Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
     ]);
-    repositoryMocks.getEstimateTabs.mockResolvedValue([
-      { id: targetTabId, name: "Main", sortOrder: 0, isDefault: true },
-    ]);
-    repositoryMocks.getEstimateTabTree.mockImplementation(async (_projectId: string, estimateId: string) => ({
+    repositoryMocks.getEstimateTabs.mockResolvedValue(
+      Array.from({ length: 25 }, (_, index) => ({
+        id: `tab-${index + 1}`,
+        name: index === 21 ? "Mechanical Scope" : `Tab ${index + 1}`,
+        sortOrder: index,
+        isDefault: index === 0,
+      })),
+    );
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
       estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
-      tree: [
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: { data: [], error: null },
+      estimate_tabs: {
+        data: [{ id: matchingTabId, estimate_id: estimateAId }],
+        error: null,
+      },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "mechanical" });
+
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      matchingTabId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources.map((source) => source.kind)).toContain(
+      "project-tab",
+    );
+  });
+
+  it("returns a node matched by the prefilter when the bounded tree omits it", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
         {
-          id: estimateId === targetEstimateId ? "target-node" : "crowded-node",
-          name: estimateId === targetEstimateId ? "Needle Target Area" : "Needle Crowded Area",
-          kind: "area",
-          total: "₱0.00",
-          children: [],
-          estimateRowItems: [],
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
         },
       ],
-    }));
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
     mockSearchPrefilter({
       estimate_nodes: {
         data: [
-          ...Array.from({ length: 50 }, () => ({ estimate_id: crowdedEstimateId })),
-          { estimate_id: targetEstimateId },
+          {
+            id: "late-node",
+            estimate_id: estimateAId,
+            estimate_tab_id: tabAId,
+            parent_id: "parent-node",
+            kind: "area",
+            name: "Late Match",
+          },
         ],
         error: null,
       },
       estimate_tabs: { data: [], error: null },
     });
 
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "needle" });
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "late" });
 
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, crowdedEstimateId, targetTabId, { allowLegacyFallback: true });
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, targetEstimateId, targetTabId, { allowLegacyFallback: true });
+    expect(result.sources).toContainEqual({
+      kind: "project-node",
+      projectId: projectAId,
+      estimateId: estimateAId,
+      tabId: tabAId,
+      nodeId: "late-node",
+      parentNodeId: "parent-node",
+      nodeKind: "area",
+      name: "Late Match",
+      rowItems: [],
+      metadata: {
+        projectName: "Accessible Project",
+        estimateName: "Lobby Estimate",
+        sheetCode: "EST-002",
+        tabName: "Lobby Main",
+        tabDisplayName: "Page 001",
+        nodePath: ["Page 001", "Late Match"],
+        updatedAt: "2026-06-12T08:45:00.000Z",
+        rowCount: 0,
+        totalCost: 0,
+      },
+    });
+  });
+
+  it("retries legacy node prefilter without estimate_tab_id when the column is missing", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Legacy Estimate",
+        sheetCode: "EST-LEG",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: (calls) => {
+        const selectCall = calls.find((call) => call.method === "select");
+        return String(selectCall?.args[0] ?? "").includes("estimate_tab_id")
+          ? {
+              data: null,
+              error: {
+                code: "42703",
+                message: 'column estimate_nodes.estimate_tab_id does not exist',
+              },
+            }
+          : {
+              data: [
+                {
+                  id: "legacy-node",
+                  estimate_id: estimateAId,
+                  parent_id: null,
+                  kind: "group",
+                  name: "Legacy Site Works",
+                },
+              ],
+              error: null,
+            };
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "legacy site" });
+
+    const nodeSelects = searchPrefilterCalls.filter(
+      (call) => call.table === "estimate_nodes" && call.method === "select",
+    );
+    expect(nodeSelects.map((call) => call.args[0])).toEqual([
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name, estimate_tabs!inner(id)",
+      "id, estimate_id, parent_id, kind, name",
+    ]);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        nodeId: "legacy-node",
+        name: "Legacy Site Works",
+      }),
+    );
+  });
+
+  it("retries legacy node prefilter without the active-tab join when estimate_tabs is missing", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Legacy Estimate",
+        sheetCode: "EST-LEG",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "legacy-node",
+          name: "Legacy Site Works",
+          kind: "group",
+          total: "PHP 0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: [
+        {
+          data: null,
+          error: {
+            code: "PGRST200",
+            message: "Could not find a relationship between 'estimate_nodes' and 'estimate_tabs' in the schema cache",
+          },
+        },
+        {
+          data: [
+            {
+              id: "legacy-node",
+              estimate_id: estimateAId,
+              estimate_tab_id: tabAId,
+              parent_id: null,
+              kind: "group",
+              name: "Legacy Site Works",
+            },
+          ],
+          error: null,
+        },
+      ],
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "legacy site" });
+
+    const nodeSelects = searchPrefilterCalls.filter(
+      (call) => call.table === "estimate_nodes" && call.method === "select",
+    );
+    expect(nodeSelects.map((call) => call.args[0])).toEqual([
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name, estimate_tabs!inner(id)",
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name",
+    ]);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
     expect(result.sources).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           kind: "project-node",
-          estimateId: targetEstimateId,
-          nodeId: "target-node",
-          name: "Needle Target Area",
+          nodeId: "legacy-node",
+          name: "Legacy Site Works",
         }),
       ]),
     );
   });
 
-  it("searches readable project source outlines without returning pending invites", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+  it("uses raw and normalized query patterns for database prefiltering", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
-        { accessKind: "pending-invite", project: { id: projectBId, name: "Pending Invite Project" } },
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+      {
+        id: estimateAId,
+        name: "Vendor Estimate",
+        sheetCode: "EST-V",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "smith-node",
+          name: "Smith LLC",
+          kind: "area",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "smith-node",
+            estimate_id: estimateAId,
+            estimate_tab_id: tabAId,
+            parent_id: null,
+            kind: "area",
+            name: "Smith LLC",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Smith, LLC" });
+
+    expect(searchPrefilterCalls).toContainEqual({
+      table: "estimate_nodes",
+      method: "ilike",
+      args: ["name", "%Smith, LLC%"],
+    });
+    expect(searchPrefilterCalls).toContainEqual({
+      table: "estimate_nodes",
+      method: "ilike",
+      args: ["name", "%smith llc%"],
+    });
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        nodeId: "smith-node",
+        name: "Smith LLC",
+      }),
+    );
+  });
+
+  it("does not let an archived prefilter tab pin hide active matching nodes", async () => {
+    const archivedTabId = "archived-tab";
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Active Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "active-node",
+          name: "Target Active Scope",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "archived-node",
+            estimate_id: estimateAId,
+            estimate_tab_id: archivedTabId,
+            parent_id: null,
+            kind: "group",
+            name: "Target Archived Scope",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "target" });
+
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        nodeId: "active-node",
+        name: "Target Active Scope",
+      }),
+    );
+  });
+
+  it("reserves the final result slot for a matched node instead of ancestors", async () => {
+    const saturatedEstimateCount = 48;
+    const matchingEstimateId = "node-estimate";
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Project A" },
+        },
+        {
+          accessKind: "owner",
+          project: { id: projectBId, name: "Project B" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets
+      .mockResolvedValueOnce(
+        Array.from({ length: saturatedEstimateCount }, (_, index) => ({
+          id: `saturated-estimate-${index + 1}`,
+          name: `Target Estimate ${index + 1}`,
+          sheetCode: `T-${index + 1}`,
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        })),
+      )
+      .mockResolvedValueOnce([
+        {
+          id: matchingEstimateId,
+          name: "Other Estimate",
+          sheetCode: "O-1",
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
+      ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "reserved-node",
+            estimate_id: matchingEstimateId,
+            estimate_tab_id: tabAId,
+            parent_id: null,
+            kind: "group",
+            name: "Target Node",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "target" });
+
+    expect(result.sources).toHaveLength(50);
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        estimateId: matchingEstimateId,
+        nodeId: "reserved-node",
+      }),
+    );
+  });
+
+  it("searches readable project source outlines from lightweight project candidates", async () => {
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
     ]);
     repositoryMocks.getEstimateTabs.mockResolvedValue([
       { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
@@ -547,20 +1164,49 @@ describe("reusable project source actions", () => {
     });
 
     // U5: the node pre-filter resolves the matching estimate, so only it is materialized.
-    const prefilter = mockSearchPrefilter({ estimate_nodes: { data: [{ estimate_id: estimateAId }], error: null } });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "group-1",
+            estimate_id: estimateAId,
+            estimate_tab_id: tabAId,
+            parent_id: null,
+            kind: "group",
+            name: "Amenity Millwork",
+          },
+        ],
+        error: null,
+      },
+    });
 
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "amenity" });
 
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId);
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId, { allowLegacyFallback: true });
-    expect(prefilter.calls).toEqual(
-      expect.arrayContaining([
-        { table: "estimate_nodes", method: "select", args: ["estimate_id, estimate_tabs!inner(id)"] },
-        { table: "estimate_nodes", method: "is", args: ["estimate_tabs.archived_at", null] },
-      ]),
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(2);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 100, search: "amenity" },
+    );
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 99 },
+    );
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      { allowLegacyFallback: true },
+    );
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
     );
     expect(result.sources).toEqual([
       {
@@ -628,241 +1274,22 @@ describe("reusable project source actions", () => {
     ]);
   });
 
-  it("retries legacy node prefilter without the active-tab join when estimate_tabs is missing", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
-      projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
-      ],
-    });
-    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Legacy Estimate", sheetCode: "EST-LEG", updatedAt: "2026-06-12T08:00:00.000Z" },
-    ]);
-    repositoryMocks.getEstimateTabs.mockResolvedValue([
-      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
-    ]);
-    repositoryMocks.getEstimateTabTree.mockResolvedValue({
-      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
-      tree: [
-        {
-          id: "legacy-node",
-          name: "Legacy Site Works",
-          kind: "group",
-          total: "₱0.00",
-          children: [],
-          estimateRowItems: [],
-        },
-      ],
-    });
-    const prefilter = mockSearchPrefilter({
-      estimate_nodes: [
-        {
-          data: null,
-          error: {
-            code: "PGRST200",
-            message: "Could not find a relationship between 'estimate_nodes' and 'estimate_tabs' in the schema cache",
-          },
-        },
-        { data: [{ estimate_id: estimateAId }], error: null },
-      ],
-      estimate_tabs: { data: [], error: null },
-    });
-
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "legacy site" });
-
-    const nodeSelects = prefilter.calls.filter((call) => call.table === "estimate_nodes" && call.method === "select");
-    expect(nodeSelects.map((call) => call.args[0])).toEqual([
-      "estimate_id, estimate_tabs!inner(id)",
-      "estimate_id",
-    ]);
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
-      projectAId,
-      estimateAId,
-      tabAId,
-      { allowLegacyFallback: true },
-    );
-    expect(result.sources).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          kind: "project-node",
-          nodeId: "legacy-node",
-          name: "Legacy Site Works",
-        }),
-      ]),
-    );
-  });
-
-  it("pages reusable search prefilter rows so crowded matches do not hide later estimates", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
-      projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
-      ],
-    });
-    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Crowding Estimate", sheetCode: "EST-001", updatedAt: "2026-06-12T08:00:00.000Z" },
-      { id: estimateBId, name: "Later Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T09:00:00.000Z" },
-    ]);
-    repositoryMocks.getEstimateTabs.mockImplementation(async (_projectId: string, estimateId: string) => [
-      { id: estimateId === estimateBId ? tabBId : tabAId, name: "Main", sortOrder: 0, isDefault: true },
-    ]);
-    repositoryMocks.getEstimateTabTree.mockImplementation(async (_projectId: string, estimateId: string) => ({
-      estimate: { updated_at: "2026-06-12T09:30:00.000Z" },
-      tree: estimateId === estimateBId
-        ? [
-            {
-              id: "area-b",
-              name: "Needle Area",
-              kind: "area",
-              total: "₱0.00",
-              children: [],
-              estimateRowItems: [{ totalItemCosts: 42 }],
-            },
-          ]
-        : [],
-    }));
-    mockSearchPrefilter({
-      estimate_nodes: {
-        data: [
-          ...Array.from({ length: 5000 }, () => ({ estimate_id: estimateAId })),
-          { estimate_id: estimateBId },
-        ],
-        error: null,
-      },
-      estimate_tabs: { data: [], error: null },
-    });
-
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "needle" });
-
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateBId, { allowLegacyFallback: true });
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
-      projectAId,
-      estimateBId,
-      tabBId,
-      { allowLegacyFallback: true },
-    );
-    expect(
-      result.sources.some(
-        (source) => source.kind === "project-node" && source.estimateId === estimateBId && source.name === "Needle Area",
-      ),
-    ).toBe(true);
-  });
-
-  it("skips an over-cap node match instead of returning only its non-selectable parent", async () => {
-    const cappedProjects = Array.from({ length: 49 }, (_, index) => ({
-      accessKind: "owner",
-      project: {
-        id: `filler-project-${String(index + 1).padStart(2, "0")}`,
-        name: `Needle Filler Project ${index + 1}`,
-      },
-    }));
-    const targetEstimateId = "77777777-7777-4777-8777-777777777777";
-    const targetProjectId = "88888888-8888-4888-8888-888888888888";
-    const targetTabId = "99999999-9999-4999-8999-999999999999";
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
-      projects: [
-        ...cappedProjects,
-        { accessKind: "owner", project: { id: targetProjectId, name: "Target Project" } },
-      ],
-    });
-    repositoryMocks.listProjectEstimateSheets.mockImplementation(async (projectId: string) => (
-      projectId === targetProjectId
-        ? [{ id: targetEstimateId, name: "Target Estimate", sheetCode: "EST-T", updatedAt: "2026-06-12T08:00:00.000Z" }]
-        : []
-    ));
-    repositoryMocks.getEstimateTabs.mockResolvedValue([
-      { id: targetTabId, name: "Target Tab", sortOrder: 0, isDefault: true },
-    ]);
-    repositoryMocks.getEstimateTabTree.mockResolvedValue({
-      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
-      tree: [
-        {
-          id: "target-node",
-          name: "Needle Target Area",
-          kind: "area",
-          total: "₱0.00",
-          children: [],
-          estimateRowItems: [],
-        },
-      ],
-    });
-    mockSearchPrefilter({ estimate_nodes: { data: [{ estimate_id: targetEstimateId }], error: null } });
-
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "needle" });
-
-    expect(result.sources).toHaveLength(49);
-    expect(result.sources.some((source) => source.kind === "project" && source.projectId === targetProjectId)).toBe(false);
-    expect(result.sources.some((source) => source.kind === "project-node" && source.nodeId === "target-node")).toBe(false);
-  });
-
-  it("does not materialize all estimates for partial synthetic display-label queries", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
-      projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
-      ],
-    });
-    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
-      { id: estimateBId, name: "Kitchen Estimate", sheetCode: "EST-003", updatedAt: "2026-06-12T08:05:00.000Z" },
-    ]);
-    mockSearchPrefilter({
-      estimate_nodes: { data: [], error: null },
-      estimate_tabs: { data: [], error: null },
-    });
-
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    const result = await searchReusableProjectSources({ query: "page" });
-
-    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
-    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
-    expect(result.sources).toEqual([]);
-  });
-
-  it("caps exact display tab label materialization across projects", async () => {
-    const projects = Array.from({ length: 3 }, (_, projectIndex) => ({
-      accessKind: "owner",
-      project: {
-        id: `project-${projectIndex + 1}`,
-        name: `Project ${projectIndex + 1}`,
-      },
-    }));
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects });
-    repositoryMocks.listProjectEstimateSheets.mockImplementation(async (projectId: string) => (
-      Array.from({ length: 25 }, (_, estimateIndex) => ({
-        id: `${projectId}-estimate-${String(estimateIndex + 1).padStart(2, "0")}`,
-        name: `Estimate ${estimateIndex + 1}`,
-        sheetCode: `EST-${String(estimateIndex + 1).padStart(3, "0")}`,
-        updatedAt: "2026-06-12T08:00:00.000Z",
-      }))
-    ));
-    repositoryMocks.getEstimateTabs.mockResolvedValue([
-      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
-    ]);
-    repositoryMocks.getEstimateTabTree.mockResolvedValue({
-      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
-      tree: [],
-    });
-    mockSearchPrefilter({
-      estimate_nodes: { data: [], error: null },
-      estimate_tabs: { data: [], error: null },
-    });
-
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
-    await searchReusableProjectSources({ query: "Page 001" });
-
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledTimes(50);
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(50);
-  });
-
   it("searches derived display tab labels before an outline is loaded", async () => {
-    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+    repositoryMocks.listCurrentWorkspaceProjectSearchCandidates.mockResolvedValue({
       projects: [
-        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
       ],
     });
     repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
-      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
     ]);
     repositoryMocks.getEstimateTabs.mockResolvedValue([
       { id: tabAId, name: "Lobby Main", sortOrder: 0, isDefault: true },
@@ -876,12 +1303,27 @@ describe("reusable project source actions", () => {
       estimate_tabs: { data: [], error: null },
     });
 
-    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "Page 001" });
 
     expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledTimes(1);
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      { allowLegacyFallback: true },
+    );
     expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
     expect(result.sources).toEqual([
       {
         kind: "project",
@@ -949,11 +1391,24 @@ describe("reusable project source actions", () => {
       ],
     });
 
-    const { getReusableEstimateOutline } = await import("@/lib/reusable-sources/actions");
-    const result = await getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId });
+    const { getReusableEstimateOutline } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await getReusableEstimateOutline({
+      projectId: projectAId,
+      estimateId: estimateAId,
+    });
 
-    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
-    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, "legacy-main", { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      { allowLegacyFallback: true },
+    );
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      "legacy-main",
+      { allowLegacyFallback: true },
+    );
     expect(result.sources).toEqual([
       {
         kind: "project-tab",

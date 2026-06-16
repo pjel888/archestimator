@@ -5,13 +5,17 @@ import { createHash } from "node:crypto";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
-import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
+import {
+  isMissingColumnError,
+  isMissingRelationError,
+} from "@/lib/repositories/estimate-schema-compat";
 import { isUuid } from "@/lib/ids";
 import type { Json } from "@/lib/supabase/types";
 import {
   getEstimateTabs,
   getEstimateTabTree,
   getProjectEstimateTreeByEstimate,
+  listCurrentWorkspaceProjectSearchCandidates,
   listCurrentWorkspaceProjects,
   listProjectEstimateSheets,
 } from "@/lib/repositories/workspace-repository";
@@ -29,6 +33,7 @@ import type {
 import {
   collectProjectNodeSearchSources,
   collectProjectNodeSources,
+  normalizeReusableSourceSearchText,
   summarizeEstimateTreeNodes,
   textMatchesReusableSourceQuery,
   type ProjectSourceSearchContext,
@@ -70,6 +75,13 @@ const REUSABLE_PROJECT_SOURCE_SEARCH_MATERIALIZATION_LIMIT = REUSABLE_PROJECT_SO
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT = 50;
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT = 25;
 const REUSABLE_SEARCH_PREFILTER_PAGE_SIZE = 1000;
+const REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT = 100;
+const REUSABLE_PROJECT_SOURCE_SEARCH_TAB_TREE_LIMIT = 20;
+const REUSABLE_PROJECT_SOURCE_SEARCH_TREE_LOAD_LIMITS = {
+  allowLegacyFallback: true,
+  maxNodeCount: 200,
+  maxRowItemCount: 200,
+} as const;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT = 20;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS = 60_000;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE = "reusable_project_source_search";
@@ -87,6 +99,17 @@ function addReusableSearchSourceUnit(
   for (const source of sources) {
     sourcesByKey.set(reusableProjectSourceResultKey(source), source);
   }
+}
+
+function addReusableSearchSource(
+  sourcesByKey: Map<string, ProjectReusableEstimateSource>,
+  source: ProjectReusableEstimateSource,
+  options: { reserveSlots?: number } = {},
+) {
+  const reserveSlots = options.reserveSlots ?? 0;
+  const limit = REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT - reserveSlots;
+  if (!sourcesByKey.has(reusableProjectSourceResultKey(source)) && sourcesByKey.size >= limit) return;
+  sourcesByKey.set(reusableProjectSourceResultKey(source), source);
 }
 
 function addReusableSearchEstimateMaterializationCandidate({
@@ -167,7 +190,16 @@ type ReusableSearchPrefilterClient = {
   };
 };
 
-type ReusableSearchPrefilterQuery = PromiseLike<{ data: Array<{ estimate_id: string | null }> | null; error: unknown }> & {
+type ReusableSearchPrefilterRow = {
+  id?: string | null;
+  estimate_id: string | null;
+  estimate_tab_id?: string | null;
+  parent_id?: string | null;
+  kind?: string | null;
+  name?: string | null;
+};
+
+type ReusableSearchPrefilterQuery = PromiseLike<{ data: ReusableSearchPrefilterRow[] | null; error: unknown }> & {
   in: (column: string, values: string[]) => ReusableSearchPrefilterQuery;
   ilike: (column: string, pattern: string) => ReusableSearchPrefilterQuery;
   is: (column: string, value: null) => ReusableSearchPrefilterQuery;
@@ -179,52 +211,72 @@ async function fetchDistinctReusableSearchEstimateMatches({
   supabase,
   table,
   accessibleEstimateIds,
-  likePattern,
+  likePatterns,
+  selectColumns,
   applyActiveTabFilter = false,
 }: {
   supabase: ReusableSearchPrefilterClient;
   table: ReusableSearchPrefilterTable;
   accessibleEstimateIds: string[];
-  likePattern: string;
+  likePatterns: string[];
+  selectColumns?: string;
   applyActiveTabFilter?: boolean;
 }) {
   const matchingEstimateIds = new Set<string>();
-  let offset = 0;
-  let pageCount = 0;
+  const matchingRowsByKey = new Map<string, ReusableSearchPrefilterRow>();
 
-  while (
-    matchingEstimateIds.size < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT
-    && pageCount < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT
-  ) {
-    const selectColumns = table === "estimate_nodes" && applyActiveTabFilter
-      ? "estimate_id, estimate_tabs!inner(id)"
-      : "estimate_id";
-    let query = supabase
-      .from(table)
-      .select(selectColumns)
-      .in("estimate_id", accessibleEstimateIds);
-    if (table === "estimate_nodes") query = query.in("kind", ["group", "area"]);
-    let limitedQuery = query
-      .ilike("name", likePattern);
-    if (applyActiveTabFilter) {
-      limitedQuery = limitedQuery.is(table === "estimate_nodes" ? "estimate_tabs.archived_at" : "archived_at", null);
-    }
-    const { data, error } = await limitedQuery
-      .order("estimate_id", { ascending: true })
-      .range(offset, offset + REUSABLE_SEARCH_PREFILTER_PAGE_SIZE - 1);
-    if (error) return { data: Array.from(matchingEstimateIds), error };
+  for (const likePattern of likePatterns) {
+    let offset = 0;
+    let pageCount = 0;
 
-    const rows = data ?? [];
-    for (const row of rows) {
-      if (row.estimate_id) matchingEstimateIds.add(row.estimate_id);
-      if (matchingEstimateIds.size >= REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT) break;
+    while (
+      matchingEstimateIds.size < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT
+      && pageCount < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT
+    ) {
+      const columns = selectColumns
+        ?? (table === "estimate_nodes" && applyActiveTabFilter
+          ? "estimate_id, estimate_tabs!inner(id)"
+          : "estimate_id");
+      let query = supabase
+        .from(table)
+        .select(columns)
+        .in("estimate_id", accessibleEstimateIds);
+      if (table === "estimate_nodes") query = query.in("kind", ["group", "area"]);
+      let limitedQuery = query
+        .ilike("name", likePattern);
+      if (applyActiveTabFilter) {
+        limitedQuery = limitedQuery.is(table === "estimate_nodes" ? "estimate_tabs.archived_at" : "archived_at", null);
+      }
+      const { data, error } = await limitedQuery
+        .order("estimate_id", { ascending: true })
+        .range(offset, offset + REUSABLE_SEARCH_PREFILTER_PAGE_SIZE - 1);
+      if (error) {
+        return {
+          data: Array.from(matchingEstimateIds),
+          rows: Array.from(matchingRowsByKey.values()),
+          error,
+        };
+      }
+
+      const rows = data ?? [];
+      for (const row of rows) {
+        if (!row.estimate_id) continue;
+        matchingEstimateIds.add(row.estimate_id);
+        const rowKey = row.id ?? `${row.estimate_id}:${matchingRowsByKey.size}`;
+        if (!matchingRowsByKey.has(rowKey)) matchingRowsByKey.set(rowKey, row);
+        if (matchingEstimateIds.size >= REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT) break;
+      }
+      if (rows.length < REUSABLE_SEARCH_PREFILTER_PAGE_SIZE) break;
+      offset += REUSABLE_SEARCH_PREFILTER_PAGE_SIZE;
+      pageCount += 1;
     }
-    if (rows.length < REUSABLE_SEARCH_PREFILTER_PAGE_SIZE) break;
-    offset += REUSABLE_SEARCH_PREFILTER_PAGE_SIZE;
-    pageCount += 1;
   }
 
-  return { data: Array.from(matchingEstimateIds), error: null };
+  return {
+    data: Array.from(matchingEstimateIds),
+    rows: Array.from(matchingRowsByKey.values()),
+    error: null,
+  };
 }
 
 export async function listReusableProjectSources(): Promise<ReusableProjectSourceListResult> {
@@ -270,34 +322,69 @@ function toReusableSearchLikePattern(query: string): string {
   return `%${query.replace(/[\\%_]/g, "\\$&")}%`;
 }
 
+function toReusableSearchLikePatterns(rawQuery: string, normalizedQuery: string) {
+  return Array.from(
+    new Set(
+      [rawQuery, normalizeReusableSourceSearchText(normalizedQuery)]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map(toReusableSearchLikePattern),
+    ),
+  );
+}
+
 export async function searchReusableProjectSources(input: { query: string }): Promise<ReusableProjectSourceSearchResult> {
   const context = await requireCurrentUserContext();
+  const rawQuery = input.query.trim().replace(/\s+/g, " ").trim();
   const query = normalizeReusableProjectSourceSearchInput(input.query);
   if (query.length < REUSABLE_PROJECT_SOURCE_SEARCH_MIN_QUERY_LENGTH) return { sources: [] };
   await assertReusableProjectSourceSearchRateLimit(context.userId);
 
-  const { projects } = await listCurrentWorkspaceProjects();
-  const accessibleProjects = projects
-    .filter((item) => item.accessKind !== "pending-invite");
+  const [recentProjectResult, matchingProjectResult] = await Promise.all([
+    listCurrentWorkspaceProjectSearchCandidates({
+      limit: REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT,
+    }),
+    listCurrentWorkspaceProjectSearchCandidates({
+      limit: REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT,
+      search: rawQuery,
+    }),
+  ]);
+  const accessibleProjects = Array.from(
+    new Map(
+      [...matchingProjectResult.projects, ...recentProjectResult.projects]
+        .map((item) => [item.project.id, item]),
+    ).values(),
+  ).slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT);
   if (accessibleProjects.length === 0) return { sources: [] };
 
-  const estimatesByProject = await Promise.all(
-    accessibleProjects.map(async (item) => {
-      const estimates = await listProjectEstimateSheets(item.project.id);
-      return estimates;
-    }),
-  );
-
   type ProjectRecord = (typeof accessibleProjects)[number]["project"];
-  type EstimateRecord = (typeof estimatesByProject)[number][number];
+  type EstimateRecord = Awaited<ReturnType<typeof listProjectEstimateSheets>>[number];
   const estimateContextById = new Map<string, { project: ProjectRecord; estimate: EstimateRecord }>();
   const accessibleEstimateIds: string[] = [];
-  accessibleProjects.forEach((item, projectIndex) => {
-    for (const estimate of estimatesByProject[projectIndex] ?? []) {
+  for (const item of accessibleProjects) {
+    const remainingMatchingSlots =
+      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
+    if (remainingMatchingSlots <= 0) break;
+    const matchingEstimates = await listProjectEstimateSheets(item.project.id, {
+      limit: remainingMatchingSlots,
+      search: rawQuery,
+    });
+    for (const estimate of matchingEstimates) {
       estimateContextById.set(estimate.id, { project: item.project, estimate });
       accessibleEstimateIds.push(estimate.id);
     }
-  });
+    const remainingRecentSlots =
+      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
+    if (remainingRecentSlots <= 0) continue;
+    const recentEstimates = await listProjectEstimateSheets(item.project.id, {
+      limit: remainingRecentSlots,
+    });
+    for (const estimate of recentEstimates) {
+      if (estimateContextById.has(estimate.id)) continue;
+      estimateContextById.set(estimate.id, { project: item.project, estimate });
+      accessibleEstimateIds.push(estimate.id);
+    }
+  }
 
   const sourcesByKey = new Map<string, ProjectReusableEstimateSource>();
   const projectSourceFor = (project: ProjectRecord): ProjectReusableSource => ({
@@ -334,11 +421,24 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   // materialize ONLY those for the rich tab/node sources. RLS-scoped (user client
   // + the accessible-estimate id allow-list).
   const supabase = await createSupabaseServerClient();
-  const likePattern = toReusableSearchLikePattern(query);
+  const likePatterns = toReusableSearchLikePatterns(rawQuery, query);
   const estimatesToMaterialize = new Set<string>();
   const materializedProjectIds = new Set<string>();
   const materializedEstimateCountsByProject = new Map<string, number>();
   const tabsByEstimateId = new Map<string, EstimateTabSummary[]>();
+  const prefilterNodeById = new Map<
+    string,
+    {
+      estimateId: string;
+      tabId: string | null;
+      nodeId: string;
+      parentNodeId: string | null;
+      nodeKind: "group" | "area";
+      name: string;
+    }
+  >();
+  const prefilterNodeIdsByEstimateId = new Map<string, Set<string>>();
+  const prefilterTabIdsByEstimateId = new Map<string, Set<string>>();
   const addEstimateToMaterialize = (estimateId: string) => addReusableSearchEstimateMaterializationCandidate({
     estimateContextById,
     estimatesToMaterialize,
@@ -346,6 +446,12 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     materializedEstimateCountsByProject,
     estimateId,
   });
+  const notePrefilterTabId = (estimateId: string, tabId: string | null | undefined) => {
+    if (!tabId) return;
+    const tabIds = prefilterTabIdsByEstimateId.get(estimateId) ?? new Set<string>();
+    tabIds.add(tabId);
+    prefilterTabIdsByEstimateId.set(estimateId, tabIds);
+  };
 
   async function getSortedTabsForEstimate(projectId: string, estimateId: string) {
     const existing = tabsByEstimateId.get(estimateId);
@@ -359,7 +465,8 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     supabase: supabase as unknown as ReusableSearchPrefilterClient,
     table: "estimate_nodes",
     accessibleEstimateIds,
-    likePattern,
+    likePatterns,
+    selectColumns: "id, estimate_id, estimate_tab_id, parent_id, kind, name, estimate_tabs!inner(id)",
     applyActiveTabFilter: true,
   });
   if (
@@ -370,27 +477,65 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
       supabase: supabase as unknown as ReusableSearchPrefilterClient,
       table: "estimate_nodes",
       accessibleEstimateIds,
-      likePattern,
+      likePatterns,
+      selectColumns: "id, estimate_id, estimate_tab_id, parent_id, kind, name",
+    });
+  }
+  if (
+    matchingNodeResult.error
+    && isMissingColumnError(matchingNodeResult.error as never, "estimate_tab_id")
+  ) {
+    matchingNodeResult = await fetchDistinctReusableSearchEstimateMatches({
+      supabase: supabase as unknown as ReusableSearchPrefilterClient,
+      table: "estimate_nodes",
+      accessibleEstimateIds,
+      likePatterns,
+      selectColumns: "id, estimate_id, parent_id, kind, name",
     });
   }
   if (matchingNodeResult.error) throw matchingNodeResult.error;
   for (const estimateId of matchingNodeResult.data ?? []) {
     addEstimateToMaterialize(estimateId);
   }
+  for (const row of matchingNodeResult.rows ?? []) {
+    if (
+      row.id
+      && row.estimate_id
+      && row.name
+      && (row.kind === "group" || row.kind === "area")
+    ) {
+      prefilterNodeById.set(row.id, {
+        estimateId: row.estimate_id,
+        tabId: row.estimate_tab_id ?? null,
+        nodeId: row.id,
+        parentNodeId: row.parent_id ?? null,
+        nodeKind: row.kind,
+        name: row.name,
+      });
+      const nodeIds = prefilterNodeIdsByEstimateId.get(row.estimate_id) ?? new Set<string>();
+      nodeIds.add(row.id);
+      prefilterNodeIdsByEstimateId.set(row.estimate_id, nodeIds);
+      notePrefilterTabId(row.estimate_id, row.estimate_tab_id);
+    }
+  }
 
   // Tab-name matches use estimate_tabs (added by the foundation; tolerate its absence
   // on the legacy schema, where the synthetic "Main" tab carries no searchable name).
   try {
-    const { data: matchingTabEstimateIds, error: matchingTabError } = await fetchDistinctReusableSearchEstimateMatches({
+    const matchingTabResult = await fetchDistinctReusableSearchEstimateMatches({
       supabase: supabase as unknown as ReusableSearchPrefilterClient,
       table: "estimate_tabs",
       accessibleEstimateIds,
-      likePattern,
+      likePatterns,
+      selectColumns: "id, estimate_id",
       applyActiveTabFilter: true,
     });
-    if (matchingTabError && !isMissingRelationError(matchingTabError as never, "estimate_tabs")) throw matchingTabError;
-    for (const estimateId of matchingTabEstimateIds ?? []) {
+    if (matchingTabResult.error && !isMissingRelationError(matchingTabResult.error as never, "estimate_tabs")) throw matchingTabResult.error;
+    for (const estimateId of matchingTabResult.data ?? []) {
       addEstimateToMaterialize(estimateId);
+    }
+    for (const row of matchingTabResult.rows ?? []) {
+      if (row.estimate_id) notePrefilterTabId(row.estimate_id, row.id);
     }
   } catch (error) {
     if (!isMissingRelationError(error as never, "estimate_tabs")) throw error;
@@ -409,24 +554,44 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
       const ctx = estimateContextById.get(estimateId);
       if (!ctx) continue;
       const tabs = await getSortedTabsForEstimate(ctx.project.id, estimateId);
-      if (tabs.some((tab, index) => textMatchesReusableSourceQuery(query, [getEstimateTabDisplayName(tab, index)]))) {
+      const matchedDisplayTabs = tabs.filter((tab, index) => textMatchesReusableSourceQuery(query, [getEstimateTabDisplayName(tab, index)]));
+      if (matchedDisplayTabs.length > 0) {
         addEstimateToMaterialize(estimateId);
+        for (const tab of matchedDisplayTabs) {
+          notePrefilterTabId(estimateId, tab.id);
+        }
       }
     }
   }
 
   // (3) Materialize ONLY the matching estimates; collect the rich tab/node sources.
   for (const estimateId of estimatesToMaterialize) {
+    if (sourcesByKey.size >= REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT) break;
     const ctx = estimateContextById.get(estimateId);
     if (!ctx) continue;
     const { project, estimate } = ctx;
     const tabs = await getSortedTabsForEstimate(project.id, estimate.id);
+    const prefilterTabIds = prefilterTabIdsByEstimateId.get(estimate.id);
+    const pinnedTabs = prefilterTabIds
+      ? tabs.filter((tab) => prefilterTabIds.has(tab.id))
+      : [];
+    const tabsToMaterialize = pinnedTabs.length > 0
+      ? pinnedTabs
+      : tabs.slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_TAB_TREE_LIMIT);
     const tabTrees = await Promise.all(
-      tabs.map((tab) => getEstimateTabTree(project.id, estimate.id, tab.id, { allowLegacyFallback: true })),
+      tabsToMaterialize.map((tab) => getEstimateTabTree(
+        project.id,
+        estimate.id,
+        tab.id,
+        REUSABLE_PROJECT_SOURCE_SEARCH_TREE_LOAD_LIMITS,
+      )),
     );
-    tabs.forEach((tab, tabIndex) => {
+    const matchedNodeIds = prefilterNodeIdsByEstimateId.get(estimate.id) ?? new Set<string>();
+    const returnedNodeIds = new Set<string>();
+    tabsToMaterialize.forEach((tab, tabIndex) => {
       const updatedAt = tabTrees[tabIndex]?.estimate?.updated_at ?? estimate.updatedAt;
-      const tabDisplayName = getEstimateTabDisplayName(tab, tabIndex);
+      const originalTabIndex = tabs.findIndex((candidate) => candidate.id === tab.id);
+      const tabDisplayName = getEstimateTabDisplayName(tab, originalTabIndex >= 0 ? originalTabIndex : tabIndex);
       const tabSource: ProjectTabReusableSource = {
         kind: "project-tab",
         projectId: project.id,
@@ -464,12 +629,47 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         ]);
       }
       for (const source of collectProjectNodeSearchSources({ context, nodes: tabTrees[tabIndex]?.tree ?? [], query })) {
+        returnedNodeIds.add(source.nodeId);
         addReusableSearchSourceUnit(sourcesByKey, [
           projectSourceFor(project),
           estimateSourceFor(project, estimate),
           tabSource,
           source,
         ]);
+      }
+      for (const nodeId of matchedNodeIds) {
+        if (returnedNodeIds.has(nodeId)) continue;
+        const node = prefilterNodeById.get(nodeId);
+        if (!node) continue;
+        const nodeBelongsToTab = node.tabId === tab.id || (node.tabId === null && tabsToMaterialize.length === 1);
+        if (!nodeBelongsToTab) continue;
+        const source: ProjectNodeReusableSource = {
+          kind: "project-node",
+          projectId: project.id,
+          estimateId: estimate.id,
+          tabId: tab.id,
+          nodeId: node.nodeId,
+          parentNodeId: node.parentNodeId,
+          nodeKind: node.nodeKind,
+          name: node.name,
+          rowItems: [],
+          metadata: {
+            projectName: project.name,
+            estimateName: estimate.name,
+            sheetCode: estimate.sheetCode,
+            tabName: tab.name,
+            tabDisplayName,
+            nodePath: [tabDisplayName, node.name],
+            updatedAt,
+            rowCount: 0,
+            totalCost: 0,
+          },
+        };
+        addReusableSearchSource(sourcesByKey, projectSourceFor(project), { reserveSlots: 1 });
+        addReusableSearchSource(sourcesByKey, estimateSourceFor(project, estimate), { reserveSlots: 1 });
+        addReusableSearchSource(sourcesByKey, tabSource, { reserveSlots: 1 });
+        addReusableSearchSource(sourcesByKey, source);
+        returnedNodeIds.add(nodeId);
       }
     });
   }
