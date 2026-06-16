@@ -53,10 +53,12 @@ export async function listProjectEstimateSheetsForProject(
       .map((estimate) => [estimate.id, estimate]),
   );
 
-  return Array.from(estimatesById.values()).map((estimate) => ({
-    id: estimate.id,
-    name: estimate.name,
-    sheetCode: estimate.sheet_code ?? null,
-    updatedAt: estimate.updated_at ?? null,
-  }));
+  return Array.from(estimatesById.values())
+    .slice(0, options.limit ?? undefined)
+    .map((estimate) => ({
+      id: estimate.id,
+      name: estimate.name,
+      sheetCode: estimate.sheet_code ?? null,
+      updatedAt: estimate.updated_at ?? null,
+    }));
 }

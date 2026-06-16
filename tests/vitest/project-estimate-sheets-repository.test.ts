@@ -79,4 +79,62 @@ describe("project estimate sheet repository", () => {
     expect(supabaseMocks.ilike).toHaveBeenCalledWith("sheet_code", "%Smith LLC%");
     expect(supabaseMocks.limit).toHaveBeenCalledWith(100);
   });
+
+  it("keeps search results bounded after merging raw and normalized queries", async () => {
+    supabaseMocks.limit
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "estimate-1",
+            name: "Smith, LLC Scope",
+            sheet_code: "EST-001",
+            updated_at: "2026-06-12T08:00:00.000Z",
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "estimate-2",
+            name: "Roofing",
+            sheet_code: "Smith, LLC",
+            updated_at: "2026-06-12T09:00:00.000Z",
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "estimate-3",
+            name: "Smith LLC Scope",
+            sheet_code: "EST-003",
+            updated_at: "2026-06-12T10:00:00.000Z",
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "estimate-4",
+            name: "Backup",
+            sheet_code: "Smith LLC",
+            updated_at: "2026-06-12T11:00:00.000Z",
+          },
+        ],
+        error: null,
+      });
+
+    const { listProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    const result = await listProjectEstimateSheetsForProject("project-1", {
+      limit: 2,
+      search: "Smith, LLC",
+    });
+
+    expect(result.map((estimate) => estimate.id)).toEqual(["estimate-1", "estimate-2"]);
+    expect(supabaseMocks.limit).toHaveBeenCalledTimes(4);
+    expect(supabaseMocks.limit).toHaveBeenCalledWith(2);
+  });
 });

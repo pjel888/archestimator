@@ -355,7 +355,10 @@ export async function searchReusableProjectSources(input: {
         if (row.id) rowsById.set(row.id, row);
       }
     }
-    return { data: Array.from(rowsById.values()), error: null };
+    return {
+      data: Array.from(rowsById.values()).slice(0, REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT),
+      error: null,
+    };
   }
 
   let matchingNodeResult = await readMatchingNodeRows(
@@ -448,7 +451,7 @@ export async function searchReusableProjectSources(input: {
         if (row.id) matchingTabsById.set(row.id, row);
       }
     }
-    for (const row of matchingTabsById.values()) {
+    for (const row of Array.from(matchingTabsById.values()).slice(0, REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT)) {
       noteEstimateToMaterialize(row.estimate_id);
       if (row.estimate_id) notePrefilterTabId(row.estimate_id, row.id ?? null);
     }
