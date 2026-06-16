@@ -7,26 +7,38 @@ import {
   CalendarBlank,
   Cards,
   ClockCounterClockwise,
+  DotsThreeVertical,
+  FolderSimple,
   GridFour,
   Plus,
   Rows,
   SortAscending,
   SortDescending,
   SquaresFour,
+  StackSimple,
   TextAa,
   User,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/toast";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { executeBulkDeleteProjects, previewBulkDeleteProjects } from "@/lib/projects/actions";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
+import type { GroupAccentId } from "@/lib/workshop/group-accent";
+import {
+  createProjectGroup,
+  deleteProjectGroup,
+  recolorProjectGroup,
+  renameProjectGroup,
+} from "@/lib/workshop/group-actions";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
@@ -38,6 +50,7 @@ import type {
 } from "@/lib/repositories/workspace-repository";
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
+import { ManageGroupsPopover } from "./ManageGroupsPopover";
 import { ProjectCard } from "./ProjectCard";
 import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
 import { ProjectGroupSection } from "./ProjectGroupSection";
@@ -73,6 +86,17 @@ const EMPTY_PROJECT_GROUPS: ProjectGroupSummary[] = [];
 const EMPTY_PROJECT_LIST_ITEMS: ProjectListItem[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
+
+// Part 7d (Project Groups): the "Organize by" axis (None / Date / Group). Persisted
+// in localStorage with the SAME useSyncExternalStore + custom-event + storage-event
+// machinery as the view-mode preference, so it survives remounts and stays in sync
+// across tabs.
+type ProjectOrganizeBy = "none" | "date" | "group";
+const PROJECT_ORGANIZE_BY_STORAGE_KEY = "archestimator_projects_organize_by_v1";
+const PROJECT_ORGANIZE_BY_CHANGE_EVENT = "archestimator:projects-organize-by-change";
+const PROJECT_ORGANIZE_BY_VALUES: ProjectOrganizeBy[] = ["none", "date", "group"];
+const UNGROUPED_GROUP_KEY = "__ungrouped__";
+const UNGROUPED_GROUP_LABEL = "Ungrouped";
 const PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS =
   "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
@@ -93,6 +117,11 @@ const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = PROJECT_VIEW_MODE_OPTIONS.ma
   label,
   icon: <Icon size={12} weight="regular" aria-hidden="true" />,
 }));
+const PROJECT_ORGANIZE_BY_OPTIONS = [
+  { value: "none", label: "No grouping", icon: <StackSimple size={12} weight="regular" aria-hidden="true" /> },
+  { value: "date", label: "By date", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "group", label: "By group", icon: <FolderSimple size={12} weight="regular" aria-hidden="true" /> },
+] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_SORT_FIELD_OPTIONS = [
   { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
   { value: "created_at", label: "Date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
@@ -195,6 +224,47 @@ function subscribeProjectViewModePreference(onStoreChange: () => void) {
 
 function getProjectViewModeServerSnapshot(): ProjectCardViewMode {
   return "large";
+}
+
+function isProjectOrganizeBy(value: string | null): value is ProjectOrganizeBy {
+  return value !== null && PROJECT_ORGANIZE_BY_VALUES.includes(value as ProjectOrganizeBy);
+}
+
+// Q1 default: "By date" is "group by the active sort dimension", so the default is
+// "date" whenever the current sort field is a *grouping* sort — a date field
+// (updated_at/created_at) OR client_name — and "none" otherwise (e.g. project name).
+// sortField inits to "updated_at" ⇒ the first-load default is "date", which means
+// zero rendered-DOM change on first paint (the date flags render exactly as today).
+function defaultOrganizeByForSortField(field: ProjectSortField): ProjectOrganizeBy {
+  return isDateSortField(field) || field === "client_name" ? "date" : "none";
+}
+
+function readProjectOrganizeByPreference(defaultValue: ProjectOrganizeBy): ProjectOrganizeBy {
+  if (typeof window === "undefined") return defaultValue;
+  try {
+    const stored = window.localStorage.getItem(PROJECT_ORGANIZE_BY_STORAGE_KEY);
+    if (isProjectOrganizeBy(stored)) return stored;
+  } catch {}
+  return defaultValue;
+}
+
+function writeProjectOrganizeByPreference(organizeBy: ProjectOrganizeBy) {
+  try {
+    window.localStorage.setItem(PROJECT_ORGANIZE_BY_STORAGE_KEY, organizeBy);
+  } catch {}
+  window.dispatchEvent(new Event(PROJECT_ORGANIZE_BY_CHANGE_EVENT));
+}
+
+function subscribeProjectOrganizeByPreference(onStoreChange: () => void) {
+  function handleStorage(event: StorageEvent) {
+    if (event.key === PROJECT_ORGANIZE_BY_STORAGE_KEY) onStoreChange();
+  }
+  window.addEventListener(PROJECT_ORGANIZE_BY_CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", handleStorage);
+  return () => {
+    window.removeEventListener(PROJECT_ORGANIZE_BY_CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", handleStorage);
+  };
 }
 
 function getProjectAccessTabsLayoutClassName(viewMode: ProjectCardViewMode) {
@@ -333,6 +403,72 @@ function groupProjects(items: ProjectListItem[], field: ProjectSortField): Proje
   return groups;
 }
 
+type ProjectUserGroup = {
+  key: string;
+  label: string;
+  accentId: string | null;
+  isVirtual: boolean;
+  kind: "group";
+  items: ProjectListItem[];
+};
+
+// Part 7d: bucket projects by their user-group, iterating the SERVER `groups` in
+// position order. Empty named groups render when NOT searching; during an active
+// search a group with zero matches is hidden. Projects whose groupId is null OR a
+// dangling id (a group deleted in another tab) fall to the virtual "Ungrouped"
+// bucket, which is always pinned LAST and hidden when empty.
+function groupProjectsByUserGroup(
+  items: ProjectListItem[],
+  groups: ProjectGroupSummary[],
+  options: { isSearching: boolean },
+): ProjectUserGroup[] {
+  const known = new Set(groups.map((group) => group.id));
+  const byGroup = new Map<string, ProjectListItem[]>();
+  const ungrouped: ProjectListItem[] = [];
+
+  for (const item of items) {
+    const groupId = item.groupId ?? null;
+    if (groupId && known.has(groupId)) {
+      const bucket = byGroup.get(groupId);
+      if (bucket) bucket.push(item);
+      else byGroup.set(groupId, [item]);
+    } else {
+      // null OR a dangling id deleted in another tab → Ungrouped (D12 defense).
+      ungrouped.push(item);
+    }
+  }
+
+  const sections: ProjectUserGroup[] = [];
+  // groups arrive in position order from the repository read.
+  for (const group of groups) {
+    const groupItems = byGroup.get(group.id) ?? [];
+    // During search, hide any group with zero matches; otherwise render empty named groups.
+    if (options.isSearching && groupItems.length === 0) continue;
+    sections.push({
+      key: group.id,
+      label: group.name,
+      accentId: group.accentId,
+      isVirtual: false,
+      kind: "group",
+      items: groupItems,
+    });
+  }
+
+  // Ungrouped: always last; hidden when empty (search or not).
+  if (ungrouped.length > 0) {
+    sections.push({
+      key: UNGROUPED_GROUP_KEY,
+      label: UNGROUPED_GROUP_LABEL,
+      accentId: null,
+      isVirtual: true,
+      kind: "group",
+      items: ungrouped,
+    });
+  }
+
+  return sections;
+}
+
 function ProjectAccessTabs({
   activeTab,
   viewMode,
@@ -367,6 +503,7 @@ export function ProjectsPageClient({
   projectGroups = EMPTY_PROJECT_GROUPS,
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
+  const { toast } = useToast();
   const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedProject, setExpandedProject] =
@@ -395,6 +532,21 @@ export function ProjectsPageClient({
   const [sortField, setSortField] = useState<ProjectSortField>("updated_at");
   const [sortDirection, setSortDirection] = useState<ProjectSortDirection>("desc");
   const [sortTouched, setSortTouched] = useState(false);
+  const organizeByDefault = defaultOrganizeByForSortField(sortField);
+  const storedOrganizeBy = useSyncExternalStore(
+    subscribeProjectOrganizeByPreference,
+    () => readProjectOrganizeByPreference(organizeByDefault),
+    () => organizeByDefault,
+  );
+  // D11: Group mode is Your-Projects-only. On Shared, coerce away from "group" to the
+  // Q1 default WITHOUT persisting (so switching back to Your Projects restores the
+  // pick), and without clobbering a stored "date"/"none" preference (only "group" is
+  // coerced).
+  const organizeBy: ProjectOrganizeBy =
+    activeTab === "shared-to-you" && storedOrganizeBy === "group" ? organizeByDefault : storedOrganizeBy;
+  const [groupOverrides] = useState<Record<string, string | null>>({});
+  const [collapsedGroupKeys, setCollapsedGroupKeys] = useState<Set<string>>(() => new Set());
+  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
   const [deleteProjectTargetIds, setDeleteProjectTargetIds] = useState<string[]>([]);
   const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
@@ -446,11 +598,45 @@ export function ProjectsPageClient({
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
   const projectDateFlagLayoutClassName = getProjectDateFlagLayoutClassName(projectViewMode);
-  const shouldGroupProjects = (isDateSortField(sortField) || sortField === "client_name") && displayLiveProjects.length > 0;
+  // D4 decouple: grouping is gated on the organizeBy axis, NOT on the sort field.
+  // Date/client grouping fires ONLY in organizeBy === "date" (the Q1 default makes
+  // this true on first load for date sorts, so every existing date/client flag
+  // assertion holds). This re-gates ONLY the grouping boolean — the
+  // `!sortTouched && isDateSortField` ORDERING branch in displayProjects is untouched,
+  // so default newest-first order survives in all three modes (incl. "none").
+  const shouldGroupProjects =
+    organizeBy === "date" &&
+    displayLiveProjects.length > 0 &&
+    (isDateSortField(sortField) || sortField === "client_name");
   const groupedLiveProjects = useMemo(
     () => shouldGroupProjects ? groupProjects(displayLiveProjects, sortField) : [],
     [displayLiveProjects, shouldGroupProjects, sortField],
   );
+  // Stamp the effective groupId (optimistic override wins) onto each displayed item,
+  // then bucket by user-group. The override map is declared for Task 6's optimistic
+  // assignment; in this chunk it is always empty so the SSR groupId is authoritative.
+  const groupItemsWithOverrides = useMemo(
+    () =>
+      displayLiveProjects.map((item) => {
+        const override = groupOverrides[item.project.id];
+        if (override === undefined) return item;
+        return { ...item, groupId: override };
+      }),
+    [displayLiveProjects, groupOverrides],
+  );
+  const isSearching = Boolean(searchQuery.trim());
+  const groupedByUserGroup = useMemo(
+    () =>
+      organizeBy === "group"
+        ? groupProjectsByUserGroup(groupItemsWithOverrides, projectGroups, { isSearching })
+        : [],
+    [organizeBy, groupItemsWithOverrides, projectGroups, isSearching],
+  );
+  const isUserGroupOrganize = organizeBy === "group" && displayLiveProjects.length > 0;
+  // LD-10: groups exist but the active search hid them all (and nothing is Ungrouped) ⇒
+  // reuse the standard search-empty surface rather than a blank Group-mode wall.
+  const groupModeHasNoVisibleSections =
+    isUserGroupOrganize && projectGroups.length > 0 && groupedByUserGroup.length === 0;
   const selectableDisplayProjectIds = useMemo(
     () => displayLiveProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
     [displayLiveProjects],
@@ -504,6 +690,48 @@ export function ProjectsPageClient({
   function handleSortDirectionChange(nextDirection: string) {
     setSortDirection(nextDirection as ProjectSortDirection);
     setSortTouched(true);
+  }
+
+  function handleOrganizeByChange(next: string) {
+    if (isProjectOrganizeBy(next)) writeProjectOrganizeByPreference(next);
+  }
+
+  function toggleGroupCollapsed(key: string) {
+    setCollapsedGroupKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function handleCreateGroup(name: string, accentId: GroupAccentId | null) {
+    startTransition(() => {
+      void createProjectGroup({ name, accentId })
+        .then(() => router.refresh())
+        .catch(() => toast({ message: "Could not create the group.", tone: "error" }));
+    });
+  }
+  function handleRenameGroup(groupId: string, name: string) {
+    startTransition(() => {
+      void renameProjectGroup({ groupId, name })
+        .then(() => router.refresh())
+        .catch(() => toast({ message: "Could not rename the group.", tone: "error" }));
+    });
+  }
+  function handleRecolorGroup(groupId: string, accentId: GroupAccentId | null) {
+    startTransition(() => {
+      void recolorProjectGroup({ groupId, accentId })
+        .then(() => router.refresh())
+        .catch(() => toast({ message: "Could not update the group color.", tone: "error" }));
+    });
+  }
+  function handleDeleteGroup(groupId: string) {
+    startTransition(() => {
+      void deleteProjectGroup({ groupId })
+        .then(() => router.refresh())
+        .catch(() => toast({ message: "Could not delete the group.", tone: "error" }));
+    });
   }
 
   function toggleProjectFavorite(projectId: string, nextFavorite: boolean) {
@@ -603,6 +831,53 @@ export function ProjectsPageClient({
         action={hasSearch ? undefined : renderCreateProjectAction("Create your first project")}
         className="border-0 bg-white"
       />
+    );
+  }
+
+  // P0-1: when the user is in Group mode but has created NO groups yet, lead with a
+  // CTA EmptyState ABOVE the single Ungrouped flag so the mode is discoverable and
+  // never reads as broken. The CTA opens the same controlled Manage-groups popover.
+  function renderZeroGroupsEmptyState() {
+    return (
+      <EmptyState
+        icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
+        title="Organize projects into groups"
+        description="Create a group to start sorting your projects. Until then, everything stays under Ungrouped."
+        action={
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => setManageGroupsOpen(true)}
+          >
+            <Plus size={12} weight="regular" aria-hidden="true" />
+            Create your first group
+          </Button>
+        }
+        className="border-0 bg-white"
+      />
+    );
+  }
+
+  // Per-group section header menu. v1 ships exactly two items: "Manage groups" (opens
+  // the popover where rename/recolor live) and "Delete group" (inline delete, D10).
+  function renderGroupHeaderMenu(groupKey: string, label: string) {
+    return (
+      <DropdownMenu
+        align="end"
+        trigger={
+          <Button type="button" variant="secondary" size="icon-xs" aria-label={`${label} group actions`}>
+            <DotsThreeVertical size={13} weight="regular" aria-hidden="true" />
+          </Button>
+        }
+      >
+        <DropdownMenu.Item label="Manage groups" onClick={() => setManageGroupsOpen(true)} />
+        <DropdownMenu.Item
+          label="Delete group"
+          destructive
+          onClick={() => handleDeleteGroup(groupKey)}
+        />
+      </DropdownMenu>
     );
   }
 
@@ -707,6 +982,25 @@ export function ProjectsPageClient({
           {projectControlsDisabled ? null : (
             <>
               <DropdownSelect
+                aria-label={
+                  activeTab === "shared-to-you"
+                    ? "Organize by, grouping unavailable on shared projects"
+                    : "Organize by"
+                }
+                options={
+                  activeTab === "shared-to-you"
+                    ? PROJECT_ORGANIZE_BY_OPTIONS.map((option) =>
+                        option.value === "group" ? { ...option, disabled: true } : option,
+                      )
+                    : PROJECT_ORGANIZE_BY_OPTIONS
+                }
+                value={organizeBy}
+                onValueChange={handleOrganizeByChange}
+                variant="boxed"
+                triggerDisplay="icon"
+                className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
+              />
+              <DropdownSelect
                 aria-label="Sort field"
                 options={PROJECT_SORT_FIELD_OPTIONS}
                 value={sortField}
@@ -724,6 +1018,17 @@ export function ProjectsPageClient({
                 triggerDisplay="icon"
                 className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
               />
+              {organizeBy === "group" && activeTab === "your-projects" ? (
+                <ManageGroupsPopover
+                  groups={projectGroups}
+                  onCreate={handleCreateGroup}
+                  onRename={handleRenameGroup}
+                  onRecolor={handleRecolorGroup}
+                  onDelete={handleDeleteGroup}
+                  open={manageGroupsOpen}
+                  onOpenChange={setManageGroupsOpen}
+                />
+              ) : null}
             </>
           )}
         </div>
@@ -758,10 +1063,33 @@ export function ProjectsPageClient({
             <section
               aria-label="Live projects"
               data-project-view-mode={projectViewMode}
-              className={shouldGroupProjects ? "space-y-4" : projectLayoutClassName}
+              className={shouldGroupProjects || isUserGroupOrganize ? "space-y-4" : projectLayoutClassName}
             >
-              {shouldGroupProjects
-                ? groupedLiveProjects.map((group) => (
+              {isUserGroupOrganize && groupModeHasNoVisibleSections ? (
+                // LD-10: groups exist but the active search hid them all ⇒ standard search-empty surface.
+                renderTabEmptyState()
+              ) : isUserGroupOrganize ? (
+                <>
+                  {/* P0-1: zero-groups Group-mode CTA, ABOVE the single Ungrouped flag. */}
+                  {projectGroups.length === 0 ? renderZeroGroupsEmptyState() : null}
+                  {groupedByUserGroup.map((group) => (
+                    <ProjectGroupSection
+                      key={group.key}
+                      mode="group"
+                      group={{ key: group.key, label: group.label, accentId: group.accentId, isVirtual: group.isVirtual }}
+                      items={group.items}
+                      viewMode={projectViewMode}
+                      renderCard={renderLiveProjectCard}
+                      layoutClassName={projectLayoutClassName}
+                      flagLayoutClassName={projectDateFlagLayoutClassName}
+                      collapsed={collapsedGroupKeys.has(group.key)}
+                      onToggleCollapse={toggleGroupCollapsed}
+                      headerMenuSlot={group.isVirtual ? undefined : renderGroupHeaderMenu(group.key, group.label)}
+                    />
+                  ))}
+                </>
+              ) : shouldGroupProjects ? (
+                groupedLiveProjects.map((group) => (
                   <ProjectGroupSection
                     key={group.key}
                     mode={group.kind === "client" ? "client" : "date"}
@@ -779,7 +1107,9 @@ export function ProjectsPageClient({
                     }
                   />
                 ))
-                : displayLiveProjects.map(renderLiveProjectCard)}
+              ) : (
+                displayLiveProjects.map(renderLiveProjectCard)
+              )}
             </section>
           ) : (
             renderTabEmptyState()
