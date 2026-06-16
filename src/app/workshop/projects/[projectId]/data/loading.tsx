@@ -1,53 +1,48 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Route-level skeleton for the cost-comparison page (`01` PERF-1 / `09` P0.7).
- *
- * Mirrors the redesigned shape — header band + insight panel, a control row, the
- * variance spine rows, and the detail table — so the slow server fetch no longer
- * flashes the layout's wrong-shape sidebar/table skeleton (avoids the CLS snap on
- * the app's heaviest route).
+ * Route-level skeleton for the project cost-data page.
  */
 export default function Loading() {
   return (
     <section
-      data-project-charts-loading
+      data-project-data-loading
       aria-busy="true"
       className="flex h-full min-h-0 flex-col overflow-hidden bg-white"
       role="status"
-      aria-label="Loading cost comparison"
+      aria-label="Loading project data"
     >
-      <div className="flex shrink-0 flex-col gap-2 border-b border-hairline px-3 py-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <Skeleton className="h-3 w-48" />
-            <Skeleton className="h-2.5 w-64" />
-          </div>
-          <Skeleton className="h-4 w-10" />
-        </div>
-        <Skeleton className="h-8 w-full max-w-md" />
-        <div className="flex flex-wrap items-center gap-3">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-6 w-28" />
-          <Skeleton className="h-6 w-44" />
-          <Skeleton className="h-6 w-36" />
-        </div>
-      </div>
-
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3">
-        <div className="rounded-xs border border-hairline bg-white">
-          <Skeleton className="m-3 h-3 w-40" />
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="grid grid-cols-[10rem_1fr_5.5rem] items-center gap-3 px-3 py-2">
-              <Skeleton className="h-3 w-28" />
-              <Skeleton className="h-2 w-full" />
-              <Skeleton className="h-3 w-16 justify-self-end" />
-            </div>
-          ))}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
         </div>
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
+        <div className="rounded-xs border border-hairline bg-white">
+          <div className="flex flex-wrap items-start justify-between gap-2 border-b border-hairline p-3">
+            <div className="space-y-1">
+              <Skeleton className="h-3 w-36" />
+              <Skeleton className="h-2.5 w-64" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-7 w-52" />
+              <Skeleton className="h-7 w-56" />
+            </div>
+          </div>
+          <div className="grid gap-3 p-3 xl:grid-cols-[minmax(320px,0.95fr)_minmax(320px,1.05fr)]">
+            <Skeleton className="h-[360px] w-full" />
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="h-7 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xs border border-hairline bg-white p-3">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="mt-3 h-5 w-full" />
+          <Skeleton className="mt-2 h-5 w-10/12" />
+          <Skeleton className="mt-2 h-5 w-8/12" />
         </div>
       </div>
     </section>
