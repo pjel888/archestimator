@@ -66,7 +66,7 @@ describe("notification schema migration", () => {
   it("constrains action links to safe internal workshop paths", () => {
     expect(sql).toContain("constraint notification_definitions_action_href_check");
     expect(sql).toContain("action_href ~ '^/workshop(/|$|\\\\?)'");
-    expect(sql).toContain("action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c)'");
+    expect(sql).toContain("action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c|(^|/)(\\.|%2e){2}(/|\\?|#|$))'");
     expect(sql).not.toContain("/share/");
   });
 });

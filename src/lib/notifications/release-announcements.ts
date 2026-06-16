@@ -9,10 +9,16 @@ import {
 
 const WORKSHOP_ACTION_HREF_PATTERN = /^\/workshop(?:\/|$|\?)/;
 const FORBIDDEN_ACTION_HREF_PATTERN = /(^\/\/|[\s]|javascript:|https?:|%2f|%5c)/i;
+const LOCAL_URL_BASE = "http://archestimator.local";
 
 export function isAllowedNotificationActionHref(value: string | null): value is string | null {
   if (value === null) return true;
-  return WORKSHOP_ACTION_HREF_PATTERN.test(value) && !FORBIDDEN_ACTION_HREF_PATTERN.test(value);
+  if (!WORKSHOP_ACTION_HREF_PATTERN.test(value) || FORBIDDEN_ACTION_HREF_PATTERN.test(value)) {
+    return false;
+  }
+
+  const { pathname } = new URL(value, LOCAL_URL_BASE);
+  return pathname === "/workshop" || pathname.startsWith("/workshop/");
 }
 
 export function coerceNotificationDeliveryView(
