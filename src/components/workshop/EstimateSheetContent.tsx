@@ -102,6 +102,7 @@ import {
 import { getNodeCode } from "./estimate-sheet/rows/node-visuals";
 import {
   canMakeProjectSpecific,
+  canPromoteEstimateRowToLibrary,
   type ExpressInsertDraftState,
 } from "./estimate-sheet/rows/cells";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
@@ -616,9 +617,10 @@ function EstimateSheetHeader({
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="relative sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
+    <header className="relative sticky top-0 z-30 border-b border-hairline bg-white/95 backdrop-blur" aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
+        showBottomBorder={false}
         ariaLabel="Tab tools"
         labelPrefix="tab"
         onExpandAll={onExpandAll}
@@ -1063,7 +1065,7 @@ export function EstimateSheetContent({
   reportEstimateSheetContentRender();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
-  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
+  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, promoteRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1148,6 +1150,7 @@ export function EstimateSheetContent({
   const activityScopeDirectOnly = useEstimateUiStore((s) => s.activityScopeDirectOnly);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
+  const [promotingRowId, setPromotingRowId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
   const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -2412,6 +2415,64 @@ export function EstimateSheetContent({
     setProjectSpecificRowId(rowItemId);
   });
 
+  const promoteRowToLibrary = useStableCallback((rowItemId: string) => {
+    if (!projectId || !estimateId) return;
+    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
+    if (!rowItem || !canPromoteEstimateRowToLibrary(rowItem)) {
+      toast({ tone: "error", message: "This row is not eligible to promote to the library." });
+      return;
+    }
+    if (saveState === "dirty" || saveState === "saving") {
+      toast({ tone: "error", message: "Finish saving row edits before promoting this component." });
+      return;
+    }
+
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
+    const rollbackRevision = getEstimateTreeRevision();
+    setPromotingRowId(rowItemId);
+    promoteRow({
+      projectId,
+      estimateId,
+      rowId: rowItemId,
+      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      onSuccess: (result) => {
+        setEstimateTree((current) =>
+          current.map((node) => {
+            function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
+              return {
+                ...areaNode,
+                estimateRowItems: areaNode.estimateRowItems?.map((item) => {
+                  if (item.id !== rowItemId) return item;
+                  const metadata = readEstimateRowMetadata(item.metadata);
+                  delete metadata.expressComponent;
+                  delete metadata.projectComponentProjection;
+                  return {
+                    ...item,
+                    source: "library",
+                    sourceLibraryItemId: result.itemId,
+                    metadata,
+                    linkState: "linked-clean",
+                  };
+                }),
+                children: areaNode.children?.map(visit),
+              };
+            }
+            return visit(node);
+          }),
+        );
+        setPromotingRowId(null);
+        refetchProjectComponentProjection();
+        handleLibraryDataChanged();
+        toast({ tone: "success", message: `${rowItem.material || "Component"} promoted to the workspace library.` });
+      },
+      onError: (error) => {
+        setPromotingRowId(null);
+        toast({ tone: "error", message: error.message || "Could not promote component." });
+      },
+    });
+  });
+
   function confirmProjectSpecific() {
     if (!projectId || !estimateId || !projectSpecificRow) {
       setProjectSpecificRowId("");
@@ -2757,6 +2818,8 @@ export function EstimateSheetContent({
                       onOpenRowDetails={openRowDetails}
                       onClearRowComponent={clearRowComponent}
                       onRequestProjectSpecific={requestProjectSpecific}
+                      onPromoteRowToLibrary={promoteRowToLibrary}
+                      promotingRowId={promotingRowId}
                       onMoveRowComponent={moveRowComponent}
                       expressInsertDraftStates={expressInsertDraftStates}
                       onRetryExpressDraft={retryExpressDraft}
