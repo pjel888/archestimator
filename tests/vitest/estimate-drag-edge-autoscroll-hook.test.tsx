@@ -14,10 +14,17 @@ function AutoScrollHarness({ enabled = true }: { enabled?: boolean }) {
   );
 }
 
-function dispatchDragEvent(target: EventTarget, type: string, clientY?: number) {
+function dispatchDragEvent(
+  target: EventTarget,
+  type: string,
+  options: { readonly clientY?: number; readonly relatedTarget?: EventTarget | null } = {},
+) {
   const event = new Event(type, { bubbles: true });
-  if (clientY !== undefined) {
-    Object.defineProperty(event, "clientY", { value: clientY });
+  if (options.clientY !== undefined) {
+    Object.defineProperty(event, "clientY", { value: options.clientY });
+  }
+  if ("relatedTarget" in options) {
+    Object.defineProperty(event, "relatedTarget", { value: options.relatedTarget });
   }
   target.dispatchEvent(event);
 }
@@ -84,7 +91,7 @@ describe("useDragEdgeAutoScroll", () => {
     });
 
     act(() => {
-      dispatchDragEvent(scroller, "dragover", 495);
+      dispatchDragEvent(scroller, "dragover", { clientY: 495 });
     });
 
     expect(raf.pendingFrameCount).toBe(1);
@@ -111,7 +118,7 @@ describe("useDragEdgeAutoScroll", () => {
     });
 
     act(() => {
-      dispatchDragEvent(scroller, "dragover", 495);
+      dispatchDragEvent(scroller, "dragover", { clientY: 495 });
     });
     expect(raf.pendingFrameCount).toBe(1);
 
@@ -121,12 +128,46 @@ describe("useDragEdgeAutoScroll", () => {
     expect(raf.pendingFrameCount).toBe(0);
 
     act(() => {
-      dispatchDragEvent(scroller, "dragover", 495);
+      dispatchDragEvent(scroller, "dragover", { clientY: 495 });
     });
     expect(raf.pendingFrameCount).toBe(1);
 
     act(() => {
       window.dispatchEvent(new Event("blur"));
+    });
+    expect(raf.pendingFrameCount).toBe(0);
+  });
+
+  it("keeps scrolling when child dragleave bubbles inside the scroll container", () => {
+    const raf = createRafHarness();
+    const { getByTestId, getByText } = render(<AutoScrollHarness />);
+    const scroller = getByTestId("scroller");
+    const anchor = getByText("Anchor");
+
+    vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue({
+      bottom: 500,
+      height: 400,
+      left: 0,
+      right: 300,
+      top: 100,
+      width: 300,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    });
+
+    act(() => {
+      dispatchDragEvent(scroller, "dragover", { clientY: 495 });
+    });
+    expect(raf.pendingFrameCount).toBe(1);
+
+    act(() => {
+      dispatchDragEvent(anchor, "dragleave", { relatedTarget: scroller });
+    });
+    expect(raf.pendingFrameCount).toBe(1);
+
+    act(() => {
+      dispatchDragEvent(scroller, "dragleave", { relatedTarget: null });
     });
     expect(raf.pendingFrameCount).toBe(0);
   });
