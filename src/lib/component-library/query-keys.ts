@@ -22,4 +22,16 @@ export const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY = ["workspace-component-
 export const WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY = ["workspace-component-rows-library"] as const;
 
 // Library Optimization Plan P0 T3 — the Templates browse tab caches EstimateTemplate[].
+// Keep tenant-scoped template data partitioned by the authenticated principal and
+// workspace so a warm app-level QueryClient can never reuse one login's data for
+// another login or workspace.
 export const WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY = ["workspace-estimate-templates"] as const;
+
+export type WorkspaceEstimateTemplatesQueryScope = {
+  userId: string;
+  workspaceId: string;
+};
+
+export function workspaceEstimateTemplatesQueryKey({ userId, workspaceId }: WorkspaceEstimateTemplatesQueryScope) {
+  return [...WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY, workspaceId, userId] as const;
+}

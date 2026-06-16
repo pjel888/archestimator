@@ -795,10 +795,25 @@ export async function getCurrentWorkspaceComponentRowsLibrary(): Promise<Compone
   return loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id });
 }
 
-export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
-  const { workspace } = await ensureDefaultWorkspace();
+export type CurrentWorkspaceEstimateTemplatesSeed = {
+  templates: EstimateTemplate[];
+  userId: string;
+  workspaceId: string;
+};
+
+export async function getCurrentWorkspaceEstimateTemplatesSeed(): Promise<CurrentWorkspaceEstimateTemplatesSeed> {
+  const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
-  return loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id });
+  return {
+    templates: await loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+    userId: profile.id,
+    workspaceId: workspace.id,
+  };
+}
+
+export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
+  const { templates } = await getCurrentWorkspaceEstimateTemplatesSeed();
+  return templates;
 }
 
 /** Pricing-date age beyond which a component price counts as stale on the Overview health line. */
