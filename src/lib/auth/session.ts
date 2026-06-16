@@ -91,16 +91,30 @@ type RequireCurrentUserContextOptions = {
   nextPath?: string | null;
 };
 
-export async function requireCurrentUserContext(options: RequireCurrentUserContextOptions = {}) {
+type RequireCurrentUserContextResult =
+  | { ok: true; context: CurrentUserContext }
+  | { ok: false; reason: "unauthenticated" | "terms_acceptance_required"; redirectPath: string };
+
+export async function getRequiredCurrentUserContextResult(options: RequireCurrentUserContextOptions = {}): Promise<RequireCurrentUserContextResult> {
   const context = await getCurrentUserContext();
-  if (!context) redirect("/login");
+  if (!context) return { ok: false, reason: "unauthenticated", redirectPath: "/login" };
 
   if (options.enforceTermsAcceptance ?? true) {
     const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(context.userId);
     if (acceptanceStatus.requiresAcceptance) {
-      redirect(buildTermsAcceptanceRedirectPath(options.nextPath ?? null));
+      return {
+        ok: false,
+        reason: "terms_acceptance_required",
+        redirectPath: buildTermsAcceptanceRedirectPath(options.nextPath ?? null),
+      };
     }
   }
 
-  return context;
+  return { ok: true, context };
+}
+
+export async function requireCurrentUserContext(options: RequireCurrentUserContextOptions = {}) {
+  const result = await getRequiredCurrentUserContextResult(options);
+  if (!result.ok) redirect(result.redirectPath);
+  return result.context;
 }

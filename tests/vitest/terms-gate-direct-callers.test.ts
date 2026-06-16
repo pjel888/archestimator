@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
   getCurrentUserContext: vi.fn(),
+  getRequiredCurrentUserContextResult: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -40,6 +41,10 @@ beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
   authMocks.getCurrentUserContext.mockResolvedValue(userContext);
+  authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+    ok: true,
+    context: userContext,
+  });
   termsAcceptanceMocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({
     requiresAcceptance: false,
   });
