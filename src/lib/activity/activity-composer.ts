@@ -44,7 +44,7 @@ function nodeName(event: EstimateActivityInput) {
 function targetForEstimate(event: EstimateActivityInput): ActivityTarget {
   if (event.targetRowId) return { id: event.targetRowId, kind: "row", label: rowMaterial(event), secondaryLabel: readString(event.rowContext?.nodePath, event.rowContext?.areaName, "Estimate row") };
   if (event.estimateNodeId) return { id: event.estimateNodeId, kind: "node", label: nodeName(event) };
-  if (event.eventType.startsWith("tab_")) {
+  if (event.eventType.startsWith("tab_") || event.eventType === "tabs_reordered") {
     const tabId = event.estimateTabId ?? (typeof event.payload?.estimateTabId === "string" ? event.payload.estimateTabId : undefined);
     return { id: tabId ?? undefined, kind: "tab", label: readString(event.payload?.name, event.payload?.tabName, "Estimate tab") };
   }
@@ -109,6 +109,7 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
     case "tab_renamed":
       return `${actor} renamed tab ${readString(oldData.name, "the previous tab")} to ${target.label}.`;
     case "tab_reordered":
+    case "tabs_reordered":
       return `${actor} reordered estimate tabs.`;
     case "tab_duplicated":
       return `${actor} duplicated tab ${target.label}.`;

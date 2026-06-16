@@ -48,7 +48,7 @@ Two facts make this more than a mechanical swap:
 **Quality gates**
 
 - R13. Stories cover the select variant per the menu story matrix (Default, Variants, States, LongContent, KeyboardFocus); `scripts/check-storybook-component-coverage.mjs` is updated for the new story and the retired `Forms/Select` exports.
-- R14. All touched UI passes `bun run lint:design-system` (12px cap, labels ≤9px, `rounded-xs`, `tracking-normal`, regular-weight icons) and `npx impeccable detect --strict`.
+- R14. All touched UI passes `bun run lint:design-system` (12px cap, labels <=9px, `rounded-xs`, `tracking-normal`, regular-weight icons) and `bun run lint:design`.
 
 ---
 

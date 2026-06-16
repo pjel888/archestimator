@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
+  readPublicationViewSnapshotVersion: vi.fn(),
   useSharedLinkSession: vi.fn(),
   // P7 repo extension (additive)
   resolveProjectPublicationAccessByToken: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
+  readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
 }));
 
 vi.mock("@/hooks/use-shared-link-session", () => ({
@@ -56,6 +58,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
+    mocks.readPublicationViewSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "pub1",
@@ -178,6 +181,38 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       );
     });
 
+    it("uses the signed rendered-view snapshot for content-only republishes", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        snapshotVersion: 2,
+        passwordRequired: false,
+        status: "published",
+        expiresAt: null,
+        credentialVersion: "open",
+      });
+      mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(1);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted", note: "Looks good", viewToken: "signed-view-token-v1" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(201);
+      expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("signed-view-token-v1", {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+      });
+      expect(mocks.submitSharedLinkDecision).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedSnapshotVersion: 1,
+        }),
+      );
+    });
+
     it("uses durable decision rate limiting before submitting a decision", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
@@ -266,7 +301,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
   describe("SharePageDecision component (Accept/Decline/Request Revision buttons + confirmation modal + read-only lock + 409 handling + post-decision comments allowed)", () => {
     it("renders an informational read-only state (no interactive buttons) when no valid session (P5 hook)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
-      const { container } = render(<SharePageDecision token="t1" />);
+      const { container } = render(<SharePageDecision token="t1" viewToken="view-token" />);
       // AC-UX-07: the no-session state is a read-only explanation (which legitimately
       // mentions how to accept/decline/request a revision), but it must NOT render any
       // interactive decision controls.
@@ -278,7 +313,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
 
     it("renders the three decision buttons when session valid and undecided", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
-      render(<SharePageDecision token="t1" />);
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
       expect(screen.getByRole("button", { name: /accept/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /decline/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /request revision|revision/i })).toBeInTheDocument();
@@ -298,7 +333,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
         }),
       });
 
-      render(<SharePageDecision token="t1" />);
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
 
       expect(await screen.findByTestId("decision-locked-badge")).toBeInTheDocument();
       expect(screen.getByText("Accepted")).toBeInTheDocument();
@@ -314,7 +349,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     it("opens confirmation modal with tailored copy before finalizing (no POST until confirm)", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
       const user = userEvent.setup();
-      render(<SharePageDecision token="t1" />);
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
       await user.click(screen.getByRole("button", { name: /accept/i }));
       // Modal should appear (implementation uses role=dialog or visible confirm UI)
       await waitFor(() => {
@@ -332,7 +367,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     it("traps modal focus, closes on Escape, and restores focus to the trigger", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
       const user = userEvent.setup();
-      render(<SharePageDecision token="t1" />);
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
 
       const acceptButton = screen.getByRole("button", { name: /accept/i });
       acceptButton.focus();
@@ -359,7 +394,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // @ts-expect-error fetch mock
       global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ id: "d1" }) });
       const user = userEvent.setup();
-      render(<SharePageDecision token="t1" />);
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
       await user.click(screen.getByRole("button", { name: /decline/i }));
       await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
       const noteInput = screen.queryByPlaceholderText(/note|reason|comment/i);
@@ -392,7 +427,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // @ts-expect-error fetch mock
       global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: "Decision already submitted." }) });
       const user = userEvent.setup();
-      render(<SharePageDecision token="t1" />);
+      render(<SharePageDecision token="t1" viewToken="view-token" />);
       await user.click(screen.getByRole("button", { name: /accept/i }));
       await waitFor(() => expect(screen.getByRole("button", { name: /^Confirm$/i })).toBeInTheDocument());
       const confirmBtn = screen.getByRole("button", { name: /^Confirm$/i });
@@ -409,7 +444,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // After internal lock simulation (component manages its decided state)
       render(
         <>
-          <SharePageDecision token="t1" />
+          <SharePageDecision token="t1" viewToken="view-token" />
           {/* Comments remain independently usable post-decision */}
           <div data-testid="comments-stub">Comments composer still here</div>
         </>

@@ -104,7 +104,7 @@ export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavo
           project_id: project.id,
           estimate_id: estimate.id,
         },
-        { onConflict: "user_id,estimate_id" },
+        { ignoreDuplicates: true, onConflict: "user_id,estimate_id" },
       );
 
     if (error) throw error;
@@ -120,4 +120,5 @@ export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavo
   }
 
   revalidatePath("/workshop");
+  revalidatePath(`/workshop/projects/${project.id}/estimates`);
 }

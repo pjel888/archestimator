@@ -28,6 +28,8 @@ export type ProjectEstimateListRow = {
   nodeCount: number;
   rowItemCount: number;
   totalProjectCost: number;
+  isFavorite: boolean;
+  favoriteCreatedAt: string | null;
   /** Client-only optimistic metadata. Never serialized from the server. */
   pendingStatus?: ProjectEstimateListRowStatus;
   pendingError?: string | null;
@@ -52,6 +54,8 @@ export const PROJECT_ESTIMATE_LIST_ROW_FIELDS = [
   "nodeCount",
   "rowItemCount",
   "totalProjectCost",
+  "isFavorite",
+  "favoriteCreatedAt",
 ] as const;
 
 /**
@@ -77,6 +81,8 @@ export type ProjectEstimateListRowSummary = {
   nodeCount: number;
   rowItemCount: number;
   totalProjectCost: number;
+  isFavorite: boolean;
+  favoriteCreatedAt: string | null;
 };
 
 /**
@@ -94,6 +100,8 @@ export function buildProjectEstimateListRow(
     nodeCount: summary.nodeCount,
     rowItemCount: summary.rowItemCount,
     totalProjectCost: summary.totalProjectCost,
+    isFavorite: summary.isFavorite,
+    favoriteCreatedAt: summary.favoriteCreatedAt,
   };
 }
 

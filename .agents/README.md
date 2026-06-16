@@ -14,5 +14,6 @@ Canonical rules live in:
 If a skill here conflicts with `.ai/00_system` or `.ai/12_agents`, the `.ai`
 source wins. Do not store secrets or durable project decisions in this folder.
 
-The project-local `improve` skill is an adapter for `shadcn/improve`; it routes
-plans into `.ai/03_plans` and remains subordinate to `.ai/00_system`.
+`shadcn/improve` is installed globally for this machine. Do not add a duplicate
+repo-local `.agents/skills/improve/` copy unless the global skill cannot be made
+to respect Archestimator's `.ai/03_plans` routing policy.

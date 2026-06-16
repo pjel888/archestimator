@@ -18,6 +18,7 @@ export type ProjectEstimateMetadata = {
   estimateName: string;
   estimateSheetCode: string;
   projectBudget: number | null;
+  canEditEstimate?: boolean;
 };
 
 type ProjectEstimateMetadataPublisherProps = {
@@ -55,7 +56,7 @@ export function useProjectEstimateMetadata() {
 }
 
 export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMetadataPublisherProps) {
-  const { projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget } = metadata;
+  const { projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget, canEditEstimate } = metadata;
 
   useLayoutEffect(() => {
     const workshopCanvas = document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]");
@@ -64,7 +65,15 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
 
     if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = "true";
     workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px");
-    dispatchProjectEstimateMetadataChange({ projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget });
+    dispatchProjectEstimateMetadataChange({
+      projectId,
+      estimateId,
+      projectName,
+      estimateName,
+      estimateSheetCode,
+      projectBudget,
+      canEditEstimate: canEditEstimate === true,
+    });
     dispatchProjectBudgetChange(projectBudget ?? 0);
 
     return () => {
@@ -82,7 +91,7 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
       dispatchProjectEstimateMetadataChange(null);
       dispatchProjectBudgetChange(0);
     };
-  }, [projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget]);
+  }, [projectId, estimateId, projectName, estimateName, estimateSheetCode, projectBudget, canEditEstimate]);
 
   return null;
 }
@@ -121,9 +130,10 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const skipNextBlurCommitRef = useRef(false);
+  const canEditEstimate = metadata?.canEditEstimate === true;
 
   const commitDraft = useCallback(() => {
-    if (!metadata) return;
+    if (!metadata || !canEditEstimate) return;
     const nextName = draft.trim();
     if (nextName === savedName.trim()) {
       setDraft(savedName);
@@ -160,7 +170,7 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
           setErrorMessage(getErrorMessage(error));
         });
     });
-  }, [draft, metadata, router, savedName]);
+  }, [canEditEstimate, draft, metadata, router, savedName]);
 
   function handleBlur() {
     if (skipNextBlurCommitRef.current) {
@@ -201,7 +211,7 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
           "h-7 min-w-0 max-w-full field-sizing-content rounded-xs border border-transparent bg-transparent px-2 text-center !text-[10px] font-medium leading-none text-ink outline-none transition placeholder:text-tertiary focus:bg-accentSoft disabled:opacity-60",
           status === "error" && "border-danger bg-dangerSoft/40",
         )}
-        disabled={!metadata || isPending}
+        disabled={!metadata || !canEditEstimate || isPending}
         onBlur={handleBlur}
         onChange={(event) => {
           setDraft(event.currentTarget.value);
@@ -210,7 +220,7 @@ function EstimateSheetNameCell({ metadata }: { metadata: ProjectEstimateMetadata
         }}
         onKeyDown={handleKeyDown}
         placeholder="Estimate name"
-        title="Rename estimate. Press Enter or leave the field to save. Press Esc to cancel."
+        title={canEditEstimate ? "Rename estimate. Press Enter or leave the field to save. Press Esc to cancel." : "View-only estimate name."}
         value={draft}
       />
       {status === "saving" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-tertiary">Saving</span> : null}

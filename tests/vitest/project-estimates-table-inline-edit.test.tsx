@@ -23,11 +23,21 @@ const repositoryMocks = vi.hoisted(() => ({
   getEstimateTree: vi.fn(),
 }));
 
+const workshopActionMocks = vi.hoisted(() => ({
+  setEstimateFavorite: vi.fn(),
+}));
+
+const componentLibraryActionMocks = vi.hoisted(() => ({
+  loadProjectComponentLibraryLite: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
 }));
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/component-library/actions", () => componentLibraryActionMocks);
+vi.mock("@/lib/workshop/actions", () => workshopActionMocks);
 vi.mock("@/lib/repositories/estimate-repository", () => ({
   estimateRepository: repositoryMocks,
 }));
@@ -48,12 +58,19 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
     rowItemCount: 1,
     sheet_code: "EST-001",
     totalProjectCost: 1250,
+    isFavorite: false,
+    favoriteCreatedAt: null,
     updated_at: "2026-05-19T10:00:00.000Z",
     ...overrides,
   };
 }
 
-function renderTable(estimate = makeEstimate()) {
+function renderTable(
+  estimate = makeEstimate(),
+  options: {
+    canEditEstimateById?: Record<string, boolean>;
+  } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -61,9 +78,10 @@ function renderTable(estimate = makeEstimate()) {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />
+      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" canEditEstimateById={options.canEditEstimateById} />
     </QueryClientProvider>,
   );
+  return queryClient;
 }
 
 describe("project estimates table inline editing", () => {
@@ -74,7 +92,18 @@ describe("project estimates table inline editing", () => {
     actionMocks.previewBulkDeleteEstimateSheets.mockReset();
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
+    componentLibraryActionMocks.loadProjectComponentLibraryLite.mockReset();
+    componentLibraryActionMocks.loadProjectComponentLibraryLite.mockResolvedValue({
+      libraryItems: [],
+      templates: [],
+      categoryTree: [],
+      suppliers: [],
+      brands: [],
+      libraryFolders: [],
+    });
     repositoryMocks.getEstimateTree.mockReset();
+    workshopActionMocks.setEstimateFavorite.mockReset();
+    workshopActionMocks.setEstimateFavorite.mockResolvedValue(undefined);
     actionMocks.fetchEstimateTree.mockResolvedValue([]);
     actionMocks.previewBulkDeleteEstimateSheets.mockResolvedValue({
       ok: true,
@@ -118,7 +147,7 @@ describe("project estimates table inline editing", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue([]);
     repositoryMocks.getEstimateTree.mockResolvedValue({ id: "estimate-1" });
 
-    renderTable();
+    const queryClient = renderTable();
 
     const openLink = screen.getByLabelText("Open Original Estimate");
     fireEvent.mouseEnter(openLink);
@@ -135,6 +164,62 @@ describe("project estimates table inline editing", () => {
       projectId: "project-1",
       estimateId: "estimate-1",
     });
+    expect(componentLibraryActionMocks.loadProjectComponentLibraryLite).toHaveBeenCalledWith("project-1");
+    expect(queryClient.getQueryData(["workspace-component-library", "lite", "project", "project-1"])).toEqual({
+      libraryItems: [],
+      templates: [],
+      categoryTree: [],
+      suppliers: [],
+      brands: [],
+      libraryFolders: [],
+    });
+  });
+
+  it("places the favorite star after row selection and gives row icons pointer affordance", async () => {
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const favoriteButton = screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" });
+    const selectInput = screen.getByRole("checkbox", { name: "Select Original Estimate" });
+    const deleteButton = screen.getByRole("button", { name: "Delete Original Estimate" });
+    const duplicateButton = screen.getByRole("button", { name: "Duplicate Original Estimate" });
+    const openLink = screen.getByRole("link", { name: "Open Original Estimate" });
+    const actionCluster = favoriteButton.parentElement;
+    const actionChildren = Array.from(actionCluster?.children ?? []);
+
+    expect(actionCluster).not.toBeNull();
+    expect(actionChildren.indexOf(favoriteButton)).toBeGreaterThan(actionChildren.indexOf(selectInput));
+    expect(selectInput).toHaveClass("cursor-pointer");
+    expect(favoriteButton).toHaveClass("cursor-pointer");
+    expect(deleteButton).toHaveClass("cursor-pointer");
+    expect(duplicateButton).toHaveClass("cursor-pointer");
+    expect(openLink).toHaveClass("cursor-pointer");
+
+    await user.click(favoriteButton);
+
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledTimes(1));
+    expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledWith({
+      estimateId: "estimate-1",
+      favorite: true,
+    });
+  });
+
+  it("rolls back an estimate favorite toggle when persistence fails", async () => {
+    workshopActionMocks.setEstimateFavorite.mockRejectedValueOnce(new Error("Favorite write failed."));
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const favoriteButton = screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" });
+    await user.click(favoriteButton);
+
+    await waitFor(() => expect(favoriteButton).toHaveAttribute("aria-pressed", "false"));
+    expect(screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" })).toHaveAttribute(
+      "title",
+      "Favorite write failed.",
+    );
   });
 
   it("saves an inline estimate name edit once when Enter blurs the field", async () => {
@@ -212,6 +297,28 @@ describe("project estimates table inline editing", () => {
     });
     // P0: inline edits reconcile optimistically — no full-screen overlay refresh.
     expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("disables metadata and destructive controls for view-only estimate rows", async () => {
+    const user = userEvent.setup();
+
+    renderTable(makeEstimate(), { canEditEstimateById: { "estimate-1": false } });
+
+    expect(screen.getByRole("checkbox", { name: "Select Original Estimate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete Original Estimate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Duplicate Original Estimate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Auto-generate estimate code for Original Estimate" })).toBeDisabled();
+    expect(screen.getByLabelText("Estimate code for Original Estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Estimate name for Original Estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Notes for Original Estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Project budget for Original Estimate")).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Duplicate Original Estimate" }));
+
+    expect(actionMocks.duplicateEstimateSheet).not.toHaveBeenCalled();
+    expect(actionMocks.updateEstimateDetails).not.toHaveBeenCalled();
+    expect(actionMocks.regenerateEstimateSheetCode).not.toHaveBeenCalled();
+    expect(actionMocks.previewBulkDeleteEstimateSheets).not.toHaveBeenCalled();
   });
 
   it("does not crash when persisted column width storage is blocked", () => {

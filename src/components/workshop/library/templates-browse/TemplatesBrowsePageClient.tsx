@@ -1,11 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY } from "@/lib/component-library/query-keys";
+import {
+  WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY,
+  workspaceEstimateTemplatesQueryKey,
+  type WorkspaceEstimateTemplatesQueryScope,
+} from "@/lib/component-library/query-keys";
 import { loadCurrentWorkspaceEstimateTemplates } from "@/lib/component-library/actions";
 import type { EstimateTemplate } from "@/components/workshop/component-library/templates";
 
@@ -50,14 +54,23 @@ function TemplatesBrowseFallback() {
 
 type TemplatesBrowsePageClientProps = {
   templates?: EstimateTemplate[];
+  queryScope?: WorkspaceEstimateTemplatesQueryScope;
 };
 
-export function TemplatesBrowsePageClient({ templates }: TemplatesBrowsePageClientProps = {}) {
+export function TemplatesBrowsePageClient({ templates, queryScope }: TemplatesBrowsePageClientProps = {}) {
   const queryClient = useQueryClient();
+  const queryUserId = queryScope?.userId;
+  const queryWorkspaceId = queryScope?.workspaceId;
+  const queryKey = useMemo(
+    () => (queryUserId && queryWorkspaceId
+      ? workspaceEstimateTemplatesQueryKey({ userId: queryUserId, workspaceId: queryWorkspaceId })
+      : WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY),
+    [queryUserId, queryWorkspaceId],
+  );
   // P0 T3: own the Templates dataset in a warm query cache seeded by the server
   // fetch via initialData, so warm tab revisits render from cache (with staleTimes).
   const { data } = useQuery({
-    queryKey: WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY,
+    queryKey,
     queryFn: () => loadCurrentWorkspaceEstimateTemplates(),
     initialData: templates,
     staleTime: 5 * 60 * 1000,
@@ -66,11 +79,11 @@ export function TemplatesBrowsePageClient({ templates }: TemplatesBrowsePageClie
   const onTemplatesMutated = useCallback(
     (updater: (items: EstimateTemplate[]) => EstimateTemplate[]) => {
       queryClient.setQueryData<EstimateTemplate[]>(
-        WORKSPACE_ESTIMATE_TEMPLATES_QUERY_KEY,
+        queryKey,
         (prev) => updater(prev ?? []),
       );
     },
-    [queryClient],
+    [queryClient, queryKey],
   );
   return <TemplatesBrowseManager templates={data ?? templates} onTemplatesMutated={onTemplatesMutated} />;
 }

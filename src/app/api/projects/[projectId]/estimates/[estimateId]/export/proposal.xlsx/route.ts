@@ -20,6 +20,7 @@ export const maxDuration = 60;
 
 const PROPOSAL_EXPORT_NODE_LIMIT = 1200;
 const PROPOSAL_EXPORT_ROW_ITEM_LIMIT = 3000;
+const PROPOSAL_EXPORT_TAB_LIMIT = 50;
 
 type ProposalExportRouteContext = {
   params: Promise<{ projectId: string; estimateId: string }>;
@@ -144,6 +145,7 @@ function createLimitResponse() {
       limits: {
         maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
         maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
+        maxTabCount: PROPOSAL_EXPORT_TAB_LIMIT,
       },
     },
     { status: 413 },
@@ -392,7 +394,11 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
     // U1-5 (legacy fallback, from origin/main): without estimate_tabs applied, listing tabs
     // would 500 — the fallback yields a synthetic single "Main" tab so this degrades to the
     // whole-estimate path (which already degrades safely via getProjectEstimateTreeByEstimate).
-    const tabs = await getEstimateTabs(projectId, estimateId, { allowLegacyFallback: true });
+    const tabs = await getEstimateTabs(projectId, estimateId, {
+      allowLegacyFallback: true,
+      maxTabCount: PROPOSAL_EXPORT_TAB_LIMIT,
+    });
+    if (tabs.length > PROPOSAL_EXPORT_TAB_LIMIT) return createLimitResponse();
     if (tabs.length <= 1) return await buildSingleTabResponse(projectId, estimateId, null, exportContext);
     return await buildAllTabsResponse(projectId, estimateId, tabs, exportContext);
   } catch (error) {

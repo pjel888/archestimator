@@ -1,9 +1,7 @@
 /**
- * Deep-link builders for the dashboard's other-estimates list (Zone C). The
- * Compare route reads `?left=&right=&mode=` search params
- * (`src/app/workshop/projects/[projectId]/charts/page.tsx`); `buildCompareHref`
- * targets that exact contract with the headline as baseline (`left`) and the
- * row as comparand (`right`).
+ * Deep-link builders for estimate cost data. The Data route's canonical
+ * selection param is `?sheet=`; it still accepts legacy `?left=` only as a
+ * reader fallback for old bookmarks.
  */
 
 import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
@@ -14,12 +12,11 @@ export function buildCompareHref(
   groupingMode?: ProjectChartGroupingMode | null,
 ): string {
   const params = new URLSearchParams();
-  const [left, right] = estimateIds;
-  if (left) params.set("left", left);
-  if (right) params.set("right", right);
+  const [sheet] = estimateIds;
+  if (sheet) params.set("sheet", sheet);
   if (groupingMode) params.set("mode", groupingMode);
   const query = params.toString();
-  return `/workshop/projects/${projectId}/charts${query ? `?${query}` : ""}`;
+  return `/workshop/projects/${projectId}/data${query ? `?${query}` : ""}`;
 }
 
 /**

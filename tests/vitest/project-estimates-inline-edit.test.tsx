@@ -16,12 +16,16 @@ const actionMocks = vi.hoisted(() => ({
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),
 }));
+const workshopActionMocks = vi.hoisted(() => ({
+  setEstimateFavorite: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({ useRouter: () => routerMock }));
 vi.mock("@/stores/navigation-ui-store", () => ({
   useNavigationUiStore: (selector: (state: { show: typeof show }) => unknown) => selector({ show }),
 }));
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/workshop/actions", () => workshopActionMocks);
 vi.mock("@/lib/repositories/estimate-repository", () => ({ estimateRepository: { getEstimateTree: vi.fn() } }));
 
 import { ProjectEstimatesTable } from "@/components/workshop/ProjectEstimatesTable";
@@ -41,6 +45,8 @@ function makeRow(overrides: Partial<ProjectEstimateListRow> = {}): ProjectEstima
     nodeCount: 1,
     rowItemCount: 1,
     totalProjectCost: 1250,
+    isFavorite: false,
+    favoriteCreatedAt: null,
     ...overrides,
   };
 }
@@ -59,6 +65,8 @@ function renderWithStore() {
 describe("ProjectEstimatesTable optimistic inline edit", () => {
   beforeEach(() => {
     Object.values(actionMocks).forEach((m) => m.mockReset());
+    workshopActionMocks.setEstimateFavorite.mockReset();
+    workshopActionMocks.setEstimateFavorite.mockResolvedValue(undefined);
     routerMock.refresh.mockReset();
     show.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue([]);

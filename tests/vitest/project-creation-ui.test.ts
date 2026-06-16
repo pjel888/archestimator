@@ -66,7 +66,8 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).toContain("favoriteIds.has(item.project.id)");
     expect(projectsPageClient).toContain("PROJECT_VIEW_MODE_STORAGE_KEY");
     expect(projectsPageClient).toContain('label: "Small thumbnails"');
-    expect(projectsPageClient).toContain("label: `View projects as ${option.label}`");
+    expect(projectsPageClient).toContain('label: "View: Small"');
+    expect(projectsPageClient).toContain('aria-label={projectControlsDisabled ? "View, disabled until this tab has projects" : "View"}');
     expect(projectsPageClient).toContain("data-project-view-mode={projectViewMode}");
     expect(projectsPageClient).toContain("viewMode={projectViewMode}");
     expect(liveProjectCard).toContain('project: Tables<"projects">');
@@ -76,10 +77,10 @@ describe("project creation UI governance", () => {
     expect(liveProjectCard).toContain('viewMode === "medium" ? "aspect-[3/2]" : "aspect-[4/3]"');
     expect(liveProjectCard).toContain('"size-12 shrink-0 rounded-xs border border-hairline"');
     expect(liveProjectCard).toContain("line-clamp-2");
-    expect(liveProjectCard).toContain("absolute left-1.5 top-1.5");
+    expect(liveProjectCard).toContain("data-project-card-hover-reveal");
     expect(liveProjectCard).toContain("aria-pressed={isFavorite}");
     expect(liveProjectCard).toContain('weight="regular"');
-    expect(liveProjectCard).toContain("aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white");
+    expect(liveProjectCard).toContain("aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink");
     expect(liveProjectCard).not.toContain("h-32");
     expect(liveProjectCard).not.toContain("min-h-[260px]");
     expect(projectsPageClient).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");

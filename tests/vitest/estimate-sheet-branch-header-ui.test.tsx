@@ -9,7 +9,7 @@ import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data"
 
 const noop = vi.fn();
 
-function renderBranch() {
+function renderBranch(ancestorPath: { id: string; name: string }[] = []) {
   const node: EstimateTreeNode = {
     id: "mobilization-demobilization",
     name: "Mobilization + Demobilization",
@@ -28,7 +28,7 @@ function renderBranch() {
         <EstimateSheetBranch
           node={node}
           nodeCode="01.01.01"
-          ancestorPath={[]}
+          ancestorPath={ancestorPath}
           editableRows={editableRows}
           setEditableRows={setEditableRows}
           onInsertLibraryItem={noop}
@@ -117,6 +117,17 @@ describe("estimate sheet branch header chrome", () => {
     expect(screen.getByRole("heading", { name: "Root Area", level: 1 })).toHaveClass("text-ink", "font-medium", "uppercase", "tracking-normal");
     expect(screen.getByRole("heading", { name: "Child Area", level: 2 })).toHaveClass("text-secondary", "font-normal");
     expect(screen.queryByText("01")).not.toBeInTheDocument();
+  });
+
+  it("removes the generated gap between breadcrumbs and the row table", () => {
+    renderBranch([
+      { id: "general-requirements", name: "General Requirements" },
+      { id: "construction-supervision", name: "Construction Supervision" },
+    ]);
+
+    const breadcrumbs = screen.getByLabelText("Mobilization + Demobilization breadcrumbs");
+
+    expect(breadcrumbs.nextElementSibling).toHaveClass("-mt-2");
   });
 
   it("renders a single inset white spacer before non-first child branches", () => {
