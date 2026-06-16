@@ -94,3 +94,27 @@ active unresolved non-outdated threads from any author: 0
 touched PRs #67, #68, #69, #72, #78, #79, #83: CLEAN / MERGEABLE
 remaining merge concern outside comment scope: PR #66 DIRTY / CONFLICTING, with 0 active Codex review threads
 ```
+
+## Late-Wave Completion Evidence
+
+Collected: 2026-06-16T06:49:17Z
+
+GitHub produced three additional Codex review threads after the second-pass
+tracker update. Those were fixed, pushed, and resolved:
+
+| PR | Final head | Threads resolved | Verification summary |
+| ---: | --- | --- | --- |
+| #81 | `2c47b6d37058522cc6ae8cd2fe21e2df95f4a247` | `PRRT_kwDOSfSDcs6Jy7iM`, `PRRT_kwDOSfSDcs6Jy7iQ` | Targeted template reconciliation Vitest, typecheck, eslint, `git diff --check`; full file run was stopped after hanging over two minutes. |
+| #69 | `b77f48dd71ca06ed6174e039a0c7278a3c5bb1e9` | `PRRT_kwDOSfSDcs6Jy9_-` | Reusable-sources Vitest, typecheck, eslint, `git diff --check`. |
+| #68 | `8fdd9b0ca27e71e16a14bac3508f950badf740fa` | `PRRT_kwDOSfSDcs6JzEFn` | Reusable-sources Vitest, typecheck, lint, `git diff --check`. |
+
+Final live audit after the late wave:
+
+```text
+open PRs inspected: 21
+review threads inspected: 39
+active unresolved non-outdated Codex threads: 0
+active unresolved non-outdated threads from any author: 0
+touched PRs #67, #68, #69, #72, #78, #79, #81, #83: CLEAN / MERGEABLE
+remaining merge concern outside comment scope: PR #66 DIRTY / CONFLICTING, with 0 active Codex review threads
+```
