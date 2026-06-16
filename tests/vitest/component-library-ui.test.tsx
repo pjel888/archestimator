@@ -1302,6 +1302,35 @@ describe("templates tree", () => {
     expect(screen.getByRole("button", { name: "Add Template Group" })).toBeInTheDocument();
   });
 
+  it("restores custom templates when project-source loading resolves empty after selecting the project filter", async () => {
+    let resolveSources: ((value: { sources: ReusableEstimateSource[] }) => void) | undefined;
+    reusableSourceActionMocks.listReusableProjectSources.mockReturnValue(
+      new Promise<{ sources: ReusableEstimateSource[] }>((resolve) => {
+        resolveSources = resolve;
+      }),
+    );
+
+    openTemplatesTab({ projectId: "project-1", estimateId: "estimate-1" });
+
+    const sourceFilter = await screen.findByRole("combobox", { name: "Reusable source filter" });
+    fireEvent.click(sourceFilter);
+    fireEvent.click(screen.getByRole("option", { name: "Project sources" }));
+
+    expect(sourceFilter).toHaveTextContent("Project sources");
+    expect(screen.queryByRole("treeitem", { name: "Custom Templates reusable sources" })).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveSources?.({ sources: [] });
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByRole("combobox", { name: "Reusable source filter" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("treeitem", { name: "Custom Templates reusable sources" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Kitchen Starter estimate template" })).toBeInTheDocument();
+    expect(screen.queryByText(/No templates yet/i)).not.toBeInTheDocument();
+  });
+
   it("drags a project tab source with the project-source payload", () => {
     openTemplatesTab({ projectSources });
 

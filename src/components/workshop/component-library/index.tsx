@@ -1276,9 +1276,19 @@ function EstimateRightSidebarBase({
     setBulkSelectedNodeIds(new Set());
     if (nextFilter === "custom") setPreviewProjectSourceKey(null);
   }, []);
+  const hasLoadedProjectSources = useMemo(
+    () => loadedProjectSources.some((source) => source.kind !== "custom-template"),
+    [loadedProjectSources],
+  );
+  useEffect(() => {
+    if (templateSourceFilter !== "projects" || projectSourcesLoading || hasLoadedProjectSources) return;
+    setTemplateSourceFilter("all");
+    setBulkSelectedNodeIds(new Set());
+    setPreviewProjectSourceKey(null);
+  }, [hasLoadedProjectSources, projectSourcesLoading, templateSourceFilter]);
   const templatesSourceFilterControls = useMemo(() => {
     const hasCustomTemplates = templateList.length > 0;
-    const hasProjectSources = loadedProjectSources.some((source) => source.kind !== "custom-template") || projectSourcesLoading;
+    const hasProjectSources = hasLoadedProjectSources || projectSourcesLoading;
     if (!hasCustomTemplates || !hasProjectSources) return null;
     return (
       <div className="mb-2">
@@ -1294,7 +1304,7 @@ function EstimateRightSidebarBase({
         />
       </div>
     );
-  }, [handleTemplateSourceFilterChange, loadedProjectSources, projectSourcesLoading, templateList.length, templateSourceFilter]);
+  }, [handleTemplateSourceFilterChange, hasLoadedProjectSources, projectSourcesLoading, templateList.length, templateSourceFilter]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
