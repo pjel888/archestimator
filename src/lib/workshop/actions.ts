@@ -23,6 +23,7 @@ function assertUuid(value: string, label: string) {
 }
 
 export async function setProjectFavorite({ projectId, favorite }: ProjectFavoriteInput) {
+  if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(projectId, "Project");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
@@ -70,6 +71,7 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
 }
 
 export async function setEstimateFavorite({ estimateId, favorite }: EstimateFavoriteInput) {
+  if (typeof favorite !== "boolean") throw new Error("Invalid input.");
   assertUuid(estimateId, "Estimate");
 
   const { workspace, profile } = await ensureDefaultWorkspace();
