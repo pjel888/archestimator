@@ -86,3 +86,28 @@ Only resolve `PRRT_kwDOSfSDcs6JokL3` after the rewritten pushed refs no longer
 expose the historical sensitive blob IDs and the current sanitized files remain
 present at HEAD.
 
+## 2026-06-16 Execution Result
+
+Owner approval was granted and the branch-history rewrite was executed.
+
+- `main` was force-updated with `--force-with-lease` to
+  `d331c06b45ef69dad77243738d8892e78b9c9e32`.
+- The 37 affected `codex/*` branch heads were force-updated with per-branch
+  leases.
+- Fresh mirror verification of branch heads returned no matches for the four
+  known old BOQ blob IDs.
+- The local working checkout was reset to rewritten `origin/main`; local object
+  verification reported the four old blob IDs absent.
+
+Remaining provider blocker:
+
+- GitHub still advertises read-only `refs/pull/*/head` refs containing the old
+  PR snapshots. `refs/pull/50/head` remains at
+  `bf9e54df7deb408bb7befbc743d52e9803195d02`.
+- Git rejected a push to `refs/pull/50/head` with `deny updating a hidden ref`.
+- GitHub REST deletion of `repos/pjel888/archestimator/git/refs/pull/50/head`
+  returned HTTP `422`: `refs/pull/* is read-only`.
+
+The unresolved thread should remain unresolved until GitHub-side pull-ref
+retention is cleared or GitHub confirms those hidden refs are outside the
+remediation boundary.

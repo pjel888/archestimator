@@ -171,3 +171,34 @@ manual_qa_channel=cli
   - `git diff --check` on the runbook and script passed.
 - Live provider check still showed the same single unresolved Codex thread on
   PR `#50`; the two sibling PR `#50` threads remain resolved.
+
+## PR #50 Approved History Rewrite
+
+- Owner approved rewriting Archestimator Git history to purge the PR `#50` BOQ
+  blobs and force-push `main` with `--force-with-lease`.
+- Real execution used a fresh temporary publish clone at
+  `/tmp/archestimator-pr50-purge/publish-clone` after the first in-place script
+  attempt stopped before any push because local automatic GC was already
+  running.
+- Expanded the purge target from the archived BOQ paths to include the duplicate
+  historical `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/...` paths after
+  the pre-push scan found the same old blob IDs there.
+- Force-updated `main` from `18746132799a959a4a0ab1354f999b64c84f9b60` to
+  `d331c06b45ef69dad77243738d8892e78b9c9e32` with `--force-with-lease`.
+- Force-updated the 37 affected `codex/*` branch heads with per-branch
+  `--force-with-lease`; branch-head verification in a fresh mirror returned no
+  matches for the four known old BOQ blob IDs.
+- Synced the working checkout back to rewritten `origin/main`; local
+  `git rev-list --objects --all` returned no matches and `git cat-file -e`
+  reported the four old blob IDs absent after deleting two local Codex
+  checkpoint refs and an orphaned `refs/stash` ref that pinned pre-rewrite
+  objects.
+- GitHub provider blocker: a fresh mirror still exposes old BOQ blobs through
+  read-only `refs/pull/*/head` refs, including `refs/pull/50/head` at
+  `bf9e54df7deb408bb7befbc743d52e9803195d02`.
+- Attempting to push the rewritten PR `#50` head to `refs/pull/50/head` was
+  rejected by GitHub with `deny updating a hidden ref`; attempting REST deletion
+  returned HTTP `422` with `refs/pull/* is read-only`.
+- Do not resolve `PRRT_kwDOSfSDcs6JokL3` yet. Branch refs are clean, but
+  GitHub-owned pull refs remain provider-retained and require GitHub-side
+  support or maintenance outside normal repository write permissions.
