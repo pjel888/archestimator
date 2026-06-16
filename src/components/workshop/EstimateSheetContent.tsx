@@ -85,6 +85,10 @@ import {
   EMPTY_ESTIMATE_ROW_ITEMS,
 } from "./estimate-sheet/rows/constants";
 import {
+  collectEstimateRowItemIds,
+  replaceOptimisticTemplateRoots,
+} from "./estimate-sheet/template-insert-reconciliation";
+import {
   calculateContingencyValue,
   collectEditableRows,
   computeNodeTotal,
@@ -2046,6 +2050,8 @@ export function EstimateSheetContent({
       const previousRows = editableRows;
       const rollbackRevision = getEstimateTreeRevision();
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
+      const optimisticRootNodeIds = new Set(optimisticTemplateNodes.map((node) => node.id));
+      const optimisticRowItemIds = collectEstimateRowItemIds(optimisticTemplateNodes);
       const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
       const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
       setEditableRows((current) => ({ ...current, ...nextEditableRows }));
@@ -2060,10 +2066,20 @@ export function EstimateSheetContent({
           targetTabId: dataTabId,
         })
           .then((result) => {
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
             if (result.partialFailureMessage) {
+              const serverTargetParentNode = findEstimateNode(result.tree, targetParentNodeId);
+              const committedRootNodeIds = new Set(result.insertedRootNodeIds);
+              const committedRootNodes = (serverTargetParentNode?.children ?? []).filter((node) => committedRootNodeIds.has(node.id));
+              setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, committedRootNodes));
+              setEditableRows((current) => {
+                const next = { ...current, ...collectEditableRows(committedRootNodes) };
+                for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
+                return next;
+              });
               console.error("[estimate] template batch insert partially failed", result.partialFailureMessage);
               toast({ tone: "error", message: "Some templates couldn't be inserted. The sheet has been refreshed." });
+            } else if (getEstimateTreeRevision() === nextRevision) {
+              setEstimateTree(() => result.tree);
             }
           })
           .catch((error: unknown) => {
