@@ -365,6 +365,20 @@ describe("estimate landing-node selection", () => {
     expect(firstNodes.get("estimate-1")).toBe("root-1");
   });
 
+  it("selects a deeply nested area without recursive stack exhaustion", () => {
+    const depth = 20_000;
+    const nodes = Array.from({ length: depth }, (_, index) => ({
+      id: `deep-node-${index}`,
+      estimate_id: "estimate-1",
+      kind: index === depth - 1 ? "area" : "group",
+      parent_id: index === 0 ? null : `deep-node-${index - 1}`,
+    }));
+
+    const firstNodes = selectFirstEstimateNodeIds(nodes);
+
+    expect(firstNodes.get("estimate-1")).toBe(`deep-node-${depth - 1}`);
+  });
+
   it("selects first nodes independently per estimate", () => {
     const firstNodes = selectFirstEstimateNodeIds([
       { id: "e1-group", estimate_id: "estimate-1", kind: "group", parent_id: null },

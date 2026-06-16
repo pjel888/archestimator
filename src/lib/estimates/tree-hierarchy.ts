@@ -76,14 +76,18 @@ function findFirstNodeInTreeOrder(nodes: EstimateFirstNodeSourceRow[]): string |
     }
   }
 
-  const findFirstArea = (ids: string[]): string | null => {
-    for (const id of ids) {
-      if (kindById.get(id) === "area") return id;
-      const nestedAreaId = findFirstArea(childIdsByParentId.get(id) ?? []);
-      if (nestedAreaId) return nestedAreaId;
-    }
-    return null;
-  };
+  const idsToVisit = [...rootIds].reverse();
+  while (idsToVisit.length > 0) {
+    const id = idsToVisit.pop();
+    if (!id) continue;
+    if (kindById.get(id) === "area") return id;
 
-  return findFirstArea(rootIds) ?? rootIds[0] ?? null;
+    const childIds = childIdsByParentId.get(id);
+    if (!childIds) continue;
+    for (let index = childIds.length - 1; index >= 0; index -= 1) {
+      idsToVisit.push(childIds[index]!);
+    }
+  }
+
+  return rootIds[0] ?? null;
 }
