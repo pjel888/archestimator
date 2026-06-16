@@ -125,3 +125,23 @@ Stop implementation and redesign if any occur:
 - Horizontal scroll happens per group instead of on the shared surface.
 - Resize handles appear in every node-group header as separate active controls.
 - Stored widths affect proposal/export/public share layout.
+
+---
+
+## Measurement Checkpoint - 2026-06-16
+
+**Local evidence collected:**
+
+- Ruler pointer-drag test dispatches multiple `pointermove` events and verifies CSS-var mutation happens on the shared surface while the committed store callback is not called until `pointerup`.
+- Store tests verify committed widths persist via versioned localStorage and reset removes scoped/last-used keys.
+- Row-table virtualization tests still pass with the shared template applied to header/body rows.
+- Existing render-relief suite passed under `NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED=1`.
+- Export/publication isolation suites passed under `NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED=1`.
+
+**Not measured in this shell:**
+
+- Real-browser p95/median frame-time budgets.
+- CLS, text-selection behavior, and horizontal-scroll sync in a live authenticated worksheet.
+- Two-context collaboration cursor anchoring after local-only width divergence.
+
+**Reason:** authenticated browser proof was `AUTH-BLOCKED`; `/workshop` redirected to login and no dev-auth/storage-state/Supabase test env was present.

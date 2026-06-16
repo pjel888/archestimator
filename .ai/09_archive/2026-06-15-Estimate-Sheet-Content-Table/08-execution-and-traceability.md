@@ -218,6 +218,48 @@ byte-identical guarantee from `04`/`06`.
 - Modify: `src/components/workshop/EstimateSheetContent.tsx`
 - Test: `tests/vitest/estimate-sheet-column-resize-flag.test.tsx`
 
+---
+
+## Implementation Checkpoint - 2026-06-16
+
+**Status:** Implemented with authenticated browser proof blocked by missing local auth/test credentials.
+
+**Implemented units:** U1, U2, U3, U4, U6, and U7 are covered by code and focused tests. U5 render-relief is covered by the existing render-relief suite plus pointer-controller tests proving live drag does not commit/store-write before pointer-up; a dedicated real-browser frame-budget test remains outside this local credential boundary.
+
+**Files changed/created:**
+
+- `src/lib/estimate-sheet/column-model.ts`
+- `src/lib/workshop/virtualization-flags.ts`
+- `src/stores/estimate-column-widths-store.ts`
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `src/components/workshop/estimate-sheet/columns/EstimateColumnRuler.tsx`
+- `src/components/workshop/estimate-sheet/columns/use-estimate-column-resize-controller.ts`
+- `src/components/workshop/estimate-sheet/rows/row-table.tsx`
+- `tests/vitest/estimate-sheet-column-model.test.ts`
+- `tests/vitest/estimate-column-widths-store.test.ts`
+- `tests/vitest/estimate-sheet-column-resize-a11y.test.tsx`
+- `tests/vitest/estimate-sheet-column-resize-flag.test.ts`
+- `tests/vitest/estimate-row-table-virtualization.test.tsx`
+
+**Evidence:**
+
+- `bun run type-check` passed.
+- Focused column model/store/ruler/row-table Vitest passed: 17 tests.
+- Feature-flag-off Vitest passed: 2 tests.
+- Existing render-relief/drag/export/publication suites passed: 28 tests.
+- Changed-file ESLint passed.
+- `git diff --check` passed.
+
+**Decisions preserved:**
+
+- `Materials` stayed at default/min `160px`; no express-card floor increase was made while the feature flag remains disabled by default.
+- Width state is local/private and screen-only. It does not touch collaboration, server persistence, Supabase, proposal preview, XLSX export, or public publication snapshots.
+- Live pointer resize mutates only the shared surface CSS vars and commits once on pointer-up.
+
+**AUTH-BLOCKED browser proof:**
+
+`localhost:3000` was already running, but signed-out `/workshop` returned HTTP `307` to `/login?next=%2Fworkshop`. The shell did not expose `ARCHESTIMATOR_DEV_AUTH_BYPASS`, `ARCHESTIMATOR_DEV_AUTH_EMAIL`, `ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, or `PLAYWRIGHT_STORAGE_STATE`, so authenticated browser smoke could not be run from this session.
+
 **Approach:**
 
 - Add `estimateColumnResize: readPublicFlag(process.env.NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED, false)` to the existing `WORKSHOP_VIRTUALIZATION_FLAGS` object in `src/lib/workshop/virtualization-flags.ts`, then consume that flag in `EstimateSheetContent.tsx`.
