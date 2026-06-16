@@ -1177,13 +1177,17 @@ export function ComponentLibraryManager({
   const [selectedBrandNodeId, setSelectedBrandNodeId] = useState("all-brands");
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
+  const addComponentSearchParams = useSearchParams();
+  const shouldOpenAddComponentFromSearch = addComponentSearchParams?.get("add") === "component";
   // Library Optimization Plan P1 T8 (F23): the Overview "Add component" CTA navigates
   // here with ?add=component; open the Add Component modal on arrival instead of just
-  // landing on the tab. Seeding the initial state from the param (not an effect) opens
-  // it exactly once on mount with no cascading re-render.
-  const addComponentSearchParams = useSearchParams();
+  // landing on the tab. Seed the initial state for direct loads and keep listening for
+  // client-side query-param navigations while this manager remains mounted.
   const [addComponentOpen, setAddComponentOpen] = useState(
-    () => addComponentSearchParams?.get("add") === "component",
+    () => shouldOpenAddComponentFromSearch,
+  );
+  const [previousShouldOpenAddComponentFromSearch, setPreviousShouldOpenAddComponentFromSearch] = useState(
+    shouldOpenAddComponentFromSearch,
   );
   const [libraryItemState, setLibraryItemState] = useState<{ source: EstimateRowItem[]; items: EstimateRowItem[] }>(() => ({
     source: libraryItems,
@@ -1204,6 +1208,13 @@ export function ComponentLibraryManager({
   if (libraryItemState.source !== libraryItems) {
     localLibraryItems = libraryItems;
     setLibraryItemState({ source: libraryItems, items: libraryItems });
+  }
+
+  if (previousShouldOpenAddComponentFromSearch !== shouldOpenAddComponentFromSearch) {
+    setPreviousShouldOpenAddComponentFromSearch(shouldOpenAddComponentFromSearch);
+    if (shouldOpenAddComponentFromSearch) {
+      setAddComponentOpen(true);
+    }
   }
 
   const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;

@@ -224,6 +224,28 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(screen.getByRole("button", { name: "Filter components (1 active)" })).toBeInTheDocument();
   });
 
+  it("opens the Add Component modal when add=component arrives after mount", async () => {
+    const { rerender } = renderManager();
+    await waitForSheet();
+    expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument();
+
+    navigationMocks.searchParams = new URLSearchParams("add=component");
+    rerender(
+      <ComponentLibraryManager
+        categoryTree={categoryTree}
+        suppliers={[{ id: "sup-1", name: "Default Supplier", sort_order: 1 }]}
+        brands={[
+          { id: "brand-mariwasa", name: "Mariwasa", normalized_name: "mariwasa", sort_order: 1 },
+          { id: "brand-kahrs", name: "Kahrs", normalized_name: "kahrs", sort_order: 2 },
+        ]}
+        libraryFolders={folders}
+        libraryItems={fixtureItems}
+      />,
+    );
+
+    expect(await screen.findByRole("dialog", { name: "Add Component" })).toBeInTheDocument();
+  });
+
   it("supports the missing-brand deep link from the library health line", async () => {
     navigationMocks.searchParams = new URLSearchParams("brand=none");
     renderManager();
