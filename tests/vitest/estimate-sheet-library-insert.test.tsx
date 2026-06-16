@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
+import { replaceOptimisticTemplateRoots } from "@/components/workshop/estimate-sheet/template-insert-reconciliation";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
@@ -17,6 +19,7 @@ const actionMocks = vi.hoisted(() => ({
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
+  insertEstimateTemplatesIntoEstimate: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
@@ -98,6 +101,29 @@ const starterTemplate = {
     },
   ],
 };
+
+function makeEstimateTemplate(id: string, name: string, rootName = name) {
+  return {
+    id,
+    name,
+    description: `${name} description`,
+    category: "Residential Rooms",
+    nodes: [
+      {
+        id: `${id}-root`,
+        name: rootName,
+        kind: "group" as const,
+        total: "PHP 0.00",
+        children: [],
+        estimateRowItems: [],
+      },
+    ],
+  };
+}
+
+const alternateTemplate = makeEstimateTemplate("template-alternate-fit-out", "Alternate Fit-Out", "Alternate Fit-Out");
+const failedTemplate = makeEstimateTemplate("template-failed-fit-out", "Failed Fit-Out", "Failed Fit-Out");
+const backupTemplate = makeEstimateTemplate("template-backup-fit-out", "Backup Fit-Out", "Backup Fit-Out");
 
 const nodesWithRow: EstimateTreeNode[] = [
   {
@@ -296,6 +322,7 @@ describe("estimate sheet library insertion persistence", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValue({ tree: nodesWithGroup, insertedRootNodeIds: [] });
     actionMocks.updateEstimateRowItem.mockResolvedValue({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
@@ -713,6 +740,245 @@ describe("estimate sheet library insertion persistence", () => {
       templateId: starterTemplate.id,
     });
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).not.toHaveProperty("template");
+  });
+
+  it("uses the refreshed server tree for a partial batch template insert when no local edit intervened", async () => {
+    const serverCommittedRoot: EstimateTreeNode = {
+      id: "server-template-committed-root",
+      name: "Server Committed Fit-Out",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const refreshedTree: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        name: "Ground Floor Refreshed",
+        children: [
+          {
+            ...nodes[0],
+            name: "Kitchen Server Refresh",
+          },
+          serverCommittedRoot,
+        ],
+      },
+    ];
+    actionMocks.insertEstimateTemplatesIntoEstimate.mockResolvedValueOnce({
+      tree: refreshedTree,
+      insertedRootNodeIds: [serverCommittedRoot.id],
+      partialFailureMessage: "One template failed.",
+    });
+
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          libraryItems={[]}
+          libraryTemplates={[starterTemplate, alternateTemplate]}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: {
+          targetParentNodeId: groupNodeId,
+          templateIds: [starterTemplate.id, alternateTemplate.id],
+        },
+      }));
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateTemplatesIntoEstimate).toHaveBeenCalledTimes(1));
+    expect(await screen.findByLabelText("Kitchen Server Refresh")).toBeInTheDocument();
+    expect(screen.getByLabelText("Server Committed Fit-Out")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Alternate Fit-Out")).not.toBeInTheDocument();
+  });
+
+  it("keeps partial batch reconciliation when a later batch rollback runs", async () => {
+    const firstInsert = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateTemplatesIntoEstimate>>>();
+    const secondInsert = deferred<Awaited<ReturnType<typeof actionMocks.insertEstimateTemplatesIntoEstimate>>>();
+    const serverCommittedRoot: EstimateTreeNode = {
+      id: "server-template-first-committed-root",
+      name: "First Batch Server Root",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    actionMocks.insertEstimateTemplatesIntoEstimate
+      .mockReturnValueOnce(firstInsert.promise)
+      .mockReturnValueOnce(secondInsert.promise);
+
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          libraryItems={[]}
+          libraryTemplates={[starterTemplate, alternateTemplate, failedTemplate, backupTemplate]}
+          renderSidebar={false}
+        />
+      </QueryClientProvider>,
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: {
+          targetParentNodeId: groupNodeId,
+          templateIds: [starterTemplate.id, alternateTemplate.id],
+        },
+      }));
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: {
+          targetParentNodeId: groupNodeId,
+          templateIds: [failedTemplate.id, backupTemplate.id],
+        },
+      }));
+    });
+
+    await waitFor(() => expect(actionMocks.insertEstimateTemplatesIntoEstimate).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      firstInsert.resolve({
+        tree: [
+          {
+            ...nodesWithGroup[0],
+            children: [nodes[0], serverCommittedRoot],
+          },
+        ],
+        insertedRootNodeIds: [serverCommittedRoot.id],
+        partialFailureMessage: "One template failed.",
+      });
+      await firstInsert.promise;
+    });
+
+    await act(async () => {
+      secondInsert.reject(new Error("Second batch failed"));
+      await secondInsert.promise.catch(() => undefined);
+    });
+
+    expect(await screen.findByLabelText("First Batch Server Root")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Failed Fit-Out")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Backup Fit-Out")).not.toBeInTheDocument();
+  });
+
+  it("reconciles partial batch template failures without overwriting later tree edits", () => {
+    const kitchenWithRows = nodesWithRow.find((node) => node.id === targetNodeId);
+    expect(kitchenWithRows).toBeDefined();
+    if (!kitchenWithRows) throw new Error("Kitchen fixture is missing.");
+    const [cabinetRow, sinkRow] = kitchenWithRows.estimateRowItems ?? [];
+    expect(cabinetRow).toBeDefined();
+    expect(sinkRow).toBeDefined();
+    if (!cabinetRow || !sinkRow) throw new Error("Kitchen row fixtures are missing.");
+
+    const laterEditedKitchen: EstimateTreeNode = {
+      ...kitchenWithRows,
+      estimateRowItems: [
+        {
+          ...cabinetRow,
+          quantity: 7,
+          subTotal: 700,
+          totalItemCosts: 710,
+        },
+        sinkRow,
+      ],
+    };
+    const optimisticCommittedRoot: EstimateTreeNode = {
+      id: "optimistic-template-committed",
+      name: "Interior Fit-Out",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const optimisticFailedRoot: EstimateTreeNode = {
+      id: "optimistic-template-failed",
+      name: "Failed Package",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const committedServerRoot: EstimateTreeNode = {
+      ...optimisticCommittedRoot,
+      id: "server-template-committed",
+    };
+    const laterEditedKitchenWithMovedOptimisticRoot: EstimateTreeNode = {
+      ...laterEditedKitchen,
+      children: [...(laterEditedKitchen.children ?? []), optimisticFailedRoot],
+    };
+    const currentTreeAfterLaterEdit: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        children: [laterEditedKitchenWithMovedOptimisticRoot, optimisticCommittedRoot],
+      },
+    ];
+
+    const reconciledTree = replaceOptimisticTemplateRoots(
+      currentTreeAfterLaterEdit,
+      groupNodeId,
+      new Set([optimisticCommittedRoot.id, optimisticFailedRoot.id]),
+      [committedServerRoot],
+    );
+
+    const reconciledGroup = reconciledTree[0];
+    expect(reconciledGroup).toBeDefined();
+    if (!reconciledGroup) throw new Error("Reconciled group is missing.");
+    expect(reconciledGroup.children?.map((node) => node.id)).toEqual([targetNodeId, committedServerRoot.id]);
+    expect(reconciledGroup.children?.[0].estimateRowItems?.[0]).toMatchObject({
+      id: cabinetRowId,
+      quantity: 7,
+      totalItemCosts: 710,
+    });
+    expect(reconciledGroup.children?.[0].children?.map((node) => node.id)).not.toContain(optimisticFailedRoot.id);
+  });
+
+  it("preserves committed template roots that are already present in the current tree", () => {
+    const committedRoot: EstimateTreeNode = {
+      id: "server-template-committed",
+      name: "Committed Package",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const optimisticRoot: EstimateTreeNode = {
+      id: "optimistic-template-failed",
+      name: "Failed Package",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const currentTree: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        children: [
+          committedRoot,
+          {
+            ...nodes[0],
+            children: [optimisticRoot],
+          },
+        ],
+      },
+    ];
+
+    const reconciledTree = replaceOptimisticTemplateRoots(
+      currentTree,
+      groupNodeId,
+      new Set([optimisticRoot.id]),
+      [committedRoot],
+    );
+
+    expect(reconciledTree[0].children?.map((node) => node.id)).toEqual([committedRoot.id, targetNodeId]);
+    expect(reconciledTree[0].children?.[1].children).toEqual([]);
   });
 
   it("keeps a committed quantity edit visible while the server save is delayed", async () => {
