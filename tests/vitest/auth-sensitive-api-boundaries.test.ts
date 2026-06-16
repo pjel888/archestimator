@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
   getCurrentUserContext: vi.fn(),
+  getRequiredCurrentUserContextResult: vi.fn(),
   requireCurrentUserContext: vi.fn(),
 }));
 
@@ -30,7 +31,7 @@ function read(relativePath: string) {
 }
 
 function expectAuthBeforeBodyParsing(source: string) {
-  const authIndex = source.indexOf("requireCurrentUserContext()");
+  const authIndex = source.indexOf("getRequiredCurrentUserContextResult()");
   const bodyIndex = source.indexOf("request.formData()");
 
   expect(authIndex).toBeGreaterThanOrEqual(0);
@@ -44,6 +45,10 @@ function mockCurrentWorkspace() {
   });
   authMocks.requireCurrentUserContext.mockResolvedValue({
     userId: "user-1",
+  });
+  authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+    ok: true,
+    context: { userId: "user-1" },
   });
   authMocks.getCurrentUserContext.mockResolvedValue({
     userId: "user-1",
@@ -151,33 +156,67 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain('status: 404');
   });
 
-  it("rejects component image uploads before parsing bodies when auth fails", async () => {
-    authMocks.requireCurrentUserContext.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
+  it("rejects component image uploads with JSON before parsing bodies when auth fails", async () => {
+    authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+      ok: false,
+      reason: "unauthenticated",
+      redirectPath: "/login",
+    });
     const request = createUnparsedFormRequest();
     const { POST } = await import("@/app/api/component-library/images/route");
 
-    await expect(POST(request)).rejects.toThrow("NEXT_REDIRECT:/login");
+    const response = await POST(request);
 
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Authentication required." });
     expect(request.formData).not.toHaveBeenCalled();
   });
 
-  it("rejects component attachment uploads before parsing bodies when auth fails", async () => {
-    authMocks.requireCurrentUserContext.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
+  it("rejects component image uploads with JSON before parsing bodies when terms are unaccepted", async () => {
+    authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+      ok: false,
+      reason: "terms_acceptance_required",
+      redirectPath: "/workshop/terms?next=%2Fworkshop",
+    });
+    const request = createUnparsedFormRequest();
+    const { POST } = await import("@/app/api/component-library/images/route");
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "Terms acceptance required." });
+    expect(request.formData).not.toHaveBeenCalled();
+  });
+
+  it("rejects component attachment uploads with JSON before parsing bodies when auth fails", async () => {
+    authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+      ok: false,
+      reason: "unauthenticated",
+      redirectPath: "/login",
+    });
     const request = createUnparsedFormRequest();
     const { POST } = await import("@/app/api/component-library/attachments/route");
 
-    await expect(POST(request)).rejects.toThrow("NEXT_REDIRECT:/login");
+    const response = await POST(request);
 
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Authentication required." });
     expect(request.formData).not.toHaveBeenCalled();
   });
 
-  it("rejects project image uploads before parsing bodies when auth fails", async () => {
-    authMocks.requireCurrentUserContext.mockRejectedValue(new Error("NEXT_REDIRECT:/login"));
+  it("rejects project image uploads with JSON before parsing bodies when auth fails", async () => {
+    authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+      ok: false,
+      reason: "unauthenticated",
+      redirectPath: "/login",
+    });
     const request = createUnparsedFormRequest();
     const { POST } = await import("@/app/api/projects/images/route");
 
-    await expect(POST(request)).rejects.toThrow("NEXT_REDIRECT:/login");
+    const response = await POST(request);
 
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Authentication required." });
     expect(request.formData).not.toHaveBeenCalled();
   });
 
@@ -287,6 +326,10 @@ describe("sensitive API auth boundaries", () => {
     const projectId = "33333333-3333-4333-8333-333333333333";
     workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: workspaceId } });
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId });
+    authMocks.getRequiredCurrentUserContextResult.mockResolvedValue({
+      ok: true,
+      context: { userId },
+    });
     const storage = mockStorageClient();
     const { DELETE } = await import("@/app/api/projects/images/route");
 

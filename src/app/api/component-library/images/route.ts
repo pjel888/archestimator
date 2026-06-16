@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getRequiredCurrentUserContextResult } from "@/lib/auth/session";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
@@ -22,6 +22,21 @@ const AVIF_FTYP_BRANDS = new Set(["avif", "avis"]);
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+async function getUploadContext() {
+  const authResult = await getRequiredCurrentUserContextResult();
+  if (!authResult.ok) {
+    return {
+      response: jsonError(
+        authResult.reason === "unauthenticated" ? "Authentication required." : "Terms acceptance required.",
+        authResult.reason === "unauthenticated" ? 401 : 403,
+      ),
+    };
+  }
+
+  const { workspace } = await ensureDefaultWorkspace();
+  return { workspace, currentUser: authResult.context };
 }
 
 function readAscii(bytes: Uint8Array, start: number, end: number) {
@@ -144,7 +159,9 @@ export async function POST(request: Request) {
     return jsonError("Image upload is too large. Compress or choose an image under 12 MB.", 413);
   }
 
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const uploadContext = await getUploadContext();
+  if ("response" in uploadContext) return uploadContext.response;
+  const { workspace, currentUser } = uploadContext;
   const formData = await request.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) return jsonError("Image file is required.");
@@ -220,7 +237,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const uploadContext = await getUploadContext();
+  if ("response" in uploadContext) return uploadContext.response;
+  const { workspace, currentUser } = uploadContext;
   const body = await request.json().catch(() => null);
   const paths = readStoragePaths(body).filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable image paths were provided.");

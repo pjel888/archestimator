@@ -277,6 +277,7 @@ export async function updateProjectImageMetadata(projectId: string, image: Proje
 }
 
 export async function updateProjectDetails(formData: FormData) {
+  await requireCurrentUserContext();
   const supabase = await createSupabaseServerClient();
 
   const projectId = readRequiredText(formData, "projectId");
