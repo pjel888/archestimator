@@ -1,8 +1,8 @@
 # 02 — Industry BOQ Format Benchmark & Gap Analysis
 
-> **What this is:** the canonical comparison of Archestimator's XLSX output against **10 real industry Bill-of-Quantities / bid-form spreadsheets** the user supplied. It defines the **format target** the export should comply with.
-> **Reference set:** `~/Library/Mobile Documents/com~apple~CloudDocs/Project BOQs` — 10 `.xlsx` files parsed (100%) with ExcelJS; ~17 `.pdf` renderings skimmed for structure only.
-> **Full per-file extraction:** [`_research/02a-boq-reference-extraction.md`](_research/02a-boq-reference-extraction.md) · raw dump [`_research/02a-boq-raw-dump.txt`](_research/02a-boq-raw-dump.txt) (1,749 lines) · detailed gap table [`_research/02b-boq-format-gap.md`](_research/02b-boq-format-gap.md).
+> **What this is:** the canonical comparison of Archestimator's XLSX output against **10 approved external Bill-of-Quantities / bid-form reference spreadsheets**. It defines the **format target** the export should comply with.
+> **Reference set:** `approved external BOQ reference folder` — 10 `.xlsx` files parsed (100%) with ExcelJS; ~17 `.pdf` renderings skimmed for structure only.
+> **Full extraction summary:** [`_research/02a-boq-reference-extraction.md`](_research/02a-boq-reference-extraction.md) · sanitized dump placeholder [`_research/02a-boq-raw-dump.txt`](_research/02a-boq-raw-dump.txt) · detailed gap table [`_research/02b-boq-format-gap.md`](_research/02b-boq-format-gap.md).
 > All currency is Philippine Peso (₱/PHP). Inferences are tagged **INFERENCE**.
 
 ---
@@ -11,16 +11,16 @@
 
 | File | Sheets | Archetype | Most instructive for |
 |---|---|---|---|
-| `20-233D-RECIO FIT-OUT WORKS 5142021` | 6 (SUMMARY + GEN PRELIMS/SITE/ARCH/MEPF/JOINERY) | Abstract + per-division | Canonical multi-sheet model; MATERIAL/LABOR split; per-sheet Contingency+VAT block |
-| `2022-06-09 BANSON BOQ_Rev-3` | 19 (SUM-A + A…N divisions + OPTIONS + QTYS) | Abstract + per-division | Richest: split costs, weighted %, embedded instructions + legend, value-engineering, provisional sums |
-| `2020-02-26 AYALA FHL BID-TABULATIONS` | 6 | Multi-bidder tabulation | Split material/labor *and* amount; canonical add-on stack; tabulator notes |
-| `BCMS - RR_RDL_BOQ` | 2 (FRONT PAGE + RFQ) | Front/summary + detail | Clean abstract; Grand Total **in words**; exclusions; signature block |
-| `RGSP - boq_reciobroofdeck` | 2 (RDL-BID FORM + Sheet5) | Front/summary + detail | Cost/SQM + GFA; Line 1–7 totals block; amount in words |
-| `CONMECH …E-FILE` | 1 | Single combined | Cost/SQM + GFA + duration; labor often `INCLUDED` |
-| `6x6 …RECIO ROOFDECK` | 1 | Issued template | General Notes panel; MATERIAL/LABOR/COST TOTAL/LINE TOTAL schema |
-| `RSC - 21-058-RECIO ROOF DECK` | 1 | Letter-style | Exclusions; terms/validity/warranty; conforme |
-| `20-233D…ROOFDECK 051521` | 2 (RDL-ARCH + RDL-ENGG) | Per-discipline detail | `COST TOTAL`/`LINE TOTAL` naming = ours; mini-abstract per sheet |
-| `022420 AYALA FHL - FILLED BID FORM` | 1 | Single combined (degraded import) | I/A/1 numbering; Contingency+12% VAT; enumerated exclusions; duration |
+| `Reference A` | 6 (SUMMARY + GEN PRELIMS/SITE/ARCH/MEPF/JOINERY) | Abstract + per-division | Canonical multi-sheet model; MATERIAL/LABOR split; per-sheet Contingency+VAT block |
+| `Reference B` | 19 (SUM-A + A…N divisions + OPTIONS + QTYS) | Abstract + per-division | Richest: split costs, weighted %, embedded instructions + legend, value-engineering, provisional sums |
+| `Reference C` | 6 | Multi-bidder tabulation | Split material/labor *and* amount; canonical add-on stack; tabulator notes |
+| `Reference D` | 2 (FRONT PAGE + RFQ) | Front/summary + detail | Clean abstract; Grand Total **in words**; exclusions; signature block |
+| `Reference E` | 2 (RDL-BID FORM + Sheet5) | Front/summary + detail | Cost/SQM + GFA; Line 1–7 totals block; amount in words |
+| `Reference F` | 1 | Single combined | Cost/SQM + GFA + duration; labor often `INCLUDED` |
+| `Reference G` | 1 | Issued template | General Notes panel; MATERIAL/LABOR/COST TOTAL/LINE TOTAL schema |
+| `Reference H` | 1 | Letter-style | Exclusions; terms/validity/warranty; conforme |
+| `Reference I` | 2 (RDL-ARCH + RDL-ENGG) | Per-discipline detail | `COST TOTAL`/`LINE TOTAL` naming = ours; mini-abstract per sheet |
+| `Reference J` | 1 | Single combined (degraded import) | I/A/1 numbering; Contingency+12% VAT; enumerated exclusions; duration |
 
 **Three sheet archetypes:** (1) single combined sheet [4/10]; (2) front/summary + 1–2 detail sheets [3/10]; (3) abstract + one sheet per trade/division [2/10]; plus the multi-bidder tabulation [1]. A **dedicated Summary/Abstract sheet appears in 5/10** and is the formal/issued style. **A "General Preliminaries / General Requirements" division is the first section in 10/10.**
 
@@ -28,7 +28,7 @@
 
 ## 2. The canonical column schema (7–8/10 files agree)
 
-The reusable issued template (authored across the RSC/6x6/BCMS/RGSP family and the BANSON/RSC detail sheets) shares this exact shape:
+The reusable issued template pattern (seen across the sanitized reference families and Reference B-style detail sheets) shares this exact shape:
 
 | # | Header | Sub-header | Meaning | Formula |
 |---|---|---|---|---|
@@ -65,14 +65,14 @@ The reusable issued template (authored across the RSC/6x6/BCMS/RGSP family and t
 | G9 | **Enumerated EXCLUSIONS block** | Numbered list grouped by division | One-line "Exclusions" qualifier only | **MEDIUM** |
 | G10 | **Estimated construction duration** | Calendar/working days line | "To be confirmed" | **MEDIUM** |
 | G11 | **Contractor branding** (logo/address/contact) | Letterhead band | Generic Archestimator metadata | **MEDIUM** |
-| G12 | **Dedicated Summary sheet** | Rolls up division subtotals by formula | **Present** ✓ | **OK** (add `RUNNING TOTAL` to match BCMS/RGSP) |
+| G12 | **Dedicated Summary sheet** | Rolls up division subtotals by formula | **Present** ✓ | **OK** (add `RUNNING TOTAL` to match Reference D/E) |
 | G13 | **One sheet per trade/division** | Large jobs split sheets | Per **estimate tab** (reasonable analog) ✓ | **OK / MEDIUM** (optional "split by division") |
 | G14 | **General Notes / scope legend** | Don't-leave-blank, scope legend | **Present** ✓ | **OK** (add "don't insert rows") |
 | G15 | **Signature / Conforme** | Prepared/Checked/Noted by + role + company | Prepared by / Accepted by ✓ | **LOW** (add Checked/Noted + company) |
 | G16 | **Peso accounting number format** | `_(* #,##0.00…` / `[$₱-3409]` | `₱ #,##0.00;[Red]…` (leading-symbol) | **LOW** (switch to accounting alignment) |
-| G17 | **Weighted % per division** | % of grand total (BANSON) | Absent | **LOW** |
-| G18 | **Value engineering / provisional sums** | Options matrix (BANSON) | Absent | **LOW** (out of scope first pass) |
-| G19 | **Multi-bidder tabulation** | One MAT/LAB/COST triplet per bidder (AYALA) | Absent (single-bidder) | **LOW** (different use case) |
+| G17 | **Weighted % per division** | % of grand total (Reference B) | Absent | **LOW** |
+| G18 | **Value engineering / provisional sums** | Options matrix (Reference B) | Absent | **LOW** (out of scope first pass) |
+| G19 | **Multi-bidder tabulation** | One MAT/LAB/COST triplet per bidder (Reference C) | Absent (single-bidder) | **LOW** (different use case) |
 
 ---
 
@@ -100,7 +100,7 @@ The reusable issued template (authored across the RSC/6x6/BCMS/RGSP family and t
 ## 5. Open product questions (block true 100% — see [00 index](00_INDEX.md) decision log)
 
 1. **Labor data source** — can the estimate add a labor unit cost (or material:labor ratio) per row? Without it, G1 cannot be satisfied honestly.
-2. **VAT/contingency policy** — VAT 12% default? Contingency configurable (10% common; BANSON used 5%)? Allow `INCLUDED`? Set where — exporter settings, project, or per-estimate?
+2. **VAT/contingency policy** — VAT 12% default? Contingency configurable (10% common; Reference B used 5%)? Allow `INCLUDED`? Set where — exporter settings, project, or per-estimate?
 3. **Gross Floor Area** — captured anywhere today? (Not in `ProposalExportMetadata`.) Needed for Cost/SQM.
 4. **Contractor identity** — where does the real bidder/contractor profile (name, address, logo, signatories) live to replace the placeholder?
 5. **Division taxonomy** — map free-text `category`/`discipline` onto a canonical, ordered division list?

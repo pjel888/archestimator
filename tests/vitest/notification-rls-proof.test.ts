@@ -89,7 +89,7 @@ async function createAuthenticatedClient(session: Session) {
   return supabase;
 }
 
-async function createRlsProofUser(label: string): Promise<RlsProofUser> {
+async function createRlsProofUser(label: string, onCreated?: (user: Pick<RlsProofUser, "id">) => void): Promise<RlsProofUser> {
   const admin = createAdminClient();
   const anon = createAnonClient();
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -103,6 +103,7 @@ async function createRlsProofUser(label: string): Promise<RlsProofUser> {
   });
   if (createError) throw createError;
   if (!created.user) throw new Error("Supabase did not return the RLS proof user.");
+  onCreated?.({ id: created.user.id });
 
   const { data: signedIn, error: signInError } = await anon.auth.signInWithPassword({ email, password });
   if (signInError) throw signInError;
@@ -120,9 +121,13 @@ async function createRlsProofFixture(): Promise<RlsProofFixture> {
   const cleanupTarget: RlsProofCleanupTarget = { definitionA, definitionB, deliveryA, deliveryB };
 
   try {
-    const userA = await createRlsProofUser("a");
+    const userA = await createRlsProofUser("a", (user) => {
+      cleanupTarget.userA = user;
+    });
     cleanupTarget.userA = userA;
-    const userB = await createRlsProofUser("b");
+    const userB = await createRlsProofUser("b", (user) => {
+      cleanupTarget.userB = user;
+    });
     cleanupTarget.userB = userB;
     const startsAt = new Date(Date.now() - 60_000).toISOString();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();

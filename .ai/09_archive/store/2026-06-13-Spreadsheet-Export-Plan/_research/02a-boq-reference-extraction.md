@@ -12,6 +12,17 @@ The original research goal was to understand how proposal/BOQ workbooks encode i
 - Summary areas commonly include subtotal, contingency/markup/tax, and grand total rows.
 - Export validation should verify layout, formulas, currency formatting, merged header cells, and printable proposal pages without relying on real customer data.
 
+## Sanitized formula and convention summary
+
+The sensitive workbook names, project identifiers, contacts, addresses, and monetary values are intentionally omitted. The non-sensitive conventions that downstream export work may rely on are:
+
+- Detail rows use a stable column family: `ITEM`, `PARTICULARS`, `UNIT`, `QTY`, `MATERIAL`, `LABOR`, `COST TOTAL`, `LINE TOTAL`, and optional notes/scope.
+- `COST TOTAL` is the combined unit rate. In spreadsheet terms it is equivalent to `MATERIAL + LABOR`.
+- `LINE TOTAL` is the extended row amount. In spreadsheet terms it is equivalent to `QTY * COST TOTAL`, with excluded or owner-supplied scope values treated as zero where applicable.
+- Section subtotal rows sum the `LINE TOTAL` cells in that section.
+- Summary sheets commonly reference section subtotal cells from detail sheets, then compute `Direct Cost`, `Contingency`, `VAT`, and `Grand Total`.
+- Common non-sensitive display conventions include hierarchical item numbering, per-section subtotal rows, a summary/abstract sheet, printable landscape layout, frozen headers, scope legends, signature/conforme blocks, and accounting-style currency formatting.
+
 ## Synthetic fixture pattern
 
 Use fixtures that follow this pattern instead of raw customer files:

@@ -1,19 +1,36 @@
 #!/usr/bin/env node
 
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const repoRoot = process.cwd();
-const pgBin = process.env.POSTGRES_BIN_DIR ?? "/opt/homebrew/opt/postgresql@16/bin";
+
+function candidateHasPostgresBinaries(candidate) {
+  return ["initdb", "pg_ctl", "psql"].every((binary) => existsSync(join(candidate, binary)));
+}
+
+function resolvePostgresBin() {
+  if (process.env.POSTGRES_BIN_DIR) return process.env.POSTGRES_BIN_DIR;
+  return [
+    "/opt/homebrew/opt/postgresql@17/bin",
+    "/opt/homebrew/opt/postgresql@16/bin",
+    "/opt/homebrew/opt/postgresql@15/bin",
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+  ].find(candidateHasPostgresBinaries) ?? "/opt/homebrew/opt/postgresql@16/bin";
+}
+
+const pgBin = resolvePostgresBin();
 const initdb = join(pgBin, "initdb");
 const pgCtl = join(pgBin, "pg_ctl");
 const psql = join(pgBin, "psql");
 const tempRoot = mkdtempSync(join(tmpdir(), "archestimator-notification-rls-"));
+const socketRoot = existsSync("/tmp") ? "/tmp" : tmpdir();
 const dataDir = join(tempRoot, "data");
 const logFile = join(tempRoot, "postgres.log");
-const socketDir = join(tempRoot, "socket");
+const socketDir = mkdtempSync(join(socketRoot, "ae-rls-s-"));
 let serverStarted = false;
 
 const ids = {
@@ -73,6 +90,10 @@ function quote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
 function assertScalar(sql, expected, label) {
   const result = runPsql(sql);
   const actual = result.stdout.trim();
@@ -85,12 +106,13 @@ function cleanup() {
   if (serverStarted) {
     run(pgCtl, ["-D", dataDir, "-m", "fast", "-w", "stop"], { stdio: "pipe" });
   }
+  rmSync(socketDir, { recursive: true, force: true });
   rmSync(tempRoot, { recursive: true, force: true });
 }
 
 function requireBinary(path) {
   if (!existsSync(path)) {
-    throw new Error(`Missing PostgreSQL binary: ${path}. Install postgresql@16 or set POSTGRES_BIN_DIR.`);
+    throw new Error(`Missing PostgreSQL binary: ${path}. Install PostgreSQL or set POSTGRES_BIN_DIR.`);
   }
 }
 
@@ -98,7 +120,7 @@ try {
   [initdb, pgCtl, psql].forEach(requireBinary);
 
   chmodSync(tempRoot, 0o700);
-  mkdirSync(socketDir, { mode: 0o700 });
+  chmodSync(socketDir, 0o700);
   run(initdb, ["-D", dataDir, "-A", "trust", "-U", "postgres", "--no-locale"]);
   run(pgCtl, [
     "-D",
@@ -106,7 +128,7 @@ try {
     "-l",
     logFile,
     "-o",
-    `-k ${socketDir} -c listen_addresses='' -c unix_socket_permissions=0700`,
+    `-k ${shellQuote(socketDir)} -c listen_addresses='' -c unix_socket_permissions=0700`,
     "-w",
     "start",
   ]);
