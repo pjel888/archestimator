@@ -322,7 +322,11 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                 {liveFavoriteProjects.map((project) => {
                   const projectActive = isActiveHref(pathname, project.href);
                   return (
-                    <div key={project.id} className="min-w-0" data-sidebar-favorite-project>
+                    <div
+                      key={project.id}
+                      className="min-w-0 transition-[opacity] duration-[120ms] ease-out motion-reduce:transition-none"
+                      data-sidebar-favorite-project
+                    >
                       <Link
                         href={project.href}
                         prefetch={false}
@@ -372,7 +376,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                                 }}
                                 onMouseEnter={() => prefetch(sheet.href)}
                                 onMouseLeave={() => cancel(sheet.href)}
-                                className={getFavoriteLinkClassName(sheetActive, "sheet")}
+                                className={`${getFavoriteLinkClassName(sheetActive, "sheet")} transition-[opacity] duration-[120ms] ease-out motion-reduce:transition-none`}
                                 data-sidebar-favorite-sheet
                               >
                                 <FileText size={11} weight={sheetActive ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
