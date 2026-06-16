@@ -176,6 +176,10 @@ function buildNodeTabMap(nodes: SnapshotNodeInput[]): Map<string, string | null>
   return map;
 }
 
+function isNodeInActiveTab(node: SnapshotNodeInput, activeTabIds: Set<string>) {
+  return node.estimateTabId ? activeTabIds.has(node.estimateTabId) : true;
+}
+
 function buildSnapshotEstimateTab({
   tab,
   rows,
@@ -198,10 +202,20 @@ function buildSnapshotEstimateTab({
 }
 
 function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnapshotEstimate {
-  const nodeTabMap = buildNodeTabMap(estimate.nodes ?? []);
   const sortedTabs = sortSnapshotTabs(estimate.tabs ?? []);
   const defaultTabId = findDefaultTabId(sortedTabs);
-  const rows = estimate.rows.map((row) => buildSnapshotRow(row, row.nodeId ? nodeTabMap.get(row.nodeId) ?? defaultTabId : defaultTabId));
+  const sourceNodes = estimate.nodes ?? [];
+  const hasActiveTabs = sortedTabs.length > 0;
+  const activeTabIds = new Set(sortedTabs.map((tab) => tab.id));
+  const nodes = hasActiveTabs ? sourceNodes.filter((node) => isNodeInActiveTab(node, activeTabIds)) : sourceNodes;
+  const nodeTabMap = buildNodeTabMap(nodes);
+  const rows = estimate.rows.flatMap((row) => {
+    if (!hasActiveTabs) return [buildSnapshotRow(row, row.nodeId ? nodeTabMap.get(row.nodeId) : null)];
+    if (!row.nodeId) return defaultTabId ? [buildSnapshotRow(row, defaultTabId)] : [];
+    if (!nodeTabMap.has(row.nodeId)) return [];
+    const tabId = nodeTabMap.get(row.nodeId) ?? defaultTabId;
+    return tabId ? [buildSnapshotRow(row, tabId)] : [];
+  });
   const tabRows = new Map<string, PublicationSnapshotRow[]>();
   const tabNodes = new Map<string, SnapshotNodeInput[]>();
 
@@ -217,8 +231,8 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnap
       tabRows.get(targetTabId)?.push(row);
     }
 
-    for (const node of estimate.nodes ?? []) {
-      const targetTabId = node.estimateTabId && tabNodes.has(node.estimateTabId) ? node.estimateTabId : defaultTabId;
+    for (const node of nodes) {
+      const targetTabId = node.estimateTabId ?? defaultTabId;
       if (!targetTabId) continue;
       tabNodes.get(targetTabId)?.push(node);
     }
@@ -243,7 +257,7 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnap
     rowCount: rows.length,
     totalCost: rows.reduce((total, row) => total + row.rowTotal, 0),
     rows,
-    treeNodes: estimate.nodes && estimate.nodes.length > 0 ? buildSnapshotTreeNodes(estimate.nodes) : undefined,
+    treeNodes: nodes.length > 0 ? buildSnapshotTreeNodes(nodes) : undefined,
     tabs,
   };
 }
