@@ -3,16 +3,18 @@ import { describe, expect, test } from "bun:test";
 import { buildCompareHref, buildEstimateSheetHref } from "../../src/lib/workshop/compare-href";
 
 describe("buildCompareHref", () => {
-  test("targets the Data route's left/right contract with headline as baseline", () => {
-    expect(buildCompareHref("proj-1", ["headline", "row"])).toBe(
-      "/workshop/projects/proj-1/data?left=headline&right=row",
-    );
+  test("targets the Data route's canonical sheet contract with the first estimate selected", () => {
+    expect(buildCompareHref("proj-1", ["headline", "row"])).toBe("/workshop/projects/proj-1/data?sheet=headline");
   });
 
   test("preserves a grouping mode when provided", () => {
     expect(buildCompareHref("proj-1", ["headline", "row"], "supplier")).toBe(
-      "/workshop/projects/proj-1/data?left=headline&right=row&mode=supplier",
+      "/workshop/projects/proj-1/data?sheet=headline&mode=supplier",
     );
+  });
+
+  test("does not emit the retired right-side comparison parameter", () => {
+    expect(buildCompareHref("proj-1", ["headline", "row"])).not.toContain("right=");
   });
 
   test("omits empty params gracefully", () => {

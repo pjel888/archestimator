@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 
-import { ProjectChartsClient } from "@/components/workshop/project-charts/ProjectChartsClient";
-import { getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
-import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
-import { getProjectChartsData } from "@/lib/repositories/project-charts-repository";
+import { ProjectDataClient } from "@/components/workshop/project-data/ProjectDataClient";
+import { getProjectDataRouteSummary } from "@/lib/repositories/project-data-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
+import { resolveProjectDataRouteState } from "@/lib/workshop/project-data-route-state";
 
 type ProjectDataPageProps = {
   params: Promise<{ projectId: string }>;
   searchParams?: Promise<{
+    sheet?: string;
     left?: string;
     right?: string;
     mode?: string;
@@ -19,28 +19,16 @@ export default async function ProjectDataPage({ params, searchParams }: ProjectD
   const { projectId } = await params;
   const resolvedSearchParams = await searchParams;
   assertRouteErrorSmoke({ routeLabel: "Project data", searchParams: resolvedSearchParams });
+  const routeState = resolveProjectDataRouteState(resolvedSearchParams);
 
-  const selectedEstimateIds = [resolvedSearchParams?.left, resolvedSearchParams?.right].filter(
-    (value): value is string => typeof value === "string" && value.length > 0,
-  );
-  const data = await getProjectChartsData(projectId, { selectedEstimateIds });
+  const summary = await getProjectDataRouteSummary(projectId, {
+    selectedEstimateId: routeState.selectedEstimateId,
+    groupingMode: routeState.groupingMode,
+  });
 
-  if (!data) {
+  if (!summary) {
     notFound();
   }
 
-  const defaultPair = getProjectChartDefaultPair(data.estimateOptions);
-
-  return (
-    <ProjectChartsClient
-      data={data}
-      initialGroupingMode={readGroupingMode(resolvedSearchParams?.mode)}
-      initialLeftEstimateId={resolvedSearchParams?.left ?? defaultPair.leftEstimateId}
-      initialRightEstimateId={resolvedSearchParams?.right ?? defaultPair.rightEstimateId}
-    />
-  );
-}
-
-function readGroupingMode(value: string | undefined): ProjectChartGroupingMode {
-  return value === "category" || value === "supplier" || value === "space" ? value : "space";
+  return <ProjectDataClient summary={summary} />;
 }

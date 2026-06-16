@@ -67,6 +67,11 @@ function createProjectItem(
   };
 }
 
+async function selectViewMode(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole("combobox", { name: "View" }));
+  await user.click(screen.getByRole("option", { name: label }));
+}
+
 describe("ProjectsPageClient view modes", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -81,24 +86,15 @@ describe("ProjectsPageClient view modes", () => {
       "data-project-view-mode",
       "large",
     );
-    expect(screen.getByRole("button", { name: "View projects as Large thumbnails" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(
-      within(screen.getByRole("group", { name: "Project view mode" })).getByRole("button", {
-        name: "View projects as Large thumbnails",
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: Large");
     expect(
       screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement,
     ).toHaveClass("ml-auto");
     expect(
-      screen.getByRole("button", { name: "View projects as Large thumbnails" }).parentElement
-        ?.parentElement,
+      screen.getByRole("combobox", { name: "View" }).closest("[role='group']"),
     ).not.toHaveClass("ml-auto");
 
-    await user.click(screen.getByRole("button", { name: "View projects as Small thumbnails" }));
+    await selectViewMode(user, "View: Small");
 
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -112,7 +108,7 @@ describe("ProjectsPageClient view modes", () => {
     );
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("small");
 
-    await user.click(screen.getByRole("button", { name: "View projects as Medium thumbnails" }));
+    await selectViewMode(user, "View: Medium");
 
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -138,10 +134,7 @@ describe("ProjectsPageClient view modes", () => {
         "list",
       );
     });
-    expect(screen.getByRole("button", { name: "View projects as List" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: List");
     expect(container.querySelector("[data-project-card-view]")).toHaveAttribute(
       "data-project-card-view",
       "list",
