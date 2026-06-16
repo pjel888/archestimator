@@ -2061,6 +2061,10 @@ export function EstimateSheetContent({
         })
           .then((result) => {
             if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+            if (result.partialFailureMessage) {
+              console.error("[estimate] template batch insert partially failed", result.partialFailureMessage);
+              toast({ tone: "error", message: "Some templates couldn't be inserted. The sheet has been refreshed." });
+            }
           })
           .catch((error: unknown) => {
             console.error("[estimate] template batch insert failed", error);
