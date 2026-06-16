@@ -137,4 +137,47 @@ describe("project estimate sheet repository", () => {
     expect(supabaseMocks.limit).toHaveBeenCalledTimes(4);
     expect(supabaseMocks.limit).toHaveBeenCalledWith(2);
   });
+
+  it("preserves sheet-code matches when name matches reach the search cap", async () => {
+    supabaseMocks.limit
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "name-estimate-1",
+            name: "Unit 01 Scope 1",
+            sheet_code: "A-001",
+            updated_at: "2026-06-12T08:00:00.000Z",
+          },
+          {
+            id: "name-estimate-2",
+            name: "Unit 01 Scope 2",
+            sheet_code: "A-002",
+            updated_at: "2026-06-12T09:00:00.000Z",
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "sheet-code-estimate",
+            name: "Mechanical Scope",
+            sheet_code: "01",
+            updated_at: "2026-06-12T10:00:00.000Z",
+          },
+        ],
+        error: null,
+      });
+
+    const { listProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    const result = await listProjectEstimateSheetsForProject("project-1", {
+      limit: 2,
+      search: "01",
+    });
+
+    expect(result.map((estimate) => estimate.id)).toEqual([
+      "name-estimate-1",
+      "sheet-code-estimate",
+    ]);
+  });
 });

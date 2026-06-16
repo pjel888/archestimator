@@ -143,6 +143,10 @@ function normalizeReusableProjectSourceSearchInput(query: string) {
   return normalizeReusableSourceSearchQuery(query).slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_MAX_QUERY_LENGTH);
 }
 
+function normalizeReusableProjectSourceRawSearchInput(query: string) {
+  return query.trim().replace(/\s+/g, " ").trim().slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_MAX_QUERY_LENGTH);
+}
+
 function hashReusableProjectSourceSearchRateLimitKey(userId: string) {
   return createHash("sha256")
     .update([REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE, userId.trim() || "-"].join("\u001f"))
@@ -335,7 +339,7 @@ function toReusableSearchLikePatterns(rawQuery: string, normalizedQuery: string)
 
 export async function searchReusableProjectSources(input: { query: string }): Promise<ReusableProjectSourceSearchResult> {
   const context = await requireCurrentUserContext();
-  const rawQuery = input.query.trim().replace(/\s+/g, " ").trim();
+  const rawQuery = normalizeReusableProjectSourceRawSearchInput(input.query);
   const query = normalizeReusableProjectSourceSearchInput(input.query);
   if (query.length < REUSABLE_PROJECT_SOURCE_SEARCH_MIN_QUERY_LENGTH) return { sources: [] };
   await assertReusableProjectSourceSearchRateLimit(context.userId);
@@ -361,28 +365,39 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   type EstimateRecord = Awaited<ReturnType<typeof listProjectEstimateSheets>>[number];
   const estimateContextById = new Map<string, { project: ProjectRecord; estimate: EstimateRecord }>();
   const accessibleEstimateIds: string[] = [];
-  for (const item of accessibleProjects) {
-    const remainingMatchingSlots =
-      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
-    if (remainingMatchingSlots <= 0) break;
-    const matchingEstimates = await listProjectEstimateSheets(item.project.id, {
-      limit: remainingMatchingSlots,
-      search: rawQuery,
-    });
-    for (const estimate of matchingEstimates) {
-      estimateContextById.set(estimate.id, { project: item.project, estimate });
-      accessibleEstimateIds.push(estimate.id);
-    }
-    const remainingRecentSlots =
-      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
-    if (remainingRecentSlots <= 0) continue;
-    const recentEstimates = await listProjectEstimateSheets(item.project.id, {
-      limit: remainingRecentSlots,
-    });
-    for (const estimate of recentEstimates) {
+  const addAccessibleEstimates = (item: (typeof accessibleProjects)[number], estimates: readonly EstimateRecord[]) => {
+    for (const estimate of estimates) {
+      if (accessibleEstimateIds.length >= REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT) return;
       if (estimateContextById.has(estimate.id)) continue;
       estimateContextById.set(estimate.id, { project: item.project, estimate });
       accessibleEstimateIds.push(estimate.id);
+    }
+  };
+  const matchingEstimateResults = await Promise.all(
+    accessibleProjects.map(async (item) => ({
+      item,
+      estimates: await listProjectEstimateSheets(item.project.id, {
+        limit: REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT,
+        search: rawQuery,
+      }),
+    })),
+  );
+  for (const result of matchingEstimateResults) {
+    addAccessibleEstimates(result.item, result.estimates);
+  }
+  if (accessibleEstimateIds.length < REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT) {
+    const remainingRecentSlots =
+      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
+    const recentEstimateResults = await Promise.all(
+      accessibleProjects.map(async (item) => ({
+        item,
+        estimates: await listProjectEstimateSheets(item.project.id, {
+          limit: remainingRecentSlots,
+        }),
+      })),
+    );
+    for (const result of recentEstimateResults) {
+      addAccessibleEstimates(result.item, result.estimates);
     }
   }
 
