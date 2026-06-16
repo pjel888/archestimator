@@ -1084,6 +1084,7 @@ export function EstimateSheetContent({
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
+    setTreeWithoutRevisionBump: setEstimateTreeDataWithoutRevisionBump,
     restore: restoreEstimateTree,
     getTreeRevision: getEstimateTreeRevision,
   } = dataTabId ? tabTreeQuery : legacyTreeQuery;
@@ -1724,6 +1725,10 @@ export function EstimateSheetContent({
     skipEditableRowsSyncRef.current += 1;
     return setEstimateTreeData(updater);
   }, [setEstimateTreeData]);
+  const reconcileEstimateTreeWithoutRevisionBump = useCallback((updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => {
+    skipEditableRowsSyncRef.current += 1;
+    setEstimateTreeDataWithoutRevisionBump(updater);
+  }, [setEstimateTreeDataWithoutRevisionBump]);
 
   const restoreEstimateState = useCallback((previousTree: EstimateTreeNode[], previousRows: Record<string, EditableRowValue>, expectedRevision?: number) => {
     const didRestoreTree = restoreEstimateTree(previousTree, expectedRevision);
@@ -2070,7 +2075,7 @@ export function EstimateSheetContent({
               const serverTargetParentNode = findEstimateNode(result.tree, targetParentNodeId);
               const committedRootNodeIds = new Set(result.insertedRootNodeIds);
               const committedRootNodes = (serverTargetParentNode?.children ?? []).filter((node) => committedRootNodeIds.has(node.id));
-              setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, committedRootNodes));
+              reconcileEstimateTreeWithoutRevisionBump((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, committedRootNodes));
               setEditableRows((current) => {
                 const next = { ...current, ...collectEditableRows(committedRootNodes) };
                 for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
