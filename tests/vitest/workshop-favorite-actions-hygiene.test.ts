@@ -23,3 +23,21 @@ describe("favorite actions — boolean hygiene (D14 / 13 C2 / QA-13)", () => {
     expect(fromSpy).not.toHaveBeenCalled();
   });
 });
+
+function recordingChain() {
+  const eqCalls: Array<[string, unknown]> = [];
+  const chain: Record<string, unknown> = { __eqCalls: eqCalls };
+  chain.delete = () => chain;
+  chain.eq = (col: string, val: unknown) => { eqCalls.push([col, val]); return chain; };
+  chain.then = (resolve: (v: { error: null }) => unknown) => resolve({ error: null });
+  return chain as typeof chain & { __eqCalls: Array<[string, unknown]> };
+}
+describe("setProjectFavorite delete — workspace authz (D14 / 13 C2 / QA-14)", () => {
+  it("scopes the unfavorite delete by workspace_id, user_id, project_id", async () => {
+    const projectFavorites = recordingChain();
+    fromSpy.mockImplementation((t: string) => (t === "project_favorites" ? projectFavorites : recordingChain()));
+    await setProjectFavorite({ projectId: PROJECT_ID, favorite: false });
+    expect(projectFavorites.__eqCalls).toEqual(expect.arrayContaining([
+      ["workspace_id", WORKSPACE_ID], ["user_id", USER_ID], ["project_id", PROJECT_ID]]));
+  });
+});

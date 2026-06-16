@@ -33,6 +33,7 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
     const { error } = await supabase
       .from("project_favorites")
       .delete()
+      .eq("workspace_id", workspace.id)
       .eq("user_id", profile.id)
       .eq("project_id", projectId);
 
