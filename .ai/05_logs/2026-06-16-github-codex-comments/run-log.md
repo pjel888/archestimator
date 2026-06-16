@@ -156,3 +156,18 @@ manual_qa_channel=cli
 - Do not resolve `PRRT_kwDOSfSDcs6JokL3` until the real repository history is
   rewritten and the provider audit proves the sensitive blobs are unreachable
   from pushed refs.
+
+## PR #50 Approval-Ready Artifacts
+
+- Added `.ai/03_plans/2026-06-16-github-codex-comments/pr50-history-purge-runbook.md`
+  with current provider state, sensitive blob IDs, rehearsal proof, open-PR
+  coordination risk, execution shape, and the explicit approval gate.
+- Added guarded helper script
+  `.ai/03_plans/2026-06-16-github-codex-comments/scripts/purge-boq-history.sh`.
+- Safety validation:
+  - `bash -n .../purge-boq-history.sh` passed.
+  - Running the script without `ARCHESTIMATOR_CONFIRM_HISTORY_REWRITE=PURGE_BOQ_HISTORY`
+    refused with exit code `2`.
+  - `git diff --check` on the runbook and script passed.
+- Live provider check still showed the same single unresolved Codex thread on
+  PR `#50`; the two sibling PR `#50` threads remain resolved.
