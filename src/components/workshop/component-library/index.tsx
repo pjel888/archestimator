@@ -954,7 +954,14 @@ function EstimateRightSidebarBase({
         if (!isCancelled?.()) setProjectSourcesLoading(false);
       });
   }, [canLoadProjectSourcesFromActions, toast]);
-  const projectSourceSearchQuery = activeTab === "templates" && templateSourceFilter !== "custom"
+  const hasLoadedProjectSources = useMemo(
+    () => loadedProjectSources.some((source) => source.kind !== "custom-template"),
+    [loadedProjectSources],
+  );
+  const effectiveTemplateSourceFilter = templateSourceFilter === "projects" && !projectSourcesLoading && !hasLoadedProjectSources
+    ? "all"
+    : templateSourceFilter;
+  const projectSourceSearchQuery = activeTab === "templates" && effectiveTemplateSourceFilter !== "custom"
     ? searchQuery.trim()
     : "";
 
@@ -1212,20 +1219,20 @@ function EstimateRightSidebarBase({
     [projectSourceSearchQuery, visibleProjectSourceSearchResults, visibleProjectSources],
   );
   const visibleTemplateList = useMemo(
-    () => (templateSourceFilter === "projects" ? [] : templateList),
-    [templateList, templateSourceFilter],
+    () => (effectiveTemplateSourceFilter === "projects" ? [] : templateList),
+    [effectiveTemplateSourceFilter, templateList],
   );
   const templateGroupNames = useMemo(
     () => Array.from(new Set([...templateList.map((template) => template.category), ...customTemplateGroups])).sort(),
     [customTemplateGroups, templateList],
   );
   const visibleCustomTemplateGroups = useMemo(
-    () => (templateSourceFilter === "projects" ? [] : customTemplateGroups),
-    [customTemplateGroups, templateSourceFilter],
+    () => (effectiveTemplateSourceFilter === "projects" ? [] : customTemplateGroups),
+    [customTemplateGroups, effectiveTemplateSourceFilter],
   );
   const visibleTemplateProjectSources = useMemo(
-    () => (templateSourceFilter === "custom" ? [] : searchableProjectSources),
-    [searchableProjectSources, templateSourceFilter],
+    () => (effectiveTemplateSourceFilter === "custom" ? [] : searchableProjectSources),
+    [effectiveTemplateSourceFilter, searchableProjectSources],
   );
   const loadedProjectSourceIndex = useMemo(
     () => buildReusableProjectSourceIndex(loadedProjectSources),
@@ -1278,13 +1285,13 @@ function EstimateRightSidebarBase({
   }, []);
   const templatesSourceFilterControls = useMemo(() => {
     const hasCustomTemplates = templateList.length > 0;
-    const hasProjectSources = loadedProjectSources.some((source) => source.kind !== "custom-template") || projectSourcesLoading;
+    const hasProjectSources = hasLoadedProjectSources || projectSourcesLoading;
     if (!hasCustomTemplates || !hasProjectSources) return null;
     return (
       <div className="mb-2">
         <DropdownSelect
           options={TEMPLATE_SOURCE_FILTER_OPTIONS}
-          value={templateSourceFilter}
+          value={effectiveTemplateSourceFilter}
           onValueChange={(nextValue) => {
             if (isTemplateSourceFilter(nextValue)) handleTemplateSourceFilterChange(nextValue);
           }}
@@ -1294,7 +1301,7 @@ function EstimateRightSidebarBase({
         />
       </div>
     );
-  }, [handleTemplateSourceFilterChange, loadedProjectSources, projectSourcesLoading, templateList.length, templateSourceFilter]);
+  }, [effectiveTemplateSourceFilter, handleTemplateSourceFilterChange, hasLoadedProjectSources, projectSourcesLoading, templateList.length]);
   const bulkSelectedIds = useMemo(() => Array.from(bulkSelectedNodeIds), [bulkSelectedNodeIds]);
   const bulkSelectionCount = bulkSelectedNodeIds.size;
   const bulkSelectedItems = useMemo(() => {
@@ -2104,7 +2111,7 @@ function EstimateRightSidebarBase({
                 </>
               ) : (
                 <>
-                  {templateSourceFilter !== "projects" ? (
+                  {effectiveTemplateSourceFilter !== "projects" ? (
                     <ToolbarIconButton label="Add Template Group" onClick={startNewTemplateGroup} className={ADD_BUTTON_CLASSNAME}>
                       <FolderPlus size={13} weight="regular" aria-hidden="true" />
                     </ToolbarIconButton>

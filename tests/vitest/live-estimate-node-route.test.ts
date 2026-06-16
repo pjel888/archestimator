@@ -111,6 +111,7 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("estimateName: estimate.name");
     expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
     expect(estimateNodePage).toContain("projectBudget: estimate.project_budget");
+    expect(estimateNodePage).toContain("canEditEstimate,");
     expect(estimateNodePage).toContain("const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);");
     expect(readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8")).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
     expect(projectWorkspaceHeaderRow).toContain("const isEstimatesRoute");
@@ -124,6 +125,9 @@ describe("live estimate node route", () => {
     expect(metadataStrip).toContain('text-[10px] font-medium tracking-normal text-ink');
     expect(metadataStrip).toContain("EstimateSheetNameCell");
     expect(metadataStrip).toContain("dispatchProjectBudgetChange(projectBudget ?? 0)");
+    expect(metadataStrip).toContain("canEditEstimate: canEditEstimate === true");
+    expect(metadataStrip).toContain("if (!metadata || !canEditEstimate) return;");
+    expect(metadataStrip).toContain("View-only estimate name.");
     expect(metadataStrip).toContain("estimateNameKey");
     expect(metadataStrip).not.toContain("EstimateVersionCell");
     expect(metadataStrip).toContain("place-items-center");
@@ -196,8 +200,10 @@ describe("live estimate node route", () => {
     expect(estimateActions).not.toContain("buildEstimateNodeMovePlan");
     expect(estimateActions).not.toContain('.rpc("move_estimate_nodes"');
     expect(estimateContent).toContain("onUpdateRowItem");
-    expect(estimateContent).toContain("replaceRow({ projectId, estimateId");
-    expect(estimateContent).toContain("deleteRow({ projectId, estimateId");
+    expect(estimateContent).toContain("replaceRow({");
+    expect(estimateContent).toContain("libraryItem: replacementLibraryItem");
+    expect(estimateContent).toContain("deleteRow({");
+    expect(estimateContent).toContain("rowId: rowItemId");
     expect(estimateContent).toContain("useEstimateAreaTreeQuery");
     expect(readFileSync("src/hooks/use-estimate-query.ts", "utf8")).toContain("estimateQueryKeys.areaTree");
     expect(estimateContent).toContain("rollback: () => restoreEstimateState");

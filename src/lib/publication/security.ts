@@ -29,6 +29,18 @@ type PublicationAccessCookiePayload = {
   tokenDigest: string;
 };
 
+type PublicationViewTokenContext = {
+  token: string;
+  publicationId: string;
+  snapshotVersion: number;
+};
+
+type PublicationViewTokenPayload = {
+  publicationId: string;
+  snapshotVersion: number;
+  tokenDigest: string;
+};
+
 function toBase64Url(buffer: Buffer) {
   return buffer.toString("base64url");
 }
@@ -183,6 +195,77 @@ function createPublicationAccessCookiePayload(
 
 function signPublicationAccessCookiePayload(payload: string, secret: string) {
   return createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+const publicationViewTokenPrefix = "publication-view-v1";
+
+function createPublicationViewTokenPayload({
+  token,
+  publicationId,
+  snapshotVersion,
+}: PublicationViewTokenContext): PublicationViewTokenPayload {
+  return {
+    publicationId,
+    snapshotVersion,
+    tokenDigest: createHash("sha256").update(token).digest("base64url"),
+  };
+}
+
+function parsePublicationViewTokenPayload(value: string | undefined, secret: string) {
+  if (!value) return null;
+  const [prefix, encodedPayload, signature] = value.split(":");
+  if (prefix !== publicationViewTokenPrefix || !encodedPayload || !signature) return null;
+
+  const expectedSignature = signPublicationAccessCookiePayload(encodedPayload, secret);
+  if (!constantTimeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as Partial<PublicationViewTokenPayload>;
+    const snapshotVersion = payload.snapshotVersion;
+    if (
+      typeof payload.publicationId !== "string" ||
+      typeof snapshotVersion !== "number" ||
+      !Number.isInteger(snapshotVersion) ||
+      snapshotVersion < 1 ||
+      typeof payload.tokenDigest !== "string"
+    ) {
+      return null;
+    }
+    return {
+      publicationId: payload.publicationId,
+      snapshotVersion,
+      tokenDigest: payload.tokenDigest,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function createPublicationViewToken(
+  context: PublicationViewTokenContext,
+  { secret = readPublicationAccessCookieSecret() }: { secret?: string } = {},
+) {
+  const encodedPayload = Buffer.from(JSON.stringify(createPublicationViewTokenPayload(context)), "utf8").toString("base64url");
+  const signature = signPublicationAccessCookiePayload(encodedPayload, secret);
+  return `${publicationViewTokenPrefix}:${encodedPayload}:${signature}`;
+}
+
+export function readPublicationViewSnapshotVersion(
+  value: string | undefined,
+  context: Pick<PublicationViewTokenContext, "token" | "publicationId">,
+  { secret = readPublicationAccessCookieSecret() }: { secret?: string } = {},
+) {
+  const payload = parsePublicationViewTokenPayload(value, secret);
+  if (!payload) return undefined;
+
+  const expected = createPublicationViewTokenPayload({
+    ...context,
+    snapshotVersion: payload.snapshotVersion,
+  });
+  return payload.publicationId === expected.publicationId &&
+    constantTimeEqual(Buffer.from(payload.tokenDigest), Buffer.from(expected.tokenDigest))
+    ? payload.snapshotVersion
+    : undefined;
 }
 
 function parsePublicationAccessCookiePayload(value: string, secret: string) {

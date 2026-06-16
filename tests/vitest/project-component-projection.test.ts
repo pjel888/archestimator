@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -109,24 +109,25 @@ describe("project component projection", () => {
     expect(legacyBlank).toBeNull();
   });
 
-  it("threads project context through the route and sidebar", () => {
-    const route = readFileSync(join(process.cwd(), "src/app/workshop/projects/[projectId]/components/page.tsx"), "utf8");
+  it("keeps projection support while the project Components route stays deleted", () => {
+    const projectRoutePath = join(process.cwd(), "src/app/workshop/projects/[projectId]/components/page.tsx");
     const sidebar = readFileSync(join(process.cwd(), "src/components/workshop/ProjectMiniSidebar.tsx"), "utf8");
     const workspaceRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/components/page.tsx"), "utf8");
     const libraryPage = readFileSync(join(process.cwd(), "src/components/workshop/LibraryPageClient.tsx"), "utf8");
     const projection = readFileSync(join(process.cwd(), "src/lib/component-library/project-component-projection.ts"), "utf8");
 
-    expect(route).toContain("getProjectComponentRowsLibrary(projectId)");
-    expect(route).toContain("projectId={projectId}");
+    expect(existsSync(projectRoutePath)).toBe(false);
     expect(workspaceRoute).not.toContain("getProjectComponentRowsLibrary");
     expect(libraryPage).toContain("projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary()");
     expect(projection).toContain("if (!project) return fallbackComponentRowsLibraryDataset");
+    expect(projection).toContain("options: { includeDetailGraph?: boolean } = {}");
+    expect(projection).toContain("includeDetailGraph: options.includeDetailGraph");
     expect(projection).toContain(".eq(\"estimate_nodes.estimates.project_id\", project.id)");
     expect(getProjectComponentsFolderId("project-1")).toBe("project-components-project-1");
     expect(getProjectEstimateComponentsFolderId("project-1", "estimate-1")).toBe("project-components-project-1-estimate-estimate-1");
     expect(projection).toContain("name: project.name || \"Project\"");
     expect(projection).toContain("name: row.estimate_nodes?.estimates?.name?.trim() || \"Estimate Sheet\"");
-    expect(sidebar).toContain("/workshop/projects/${projectId}/components");
-    expect(sidebar).toContain("Components");
+    expect(sidebar).not.toContain("/workshop/projects/${projectId}/components");
+    expect(sidebar).not.toContain('label: "Components"');
   });
 });

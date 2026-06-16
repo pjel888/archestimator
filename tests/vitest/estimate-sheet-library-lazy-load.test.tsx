@@ -179,6 +179,8 @@ describe("component library lazy load (U4)", () => {
     // refetchType "none" it marks the heavy lite dataset stale without eagerly
     // refetching while the panel is open (local optimistic state is correct).
     expect(sheetSource).toContain('queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "none" })');
+    expect(sheetSource).toContain("workspaceComponentLibraryLiteQueryKey(projectId)");
+    expect(sheetSource).not.toContain("loadCurrentWorkspaceComponentLibraryLite");
     expect(sheetSource).toContain("onLibraryDataChanged={handleLibraryDataChanged}");
 
     const sidebarSource = readFileSync(path.join(process.cwd(), "src/components/workshop/component-library/index.tsx"), "utf8");

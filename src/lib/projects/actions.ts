@@ -167,7 +167,7 @@ function revalidateProjectDeletionPaths(projectIds: string[]) {
   for (const projectId of projectIds) {
     revalidatePath(`/workshop/projects/${projectId}`);
     revalidatePath(`/workshop/projects/${projectId}/estimates`);
-    revalidatePath(`/workshop/projects/${projectId}/charts`);
+    revalidatePath(`/workshop/projects/${projectId}/data`);
   }
 }
 
