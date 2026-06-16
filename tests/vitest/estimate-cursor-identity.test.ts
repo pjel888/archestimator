@@ -147,8 +147,7 @@ describe("estimate cursor identity gate", () => {
         columnId: "col-1",
       }),
     );
-    await new Promise((resolve) => setTimeout(resolve, 5));
-    expect(sentPayloads).toHaveLength(1);
+    await waitFor(() => expect(sentPayloads).toHaveLength(1));
     const firstEnvelope = sentPayloads[0]?.envelope;
 
     nowMs += 301_000;
@@ -179,6 +178,97 @@ describe("estimate cursor identity gate", () => {
     expect(sentPayloads).toHaveLength(2);
     expect(sentPayloads[1]?.envelope?.sig).not.toBe(firstEnvelope?.sig);
     expect((sentPayloads[1]?.envelope?.exp ?? 0) * 1000).toBeGreaterThan(Date.now());
+
+    dateNowSpy.mockRestore();
+    unmount();
+  });
+
+  it("retries identity issuance on later cursor moves after an expired envelope refresh returns null", async () => {
+    const signingKey = await issueRealtimeIdentityEnvelope({ sub: "me", topic: TOPIC, role: "member" });
+    let nowMs = new Date("2026-06-14T00:00:00.000Z").getTime();
+    const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+
+    const { client, channel, sentPayloads } = createFakeCursorClient();
+    let issueCount = 0;
+
+    const { result, unmount } = renderHook(() =>
+      useEstimateCursorCollaboration({
+        estimateId: ESTIMATE_ID,
+        userId: "me",
+        enabled: true,
+        throttleMs: 1,
+        clientFactory: () => client,
+        identityIssuer: async ({ topic }) => {
+          issueCount += 1;
+          if (issueCount === 2) return null;
+          const iat = Math.floor(Date.now() / 1000);
+          return {
+            envelope: {
+              sub: "me",
+              topic,
+              role: "member",
+              iat,
+              exp: iat + 300,
+              kid: signingKey.envelope.kid,
+              sig: `test-signature-${issueCount}`,
+            },
+            publicKey: signingKey.publicKey,
+          };
+        },
+      }),
+    );
+
+    act(() => channel.__emitStatus("SUBSCRIBED"));
+    await waitFor(() => expect(issueCount).toBe(1));
+
+    act(() =>
+      result.current.broadcastCursor({
+        tabId: null,
+        x: 10,
+        y: 10,
+        rowId: "row-1",
+        columnId: "col-1",
+      }),
+    );
+    await waitFor(() => expect(sentPayloads).toHaveLength(1));
+
+    nowMs += 301_000;
+    act(() =>
+      result.current.broadcastCursor({
+        tabId: null,
+        x: 30,
+        y: 30,
+        rowId: "row-1",
+        columnId: "col-1",
+      }),
+    );
+    await waitFor(() => expect(issueCount).toBe(2));
+    expect(sentPayloads).toHaveLength(1);
+
+    act(() =>
+      result.current.broadcastCursor({
+        tabId: null,
+        x: 50,
+        y: 50,
+        rowId: "row-1",
+        columnId: "col-1",
+      }),
+    );
+    await waitFor(() => expect(issueCount).toBe(3));
+    expect(sentPayloads).toHaveLength(1);
+
+    act(() =>
+      result.current.broadcastCursor({
+        tabId: null,
+        x: 70,
+        y: 70,
+        rowId: "row-1",
+        columnId: "col-1",
+      }),
+    );
+
+    await waitFor(() => expect(sentPayloads).toHaveLength(2));
+    expect(sentPayloads[1]?.envelope?.sig).toBe("test-signature-3");
 
     dateNowSpy.mockRestore();
     unmount();
