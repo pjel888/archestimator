@@ -650,8 +650,8 @@ describe("reusable project source actions", () => {
         {
           data: null,
           error: {
-            code: "PGRST205",
-            message: "Could not find the 'estimate_tabs' relationship in the schema cache",
+            code: "PGRST200",
+            message: "Could not find a relationship between 'estimate_nodes' and 'estimate_tabs' in the schema cache",
           },
         },
         { data: [{ estimate_id: estimateAId }], error: null },
