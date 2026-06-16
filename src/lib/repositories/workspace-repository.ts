@@ -24,6 +24,7 @@ import type {
 import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
 import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
 import type { Json } from "@/lib/supabase/types";
+import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -122,6 +123,8 @@ export type ProjectFavoriteEstimateSheetSummary = Pick<
 };
 
 const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
+const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
+const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
 
 type WorkshopProjectRecord = Pick<
   Tables<"projects">,
@@ -1198,6 +1201,90 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
     receivedPendingInviteCount: pendingInviteVisibility.receivedPendingInviteCount,
   };
 }
+
+export const listMainSidebarFavoriteProjects = cache(async function listMainSidebarFavoriteProjects(): Promise<MainSidebarFavoriteProject[]> {
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: projectFavorites, error: projectFavoritesError } = await supabase
+    .from("project_favorites")
+    .select("project_id, created_at")
+    .eq("workspace_id", workspace.id)
+    .eq("user_id", profile.id)
+    .order("created_at", { ascending: false })
+    .limit(MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT);
+
+  if (projectFavoritesError) throw projectFavoritesError;
+
+  const favoriteProjectRows = projectFavorites ?? [];
+  const favoriteProjectIds = favoriteProjectRows.map((favorite) => favorite.project_id);
+  if (favoriteProjectIds.length === 0) return [];
+
+  const [projectsResult, estimateFavoritesResult] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("id, name, project_code")
+      .in("id", favoriteProjectIds),
+    supabase
+      .from("estimate_favorites")
+      .select("estimate_id, project_id, created_at")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id)
+      .in("project_id", favoriteProjectIds)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (projectsResult.error) throw projectsResult.error;
+  if (estimateFavoritesResult.error) throw estimateFavoritesResult.error;
+
+  const favoriteEstimateRows = estimateFavoritesResult.data ?? [];
+  const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
+  let estimateById = new Map<string, Pick<Tables<"estimates">, "id" | "project_id" | "name" | "sheet_code">>();
+
+  if (favoriteEstimateIds.length > 0) {
+    const { data, error } = await supabase
+      .from("estimates")
+      .select("id, project_id, name, sheet_code")
+      .in("id", favoriteEstimateIds);
+
+    if (error) throw error;
+    estimateById = new Map((data ?? []).map((estimate) => [estimate.id, estimate]));
+  }
+
+  const sheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
+    const estimate = estimateById.get(favorite.estimate_id);
+    if (!estimate) return byProject;
+    const sheets = byProject.get(favorite.project_id) ?? [];
+    if (sheets.length >= MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT) return byProject;
+    sheets.push({
+      href: `/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`,
+      id: estimate.id,
+      name: estimate.name,
+      projectId: estimate.project_id,
+      sheetCode: estimate.sheet_code,
+      favoriteCreatedAt: favorite.created_at,
+    });
+    byProject.set(favorite.project_id, sheets);
+    return byProject;
+  }, new Map<string, MainSidebarFavoriteProject["favoriteEstimateSheets"]>());
+
+  const projectById = new Map((projectsResult.data ?? []).map((project) => [project.id, project]));
+
+  return favoriteProjectRows.flatMap((favorite): MainSidebarFavoriteProject[] => {
+    const project = projectById.get(favorite.project_id);
+    if (!project) return [];
+    return [
+      {
+        favoriteEstimateSheets: sheetsByProjectId.get(project.id) ?? [],
+        href: `/workshop/projects/${project.id}`,
+        id: project.id,
+        name: project.name,
+        projectCode: project.project_code,
+        favoriteCreatedAt: favorite.created_at,
+      },
+    ];
+  });
+});
 
 export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspaceProject(projectId: string) {
   const { workspace: defaultWorkspace } = await ensureDefaultWorkspace();

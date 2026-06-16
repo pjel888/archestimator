@@ -16,3 +16,21 @@ export type SidebarNavItem = {
   label: string;
   shortcut?: string;
 };
+
+export type MainSidebarFavoriteEstimateSheet = {
+  href: string;
+  id: string;
+  name: string;
+  projectId: string;
+  sheetCode: string | null;
+  favoriteCreatedAt: string;
+};
+
+export type MainSidebarFavoriteProject = {
+  favoriteEstimateSheets: MainSidebarFavoriteEstimateSheet[];
+  href: string;
+  id: string;
+  name: string;
+  projectCode: string | null;
+  favoriteCreatedAt: string;
+};
