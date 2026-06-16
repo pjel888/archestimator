@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
 import {
   ArrowRight,
+  ArrowSquareOut,
   ArrowsOutSimple,
   Clock,
   DotsThreeVertical,
-  LinkSimple,
   MapPin,
   Star,
 } from "@phosphor-icons/react/dist/ssr";
@@ -45,6 +45,14 @@ type LiveProjectCardProps = {
   onToggleSelected?: (projectId: string) => void;
   onToggleFavorite?: (projectId: string, favorite: boolean) => void;
   onExpand?: (project: Tables<"projects">) => void;
+  /**
+   * Group-assignment menu (D8): the "Move to group" affordance rendered next to the
+   * details-action control on owned cards. The card stays agnostic — the page builds
+   * and supplies the node (only for owned projects in Group mode) so all group logic
+   * lives in projects-page-client. Rendered in the DETAILS-ACTION menu, NOT the C3
+   * hover overlay. Optional and additive: omitting it leaves the card unchanged.
+   */
+  groupAssignMenu?: ReactNode;
 };
 
 // Action affordances rest hidden and reveal on hover or keyboard focus so the
@@ -56,6 +64,8 @@ const REVEAL_ON_INTENT =
   "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
 
 const CONTROL_BUTTON = "size-6 border-hairline bg-white";
+const OPEN_CONTROL_LINK =
+  "grid size-6 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -97,10 +107,6 @@ function getAccessBadgeLabel(accessKind: ProjectAccessKind) {
   return "Owned";
 }
 
-function formatOpenCount(count: number) {
-  return `${count} ${count === 1 ? "open" : "opens"}`;
-}
-
 function getFavoriteEstimateSheetHref(sheet: ProjectFavoriteEstimateSheetSummary) {
   return `/workshop/projects/${sheet.project_id}/estimates/${sheet.id}`;
 }
@@ -128,7 +134,6 @@ export function LiveProjectCard({
   ownerWorkspaceName = null,
   pendingInvite = null,
   pendingInviteCount = 0,
-  publicationSummary = null,
   sharedEstimateCount = 0,
   favoriteEstimateSheets = [],
   isFavorite = false,
@@ -138,6 +143,7 @@ export function LiveProjectCard({
   onToggleSelected,
   onToggleFavorite,
   onExpand,
+  groupAssignMenu,
 }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
   const isListView = viewMode === "list";
@@ -147,7 +153,6 @@ export function LiveProjectCard({
   const canToggleFavorite = Boolean(onToggleFavorite) && !isPendingInvite;
   const canShowSelect = !isPendingInvite;
   const canSelect = Boolean(onToggleSelected) && canShowSelect;
-  const livePublication = publicationSummary?.status === "published" ? publicationSummary : null;
   const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open estimate" : "Open";
   const projectHref = `/workshop/projects/${project.id}`;
   const prefetchRoutes = useMemo(() => [{ pathname: projectHref }], [projectHref]);
@@ -251,27 +256,6 @@ export function LiveProjectCard({
     );
   }
 
-  function renderOpenActivityRow() {
-    const hasSharedLinkActivity = Boolean(livePublication);
-
-    return (
-      <p
-        data-project-card-shared-link-meta=""
-        aria-label={hasSharedLinkActivity ? `Shared link activity for ${project.name}` : `No shared link activity for ${project.name}`}
-        className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary"
-      >
-        <LinkSimple
-          size={12}
-          weight="regular"
-          aria-hidden="true"
-          className={cn("shrink-0", hasSharedLinkActivity ? null : "opacity-35")}
-          data-project-card-shared-link-meta-icon=""
-        />
-        <span className="min-w-0 flex-1 truncate">{livePublication ? formatOpenCount(livePublication.openCount) : null}</span>
-      </p>
-    );
-  }
-
   function renderDetailsControl({ reveal }: { reveal: boolean }) {
     if (isPendingInvite) return null;
 
@@ -289,7 +273,7 @@ export function LiveProjectCard({
         data-project-card-details-action=""
         onClick={() => onExpand?.(project)}
       >
-        <DotsThreeVertical size={15} weight="bold" aria-hidden="true" />
+        <DotsThreeVertical size={15} weight="regular" aria-hidden="true" />
       </Button>
     );
   }
@@ -371,7 +355,10 @@ export function LiveProjectCard({
           <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
             {project.client_name ?? "No client yet"}
           </p>
-          {renderDetailsControl({ reveal: false })}
+          <div className="flex shrink-0 items-center gap-1">
+            {groupAssignMenu}
+            {renderDetailsControl({ reveal: false })}
+          </div>
         </div>
         <div className="min-w-0">
           <h2
@@ -385,6 +372,10 @@ export function LiveProjectCard({
             {project.name}
           </h2>
         </div>
+        <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
+          <MapPin size={12} aria-hidden="true" className="shrink-0" />
+          <span className="truncate">{project.location ?? "No location"}</span>
+        </p>
       </>
     );
   }
@@ -393,9 +384,8 @@ export function LiveProjectCard({
     return (
       <div
         data-project-card-meta-stack=""
-        className={cn("space-y-1", viewMode === "large" ? "mt-2.5 pb-3" : "mt-2 pb-2")}
+        className={cn("space-y-1", viewMode === "large" ? "mt-2.5" : "mt-2")}
       >
-        {showSecondaryMeta ? renderOpenActivityRow() : null}
         {isSharedAccess || isPendingInvite ? (
           <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
             <span className="shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-secondary">
@@ -414,25 +404,29 @@ export function LiveProjectCard({
             </span>
           </p>
         ) : null}
-        <p className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary">
-          <MapPin size={12} aria-hidden="true" className="shrink-0" />
-          <span className="truncate">{project.location ?? "No location"}</span>
-        </p>
-        {showSecondaryMeta || (isPendingInvite && pendingInvite?.expiresAt) ? (
+        {isPendingInvite && pendingInvite?.expiresAt ? (
           <p className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary">
             <Clock size={12} aria-hidden="true" className="shrink-0" />
             <span className="truncate">
-              {isPendingInvite && pendingInvite?.expiresAt
-                ? `${isExpiredPendingInvite ? "Expired" : "Expires"} ${formatUpdatedAt(pendingInvite.expiresAt)}`
-                : `Updated ${formatUpdatedAt(project.updated_at)}`}
+              {isExpiredPendingInvite ? "Expired" : "Expires"} {formatUpdatedAt(pendingInvite.expiresAt)}
             </span>
           </p>
         ) : null}
         {showSecondaryMeta && !isPendingInvite ? (
-          <p className="flex items-center gap-1.5 text-[9px] leading-3 text-[#5D5D5D]" title={formatFullDate(project.created_at)}>
-            <Clock size={12} aria-hidden="true" className="shrink-0" />
-            <span className="truncate">Created {formatUpdatedAt(project.created_at)}</span>
-          </p>
+          <div
+            data-project-card-date-band=""
+            className="mt-2 grid grid-cols-2 overflow-hidden border-t border-hairline text-[9px] leading-3"
+            title={`Created ${formatFullDate(project.created_at)}; updated ${formatFullDate(project.updated_at)}`}
+          >
+            <div className="min-w-0 px-2 py-1.5">
+              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Created</p>
+              <p className="mt-0.5 truncate font-medium text-ink">{formatUpdatedAt(project.created_at)}</p>
+            </div>
+            <div className="min-w-0 border-l border-hairline px-2 py-1.5">
+              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Updated</p>
+              <p className="mt-0.5 truncate font-medium text-ink">{formatUpdatedAt(project.updated_at)}</p>
+            </div>
+          </div>
         ) : null}
       </div>
     );
@@ -500,16 +494,17 @@ export function LiveProjectCard({
       <Link
         href={projectHref}
         prefetch={false}
+        aria-label={openLabel}
         onBlur={() => cancel(projectHref)}
         onFocus={() => prefetch(projectHref)}
         onMouseEnter={() => prefetch(projectHref)}
         onMouseLeave={() => cancel(projectHref)}
-        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-2.5 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className={OPEN_CONTROL_LINK}
       >
-        {openLabel}
-        <ArrowRight
-          size={13}
-          className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+        <ArrowSquareOut
+          size={15}
+          data-project-card-open-icon="square-out"
+          className="shrink-0"
           aria-hidden="true"
         />
       </Link>
@@ -617,18 +612,19 @@ export function LiveProjectCard({
         >
           {selectControl}
           {favoriteControl}
+          {groupAssignMenu}
           {expandControl}
           {isPendingInvite ? (
             renderFooterAction()
           ) : (
             <span
               aria-hidden="true"
-              className="pointer-events-none inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-2.5 text-[10px] font-medium text-ink"
+              className={cn("pointer-events-none", OPEN_CONTROL_LINK)}
             >
-              {openLabel}
-              <ArrowRight
-                size={13}
-                className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+              <ArrowSquareOut
+                size={15}
+                data-project-card-open-icon="square-out"
+                className="shrink-0"
                 aria-hidden="true"
               />
             </span>
@@ -655,7 +651,7 @@ export function LiveProjectCard({
   // ----- TILE: small / medium / large -----
   const thumbnailAspectClass = "aspect-[4/3]";
   const motifSize = "text-[10px]";
-  const contentPad = viewMode === "large" ? "p-3" : "p-2";
+  const contentPad = viewMode === "large" ? "p-0" : "p-2";
 
   return (
     <article
@@ -674,10 +670,15 @@ export function LiveProjectCard({
         withOverlay: true,
       })}
 
-      <div className={cn("flex min-w-0 flex-1 flex-col", contentPad)}>
+      <div
+        data-project-card-tile-content=""
+        className={cn("flex min-w-0 flex-1 flex-col", viewMode === "large" ? "justify-between" : null, contentPad)}
+      >
         <div
+          data-project-card-title-block=""
           className={cn(
             "min-w-0 space-y-1",
+            viewMode === "large" ? "p-2" : null,
             viewMode === "large" ? "min-h-[70px]" : viewMode === "medium" ? "min-h-[64px]" : "min-h-[58px]",
           )}
         >
@@ -689,9 +690,10 @@ export function LiveProjectCard({
 
         {showFooter || isPendingInvite ? (
           <div
+            data-project-card-footer=""
             className={cn(
-              "mt-auto flex items-center justify-between gap-2 border-t border-hairline",
-              viewMode === "large" ? "pt-3" : "pt-2",
+              "flex items-center justify-between gap-2 border-t border-hairline",
+              viewMode === "large" ? "mt-0 p-2" : "mt-auto pt-2",
             )}
           >
             <span className="truncate font-sans text-[9px] font-medium text-secondary">

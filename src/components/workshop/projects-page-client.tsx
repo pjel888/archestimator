@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   CalendarBlank,
@@ -34,8 +34,10 @@ import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/l
 import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
 import type { GroupAccentId } from "@/lib/workshop/group-accent";
 import {
+  bulkAssignProjectsToGroup,
   createProjectGroup,
   deleteProjectGroup,
+  moveProjectToGroup,
   recolorProjectGroup,
   renameProjectGroup,
 } from "@/lib/workshop/group-actions";
@@ -496,6 +498,16 @@ function canSelectProjectForDeletion(item: ProjectListItem) {
   return item.currentUserRole === "owner" || item.currentUserRole === "admin";
 }
 
+// LD-2/D9 assignment-eligibility gate, INDEPENDENT of delete eligibility. The SSR
+// repository already derived accessKind === "owned" using the LD-2 ownership predicate
+// (workspace-role membership OR created_by === profileId, created_by-nullable-safe), so
+// the client check is simply accessKind === "owned". Shared/invited projects are out of
+// v1 group scope (D11). This intentionally does NOT consult the delete gate, so an owned
+// project the delete flow would block (e.g. an active shared link) stays bulk-groupable.
+function canAssignProjectToGroup(item: ProjectListItem) {
+  return item.accessKind === "owned";
+}
+
 export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
@@ -544,14 +556,22 @@ export function ProjectsPageClient({
   // coerced).
   const organizeBy: ProjectOrganizeBy =
     activeTab === "shared-to-you" && storedOrganizeBy === "group" ? organizeByDefault : storedOrganizeBy;
-  const [groupOverrides] = useState<Record<string, string | null>>({});
+  // Task 6 (LD-6): the override map is keyed by groupId (string | null), not a boolean.
+  // Effective group for a project = groupOverrides[id] if the key is present, else
+  // item.groupId ?? null. The override is set immediately on assign and cleared ONLY by
+  // the reconciliation effect once the transition settles AND SSR is authoritative —
+  // never inside a non-awaitable router.refresh().then().
+  const [groupOverrides, setGroupOverrides] = useState<Record<string, string | null>>({});
+  const [pendingGroupProjectId, setPendingGroupProjectId] = useState<string | null>(null);
   const [collapsedGroupKeys, setCollapsedGroupKeys] = useState<Set<string>>(() => new Set());
   const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
   const [deleteProjectTargetIds, setDeleteProjectTargetIds] = useState<string[]>([]);
   const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [deleteProjectState, setDeleteProjectState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
-  const [, startTransition] = useTransition();
+  // LD-6: capture isPending so the reconciliation effect can wait for the RSC refresh
+  // (router.refresh() inside startTransition) to settle before clearing overrides.
+  const [isGroupMutationPending, startTransition] = useTransition();
 
   const favoriteIds = useMemo(() => {
     const ids = new Set(favoriteProjectIds);
@@ -645,6 +665,45 @@ export function ProjectsPageClient({
     () => selectableDisplayProjectIds.filter((id) => selectedProjectIds.has(id)),
     [selectableDisplayProjectIds, selectedProjectIds],
   );
+  // LD-5: the assignment selection is its OWN source, gated on canAssignProjectToGroup
+  // (LD-2 ownership: accessKind === "owned"), NOT the delete-gated canSelectProjectForDeletion.
+  // So an owned project blocked from DELETE by an active shared link is still bulk-groupable.
+  // Reads the SAME selectedProjectIds set as delete, but filters it differently — the two
+  // selected-sets diverging off one shared selection is the realized D9 gate.
+  const selectableForAssignmentProjectIds = useMemo(
+    () => displayLiveProjects.filter(canAssignProjectToGroup).map((item) => item.project.id),
+    [displayLiveProjects],
+  );
+  const selectedAssignableProjectIds = useMemo(
+    () => selectableForAssignmentProjectIds.filter((id) => selectedProjectIds.has(id)),
+    [selectableForAssignmentProjectIds, selectedProjectIds],
+  );
+
+  // LD-6 reconciliation effect. Clears each per-project override ONLY once the transition
+  // has settled (isGroupMutationPending === false) AND the incoming SSR item.groupId for
+  // that id equals the override value — i.e. SSR is now authoritative for the move, with
+  // no early-clear flicker. NEVER cleared inside a router.refresh().then() (router.refresh
+  // is non-awaitable). This handles single-move, bulk-move, and the rapid-reassign
+  // interleaving case: an override that no longer matches SSR (the user reassigned again)
+  // is left intact until ITS own refresh lands, so the card never flickers to stale SSR.
+  useEffect(() => {
+    if (isGroupMutationPending) return; // wait for the RSC refresh to settle
+    setGroupOverrides((current) => {
+      if (Object.keys(current).length === 0) return current;
+      let changed = false;
+      const next = { ...current };
+      for (const item of displayLiveProjects) {
+        const id = item.project.id;
+        if (!Object.prototype.hasOwnProperty.call(next, id)) continue;
+        // SSR is authoritative for this id ⇒ drop the now-redundant override.
+        if ((item.groupId ?? null) === (next[id] ?? null)) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [isGroupMutationPending, displayLiveProjects]);
   const expandedProjectItem = useMemo(
     () => expandedProject ? projectItems.find((item) => item.project.id === expandedProject.id) ?? null : null,
     [expandedProject, projectItems],
@@ -734,6 +793,101 @@ export function ProjectsPageClient({
     });
   }
 
+  // LD-6 optimistic single-card move. Set the override immediately, then wrap the action
+  // call AND router.refresh() in startTransition so isGroupMutationPending tracks the RSC
+  // refresh. router.refresh() is NON-awaitable (returns void) — there is NO .then() to
+  // clear in. The override is cleared by the reconciliation effect below, never here. On
+  // failure: restore the previous override value (or delete the key if none) + toast.
+  function assignProjectToGroup(projectId: string, nextGroupId: string | null) {
+    const hadOverride = Object.prototype.hasOwnProperty.call(groupOverrides, projectId);
+    const previousOverride = groupOverrides[projectId];
+    setGroupOverrides((current) => ({ ...current, [projectId]: nextGroupId }));
+    setPendingGroupProjectId(projectId);
+    startTransition(() => {
+      void moveProjectToGroup({ projectId, groupId: nextGroupId })
+        .then(() => {
+          // LD-6: trigger the RSC refresh INSIDE the transition so isPending tracks it.
+          // Do NOT clear the override here — the reconciliation effect clears it once SSR
+          // is authoritative.
+          router.refresh();
+        })
+        .catch(() => {
+          setGroupOverrides((current) => {
+            const next = { ...current };
+            if (hadOverride) next[projectId] = previousOverride;
+            else delete next[projectId];
+            return next;
+          });
+          toast({ message: "Could not move the project. Try again.", tone: "error" });
+        })
+        .finally(() => setPendingGroupProjectId(null));
+    });
+  }
+
+  // LD-5/LD-11 optimistic bulk move. Reads the assignment-specific selection
+  // (selectedAssignableProjectIds), NOT the delete selection. The action returns the
+  // typed { movedProjectIds, skippedProjectIds }: keep moved ids optimistic (cleared by
+  // the reconciliation effect once SSR is authoritative), roll back skipped ids
+  // immediately, and toast partial failure with tone "error" (ToastTone has no "warning").
+  function bulkAssignSelectedToGroup(nextGroupId: string | null) {
+    const ids = selectedAssignableProjectIds; // LD-5: assignment selection, not delete selection
+    if (ids.length === 0) return;
+    const snapshot = new Map(
+      ids.map(
+        (id) =>
+          [id, [Object.prototype.hasOwnProperty.call(groupOverrides, id), groupOverrides[id]] as const] as const,
+      ),
+    );
+    setGroupOverrides((current) => {
+      const next = { ...current };
+      for (const id of ids) next[id] = nextGroupId;
+      return next;
+    });
+    startTransition(() => {
+      void bulkAssignProjectsToGroup({ projectIds: ids, groupId: nextGroupId })
+        .then((result) => {
+          // LD-11: roll back the skipped ids (not owned / not verified); keep moved ids
+          // optimistic until the refresh makes SSR authoritative.
+          const skipped = new Set(result.skippedProjectIds);
+          if (skipped.size > 0) {
+            setGroupOverrides((current) => {
+              const next = { ...current };
+              for (const id of ids) {
+                if (!skipped.has(id)) continue;
+                const [had, prev] = snapshot.get(id)!;
+                if (had) next[id] = prev;
+                else delete next[id];
+              }
+              return next;
+            });
+            toast({
+              message:
+                result.movedProjectIds.length > 0
+                  ? `Moved ${result.movedProjectIds.length}; ${skipped.size} could not be moved.`
+                  : "Could not move the selected projects. Try again.",
+              tone: "error",
+            });
+          }
+          // LD-6: trigger the refresh inside the transition; the reconciliation effect
+          // clears the moved overrides once SSR reflects them. Never clear here.
+          router.refresh();
+        })
+        .catch(() => {
+          // Total failure (threw before returning a result): roll back EVERY id.
+          setGroupOverrides((current) => {
+            const next = { ...current };
+            for (const id of ids) {
+              const [had, prev] = snapshot.get(id)!;
+              if (had) next[id] = prev;
+              else delete next[id];
+            }
+            return next;
+          });
+          toast({ message: "Could not move the selected projects. Try again.", tone: "error" });
+        });
+    });
+  }
+
   function toggleProjectFavorite(projectId: string, nextFavorite: boolean) {
     const item = projectItems.find((entry) => entry.project.id === projectId);
     const previousFavorite = favoriteIds.has(projectId);
@@ -774,6 +928,50 @@ export function ProjectsPageClient({
     );
   }
 
+  // D8 card kebab: the per-card "Move to group" menu, rendered in the LiveProjectCard
+  // DETAILS-ACTION menu (not the C3 hover overlay) via the optional groupAssignMenu prop.
+  // Only owned cards in Group mode get it. The checked item reflects the EFFECTIVE current
+  // group (override wins over SSR, LD-10 trailing Check via DropdownMenu.Item selected).
+  function renderProjectGroupMenu(item: ProjectListItem): ReactNode {
+    if (item.accessKind !== "owned" || organizeBy !== "group") return undefined;
+    const override = groupOverrides[item.project.id];
+    const effectiveGroupId = override !== undefined ? override : item.groupId ?? null;
+    const busy = pendingGroupProjectId === item.project.id;
+    return (
+      <DropdownMenu
+        align="end"
+        trigger={
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-xs"
+            className="size-6 border-hairline bg-white"
+            aria-label={`Move ${item.project.name} to a group`}
+            aria-busy={busy}
+          >
+            <FolderSimple size={13} weight="regular" aria-hidden="true" />
+          </Button>
+        }
+      >
+        {projectGroups.map((group) => (
+          <DropdownMenu.Item
+            key={group.id}
+            label={group.name}
+            // LD-10: the current (effective, override-aware) group shows a trailing Check.
+            selected={effectiveGroupId === group.id}
+            onClick={() => assignProjectToGroup(item.project.id, group.id)}
+          />
+        ))}
+        <DropdownMenu.Item
+          label="Ungrouped"
+          selected={effectiveGroupId === null}
+          onClick={() => assignProjectToGroup(item.project.id, null)}
+          disabled={effectiveGroupId === null}
+        />
+      </DropdownMenu>
+    );
+  }
+
   function renderLiveProjectCard(item: ProjectListItem) {
     const canFavoriteProject = item.accessKind === "owned";
 
@@ -797,6 +995,7 @@ export function ProjectsPageClient({
         onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
         onToggleFavorite={canFavoriteProject ? toggleProjectFavorite : undefined}
         onExpand={setExpandedProject}
+        groupAssignMenu={renderProjectGroupMenu(item)}
       />
     );
   }
@@ -1049,6 +1248,32 @@ export function ProjectsPageClient({
         aria-label={activeTab === "your-projects" ? "Projects" : "Shared"}
         className={cn("space-y-2", selectedVisibleProjectIds.length ? "pb-20" : null)}
       >
+        {/* D9 bulk "Move to group" affordance. In-flow (NOT the fixed delete dock, to
+            avoid colliding with the C2 delete-dock contract), gated on group mode + Your
+            Projects. LD-5: it reads selectedAssignableProjectIds (the assignment selection),
+            so an owned project blocked from delete by a shared link is still bulk-groupable. */}
+        {selectedAssignableProjectIds.length > 0 && organizeBy === "group" && activeTab === "your-projects" ? (
+          <div className="flex justify-center" data-bulk-move-to-group="">
+            <DropdownMenu
+              align="start"
+              trigger={
+                <Button type="button" variant="secondary" size="sm" className="h-7 gap-1 px-2">
+                  <FolderSimple size={12} weight="regular" aria-hidden="true" />
+                  Move to group
+                </Button>
+              }
+            >
+              {projectGroups.map((group) => (
+                <DropdownMenu.Item
+                  key={group.id}
+                  label={group.name}
+                  onClick={() => bulkAssignSelectedToGroup(group.id)}
+                />
+              ))}
+              <DropdownMenu.Item label="Ungrouped" onClick={() => bulkAssignSelectedToGroup(null)} />
+            </DropdownMenu>
+          </div>
+        ) : null}
         <BulkActionToolbar
           selectedCount={selectedVisibleProjectIds.length}
           actionLabel="Delete selected projects"

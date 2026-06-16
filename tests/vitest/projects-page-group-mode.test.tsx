@@ -351,3 +351,215 @@ describe("ManageGroupsPopover via ProjectsPageClient", () => {
     expect(within(dialog).getByRole("button", { name: "Add group" })).toBeDisabled();
   });
 });
+
+describe("ProjectsPageClient group assignment", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    Object.values(mocks).forEach((m) => "mockClear" in m && m.mockClear());
+    window.localStorage.setItem("archestimator_projects_organize_by_v1", "group");
+  });
+
+  const assignGroups: ProjectGroupSummary[] = [{ id: "g1", name: "Pipeline", accentId: null, position: 0 }];
+
+  it("optimistically moves a card to a group, calls the action, and triggers the RSC refresh (LD-6)", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={assignGroups}
+      />,
+    );
+    // Card starts in Ungrouped.
+    expect(within(screen.getByLabelText("Ungrouped")).getByRole("article")).toHaveTextContent("Loose");
+
+    await user.click(screen.getByRole("button", { name: "Move Loose to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+
+    expect(mocks.moveProjectToGroup).toHaveBeenCalledWith({ projectId: "p1", groupId: "g1" });
+    // Optimistic: card now appears under Pipeline.
+    expect(within(screen.getByLabelText("Pipeline")).getByRole("article")).toHaveTextContent("Loose");
+    // LD-6: the override is cleared by the reconciliation EFFECT once SSR is authoritative,
+    // NOT inside a router.refresh().then(). Here we only assert the refresh was triggered;
+    // the no-flicker reconciliation invariant is pinned by the interleaving test below.
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it("restores the prior bucket and toasts when the move action rejects", async () => {
+    const user = userEvent.setup();
+    mocks.moveProjectToGroup.mockRejectedValueOnce(new Error("nope"));
+    // MUST use renderClient (wraps ToastProvider). Bare render() gives useToast()
+    // the noopToastContext, so the toast renders nothing and getByText below throws.
+    renderClient(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Move Loose to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+    // Provider-independent assertion FIRST: the rolled-back bucket state proves the
+    // catch path ran even if the toast harness were ever misconfigured.
+    await waitFor(() => expect(within(screen.getByLabelText("Ungrouped")).getByRole("article")).toHaveTextContent("Loose"));
+    // Toast copy assertion — only resolvable because renderClient mounted ToastProvider.
+    expect(screen.getByText("Could not move the project. Try again.")).toBeInTheDocument();
+  });
+
+  it("bulk-moves selected owned projects via the dock affordance", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "One" }, { groupId: null }),
+          item({ id: "p2", name: "Two" }, { groupId: null }),
+        ]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await user.click(within(screen.getByLabelText("One project, owned access")).getByRole("checkbox", { name: "Select One for deletion" }));
+    await user.click(within(screen.getByLabelText("Two project, owned access")).getByRole("checkbox", { name: "Select Two for deletion" }));
+
+    await user.click(screen.getByRole("button", { name: "Move to group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+
+    expect(mocks.bulkAssignProjectsToGroup).toHaveBeenCalledWith({ projectIds: ["p1", "p2"], groupId: "g1" });
+  });
+
+  it("(LD-5) bulk-assigns an OWNED project that the delete flow would BLOCK (active shared link) — assignment never consults the delete gate", async () => {
+    const user = userEvent.setup();
+    // The assignment selection is its OWN source (selectedAssignableProjectIds), filtered by
+    // canAssignProjectToGroup (accessKind === "owned") and read by the "Move to group"
+    // affordance — it is NOT the delete-execution-gated selectedVisibleProjectIds. p1 is an
+    // owned project with an active outbound shared link: the delete EXECUTION would surface
+    // it as a `blocked` id from previewBulkDeleteProjects (you cannot trash a project with a
+    // live share), yet D9 requires it to remain bulk-GROUPABLE.
+    render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Shared Out" }, { groupId: null, sharedEstimateCount: 2 })]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await user.click(within(screen.getByLabelText("Shared Out project, owned access")).getByRole("checkbox", { name: /select shared out/i }));
+
+    await user.click(screen.getByRole("button", { name: "Move to group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+
+    // It was bulk-assigned even though the delete flow would block it.
+    expect(mocks.bulkAssignProjectsToGroup).toHaveBeenCalledWith({ projectIds: ["p1"], groupId: "g1" });
+  });
+
+  it("(LD-11) keeps moved ids optimistic, rolls back SKIPPED ids, and toasts the partial result", async () => {
+    const user = userEvent.setup();
+    // The action reports only p1 moved; p2 skipped (e.g. lost ownership between read+write).
+    mocks.bulkAssignProjectsToGroup.mockResolvedValueOnce({ movedProjectIds: ["p1"], skippedProjectIds: ["p2"] });
+    renderClient(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "One" }, { groupId: null }),
+          item({ id: "p2", name: "Two" }, { groupId: null }),
+        ]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await user.click(within(screen.getByLabelText("One project, owned access")).getByRole("checkbox", { name: /select one/i }));
+    await user.click(within(screen.getByLabelText("Two project, owned access")).getByRole("checkbox", { name: /select two/i }));
+    await user.click(screen.getByRole("button", { name: "Move to group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+
+    // Moved id stays under Pipeline (optimistic, until SSR reconciles); skipped id rolls
+    // back to Ungrouped immediately.
+    await waitFor(() => expect(within(screen.getByLabelText("Pipeline")).getByRole("article")).toHaveTextContent("One"));
+    expect(within(screen.getByLabelText("Ungrouped")).getByRole("article")).toHaveTextContent("Two");
+    expect(screen.getByText(/Moved 1; 1 could not be moved\./)).toBeInTheDocument();
+  });
+
+  it("(LD-6) a rapid re-assign during a pending refresh does NOT flicker back to stale SSR", async () => {
+    const user = userEvent.setup();
+    // Hold the move action open so isPending stays true through the second click,
+    // simulating an in-flight RSC refresh while the user reassigns again.
+    let resolveFirst: () => void = () => {};
+    mocks.moveProjectToGroup.mockImplementationOnce(
+      () => new Promise<void>((resolve) => { resolveFirst = () => resolve(undefined); }),
+    );
+    render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={[
+          { id: "g1", name: "Pipeline", accentId: null, position: 0 },
+          { id: "g2", name: "Archive", accentId: null, position: 1 },
+        ]}
+      />,
+    );
+    // First move → Pipeline (action stays pending).
+    await user.click(screen.getByRole("button", { name: "Move Loose to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+    expect(within(screen.getByLabelText("Pipeline")).getByRole("article")).toHaveTextContent("Loose");
+
+    // Re-assign → Archive BEFORE the first refresh settles. The override is now g2.
+    await user.click(screen.getByRole("button", { name: "Move Loose to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Archive" }));
+    expect(within(screen.getByLabelText("Archive")).getByRole("article")).toHaveTextContent("Loose");
+
+    // Resolve the FIRST action. Its router.refresh() fires, but the SSR prop still has
+    // groupId:null (the test never re-feeds props), so the reconciliation effect MUST
+    // NOT clear the g2 override (SSR != override) — the card stays under Archive, never
+    // flickering back to Ungrouped/Pipeline.
+    resolveFirst();
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    expect(within(screen.getByLabelText("Archive")).getByRole("article")).toHaveTextContent("Loose");
+    expect(screen.queryByLabelText("Pipeline")?.querySelector('[role="article"]')).toBeFalsy();
+  });
+});
+
+describe("ProjectsPageClient group a11y + responsiveness", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    Object.values(mocks).forEach((m) => "mockClear" in m && m.mockClear());
+    window.localStorage.setItem("archestimator_projects_organize_by_v1", "group");
+  });
+
+  it("keeps the accent decorative (aria-hidden) and the label/count the real signal", () => {
+    render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" })]}
+        projectGroups={[{ id: "g1", name: "Pipeline", accentId: "teal", position: 0 }]}
+      />,
+    );
+    const section = screen.getByLabelText("Pipeline");
+    expect(section.querySelector("[data-project-group-accent-rule]")).toHaveAttribute("aria-hidden", "true");
+    expect(section.querySelector("[data-project-group-accent-dot]")).toHaveAttribute("aria-hidden", "true");
+    expect(section.querySelector("[data-project-group-label]")).toHaveClass("text-secondary");
+  });
+
+  it("toggles a group via keyboard on the collapse caret", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" })]}
+        projectGroups={[{ id: "g1", name: "Pipeline", accentId: null, position: 0 }]}
+      />,
+    );
+    const caret = within(screen.getByLabelText("Pipeline")).getByRole("button", { name: /collapse pipeline/i });
+    caret.focus();
+    await user.keyboard("{Enter}");
+    expect(within(screen.getByLabelText("Pipeline")).queryAllByRole("article")).toHaveLength(0);
+  });
+
+  it.each(["small", "medium", "large", "list"] as const)(
+    "renders group mode in %s view with the shared grid layout",
+    async (mode) => {
+      const user = userEvent.setup();
+      render(
+        <ProjectsPageClient
+          projects={[item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" })]}
+          projectGroups={[{ id: "g1", name: "Pipeline", accentId: null, position: 0 }]}
+        />,
+      );
+      await user.click(screen.getByRole("combobox", { name: "View" }));
+      await user.click(screen.getByRole("option", { name: mode === "small" ? "Small" : mode === "medium" ? "Medium" : mode === "large" ? "Large" : "List" }));
+      await waitFor(() =>
+        expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", mode),
+      );
+      expect(screen.getByLabelText("Pipeline")).toBeInTheDocument();
+    },
+  );
+});
