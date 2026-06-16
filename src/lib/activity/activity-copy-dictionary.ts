@@ -18,6 +18,7 @@ export const ESTIMATE_EVENT_ACTIONS: Record<string, ActivityAction> = {
   tab_created: "created",
   tab_renamed: "renamed",
   tab_reordered: "reorganized",
+  tabs_reordered: "reorganized",
   tab_duplicated: "created",
   tab_archived: "removed",
   tab_deleted: "deleted",

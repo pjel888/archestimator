@@ -30,6 +30,9 @@ const actionMocks = vi.hoisted(() => ({
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),
 }));
+const workshopActionMocks = vi.hoisted(() => ({
+  setEstimateFavorite: vi.fn(),
+}));
 
 const repositoryMocks = vi.hoisted(() => ({
   getEstimateTree: vi.fn(),
@@ -41,6 +44,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/workshop/actions", () => workshopActionMocks);
 vi.mock("@/lib/repositories/estimate-repository", () => ({
   estimateRepository: repositoryMocks,
 }));
@@ -94,6 +98,8 @@ function makeEstimate(index: number): ProjectEstimateTableRow {
     rowItemCount: 200,
     sheet_code: `PERF-${suffix}`,
     totalProjectCost: 250_000 + index * 1_000,
+    isFavorite: false,
+    favoriteCreatedAt: null,
     updated_at: "2026-05-31T00:00:00.000Z",
   };
 }

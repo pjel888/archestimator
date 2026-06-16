@@ -35,6 +35,9 @@ type CostDonutChartProps = {
    * a clean ring in a narrow cell instead of crowding edge-anchored callouts.
    */
   hideCallouts?: boolean;
+  activeBucketId?: string | null;
+  onActiveBucketChange?: (bucketId: string | null) => void;
+  calloutTextSize?: "default" | "large";
   /**
    * Optional class applied to the inner chart container (the explicit-size
    * wrapper around the SVG). Useful when the consumer needs a different fixed
@@ -260,8 +263,16 @@ export function CostDonutChart({
   describedById,
   hideCallouts = false,
   containerClassName,
+  activeBucketId,
+  onActiveBucketChange,
+  calloutTextSize = "default",
 }: CostDonutChartProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [uncontrolledActiveId, setUncontrolledActiveId] = useState<string | null>(null);
+  const activeId = activeBucketId !== undefined ? activeBucketId : uncontrolledActiveId;
+  const setActiveId = (bucketId: string | null) => {
+    if (activeBucketId === undefined) setUncontrolledActiveId(bucketId);
+    onActiveBucketChange?.(bucketId);
+  };
   const dims = getChartDims(compact);
   const {
     WIDTH,
@@ -329,8 +340,8 @@ export function CostDonutChart({
 
   const centerFont = compact ? "text-[10px]" : "text-[11px]";
   const centerDy = compact ? 11 : 14;
-  const calloutLabelFont = compact ? "text-[8px]" : "text-[9px]";
-  const calloutValueFont = compact ? "text-[8px]" : "text-[9px]";
+  const calloutLabelFont = calloutTextSize === "large" ? "text-[11px]" : compact ? "text-[8px]" : "text-[9px]";
+  const calloutValueFont = calloutTextSize === "large" ? "text-[11px]" : compact ? "text-[8px]" : "text-[9px]";
 
   // Callout-less mode (dashboard cost mix): the breakdown table carries the
   // detail, so crop the viewBox tight around the ring (centred on CENTER_X/Y) to

@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   hasPublicationAccessCookie: vi.fn(),
+  readPublicationViewSnapshotVersion: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   checkSharedLinkCommentReadRateLimit: vi.fn(),
   checkSharedLinkCommentRateLimit: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
   hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
+  readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
 }));
 

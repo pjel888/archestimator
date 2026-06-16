@@ -67,6 +67,11 @@ function createProjectItem(
   };
 }
 
+async function selectViewMode(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await user.click(screen.getByRole("combobox", { name: "View" }));
+  await user.click(screen.getByRole("option", { name: label }));
+}
+
 describe("ProjectsPageClient view modes", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -81,24 +86,15 @@ describe("ProjectsPageClient view modes", () => {
       "data-project-view-mode",
       "large",
     );
-    expect(screen.getByRole("button", { name: "View projects as Large thumbnails" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(
-      within(screen.getByRole("group", { name: "Project view mode" })).getByRole("button", {
-        name: "View projects as Large thumbnails",
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: Large");
     expect(
       screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement,
     ).toHaveClass("ml-auto");
     expect(
-      screen.getByRole("button", { name: "View projects as Large thumbnails" }).parentElement
-        ?.parentElement,
+      screen.getByRole("combobox", { name: "View" }).closest("[role='group']"),
     ).not.toHaveClass("ml-auto");
 
-    await user.click(screen.getByRole("button", { name: "View projects as Small thumbnails" }));
+    await selectViewMode(user, "View: Small");
 
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -112,7 +108,7 @@ describe("ProjectsPageClient view modes", () => {
     );
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("small");
 
-    await user.click(screen.getByRole("button", { name: "View projects as Medium thumbnails" }));
+    await selectViewMode(user, "View: Medium");
 
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -138,10 +134,7 @@ describe("ProjectsPageClient view modes", () => {
         "list",
       );
     });
-    expect(screen.getByRole("button", { name: "View projects as List" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: List");
     expect(container.querySelector("[data-project-card-view]")).toHaveAttribute(
       "data-project-card-view",
       "list",
@@ -225,17 +218,15 @@ describe("ProjectsPageClient view modes", () => {
     const publishedCard = screen.getByLabelText("Lewis Residence project, owned access");
     const plainCard = screen.getByLabelText("Harbour Box project, owned access");
 
-    const publishedStatusSlot = publishedCard.querySelector("[data-project-card-status-slot]");
     const plainStatusSlot = plainCard.querySelector("[data-project-card-status-slot]");
-    expect(publishedStatusSlot).toHaveTextContent("Shared link");
     expect(plainStatusSlot).toHaveTextContent("");
 
-    const publishedPublicationSlot = publishedCard.querySelector("[data-project-card-publication-meta-slot]");
-    const plainPublicationSlot = plainCard.querySelector("[data-project-card-publication-meta-slot]");
-    expect(publishedPublicationSlot).toHaveTextContent("1 open");
-    expect(publishedPublicationSlot).toHaveTextContent("Password off");
-    expect(plainPublicationSlot).not.toBeNull();
-    expect(plainPublicationSlot).toHaveTextContent("");
+    const publishedSharedLinkMeta = publishedCard.querySelector("[data-project-card-shared-link-meta]");
+    const plainSharedLinkMeta = plainCard.querySelector("[data-project-card-shared-link-meta]");
+    expect(publishedCard.querySelector("[data-project-card-shared-link-indicator]")).not.toBeNull();
+    expect(publishedSharedLinkMeta).toHaveTextContent("1 open");
+    expect(publishedSharedLinkMeta).not.toHaveTextContent("Password off");
+    expect(plainSharedLinkMeta).toHaveTextContent("No opens");
   });
 
   it("guides first-run users to create a live project while keeping samples as references", async () => {

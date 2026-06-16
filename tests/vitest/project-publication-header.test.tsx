@@ -492,6 +492,49 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(publicationActions.rotateProjectPublicationLink).not.toHaveBeenCalled();
   });
 
+  it("requires a replacement password before minting a fresh token for an expired protected link", async () => {
+    publicationActions.createProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared link ready.",
+      clientLinkPath: "/share/brand-new-protected-token",
+    });
+
+    const user = userEvent.setup();
+    const expiredProtectedSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      status: "expired",
+      passwordRequired: true,
+      expiresAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    render(
+      <ProjectPublicationHeader summary={expiredProtectedSummary} projectEstimateSheets={sampleEstimateSheets} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+
+    const createNewLinkButton = within(dialog).getByRole("button", { name: "Create new link instead" });
+    expect(createNewLinkButton).toBeDisabled();
+    expect(
+      within(dialog).getByText(/enter a new password on the access tab before creating a brand-new protected link/i),
+    ).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.type(within(dialog).getByLabelText("Link password"), "replacement-pass");
+
+    expect(createNewLinkButton).toBeEnabled();
+    await user.click(createNewLinkButton);
+    await user.click(screen.getByRole("button", { name: "Create new link" }));
+
+    expect(publicationActions.createProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1", "est-2"],
+      password: "replacement-pass",
+      expiresAt: null,
+    });
+  });
+
   it("gates the fresh-token 'Create new link instead' path behind a confirm in the expired state", async () => {
     publicationActions.createProjectPublication.mockResolvedValueOnce({
       ok: true,

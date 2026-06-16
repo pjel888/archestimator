@@ -32,8 +32,9 @@ vi.mock("@/components/workshop/component-library-manager/ComponentLibraryManager
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 
-function makeFixture(itemCount: number): ComponentRowsLibraryDataset {
+function makeFixture(itemCount: number, workspaceId = "workspace-a"): ComponentRowsLibraryDataset {
   return {
+    workspaceId,
     categoryTree: [],
     suppliers: [],
     brands: [],
@@ -59,7 +60,7 @@ describe("Components tab TanStack Query cache (P0 T3)", () => {
     expect(loadRowsSpy).toHaveBeenCalledTimes(0);
   });
 
-  it("renders the second mount from the warm shared cache (no refetch)", async () => {
+  it("renders the second mount for the same workspace from the warm scoped cache (no refetch)", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const fixture = makeFixture(5);
     const first = render(
@@ -73,10 +74,37 @@ describe("Components tab TanStack Query cache (P0 T3)", () => {
     // Second mount shares the same QueryClient — the entry is warm.
     render(
       <QueryClientProvider client={qc}>
-        <LibraryPageClient />
+        <LibraryPageClient initialLibrary={fixture} />
       </QueryClientProvider>,
     );
     expect(await screen.findByTestId("manager")).toHaveTextContent("items:5");
+    expect(loadRowsSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("does not reuse a warm cache entry across workspace scopes", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const first = render(
+      <QueryClientProvider client={qc}>
+        <LibraryPageClient initialLibrary={makeFixture(5, "workspace-a")} />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByTestId("manager")).toHaveTextContent("items:5");
+    first.unmount();
+
+    render(
+      <QueryClientProvider client={qc}>
+        <LibraryPageClient initialLibrary={makeFixture(2, "workspace-b")} />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByTestId("manager")).toHaveTextContent("items:2");
+    expect(
+      qc.getQueryData<ComponentRowsLibraryDataset>(["workspace-component-rows-library", "workspace", "workspace-a"])
+        ?.libraryItems,
+    ).toHaveLength(5);
+    expect(
+      qc.getQueryData<ComponentRowsLibraryDataset>(["workspace-component-rows-library", "workspace", "workspace-b"])
+        ?.libraryItems,
+    ).toHaveLength(2);
     expect(loadRowsSpy).toHaveBeenCalledTimes(0);
   });
 
@@ -93,7 +121,7 @@ describe("Components tab TanStack Query cache (P0 T3)", () => {
     fireEvent.click(screen.getByTestId("add-via-cache"));
     await waitFor(() => expect(screen.getByTestId("manager")).toHaveTextContent("items:3"));
     // The cache entry itself was updated (durable across remounts), not router.refresh.
-    const cached = qc.getQueryData<ComponentRowsLibraryDataset>(["workspace-component-rows-library"]);
+    const cached = qc.getQueryData<ComponentRowsLibraryDataset>(["workspace-component-rows-library", "workspace", "workspace-a"]);
     expect(cached?.libraryItems).toHaveLength(3);
     expect(loadRowsSpy).toHaveBeenCalledTimes(0);
   });

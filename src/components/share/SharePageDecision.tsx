@@ -9,6 +9,7 @@ type DecisionType = "accepted" | "declined" | "revision_requested";
 
 interface SharePageDecisionProps {
   token: string;
+  viewToken: string;
 }
 
 interface DecisionState {
@@ -62,7 +63,7 @@ function normalizeDecision(payload: DecisionGetResponse["decision"]): DecisionSt
   };
 }
 
-export default function SharePageDecision({ token }: SharePageDecisionProps) {
+export default function SharePageDecision({ token, viewToken }: SharePageDecisionProps) {
   const { isValid } = useSharedLinkSession();
   const [decided, setDecided] = useState<DecisionState | null>(null);
   const [pendingDecision, setPendingDecision] = useState<DecisionType | null>(null);
@@ -168,6 +169,7 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
     const payload = {
       decision: pendingDecision,
       note: noteDraft.trim() || null,
+      viewToken,
     };
 
     try {
