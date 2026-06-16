@@ -54,12 +54,21 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
     let speed = 0;
 
     const tick = () => {
-      if (speed !== 0) {
-        scroller.scrollTop += speed;
-        frame = requestAnimationFrame(tick);
-      } else {
+      if (speed === 0) {
         frame = null;
+        return;
       }
+
+      const previousScrollTop = scroller.scrollTop;
+      scroller.scrollTop += speed;
+
+      if (scroller.scrollTop === previousScrollTop) {
+        speed = 0;
+        frame = null;
+        return;
+      }
+
+      frame = requestAnimationFrame(tick);
     };
 
     const stop = () => {
@@ -73,20 +82,42 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
     const handleDragOver = (event: DragEvent) => {
       const rect = scroller.getBoundingClientRect();
       speed = computeEdgeScrollSpeed(event.clientY, rect.top, rect.bottom);
-      if (speed !== 0 && frame === null) frame = requestAnimationFrame(tick);
+      if (speed === 0) {
+        stop();
+        return;
+      }
+      if (frame === null) frame = requestAnimationFrame(tick);
+    };
+
+    const handleDragLeave = (event: DragEvent) => {
+      if (event.relatedTarget instanceof Node && scroller.contains(event.relatedTarget)) return;
+      const rect = scroller.getBoundingClientRect();
+      if (
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      ) {
+        return;
+      }
+      stop();
     };
 
     scroller.addEventListener("dragover", handleDragOver);
+    scroller.addEventListener("dragleave", handleDragLeave);
     // A drag that ends or drops anywhere must halt the loop, even if the pointer
     // was sitting in the hot zone (a drop at the very bottom edge otherwise
     // scrolls forever). dragend fires on the source, so listen at the document.
-    document.addEventListener("dragend", stop);
-    document.addEventListener("drop", stop);
+    document.addEventListener("dragend", stop, { capture: true });
+    document.addEventListener("drop", stop, { capture: true });
+    window.addEventListener("blur", stop);
 
     return () => {
       scroller.removeEventListener("dragover", handleDragOver);
-      document.removeEventListener("dragend", stop);
-      document.removeEventListener("drop", stop);
+      scroller.removeEventListener("dragleave", handleDragLeave);
+      document.removeEventListener("dragend", stop, { capture: true });
+      document.removeEventListener("drop", stop, { capture: true });
+      window.removeEventListener("blur", stop);
       stop();
     };
   }, [anchorRef, enabled]);
