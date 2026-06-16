@@ -8,34 +8,25 @@ export function replaceOptimisticTemplateRoots(
 ): EstimateTreeNode[] {
   const committedRootNodeIds = new Set(committedRootNodes.map((node) => node.id));
 
-  return nodes.map((node) => {
+  function reconcileNode(node: EstimateTreeNode): EstimateTreeNode {
+    const nextChildren = (node.children ?? []).flatMap((child) => {
+      if (optimisticRootNodeIds.has(child.id) || committedRootNodeIds.has(child.id)) return [];
+      return [reconcileNode(child)];
+    });
+
     if (node.id === targetParentNodeId) {
-      let didInsertCommittedRoots = false;
-      const nextChildren: EstimateTreeNode[] = [];
-
-      for (const child of node.children ?? []) {
-        if (optimisticRootNodeIds.has(child.id)) {
-          if (!didInsertCommittedRoots) {
-            nextChildren.push(...committedRootNodes);
-            didInsertCommittedRoots = true;
-          }
-          continue;
-        }
-
-        if (!committedRootNodeIds.has(child.id)) nextChildren.push(child);
-      }
-
-      if (!didInsertCommittedRoots) nextChildren.push(...committedRootNodes);
-      return { ...node, children: nextChildren };
+      return { ...node, children: [...nextChildren, ...committedRootNodes] };
     }
 
     return {
       ...node,
-      children: node.children
-        ? replaceOptimisticTemplateRoots(node.children, targetParentNodeId, optimisticRootNodeIds, committedRootNodes)
-        : node.children,
+      children: node.children ? nextChildren : node.children,
     };
-  });
+  }
+
+  return nodes
+    .filter((node) => !optimisticRootNodeIds.has(node.id) && !committedRootNodeIds.has(node.id))
+    .map(reconcileNode);
 }
 
 export function collectEstimateRowItemIds(nodes: EstimateTreeNode[]): Set<string> {

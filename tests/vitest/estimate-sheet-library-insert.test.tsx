@@ -727,10 +727,14 @@ describe("estimate sheet library insertion persistence", () => {
       ...optimisticCommittedRoot,
       id: "server-template-committed",
     };
+    const laterEditedKitchenWithMovedOptimisticRoot: EstimateTreeNode = {
+      ...laterEditedKitchen,
+      children: [...(laterEditedKitchen.children ?? []), optimisticFailedRoot],
+    };
     const currentTreeAfterLaterEdit: EstimateTreeNode[] = [
       {
         ...nodesWithGroup[0],
-        children: [laterEditedKitchen, optimisticCommittedRoot, optimisticFailedRoot],
+        children: [laterEditedKitchenWithMovedOptimisticRoot, optimisticCommittedRoot],
       },
     ];
 
@@ -750,6 +754,7 @@ describe("estimate sheet library insertion persistence", () => {
       quantity: 7,
       totalItemCosts: 710,
     });
+    expect(reconciledGroup.children?.[0].children?.map((node) => node.id)).not.toContain(optimisticFailedRoot.id);
   });
 
   it("keeps a committed quantity edit visible while the server save is delayed", async () => {
