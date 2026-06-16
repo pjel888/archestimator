@@ -3444,6 +3444,17 @@ export type Database = {
         Args: { target_project_id: string }
         Returns: boolean
       }
+      check_security_rate_limit_event: {
+        Args: {
+          event_expires_at: string
+          event_key_hash: string
+          event_metadata_json: Json
+          event_scope: string
+          max_events: number
+          window_start: string
+        }
+        Returns: boolean
+      }
       can_manage_collaboration_invitation: {
         Args: {
           target_estimate_id: string

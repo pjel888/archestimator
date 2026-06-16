@@ -122,7 +122,7 @@ function mockSearchPrefilter(
 
 function mockReusableSearchRateLimit() {
   const events: Array<{ scope: string; key_hash: string; occurred_at: string; expires_at: string }> = [];
-  const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
+  const calls: Array<{ table?: string; method: string; args: unknown[] }> = [];
   const makeBuilder = (table: string) => {
     const filters: Array<{ method: string; column: string; value: unknown }> = [];
     const builder = {
@@ -170,6 +170,33 @@ function mockReusableSearchRateLimit() {
   };
   supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
     from: (table: string) => makeBuilder(table),
+    rpc: (functionName: string, args: {
+      event_scope: string;
+      event_key_hash: string;
+      event_expires_at: string;
+      max_events: number;
+      window_start: string;
+    }) => {
+      calls.push({ method: "rpc", args: [functionName, args] });
+      events.splice(0, events.length, ...events.filter((event) =>
+        !(event.scope === args.event_scope
+          && event.key_hash === args.event_key_hash
+          && event.expires_at < new Date().toISOString())
+      ));
+      const currentEvents = events.filter((event) =>
+        event.scope === args.event_scope
+        && event.key_hash === args.event_key_hash
+        && event.occurred_at >= args.window_start
+      ).length;
+      if (currentEvents >= args.max_events) return Promise.resolve({ data: false, error: null });
+      events.push({
+        scope: args.event_scope,
+        key_hash: args.event_key_hash,
+        occurred_at: new Date().toISOString(),
+        expires_at: args.event_expires_at,
+      });
+      return Promise.resolve({ data: true, error: null });
+    },
   });
   return { calls, events };
 }
@@ -491,8 +518,8 @@ describe("reusable project source actions", () => {
     expect(supabaseServiceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith(
       "archestimator-reusable-source-search-rate-limit",
     );
-    expect(rateLimit.calls.some((call) => call.table === "security_rate_limit_events" && call.method === "insert")).toBe(true);
-    expect(rateLimit.events).toHaveLength(21);
+    expect(rateLimit.calls.filter((call) => call.method === "rpc")).toHaveLength(21);
+    expect(rateLimit.events).toHaveLength(20);
   });
 
   it("bounds project and estimate retrieval before prefilter work", async () => {

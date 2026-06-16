@@ -159,29 +159,17 @@ async function assertReusableProjectSourceSearchRateLimit(userId: string, now = 
   const expiresAt = new Date(now + REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS).toISOString();
   const windowStart = new Date(now - REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS).toISOString();
 
-  const { error: cleanupError } = await supabase
-    .from("security_rate_limit_events")
-    .delete()
-    .lt("expires_at", new Date(now).toISOString());
-  if (cleanupError) throw cleanupError;
-
-  const { error: insertError } = await supabase.from("security_rate_limit_events").insert({
-    scope: REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE,
-    key_hash: keyHash,
-    metadata_json: { route: "reusable_project_source_search" } satisfies Json,
-    expires_at: expiresAt,
+  const { data: allowed, error } = await supabase.rpc("check_security_rate_limit_event", {
+    event_expires_at: expiresAt,
+    event_key_hash: keyHash,
+    event_metadata_json: { route: "reusable_project_source_search" } satisfies Json,
+    event_scope: REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE,
+    max_events: REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT,
+    window_start: windowStart,
   });
-  if (insertError) throw insertError;
+  if (error) throw error;
 
-  const { count, error: countError } = await supabase
-    .from("security_rate_limit_events")
-    .select("id", { count: "exact", head: true })
-    .eq("scope", REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE)
-    .eq("key_hash", keyHash)
-    .gte("occurred_at", windowStart);
-  if (countError) throw countError;
-
-  if ((count ?? 0) > REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT) {
+  if (!allowed) {
     throw new Error("Please wait a moment before searching project sources again.");
   }
 }
