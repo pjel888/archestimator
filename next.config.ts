@@ -69,6 +69,15 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: supabaseImageRemotePatterns,
   },
+  async redirects() {
+    return [
+      {
+        source: "/workshop/projects/:projectId/charts",
+        destination: "/workshop/projects/:projectId/data",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     // P11: landing + about etc remain Report-Only (no behavior change)
     const landingReportOnly = [
