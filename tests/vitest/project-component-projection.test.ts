@@ -128,6 +128,7 @@ describe("project component projection", () => {
     expect(projection).toContain("name: project.name || \"Project\"");
     expect(projection).toContain("name: row.estimate_nodes?.estimates?.name?.trim() || \"Estimate Sheet\"");
     expect(sidebar).not.toContain("/workshop/projects/${projectId}/components");
-    expect(sidebar).not.toContain('label: "Components"');
+    expect(sidebar).toContain("`/workshop/projects/${projectId}/data?surface=components`");
+    expect(libraryPage).toContain("promotionEnabled={promotionEnabled}");
   });
 });

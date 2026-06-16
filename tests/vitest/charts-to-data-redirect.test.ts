@@ -4,8 +4,16 @@ import nextConfig from "../../next.config";
 import { describe, expect, it } from "vitest";
 
 const nextConfigSource = readFileSync("next.config.ts", "utf8");
+const chartsCompatRouteSource = readFileSync("src/app/workshop/projects/[projectId]/charts/page.tsx", "utf8");
 
 describe("charts route compatibility redirect", () => {
+  it("keeps a scoped route-level compatibility leaf that carries query strings to Data", () => {
+    expect(chartsCompatRouteSource).toContain("new URLSearchParams()");
+    expect(chartsCompatRouteSource).toContain("query.append(key, item)");
+    expect(chartsCompatRouteSource).toContain("query.set(key, value)");
+    expect(chartsCompatRouteSource).toContain("`/workshop/projects/${projectId}/data${query.size ? `?${query.toString()}` : \"\"}`");
+  });
+
   it("permanently redirects the retired charts URL to the Data route", () => {
     expect(nextConfigSource).toContain("async redirects()");
     expect(nextConfigSource).toContain('source: "/workshop/projects/:projectId/charts"');

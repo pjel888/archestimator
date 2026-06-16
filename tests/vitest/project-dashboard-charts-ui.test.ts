@@ -21,6 +21,8 @@ describe("project charts UI governance", () => {
     expect(projectMiniSidebar).toContain('label: "Data"');
     expect(projectChartsPage).toContain("getProjectDataRouteSummary");
     expect(projectChartsPage).toContain("ProjectDataClient");
+    expect(projectChartsPage).toContain('resolvedSearchParams?.surface === "components"');
+    expect(projectChartsPage).toContain("promotionEnabled={isExpressComponentPromotionEnabled()}");
     expect(projectChartsPage).not.toContain("ProjectChartsClient");
   });
 

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ChartBar, ChartBarHorizontal, ClipboardText } from "@phosphor-icons/react/dist/ssr";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ChartBar, ChartBarHorizontal, ClipboardText, Rows } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 type ProjectMiniSidebarProps = {
@@ -18,8 +18,10 @@ type ProjectSectionLink = {
 
 export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const estimateSheetPathPrefix = `/workshop/projects/${projectId}/estimates/`;
   const isEstimateSheetRoute = Boolean(pathname?.startsWith(estimateSheetPathPrefix));
+  const currentHref = `${pathname ?? ""}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
   const links: ProjectSectionLink[] = [
     {
       href: `/workshop/projects/${projectId}`,
@@ -37,7 +39,13 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       href: `/workshop/projects/${projectId}/data`,
       label: "Data",
       icon: ChartBarHorizontal,
-      exact: false,
+      exact: true,
+    },
+    {
+      href: `/workshop/projects/${projectId}/data?surface=components`,
+      label: "Components",
+      icon: Rows,
+      exact: true,
     },
   ];
 
@@ -48,7 +56,7 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
         {links.map((link) => {
           const Icon = link.icon;
-          const active = link.exact ? pathname === link.href : pathname === link.href || Boolean(pathname?.startsWith(`${link.href}/`));
+          const active = link.exact ? currentHref === link.href : pathname === link.href || Boolean(pathname?.startsWith(`${link.href}/`));
 
           return (
             <Link

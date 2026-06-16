@@ -45,9 +45,9 @@ describe("project dashboard core UI governance", () => {
   });
 
   it("does not expose the deleted project-level Components route", () => {
-    expect(projectMiniSidebar).not.toContain('label: "Components"');
     expect(projectMiniSidebar).not.toContain("SquaresFour");
     expect(projectMiniSidebar).not.toContain("/workshop/projects/${projectId}/components");
+    expect(projectMiniSidebar).toContain("`/workshop/projects/${projectId}/data?surface=components`");
   });
 
   it("keeps project details CRUD editing available from the project page", () => {
@@ -79,7 +79,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).not.toContain('label="Currency"');
     expect(projectDashboardClient).not.toContain('type="text"');
     expect(projectDashboardClient).not.toContain("formatBudgetInput");
-    expect(projectDashboardClient).toContain('value="PHP"');
+    expect(projectDashboardClient).toContain('name="currencyCode"');
+    expect(projectDashboardClient).toContain("value={currencyCode}");
     expect(projectDashboardClient).toContain("<textarea");
     expect(projectDashboardClient).toContain("!text-[10px] font-medium leading-3 text-secondary");
     expect(projectDashboardClient).not.toContain("grid grid-cols-2 gap-2");

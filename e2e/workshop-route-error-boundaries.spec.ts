@@ -42,7 +42,7 @@ test.describe("workshop route error boundary smoke", () => {
     await captureRouteErrorScreenshot(page, testInfo, "library-route-error-boundary.png");
   });
 
-  test("captures live charts and estimate route error boundary screenshots", async ({ page }, testInfo) => {
+  test("captures live data and estimate route error boundary screenshots", async ({ page }, testInfo) => {
     test.skip(!devAuthAdminEnabled, "Requires ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 to use seeded project and estimate data.");
 
     await page.goto("/workshop/projects", { waitUntil: "domcontentloaded" });
@@ -52,9 +52,9 @@ test.describe("workshop route error boundary smoke", () => {
     expect(projectHref).not.toBeNull();
     if (!projectHref) throw new Error("Project card link did not expose an href.");
 
-    await page.goto(`${projectHref}/charts?routeErrorSmoke=1`, { waitUntil: "domcontentloaded" });
-    await expectSanitizedErrorState(page, "Project charts");
-    await captureRouteErrorScreenshot(page, testInfo, "project-charts-route-error-boundary.png");
+    await page.goto(`${projectHref}/data?routeErrorSmoke=1`, { waitUntil: "domcontentloaded" });
+    await expectSanitizedErrorState(page, "Project data");
+    await captureRouteErrorScreenshot(page, testInfo, "project-data-route-error-boundary.png");
 
     await page.goto(`${projectHref}/estimates`, { waitUntil: "domcontentloaded" });
     const estimateRowLink = page.locator('a[aria-label^="Open "][href^="/workshop/projects/"][href*="/estimates/"]').first();
