@@ -339,6 +339,71 @@ describe("TemplateEditorClient", () => {
     });
   });
 
+  it("does not insert an area subtree at the template root from the dock", async () => {
+    actionMocks.insertTemplateIntoTemplate.mockResolvedValue({ insertedNodeIds: [] });
+    renderEditor(buildTemplate());
+
+    await waitFor(() => expect(componentLibraryMocks.estimateRightSidebar).toHaveBeenCalled());
+    const props = componentLibraryMocks.estimateRightSidebar.mock.calls.at(-1)?.[0] as {
+      onInsertTemplateNode: (sourceTemplate: EstimateTemplate, sourceNode: { id: string; kind: "group" | "area" }) => boolean;
+    };
+
+    const inserted = props.onInsertTemplateNode(
+      { ...buildTemplate(), id: "template-2" },
+      { id: "source-area-1", kind: "area" },
+    );
+
+    expect(inserted).toBe(false);
+    expect(actionMocks.insertTemplateIntoTemplate).not.toHaveBeenCalled();
+  });
+
+  it("serializes multi-template drops so each insert observes the previous sort order", async () => {
+    let resolveFirstInsert: (() => void) | null = null;
+    actionMocks.insertTemplateIntoTemplate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstInsert = () => resolve({ insertedNodeIds: [] });
+        }),
+    );
+    actionMocks.insertTemplateIntoTemplate.mockResolvedValue({ insertedNodeIds: [] });
+    renderEditor(buildTemplate());
+
+    act(() => beginEstimateWorkshopDrag({ kind: "estimate-template", templateId: "tpl-2", templateName: "Kitchen Starter" }));
+    const rootZone = await screen.findByText("Drop Kitchen Starter here to add it at the template root");
+
+    const dataTransfer = createDataTransferStub(["application/x-archestimator-estimate-template"]);
+    dataTransfer.setData(
+      "application/x-archestimator-estimate-template",
+      JSON.stringify({ templateIds: ["tpl-2", "tpl-3"] }),
+    );
+    fireEvent.drop(rootZone.closest("[data-template-root-drop-zone]") as HTMLElement, { dataTransfer });
+
+    await waitFor(() => {
+      expect(actionMocks.insertTemplateIntoTemplate).toHaveBeenCalledTimes(1);
+    });
+    expect(actionMocks.insertTemplateIntoTemplate).toHaveBeenCalledWith({
+      targetTemplateId: "template-1",
+      targetNodeId: null,
+      sourceTemplateId: "tpl-2",
+      sourceNodeId: undefined,
+    });
+
+    await act(async () => {
+      resolveFirstInsert?.();
+    });
+
+    await waitFor(() => {
+      expect(actionMocks.insertTemplateIntoTemplate).toHaveBeenCalledTimes(2);
+    });
+    expect(actionMocks.insertTemplateIntoTemplate).toHaveBeenLastCalledWith({
+      targetTemplateId: "template-1",
+      targetNodeId: null,
+      sourceTemplateId: "tpl-3",
+      sourceNodeId: undefined,
+    });
+    act(() => endEstimateWorkshopDrag());
+  });
+
   it("blocks self-insert from a template drag", async () => {
     renderEditor(buildTemplate());
 

@@ -7,6 +7,7 @@ import { ControlField, ControlInput, ControlTextarea } from "@/components/ui/con
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { Sheet } from "@/components/ui/overlays/sheet-drawer";
 import {
+  changeCostLibraryComponentLifecycleState,
   updateCostLibraryComponent,
   upsertCostLibraryComponentPriceOption,
 } from "@/lib/component-library/actions";
@@ -123,6 +124,11 @@ export function EditComponentDrawer({
       form.pricingDate.trim() !== (item.pricingDate ?? "") ||
       form.pricingSource.trim() !== (item.pricingSource ?? "") ||
       form.confidence.trim() !== (item.confidence ?? "");
+    const supplier = form.supplier.trim();
+    const brand = form.brand.trim();
+    const supplierId = supplier && supplier === (item.supplier ?? "").trim() ? item.supplierId ?? null : null;
+    const brandId = brand && brand === (item.brand ?? "").trim() ? item.brandId ?? null : null;
+    const lifecycleChanged = form.lifecycleState !== (item.lifecycleState ?? "available");
 
     startSaving(async () => {
       try {
@@ -130,16 +136,24 @@ export function EditComponentDrawer({
           name,
           description: form.description.trim(),
           unit,
-          supplier: form.supplier.trim() || null,
-          supplierId: item.supplierId ?? null,
-          brand: form.brand.trim() || null,
-          brandId: item.brandId ?? null,
+          supplier: supplier || null,
+          supplierId,
+          brand: brand || null,
+          brandId,
           category: item.category,
           categoryNodeId: item.categoryNodeId ?? null,
           libraryFolderId: item.libraryFolderId ?? null,
           lifecycleState: form.lifecycleState,
           changeReason: "Edited from the component inspector",
         });
+
+        if (lifecycleChanged) {
+          await changeCostLibraryComponentLifecycleState({
+            itemId: item.id,
+            lifecycleState: form.lifecycleState,
+            changeReason: "Edited from the component inspector",
+          });
+        }
 
         if (priceChanged) {
           await upsertCostLibraryComponentPriceOption(item.id, {
@@ -162,8 +176,10 @@ export function EditComponentDrawer({
           material: name,
           description: form.description.trim(),
           unit,
-          supplier: form.supplier.trim(),
-          brand: form.brand.trim() || undefined,
+          supplier,
+          supplierId: supplierId ?? undefined,
+          brand: brand || undefined,
+          brandId: brandId ?? undefined,
           lifecycleState: form.lifecycleState,
           itemCost: unitCost,
           miscCost,

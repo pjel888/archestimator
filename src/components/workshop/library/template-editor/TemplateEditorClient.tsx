@@ -190,6 +190,7 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
   const handleInsertTemplateNode = useStableCallback(
     (sourceTemplate: EstimateTemplate, sourceNode: EstimateTreeNode) => {
       if (sourceTemplate.id === template.id) return false;
+      if (!templateTargetGroup && sourceNode.kind !== "group") return false;
       void editor.insertTemplate(sourceTemplate.id, templateTargetGroup?.id ?? null, sourceNode.id);
       return true;
     },
@@ -210,10 +211,12 @@ export function TemplateEditorClient({ template: serverTemplate }: { template: E
           void editor.insertTemplate(payload.templateId, targetGroupId, payload.templateNodeId);
           return;
         }
-        for (const sourceTemplateId of payload.templateIds) {
-          if (sourceTemplateId === template.id) continue;
-          void editor.insertTemplate(sourceTemplateId, targetGroupId);
-        }
+        void (async () => {
+          for (const sourceTemplateId of payload.templateIds) {
+            if (sourceTemplateId === template.id) continue;
+            await editor.insertTemplate(sourceTemplateId, targetGroupId);
+          }
+        })();
       },
     }),
     [addNode, deleteNode, editor, renameNode, template.id],

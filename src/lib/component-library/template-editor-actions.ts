@@ -24,6 +24,8 @@ export type TemplateEditorRowPatch = Partial<{
   contingencyPercentage: number;
 }>;
 
+const TEMPORARY_TEMPLATE_NODE_SORT_OFFSET = 1_000_000;
+
 function revalidateTemplateEditorPaths(templateId: string) {
   revalidatePath("/workshop/library/templates");
   revalidatePath(`/workshop/library/templates/${templateId}`);
@@ -229,12 +231,14 @@ export async function moveEstimateTemplateNode(input: {
     }
   }
 
-  const { error: moveError } = await supabase
-    .from("estimate_template_nodes")
-    .update({ parent_id: input.parentId })
-    .eq("id", input.nodeId)
-    .eq("template_id", input.templateId);
-  if (moveError) throwActionError("Could not move the node.", moveError);
+  for (const [index, siblingId] of input.orderedSiblingIds.entries()) {
+    const { error: temporaryOrderError } = await supabase
+      .from("estimate_template_nodes")
+      .update({ parent_id: input.parentId, sort_order: TEMPORARY_TEMPLATE_NODE_SORT_OFFSET + index })
+      .eq("id", siblingId)
+      .eq("template_id", input.templateId);
+    if (temporaryOrderError) throwActionError("Could not move the node.", temporaryOrderError);
+  }
 
   for (const [index, siblingId] of input.orderedSiblingIds.entries()) {
     const { error: orderError } = await supabase

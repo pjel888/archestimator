@@ -98,8 +98,10 @@ const fixtureItems: EstimateRowItem[] = [
     id: "item-fresh",
     material: "Fresh Tile",
     brand: "Mariwasa",
+    brandId: "brand-mariwasa",
     confidence: "Quoted",
     lifecycleState: "available",
+    supplierId: "sup-1",
   }),
   makeItem({
     id: "item-discontinued",
@@ -143,6 +145,12 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     navigationMocks.refresh.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockReset();
     actionMocks.getCostLibraryComponentUsage.mockResolvedValue({ templateRowCount: 2, estimateRowCount: 6 });
+    actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
+    actionMocks.changeCostLibraryComponentLifecycleState.mockResolvedValue({
+      itemId: "item-fresh",
+      versionNumber: 3,
+      lifecycleState: "discontinued",
+    });
     actionMocks.updateCostLibraryComponent.mockReset();
     actionMocks.updateCostLibraryComponent.mockResolvedValue({ itemId: "item-fresh", versionNumber: 2 });
     actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
@@ -303,6 +311,54 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(actionMocks.upsertCostLibraryComponentPriceOption).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByText("Component updated.")).toBeInTheDocument();
+    });
+  });
+
+  it("clears stale supplier and brand ids when inspector free-text values change", async () => {
+    renderManager();
+    await waitForSheet();
+
+    fireEvent.click(screen.getByRole("button", { name: "View details for Fresh Tile" }));
+    const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
+    fireEvent.click(within(dock).getByRole("button", { name: "Edit component" }));
+
+    const drawer = await screen.findByRole("dialog", { name: "Edit component" });
+    fireEvent.change(within(drawer).getByLabelText("Supplier"), { target: { value: "New Supplier" } });
+    fireEvent.change(within(drawer).getByLabelText("Brand"), { target: { value: "New Brand" } });
+    fireEvent.click(within(drawer).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateCostLibraryComponent).toHaveBeenCalledWith(
+        "item-fresh",
+        expect.objectContaining({
+          supplier: "New Supplier",
+          supplierId: null,
+          brand: "New Brand",
+          brandId: null,
+        }),
+      );
+    });
+  });
+
+  it("persists inspector lifecycle changes through the lifecycle action", async () => {
+    renderManager();
+    await waitForSheet();
+
+    fireEvent.click(screen.getByRole("button", { name: "View details for Fresh Tile" }));
+    const dock = await screen.findByRole("region", { name: "Component details for Fresh Tile" });
+    fireEvent.click(within(dock).getByRole("button", { name: "Edit component" }));
+
+    const drawer = await screen.findByRole("dialog", { name: "Edit component" });
+    fireEvent.click(within(drawer).getByRole("combobox", { name: "Lifecycle state" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Discontinued" }));
+    fireEvent.click(within(drawer).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(actionMocks.changeCostLibraryComponentLifecycleState).toHaveBeenCalledWith({
+        itemId: "item-fresh",
+        lifecycleState: "discontinued",
+        changeReason: "Edited from the component inspector",
+      });
     });
   });
 

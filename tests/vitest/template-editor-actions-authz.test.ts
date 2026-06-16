@@ -66,6 +66,29 @@ function mockEditorUpdateRowSupabaseClient() {
   return { from, rpc, templateQuery, rowQuery };
 }
 
+function mockEditorMoveNodeSupabaseClient() {
+  const rpc = vi.fn(async (name: string) => {
+    if (name === "is_workspace_editor") return { data: true, error: null };
+    return { data: null, error: null };
+  });
+  const templateQuery = createQueryResult({ id: templateId, workspace_id: workspaceId, name: "Editor-safe template" });
+  const nodeQuery = createQueryResult({
+    id: nodeId,
+    template_id: templateId,
+    parent_id: null,
+    kind: "group",
+    name: "Group A",
+    sort_order: 0,
+  });
+  const from = vi.fn((table: string) => {
+    if (table === "estimate_templates") return templateQuery;
+    if (table === "estimate_template_nodes") return nodeQuery;
+    throw new Error(`unexpected table access: ${table}`);
+  });
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+  return { from, rpc, nodeQuery };
+}
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -136,6 +159,32 @@ describe("template editor server action authorization", () => {
     expect(supabase.rowQuery.eq).toHaveBeenCalledWith("id", rowId);
     expect(supabase.rowQuery.eq).toHaveBeenCalledWith("template_id", templateId);
     expect(supabase.rpc.mock.invocationCallOrder[0]).toBeLessThan(supabase.from.mock.invocationCallOrder[0]);
+  });
+
+  it("rebases template node sibling sort orders through temporary values before final ordering", async () => {
+    const siblingId = "00000000-0000-4000-8000-000000000006";
+    const supabase = mockEditorMoveNodeSupabaseClient();
+    const actions = await import("@/lib/component-library/template-editor-actions");
+
+    await expect(
+      actions.moveEstimateTemplateNode({
+        templateId,
+        nodeId,
+        parentId: null,
+        orderedSiblingIds: [siblingId, nodeId],
+      }),
+    ).resolves.toEqual({ nodeId, parentId: null });
+
+    expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(1, {
+      parent_id: null,
+      sort_order: 1_000_000,
+    });
+    expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(2, {
+      parent_id: null,
+      sort_order: 1_000_001,
+    });
+    expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(3, { sort_order: 0 });
+    expect(supabase.nodeQuery.update).toHaveBeenNthCalledWith(4, { sort_order: 1 });
   });
 });
 
