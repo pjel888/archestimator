@@ -107,7 +107,7 @@ export function CostAcrossSheetsSection({ summary, groupingMode }: CostAcrossShe
           <div className="flex flex-wrap gap-x-3 gap-y-1" aria-label="Cost group legend">
             {legendSegments.map((segment) => (
               <span key={segment.id} className="inline-flex items-center gap-1 text-[9px] leading-3 text-secondary">
-                <span className="size-2 rounded-[2px]" aria-hidden style={{ backgroundColor: segment.color }} />
+                <span className="size-2 rounded-xs" aria-hidden style={{ backgroundColor: segment.color }} />
                 {segment.label}
               </span>
             ))}

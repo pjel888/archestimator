@@ -91,6 +91,10 @@ type PublicationEmailIdentity = {
 type HeaderReader = {
   get(name: string): string | null;
 };
+type PublicationRpcResult<T> = Promise<{ data: T | null; error: { message?: string } | null }>;
+type PublicationRpcClient = {
+  rpc(functionName: string, args: Record<string, unknown>): PublicationRpcResult<unknown>;
+};
 
 const roleRank = {
   owner: 40,
@@ -120,6 +124,14 @@ function createPublicationAdminClient() {
       },
     },
   });
+}
+
+function callPublicationRpc<T>(
+  admin: ReturnType<typeof createPublicationAdminClient>,
+  functionName: string,
+  args: Record<string, unknown>,
+): PublicationRpcResult<T> {
+  return (admin as unknown as PublicationRpcClient).rpc(functionName, args) as PublicationRpcResult<T>;
 }
 
 function assertUuid(value: string, label: string) {
@@ -664,23 +676,20 @@ export async function rotateProjectPublicationLink({
   // revoke + insert. Keeping the same row id means shared_link_recipients stay FK-bound and
   // remain visible/re-sendable in the Recipients tab, the publicationId never points at a dead
   // row (no transient zero-live window), and the old /share/<token> stops resolving immediately.
-  const { error } = await context.admin
-    .from("project_publications")
-    .update({
-      token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
-      encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
-      password_hash: passwordHash,
-      snapshot_json: snapshot,
-      // MOD-SHEET-06: keep the stored selection in lockstep with the rebuilt snapshot's resolved ids.
-      selected_estimate_ids: resolvedEstimateIds,
-      snapshot_version: latest.snapshot_version + 1,
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      // status stays 'published'; expires_at unchanged on this row.
-    })
-    .eq("id", latest.id);
+  const { data: invalidatedCount, error } = await callPublicationRpc<number>(context.admin, "rotate_project_publication_credentials", {
+    target_publication_id: latest.id,
+    expected_encrypted_token: latest.encrypted_token,
+    p_token_hash: hashPublicationToken(token, readPublicationTokenHashSecret()),
+    p_encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
+    p_password_hash: passwordHash,
+    p_snapshot_json: snapshot,
+    p_selected_estimate_ids: resolvedEstimateIds,
+  });
 
   if (error) throw error;
+  if (invalidatedCount === null || invalidatedCount < 0) {
+    return { ok: false, message: "Shared link changed while rotating. Refresh and try again." };
+  }
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
   return { ok: true, message: "New shared link ready.", clientLinkPath };
 }
@@ -936,7 +945,7 @@ async function sendSharedLinkRecipientInvitationEmail({
   });
 }
 
-async function getPublicationProjectId(admin: ReturnType<typeof createPublicationAdminClient>, publicationId: string): Promise<{ projectId: string; workspaceId: string; clientLinkPath?: string | null }> {
+async function getPublicationProjectId(admin: ReturnType<typeof createPublicationAdminClient>, publicationId: string): Promise<{ projectId: string; workspaceId: string; encryptedToken?: string | null; clientLinkPath?: string | null }> {
   const { data, error } = await admin
     .from("project_publications")
     .select("id, project_id, workspace_id, encrypted_token")
@@ -952,7 +961,7 @@ async function getPublicationProjectId(admin: ReturnType<typeof createPublicatio
       clientLinkPath = `/share/${token}`;
     }
   } catch { /* ignore */ }
-  return { projectId: data.project_id, workspaceId: data.workspace_id, clientLinkPath };
+  return { projectId: data.project_id, workspaceId: data.workspace_id, encryptedToken: data.encrypted_token, clientLinkPath };
 }
 
 export async function listSharedLinkRecipients({ publicationId }: { publicationId: string }): Promise<SharedLinkRecipientRow[]> {
@@ -1211,18 +1220,18 @@ export async function resendSharedLinkRecipientEmail({
     return { ok: false, message: "Recipient email resend failed. The previous link is still active." };
   }
 
-  const { error: sentUpdateError } = await admin
-    .from("shared_link_recipients")
-    .update({
-      recipient_token_hash: tokenHash,
-      delivery_status: "sent",
-      resend_email_id: sendResult.messageId ?? null,
-      invited_by: context.currentUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("publication_id", publicationId)
-    .eq("id", recipientId);
+  const { data: persisted, error: sentUpdateError } = await callPublicationRpc<boolean>(admin, "persist_shared_link_recipient_resend", {
+    target_publication_id: publicationId,
+    target_recipient_id: recipientId,
+    expected_encrypted_token: pubCtx.encryptedToken ?? null,
+    p_recipient_token_hash: tokenHash,
+    p_resend_email_id: sendResult.messageId ?? null,
+    p_invited_by: context.currentUserId,
+  });
   if (sentUpdateError) throw sentUpdateError;
+  if (!persisted) {
+    return { ok: false, message: "Shared link changed while resending. Send the recipient email again from the current link." };
+  }
 
   revalidatePublicationRoutes(pubCtx.projectId, linkBase);
   return { ok: true, message: "Recipient email resent." };

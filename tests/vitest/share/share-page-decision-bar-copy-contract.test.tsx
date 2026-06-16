@@ -20,7 +20,7 @@ describe("share page decision bar copy contract", () => {
   });
 
   it("renders a full-width decision bar with the three client response actions", () => {
-    render(<SharePageDecision token="client-token" />);
+    render(<SharePageDecision token="client-token" viewToken="view-token" />);
 
     const decisionBar = screen.getByRole("group", { name: /your response|decision/i });
     expect(decisionBar).toHaveAttribute("data-share-decision-bar", "true");
@@ -31,7 +31,7 @@ describe("share page decision bar copy contract", () => {
 
   it("uses client-friendly finality copy that still allows comments after a decision", async () => {
     const user = userEvent.setup();
-    render(<SharePageDecision token="client-token" />);
+    render(<SharePageDecision token="client-token" viewToken="view-token" />);
 
     await user.click(screen.getByRole("button", { name: /accept proposal/i }));
 
