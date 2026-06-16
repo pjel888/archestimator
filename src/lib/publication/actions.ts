@@ -501,9 +501,11 @@ export async function createProjectPublication({
   expiresAt?: string | null;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
-  // AC-MOD-15 (MOD-PW-05): reject a too-short password before any DB write — never hash or persist
-  // an invalid password, and never revoke the existing link for one. Validate only when SETTING.
-  if (password) {
+  // AC-MOD-15/22 (MOD-PW-05): reject any supplied invalid password before any DB write —
+  // never hash or persist an invalid password, and never revoke the existing link for one.
+  // Callers that want an open link must omit password; an empty string must not silently downgrade
+  // a protected fresh-token flow into password_hash:null.
+  if (password !== undefined) {
     const passwordCheck = validatePublicationPassword(password);
     if (!passwordCheck.ok) return { ok: false, message: passwordCheck.message };
   }
