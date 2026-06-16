@@ -318,7 +318,10 @@ export function useEstimateCursorCollaboration({
       if (!isCursorBroadcastEnabled()) return; // kill-switch (T0.6)
       // Until our signed identity envelope is issued, receivers would drop the
       // cursor anyway — so don't broadcast unauthenticated frames.
-      if (!envelopeRef.current) return;
+      if (!envelopeRef.current) {
+        void provisionIdentityRef.current();
+        return;
+      }
       if (Date.now() >= envelopeRef.current.exp * 1000) {
         envelopeRef.current = null;
         void provisionIdentityRef.current();
