@@ -866,7 +866,9 @@ export async function listCurrentWorkspaceProjectSearchCandidates(options: { lim
       ...projectMembers.map((member) => member.project_id),
       ...sheetMembers.map((member) => member.project_id),
     ]),
-  ).filter((projectId) => !ownedProjectIds.has(projectId));
+  )
+    .filter((projectId) => !ownedProjectIds.has(projectId))
+    .slice(0, projectLimit ?? undefined);
 
   const sharedProjectsById = new Map<string, Pick<Tables<"projects">, "id" | "name" | "updated_at">>();
   if (sharedProjectIds.length > 0) {
@@ -987,7 +989,9 @@ export async function listCurrentWorkspaceProjects(options: { limit?: number; se
       ...projectMembers.map((member) => member.project_id),
       ...sheetMembers.map((member) => member.project_id),
     ]),
-  ).filter((projectId) => !ownedProjectIds.has(projectId));
+  )
+    .filter((projectId) => !ownedProjectIds.has(projectId))
+    .slice(0, projectLimit ?? undefined);
 
   let sharedProjects: Tables<"projects">[] = [];
   if (sharedProjectIds.length > 0) {
