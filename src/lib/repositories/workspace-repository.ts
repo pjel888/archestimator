@@ -817,7 +817,16 @@ export async function listCurrentWorkspaceProjects() {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [projectsResult, favoritesResult, estimateFavoritesResult, projectMembersResult, sheetMembersResult, workspaceMembershipResult] = await Promise.all([
+  const [
+    projectsResult,
+    favoritesResult,
+    estimateFavoritesResult,
+    projectMembersResult,
+    sheetMembersResult,
+    workspaceMembershipResult,
+    projectGroupsResult,
+    projectGroupMembershipsResult,
+  ] = await Promise.all([
     supabase
       .from("projects")
       .select("*")
@@ -848,6 +857,18 @@ export async function listCurrentWorkspaceProjects() {
       .eq("workspace_id", workspace.id)
       .eq("user_id", profile.id)
       .maybeSingle(),
+    supabase
+      .from("project_groups")
+      .select("id, name, accent_id, position")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("project_group_memberships")
+      .select("project_id, group_id")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id),
   ]);
 
   if (projectsResult.error) throw projectsResult.error;
@@ -856,6 +877,10 @@ export async function listCurrentWorkspaceProjects() {
   if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
   if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
   if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
+  // Project groups + memberships are a first-class per-user layer (cloned from favorites),
+  // NOT optional collaboration tables — throw unconditionally on error (contracts §3.2).
+  if (projectGroupsResult.error) throw projectGroupsResult.error;
+  if (projectGroupMembershipsResult.error) throw projectGroupMembershipsResult.error;
 
   const ownedProjects = projectsResult.data ?? [];
   const ownedProjectIds = new Set(ownedProjects.map((project) => project.id));
@@ -919,6 +944,22 @@ export async function listCurrentWorkspaceProjects() {
     workspace,
     workspaceRole,
   });
+
+  // Part 7c (Project Groups): ordered (position, then created_at) camelCase summaries for the
+  // client, plus a per-project membership lookup. Both reads are scoped per-user (.eq user_id),
+  // so the map only ever holds THIS user's group rows — a miss resolves to null (Ungrouped).
+  const projectGroups: ProjectGroupSummary[] = (projectGroupsResult.data ?? []).map((group) => ({
+    id: group.id,
+    name: group.name,
+    accentId: group.accent_id,
+    position: group.position,
+  }));
+  const groupIdByProjectId = new Map<string, string>(
+    (projectGroupMembershipsResult.data ?? []).map((membership) => [
+      membership.project_id,
+      membership.group_id,
+    ]),
+  );
 
   function createProjectListItem(project: Tables<"projects">): WorkshopProjectListItem {
     return {
