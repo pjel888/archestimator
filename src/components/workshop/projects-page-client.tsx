@@ -39,6 +39,12 @@ import type {
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
 import { ProjectCard } from "./ProjectCard";
+import {
+  getProjectDateFlagLayoutClassName,
+  getProjectGridClassName,
+  PROJECT_GROUP_FLAG_BG_COLOR,
+  PROJECT_GROUP_FLAG_RULE_COLOR,
+} from "./project-grid-layout";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
 import { sampleProjects } from "./workshop-sample-projects";
 
@@ -73,8 +79,6 @@ const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
 const PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS =
   "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
-const PROJECT_GROUP_FLAG_BG_COLOR = "color-mix(in srgb, var(--brand-orange) 25%, white)";
-const PROJECT_GROUP_FLAG_RULE_COLOR = "color-mix(in srgb, var(--brand-orange) 35%, white)";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
 const NewProjectModal = dynamic(() => import("./NewProjectModal").then((mod) => mod.NewProjectModal));
 const ProjectDetailsModal = dynamic(() => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal));
@@ -195,19 +199,6 @@ function subscribeProjectViewModePreference(onStoreChange: () => void) {
 
 function getProjectViewModeServerSnapshot(): ProjectCardViewMode {
   return "large";
-}
-
-function getProjectGridClassName(viewMode: ProjectCardViewMode) {
-  if (viewMode === "list")
-    return "flex flex-col divide-y divide-hairline overflow-hidden rounded-xs border border-hairline";
-  if (viewMode === "small") return "grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2";
-  if (viewMode === "medium") return "grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3";
-
-  return "grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3";
-}
-
-function getProjectDateFlagLayoutClassName(viewMode: ProjectCardViewMode) {
-  return viewMode === "list" ? getProjectGridClassName("small") : getProjectGridClassName(viewMode);
 }
 
 function getProjectAccessTabsLayoutClassName(viewMode: ProjectCardViewMode) {
