@@ -93,3 +93,55 @@ Codex review threads inspected: 21
 active unresolved non-outdated threads: 0
 all tracked thread IDs resolved on GitHub: yes
 ```
+
+## Second-Pass Branch Evidence
+
+Collected: 2026-06-16T06:33:18Z
+
+```text
+PR #83 codex/fix-expired-envelope-issue-in-cursor-broadcasts
+head: 2b3c7ae173a5520b8c1230f893958cc82996e810
+threads resolved: PRRT_kwDOSfSDcs6JysOe
+mergeability: CLEAN / MERGEABLE
+
+PR #79 codex/fix-indefinite-drag-auto-scroll-issue
+head: 1c29b961b526cd7ab2b70dc5dfff4818ce39367d
+threads resolved: PRRT_kwDOSfSDcs6Jyoo8
+mergeability: CLEAN / MERGEABLE
+
+PR #78 codex/propose-fix-for-supabase-pat-leak
+head: cdbe7e40af729eefdbebed53834e4ad4bced7812
+threads resolved: PRRT_kwDOSfSDcs6JyyLp
+mergeability: CLEAN / MERGEABLE
+
+PR #72 codex/fix-terms-acceptance-bypass-in-api-routes
+head: 1216b6ea5a0422823905eb080fdfd4059bb047b0
+threads resolved: PRRT_kwDOSfSDcs6JyuNN, PRRT_kwDOSfSDcs6JyuNO, PRRT_kwDOSfSDcs6JyuNP
+mergeability: CLEAN / MERGEABLE
+
+PR #69 codex/fix-resource-exhaustion-in-search-action
+head: 440b6fe8c12037a9f1060a6e59a0da35c22c3d8c
+threads resolved: PRRT_kwDOSfSDcs6JysyE, PRRT_kwDOSfSDcs6JysyG, PRRT_kwDOSfSDcs6JysyK, PRRT_kwDOSfSDcs6JysyL
+mergeability: CLEAN / MERGEABLE
+
+PR #68 codex/propose-fix-for-dos-vulnerability
+head: d419f97e876a460d89b4f6aa782f01a6dcc74291
+threads resolved: PRRT_kwDOSfSDcs6Jys-9, PRRT_kwDOSfSDcs6Jys-_, PRRT_kwDOSfSDcs6Jys_E
+mergeability: CLEAN / MERGEABLE
+
+PR #67 codex/fix-search-prefilter-row-truncation
+head: 54964215f5897571f7a13d6f0f032dbab39f37a4
+threads resolved: PRRT_kwDOSfSDcs6JyoMO
+mergeability: CLEAN / MERGEABLE
+```
+
+## Second-Pass Final GitHub Thread Audit
+
+```text
+open PRs inspected: 21
+review threads inspected: 35
+active unresolved non-outdated Codex threads: 0
+active unresolved non-outdated threads from any author: 0
+touched PRs clean and mergeable: yes
+remaining merge concern outside comment scope: PR #66 DIRTY / CONFLICTING, with 0 active Codex review threads
+```
