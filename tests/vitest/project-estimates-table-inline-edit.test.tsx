@@ -60,7 +60,12 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
   };
 }
 
-function renderTable(estimate = makeEstimate()) {
+function renderTable(
+  estimate = makeEstimate(),
+  options: {
+    canEditEstimateById?: Record<string, boolean>;
+  } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -68,7 +73,7 @@ function renderTable(estimate = makeEstimate()) {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />
+      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" canEditEstimateById={options.canEditEstimateById} />
     </QueryClientProvider>,
   );
 }
@@ -268,6 +273,28 @@ describe("project estimates table inline editing", () => {
     });
     // P0: inline edits reconcile optimistically — no full-screen overlay refresh.
     expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("disables metadata and destructive controls for view-only estimate rows", async () => {
+    const user = userEvent.setup();
+
+    renderTable(makeEstimate(), { canEditEstimateById: { "estimate-1": false } });
+
+    expect(screen.getByRole("checkbox", { name: "Select Original Estimate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete Original Estimate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Duplicate Original Estimate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Auto-generate estimate code for Original Estimate" })).toBeDisabled();
+    expect(screen.getByLabelText("Estimate code for Original Estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Estimate name for Original Estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Notes for Original Estimate")).toBeDisabled();
+    expect(screen.getByLabelText("Project budget for Original Estimate")).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Duplicate Original Estimate" }));
+
+    expect(actionMocks.duplicateEstimateSheet).not.toHaveBeenCalled();
+    expect(actionMocks.updateEstimateDetails).not.toHaveBeenCalled();
+    expect(actionMocks.regenerateEstimateSheetCode).not.toHaveBeenCalled();
+    expect(actionMocks.previewBulkDeleteEstimateSheets).not.toHaveBeenCalled();
   });
 
   it("does not crash when persisted column width storage is blocked", () => {

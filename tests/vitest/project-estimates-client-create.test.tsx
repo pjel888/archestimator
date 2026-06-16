@@ -23,9 +23,18 @@ vi.mock("@/components/workshop/ProjectEstimatesTable", () => ({
   ProjectEstimatesTable: () => <div data-testid="project-estimates-table" />,
 }));
 
-function renderClient(estimates: ProjectEstimateTableRow[] = []) {
+function renderClient(
+  estimates: ProjectEstimateTableRow[] = [],
+  options: {
+    canCreateEstimates?: boolean;
+    canEditEstimateById?: Record<string, boolean>;
+  } = {},
+) {
+  const canEditEstimateById = options.canEditEstimateById ?? Object.fromEntries(estimates.map((estimate) => [estimate.id, true]));
   render(
     <ProjectEstimatesClient
+      canCreateEstimates={options.canCreateEstimates ?? true}
+      canEditEstimateById={canEditEstimateById}
       estimates={estimates}
       projectId="project-1"
       projectName="Lewis Residence"
@@ -100,6 +109,20 @@ describe("project estimates create flow", () => {
 
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
     await waitFor(() => expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledTimes(1));
+    expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("disables estimate creation for project viewers", async () => {
+    const user = userEvent.setup();
+
+    renderClient([], { canCreateEstimates: false });
+
+    const createButton = screen.getByRole("button", { name: "Create first estimate" });
+    expect(createButton).toBeDisabled();
+
+    await user.click(createButton);
+
+    expect(actionMocks.createEstimateSheetDraft).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
 
