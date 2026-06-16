@@ -13,12 +13,15 @@ const repositoryMocks = vi.hoisted(() => ({
 }));
 
 const supabaseServerMocks = vi.hoisted(() => ({ createSupabaseServerClient: vi.fn() }));
+const supabaseServiceRoleMocks = vi.hoisted(() => ({ createSupabaseServiceRoleClient: vi.fn() }));
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext: authMocks.requireCurrentUserContext,
 }));
 
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+
+vi.mock("@/lib/supabase/service-role", () => supabaseServiceRoleMocks);
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabs: repositoryMocks.getEstimateTabs,
@@ -35,12 +38,16 @@ type MockSearchPrefilterResult = { data: unknown; error: unknown };
 // chainable stub resolves each `.from(table)...` chain to the configured result
 // and supports paged `.range()` reads for distinct-estimate grouping.
 function mockSearchPrefilter(resultByTable: Record<string, MockSearchPrefilterResult | MockSearchPrefilterResult[]>) {
+  const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
   const callCountByTable = new Map<string, number>();
   const makeBuilder = (table: string) => {
     const tableResult = resultByTable[table] ?? { data: [], error: null };
     const builder: Record<string, unknown> = {};
     for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit", "range"]) {
-      builder[method] = () => builder;
+      builder[method] = (...args: unknown[]) => {
+        calls.push({ table, method, args });
+        return builder;
+      };
     }
     builder.then = (resolve: (value: unknown) => unknown) => {
       const callCount = callCountByTable.get(table) ?? 0;
@@ -54,6 +61,61 @@ function mockSearchPrefilter(resultByTable: Record<string, MockSearchPrefilterRe
     return builder;
   };
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from: (table: string) => makeBuilder(table) });
+  return { calls };
+}
+
+function mockReusableSearchRateLimit() {
+  const events: Array<{ scope: string; key_hash: string; occurred_at: string; expires_at: string }> = [];
+  const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
+  const makeBuilder = (table: string) => {
+    const filters: Array<{ method: string; column: string; value: unknown }> = [];
+    const builder = {
+      delete: () => {
+        calls.push({ table, method: "delete", args: [] });
+        return builder;
+      },
+      lt: (column: string, value: unknown) => {
+        calls.push({ table, method: "lt", args: [column, value] });
+        filters.push({ method: "lt", column, value });
+        return Promise.resolve({ error: null });
+      },
+      insert: (event: { scope: string; key_hash: string; expires_at: string }) => {
+        calls.push({ table, method: "insert", args: [event] });
+        events.push({
+          scope: event.scope,
+          key_hash: event.key_hash,
+          occurred_at: new Date().toISOString(),
+          expires_at: event.expires_at,
+        });
+        return Promise.resolve({ error: null });
+      },
+      select: (...args: unknown[]) => {
+        calls.push({ table, method: "select", args });
+        return builder;
+      },
+      eq: (column: string, value: unknown) => {
+        calls.push({ table, method: "eq", args: [column, value] });
+        filters.push({ method: "eq", column, value });
+        return builder;
+      },
+      gte: (column: string, value: unknown) => {
+        calls.push({ table, method: "gte", args: [column, value] });
+        filters.push({ method: "gte", column, value });
+        const count = events.filter((event) => filters.every((filter) => {
+          if (filter.method === "eq" && filter.column === "scope") return event.scope === filter.value;
+          if (filter.method === "eq" && filter.column === "key_hash") return event.key_hash === filter.value;
+          if (filter.method === "gte") return event.occurred_at >= String(filter.value);
+          return true;
+        })).length;
+        return Promise.resolve({ count, error: null });
+      },
+    };
+    return builder;
+  };
+  supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
+    from: (table: string) => makeBuilder(table),
+  });
+  return { calls, events };
 }
 
 const projectAId = "11111111-1111-4111-8111-111111111111";
@@ -69,8 +131,10 @@ beforeEach(() => {
   repositoryMocks.listCurrentWorkspaceProjects.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockReset();
   supabaseServerMocks.createSupabaseServerClient.mockReset();
+  supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReset();
   // Default: no estimate matches the pre-filter (the search test sets the match).
   mockSearchPrefilter({});
+  mockReusableSearchRateLimit();
 });
 
 describe("reusable project source actions", () => {
@@ -297,6 +361,7 @@ describe("reusable project source actions", () => {
   it("rate-limits repeated project source searches per authenticated user", async () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "rate-user" });
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects: [] });
+    const rateLimit = mockReusableSearchRateLimit();
     const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
 
     for (let index = 0; index < 20; index += 1) {
@@ -305,6 +370,11 @@ describe("reusable project source actions", () => {
     await expect(searchReusableProjectSources({ query: "safe-overflow" })).rejects.toThrow(
       "Please wait a moment before searching project sources again.",
     );
+    expect(supabaseServiceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith(
+      "archestimator-reusable-source-search-rate-limit",
+    );
+    expect(rateLimit.calls.some((call) => call.table === "security_rate_limit_events" && call.method === "insert")).toBe(true);
+    expect(rateLimit.events).toHaveLength(21);
   });
 
   it("searches project names before applying the returned project cap", async () => {
@@ -469,7 +539,7 @@ describe("reusable project source actions", () => {
     });
 
     // U5: the node pre-filter resolves the matching estimate, so only it is materialized.
-    mockSearchPrefilter({ estimate_nodes: { data: [{ estimate_id: estimateAId }], error: null } });
+    const prefilter = mockSearchPrefilter({ estimate_nodes: { data: [{ estimate_id: estimateAId }], error: null } });
 
     const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
     const result = await searchReusableProjectSources({ query: "amenity" });
@@ -478,6 +548,12 @@ describe("reusable project source actions", () => {
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(projectAId);
     expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateAId, { allowLegacyFallback: true });
     expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, estimateAId, tabAId, { allowLegacyFallback: true });
+    expect(prefilter.calls).toEqual(
+      expect.arrayContaining([
+        { table: "estimate_nodes", method: "select", args: ["estimate_id, estimate_tabs!inner(id)"] },
+        { table: "estimate_nodes", method: "is", args: ["estimate_tabs.archived_at", null] },
+      ]),
+    );
     expect(result.sources).toEqual([
       {
         kind: "project",
@@ -542,6 +618,54 @@ describe("reusable project source actions", () => {
         },
       },
     ]);
+  });
+
+  it("skips an over-cap node match instead of returning only its non-selectable parent", async () => {
+    const cappedProjects = Array.from({ length: 49 }, (_, index) => ({
+      accessKind: "owner",
+      project: {
+        id: `filler-project-${String(index + 1).padStart(2, "0")}`,
+        name: `Needle Filler Project ${index + 1}`,
+      },
+    }));
+    const targetEstimateId = "55555555-5555-4555-8555-555555555555";
+    const targetProjectId = "66666666-6666-4666-8666-666666666666";
+    const targetTabId = "77777777-7777-4777-8777-777777777777";
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        ...cappedProjects,
+        { accessKind: "owner", project: { id: targetProjectId, name: "Target Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockImplementation(async (projectId: string) => (
+      projectId === targetProjectId
+        ? [{ id: targetEstimateId, name: "Target Estimate", sheetCode: "EST-T", updatedAt: "2026-06-12T08:00:00.000Z" }]
+        : []
+    ));
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: targetTabId, name: "Target Tab", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "target-node",
+          name: "Needle Target Area",
+          kind: "area",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({ estimate_nodes: { data: [{ estimate_id: targetEstimateId }], error: null } });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "needle" });
+
+    expect(result.sources).toHaveLength(49);
+    expect(result.sources.some((source) => source.kind === "project" && source.projectId === targetProjectId)).toBe(false);
+    expect(result.sources.some((source) => source.kind === "project-node" && source.nodeId === "target-node")).toBe(false);
   });
 
   it("searches derived display tab labels before an outline is loaded", async () => {
