@@ -15,6 +15,7 @@ import {
   getEstimateTabs,
   getEstimateTabTree,
   getProjectEstimateTreeByEstimate,
+  listCurrentWorkspaceProjectSearchCandidates,
   listCurrentWorkspaceProjects,
   listProjectEstimateSheets,
 } from "@/lib/repositories/workspace-repository";
@@ -340,10 +341,10 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   await assertReusableProjectSourceSearchRateLimit(context.userId);
 
   const [recentProjectResult, matchingProjectResult] = await Promise.all([
-    listCurrentWorkspaceProjects({
+    listCurrentWorkspaceProjectSearchCandidates({
       limit: REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT,
     }),
-    listCurrentWorkspaceProjects({
+    listCurrentWorkspaceProjectSearchCandidates({
       limit: REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT,
       search: rawQuery,
     }),
@@ -351,7 +352,6 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   const accessibleProjects = Array.from(
     new Map(
       [...matchingProjectResult.projects, ...recentProjectResult.projects]
-        .filter((item) => item.accessKind !== "pending-invite")
         .map((item) => [item.project.id, item]),
     ).values(),
   ).slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT);

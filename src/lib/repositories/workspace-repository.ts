@@ -114,6 +114,11 @@ type WorkshopProjectListItem = {
   favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[];
 };
 
+export type WorkspaceProjectSearchCandidate = {
+  project: Pick<Tables<"projects">, "id" | "name" | "updated_at">;
+  accessKind: Exclude<WorkshopProjectAccessKind, "pending-invite">;
+};
+
 export type ProjectFavoriteEstimateSheetSummary = Pick<
   Tables<"estimates">,
   "id" | "project_id" | "name" | "sheet_code" | "updated_at"
@@ -811,6 +816,95 @@ function toWorkspaceProjectSearchPatterns(search: string | undefined) {
   ).map((value) => `%${value.replace(/[\\%_]/g, "\\$&")}%`);
 }
 
+export async function listCurrentWorkspaceProjectSearchCandidates(options: { limit?: number; search?: string } = {}) {
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const projectLimit =
+    typeof options.limit === "number" && options.limit > 0
+      ? Math.floor(options.limit)
+      : null;
+  const projectSearchPatterns = toWorkspaceProjectSearchPatterns(options.search);
+  const readOwnedProjectsQuery = (pattern?: string) => {
+    let query = supabase
+      .from("projects")
+      .select("id, name, updated_at")
+      .eq("workspace_id", workspace.id);
+    if (pattern) query = query.ilike("name", pattern);
+    query = query.order("updated_at", { ascending: false });
+    return projectLimit ? query.limit(projectLimit) : query;
+  };
+
+  const [ownedProjectResults, projectMembersResult, sheetMembersResult] = await Promise.all([
+    projectSearchPatterns.length > 0
+      ? Promise.all(projectSearchPatterns.map((pattern) => readOwnedProjectsQuery(pattern)))
+      : Promise.all([readOwnedProjectsQuery()]),
+    supabase
+      .from("project_members")
+      .select("project_id, workspace_id, role, user_id")
+      .eq("user_id", profile.id),
+    supabase
+      .from("estimate_sheet_members")
+      .select("estimate_id, project_id, role, user_id")
+      .eq("user_id", profile.id),
+  ]);
+
+  const ownedProjectError = ownedProjectResults.find((result) => result.error)?.error;
+  if (ownedProjectError) throw ownedProjectError;
+  if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
+  if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
+
+  const ownedProjectsById = new Map(
+    ownedProjectResults
+      .flatMap((result) => result.data ?? [])
+      .map((project) => [project.id, project]),
+  );
+  const ownedProjectIds = new Set(ownedProjectsById.keys());
+  const projectMembers = (projectMembersResult.error ? [] : projectMembersResult.data ?? []) as ProjectMemberRow[];
+  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
+  const sharedProjectIds = Array.from(
+    new Set([
+      ...projectMembers.map((member) => member.project_id),
+      ...sheetMembers.map((member) => member.project_id),
+    ]),
+  ).filter((projectId) => !ownedProjectIds.has(projectId));
+
+  const sharedProjectsById = new Map<string, Pick<Tables<"projects">, "id" | "name" | "updated_at">>();
+  if (sharedProjectIds.length > 0) {
+    const readSharedProjectsQuery = (pattern?: string) => {
+      let query = supabase
+        .from("projects")
+        .select("id, name, updated_at")
+        .in("id", sharedProjectIds);
+      if (pattern) query = query.ilike("name", pattern);
+      query = query.order("updated_at", { ascending: false });
+      return projectLimit ? query.limit(projectLimit) : query;
+    };
+    const sharedProjectResults = projectSearchPatterns.length > 0
+      ? await Promise.all(projectSearchPatterns.map((pattern) => readSharedProjectsQuery(pattern)))
+      : [await readSharedProjectsQuery()];
+    const sharedProjectError = sharedProjectResults.find((result) => result.error)?.error;
+    if (sharedProjectError) throw sharedProjectError;
+    for (const project of sharedProjectResults.flatMap((result) => result.data ?? [])) {
+      sharedProjectsById.set(project.id, project);
+    }
+  }
+
+  const projects = [
+    ...Array.from(ownedProjectsById.values()).map((project) => ({
+      project,
+      accessKind: "owned" as const,
+    })),
+    ...Array.from(sharedProjectsById.values()).map((project) => ({
+      project,
+      accessKind: "project-member" as const,
+    })),
+  ]
+    .sort((left, right) => Date.parse(right.project.updated_at ?? "") - Date.parse(left.project.updated_at ?? ""))
+    .slice(0, projectLimit ?? undefined);
+
+  return { projects };
+}
+
 export async function listCurrentWorkspaceProjects(options: { limit?: number; search?: string } = {}) {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
@@ -897,13 +991,27 @@ export async function listCurrentWorkspaceProjects(options: { limit?: number; se
 
   let sharedProjects: Tables<"projects">[] = [];
   if (sharedProjectIds.length > 0) {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .in("id", sharedProjectIds)
-      .order("updated_at", { ascending: false });
+    const readSharedProjectsQuery = (pattern?: string) => {
+      let query = supabase
+        .from("projects")
+        .select("*")
+        .in("id", sharedProjectIds);
+      if (pattern) query = query.ilike("name", pattern);
+      query = query.order("updated_at", { ascending: false });
+      return projectLimit ? query.limit(projectLimit) : query;
+    };
+    const sharedProjectResults = projectSearchPatterns.length > 0
+      ? await Promise.all(projectSearchPatterns.map((pattern) => readSharedProjectsQuery(pattern)))
+      : [await readSharedProjectsQuery()];
+    const error = sharedProjectResults.find((result) => result.error)?.error;
     if (error) throw error;
-    sharedProjects = data ?? [];
+    sharedProjects = Array.from(
+      new Map(
+        sharedProjectResults
+          .flatMap((result) => result.data ?? [])
+          .map((project) => [project.id, project]),
+      ).values(),
+    ).sort((left, right) => Date.parse(right.updated_at ?? "") - Date.parse(left.updated_at ?? ""));
   }
 
   const favoriteEstimateRows = estimateFavoritesResult.data ?? [];
