@@ -33,6 +33,7 @@ import type { CollaborationRole } from "@/lib/collaboration/types";
 import type { ProjectPublicationListSummary } from "@/lib/publication/types";
 import type {
   ProjectFavoriteEstimateSheetSummary,
+  ProjectGroupSummary,
   WorkshopPendingInviteSummary,
 } from "@/lib/repositories/workspace-repository";
 
@@ -45,6 +46,9 @@ type ProjectsPageClientProps = {
   projects: Array<Tables<"projects"> | ProjectListItem>;
   favoriteProjectIds?: string[];
   favoritesScope: { workspaceId: string; userId: string };
+  // Part 7c (Project Groups): ordered per-user group definitions for the projects page.
+  // Consumed by Part 7d (group-mode rendering); wired here with a safe default.
+  projectGroups?: ProjectGroupSummary[];
 };
 
 export type ProjectListItem = {
@@ -63,6 +67,7 @@ export type ProjectListItem = {
 };
 
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
+const EMPTY_PROJECT_GROUPS: ProjectGroupSummary[] = [];
 const EMPTY_PROJECT_LIST_ITEMS: ProjectListItem[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
@@ -372,6 +377,7 @@ export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
   favoritesScope,
+  projectGroups = EMPTY_PROJECT_GROUPS,
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
   const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
