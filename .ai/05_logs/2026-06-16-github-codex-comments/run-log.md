@@ -116,3 +116,43 @@ manual_qa_channel=cli
 - This remaining thread is intentionally unresolved because satisfying it would
   require destructive Git history rewriting and coordinated force-push/cache
   remediation, not a normal forward commit.
+
+## PR #50 History-Purge Rehearsal
+
+- Live provider state on 2026-06-16 confirms the only unresolved Codex thread
+  is `PRRT_kwDOSfSDcs6JokL3` / `discussion_r3414842338` on PR `#50`, titled
+  `Purge the sensitive BOQ blobs from Git history`.
+- Local verification without printing historical contents:
+  - The exact `df15eb926b65be93739366f37358a7b458c52d40` commit named in the
+    GitHub comment is not present in this clone.
+  - The original archive commit `16446b542650268cc77a22102f1a8ef5ef362f33`
+    still contains historical BOQ artifact blobs by path.
+  - The historical raw dump blob for
+    `_research/02a-boq-raw-dump.txt` is `9834285c51554bb6feffe6de7e026f6cf51f8374`
+    with size `285043`.
+  - The historical reference extraction blob for
+    `_research/02a-boq-reference-extraction.md` is
+    `bf3aa463594adaa4324cea67f954f92d56d30318` with size `22796`.
+- Non-destructive rehearsal ran in
+  `/tmp/archestimator-history-purge-rehearsal/repo`; the real checkout and
+  GitHub remote were not rewritten.
+- Rehearsal method:
+  1. `git clone --no-hardlinks . /tmp/archestimator-history-purge-rehearsal/repo`
+  2. `git filter-branch --force --index-filter 'git rm -r --cached --ignore-unmatch ...' --prune-empty --tag-name-filter cat -- --all`
+  3. Re-add the current sanitized BOQ artifacts in a new commit.
+  4. Delete `refs/original/*`, expire reflogs, and run
+     `git gc --prune=now --aggressive`.
+- Rehearsal proof after backup-ref cleanup:
+  - `git rev-list --objects --all | rg '9834285c...|bf3aa46...|4e34f4...|de5f3b...'`
+    returned no matches.
+  - `git cat-file -e HEAD:<path>` succeeded for the current sanitized
+    `02a-boq-raw-dump.txt`, `02a-boq-reference-extraction.md`,
+    `02_boq-format-benchmark.md`, and `02b-boq-format-gap.md`.
+- Required approval gate before real execution:
+  - Rewriting local and remote repository history.
+  - Force-pushing rewritten `main` with `--force-with-lease`.
+  - Coordinating any open PR branches, local clones, caches, and GitHub
+    retention limitations after the rewrite.
+- Do not resolve `PRRT_kwDOSfSDcs6JokL3` until the real repository history is
+  rewritten and the provider audit proves the sensitive blobs are unreachable
+  from pushed refs.
