@@ -25,6 +25,7 @@ type LoadedComment = {
 
 interface SharePageCommentsProps {
   token: string;
+  viewToken: string;
   // publicationId not required for P6 write path
 }
 
@@ -34,7 +35,7 @@ function readErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "";
 }
 
-export default function SharePageComments({ token }: SharePageCommentsProps) {
+export default function SharePageComments({ token, viewToken }: SharePageCommentsProps) {
   const { isValid } = useSharedLinkSession();
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
@@ -144,7 +145,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
             "Content-Type": "application/json",
             ...createPublicationCsrfHeaders(),
           },
-          body: JSON.stringify({ body: item.body }),
+          body: JSON.stringify({ body: item.body, viewToken }),
         });
         if (!res.ok) {
           remaining.push(item);
@@ -157,7 +158,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
     }
     saveQueue(remaining);
     setPendingCount(remaining.length);
-  }, [token, loadQueue, saveQueue, announce]);
+  }, [token, viewToken, loadQueue, saveQueue, announce]);
 
   // Auto-flush on reconnect (and on mount if online)
   useEffect(() => {
@@ -196,7 +197,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
             "Content-Type": "application/json",
             ...createPublicationCsrfHeaders(),
           },
-          body: JSON.stringify({ body: bodyStr }),
+          body: JSON.stringify({ body: bodyStr, viewToken }),
         });
         if (res.ok) {
           setRetryStatus(null);
@@ -212,7 +213,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
     }
     setRetryStatus(null);
     throw lastErr instanceof Error ? lastErr : new Error("Failed after retries");
-  }, [token]);
+  }, [token, viewToken]);
 
   const submitComment = useCallback(async () => {
     const body = draft.trim();

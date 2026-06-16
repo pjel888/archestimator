@@ -375,6 +375,30 @@ describe("reusable project source actions", () => {
     ]);
   });
 
+  it("does not materialize all estimates for partial synthetic display-label queries", async () => {
+    const estimateBId = "55555555-5555-4555-8555-555555555555";
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      { id: estimateAId, name: "Lobby Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+      { id: estimateBId, name: "Kitchen Estimate", sheetCode: "EST-003", updatedAt: "2026-06-12T08:05:00.000Z" },
+    ]);
+    mockSearchPrefilter({
+      estimate_nodes: { data: [], error: null },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "page" });
+
+    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+    expect(result.sources).toEqual([]);
+  });
+
   it("searches derived display tab labels before an outline is loaded", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [

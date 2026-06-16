@@ -48,7 +48,9 @@ export type ComponentLibraryDataset = {
   templates: EstimateTemplate[];
 };
 
-export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templates">;
+export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templates"> & {
+  workspaceId: string;
+};
 
 type EstimateTemplateRow = Tables<"estimate_templates">;
 type EstimateTemplateNodeRow = Tables<"estimate_template_nodes">;
@@ -734,6 +736,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   });
 
   return {
+    workspaceId,
     categoryTree,
     suppliers,
     brands,
@@ -789,16 +792,35 @@ async function loadCurrentWorkspaceEstimateTemplates({
   return libraryTemplates;
 }
 
-export async function getCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
+export async function getCurrentWorkspaceComponentRowsLibrary(options: { includeDetailGraph?: boolean } = {}): Promise<ComponentRowsLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
-  return loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id });
+  return loadCurrentWorkspaceComponentRowsLibrary({
+    supabase,
+    workspaceId: workspace.id,
+    includeDetailGraph: options.includeDetailGraph,
+  });
+}
+
+export type CurrentWorkspaceEstimateTemplatesSeed = {
+  templates: EstimateTemplate[];
+  userId: string;
+  workspaceId: string;
+};
+
+export async function getCurrentWorkspaceEstimateTemplatesSeed(): Promise<CurrentWorkspaceEstimateTemplatesSeed> {
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  return {
+    templates: await loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+    userId: profile.id,
+    workspaceId: workspace.id,
+  };
 }
 
 export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-  return loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id });
+  const { templates } = await getCurrentWorkspaceEstimateTemplatesSeed();
+  return templates;
 }
 
 /** Pricing-date age beyond which a component price counts as stale on the Overview health line. */
@@ -1159,6 +1181,7 @@ export async function getCurrentWorkspaceComponentLibraryLite(): Promise<Compone
 }
 
 export const fallbackComponentRowsLibraryDataset: ComponentRowsLibraryDataset = {
+  workspaceId: "fallback",
   categoryTree: componentCategoryTree,
   suppliers: [],
   brands: [],

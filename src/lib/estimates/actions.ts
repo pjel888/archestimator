@@ -1214,7 +1214,7 @@ async function createEstimateWithDefaultTree({
 function revalidateProjectEstimatePaths(projectId: string) {
   revalidatePath(`/workshop/projects/${projectId}`);
   revalidatePath(`/workshop/projects/${projectId}/estimates`);
-  revalidatePath(`/workshop/projects/${projectId}/charts`);
+  revalidatePath(`/workshop/projects/${projectId}/data`);
 }
 
 export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {
@@ -1550,6 +1550,8 @@ export async function createEstimateSheetDraft(projectId: string) {
     nodeCount,
     rowItemCount: 0,
     totalProjectCost: 0,
+    isFavorite: false,
+    favoriteCreatedAt: null,
   });
   return { row, estimateId: estimate.id, areaNodeId, sheetCode };
 }
@@ -1735,6 +1737,8 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     nodeCount: nodeIdBySourceId.size,
     rowItemCount: duplicatedRows.length,
     totalProjectCost: sumEstimateRowLineTotals(duplicatedRows),
+    isFavorite: false,
+    favoriteCreatedAt: null,
   });
 
   return { row, estimateId: duplicatedEstimate.id, firstNodeId, sheetCode };

@@ -442,48 +442,50 @@ function makeSelectedNodeRouteReadClient(observed: {
               };
             }
             if (table === "estimate_row_items" && columns.includes("node_id")) {
+              const rows = [
+                {
+                  id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                  estimate_id: selectedRouteEstimateId,
+                  node_id: selectedRouteAreaNodeId,
+                  material: "Selected estimate bed",
+                  quantity: 1,
+                  unit: "pc",
+                  unit_cost: 15_000,
+                  contingency_percentage: 0,
+                  misc_cost: 0,
+                  row_revision: 5,
+                  source_library_item_id: null,
+                },
+                {
+                  id: "dddddddd-7777-4ddd-8ddd-dddddddd7777",
+                  estimate_id: routeEstimateId,
+                  node_id: routeAreaNodeId,
+                  material: "Active tab bed",
+                  quantity: 1,
+                  unit: "pc",
+                  unit_cost: 12_000,
+                  contingency_percentage: 0,
+                  misc_cost: 0,
+                  row_revision: 2,
+                  source_library_item_id: null,
+                },
+                {
+                  id: "eeeeeeee-7777-4eee-8eee-eeeeeeee7777",
+                  estimate_id: routeEstimateId,
+                  node_id: "cdcdcdcd-cdcd-4cdc-8cdc-cdcdcdcdcdcd",
+                  material: "Other tab bed",
+                  quantity: 1,
+                  unit: "pc",
+                  unit_cost: 99_000,
+                  contingency_percentage: 0,
+                  misc_cost: 0,
+                  row_revision: 2,
+                  source_library_item_id: null,
+                },
+              ];
+              const nodeIds = filters.in.node_id;
               return {
-                data: [
-                  {
-                    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-                    estimate_id: selectedRouteEstimateId,
-                    node_id: selectedRouteAreaNodeId,
-                    material: "Selected estimate bed",
-                    quantity: 1,
-                    unit: "pc",
-                    unit_cost: 15_000,
-                    contingency_percentage: 0,
-                    misc_cost: 0,
-                    row_revision: 5,
-                    source_library_item_id: null,
-                  },
-                  {
-                    id: "dddddddd-7777-4ddd-8ddd-dddddddd7777",
-                    estimate_id: routeEstimateId,
-                    node_id: routeAreaNodeId,
-                    material: "Active tab bed",
-                    quantity: 1,
-                    unit: "pc",
-                    unit_cost: 12_000,
-                    contingency_percentage: 0,
-                    misc_cost: 0,
-                    row_revision: 2,
-                    source_library_item_id: null,
-                  },
-                  {
-                    id: "eeeeeeee-7777-4eee-8eee-eeeeeeee7777",
-                    estimate_id: routeEstimateId,
-                    node_id: "cdcdcdcd-cdcd-4cdc-8cdc-cdcdcdcdcdcd",
-                    material: "Other tab bed",
-                    quantity: 1,
-                    unit: "pc",
-                    unit_cost: 99_000,
-                    contingency_percentage: 0,
-                    misc_cost: 0,
-                    row_revision: 2,
-                    source_library_item_id: null,
-                  },
-                ],
+                data: nodeIds ? rows.filter((row) => nodeIds.includes(row.node_id)) : rows,
                 error: null,
               };
             }
@@ -1271,6 +1273,7 @@ describe("AI package-builder read tools", () => {
     expect(result.areaRows.map((row) => row.material)).toEqual(["Active tab bed"]);
     expect(observed.filters).toEqual(expect.arrayContaining([
       { table: "estimate_nodes", method: "eq", column: "estimate_tab_id", value: routeActiveTabId },
+      { table: "estimate_row_items", method: "in", column: "node_id", value: [routeGroupNodeId, routeAreaNodeId] },
     ]));
   });
 

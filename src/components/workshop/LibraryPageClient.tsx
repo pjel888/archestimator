@@ -4,7 +4,12 @@ import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import {
+  WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY,
+  WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY,
+  WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY,
+  workspaceComponentRowsLibraryQueryKey,
+} from "@/lib/component-library/query-keys";
 import { loadCurrentWorkspaceComponentRowsLibrary, loadProjectComponentRowsLibrary } from "@/lib/component-library/actions";
 import type { EstimateRowItem } from "./estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
@@ -80,6 +85,7 @@ export function LibraryPageClient({
     initialLibrary ??
     (categoryTree || suppliers || brands || libraryFolders || libraryItems
       ? ({
+          workspaceId: "legacy-test-scope",
           categoryTree: categoryTree ?? [],
           suppliers: suppliers ?? [],
           brands: brands ?? [],
@@ -87,7 +93,11 @@ export function LibraryPageClient({
           libraryItems: libraryItems ?? [],
         } as ComponentRowsLibraryDataset)
       : undefined);
-  const componentRowsQueryKey = projectId ? [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "project", projectId] : WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY;
+  const componentRowsQueryKey = seed?.workspaceId
+    ? workspaceComponentRowsLibraryQueryKey(seed.workspaceId, projectId)
+    : projectId
+      ? [...WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, "project", projectId]
+      : WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY;
   const { data } = useQuery({
     queryKey: componentRowsQueryKey,
     queryFn: () => projectId ? loadProjectComponentRowsLibrary(projectId) : loadCurrentWorkspaceComponentRowsLibrary(),

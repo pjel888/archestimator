@@ -13,6 +13,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type RefCallback,
   type ReactNode,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -97,6 +98,7 @@ export type TreeRowDomProps = {
   "aria-dropeffect"?: "move" | "copy";
   tabIndex: number;
   draggable: boolean;
+  ref: RefCallback<HTMLElement>;
   "data-tree-row": string;
   onClick: (event: MouseEvent<HTMLElement>) => void;
   onDoubleClick?: (event: MouseEvent<HTMLElement>) => void;
@@ -414,6 +416,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           "border border-transparent",
           node.rowClassName,
           (isSelected || isCurrent) && "bg-accentSoft",
+          state.isFocused && "border-l-focus bg-surfaceMuted",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
           isDropTarget && dropPosition === "after" && "border-b-2 border-b-primary",
@@ -587,6 +590,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     const [dropTarget, setDropTarget] = useState<{ id: string; position: TreeDropPosition } | null>(null);
     const [activeRootDropEdge, setActiveRootDropEdge] = useState<TreeRootDropEdge | null>(null);
     const [focusId, setFocusId] = useState<string | null>(null);
+    const rowElementsRef = useRef(new Map<string, HTMLElement>());
 
     const flatNodes = useMemo(
       () => flattenTree(nodes, expandedSet),
@@ -1076,10 +1080,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     useEffect(() => {
       if (!focusId) return;
       const focusElement = () => {
-        const escapedId = typeof CSS !== "undefined" && CSS.escape
-          ? CSS.escape(focusId)
-          : focusId.replace(/"/g, '\\"');
-        const el = document.querySelector(`[data-tree-row="${escapedId}"]`);
+        const el = rowElementsRef.current.get(focusId);
         if (el instanceof HTMLElement) el.focus();
       };
       if (virtualEnabled) {
@@ -1127,6 +1128,13 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
           "aria-label": flat.node.ariaLabel,
           tabIndex: effectiveFocusId === flat.id ? 0 : -1,
           draggable: isNodeDraggable(flat.node),
+          ref: (element) => {
+            if (element) {
+              rowElementsRef.current.set(flat.id, element);
+            } else {
+              rowElementsRef.current.delete(flat.id);
+            }
+          },
           // U12 (UX-5): expose drag state to assistive tech. A grabbed source row
           // reads aria-grabbed=true; the row currently under the drag reads the
           // effect that would apply — "move" for an intra-tree reorder (a drag

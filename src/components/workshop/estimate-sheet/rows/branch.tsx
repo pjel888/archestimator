@@ -18,7 +18,7 @@ import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
 import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeShellClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
-import { EstimateRowItemsTable } from "./row-table";
+import { EstimateRowItemsTable, type EstimateTableColumnResizeConfig } from "./row-table";
 import type { ExpressInsertDraftState } from "./cells";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
@@ -49,6 +49,7 @@ export type EstimateSheetBranchProps = {
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
+  columnResize?: EstimateTableColumnResizeConfig;
   nodeTotals?: ReadonlyMap<string, number>;
   depth?: number;
   siblingIndex?: number;
@@ -129,6 +130,7 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
+    prev.columnResize !== next.columnResize ||
     !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
   ) {
     return false;
@@ -148,7 +150,7 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -367,27 +369,30 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
               node's own rows from its children — no "Own items" eyebrow needed.
               Screen readers get the same disambiguation from headerAriaLabel
               ("{name}, area, N rows, M sub-areas") rendered sr-only above. */}
-          <EstimateRowItemsTable
-            items={estimateRowItems}
-            editableRows={editableRows}
-            setEditableRows={setEditableRows}
-            targetNodeId={node.id}
-            onInsertLibraryItem={onInsertLibraryItem}
-            onReplaceRowItem={onReplaceRowItem}
-            onDeleteRowItem={onDeleteRowItem}
-            onUpdateRowItem={onUpdateRowItem}
-            onMarkRowDirty={onMarkRowDirty}
-            onOpenRowDetails={onOpenRowDetails}
-            onClearRowComponent={onClearRowComponent}
-            onRequestProjectSpecific={onRequestProjectSpecific}
-            onMoveRowComponent={onMoveRowComponent}
-            expressInsertDraftStates={expressInsertDraftStates}
-            onRetryExpressDraft={onRetryExpressDraft}
-            onDeleteExpressDraft={onDeleteExpressDraft}
-            selectedRowIds={selectedRowIds}
-            onToggleRowSelection={onToggleRowSelection}
-            onToggleRowsSelection={onToggleRowsSelection}
-          />
+          <div className={showBreadcrumbs ? "-mt-2" : undefined}>
+            <EstimateRowItemsTable
+              items={estimateRowItems}
+              editableRows={editableRows}
+              setEditableRows={setEditableRows}
+              targetNodeId={node.id}
+              onInsertLibraryItem={onInsertLibraryItem}
+              onReplaceRowItem={onReplaceRowItem}
+              onDeleteRowItem={onDeleteRowItem}
+              onUpdateRowItem={onUpdateRowItem}
+              onMarkRowDirty={onMarkRowDirty}
+              onOpenRowDetails={onOpenRowDetails}
+              onClearRowComponent={onClearRowComponent}
+              onRequestProjectSpecific={onRequestProjectSpecific}
+              onMoveRowComponent={onMoveRowComponent}
+              expressInsertDraftStates={expressInsertDraftStates}
+              onRetryExpressDraft={onRetryExpressDraft}
+              onDeleteExpressDraft={onDeleteExpressDraft}
+              selectedRowIds={selectedRowIds}
+              onToggleRowSelection={onToggleRowSelection}
+              onToggleRowsSelection={onToggleRowsSelection}
+              columnResize={columnResize}
+            />
+          </div>
           {/* Add-row / drag-a-component strip. Always present on EVERY node —
               P6 lets any node hold rows even when it already has child
               sub-areas — so a quiet "Add row" affordance is always available,
@@ -430,6 +435,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
                 selectedRowIds={selectedRowIds}
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}
+                columnResize={columnResize}
                 nodeTotals={nodeTotals}
                 depth={depth + 1}
                 siblingIndex={childIndex}

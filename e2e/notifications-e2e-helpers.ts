@@ -23,6 +23,8 @@ export type NotificationE2EFixture = {
   centerDeliveryId: string;
 };
 
+type NotificationE2ECleanupTarget = Omit<NotificationE2EFixture, "password" | "session">;
+
 function isLocalSupabaseUrl(value: string | undefined) {
   if (!value) return false;
   try {
@@ -125,112 +127,119 @@ export async function createNotificationE2EFixture(): Promise<NotificationE2EFix
   const centerDefinitionId = randomUUID();
   const releaseDeliveryId = randomUUID();
   const centerDeliveryId = randomUUID();
+  let cleanupTarget: NotificationE2ECleanupTarget | null = null;
 
-  const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { display_name: "Notification E2E" },
-  });
-  if (createUserError) throw createUserError;
-  if (!createdUser.user) throw new Error("Supabase did not return the notification E2E user.");
+  try {
+    const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { display_name: "Notification E2E" },
+    });
+    if (createUserError) throw createUserError;
+    if (!createdUser.user) throw new Error("Supabase did not return the notification E2E user.");
 
-  const userId = createdUser.user.id;
-  const now = new Date();
-  const startsAt = new Date(now.getTime() - 60_000).toISOString();
-  const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+    const userId = createdUser.user.id;
+    cleanupTarget = { userId, email, releaseDefinitionId, releaseDeliveryId, centerDefinitionId, centerDeliveryId };
+    const now = new Date();
+    const startsAt = new Date(now.getTime() - 60_000).toISOString();
+    const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
 
-  const { error: profileError } = await admin.from("profiles").upsert({
-    id: userId,
-    email,
-    display_name: "Notification E2E",
-    avatar_url: null,
-    role: "member",
-    default_workspace_id: null,
-  });
-  if (profileError) throw profileError;
+    const { error: profileError } = await admin.from("profiles").upsert({
+      id: userId,
+      email,
+      display_name: "Notification E2E",
+      avatar_url: null,
+      role: "member",
+      default_workspace_id: null,
+    });
+    if (profileError) throw profileError;
 
-  const { error: allowlistError } = await admin.from("closed_beta_allowed_emails").upsert(
-    {
-      normalized_email: email,
-      status: "active",
-      metadata: { e2e: true, source: "notifications-e2e" },
-      notes: "Notification E2E deterministic fixture",
-    },
-    { onConflict: "normalized_email" },
-  );
-  if (allowlistError) throw allowlistError;
+    const { error: allowlistError } = await admin.from("closed_beta_allowed_emails").upsert(
+      {
+        normalized_email: email,
+        status: "active",
+        metadata: { e2e: true, source: "notifications-e2e" },
+        notes: "Notification E2E deterministic fixture",
+      },
+      { onConflict: "normalized_email" },
+    );
+    if (allowlistError) throw allowlistError;
 
-  const { error: definitionsError } = await admin.from("notification_definitions").insert([
-    {
-      id: releaseDefinitionId,
-      kind: "release_announcement",
-      title: "New release",
-      body: "Archestimator has a new in-app notification proof build.",
-      severity: "info",
-      surface: "modal",
-      release_version: "0.1.0-notification-e2e",
-      priority: 10,
-      dedupe_key: `notification-e2e-release-${stamp}`,
-      action_label: "View workshop",
-      action_href: "/workshop",
-      payload_json: { schemaVersion: 1, releaseVersion: "0.1.0-notification-e2e" },
-      starts_at: startsAt,
-      expires_at: expiresAt,
-    },
-    {
-      id: centerDefinitionId,
-      kind: "system_notice",
-      title: "Review notification center",
-      body: "This unread E2E notification should be readable and dismissible.",
-      severity: "success",
-      surface: "center",
-      priority: 1,
-      dedupe_key: `notification-e2e-center-${stamp}`,
-      action_label: "Open projects",
-      action_href: "/workshop/projects",
-      payload_json: { schemaVersion: 1, source: "notifications-e2e" },
-      starts_at: startsAt,
-      expires_at: expiresAt,
-    },
-  ]);
-  if (definitionsError) throw definitionsError;
+    const { error: definitionsError } = await admin.from("notification_definitions").insert([
+      {
+        id: releaseDefinitionId,
+        kind: "release_announcement",
+        title: "New release",
+        body: "Archestimator has a new in-app notification proof build.",
+        severity: "info",
+        surface: "modal",
+        release_version: "0.1.0-notification-e2e",
+        priority: 10,
+        dedupe_key: `notification-e2e-release-${stamp}`,
+        action_label: "View workshop",
+        action_href: "/workshop",
+        payload_json: { schemaVersion: 1, releaseVersion: "0.1.0-notification-e2e" },
+        starts_at: startsAt,
+        expires_at: expiresAt,
+      },
+      {
+        id: centerDefinitionId,
+        kind: "system_notice",
+        title: "Review notification center",
+        body: "This unread E2E notification should be readable and dismissible.",
+        severity: "success",
+        surface: "center",
+        priority: 1,
+        dedupe_key: `notification-e2e-center-${stamp}`,
+        action_label: "Open projects",
+        action_href: "/workshop/projects",
+        payload_json: { schemaVersion: 1, source: "notifications-e2e" },
+        starts_at: startsAt,
+        expires_at: expiresAt,
+      },
+    ]);
+    if (definitionsError) throw definitionsError;
 
-  const { error: deliveriesError } = await admin.from("notification_deliveries").insert([
-    {
-      id: releaseDeliveryId,
-      notification_id: releaseDefinitionId,
-      user_id: userId,
-      delivery_reason: "e2e_release_modal",
-      payload_json: { schemaVersion: 1, source: "notifications-e2e" },
-    },
-    {
-      id: centerDeliveryId,
-      notification_id: centerDefinitionId,
-      user_id: userId,
-      delivery_reason: "e2e_center",
-      payload_json: { schemaVersion: 1, source: "notifications-e2e" },
-    },
-  ]);
-  if (deliveriesError) throw deliveriesError;
+    const { error: deliveriesError } = await admin.from("notification_deliveries").insert([
+      {
+        id: releaseDeliveryId,
+        notification_id: releaseDefinitionId,
+        user_id: userId,
+        delivery_reason: "e2e_release_modal",
+        payload_json: { schemaVersion: 1, source: "notifications-e2e" },
+      },
+      {
+        id: centerDeliveryId,
+        notification_id: centerDefinitionId,
+        user_id: userId,
+        delivery_reason: "e2e_center",
+        payload_json: { schemaVersion: 1, source: "notifications-e2e" },
+      },
+    ]);
+    if (deliveriesError) throw deliveriesError;
 
-  const { data: signIn, error: signInError } = await anon.auth.signInWithPassword({ email, password });
-  if (signInError) throw signInError;
-  if (!signIn.session) throw new Error("Supabase did not return a notification E2E session.");
+    const { data: signIn, error: signInError } = await anon.auth.signInWithPassword({ email, password });
+    if (signInError) throw signInError;
+    if (!signIn.session) throw new Error("Supabase did not return a notification E2E session.");
 
-  return {
-    userId,
-    email,
-    password,
-    session: signIn.session,
-    releaseDefinitionId,
-    releaseDeliveryId,
-    centerDefinitionId,
-    centerDeliveryId,
-  };
+    return {
+      userId,
+      email,
+      password,
+      session: signIn.session,
+      releaseDefinitionId,
+      releaseDeliveryId,
+      centerDefinitionId,
+      centerDeliveryId,
+    };
+  } catch (error) {
+    await cleanupNotificationE2EFixture(cleanupTarget);
+    throw error;
+  }
 }
 
-export async function cleanupNotificationE2EFixture(fixture: NotificationE2EFixture | null) {
+export async function cleanupNotificationE2EFixture(fixture: NotificationE2EFixture | NotificationE2ECleanupTarget | null) {
   if (!fixture) return;
   const admin = createAdminClient();
 

@@ -2,6 +2,7 @@ import {
   assertSameOriginPublicPost,
   createSharedLinkSessionCookieName,
   hasPublicationAccessCookie,
+  readPublicationViewSnapshotVersion,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
 import {
@@ -48,15 +49,10 @@ function readSessionPayload(value: string | undefined) {
     if (parts[0] !== prefix || !parts[1]) return {};
     const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as {
       publicationId?: unknown;
-      snapshotVersion?: unknown;
       recipientId?: unknown;
     };
     return {
       publicationId: typeof payload.publicationId === "string" ? payload.publicationId : undefined,
-      snapshotVersion:
-        typeof payload.snapshotVersion === "string" || typeof payload.snapshotVersion === "number"
-          ? payload.snapshotVersion
-          : undefined,
       recipientId: typeof payload.recipientId === "string" ? payload.recipientId : undefined,
     };
   } catch {
@@ -135,6 +131,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const body = (await request.json().catch(() => ({}))) as {
     decision?: string;
     note?: string | null;
+    viewToken?: unknown;
   };
 
   const decision = (body.decision || "").toString().trim();
@@ -173,6 +170,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     logStructured("error", "/api/share/[token]/decision", "SESSION_INVALID", ipHash);
     return Response.json({ error: "Valid recipient session required for decisions." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
+  const requestViewToken = typeof body.viewToken === "string" ? body.viewToken : undefined;
+  const viewedSnapshotVersion = requestViewToken
+    ? readPublicationViewSnapshotVersion(requestViewToken, {
+        token,
+        publicationId: access.publicationId,
+      })
+    : undefined;
+  if (requestViewToken && !viewedSnapshotVersion) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "VIEW_SNAPSHOT_INVALID", ipHash);
+    return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+  }
+  const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion;
 
   const recipientId = recipientIdFromCookie;
   if (!recipientId) {
@@ -195,7 +205,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const { id } = await submitSharedLinkDecision({
       publicationToken: token,
       recipientId,
-      expectedSnapshotVersion: access.snapshotVersion,
+      expectedSnapshotVersion,
       decision,
       note,
     });
