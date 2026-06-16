@@ -244,7 +244,7 @@ describe("proposal workbook generation", () => {
     // P1-T6: single-tab Summary uses the dynamic totals start (one spacer past the last
     // section row). One section at row 15 → totals start at row 17, Grand Total at row 20.
     // P2-T1: Contingency (10%) and VAT (12% of Direct+Contingency) are now real formulas.
-    expect(summary?.getCell("B17").value).toEqual({ formula: "SUM(C15)", result: 21_700 });
+    expect(summary?.getCell("B17").value).toEqual({ formula: "SUM(C15:C15)", result: 21_700 });
     expect(summary?.getCell("B18").value).toEqual({ formula: "B17*0.1", result: 2_170 });
     expect(summary?.getCell("B19").value).toEqual({ formula: "(B17+B18)*0.12", result: 2_864.4 });
     expect(summary?.getCell("B20").value).toEqual({ formula: "B17+B18+B19", result: 26_734.4 });
@@ -328,7 +328,7 @@ describe("proposal workbook generation", () => {
     expect(summary?.getRow(16).values).toEqual([undefined, "Finishes", 1, { formula: "'Main'!H20", result: 21_700 }]);
     expect(summary?.getCell("A17").value).toBe("Owner's / Scope");
     expect(summary?.getRow(18).values).toEqual([undefined, "Finishes", 1, { formula: "'Owner''s Scope'!H20", result: 1_500 }]);
-    expect(summary?.getCell("B20").value).toEqual({ formula: "SUM(C16,C18)", result: 23_200 });
+    expect(summary?.getCell("B20").value).toEqual({ formula: "SUM(C16:C18)", result: 23_200 });
     // P2-T1: Grand Total = Direct (23,200) + 10% contingency (2,320) + 12% VAT (3,062.4).
     expect(summary?.getCell("B23").value).toEqual({ formula: "B20+B21+B22", result: 28_582.4 });
 
@@ -453,6 +453,35 @@ describe("proposal workbook generation", () => {
     expect(summary?.getCell("A31").value).toBe("Direct Cost");
     expect(summary?.getCell("A34").value).toBe("Grand Total");
     expect(summary?.getCell("B34").value).toEqual(expect.objectContaining({ formula: "B31+B32+B33" }));
+  });
+
+  it("uses a range-based single-tab Summary Direct Cost formula for many sections", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "group",
+        name: "Group",
+        kind: "group",
+        total: "₱0.00",
+        children: Array.from({ length: 300 }, (_, index) => ({
+          id: `area-${index}`,
+          name: `Area ${index}`,
+          kind: "area" as const,
+          total: "₱0.00",
+          estimateRowItems: [
+            row({ id: `r-${index}`, material: `Item ${index}`, category: `Division ${String(index).padStart(3, "0")}`, itemCost: 100 + index }),
+          ],
+        })),
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, settings: { audience: "internal" }, generatedAt: "2026-05-23T00:00:00.000Z" });
+    expect(model.summaryRows).toHaveLength(300);
+
+    const summary = createProposalWorkbook(model).getWorksheet("Summary");
+    const directCostCell = summary?.getCell("B316").value;
+
+    expect(summary?.getCell("A316").value).toBe("Direct Cost");
+    expect(directCostCell).toEqual(expect.objectContaining({ formula: "SUM(C15:C314)" }));
+    expect((directCostCell as { formula: string }).formula.split(",")).toHaveLength(1);
   });
 
   it("renders Contingency/VAT as INCLUDED in the Summary when modes are included (P2-T1)", () => {

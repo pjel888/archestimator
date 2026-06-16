@@ -506,7 +506,8 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
   const headerRow = worksheet.addRow(SUMMARY_COLUMNS.map((column) => column.header));
   styleHeaderRow(headerRow);
 
-  const amountRows: number[] = [];
+  let firstAmountRow: number | null = null;
+  let lastAmountRow: number | null = null;
   sectionRanges.forEach((sectionRange) => {
     const row = worksheet.addRow([
       sectionRange.sectionLabel,
@@ -514,14 +515,18 @@ function createSummaryWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
       formulaCell(model.settings.includeFormulas, quoteWorksheetCellReference(bidWorksheetName, `${BID_FORM_COLUMN_LETTERS.lineTotal}${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
     ]);
     styleBodyRow(row);
-    amountRows.push(row.number);
+    firstAmountRow ??= row.number;
+    lastAmountRow = row.number;
   });
 
   // F-16 (P1-T6): dynamic totals start (one spacer row past the last section), the same
   // geometry as populateTabbedSummaryWorksheet, so the totals never collide once a single
   // tab carries more than ~11 sections (the old fixed A27–B32 block corrupted past that).
   const totalsStartRow = worksheet.rowCount + 2;
-  const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
+  // Keep the Direct Cost formula as one contiguous range instead of one SUM argument per
+  // section. A valid export can have hundreds/thousands of distinct sections, and Excel
+  // functions have practical argument/formula-length limits.
+  const directCostFormula = firstAmountRow && lastAmountRow ? `SUM(C${firstAmountRow}:C${lastAmountRow})` : "0";
   writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, model.totals, model.settings, model.metadata.grossFloorArea ?? null);
   setPrintLayout(worksheet);
   return worksheet;
@@ -570,7 +575,8 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
   const headerRow = worksheet.addRow(SUMMARY_COLUMNS.map((column) => column.header));
   styleHeaderRow(headerRow);
 
-  const amountRows: number[] = [];
+  let firstAmountRow: number | null = null;
+  let lastAmountRow: number | null = null;
   for (const { tab, sectionRanges } of tabRanges) {
     const tabHeaderRow = worksheet.addRow([tab.tabName]);
     tabHeaderRow.font = { bold: true, size: 10, color: { argb: "FF111827" } };
@@ -580,7 +586,8 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
     if (sectionRanges.length === 0) {
       const emptyRow = worksheet.addRow(["No exportable rows", 0, { formula: "0", result: 0 }]);
       styleBodyRow(emptyRow);
-      amountRows.push(emptyRow.number);
+      firstAmountRow ??= emptyRow.number;
+      lastAmountRow = emptyRow.number;
       continue;
     }
 
@@ -591,12 +598,13 @@ function populateTabbedSummaryWorksheet(worksheet: ExcelJS.Worksheet, input: Pro
         formulaCell(input.settings.includeFormulas, quoteWorksheetCellReference(tab.worksheetName, `${BID_FORM_COLUMN_LETTERS.lineTotal}${sectionRange.subtotalRowNumber}`), sectionRange.subtotalResult),
       ]);
       styleBodyRow(row);
-      amountRows.push(row.number);
+      firstAmountRow ??= row.number;
+      lastAmountRow = row.number;
     });
   }
 
   const totalsStartRow = worksheet.rowCount + 2;
-  const directCostFormula = amountRows.length > 0 ? `SUM(${amountRows.map((rowNumber) => `C${rowNumber}`).join(",")})` : "0";
+  const directCostFormula = firstAmountRow && lastAmountRow ? `SUM(C${firstAmountRow}:C${lastAmountRow})` : "0";
   const directCost = roundMoney(tabRanges.reduce((total, { tab }) => total + tab.model.totals.grandTotal, 0));
   const tabbedTotals = { grandTotal: directCost, ...resolveProjectCharges(directCost, input.settings) };
   writeSummaryTotalsBlock(worksheet, totalsStartRow, directCostFormula, tabbedTotals, input.settings, input.metadata.grossFloorArea ?? null);
