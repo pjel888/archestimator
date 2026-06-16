@@ -1,14 +1,14 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MoonStarsIcon, SunHorizonIcon } from "@phosphor-icons/react/dist/ssr";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { useIsHydrated } from "@/hooks/use-is-hydrated";
+import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
 
 import { Button } from "@/components/ui/button";
 import { acceptPendingInvitationById, signOutForPendingInvite } from "@/lib/collaboration/pending-invite-actions";
-import { setProjectFavorite } from "@/lib/workshop/actions";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import type {
   WorkshopHomebaseData,
@@ -20,6 +20,7 @@ type WorkshopHomebaseClientProps = {
   homebase: WorkshopHomebaseData;
   inviteBanner?: WorkshopInviteBannerState;
   removedProjectBanner?: WorkshopRemovedProjectBannerState;
+  favoritesScope: { workspaceId: string; userId: string };
   userDisplayName?: string | null;
 };
 
@@ -42,12 +43,13 @@ export function WorkshopHomebaseClient({
   homebase,
   inviteBanner,
   removedProjectBanner,
+  favoritesScope,
   userDisplayName,
 }: WorkshopHomebaseClientProps) {
   const router = useNavigationRouter();
+  const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
   const [pendingFavoriteKey, setPendingFavoriteKey] = useState<string | null>(null);
   const [dismissedRemovedProjectIds, setDismissedRemovedProjectIds] = useState<Record<string, boolean>>({});
-  const [, startTransition] = useTransition();
 
   const removedProjectNotice = useMemo(() => {
     const byId = new Map<string, WorkshopRemovedProjectNotice>();
@@ -71,16 +73,29 @@ export function WorkshopHomebaseClient({
   }, [dismissedRemovedProjectIds, homebase.removedProjectFavorites, removedProjectBanner]);
 
   function removeRemovedProjectFavorite(projectId: string) {
+    const notice = removedProjectNotice;
     setPendingFavoriteKey(`removed-project:${projectId}`);
-    startTransition(() => {
-      void setProjectFavorite({ projectId, favorite: false })
-        .then(() => {
+    toggleProjectFavoriteMutation.toggle(
+      {
+        project: {
+          id: projectId,
+          name: notice?.projectName ?? "",
+          projectCode: notice?.projectCode ?? null,
+          href: `/workshop/projects/${projectId}/estimates`,
+          favoriteCreatedAt: null,
+        },
+        favorite: false,
+      },
+      {
+        onSuccess: () => {
           setDismissedRemovedProjectIds((current) => ({ ...current, [projectId]: true }));
+          // D8: navigation dismisses the banner + returns home — a separate concern
+          // from favorite cache propagation, so it survives the no-full-tree-refresh rule.
           router.replace("/workshop", { scroll: false });
-        })
-        .catch(() => undefined)
-        .finally(() => setPendingFavoriteKey(null));
-    });
+        },
+        onSettled: () => setPendingFavoriteKey(null),
+      },
+    );
   }
 
   return (

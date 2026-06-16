@@ -10,7 +10,7 @@ import { PENDING_INVITE_COOKIE } from "@/lib/collaboration/pending-invite";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { getWorkshopHomebaseData } from "@/lib/repositories/workspace-repository";
+import { ensureDefaultWorkspace, getWorkshopHomebaseData } from "@/lib/repositories/workspace-repository";
 
 type WorkshopPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -79,6 +79,11 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
 
   const homebase = await getWorkshopHomebaseData();
   const currentUser = await requireCurrentUserContext();
+  // Source the favorites scope identically to WorkshopPageShell (D2): server + client
+  // must build the same sidebar query key. Both helpers are React-cached, so this does
+  // not duplicate the work the shell already performed for the same request.
+  const { workspace } = await ensureDefaultWorkspace();
+  const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
 
   return (
     <WorkshopPageShell
@@ -92,6 +97,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
         homebase={homebase}
         inviteBanner={inviteBanner}
         removedProjectBanner={removedProjectBanner}
+        favoritesScope={favoritesScope}
         userDisplayName={currentUser.displayName}
       />
     </WorkshopPageShell>

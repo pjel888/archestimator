@@ -224,4 +224,12 @@ describe("MainSidebar favorites", () => {
 
     await waitFor(() => expect(alertRegion()).toHaveTextContent("Could not update favorite. Try again."));
   });
+
+  it("homebase keeps router.replace but stops calling setProjectFavorite directly", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync("src/components/workshop/WorkshopHomebaseClient.tsx", "utf8");
+    expect(src).toContain('router.replace("/workshop", { scroll: false })'); // D8 navigation preserved
+    expect(src).not.toContain("router.refresh");
+    expect(src).toContain("useToggleProjectFavorite");
+  });
 });

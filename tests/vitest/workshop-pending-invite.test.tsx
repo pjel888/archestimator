@@ -1,9 +1,20 @@
 import { readFileSync } from "node:fs";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
 import type { WorkshopHomebaseData } from "@/lib/repositories/workspace-repository";
+
+const FAVORITES_SCOPE = { workspaceId: "workspace-1", userId: "user-1" } as const;
+
+// WorkshopHomebaseClient now uses the useToggleProjectFavorite hook, which needs a
+// TanStack QueryClient context. Wrap every render so these banner/invite tests stay green.
+function renderHomebase(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -80,9 +91,10 @@ describe("workshop pending invite bridge", () => {
   });
 
   it("renders accepted invite banners with role and project context when provided", () => {
-    render(
+    renderHomebase(
       <WorkshopHomebaseClient
         homebase={emptyHomebase}
+        favoritesScope={FAVORITES_SCOPE}
         inviteBanner={{
           kind: "accepted",
           scope: "project",
@@ -114,9 +126,10 @@ describe("workshop pending invite bridge", () => {
   });
 
   it("renders wrong-account recovery with the invited email and a sign-out path", () => {
-    render(
+    renderHomebase(
       <WorkshopHomebaseClient
         homebase={emptyHomebase}
+        favoritesScope={FAVORITES_SCOPE}
         inviteBanner={{ kind: "wrong-account", invitedEmail: "teammate@example.com" }}
       />,
     );
@@ -127,8 +140,9 @@ describe("workshop pending invite bridge", () => {
   });
 
   it("renders signed-in pending invite cards on the homebase", () => {
-    render(
+    renderHomebase(
       <WorkshopHomebaseClient
+        favoritesScope={FAVORITES_SCOPE}
         homebase={{
           ...emptyHomebase,
           pendingInvites: [

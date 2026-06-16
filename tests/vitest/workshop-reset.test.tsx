@@ -1,5 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
@@ -125,9 +127,14 @@ afterEach(() => {
   mocks.setProjectFavorite.mockClear();
 });
 
+function renderWithQueryClient(ui: ReactNode) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 describe("workshop sidebar baseline", () => {
   test("renders the workshop shell with an overlay sidebar and blank canvas", async () => {
-    render(
+    renderWithQueryClient(
       await WorkshopPageShell({
         title: "Workshop",
         eyebrow: "Workspace",
@@ -146,15 +153,29 @@ describe("workshop sidebar baseline", () => {
     expect(navigation).toBeTruthy();
     expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByRole("link", { name: "Projects, 3 pending invites" })).toBeTruthy();
-    expect(navigation.querySelector('span[class*="bg-white/[0.10]"]')).toBeTruthy();
-    expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
+    expect(navigation.querySelector('div[class*="bg-surface-muted"]')).toBeTruthy();
+    expect(navigation.querySelector('div[style*="color-mix(in srgb, var(--brand-orange) 25%, white)"]')).toBeTruthy();
+    const headerFrame = navigation.querySelector("[data-sidebar-header-frame]");
+    expect(headerFrame).toBeTruthy();
+    expect(headerFrame?.getAttribute("style")).toContain("height: 86px");
+    const brandRow = navigation.querySelector("[data-sidebar-header-brand-row]");
+    expect(brandRow).toBeTruthy();
+    expect(brandRow).toHaveClass("h-10", "items-center", "border-b");
+    expect(brandRow?.getAttribute("style")).toContain("color-mix(in srgb, var(--brand-orange) 25%, white)");
+    const logoLock = navigation.querySelector("[data-sidebar-header-logo-lock]");
+    expect(logoLock).toBeTruthy();
+    expect(logoLock?.getAttribute("style")).toContain("width: 148px");
+    expect(within(logoLock as HTMLElement).getByText("archestimator")).toHaveClass("text-[12px]", "text-brand-orange");
+    expect(navigation.querySelector("[data-sidebar-workspace-shell]")).toBeNull();
+    expect(navigation.querySelector('span[class*="text-brand-orange"]')).toBeTruthy();
+    expect(navigation.querySelector('[class*="backdrop-blur"]')).toBeNull();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
     expect(screen.getByRole("button", { name: "Send beta feedback" })).toHaveAttribute("aria-haspopup", "dialog");
   });
 
   test("keeps project-aligned chrome padding symmetrical", async () => {
-    const { container } = render(
+    const { container } = renderWithQueryClient(
       await WorkshopPageShell({
         title: "Lewis Residence",
         eyebrow: "Workshop",
@@ -171,7 +192,13 @@ describe("workshop sidebar baseline", () => {
   });
 
   test("renders a sparse dynamic greeting without search chrome, route cards, or favorites", async () => {
-    const { container } = render(<WorkshopHomebaseClient homebase={workshopHomebase} userDisplayName="Philip Lewis" />);
+    const { container } = renderWithQueryClient(
+      <WorkshopHomebaseClient
+        homebase={workshopHomebase}
+        favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
+        userDisplayName="Philip Lewis"
+      />,
+    );
 
     expect(container.querySelector("div.h-full.min-h-0.bg-white.p-2")).toBeTruthy();
     expect(screen.queryByLabelText("Search Workshop")).toBeNull();
@@ -209,7 +236,12 @@ describe("workshop sidebar baseline", () => {
   });
 
   test("keeps a first-run workshop homebase sparse without projects or favorites", async () => {
-    render(<WorkshopHomebaseClient homebase={emptyWorkshopHomebase} />);
+    renderWithQueryClient(
+      <WorkshopHomebaseClient
+        homebase={emptyWorkshopHomebase}
+        favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
+      />,
+    );
 
     const greeting = screen.getByRole("region", { name: "Workshop greeting" });
     expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
@@ -225,8 +257,9 @@ describe("workshop sidebar baseline", () => {
 
   test("renders removed favorite project banner and lets the user clear the stale favorite", async () => {
     const user = userEvent.setup();
-    render(
+    renderWithQueryClient(
       <WorkshopHomebaseClient
+        favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
         homebase={{
           ...workshopHomebase,
           removedProjectFavorites: [
