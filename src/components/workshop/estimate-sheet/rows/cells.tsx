@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import { Cube, DotsSixVertical, DotsThreeVertical, Trash } from "@phosphor-icons/react/dist/ssr";
+import { Cube, DotsSixVertical, DotsThreeVertical, StackPlus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
-import { isExpressComponentRow } from "@/lib/estimates/express-components";
+import { classifyEstimateRowSource, isExpressComponentRow, readProjectComponentProjectionMetadata } from "@/lib/estimates/express-components";
 import { cn } from "@/lib/ui/cn";
 import {
   getComponentImageUrl as getMaterialCardImageUrl,
@@ -73,7 +73,8 @@ export function handleEstimateCellKeyDown(
 }
 
 export function isProjectSpecificRowItem(item: EstimateRowItem) {
-  return item.linkState === "detached";
+  const projection = readProjectComponentProjectionMetadata(item.metadata);
+  return item.linkState === "detached" || projection?.classification === "detached-library";
 }
 
 export function canMakeProjectSpecific(item: EstimateRowItem) {
@@ -81,7 +82,52 @@ export function canMakeProjectSpecific(item: EstimateRowItem) {
   return Boolean(item.sourceLibraryItemId || item.linkState?.startsWith("linked") || item.linkState === "source-changed");
 }
 
+export function canPromoteEstimateRowToLibrary(item: EstimateRowItem) {
+  return isExpressComponentRow(item) || isProjectSpecificRowItem(item);
+}
+
 export type ExpressInsertDraftState = "creating" | "failed";
+
+type ComponentSourceTone = "library" | "express" | "project" | "manual";
+
+const MATERIAL_UNIT_SLOT_CLASS =
+  "flex w-16 shrink-0 items-center justify-end whitespace-nowrap text-right text-[10px] font-medium leading-3 text-tertiary";
+
+function getComponentSourceTone(item: EstimateRowItem): ComponentSourceTone {
+  const source = classifyEstimateRowSource(item);
+  if (source === "express") return "express";
+  const projection = readProjectComponentProjectionMetadata(item.metadata);
+  if (projection?.classification === "detached-library") return "project";
+  if (source === "detached-library") return "project";
+  if (source === "linked-library") return "library";
+  return "manual";
+}
+
+function getComponentSourceLabel(source: ComponentSourceTone) {
+  switch (source) {
+    case "library":
+      return "Library component";
+    case "express":
+      return "Express component";
+    case "project":
+      return "Project-specific component";
+    case "manual":
+      return "Manual row";
+  }
+}
+
+function getComponentSourceRailClass(source: ComponentSourceTone) {
+  switch (source) {
+    case "library":
+      return "group-hover:bg-[#E8B99D] group-focus-within:bg-[#E8B99D] group-hover/estimate-row:bg-[#E8B99D]";
+    case "express":
+      return "group-hover:bg-[#AAB6E8] group-focus-within:bg-[#AAB6E8] group-hover/estimate-row:bg-[#AAB6E8]";
+    case "project":
+      return "group-hover:bg-[#A6B27B] group-focus-within:bg-[#A6B27B] group-hover/estimate-row:bg-[#A6B27B]";
+    case "manual":
+      return "group-hover:bg-divider group-focus-within:bg-divider group-hover/estimate-row:bg-divider";
+  }
+}
 
 function EstimateMaterialCardFrame({
   image,
@@ -103,7 +149,7 @@ function EstimateMaterialCardFrame({
       <div className="flex gap-2">
         {image}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-w-0 pr-[92px]">
+          <div className="min-w-0 pr-[108px]">
             {name}
             {supplier}
           </div>
@@ -114,7 +160,9 @@ function EstimateMaterialCardFrame({
       </div>
       <div className="flex items-start justify-between gap-2">
         {description}
-        {unit}
+        <div className={MATERIAL_UNIT_SLOT_CLASS} data-estimate-material-unit-slot="true">
+          {unit}
+        </div>
       </div>
     </>
   );
@@ -138,7 +186,7 @@ export function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCa
           {item.description}
         </p>
       )}
-      unit={<p className="shrink-0 whitespace-nowrap text-[10px] font-medium leading-3 text-tertiary">/ {item.unit}</p>}
+      unit={<p className="min-w-0 max-w-full truncate text-right" data-estimate-material-unit-label="true">/ {item.unit}</p>}
     />
   );
 }
@@ -197,7 +245,7 @@ function ExpressMaterialEditor({
 
   return (
     <div
-      className="flex h-full min-h-24 flex-col justify-between gap-2 bg-white text-[10px] leading-3 text-secondary"
+      className="flex h-full flex-col justify-between gap-2 text-[10px] leading-3 text-secondary"
       data-express-editor="true"
       aria-label={`${editorLabel} inline editor`}
     >
@@ -241,13 +289,15 @@ function ExpressMaterialEditor({
         image={(
           <label
             className={cn(
-              "relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xs bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-secondary",
-              imageUrl && "text-white shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
+              "relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xs bg-neutral-100 bg-cover bg-center text-center text-[8px] font-medium leading-3 text-tertiary",
+              imageUrl && "shadow-[inset_0_0_0_999px_rgba(0,0,0,0.08)]",
             )}
             style={imageStyle}
             title="Paste an image URL"
           >
-            <span aria-hidden="true" className="pointer-events-none px-1">{imageUrl ? "Image" : "Image URL"}</span>
+            <span aria-hidden="true" className="pointer-events-none px-1 opacity-0 transition group-hover:opacity-70 group-focus-within:opacity-70">
+              Image URL
+            </span>
             <input
               type="url"
               value={editableRow.imageUrl}
@@ -262,7 +312,7 @@ function ExpressMaterialEditor({
               data-express-field="imageUrl"
               aria-label="Image URL"
               placeholder="Image URL"
-              className="absolute inset-0 h-full w-full rounded-xs border-0 bg-transparent p-1 text-center text-[8px] font-medium leading-3 text-transparent outline-none placeholder:text-secondary focus:bg-white/95 focus:text-ink focus:placeholder:text-secondary"
+              className="absolute inset-0 h-full w-full rounded-xs border-0 bg-transparent p-1 text-center text-[8px] font-medium leading-3 text-transparent outline-none placeholder:text-transparent focus:bg-white/95 focus:text-ink focus:placeholder:text-tertiary"
             />
           </label>
         )}
@@ -281,7 +331,7 @@ function ExpressMaterialEditor({
             data-express-field="name"
             aria-label="Component name"
             placeholder="Component name"
-            className={cn(cardInputClass, "text-[11px] font-medium leading-4 text-ink placeholder:text-secondary")}
+            className={cn(cardInputClass, "text-[11px] font-medium leading-4 text-ink placeholder:text-ink")}
           />
         )}
         supplier={(
@@ -299,7 +349,7 @@ function ExpressMaterialEditor({
             data-express-field="supplier"
             aria-label="Supplier"
             placeholder="Supplier"
-            className={cn(cardInputClass, "text-[10px] font-medium leading-4 text-secondary placeholder:text-secondary")}
+            className={cn(cardInputClass, "text-[10px] font-medium leading-4 text-tertiary placeholder:text-tertiary")}
           />
         )}
         cost={(
@@ -334,12 +384,12 @@ function ExpressMaterialEditor({
             data-express-field="description"
             aria-label="Component description"
             placeholder="Description"
-            rows={2}
-            className="min-h-8 flex-1 resize-none rounded-xs border border-transparent bg-transparent p-0 text-[10px] leading-4 text-secondary outline-none placeholder:text-secondary transition hover:border-hairline focus:border-accent focus:bg-white focus:px-1 focus:ring-1 focus:ring-accent"
+            rows={1}
+            className="h-4 min-h-4 flex-1 resize-none overflow-hidden rounded-xs border border-transparent bg-transparent p-0 text-[10px] leading-4 text-secondary/60 outline-none placeholder:text-secondary/60 transition hover:border-hairline hover:text-secondary focus:border-accent focus:bg-white focus:px-1 focus:text-secondary focus:ring-1 focus:ring-accent"
           />
         )}
         unit={(
-          <label className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-medium leading-3 text-secondary">
+          <label className="flex w-full min-w-0 items-center justify-end gap-1" data-estimate-material-unit-label="true">
             <span aria-hidden="true">/</span>
             <ControlInput
               type="text"
@@ -355,7 +405,8 @@ function ExpressMaterialEditor({
               data-express-field="unit"
               aria-label="Unit"
               placeholder="unit"
-              className={cn(cardInputClass, "h-4 w-12 text-[10px] font-medium leading-3 text-secondary placeholder:text-secondary")}
+              align="right"
+              className={cn(cardInputClass, "h-4 w-12 text-[10px] font-medium leading-3 text-tertiary placeholder:text-tertiary")}
             />
           </label>
         )}
@@ -377,6 +428,8 @@ export function EstimateMaterialCell({
   onReplace,
   onClearComponent,
   onRequestProjectSpecific,
+  onPromoteToLibrary,
+  promoteToLibraryPending,
   onMoveComponent,
   onOpenComponentDetails,
   expressDraftState,
@@ -395,6 +448,8 @@ export function EstimateMaterialCell({
   onReplace: (libraryItem: EstimateRowItem) => void;
   onClearComponent: () => void;
   onRequestProjectSpecific: () => void;
+  onPromoteToLibrary: () => void;
+  promoteToLibraryPending?: boolean;
   onMoveComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onOpenComponentDetails: (opener: HTMLElement) => void;
   expressDraftState?: ExpressInsertDraftState;
@@ -441,24 +496,32 @@ export function EstimateMaterialCell({
     event.dataTransfer.setData(ESTIMATE_COMPONENT_DRAG_MIME_TYPE, JSON.stringify({ rowItemId: item.id, item } satisfies EstimateComponentDragPayload));
   }
 
-  const showProjectSpecificBadge = isProjectSpecificRowItem(item);
   const showProjectSpecificAction = canMakeProjectSpecific(item);
+  const showPromoteAction = canPromoteEstimateRowToLibrary(item);
   const showInlineComponentEditor = isExpressComponentRow(item) || isBlankEstimateRowItem(item);
   const componentLabel = showInlineComponentEditor ? (editableRow.name || "Express component") : (item.material || "component");
+  const sourceTone = getComponentSourceTone(item);
+  const sourceLabel = getComponentSourceLabel(sourceTone);
 
   return (
     <div
       className={cn(
-        "group relative flex h-full flex-col gap-2 overflow-hidden bg-white p-2 transition hover:bg-neutral-50",
+        "group relative flex h-full flex-col gap-2 overflow-hidden bg-white py-2 pr-2 pl-3 transition hover:bg-neutral-50",
         isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent",
       )}
       onDragOver={handleReplacementDragOver}
       onDragLeave={onReplaceDragLeave}
       onDrop={handleReplacementDrop}
       data-replace-target-active={isReplaceTarget ? "true" : undefined}
+      data-component-source={sourceTone}
       aria-label={`${componentLabel} replaceable estimate component`}
-      title="Drop another component here to replace this component"
+      title={`${sourceLabel}. Drop another component here to replace this component`}
     >
+      <span
+        className={cn("pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-divider transition-colors duration-150", getComponentSourceRailClass(sourceTone))}
+        aria-hidden="true"
+      />
+      <span className="sr-only">{sourceLabel}</span>
       <div className="absolute top-1 right-1 z-10 flex items-center gap-1.5" aria-label={`Component actions for ${componentLabel}`}>
         {showProjectSpecificAction ? (
           <Button
@@ -474,6 +537,23 @@ export function EstimateMaterialCell({
             }}
           >
             <Cube size={11} weight="regular" aria-hidden="true" />
+          </Button>
+        ) : null}
+        {showPromoteAction ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
+            aria-label={`Promote ${componentLabel} to library`}
+            title="Promote to library"
+            disabled={promoteToLibraryPending}
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              onPromoteToLibrary();
+            }}
+          >
+            <StackPlus size={11} weight="regular" aria-hidden="true" />
           </Button>
         ) : null}
         <Button
@@ -518,11 +598,6 @@ export function EstimateMaterialCell({
           <DotsSixVertical size={11} weight="regular" aria-hidden="true" />
         </Button>
       </div>
-      {showProjectSpecificBadge ? (
-        <div className="pointer-events-none absolute top-1 left-1 z-10 rounded-xs border border-hairline bg-white px-1.5 py-0.5 text-[8px] font-medium leading-3 text-secondary">
-          Project-specific
-        </div>
-      ) : null}
       {showInlineComponentEditor ? (
         <ExpressMaterialEditor
           item={item}

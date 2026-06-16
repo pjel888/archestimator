@@ -135,7 +135,7 @@ describe("ProjectsPageClient shared access", () => {
     render(<ProjectsPageClient projects={PROJECTS} />);
 
     expect(screen.getByLabelText("Lewis Residence project, owned access")).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access")).toBeInTheDocument();
     expect(screen.getByLabelText("Shared Sheet Project project, estimate-only access, viewer access")).toBeInTheDocument();
@@ -164,14 +164,15 @@ describe("ProjectsPageClient shared access", () => {
     );
 
     const card = screen.getByLabelText("Lewis Residence project, owned access");
-    expect(card.querySelector("[data-project-card-shared-link-indicator]")).not.toBeNull();
+    expect(card.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
+    expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
     expect(within(card).getByText("4 opens")).toBeInTheDocument();
   });
 
   it("does not show the empty sample state when only shared projects exist", () => {
     render(<ProjectsPageClient projects={[PROJECTS[1], PROJECTS[2]]} />);
 
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Live projects")).toBeInTheDocument();
     expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
@@ -233,7 +234,7 @@ describe("ProjectsPageClient shared access", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     const pendingCard = screen.getByLabelText("Pending Museum Wing project, pending invite, viewer access");
     expect(pendingCard).toHaveAttribute("data-project-access-kind", "pending-invite");
@@ -252,8 +253,8 @@ describe("ProjectsPageClient shared access", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(screen.queryByText("Lewis Residence")).not.toBeInTheDocument();
     expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
@@ -270,9 +271,9 @@ describe("ProjectsPageClient shared access", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
-    for (const [label, mode] of [["View: List", "list"], ["View: Small", "small"], ["View: Medium", "medium"], ["View: Large", "large"]] as const) {
+    for (const [label, mode] of [["List", "list"], ["Small", "small"], ["Medium", "medium"], ["Large", "large"]] as const) {
       await user.click(screen.getByRole("combobox", { name: "View" }));
       await user.click(screen.getByRole("option", { name: label }));
       await waitFor(() => {

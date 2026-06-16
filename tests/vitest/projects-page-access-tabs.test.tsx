@@ -175,22 +175,31 @@ describe("ProjectsPageClient access tabs", () => {
     const tabs = screen.getAllByRole("tab");
     expect(tabs).toHaveLength(2);
     const tablist = screen.getByRole("tablist", { name: "Project access tabs" });
-    const ownedTab = screen.getByRole("tab", { name: /Your Projects/i });
-    expect(tablist).toHaveClass("h-[32px]", "border-b", "bg-surfaceMuted");
-    expect(ownedTab).toHaveClass("border-b-0", "bg-white", "-mb-px");
+    const ownedTab = screen.getByRole("tab", { name: "Projects" });
+    const tabsRoot = tablist.closest("[data-navigation-tabs]");
+    expect(tabsRoot).toBeInTheDocument();
+    expect(tabsRoot).toHaveClass("[&_[role=tablist]]:h-[41px]");
+    expect(tabsRoot).toHaveClass(
+      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))]",
+      "[&_[role=tablist]]:gap-3",
+    );
+    expect(tablist).toHaveClass("border-b");
+    expect(ownedTab).toHaveAccessibleName("Projects");
+    expect(ownedTab).toHaveClass("!min-h-[41px]", "w-full", "border-brand-orange");
     expect(ownedTab).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Shared" })).toHaveAccessibleName("Shared");
     for (const tab of tabs) {
       const panelId = tab.getAttribute("aria-controls");
       expect(panelId).toBeTruthy();
       expect(document.getElementById(panelId ?? "")).toBeInTheDocument();
     }
+    expect(within(tablist).queryByText("2")).not.toBeInTheDocument();
+    expect(within(tablist).queryByText("1")).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /^All/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /^Owned/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /^Shared$/i })).not.toBeInTheDocument();
   });
 
-  it("starts on Your Projects when owned projects exist and scopes owned cards to that panel", () => {
+  it("starts on Projects when owned projects exist and scopes owned cards to that panel", () => {
     render(
       <ProjectsPageClient
         projects={[
@@ -202,7 +211,7 @@ describe("ProjectsPageClient access tabs", () => {
       />,
     );
 
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
     const panel = getActivePanel();
     expect(within(panel).getByText("Owned Residence")).toBeInTheDocument();
     expect(within(panel).queryByText("Shared Clinic")).not.toBeInTheDocument();
@@ -210,7 +219,7 @@ describe("ProjectsPageClient access tabs", () => {
     expect(within(panel).queryByText("Pending Museum Wing")).not.toBeInTheDocument();
   });
 
-  it("shows all non-owned access kinds only in Projects shared to you", async () => {
+  it("shows all non-owned access kinds only in Shared", async () => {
     const user = userEvent.setup();
     render(
       <ProjectsPageClient
@@ -223,7 +232,7 @@ describe("ProjectsPageClient access tabs", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     const panel = getActivePanel();
     expect(within(panel).queryByText("Owned Residence")).not.toBeInTheDocument();
@@ -236,15 +245,15 @@ describe("ProjectsPageClient access tabs", () => {
     expect(within(panel).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
   });
 
-  it("defaults shared-only users into Projects shared to you without hiding Your Projects", () => {
+  it("defaults shared-only users into Shared without hiding Projects", () => {
     render(
       <ProjectsPageClient
         projects={[createProjectItem("project-member"), createProjectItem("pending-invite")]}
       />,
     );
 
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Projects/i })).toBeInTheDocument();
     expect(within(getActivePanel()).getByText("Shared Clinic")).toBeInTheDocument();
     expect(within(getActivePanel()).getByText("Pending Museum Wing")).toBeInTheDocument();
   });
@@ -266,7 +275,7 @@ describe("ProjectsPageClient access tabs", () => {
     expect(within(getActivePanel()).getByText("No projects match your search")).toBeInTheDocument();
     expect(within(getActivePanel()).queryByText("Shared Clinic")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(screen.getByRole("searchbox", { name: "Search projects" })).toHaveValue("clinic");
     expect(within(getActivePanel()).getByText("Shared Clinic")).toBeInTheDocument();
@@ -277,7 +286,7 @@ describe("ProjectsPageClient access tabs", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={[createProjectItem("owned")]} />);
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     const panel = getActivePanel();
     expect(within(panel).getByText("No projects shared to you yet")).toBeInTheDocument();
@@ -297,7 +306,7 @@ describe("ProjectsPageClient access tabs", () => {
       within(getActivePanel()).getByRole("button", { name: "Add Owned Residence to favorite projects" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(
       within(getActivePanel()).queryByRole("button", { name: "Add Shared Clinic to favorite projects" }),
@@ -344,13 +353,13 @@ describe("ProjectsPageClient access tabs", () => {
     expect(screen.getByRole("button", { name: "Clear selection" })).toHaveClass("size-8");
     expect(screen.getByRole("button", { name: "Delete selected projects" })).toHaveClass("size-8", "text-danger");
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(screen.queryByRole("region", { name: "Bulk action toolbar" })).not.toBeInTheDocument();
     expect(within(getActivePanel()).getByRole("checkbox", { name: "Select Shared Clinic for deletion" })).toBeDisabled();
     expect(within(getActivePanel()).getByRole("checkbox", { name: "Select Shared Sheet Tower for deletion" })).toBeDisabled();
 
-    await user.click(screen.getByRole("tab", { name: /Your Projects/i }));
+    await user.click(screen.getByRole("tab", { name: /Projects/i }));
 
     expect(screen.getByRole("region", { name: "Bulk action toolbar" })).toHaveTextContent("1 selected");
   });
@@ -364,26 +373,52 @@ describe("ProjectsPageClient access tabs", () => {
     );
 
     await user.click(screen.getByRole("combobox", { name: "View" }));
-    await user.click(screen.getByRole("option", { name: "View: Small" }));
+    await user.click(screen.getByRole("option", { name: "List" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "list");
+    });
+
+    const tabsRoot = screen.getByRole("tablist", { name: "Project access tabs" }).closest("[data-navigation-tabs]");
+    expect(tabsRoot).toHaveClass(
+      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]",
+      "[&_[role=tablist]]:gap-2",
+    );
+
+    await user.click(screen.getByRole("combobox", { name: "View" }));
+    await user.click(screen.getByRole("option", { name: "Small" }));
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "small");
     });
+    expect(tabsRoot).toHaveClass(
+      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]",
+      "[&_[role=tablist]]:gap-2",
+    );
 
-    const ownedTab = screen.getByRole("tab", { name: /Your Projects/i });
+    await user.click(screen.getByRole("combobox", { name: "View" }));
+    await user.click(screen.getByRole("option", { name: "Medium" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "medium");
+    });
+    expect(tabsRoot).toHaveClass(
+      "[&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]",
+      "[&_[role=tablist]]:gap-3",
+    );
+
+    const ownedTab = screen.getByRole("tab", { name: /Projects/i });
     ownedTab.focus();
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveFocus();
-    expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "small");
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveFocus();
+    expect(screen.getByLabelText("Live projects")).toHaveAttribute("data-project-view-mode", "medium");
 
     await user.keyboard("{ArrowLeft}");
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveFocus();
+    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveFocus();
 
     await user.keyboard("{End}");
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
 
     await user.keyboard("{Home}");
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
   });
 });

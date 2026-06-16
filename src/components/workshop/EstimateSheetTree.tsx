@@ -1421,11 +1421,13 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
           activeTab="sheets"
           tabVariant="tabs"
           tabsAriaLabel="Estimate sheets"
+          showBottomBorder={false}
+          showToolbarBottomBorder
         />
 
         <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-auto">
-          <div className={cn("px-2 pb-2 pt-0", bulkSelectionCount > 0 && "pb-16")}>
+          <div className={cn("px-2 pb-2 pt-2", bulkSelectionCount > 0 && "pb-16")}>
           {localNodes.length === 0 ? (
             <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
               This estimate is empty. Add an area to begin.
@@ -1469,7 +1471,7 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
                       onNodeDragStart={suppressPrimaryActionAfterDrag}
                       onRowClick={handlePrimaryAction}
                       onContextMenu={handleTreeContextMenu}
-                      rootDropZones
+                      rootDropZones={{ edges: ["bottom"] }}
                       renderRow={renderEstimateTreeRowLabel}
                       virtualization={WORKSHOP_TREE_VIRTUALIZATION}
                     />

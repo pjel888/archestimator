@@ -377,4 +377,65 @@ describe("ComponentLibraryManager Phase 1 uplift", () => {
     expect(screen.getByText("Express Vanity promoted to the workspace library.")).toBeInTheDocument();
   });
 
+  it("promotes detached project-specific components from the Project catalogue card", async () => {
+    promotionMocks.promoteExpressRowToLibraryComponent.mockResolvedValue({
+      rowId: "detached-row-1",
+      itemId: "library-item-2",
+    });
+    const projectFolder = {
+      id: "project-components-project-1",
+      workspace_id: "workspace-1",
+      parent_id: null,
+      name: "Project",
+      sort_order: -100,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    const detachedFolder = {
+      id: "project-components-project-1-detached",
+      workspace_id: "workspace-1",
+      parent_id: projectFolder.id,
+      name: "Project-specific",
+      sort_order: -80,
+      source_category_node_id: null,
+      folder_kind: "custom" as const,
+    };
+    const detachedMetadata = withProjectComponentProjectionMetadata(
+      {},
+      { projectId: "project-1", estimateId: "estimate-1", nodeId: "node-1", classification: "detached-library" },
+    );
+    const projectItem = makeItem({
+      id: "detached-row-1",
+      material: "Custom Closet",
+      source: "project",
+      sourceLibraryItemId: null,
+      linkState: "detached",
+      libraryFolderId: detachedFolder.id,
+      metadata: detachedMetadata,
+    });
+
+    render(
+      <ComponentLibraryManager
+        categoryTree={categoryTree}
+        libraryFolders={[projectFolder, detachedFolder]}
+        libraryItems={[projectItem]}
+        projectId="project-1"
+        promotionEnabled
+      />,
+    );
+    await waitForSheet();
+
+    fireEvent.click(screen.getByRole("button", { name: "Promote Custom Closet to library" }));
+
+    await waitFor(() => {
+      expect(promotionMocks.promoteExpressRowToLibraryComponent).toHaveBeenCalledWith({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        rowId: "detached-row-1",
+      });
+    });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Promote Custom Closet to library" })).not.toBeInTheDocument());
+    expect(screen.getByText("Custom Closet promoted to the workspace library.")).toBeInTheDocument();
+  });
+
 });
