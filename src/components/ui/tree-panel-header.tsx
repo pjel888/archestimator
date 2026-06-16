@@ -65,6 +65,10 @@ export type TreePanelHeaderProps = {
    */
   tabVariant?: "strip" | "tabs";
   className?: string;
+  /** Set false when the next sibling supplies the needed divider. */
+  showBottomBorder?: boolean;
+  /** Controls the divider directly under the icon toolbar row. Defaults to showBottomBorder. */
+  showToolbarBottomBorder?: boolean;
   /** Extra header content (e.g. a view-mode menu) inside the sticky stack. */
   children?: ReactNode;
 };
@@ -105,6 +109,8 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     onTabChange,
     tabVariant = "strip",
     className,
+    showBottomBorder = true,
+    showToolbarBottomBorder,
     children,
   },
   ref,
@@ -116,6 +122,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
   const inputRef = useRef<HTMLInputElement | null>(null);
   const panelId = useId();
   const searchActive = open || searchValue.length > 0;
+  const toolbarBottomBorderVisible = showToolbarBottomBorder ?? showBottomBorder;
 
   const setOpen = useCallback(
     (next: boolean) => {
@@ -176,13 +183,15 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     : startActions;
 
   return (
-    <div ref={ref} className={cn("sticky top-0 z-20 shrink-0 border-b border-hairline bg-white", className)}>
-      {/* Req 3: the bottom border also sits on the toolbar row (search/filter/expand)
-          itself — so it shows directly under the icon row on every panel, including
-          tabbed panels where the tabs render below this row inside the same header.
+    <div
+      ref={ref}
+      className={cn("sticky top-0 z-20 shrink-0 bg-white", showBottomBorder && "border-b border-hairline", className)}
+    >
+      {/* Req 3: by default the bottom border also sits on the toolbar row
+          (search/filter/expand) itself, so it shows directly under the icon row.
           On tab-less panels this coincides with the root border (same edge → one
           hairline); on tabbed panels it delineates the icon row above the tabs. */}
-      <div ref={searchRootRef} className="relative border-b border-hairline">
+      <div ref={searchRootRef} className={cn("relative", toolbarBottomBorderVisible && "border-b border-hairline")}>
         <HeaderIconToolbar
           ariaLabel={ariaLabel}
           labelPrefix={labelPrefix}

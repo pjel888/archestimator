@@ -49,13 +49,22 @@ function mockSearchPrefilter(resultByTable: Record<string, MockSearchPrefilterRe
         return builder;
       };
     }
+    let rangeBounds: { from: number; to: number } | null = null;
+    builder.range = (from: number, to: number) => {
+      calls.push({ table, method: "range", args: [from, to] });
+      rangeBounds = { from, to };
+      return builder;
+    };
     builder.then = (resolve: (value: unknown) => unknown) => {
       const callCount = callCountByTable.get(table) ?? 0;
       callCountByTable.set(table, callCount + 1);
       const result = Array.isArray(tableResult)
         ? tableResult[Math.min(callCount, tableResult.length - 1)] ?? { data: [], error: null }
         : tableResult;
-      return resolve(result);
+      const rangedResult = rangeBounds && Array.isArray(result.data)
+        ? { ...result, data: result.data.slice(rangeBounds.from, rangeBounds.to + 1) }
+        : result;
+      return resolve(rangedResult);
     };
     builder.maybeSingle = async () => (Array.isArray(tableResult) ? tableResult[0] : tableResult);
     return builder;
@@ -121,7 +130,9 @@ function mockReusableSearchRateLimit() {
 const projectAId = "11111111-1111-4111-8111-111111111111";
 const projectBId = "22222222-2222-4222-8222-222222222222";
 const estimateAId = "33333333-3333-4333-8333-333333333333";
+const estimateBId = "55555555-5555-4555-8555-555555555555";
 const tabAId = "44444444-4444-4444-8444-444444444444";
+const tabBId = "66666666-6666-4666-8666-666666666666";
 
 beforeEach(() => {
   authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "user-1" });
@@ -481,16 +492,13 @@ describe("reusable project source actions", () => {
       ],
     }));
     mockSearchPrefilter({
-      estimate_nodes: [
-        {
-          data: Array.from({ length: 50 }, () => ({ estimate_id: crowdedEstimateId })),
-          error: null,
-        },
-        {
-          data: [{ estimate_id: targetEstimateId }],
-          error: null,
-        },
-      ],
+      estimate_nodes: {
+        data: [
+          ...Array.from({ length: 50 }, () => ({ estimate_id: crowdedEstimateId })),
+          { estimate_id: targetEstimateId },
+        ],
+        error: null,
+      },
       estimate_tabs: { data: [], error: null },
     });
 
@@ -684,6 +692,62 @@ describe("reusable project source actions", () => {
     );
   });
 
+  it("pages reusable search prefilter rows so crowded matches do not hide later estimates", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      { id: estimateAId, name: "Crowding Estimate", sheetCode: "EST-001", updatedAt: "2026-06-12T08:00:00.000Z" },
+      { id: estimateBId, name: "Later Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T09:00:00.000Z" },
+    ]);
+    repositoryMocks.getEstimateTabs.mockImplementation(async (_projectId: string, estimateId: string) => [
+      { id: estimateId === estimateBId ? tabBId : tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockImplementation(async (_projectId: string, estimateId: string) => ({
+      estimate: { updated_at: "2026-06-12T09:30:00.000Z" },
+      tree: estimateId === estimateBId
+        ? [
+            {
+              id: "area-b",
+              name: "Needle Area",
+              kind: "area",
+              total: "₱0.00",
+              children: [],
+              estimateRowItems: [{ totalItemCosts: 42 }],
+            },
+          ]
+        : [],
+    }));
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          ...Array.from({ length: 5000 }, () => ({ estimate_id: estimateAId })),
+          { estimate_id: estimateBId },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "needle" });
+
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledWith(projectAId, estimateBId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateBId,
+      tabBId,
+      { allowLegacyFallback: true },
+    );
+    expect(
+      result.sources.some(
+        (source) => source.kind === "project-node" && source.estimateId === estimateBId && source.name === "Needle Area",
+      ),
+    ).toBe(true);
+  });
+
   it("skips an over-cap node match instead of returning only its non-selectable parent", async () => {
     const cappedProjects = Array.from({ length: 49 }, (_, index) => ({
       accessKind: "owner",
@@ -692,9 +756,9 @@ describe("reusable project source actions", () => {
         name: `Needle Filler Project ${index + 1}`,
       },
     }));
-    const targetEstimateId = "55555555-5555-4555-8555-555555555555";
-    const targetProjectId = "66666666-6666-4666-8666-666666666666";
-    const targetTabId = "77777777-7777-4777-8777-777777777777";
+    const targetEstimateId = "77777777-7777-4777-8777-777777777777";
+    const targetProjectId = "88888888-8888-4888-8888-888888888888";
+    const targetTabId = "99999999-9999-4999-8999-999999999999";
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
         ...cappedProjects,
@@ -733,7 +797,6 @@ describe("reusable project source actions", () => {
   });
 
   it("does not materialize all estimates for partial synthetic display-label queries", async () => {
-    const estimateBId = "55555555-5555-4555-8555-555555555555";
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
         { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },

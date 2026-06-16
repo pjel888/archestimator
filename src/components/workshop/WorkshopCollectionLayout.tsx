@@ -70,6 +70,8 @@ export function WorkshopCollectionLayout({
         addVisibleLabel={addVisibleLabel}
         addDisabled={addDisabled}
         addActions={addActions}
+        showBottomBorder={!toolbarPanel}
+        showToolbarBottomBorder={toolbarPanel ? true : undefined}
       />
 
       {toolbarPanel}

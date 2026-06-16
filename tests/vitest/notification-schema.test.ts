@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { latestMigrationBySuffix } from "./security-findings-test-helpers";
+import { latestMigrationBySuffix, migrations } from "./security-findings-test-helpers";
 
 const migration = latestMigrationBySuffix("_notification_system.sql");
+const hardeningMigrationName = "20260615093649_harden_notification_action_href.sql";
+const hardeningMigration = latestMigrationBySuffix("_harden_notification_action_href.sql");
 
 function normalizedSql(sql: string) {
   return sql.replace(/\s+/g, " ").toLowerCase();
 }
 
 const sql = normalizedSql(migration);
+const hardeningSql = normalizedSql(hardeningMigration);
+const forbiddenActionHrefPattern =
+  "action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c|\\\\|(^|[/\\\\])(\\.|%2e){2}([/\\\\]|\\?|#|$))'";
 
 describe("notification schema migration", () => {
   it("creates durable notification definition and delivery tables", () => {
@@ -66,7 +71,19 @@ describe("notification schema migration", () => {
   it("constrains action links to safe internal workshop paths", () => {
     expect(sql).toContain("constraint notification_definitions_action_href_check");
     expect(sql).toContain("action_href ~ '^/workshop(/|$|\\\\?)'");
-    expect(sql).toContain("action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c)'");
+    expect(sql).toContain(forbiddenActionHrefPattern);
     expect(sql).not.toContain("/share/");
+  });
+
+  it("keeps the follow-up hardening migration after existing versions and remediates legacy rows", () => {
+    expect(migrations.at(-1)).toBe(hardeningMigrationName);
+
+    const cleanupIndex = hardeningSql.indexOf("update public.notification_definitions set action_href = null");
+    const addConstraintIndex = hardeningSql.indexOf("add constraint notification_definitions_action_href_check");
+
+    expect(cleanupIndex).toBeGreaterThanOrEqual(0);
+    expect(cleanupIndex).toBeLessThan(addConstraintIndex);
+    expect(hardeningSql).toContain("where action_href is not null and not");
+    expect(hardeningSql).toContain(forbiddenActionHrefPattern);
   });
 });

@@ -1,8 +1,8 @@
 import { cookies, headers } from "next/headers";
 
+import { getRequiredCurrentUserContextResult } from "@/lib/auth/session";
 import { getDevAuthEmail } from "@/lib/auth/dev-auth";
 import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AiRequestUserContext = {
   userId: string;
@@ -27,19 +27,17 @@ export async function getAiRequestUserContext(): Promise<AiRequestUserContext | 
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const { data: profile } = await supabase.from("profiles").select("default_workspace_id").eq("id", user.id).maybeSingle();
+  const authResult = await getRequiredCurrentUserContextResult();
+  if (!authResult.ok) {
+    if (authResult.reason === "unauthenticated") return null;
+    throw new Error("AI routes require current Terms acceptance.");
+  }
+  const { context } = authResult;
 
   return {
-    userId: user.id,
-    email: user.email?.toLowerCase() ?? "",
-    workspaceId: profile?.default_workspace_id ?? null,
+    userId: context.userId,
+    email: context.email,
+    workspaceId: context.profile.default_workspace_id ?? null,
     authMode: "supabase",
   };
 }

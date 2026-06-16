@@ -52,6 +52,8 @@ export type EstimateRowItemsTableProps = {
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
+  onPromoteRowToLibrary: (rowItemId: string) => void;
+  promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
   onRetryExpressDraft?: (rowItemId: string) => void;
@@ -94,6 +96,8 @@ export function areEstimateRowItemsTablePropsEqual(prev: EstimateRowItemsTablePr
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
+    prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
+    prev.promotingRowId !== next.promotingRowId ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
@@ -150,6 +154,8 @@ type EstimateRowItemTableRowProps = {
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
+  onPromoteRowToLibrary: (rowItemId: string) => void;
+  promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   expressDraftState?: ExpressInsertDraftState;
   onRetryExpressDraft: (rowItemId: string) => void;
@@ -178,6 +184,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
   onOpenRowDetails,
   onClearRowComponent,
   onRequestProjectSpecific,
+  onPromoteRowToLibrary,
+  promotingRowId,
   onMoveRowComponent,
   expressDraftState,
   onRetryExpressDraft,
@@ -311,6 +319,8 @@ const EstimateRowItemTableRow = memo(function EstimateRowItemTableRow({
             else onClearRowComponent(computedItem.id);
           }}
           onRequestProjectSpecific={() => onRequestProjectSpecific(computedItem.id)}
+          onPromoteToLibrary={() => onPromoteRowToLibrary(computedItem.id)}
+          promoteToLibraryPending={promotingRowId === computedItem.id}
           onMoveComponent={onMoveRowComponent}
           onOpenComponentDetails={(opener) => onOpenRowDetails(computedItem.id, opener, "component")}
           expressDraftState={expressDraftState}
@@ -488,6 +498,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
   onOpenRowDetails,
   onClearRowComponent,
   onRequestProjectSpecific,
+  onPromoteRowToLibrary,
+  promotingRowId,
   onMoveRowComponent,
   expressInsertDraftStates = {},
   onRetryExpressDraft = noopExpressDraftHandler,
@@ -684,7 +696,7 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
       <table className="w-full border-collapse text-[10px] text-ink">
         <thead className="bg-white text-left text-[10px] font-medium text-ink">
           <tr className="grid min-h-10 border-b border-hairline" style={{ gridTemplateColumns: ESTIMATE_COLUMN_TEMPLATE }}>
-            <th className="flex items-center justify-center border-r border-hairline text-[9px] font-sans text-tertiary">#</th>
+            <th className="flex items-center justify-center border-r border-hairline text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">
               <SelectionCheckbox
                 checked={allRowsSelected}
@@ -701,6 +713,11 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               />
             </th>
             <th className={headerCellClassName("material")}>
+              <span
+                className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-divider"
+                data-estimate-material-header-rail="true"
+                aria-hidden="true"
+              />
               Materials
               {renderResizeHandle("material")}
             </th>
@@ -712,15 +729,15 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
               Subtotal
               {renderResizeHandle("subTotal")}
             </th>
-            <th className={headerCellClassName("adjustment", "text-center text-[9px] leading-3")}>
+            <th className={headerCellClassName("adjustment", "text-center")}>
               Adjustment
               {renderResizeHandle("adjustment")}
             </th>
-            <th className={headerCellClassName("miscCost", "text-center text-[9px] leading-3")}>
+            <th className={headerCellClassName("miscCost", "text-center")}>
               Misc Cost
               {renderResizeHandle("miscCost")}
             </th>
-            <th className={headerCellClassName("totalItemCosts", "text-center text-[9px] leading-3")}>
+            <th className={headerCellClassName("totalItemCosts", "text-center")}>
               Total Item Cost
               {renderResizeHandle("totalItemCosts")}
             </th>
@@ -760,6 +777,8 @@ export const EstimateRowItemsTable = memo(function EstimateRowItemsTable({
                 onOpenRowDetails={onOpenRowDetails}
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
+                onPromoteRowToLibrary={onPromoteRowToLibrary}
+                promotingRowId={promotingRowId}
                 onMoveRowComponent={onMoveRowComponent}
                 expressDraftState={expressInsertDraftStates[item.id]}
                 onRetryExpressDraft={onRetryExpressDraft}

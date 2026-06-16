@@ -64,6 +64,7 @@ export function ResizableSidePanel({
   const [collapsed, setCollapsed] = useState(false);
   const [savedWidth, setSavedWidth] = useState(() => getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth));
   const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [compactViewport, setCompactViewport] = useState(false);
   const width = dragWidth ?? savedWidth;
   const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
@@ -111,6 +112,7 @@ export function ResizableSidePanel({
     if (collapsed) return;
     event.preventDefault();
     dragging.current = true;
+    setIsDragging(true);
     startX.current = event.clientX;
     startWidth.current = width;
     document.body.style.cursor = "col-resize";
@@ -124,6 +126,7 @@ export function ResizableSidePanel({
 
     function onUp(upEvent: MouseEvent) {
       dragging.current = false;
+      setIsDragging(false);
       const delta = side === "left" ? upEvent.clientX - startX.current : startX.current - upEvent.clientX;
       const finalWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
       setSavedWidth(finalWidth);
@@ -143,15 +146,25 @@ export function ResizableSidePanel({
     <div
       aria-hidden={collapsed}
       className={[
-        "relative h-full shrink-0 overflow-hidden transition-[width] duration-150",
-        collapsed ? "w-0 cursor-default" : "w-2 cursor-col-resize border-x border-hairline bg-white",
+        "group/resizer relative h-full shrink-0 overflow-hidden transition-[width,background-color] duration-150",
+        collapsed
+          ? "w-0 cursor-default"
+          : isDragging
+            ? "w-2 cursor-col-resize border-x border-hairline bg-brand-orange-soft"
+            : "w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-brand-orange-soft",
       ].join(" ")}
       onMouseDown={startResize}
       title="Drag to resize"
     >
       <div className="absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-[3px]">
         {Array.from({ length: 6 }).map((_, index) => (
-          <span key={index} className="size-[3px] rounded-xs bg-divider" />
+          <span
+            key={index}
+            className={[
+              "size-[3px] rounded-xs transition-colors",
+              isDragging ? "bg-brand-orange" : "bg-divider group-hover/resizer:bg-brand-orange",
+            ].join(" ")}
+          />
         ))}
       </div>
     </div>
@@ -163,8 +176,9 @@ export function ResizableSidePanel({
       size="icon-sm"
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
       aria-expanded={!collapsed}
+      style={{ width: collapsedWidth }}
       className={[
-        "h-full rounded-xs border-hairline bg-white hover:bg-white",
+        "h-full rounded-xs border-hairline bg-white text-secondary transition-colors hover:bg-brand-orange-soft hover:text-brand-orange",
         side === "right" ? "border-l" : "border-r",
       ].join(" ")}
       onClick={() => setCollapsed((value) => !value)}
