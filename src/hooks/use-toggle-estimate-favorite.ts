@@ -14,7 +14,7 @@ export type ToggleEstimateFavoriteInput = {
 };
 type Scope = { workspaceId: string; userId: string };
 type Ctx = { previousSidebar: MainSidebarFavoriteProject[] | undefined; previousRow: { isFavorite: boolean; favoriteCreatedAt: string | null } | null };
-type ToggleCallbacks = { onSuccess?: () => void; onError?: () => void; onSettled?: () => void };
+type ToggleCallbacks = { onSuccess?: () => void; onError?: (error: unknown) => void; onSettled?: () => void };
 
 export function useToggleEstimateFavorite(scope: Scope, announceCue?: () => void) {
   const queryClient = useQueryClient();
