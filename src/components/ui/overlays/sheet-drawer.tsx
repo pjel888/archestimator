@@ -84,12 +84,20 @@ export function Sheet({
       modal={modal}
     >
       <DialogPortal>
-        <div data-archestimator-sheet-root className={cn("fixed inset-0 z-[1000] flex p-3", rootPositionClasses[side])}>
+        <div
+          data-archestimator-sheet-root
+          className={cn(
+            "fixed inset-0 z-[1000] flex p-3",
+            !withScrim && !modal && "pointer-events-none",
+            rootPositionClasses[side],
+          )}
+        >
           {withScrim || modal ? <DialogOverlay blur={blurBackdrop} transparent={!modal} /> : null}
           <DialogContent
             described={Boolean(description)}
             className={cn(
               "max-h-[calc(100dvh_-_24px)] shadow-[0_18px_48px_rgba(17,24,39,0.14)]",
+              !withScrim && !modal && "pointer-events-auto",
               isBottom ? cn("w-full", bottomSizeClasses[size]) : cn("h-full", horizontalSizeClasses[size]),
               contentClassName,
             )}

@@ -1,6 +1,15 @@
 "use client";
 
-import { type ReactNode, useId, useState } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+  useId,
+  useState,
+} from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
@@ -42,6 +51,12 @@ const alignClasses: Record<PopoverAlign, string> = {
   end: "right-0",
 };
 
+type PopoverButtonTriggerProps = ButtonHTMLAttributes<HTMLButtonElement>;
+
+function isButtonTrigger(trigger: ReactNode): trigger is ReactElement<PopoverButtonTriggerProps> {
+  return isValidElement<PopoverButtonTriggerProps>(trigger) && (trigger.type === Button || trigger.type === "button");
+}
+
 export function Popover({
   trigger,
   children,
@@ -71,21 +86,36 @@ export function Popover({
     if (open === undefined) setInternalOpen(nextOpen);
   }
 
+  const triggerNode = isButtonTrigger(trigger) ? (
+    cloneElement(trigger, {
+      "aria-expanded": isOpen,
+      "aria-controls": isOpen ? contentId : undefined,
+      "aria-pressed": triggerPressed,
+      className: cn(trigger.props.className, triggerClassName),
+      onClick: (event: MouseEvent<HTMLButtonElement>) => {
+        trigger.props.onClick?.(event);
+        if (!event.defaultPrevented) setOpen(!isOpen);
+      },
+    })
+  ) : (
+    <Button
+      type="button"
+      aria-label={triggerLabel}
+      aria-expanded={isOpen}
+      aria-controls={isOpen ? contentId : undefined}
+      aria-pressed={triggerPressed}
+      variant={triggerVariant}
+      size={triggerSize}
+      className={triggerClassName}
+      onClick={() => setOpen(!isOpen)}
+    >
+      {trigger}
+    </Button>
+  );
+
   return (
     <span className={cn("relative inline-flex", className)}>
-      <Button
-        type="button"
-        aria-label={triggerLabel}
-        aria-expanded={isOpen}
-        aria-controls={isOpen ? contentId : undefined}
-        aria-pressed={triggerPressed}
-        variant={triggerVariant}
-        size={triggerSize}
-        className={triggerClassName}
-        onClick={() => setOpen(!isOpen)}
-      >
-        {trigger}
-      </Button>
+      {triggerNode}
       {isOpen ? (
         <div
           id={contentId}

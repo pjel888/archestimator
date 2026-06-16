@@ -51,8 +51,46 @@ const FOCUSABLE_SELECTOR = [
 
 function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0,
+    (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true",
   );
+}
+
+function focusFirstElement(content: HTMLElement) {
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement && activeElement !== content && content.contains(activeElement)) return;
+
+  const firstFocusable = getFocusableElements(content)[0];
+  (firstFocusable ?? content).focus({ preventScroll: true });
+}
+
+function containFocus(content: HTMLElement, event: Pick<KeyboardEvent | ReactKeyboardEvent<HTMLElement>, "preventDefault" | "shiftKey">) {
+  const focusableElements = getFocusableElements(content);
+  if (focusableElements.length === 0) {
+    event.preventDefault();
+    content.focus({ preventScroll: true });
+    return;
+  }
+
+  const firstFocusable = focusableElements[0];
+  const lastFocusable = focusableElements.at(-1);
+  const activeElement = document.activeElement;
+
+  if (!content.contains(activeElement)) {
+    event.preventDefault();
+    (event.shiftKey ? lastFocusable : firstFocusable)?.focus({ preventScroll: true });
+    return;
+  }
+
+  if (event.shiftKey && (activeElement === firstFocusable || activeElement === content)) {
+    event.preventDefault();
+    lastFocusable?.focus({ preventScroll: true });
+    return;
+  }
+
+  if (!event.shiftKey && activeElement === lastFocusable) {
+    event.preventDefault();
+    firstFocusable?.focus({ preventScroll: true });
+  }
 }
 
 function useDialogContext(component: string) {
@@ -194,10 +232,23 @@ export function DialogContent({ className, role = "dialog", described = true, ch
     if (!content) return;
 
     window.requestAnimationFrame(() => {
-      const firstFocusable = getFocusableElements(content)[0];
-      (firstFocusable ?? content).focus({ preventScroll: true });
+      focusFirstElement(content);
     });
   }, []);
+
+  useEffect(() => {
+    if (!modal) return;
+
+    function handleDocumentKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.key !== "Tab") return;
+      const content = contentRef.current;
+      if (!content) return;
+      containFocus(content, event);
+    }
+
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    return () => document.removeEventListener("keydown", handleDocumentKeyDown);
+  }, [modal]);
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     onKeyDown?.(event);
@@ -205,28 +256,7 @@ export function DialogContent({ className, role = "dialog", described = true, ch
 
     const content = contentRef.current;
     if (!content) return;
-
-    const focusableElements = getFocusableElements(content);
-    if (focusableElements.length === 0) {
-      event.preventDefault();
-      content.focus({ preventScroll: true });
-      return;
-    }
-
-    const firstFocusable = focusableElements[0];
-    const lastFocusable = focusableElements.at(-1);
-    const activeElement = document.activeElement;
-
-    if (event.shiftKey && (activeElement === firstFocusable || activeElement === content)) {
-      event.preventDefault();
-      lastFocusable?.focus({ preventScroll: true });
-      return;
-    }
-
-    if (!event.shiftKey && activeElement === lastFocusable) {
-      event.preventDefault();
-      firstFocusable.focus({ preventScroll: true });
-    }
+    containFocus(content, event);
   }
 
   return (

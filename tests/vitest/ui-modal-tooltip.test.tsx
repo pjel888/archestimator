@@ -1,12 +1,23 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { Button } from "@/components/ui/button";
 import { AppModal } from "@/components/ui/overlays/modal";
 import { ConfirmDialog } from "@/components/ui/overlays/confirm-dialog";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/overlays/dialog";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { HoverCard } from "@/components/ui/overlays/hover-card";
 import { InspectorDrawer } from "@/components/ui/overlays/sheet-drawer";
 import { Modal } from "@/components/ui/modal";
+import { Popover } from "@/components/ui/overlays/popover";
 import { ResizableModal } from "@/components/ui/overlays/resizable-modal";
 import { Tooltip } from "@/components/ui/overlays/tooltip";
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
@@ -90,6 +101,106 @@ describe("shared modal and toolbar tooltip primitives", () => {
     expect(dialog.closest("[data-archestimator-sheet-root]")).toHaveClass("fixed", "inset-0", "z-[1000]");
     expect(dialog).toHaveAttribute("data-side", "right");
     expect(document.body.querySelector("[data-archestimator-dialog-overlay]")).toBeNull();
+  });
+
+  it("lets pointer events pass through non-scrim inspector drawers", () => {
+    render(
+      <InspectorDrawer open title="Pass-through inspector" onOpenChange={() => undefined}>
+        <p>Inspector body</p>
+      </InspectorDrawer>,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Pass-through inspector" });
+    expect(dialog.closest("[data-archestimator-sheet-root]")).toHaveClass("pointer-events-none");
+    expect(dialog).toHaveClass("pointer-events-auto");
+  });
+
+  it("names hover card dialogs from their visible title", () => {
+    render(
+      <HoverCard defaultOpen trigger={<Button>Reviewer</Button>} title="Client reviewer">
+        <p>Reviewer details</p>
+      </HoverCard>,
+    );
+
+    expect(screen.getByRole("dialog", { name: "Client reviewer" })).toBeInTheDocument();
+  });
+
+  it("does not add a duplicate tab stop around focusable hover card triggers", () => {
+    const { container } = render(
+      <HoverCard defaultOpen trigger={<Button>Reviewer</Button>} title="Client reviewer">
+        <p>Reviewer details</p>
+      </HoverCard>,
+    );
+
+    expect(screen.getByRole("button", { name: "Reviewer" })).toHaveAccessibleDescription("Client reviewer Reviewer details");
+    expect(container.querySelectorAll("[tabindex='0']")).toHaveLength(0);
+  });
+
+  it("names popover dialogs from their visible title", async () => {
+    const user = userEvent.setup();
+    render(
+      <Popover trigger="Details" triggerLabel="Toggle story popover" title="Popover surface">
+        <p>Popover body</p>
+      </Popover>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Toggle story popover" }));
+
+    expect(screen.getByRole("dialog", { name: "Popover surface" })).toBeInTheDocument();
+  });
+
+  it("moves popover trigger behavior onto interactive button triggers", async () => {
+    const user = userEvent.setup();
+    render(
+      <Popover trigger={<Button>Details</Button>} triggerLabel="Toggle story popover" title="Popover surface">
+        <p>Popover body</p>
+      </Popover>,
+    );
+
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Details" }));
+
+    expect(screen.getByRole("dialog", { name: "Popover surface" })).toBeInTheDocument();
+  });
+
+  it("preserves requested autofocus inside confirm dialogs", async () => {
+    render(
+      <ConfirmDialog
+        open
+        onOpenChange={() => undefined}
+        title="Apply review decision?"
+        description="Static confirmation"
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
+  });
+
+  it("traps focus inside modal dialogs when tab starts outside the dialog", () => {
+    render(
+      <>
+        <button type="button">Behind modal</button>
+        <Dialog open onOpenChange={() => undefined}>
+          <DialogPortal>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modal focus trap</DialogTitle>
+              </DialogHeader>
+              <DialogBody>
+                <button type="button">First action</button>
+                <button type="button">Last action</button>
+              </DialogBody>
+            </DialogContent>
+          </DialogPortal>
+        </Dialog>
+      </>,
+    );
+
+    screen.getByRole("button", { name: "Behind modal" }).focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+
+    expect(screen.getByRole("button", { name: "First action" })).toHaveFocus();
   });
 
   it("renders generic tooltip content for pinned Storybook review states", () => {
