@@ -39,12 +39,8 @@ import type {
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
 import { ProjectCard } from "./ProjectCard";
-import {
-  getProjectDateFlagLayoutClassName,
-  getProjectGridClassName,
-  PROJECT_GROUP_FLAG_BG_COLOR,
-  PROJECT_GROUP_FLAG_RULE_COLOR,
-} from "./project-grid-layout";
+import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
+import { ProjectGroupSection } from "./ProjectGroupSection";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
 import { sampleProjects } from "./workshop-sample-projects";
 
@@ -766,44 +762,22 @@ export function ProjectsPageClient({
             >
               {shouldGroupProjects
                 ? groupedLiveProjects.map((group) => (
-                  <section
+                  <ProjectGroupSection
                     key={group.key}
-                    aria-label={group.label}
-                    className="space-y-2"
-                    data-project-group={group.key}
-                    data-project-group-kind={group.kind}
-                    {...(group.kind === "date" ? { "data-project-date-group": group.key } : { "data-project-client-group": group.key })}
-                  >
-                    <div className="pt-1">
-                      <div
-                        aria-hidden="true"
-                        className="h-px"
-                        data-project-group-rule
-                        style={{ backgroundColor: PROJECT_GROUP_FLAG_RULE_COLOR }}
-                      />
-                      <div
-                        className={cn(
-                          "min-w-0 text-[9px] leading-3",
-                          projectDateFlagLayoutClassName,
-                        )}
-                      >
-                        <h3
-                          className="min-w-0 border-x border-b px-1 py-1.5 text-[9px] font-medium leading-3 tracking-normal text-brand-orange-dark"
-                          style={{
-                            backgroundColor: PROJECT_GROUP_FLAG_BG_COLOR,
-                            borderColor: PROJECT_GROUP_FLAG_RULE_COLOR,
-                          }}
-                          data-project-group-label
-                          {...(group.kind === "date" ? { "data-project-date-group-label": "" } : {})}
-                        >
-                          {group.label}
-                        </h3>
-                      </div>
-                    </div>
-                    <div className={projectLayoutClassName}>
-                      {group.items.map(renderLiveProjectCard)}
-                    </div>
-                  </section>
+                    mode={group.kind === "client" ? "client" : "date"}
+                    group={{ key: group.key, label: group.label }}
+                    items={group.items}
+                    viewMode={projectViewMode}
+                    renderCard={renderLiveProjectCard}
+                    layoutClassName={projectLayoutClassName}
+                    flagLayoutClassName={projectDateFlagLayoutClassName}
+                    legacyHeaderDataAttr={group.kind === "date" ? "data-project-date-group-label" : undefined}
+                    legacySectionDataAttr={
+                      group.kind === "date"
+                        ? { "data-project-date-group": group.key }
+                        : { "data-project-client-group": group.key }
+                    }
+                  />
                 ))
                 : displayLiveProjects.map(renderLiveProjectCard)}
             </section>
