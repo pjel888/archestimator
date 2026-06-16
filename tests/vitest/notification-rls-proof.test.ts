@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { createClient, type Session } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
@@ -35,6 +37,8 @@ type RlsProofCleanupTarget = {
   deliveryA: string;
   deliveryB: string;
 };
+
+type RlsProofCleanupUserSlot = "userA" | "userB";
 
 function isLocalSupabaseUrl(value: string | undefined) {
   if (!value) return false;
@@ -89,7 +93,11 @@ async function createAuthenticatedClient(session: Session) {
   return supabase;
 }
 
-async function createRlsProofUser(label: string, onCreated?: (user: Pick<RlsProofUser, "id">) => void): Promise<RlsProofUser> {
+async function createRlsProofUser(
+  label: string,
+  cleanupTarget: RlsProofCleanupTarget,
+  cleanupUserSlot: RlsProofCleanupUserSlot,
+): Promise<RlsProofUser> {
   const admin = createAdminClient();
   const anon = createAnonClient();
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -103,13 +111,14 @@ async function createRlsProofUser(label: string, onCreated?: (user: Pick<RlsProo
   });
   if (createError) throw createError;
   if (!created.user) throw new Error("Supabase did not return the RLS proof user.");
-  onCreated?.({ id: created.user.id });
+  const createdUser = { id: created.user.id };
+  cleanupTarget[cleanupUserSlot] = createdUser;
 
   const { data: signedIn, error: signInError } = await anon.auth.signInWithPassword({ email, password });
   if (signInError) throw signInError;
   if (!signedIn.session) throw new Error("Supabase did not return the RLS proof session.");
 
-  return { id: created.user.id, email, password, session: signedIn.session };
+  return { id: createdUser.id, email, password, session: signedIn.session };
 }
 
 async function createRlsProofFixture(): Promise<RlsProofFixture> {
@@ -121,14 +130,8 @@ async function createRlsProofFixture(): Promise<RlsProofFixture> {
   const cleanupTarget: RlsProofCleanupTarget = { definitionA, definitionB, deliveryA, deliveryB };
 
   try {
-    const userA = await createRlsProofUser("a", (user) => {
-      cleanupTarget.userA = user;
-    });
-    cleanupTarget.userA = userA;
-    const userB = await createRlsProofUser("b", (user) => {
-      cleanupTarget.userB = user;
-    });
-    cleanupTarget.userB = userB;
+    const userA = await createRlsProofUser("a", cleanupTarget, "userA");
+    const userB = await createRlsProofUser("b", cleanupTarget, "userB");
     const startsAt = new Date(Date.now() - 60_000).toISOString();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
@@ -198,6 +201,26 @@ async function cleanupRlsProofFixture(fixture: RlsProofFixture | RlsProofCleanup
 }
 
 const describeRlsProof = rlsProofSkipReason() ? describe.skip : describe;
+
+describe("notification RLS proof regression guards", () => {
+  it("tracks created auth users before attempting password sign-in", () => {
+    const source = readFileSync(new URL(import.meta.url), "utf8");
+    const cleanupTracking = source.indexOf("cleanupTarget[cleanupUserSlot] = createdUser;");
+    const passwordSignIn = source.indexOf("anon.auth.signInWithPassword");
+
+    expect(cleanupTracking).toBeGreaterThanOrEqual(0);
+    expect(passwordSignIn).toBeGreaterThanOrEqual(0);
+    expect(cleanupTracking).toBeLessThan(passwordSignIn);
+  });
+
+  it("keeps the Postgres socket directory short and shell-quotes it for pg_ctl", () => {
+    const source = readFileSync(join(process.cwd(), "scripts/prove-notification-rls-postgres.mjs"), "utf8");
+
+    expect(source).toContain('const socketRoot = existsSync("/tmp") ? "/tmp" : tmpdir();');
+    expect(source).toContain('const socketDir = mkdtempSync(join(socketRoot, "ae-rls-s-"));');
+    expect(source).toContain("`-k ${shellQuote(socketDir)} -c listen_addresses='' -c unix_socket_permissions=0700`");
+  });
+});
 
 describeRlsProof("notification RLS proof", () => {
   it("proves same-user reads, cross-user denial, direct write denial, and anonymous denial", async () => {

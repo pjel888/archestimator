@@ -123,6 +123,16 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("persistSession: false");
   });
 
+  it("keeps component image format validation content-based for browser MIME gaps and AVIF variants", () => {
+    const source = read("src/app/api/component-library/images/route.ts");
+
+    expect(source).toContain("const AVIF_FTYP_BRANDS = new Set([\"avif\", \"avis\"])");
+    expect(source).toContain("brands.some((brand) => AVIF_FTYP_BRANDS.has(brand))");
+    expect(source).toContain("if (file.type && !ALLOWED_MIME_TYPES.has(file.type))");
+    expect(source).toContain("const magicMime = readMagicMime(sourceBuffer.subarray(0, 64))");
+    expect(source).toContain('if (format === "heif" && magicMime === "image/avif") return true');
+  });
+
   it("keeps component attachment uploads workspace/user scoped", () => {
     const source = read("src/app/api/component-library/attachments/route.ts");
 

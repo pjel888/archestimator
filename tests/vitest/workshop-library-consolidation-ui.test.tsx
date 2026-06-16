@@ -263,8 +263,11 @@ describe("workshop library consolidation UI", () => {
     expect(attachmentRoute).toContain("export async function DELETE");
     expect(attachmentRoute).toContain("const declaredMime = file.type.trim()");
     expect(addComponentModal).toContain("cleanupUploadedDraftAssets");
+    expect(addComponentModal).toContain("getImageStoragePaths");
+    expect(addComponentModal).toContain("imagePath: variantImage?.path ?? null");
     expect(addComponentModal).toContain("removeComponentAttachmentUpload");
     expect(addComponentModal).toContain("attachmentBusy");
+    expect(addComponentModal).toContain("if (file.type && !ALLOWED_UPLOAD_TYPES.has(file.type))");
     expect(addComponentModal).toContain('accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"');
     expect(addComponentModal).toContain("isImageUploadBusy(imageUpload.state)");
     expect(addComponentModal).toContain("disabled={isPending || imageBusy || attachmentBusy || validation.length > 0}");

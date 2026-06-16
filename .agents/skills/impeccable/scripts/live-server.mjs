@@ -31,6 +31,7 @@ import {
   getLiveAnnotationsDir,
   readLiveServerInfo,
   removeLiveServerInfo,
+  resolveLiveConfigPath,
   resolveDesignSidecarPath,
   writeLiveServerInfo,
 } from './impeccable-paths.mjs';
@@ -1244,25 +1245,76 @@ function statOrNull(filePath) {
 // HTTP request handler
 // ---------------------------------------------------------------------------
 
-function isLocalLiveOrigin(value) {
-  if (!value) return false;
+function normalizeOrigin(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === 'null') return trimmed || null;
   try {
-    const parsed = new URL(value);
+    return new URL(trimmed).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalLiveOrigin(value) {
+  const origin = normalizeOrigin(value);
+  if (!origin) return false;
+  try {
+    const parsed = new URL(origin);
     return (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
       ['localhost', '127.0.0.1', '::1', '[::1]'].includes(parsed.hostname);
   } catch { return false; }
 }
 
 function isStaticFileLiveOrigin(value) {
-  if (!value) return false;
-  if (value === 'null') return true;
+  if (!value || typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (trimmed === 'null') return true;
   try {
-    return new URL(value).protocol === 'file:';
+    return new URL(trimmed).protocol === 'file:';
   } catch { return false; }
 }
 
-function isTrustedLivePageSource(value) {
-  return isLocalLiveOrigin(value) || isStaticFileLiveOrigin(value);
+function configuredLiveAppOrigins({ cwd = process.cwd(), env = process.env } = {}) {
+  const values = [];
+  const add = (value) => {
+    if (Array.isArray(value)) {
+      for (const item of value) add(item);
+      return;
+    }
+    if (typeof value !== 'string') return;
+    values.push(...value.split(','));
+  };
+
+  add(env.IMPECCABLE_LIVE_APP_ORIGIN);
+  add(env.IMPECCABLE_LIVE_APP_ORIGINS);
+
+  try {
+    const configPath = resolveLiveConfigPath({ cwd, scriptsDir: __dirname, env });
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    add(config.appOrigin);
+    add(config.appOrigins);
+    add(config.appUrl);
+    add(config.appUrls);
+    add(config.allowedOrigin);
+    add(config.allowedOrigins);
+  } catch {
+    /* Live config origin allowlist is optional. */
+  }
+
+  return new Set(values.map(normalizeOrigin).filter(Boolean));
+}
+
+function isConfiguredLiveAppOrigin(value, options = {}) {
+  const origin = normalizeOrigin(value);
+  if (!origin) return false;
+  return configuredLiveAppOrigins(options).has(origin);
+}
+
+function isTrustedLivePageSource(value, options = {}) {
+  return isLocalLiveOrigin(value)
+    || isStaticFileLiveOrigin(value)
+    || isConfiguredLiveAppOrigin(value, options);
 }
 
 function isBrowserLikeRequest(req) {
@@ -1274,12 +1326,12 @@ function isBrowserLikeRequest(req) {
     || req.headers['sec-fetch-dest'] === 'script';
 }
 
-function requestHasUntrustedBrowserSource(req) {
+function requestHasUntrustedBrowserSource(req, options = {}) {
   const origin = req.headers.origin;
-  if (origin && !isTrustedLivePageSource(origin)) return true;
+  if (origin && !isTrustedLivePageSource(origin, options)) return true;
 
   const referer = req.headers.referer;
-  if (referer && !isTrustedLivePageSource(referer)) return true;
+  if (referer && !isTrustedLivePageSource(referer, options)) return true;
 
   if (origin || referer) return false;
   if (isBrowserLikeRequest(req)) return true;
@@ -1290,7 +1342,7 @@ function requestHasUntrustedBrowserSource(req) {
 function applyCorsHeaders(req, res) {
   res.setHeader('Vary', 'Origin');
   const origin = req.headers.origin;
-  if (isLocalLiveOrigin(origin)) {
+  if (isTrustedLivePageSource(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -1302,7 +1354,7 @@ function createRequestHandler({ detectScript, sessionPath, livePath }) {
     const url = new URL(req.url, `http://localhost:${state.port}`);
     applyCorsHeaders(req, res);
     if (req.method === 'OPTIONS') {
-      if (!isLocalLiveOrigin(req.headers.origin)) { res.writeHead(403); res.end('Forbidden'); return; }
+      if (!isTrustedLivePageSource(req.headers.origin)) { res.writeHead(403); res.end('Forbidden'); return; }
       res.writeHead(204); res.end(); return;
     }
 
