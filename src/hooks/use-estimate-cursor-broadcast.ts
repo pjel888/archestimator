@@ -15,6 +15,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:";
 export const CURSOR_BROADCAST_EVENT = "cursor";
 export const CURSOR_BROADCAST_MIN_DISTANCE_PX = 6;
+const REALTIME_IDENTITY_REFRESH_SKEW_MS = 60_000;
+const REALTIME_IDENTITY_MIN_REFRESH_DELAY_MS = 5_000;
 
 export type EstimateCursorBroadcastPayload = {
   userId: string;
@@ -114,6 +116,9 @@ export function useEstimateCursorCollaboration({
   const pendingPayloadRef = useRef<EstimateCursorBroadcastPayload | null>(null);
   const lastQueuedCursorRef = useRef<CursorBroadcastPosition | null>(null);
   const throttleTimerRef = useRef<number | null>(null);
+  const identityRefreshTimerRef = useRef<number | null>(null);
+  const identityRefreshPromiseRef = useRef<Promise<void> | null>(null);
+  const provisionIdentityRef = useRef<() => Promise<void>>(async () => undefined);
   // Identity: our own signed envelope (for sending) + the public key (for
   // verifying everyone else's). Both come from our OWN authenticated server call.
   const envelopeRef = useRef<RealtimeIdentityEnvelope | null>(null);
@@ -152,20 +157,52 @@ export function useEstimateCursorCollaboration({
     const channel = client.channel(topic, { config: { private: true } });
     channelRef.current = channel;
 
-    async function provisionIdentity() {
-      try {
-        const identity = await identityIssuerRef.current({ topic });
-        if (cancelled || !identity) return;
-        envelopeRef.current = identity.envelope;
-        verifyKeyRef.current = await importVerifyKey(identity.publicKey);
-      } catch (error) {
-        reportRealtimeEvent({
-          type: "auth_refresh_failed",
-          topic,
-          detail: error instanceof Error ? error.message : "identity issuance failed",
-        });
-      }
+    function clearIdentityRefreshTimer() {
+      if (identityRefreshTimerRef.current) window.clearTimeout(identityRefreshTimerRef.current);
+      identityRefreshTimerRef.current = null;
     }
+
+    function scheduleIdentityRefresh(envelope: RealtimeIdentityEnvelope) {
+      clearIdentityRefreshTimer();
+
+      const expMs = envelope.exp * 1000;
+      const refreshInMs = Math.max(
+        REALTIME_IDENTITY_MIN_REFRESH_DELAY_MS,
+        expMs - Date.now() - REALTIME_IDENTITY_REFRESH_SKEW_MS,
+      );
+
+      identityRefreshTimerRef.current = window.setTimeout(() => {
+        identityRefreshTimerRef.current = null;
+        void provisionIdentity();
+      }, refreshInMs);
+    }
+
+    async function provisionIdentity() {
+      if (identityRefreshPromiseRef.current) return identityRefreshPromiseRef.current;
+
+      const refreshPromise = (async () => {
+        try {
+          const identity = await identityIssuerRef.current({ topic });
+          if (cancelled || !identity) return;
+          envelopeRef.current = identity.envelope;
+          verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+          scheduleIdentityRefresh(identity.envelope);
+        } catch (error) {
+          reportRealtimeEvent({
+            type: "auth_refresh_failed",
+            topic,
+            detail: error instanceof Error ? error.message : "identity issuance failed",
+          });
+        } finally {
+          identityRefreshPromiseRef.current = null;
+        }
+      })();
+
+      identityRefreshPromiseRef.current = refreshPromise;
+      return refreshPromise;
+    }
+
+    provisionIdentityRef.current = provisionIdentity;
 
     async function acceptCursor(raw: unknown) {
       const cursor = raw as Partial<EstimateCursorBroadcastPayload> | null;
@@ -246,6 +283,9 @@ export function useEstimateCursorCollaboration({
       cancelled = true;
       if (throttleTimerRef.current) window.clearTimeout(throttleTimerRef.current);
       throttleTimerRef.current = null;
+      clearIdentityRefreshTimer();
+      identityRefreshPromiseRef.current = null;
+      provisionIdentityRef.current = async () => undefined;
       pendingPayloadRef.current = null;
       lastQueuedCursorRef.current = null;
       channelRef.current = null;
@@ -279,6 +319,11 @@ export function useEstimateCursorCollaboration({
       // Until our signed identity envelope is issued, receivers would drop the
       // cursor anyway — so don't broadcast unauthenticated frames.
       if (!envelopeRef.current) return;
+      if (Date.now() >= envelopeRef.current.exp * 1000) {
+        envelopeRef.current = null;
+        void provisionIdentityRef.current();
+        return;
+      }
 
       if (!shouldQueueCursorBroadcast(lastQueuedCursorRef.current, cursor, minDistancePx)) return;
 
