@@ -315,6 +315,9 @@ describe("RecipientEmailComposer — recipient-result merge (AC-MOD-17)", () => 
     expect(badge).not.toHaveClass("text-success");
     // And there is no green "sent" badge for this email.
     expect(screen.queryByText(/^sent$/)).not.toBeInTheDocument();
+    // Duplicate chips are informational only; they must not remain pending/sendable.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send to 0 recipients" })).toBeDisabled());
+    expect(publicationActions.addSharedLinkRecipients).toHaveBeenCalledTimes(1);
   });
 
   it("adopts the inserted id on a fresh success so Resend/Remove are immediately available", async () => {

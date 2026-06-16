@@ -151,7 +151,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
 
     try {
       const payload = chips
-        .filter((c) => !c.email_unsubscribed_at && (c.delivery_status === "pending" || !c.id)) // only new/pending
+        .filter((c) => !c.isDuplicate && !c.email_unsubscribed_at && (c.delivery_status === "pending" || !c.id)) // only new/pending
         .map((c) => ({ email: c.email, displayName: c.displayName || undefined }));
 
       if (payload.length === 0) {
@@ -260,7 +260,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, currentU
     }
   }
 
-  const pendingCount = chips.filter((c) => !c.email_unsubscribed_at && c.delivery_status === "pending").length;
+  const pendingCount = chips.filter((c) => !c.isDuplicate && !c.email_unsubscribed_at && c.delivery_status === "pending").length;
   const emailDisabled = emailDeliveryConfigured !== true;
   const canSend = pendingCount > 0 && !isSending && !emailDisabled;
 
