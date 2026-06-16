@@ -4,8 +4,10 @@ import { createHash } from "node:crypto";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
 import { isUuid } from "@/lib/ids";
+import type { Json } from "@/lib/supabase/types";
 import {
   getEstimateTabs,
   getEstimateTabTree,
@@ -68,12 +70,21 @@ const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT = 50;
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT = 25;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT = 20;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS = 60_000;
+const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE = "reusable_project_source_search";
 
-const reusableProjectSourceSearchHitsByUser = new Map<string, number[]>();
-
-function addReusableSearchSource(sourcesByKey: Map<string, ProjectReusableEstimateSource>, source: ProjectReusableEstimateSource) {
-  if (sourcesByKey.size >= REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT && !sourcesByKey.has(reusableProjectSourceResultKey(source))) return;
-  sourcesByKey.set(reusableProjectSourceResultKey(source), source);
+function addReusableSearchSourceUnit(
+  sourcesByKey: Map<string, ProjectReusableEstimateSource>,
+  sources: readonly ProjectReusableEstimateSource[],
+) {
+  const missingKeys = new Set<string>();
+  for (const source of sources) {
+    const key = reusableProjectSourceResultKey(source);
+    if (!sourcesByKey.has(key)) missingKeys.add(key);
+  }
+  if (sourcesByKey.size + missingKeys.size > REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT) return;
+  for (const source of sources) {
+    sourcesByKey.set(reusableProjectSourceResultKey(source), source);
+  }
 }
 
 function addReusableSearchEstimateMaterializationCandidate({
@@ -106,14 +117,43 @@ function normalizeReusableProjectSourceSearchInput(query: string) {
   return normalizeReusableSourceSearchQuery(query).slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_MAX_QUERY_LENGTH);
 }
 
-function assertReusableProjectSourceSearchRateLimit(userId: string, now = Date.now()) {
-  const windowStart = now - REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS;
-  const recentHits = (reusableProjectSourceSearchHitsByUser.get(userId) ?? []).filter((hit) => hit > windowStart);
-  if (recentHits.length >= REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT) {
+function hashReusableProjectSourceSearchRateLimitKey(userId: string) {
+  return createHash("sha256")
+    .update([REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE, userId.trim() || "-"].join("\u001f"))
+    .digest("base64url");
+}
+
+async function assertReusableProjectSourceSearchRateLimit(userId: string, now = Date.now()) {
+  const supabase = createSupabaseServiceRoleClient("archestimator-reusable-source-search-rate-limit");
+  const keyHash = hashReusableProjectSourceSearchRateLimitKey(userId);
+  const expiresAt = new Date(now + REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS).toISOString();
+  const windowStart = new Date(now - REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS).toISOString();
+
+  const { error: cleanupError } = await supabase
+    .from("security_rate_limit_events")
+    .delete()
+    .lt("expires_at", new Date(now).toISOString());
+  if (cleanupError) throw cleanupError;
+
+  const { error: insertError } = await supabase.from("security_rate_limit_events").insert({
+    scope: REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE,
+    key_hash: keyHash,
+    metadata_json: { route: "reusable_project_source_search" } satisfies Json,
+    expires_at: expiresAt,
+  });
+  if (insertError) throw insertError;
+
+  const { count, error: countError } = await supabase
+    .from("security_rate_limit_events")
+    .select("id", { count: "exact", head: true })
+    .eq("scope", REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE)
+    .eq("key_hash", keyHash)
+    .gte("occurred_at", windowStart);
+  if (countError) throw countError;
+
+  if ((count ?? 0) > REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT) {
     throw new Error("Please wait a moment before searching project sources again.");
   }
-  recentHits.push(now);
-  reusableProjectSourceSearchHitsByUser.set(userId, recentHits);
 }
 
 type ReusableSearchPrefilterTable = "estimate_nodes" | "estimate_tabs";
@@ -153,14 +193,19 @@ async function fetchDistinctReusableSearchEstimateMatches({
     matchingEstimateIds.size < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT
     && pageCount < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT
   ) {
+    const selectColumns = table === "estimate_nodes" && applyActiveTabFilter
+      ? "estimate_id, estimate_tabs!inner(id)"
+      : "estimate_id";
     let query = supabase
       .from(table)
-      .select("estimate_id")
+      .select(selectColumns)
       .in("estimate_id", accessibleEstimateIds);
     if (table === "estimate_nodes") query = query.in("kind", ["group", "area"]);
     let limitedQuery = query
       .ilike("name", likePattern);
-    if (applyActiveTabFilter) limitedQuery = limitedQuery.is("archived_at", null);
+    if (applyActiveTabFilter) {
+      limitedQuery = limitedQuery.is(table === "estimate_nodes" ? "estimate_tabs.archived_at" : "archived_at", null);
+    }
     const { data, error } = await limitedQuery
       .order("estimate_id", { ascending: true })
       .range(offset, offset + REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT - 1);
@@ -226,7 +271,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   const context = await requireCurrentUserContext();
   const query = normalizeReusableProjectSourceSearchInput(input.query);
   if (query.length < REUSABLE_PROJECT_SOURCE_SEARCH_MIN_QUERY_LENGTH) return { sources: [] };
-  assertReusableProjectSourceSearchRateLimit(context.userId);
+  await assertReusableProjectSourceSearchRateLimit(context.userId);
 
   const { projects } = await listCurrentWorkspaceProjects();
   const accessibleProjects = projects
@@ -269,13 +314,12 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
 
   // (1) Project + estimate name/sheet-code matches — purely in-memory (no DB reads).
   for (const item of accessibleProjects) {
-    if (textMatchesReusableSourceQuery(query, [item.project.name])) addReusableSearchSource(sourcesByKey, projectSourceFor(item.project));
+    if (textMatchesReusableSourceQuery(query, [item.project.name])) addReusableSearchSourceUnit(sourcesByKey, [projectSourceFor(item.project)]);
   }
   for (const estimateId of accessibleEstimateIds) {
     const ctx = estimateContextById.get(estimateId);
     if (ctx && textMatchesReusableSourceQuery(query, [ctx.estimate.name, ctx.estimate.sheetCode])) {
-      addReusableSearchSource(sourcesByKey, projectSourceFor(ctx.project));
-      addReusableSearchSource(sourcesByKey, estimateSourceFor(ctx.project, ctx.estimate));
+      addReusableSearchSourceUnit(sourcesByKey, [projectSourceFor(ctx.project), estimateSourceFor(ctx.project, ctx.estimate)]);
     }
   }
 
@@ -313,6 +357,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     table: "estimate_nodes",
     accessibleEstimateIds,
     likePattern,
+    applyActiveTabFilter: true,
   });
   if (matchingNodeError) throw matchingNodeError;
   for (const estimateId of matchingNodeEstimateIds ?? []) {
@@ -394,15 +439,19 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         updatedAt,
       };
       if (textMatchesReusableSourceQuery(query, [tab.name, tabDisplayName])) {
-        addReusableSearchSource(sourcesByKey, projectSourceFor(project));
-        addReusableSearchSource(sourcesByKey, estimateSourceFor(project, estimate));
-        addReusableSearchSource(sourcesByKey, tabSource);
+        addReusableSearchSourceUnit(sourcesByKey, [
+          projectSourceFor(project),
+          estimateSourceFor(project, estimate),
+          tabSource,
+        ]);
       }
       for (const source of collectProjectNodeSearchSources({ context, nodes: tabTrees[tabIndex]?.tree ?? [], query })) {
-        addReusableSearchSource(sourcesByKey, projectSourceFor(project));
-        addReusableSearchSource(sourcesByKey, estimateSourceFor(project, estimate));
-        addReusableSearchSource(sourcesByKey, tabSource);
-        addReusableSearchSource(sourcesByKey, source);
+        addReusableSearchSourceUnit(sourcesByKey, [
+          projectSourceFor(project),
+          estimateSourceFor(project, estimate),
+          tabSource,
+          source,
+        ]);
       }
     });
   }
