@@ -86,15 +86,22 @@ describe("ProjectsPageClient view modes", () => {
       "data-project-view-mode",
       "large",
     );
-    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: Large");
+    const viewTrigger = screen.getByRole("combobox", { name: "View" });
+    expect(viewTrigger).not.toHaveTextContent("View:");
+    expect(viewTrigger).not.toHaveTextContent("Large thumbnails");
+    expect(viewTrigger).toHaveAttribute("title", "Large");
+    expect(viewTrigger.querySelectorAll("svg")).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: "Add projects" }).parentElement?.parentElement,
     ).toHaveClass("ml-auto");
     expect(
       screen.getByRole("combobox", { name: "View" }).closest("[role='group']"),
     ).not.toHaveClass("ml-auto");
+    expect(container.querySelector("[data-project-card-thumbnail]")).toHaveClass("aspect-[4/3]");
 
-    await selectViewMode(user, "View: Small");
+    await user.click(viewTrigger);
+    expect(screen.getByRole("option", { name: "Large" }).querySelector("svg")).not.toBeNull();
+    await user.click(screen.getByRole("option", { name: "Small" }));
 
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -106,9 +113,10 @@ describe("ProjectsPageClient view modes", () => {
       "data-project-card-view",
       "small",
     );
+    expect(container.querySelector("[data-project-card-thumbnail]")).toHaveClass("aspect-[4/3]");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("small");
 
-    await selectViewMode(user, "View: Medium");
+    await selectViewMode(user, "Medium");
 
     await waitFor(() => {
       expect(screen.getByLabelText("Live projects")).toHaveAttribute(
@@ -120,6 +128,7 @@ describe("ProjectsPageClient view modes", () => {
       "data-project-card-view",
       "medium",
     );
+    expect(container.querySelector("[data-project-card-thumbnail]")).toHaveClass("aspect-[4/3]");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("medium");
   });
 
@@ -134,7 +143,10 @@ describe("ProjectsPageClient view modes", () => {
         "list",
       );
     });
-    expect(screen.getByRole("combobox", { name: "View" })).toHaveTextContent("View: List");
+    const viewTrigger = screen.getByRole("combobox", { name: "View" });
+    expect(viewTrigger).not.toHaveTextContent("View:");
+    expect(viewTrigger).not.toHaveTextContent("List");
+    expect(viewTrigger).toHaveAttribute("title", "List");
     expect(container.querySelector("[data-project-card-view]")).toHaveAttribute(
       "data-project-card-view",
       "list",
@@ -170,10 +182,16 @@ describe("ProjectsPageClient view modes", () => {
     const favoriteCard = screen.getByLabelText("Lewis Residence project, owned access");
     const favoriteTray = favoriteCard.querySelector("[data-project-card-favorite-sheets]");
     expect(favoriteTray).not.toBeNull();
-    expect(within(favoriteTray as HTMLElement).getByText("Favorite sheets")).toBeInTheDocument();
+    expect(within(favoriteTray as HTMLElement).queryByText("Favorite sheets")).not.toBeInTheDocument();
     expect(within(favoriteTray as HTMLElement).queryByText("5/5")).not.toBeInTheDocument();
-    expect(within(favoriteTray as HTMLElement).getByText("Foundation BOQ")).toBeInTheDocument();
-    expect(within(favoriteTray as HTMLElement).getByText("Plumbing Rough-In")).toBeInTheDocument();
+    expect(within(favoriteTray as HTMLElement).getByRole("link", { name: "Foundation BOQ" })).toHaveAttribute(
+      "href",
+      "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-000000000101",
+    );
+    expect(within(favoriteTray as HTMLElement).getByRole("link", { name: "Plumbing Rough-In" })).toHaveAttribute(
+      "href",
+      "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates/00000000-0000-4000-8000-000000000105",
+    );
     expect(within(favoriteTray as HTMLElement).queryByText("Landscape Package")).not.toBeInTheDocument();
 
     const emptyCard = screen.getByLabelText("Tropical House project, owned access");
@@ -223,10 +241,13 @@ describe("ProjectsPageClient view modes", () => {
 
     const publishedSharedLinkMeta = publishedCard.querySelector("[data-project-card-shared-link-meta]");
     const plainSharedLinkMeta = plainCard.querySelector("[data-project-card-shared-link-meta]");
-    expect(publishedCard.querySelector("[data-project-card-shared-link-indicator]")).not.toBeNull();
+    expect(publishedCard.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
+    expect(publishedCard.querySelector("[data-project-card-details-action]")).not.toBeNull();
+    expect(plainCard.querySelector("[data-project-card-details-action]")).not.toBeNull();
     expect(publishedSharedLinkMeta).toHaveTextContent("1 open");
     expect(publishedSharedLinkMeta).not.toHaveTextContent("Password off");
-    expect(plainSharedLinkMeta).toHaveTextContent("No opens");
+    expect(plainSharedLinkMeta?.textContent).toBe("");
+    expect(plainSharedLinkMeta?.querySelector("[data-project-card-shared-link-meta-icon]")).toHaveClass("opacity-35");
   });
 
   it("guides first-run users to create a live project while keeping samples as references", async () => {
@@ -274,7 +295,7 @@ describe("ProjectsPageClient view modes", () => {
     expect(container.querySelector('[data-project-access-kind="project-member"]')).toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
     expect(screen.getByLabelText("Lewis Residence project, shared project, viewer access")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText("No live projects yet")).not.toBeInTheDocument();
   });
 });

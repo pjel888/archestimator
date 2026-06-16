@@ -6,6 +6,7 @@ import {
   ArrowRight,
   ArrowsOutSimple,
   Clock,
+  DotsThreeVertical,
   LinkSimple,
   MapPin,
   Star,
@@ -100,6 +101,10 @@ function formatOpenCount(count: number) {
   return `${count} ${count === 1 ? "open" : "opens"}`;
 }
 
+function getFavoriteEstimateSheetHref(sheet: ProjectFavoriteEstimateSheetSummary) {
+  return `/workshop/projects/${sheet.project_id}/estimates/${sheet.id}`;
+}
+
 function getAccessibleAccessLabel({
   accessKind,
   projectName,
@@ -149,9 +154,8 @@ export function LiveProjectCard({
   const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
   const motif = getProjectMotif(project);
 
-  // Density ladder: "small" = compact tile (image + title + client); "medium" adds
-  // one meta line + footer; "large" is the full showcase. Pending invites keep
-  // their action in every mode.
+  // Density ladder: view modes change card width/content density, while every
+  // project thumbnail keeps the same 4:3 architectural image frame.
   const hasInvites = accessKind === "owned" && pendingInviteCount > 0;
   const showMeta = !isListView && viewMode !== "small";
   const showSecondaryMeta = viewMode === "large";
@@ -248,17 +252,49 @@ export function LiveProjectCard({
   }
 
   function renderOpenActivityRow() {
+    const hasSharedLinkActivity = Boolean(livePublication);
+
     return (
       <p
         data-project-card-shared-link-meta=""
-        aria-label={`Shared link activity for ${project.name}`}
+        aria-label={hasSharedLinkActivity ? `Shared link activity for ${project.name}` : `No shared link activity for ${project.name}`}
         className="flex items-center gap-1.5 text-[9px] leading-3 text-secondary"
       >
-        <LinkSimple size={12} weight="regular" aria-hidden="true" className="shrink-0" />
-        <span className="truncate">{livePublication ? formatOpenCount(livePublication.openCount) : "No opens"}</span>
+        <LinkSimple
+          size={12}
+          weight="regular"
+          aria-hidden="true"
+          className={cn("shrink-0", hasSharedLinkActivity ? null : "opacity-35")}
+          data-project-card-shared-link-meta-icon=""
+        />
+        <span className="min-w-0 flex-1 truncate">{livePublication ? formatOpenCount(livePublication.openCount) : null}</span>
       </p>
     );
   }
+
+  function renderDetailsControl({ reveal }: { reveal: boolean }) {
+    if (isPendingInvite) return null;
+
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        size="icon-xs"
+        className={cn(
+          CONTROL_BUTTON,
+          "relative z-20 text-ink",
+          reveal ? REVEAL_ON_INTENT : "pointer-events-auto opacity-100",
+        )}
+        aria-label={`Expand ${project.name} details`}
+        data-project-card-details-action=""
+        onClick={() => onExpand?.(project)}
+      >
+        <DotsThreeVertical size={15} weight="bold" aria-hidden="true" />
+      </Button>
+    );
+  }
+
+  const expandControl = renderDetailsControl({ reveal: true });
 
   function renderThumbnailReveal() {
     const maxVisible = viewMode === "small" ? 2 : viewMode === "medium" ? 3 : 5;
@@ -283,7 +319,6 @@ export function LiveProjectCard({
           <div className="pointer-events-auto">{selectControl}</div>
           <div className="flex items-center gap-1">
             <div className="pointer-events-auto">{favoriteControl}</div>
-            <div className="pointer-events-auto">{expandControl}</div>
           </div>
         </div>
         <div
@@ -299,7 +334,6 @@ export function LiveProjectCard({
             <>
               <div className="flex min-w-0 items-center gap-1 text-[8px] font-medium uppercase leading-[10px] text-secondary">
                 <Star size={10} weight="regular" aria-hidden="true" className="shrink-0 text-warning" />
-                <span className="truncate">Favorite sheets</span>
               </div>
               <div
                 className={cn(
@@ -308,15 +342,16 @@ export function LiveProjectCard({
                 )}
               >
                 {sheets.map((sheet) => (
-                  <div key={sheet.id} className="flex min-w-0 items-center gap-1.5">
-                    <span
-                      className="block min-w-0 flex-1 truncate"
-                      title={sheet.sheet_code ? `${sheet.name} (${sheet.sheet_code})` : sheet.name}
-                    >
-                      {sheet.name}
-                    </span>
+                  <Link
+                    key={sheet.id}
+                    href={getFavoriteEstimateSheetHref(sheet)}
+                    prefetch={false}
+                    className="flex min-w-0 items-center gap-1.5 rounded-xs text-ink hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                    title={sheet.sheet_code ? `${sheet.name} (${sheet.sheet_code})` : sheet.name}
+                  >
+                    <span className="block min-w-0 flex-1 truncate">{sheet.name}</span>
                     <ArrowsOutSimple size={10} weight="regular" aria-hidden="true" className="shrink-0 text-white" />
-                  </div>
+                  </Link>
                 ))}
                 {hiddenCount > 0 ? (
                   <span className="block truncate text-tertiary">+{hiddenCount} more</span>
@@ -332,10 +367,13 @@ export function LiveProjectCard({
   function renderTitleBlock() {
     return (
       <>
-        <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
-          {project.client_name ?? "No client yet"}
-        </p>
         <div className="flex min-w-0 items-start justify-between gap-2">
+          <p className="min-w-0 truncate text-[8px] font-medium uppercase tracking-normal text-secondary">
+            {project.client_name ?? "No client yet"}
+          </p>
+          {renderDetailsControl({ reveal: false })}
+        </div>
+        <div className="min-w-0">
           <h2
             className={cn(
               "min-w-0 font-medium tracking-normal text-ink [overflow-wrap:anywhere]",
@@ -346,16 +384,6 @@ export function LiveProjectCard({
           >
             {project.name}
           </h2>
-          {livePublication ? (
-            <span
-              data-project-card-shared-link-indicator=""
-              aria-label={`Shared link is active for ${project.name}`}
-              className="mt-0.5 shrink-0 text-secondary"
-              title="Shared link"
-            >
-              <LinkSimple size={13} weight="regular" aria-hidden="true" />
-            </span>
-          ) : null}
         </div>
       </>
     );
@@ -410,19 +438,6 @@ export function LiveProjectCard({
     );
   }
 
-  const expandControl = isPendingInvite ? null : (
-    <Button
-      type="button"
-      variant="secondary"
-      size="icon-xs"
-      className={cn(CONTROL_BUTTON, "text-ink", REVEAL_ON_INTENT)}
-      aria-label={`Expand ${project.name} details`}
-      onClick={() => onExpand?.(project)}
-    >
-      <ArrowsOutSimple size={13} weight="regular" aria-hidden="true" />
-    </Button>
-  );
-
   function renderThumb({
     wrapperClass,
     motifSize,
@@ -433,7 +448,7 @@ export function LiveProjectCard({
     withOverlay: boolean;
   }) {
     return (
-      <div className={cn("relative overflow-hidden bg-surfaceMuted", wrapperClass)}>
+      <div className={cn("relative shrink-0 overflow-hidden bg-surfaceMuted", wrapperClass)} data-project-card-thumbnail>
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -549,10 +564,24 @@ export function LiveProjectCard({
         >
           {visibleFavoriteEstimateSheets.length > 0 ? (
             <>
-              <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Favorite sheets</p>
-              <p className="truncate text-[9px] leading-3 text-secondary">
-                {visibleFavoriteEstimateSheets.map((sheet) => sheet.name).join(", ")}
-              </p>
+              <Star size={10} weight="regular" aria-hidden="true" className="mb-1 text-warning" />
+              <div className="relative z-20 flex min-w-0 flex-wrap gap-x-1 gap-y-0.5 text-[9px] leading-3 text-secondary">
+                {visibleFavoriteEstimateSheets.map((sheet, index) => (
+                  <span key={sheet.id} className="inline-flex min-w-0 max-w-full items-center">
+                    <Link
+                      href={getFavoriteEstimateSheetHref(sheet)}
+                      prefetch={false}
+                      className="max-w-full truncate rounded-xs hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                      title={sheet.sheet_code ? `${sheet.name} (${sheet.sheet_code})` : sheet.name}
+                    >
+                      {sheet.name}
+                    </Link>
+                    {index < visibleFavoriteEstimateSheets.length - 1 ? (
+                      <span aria-hidden="true">,</span>
+                    ) : null}
+                  </span>
+                ))}
+              </div>
             </>
           ) : null}
         </div>
@@ -624,10 +653,7 @@ export function LiveProjectCard({
   }
 
   // ----- TILE: small / medium / large -----
-  // Distinct image rhythm per rung so medium and large don't read as one card at two
-  // zoom levels: small = square compact, medium = shorter 3:2, large = taller 4:3 showcase.
-  const aspectClass =
-    viewMode === "small" ? "aspect-square" : viewMode === "medium" ? "aspect-[3/2]" : "aspect-[4/3]";
+  const thumbnailAspectClass = "aspect-[4/3]";
   const motifSize = "text-[10px]";
   const contentPad = viewMode === "large" ? "p-3" : "p-2";
 
@@ -639,11 +665,11 @@ export function LiveProjectCard({
       className={cn(
         "group group/card relative flex min-w-0 flex-col overflow-hidden rounded-xs border bg-white transition-colors duration-150 motion-reduce:transition-none",
         selectedForDeletion ? "border-ink" : "border-hairline hover:border-tertiary/30",
-        viewMode === "large" ? "h-[360px]" : viewMode === "medium" ? "min-h-[300px]" : "min-h-[190px]",
+        viewMode === "large" ? "min-h-[360px]" : viewMode === "medium" ? "min-h-[300px]" : "min-h-[190px]",
       )}
     >
       {renderThumb({
-        wrapperClass: cn("w-full border-b border-hairline", aspectClass),
+        wrapperClass: cn("w-full border-b border-hairline", thumbnailAspectClass),
         motifSize,
         withOverlay: true,
       })}

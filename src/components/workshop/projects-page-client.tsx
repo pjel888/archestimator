@@ -1,13 +1,26 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { ArrowDown, ArrowUp, Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import {
+  CalendarBlank,
+  Cards,
+  ClockCounterClockwise,
+  GridFour,
+  Plus,
+  Rows,
+  SortAscending,
+  SortDescending,
+  SquaresFour,
+  TextAa,
+  User,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
@@ -58,34 +71,38 @@ const PROJECT_VIEW_MODE_OPTIONS: Array<{
   icon: typeof Rows;
 }> = [
   { value: "list", label: "List", icon: Rows },
-  { value: "small", label: "Small thumbnails", icon: SquaresFour },
-  { value: "medium", label: "Medium thumbnails", icon: GridFour },
-  { value: "large", label: "Large thumbnails", icon: Cards },
+  { value: "small", label: "Small", icon: SquaresFour },
+  { value: "medium", label: "Medium", icon: GridFour },
+  { value: "large", label: "Large", icon: Cards },
 ];
-const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = [
-  { value: "list", label: "View: List" },
-  { value: "small", label: "View: Small" },
-  { value: "medium", label: "View: Medium" },
-  { value: "large", label: "View: Large" },
-];
+const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = PROJECT_VIEW_MODE_OPTIONS.map(({ value, label, icon: Icon }) => ({
+  value,
+  label,
+  icon: <Icon size={12} weight="regular" aria-hidden="true" />,
+}));
 const PROJECT_SORT_FIELD_OPTIONS = [
-  { value: "updated_at", label: "Sort: Last updated" },
-  { value: "created_at", label: "Sort: Date created" },
-  { value: "client_name", label: "Sort: Client" },
-  { value: "name", label: "Sort: Project name" },
+  { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
+  { value: "created_at", label: "Date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "client_name", label: "Client", icon: <User size={12} weight="regular" aria-hidden="true" /> },
+  { value: "name", label: "Project name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
 ] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_ACCESS_TABS = [
-  { id: "your-projects", label: "Your Projects" },
-  { id: "shared-to-you", label: "Projects shared to you" },
+  { id: "your-projects", label: "Projects" },
+  { id: "shared-to-you", label: "Shared" },
 ] as const;
+const PROJECT_ACCESS_TAB_ITEMS = PROJECT_ACCESS_TABS.map(({ id, label }) => ({ id, label })) satisfies readonly TabItem[];
 
 type ProjectAccessTab = (typeof PROJECT_ACCESS_TABS)[number]["id"];
 type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
 type ProjectSortDirection = "asc" | "desc";
+type ProjectDateGroup = {
+  key: string;
+  label: string;
+  items: ProjectListItem[];
+};
 type ProjectAccessTabsProps = {
   activeTab: ProjectAccessTab;
-  ownedCount: number;
-  sharedCount: number;
+  viewMode: ProjectCardViewMode;
   onTabChange: (tab: ProjectAccessTab) => void;
 };
 
@@ -175,16 +192,25 @@ function getProjectGridClassName(viewMode: ProjectCardViewMode) {
   return "grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3";
 }
 
+function getProjectDateFlagLayoutClassName(viewMode: ProjectCardViewMode) {
+  return viewMode === "list" ? getProjectGridClassName("small") : getProjectGridClassName(viewMode);
+}
+
+function getProjectAccessTabsLayoutClassName(viewMode: ProjectCardViewMode) {
+  if (viewMode === "list" || viewMode === "small")
+    return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(132px,1fr))] [&_[role=tablist]]:gap-2";
+  if (viewMode === "medium")
+    return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] [&_[role=tablist]]:gap-3";
+
+  return "[&_[role=tablist]]:grid [&_[role=tablist]]:grid-cols-[repeat(auto-fill,minmax(248px,1fr))] [&_[role=tablist]]:gap-3";
+}
+
 function getProjectAccessTabId(tab: ProjectAccessTab) {
-  return `projects-tab-${tab}`;
+  return `tab-${tab}`;
 }
 
 function getProjectAccessPanelId(tab: ProjectAccessTab) {
-  return `projects-panel-${tab}`;
-}
-
-function formatProjectCount(count: number) {
-  return `${count} ${count === 1 ? "project" : "projects"}`;
+  return `panel-${tab}`;
 }
 
 const projectNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -232,87 +258,74 @@ function compareProjectsBySort(a: ProjectListItem, b: ProjectListItem, field: Pr
   return compareProjectsByName(a, b);
 }
 
+function compareProjectsByDateOnly(a: ProjectListItem, b: ProjectListItem, field: ProjectSortField, direction: ProjectSortDirection) {
+  const aValue = getProjectSortValue(a, field);
+  const bValue = getProjectSortValue(b, field);
+  if (aValue === null && bValue === null) return 0;
+  if (aValue === null) return 1;
+  if (bValue === null) return -1;
+  if (typeof aValue !== "number" || typeof bValue !== "number") return 0;
+
+  const order = direction === "asc" ? 1 : -1;
+  return (aValue - bValue) * order;
+}
+
+function getProjectDateGroupLabel(date: Date) {
+  const month = new Intl.DateTimeFormat("en", { month: "long" }).format(date);
+  return `${date.getFullYear()} · ${month}`;
+}
+
+function getProjectDateGroup(item: ProjectListItem, field: ProjectSortField) {
+  const value = item.project[field];
+  const date = typeof value === "string" ? new Date(value) : null;
+  if (!date || !Number.isFinite(date.getTime())) {
+    return {
+      key: `${field}:undated`,
+      label: field === "created_at" ? "Created date missing" : "Updated date missing",
+    };
+  }
+
+  const label = getProjectDateGroupLabel(date);
+  return {
+    key: `${field}:${label}`,
+    label,
+  };
+}
+
+function groupProjectsByDate(items: ProjectListItem[], field: ProjectSortField): ProjectDateGroup[] {
+  const groups: ProjectDateGroup[] = [];
+  let currentGroup: ProjectDateGroup | null = null;
+
+  for (const item of items) {
+    const group = getProjectDateGroup(item, field);
+    if (!currentGroup || currentGroup.key !== group.key) {
+      currentGroup = { ...group, items: [] };
+      groups.push(currentGroup);
+    }
+    currentGroup.items.push(item);
+  }
+
+  return groups;
+}
+
 function ProjectAccessTabs({
   activeTab,
-  ownedCount,
-  sharedCount,
+  viewMode,
   onTabChange,
 }: ProjectAccessTabsProps) {
-  const tabRefs = useRef<Record<ProjectAccessTab, HTMLButtonElement | null>>({
-    "your-projects": null,
-    "shared-to-you": null,
-  });
-
-  function activateTab(tab: ProjectAccessTab) {
-    onTabChange(tab);
-    tabRefs.current[tab]?.focus();
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentTab: ProjectAccessTab) {
-    const currentIndex = PROJECT_ACCESS_TABS.findIndex((tab) => tab.id === currentTab);
-    let nextTab: ProjectAccessTab | null = null;
-
-    if (event.key === "ArrowRight") {
-      nextTab = PROJECT_ACCESS_TABS[(currentIndex + 1) % PROJECT_ACCESS_TABS.length].id;
-    } else if (event.key === "ArrowLeft") {
-      nextTab = PROJECT_ACCESS_TABS[(currentIndex - 1 + PROJECT_ACCESS_TABS.length) % PROJECT_ACCESS_TABS.length].id;
-    } else if (event.key === "Home") {
-      nextTab = PROJECT_ACCESS_TABS[0].id;
-    } else if (event.key === "End") {
-      nextTab = PROJECT_ACCESS_TABS[PROJECT_ACCESS_TABS.length - 1].id;
-    }
-
-    if (!nextTab) return;
-    event.preventDefault();
-    activateTab(nextTab);
-  }
-
   return (
-    <div
-      role="tablist"
-      aria-label="Project access tabs"
-      className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium"
-    >
-      {PROJECT_ACCESS_TABS.map((tab) => {
-        const isActive = activeTab === tab.id;
-        const count = tab.id === "your-projects" ? ownedCount : sharedCount;
-
-        return (
-          <button
-            key={tab.id}
-            id={getProjectAccessTabId(tab.id)}
-            ref={(node) => {
-              tabRefs.current[tab.id] = node;
-            }}
-            type="button"
-            role="tab"
-            aria-controls={getProjectAccessPanelId(tab.id)}
-            aria-label={`${tab.label}, ${formatProjectCount(count)}`}
-            aria-selected={isActive}
-            tabIndex={isActive ? 0 : -1}
-            className={cn(
-              "relative inline-flex h-full flex-shrink-0 min-w-0 items-center gap-1 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              isActive
-                ? "z-10 -mb-px border-hairline bg-white text-ink"
-                : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
-            )}
-            onClick={() => activateTab(tab.id)}
-            onKeyDown={(event) => handleKeyDown(event, tab.id)}
-          >
-            <span>{tab.label}</span>
-            <span
-              aria-hidden="true"
-              className={cn(
-                "ml-1 inline-flex min-w-3 justify-center rounded-xs px-1 text-[8px] font-medium leading-[10px]",
-                isActive ? "bg-surfaceMuted text-secondary" : "bg-white/70 text-tertiary",
-              )}
-            >
-              {count}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+    <Tabs
+      tabs={PROJECT_ACCESS_TAB_ITEMS}
+      activeId={activeTab}
+      onChange={(nextTab) => onTabChange(nextTab as ProjectAccessTab)}
+      variant="underline"
+      ariaLabel="Project access tabs"
+      className={cn(
+        "bg-white px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-hairline",
+        getProjectAccessTabsLayoutClassName(viewMode),
+      )}
+      getTabButtonProps={() => ({ className: "h-full !min-h-[41px] w-full justify-start px-2.5" })}
+    />
   );
 }
 
@@ -380,6 +393,9 @@ export function ProjectsPageClient({
         item.project.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         getProjectAccessSearchText(item).includes(searchQuery.toLowerCase()),
     );
+    if (!sortTouched && isDateSortField(sortField)) {
+      return [...searchedProjects].sort((a, b) => compareProjectsByDateOnly(a, b, sortField, sortDirection));
+    }
     if (!sortTouched) return searchedProjects;
     return [...searchedProjects].sort((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
   }, [activeBaseProjects, searchQuery, sortDirection, sortField, sortTouched]);
@@ -401,6 +417,12 @@ export function ProjectsPageClient({
   const displayLiveProjects = hasLiveProjects ? displayProjects : EMPTY_PROJECT_LIST_ITEMS;
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
+  const projectDateFlagLayoutClassName = getProjectDateFlagLayoutClassName(projectViewMode);
+  const shouldGroupProjectsByDate = isDateSortField(sortField) && displayLiveProjects.length > 0;
+  const dateGroupedLiveProjects = useMemo(
+    () => shouldGroupProjectsByDate ? groupProjectsByDate(displayLiveProjects, sortField) : [],
+    [displayLiveProjects, shouldGroupProjectsByDate, sortField],
+  );
   const selectableDisplayProjectIds = useMemo(
     () => displayLiveProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
     [displayLiveProjects],
@@ -423,8 +445,18 @@ export function ProjectsPageClient({
       },
     ];
   }, []);
-  const sortDirectionLabel = getProjectSortDirectionLabel(sortField, sortDirection);
-  const SortDirectionIcon = sortDirection === "asc" ? ArrowUp : ArrowDown;
+  const sortDirectionOptions = useMemo<DropdownSelectOption[]>(() => [
+    {
+      value: "desc",
+      label: getProjectSortDirectionLabel(sortField, "desc"),
+      icon: <SortDescending size={12} weight="regular" aria-hidden="true" />,
+    },
+    {
+      value: "asc",
+      label: getProjectSortDirectionLabel(sortField, "asc"),
+      icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
+    },
+  ], [sortField]);
 
   function handleSortFieldChange(nextField: string) {
     const field = nextField as ProjectSortField;
@@ -433,8 +465,8 @@ export function ProjectsPageClient({
     setSortTouched(true);
   }
 
-  function toggleSortDirection() {
-    setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+  function handleSortDirectionChange(nextDirection: string) {
+    setSortDirection(nextDirection as ProjectSortDirection);
     setSortTouched(true);
   }
 
@@ -462,6 +494,33 @@ export function ProjectsPageClient({
         <Plus size={12} weight="regular" aria-hidden="true" />
         Create project
       </Button>
+    );
+  }
+
+  function renderLiveProjectCard(item: ProjectListItem) {
+    const canFavoriteProject = item.accessKind === "owned";
+
+    return (
+      <LiveProjectCard
+        key={item.project.id}
+        project={item.project}
+        accessKind={item.accessKind}
+        currentUserRole={item.currentUserRole}
+        ownerWorkspaceName={item.ownerWorkspaceName}
+        pendingInvite={item.pendingInvite}
+        pendingInviteCount={item.pendingInviteCount}
+        publicationSummary={item.publicationSummary}
+        sharedEstimateCount={item.sharedEstimateCount}
+        favoriteEstimateSheets={item.favoriteEstimateSheets}
+        viewMode={projectViewMode}
+        isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
+        favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
+        selectedForDeletion={selectedProjectIds.has(item.project.id)}
+        selectionActive={selectedVisibleProjectIds.length > 0}
+        onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
+        onToggleFavorite={canFavoriteProject ? toggleProjectFavorite : undefined}
+        onExpand={setExpandedProject}
+      />
     );
   }
 
@@ -588,7 +647,8 @@ export function ProjectsPageClient({
             onValueChange={(next) => writeProjectViewModePreference(next as ProjectCardViewMode)}
             disabled={projectControlsDisabled}
             variant="boxed"
-            className="h-7 w-[108px] text-[10px]"
+            triggerDisplay="icon"
+            className="h-7 w-11 px-2 text-[10px]"
           />
           {projectControlsDisabled ? null : (
             <>
@@ -598,17 +658,18 @@ export function ProjectsPageClient({
                 value={sortField}
                 onValueChange={handleSortFieldChange}
                 variant="boxed"
-                className="h-7 w-[138px] text-[10px]"
+                triggerDisplay="icon"
+                className="h-7 w-11 px-2 text-[10px]"
               />
-              <button
-                type="button"
-                className="inline-flex h-7 min-w-24 shrink-0 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-secondary outline-none hover:bg-surfaceMuted hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
-                aria-label={sortDirectionLabel}
-                onClick={toggleSortDirection}
-              >
-                <SortDirectionIcon size={12} weight="regular" aria-hidden="true" className="shrink-0" />
-                <span className="truncate">{sortDirectionLabel}</span>
-              </button>
+              <DropdownSelect
+                aria-label="Sort direction"
+                options={sortDirectionOptions}
+                value={sortDirection}
+                onValueChange={handleSortDirectionChange}
+                variant="boxed"
+                triggerDisplay="icon"
+                className="h-7 w-11 px-2 text-[10px]"
+              />
             </>
           )}
         </div>
@@ -617,8 +678,7 @@ export function ProjectsPageClient({
       toolbarPanel={
         <ProjectAccessTabs
           activeTab={activeTab}
-          ownedCount={ownedProjectItems.length}
-          sharedCount={sharedProjectItems.length}
+          viewMode={projectViewMode}
           onTabChange={setActiveTab}
         />
       }
@@ -627,7 +687,7 @@ export function ProjectsPageClient({
         id={getProjectAccessPanelId(activeTab)}
         role="tabpanel"
         aria-labelledby={getProjectAccessTabId(activeTab)}
-        aria-label={activeTab === "your-projects" ? "Your projects" : "Projects shared to you"}
+        aria-label={activeTab === "your-projects" ? "Projects" : "Shared"}
         className={cn("space-y-2", selectedVisibleProjectIds.length ? "pb-20" : null)}
       >
         <BulkActionToolbar
@@ -644,34 +704,38 @@ export function ProjectsPageClient({
             <section
               aria-label="Live projects"
               data-project-view-mode={projectViewMode}
-              className={projectLayoutClassName}
+              className={shouldGroupProjectsByDate ? "space-y-4" : projectLayoutClassName}
             >
-              {displayLiveProjects.map((item) => {
-                const canFavoriteProject = item.accessKind === "owned";
-
-                return (
-                  <LiveProjectCard
-                    key={item.project.id}
-                    project={item.project}
-                    accessKind={item.accessKind}
-                    currentUserRole={item.currentUserRole}
-                    ownerWorkspaceName={item.ownerWorkspaceName}
-                    pendingInvite={item.pendingInvite}
-                    pendingInviteCount={item.pendingInviteCount}
-                    publicationSummary={item.publicationSummary}
-                    sharedEstimateCount={item.sharedEstimateCount}
-                    favoriteEstimateSheets={item.favoriteEstimateSheets}
-                    viewMode={projectViewMode}
-                    isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
-                    favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
-                    selectedForDeletion={selectedProjectIds.has(item.project.id)}
-                    selectionActive={selectedVisibleProjectIds.length > 0}
-                    onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
-                    onToggleFavorite={canFavoriteProject ? toggleProjectFavorite : undefined}
-                    onExpand={setExpandedProject}
-                  />
-                );
-              })}
+              {shouldGroupProjectsByDate
+                ? dateGroupedLiveProjects.map((group) => (
+                  <section
+                    key={group.key}
+                    aria-label={group.label}
+                    className="space-y-2"
+                    data-project-date-group={group.key}
+                  >
+                    <div className="pt-1">
+                      <div aria-hidden="true" className="h-px bg-hairline" />
+                      <div
+                        className={cn(
+                          "min-w-0 text-[9px] leading-3",
+                          projectDateFlagLayoutClassName,
+                        )}
+                      >
+                        <h3
+                          className="min-w-0 border-x border-b border-hairline bg-hairline px-1 py-1.5 text-[9px] font-medium leading-3 tracking-normal text-secondary"
+                          data-project-date-group-label
+                        >
+                          {group.label}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className={projectLayoutClassName}>
+                      {group.items.map(renderLiveProjectCard)}
+                    </div>
+                  </section>
+                ))
+                : displayLiveProjects.map(renderLiveProjectCard)}
             </section>
           ) : (
             renderTabEmptyState()
