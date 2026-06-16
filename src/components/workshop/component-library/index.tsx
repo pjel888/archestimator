@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { FolderPlus, Plus, PlusSquare, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { FolderPlus, FolderSimple, Package, Plus, Rows, StackPlus, StackSimple, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { BulkActionToolbar } from "@/components/ui/bulk-action-toolbar";
@@ -2051,7 +2051,7 @@ function EstimateRightSidebarBase({
   );
 
   return (
-    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
+    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560} collapsedWidth={24}>
       {/* group/tree on the panel keeps the tree's drag/select rail space open
           while the pointer or focus is anywhere in this sidebar, matching the
           estimate tree's behavior. */}
@@ -2077,6 +2077,8 @@ function EstimateRightSidebarBase({
           tabVariant="tabs"
           tabsAriaLabel="Library sections"
           onTabChange={(tab) => handleTabChange(tab as EstimateLibraryTab)}
+          showBottomBorder={false}
+          showToolbarBottomBorder
         />
 
         {/* Under-tabs toolbar row: Filter · View-by · Add (D7).
@@ -2085,7 +2087,7 @@ function EstimateRightSidebarBase({
           <div
             role="toolbar"
             aria-label="Library tools"
-            className="flex h-[38px] min-h-[38px] items-center gap-1 border-b border-hairline bg-white px-2 py-0"
+            className="mx-2 flex h-[38px] min-h-[38px] items-center gap-1 border-b border-hairline bg-white px-0 py-0"
           >
             {/* D1: Facet filter — components only; templates-tab faceting is out of scope. */}
             <ComponentFacetFilterPopover
@@ -2106,10 +2108,10 @@ function EstimateRightSidebarBase({
               {activeTab === "components" ? (
                 <>
                   <ToolbarIconButton label="Add folder" onClick={createFolder} disabled={createFolderPending} className={ADD_BUTTON_CLASSNAME}>
-                    <FolderPlus size={13} weight="regular" aria-hidden="true" />
+                    <FolderSimple size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                   <ToolbarIconButton label="Add Component" onClick={startNewComponent} className={ADD_BUTTON_CLASSNAME}>
-                    <PlusSquare size={13} weight="regular" aria-hidden="true" />
+                    <Package size={13} weight="regular" aria-hidden="true" />
                   </ToolbarIconButton>
                 </>
               ) : (
