@@ -1254,13 +1254,13 @@ function isLocalLiveOrigin(value) {
 }
 
 function isStaticFileLiveOrigin(value) {
-  if (!value) return false;
-  if (value === 'null') return true;
-  try {
-    return new URL(value).protocol === 'file:';
-  } catch { return false; }
+  // Do not treat browser-supplied opaque origins (`Origin: null`) or
+  // arbitrary `file:` referers as proof that `/live.js` is being loaded by
+  // a benign local static file. Opaque origins also cover sandboxed, data,
+  // and blob contexts, so trusting them would expose the bearer token embedded
+  // in `/live.js` to untrusted pages.
+  return false;
 }
-
 function isTrustedLivePageSource(value) {
   return isLocalLiveOrigin(value) || isStaticFileLiveOrigin(value);
 }
