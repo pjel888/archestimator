@@ -41,7 +41,16 @@ type StubResult = { data: unknown; error: unknown; count?: number | null };
  */
 function makeSupabaseStub() {
   const queue: Record<string, StubResult[]> = {};
-  const calls: Array<{ table: string; op: string; payload?: unknown; options?: unknown }> = [];
+  // `filters` captures the chained .eq()/.in() args BY REFERENCE so an assertion can verify
+  // a terminal op was scoped (e.g. the remove-path membership delete is .eq("user_id", …))
+  // regardless of whether the filter chained before or after the terminal op.
+  const calls: Array<{
+    table: string;
+    op: string;
+    payload?: unknown;
+    options?: unknown;
+    filters: Array<{ method: string; args: unknown[] }>;
+  }> = [];
 
   function nextResult(table: string): StubResult {
     const pending = queue[table];
@@ -59,25 +68,34 @@ function makeSupabaseStub() {
       }
       return result;
     };
+    // Shared per-builder filter log; pushed BY REFERENCE into each terminal-op call record so
+    // filters captured after the terminal op (.delete().eq(...)) are still visible.
+    const filters: Array<{ method: string; args: unknown[] }> = [];
     const builder: Record<string, unknown> = {};
     const chain = () => builder;
-    for (const method of ["select", "eq", "in", "order", "limit"]) {
+    for (const method of ["select", "order", "limit"]) {
       builder[method] = (..._args: unknown[]) => builder;
     }
+    for (const method of ["eq", "in"]) {
+      builder[method] = (...args: unknown[]) => {
+        filters.push({ method, args });
+        return builder;
+      };
+    }
     builder.insert = (payload: unknown) => {
-      calls.push({ table, op: "insert", payload });
+      calls.push({ table, op: "insert", payload, filters });
       return builder;
     };
     builder.update = (payload: unknown) => {
-      calls.push({ table, op: "update", payload });
+      calls.push({ table, op: "update", payload, filters });
       return builder;
     };
     builder.delete = () => {
-      calls.push({ table, op: "delete" });
+      calls.push({ table, op: "delete", filters });
       return builder;
     };
     builder.upsert = (payload: unknown, options?: unknown) => {
-      calls.push({ table, op: "upsert", payload, options });
+      calls.push({ table, op: "upsert", payload, options, filters });
       return builder;
     };
     builder.single = async () => ensure();
@@ -540,6 +558,46 @@ describe("moveProjectToGroup", () => {
     const mod = await import("@/lib/workshop/group-actions");
     expect("setProjectGroupMembership" in mod).toBe(false);
   });
+
+  it("(IDOR) refuses to upsert into a FOREIGN group whose ownership row returns null", async () => {
+    // The caller OWNS the project, but supplies a groupId they do NOT own. The group
+    // ownership read (scoped by user_id + workspace_id) returns null, so the action MUST
+    // throw and NEVER write a membership into that foreign group.
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "owner" }, error: null });
+    stub.queueResult("projects", { data: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID }], error: null });
+    stub.queueResult("project_groups", { data: null, error: null }); // foreign group: not owned ⇒ null
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { moveProjectToGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(moveProjectToGroup({ projectId: PROJECT_ID, groupId: GROUP_ID })).rejects.toThrow(
+      /group.*not.*found|not.*found/i,
+    );
+    // The membership table is never written, and revalidate never fires.
+    expect(stub.calls.some((c) => c.table === "project_group_memberships")).toBe(false);
+    expect(stub.calls.some((c) => c.op === "upsert")).toBe(false);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("scopes the remove-path membership delete by user_id (no cross-user membership wipe)", async () => {
+    // groupId === null removes the membership. The delete MUST be scoped by the caller's
+    // user_id (and project_id) so it can never delete another user's membership row.
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "owner" }, error: null });
+    stub.queueResult("projects", { data: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID }], error: null });
+    stub.queueResult("project_group_memberships", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { moveProjectToGroup } = await import("@/lib/workshop/group-actions");
+
+    await moveProjectToGroup({ projectId: PROJECT_ID, groupId: null });
+
+    const del = stub.calls.find((c) => c.op === "delete");
+    expect(del?.table).toBe("project_group_memberships");
+    // The delete is scoped by user_id === the caller and the specific project_id.
+    const eqArgs = del?.filters.filter((f) => f.method === "eq").map((f) => f.args) ?? [];
+    expect(eqArgs).toContainEqual(["user_id", USER_ID]);
+    expect(eqArgs).toContainEqual(["project_id", PROJECT_ID]);
+  });
 });
 
 describe("bulkAssignProjectsToGroup", () => {
@@ -687,6 +745,48 @@ describe("bulkAssignProjectsToGroup", () => {
     expect(result.movedProjectIds).toEqual([PROJECT_ID]);
     expect(result.skippedProjectIds).toEqual([]);
     expect(stub.calls.some((c) => c.op === "upsert")).toBe(true);
+  });
+
+  it("(IDOR) refuses to bulk-upsert into a FOREIGN group whose ownership row returns null", async () => {
+    // The caller owns the projects but targets a groupId they do NOT own. The group
+    // ownership read (scoped by user_id + workspace_id) returns null, so the action MUST
+    // throw and NEVER write any membership into that foreign group.
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "owner" }, error: null });
+    stub.queueResult("projects", {
+      data: [
+        { id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID },
+        { id: PROJECT_ID_2, workspace_id: WORKSPACE_ID, created_by: USER_ID },
+      ],
+      error: null,
+    });
+    stub.queueResult("project_groups", { data: null, error: null }); // foreign group ⇒ not owned
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(
+      bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID, PROJECT_ID_2], groupId: GROUP_ID }),
+    ).rejects.toThrow(/group.*not.*found|not.*found/i);
+    // No membership upsert into the foreign group; no revalidate.
+    expect(stub.calls.some((c) => c.op === "upsert")).toBe(false);
+    expect(stub.calls.some((c) => c.table === "project_group_memberships")).toBe(false);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("scopes the bulk remove-path membership delete by user_id (no cross-user wipe)", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "owner" }, error: null });
+    stub.queueResult("projects", { data: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID }], error: null });
+    stub.queueResult("project_group_memberships", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    await bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID], groupId: null });
+
+    const del = stub.calls.find((c) => c.op === "delete");
+    expect(del?.table).toBe("project_group_memberships");
+    const eqArgs = del?.filters.filter((f) => f.method === "eq").map((f) => f.args) ?? [];
+    expect(eqArgs).toContainEqual(["user_id", USER_ID]);
   });
 });
 

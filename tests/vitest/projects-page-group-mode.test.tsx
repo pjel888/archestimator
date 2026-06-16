@@ -360,6 +360,10 @@ describe("ProjectsPageClient group assignment", () => {
   });
 
   const assignGroups: ProjectGroupSummary[] = [{ id: "g1", name: "Pipeline", accentId: null, position: 0 }];
+  const assignGroups2: ProjectGroupSummary[] = [
+    { id: "g1", name: "Pipeline", accentId: null, position: 0 },
+    { id: "g2", name: "Archive", accentId: null, position: 1 },
+  ];
 
   it("optimistically moves a card to a group, calls the action, and triggers the RSC refresh (LD-6)", async () => {
     const user = userEvent.setup();
@@ -507,6 +511,159 @@ describe("ProjectsPageClient group assignment", () => {
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
     expect(within(screen.getByLabelText("Archive")).getByRole("article")).toHaveTextContent("Loose");
     expect(screen.queryByLabelText("Pipeline")?.querySelector('[role="article"]')).toBeFalsy();
+  });
+
+  it("(reconcile) clears the override once SSR reflects the move (re-render with changed groupId), with no flicker", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: null })]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Move Loose to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+    // Optimistic: override puts the card under Pipeline.
+    expect(within(screen.getByLabelText("Pipeline")).getByRole("article")).toHaveTextContent("Loose");
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+
+    // Drive the reconciliation by re-rendering with SSR props that NOW reflect the move
+    // (groupId === "g1"). The clear-on-match branch must drop the override; the card stays
+    // under Pipeline the whole time (no flicker to Ungrouped).
+    rerender(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g1" })]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await waitFor(() =>
+      expect(within(screen.getByLabelText("Pipeline")).getByRole("article")).toHaveTextContent("Loose"),
+    );
+    // Override cleared ⇒ SSR is authoritative; nothing fell back to Ungrouped.
+    expect(screen.queryByLabelText("Ungrouped")).not.toBeInTheDocument();
+  });
+
+  it("(F1) clears a stuck override when the project is filtered OUT before SSR reconciles — no later masking", async () => {
+    const user = userEvent.setup();
+    // Start in Pipeline (g1). User optimistically moves it to Archive (g2) (override = g2),
+    // then searches so the card leaves the FILTERED list before the move's refresh settles.
+    const { rerender } = render(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g1" })]}
+        projectGroups={assignGroups2}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Move Loose to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Archive" }));
+    expect(within(screen.getByLabelText("Archive")).getByRole("article")).toHaveTextContent("Loose");
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+
+    // Filter the project OUT (search miss). The override map still holds p1 → g2.
+    await user.click(screen.getByRole("button", { name: "Show projects search" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), {
+      target: { value: "zzz-no-match" },
+    });
+    // SSR now reflects the successful move (groupId === g2). The OLD effect iterated the
+    // (now-empty) FILTERED list, so it never visited p1 and the override stuck forever.
+    // The F1 fix iterates the FULL item set, so the override clears here.
+    rerender(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g2" })]}
+        projectGroups={assignGroups2}
+      />,
+    );
+
+    // Prove the override is GONE (not merely coincidentally matching) by feeding a LATER
+    // authoritative SSR move (g2 → g1) while still filtered. A stuck g2 override would mask
+    // this and pin the card to Archive; a cleared map lets the new SSR group win.
+    rerender(
+      <ProjectsPageClient
+        projects={[item({ id: "p1", name: "Loose" }, { groupId: "g1" })]}
+        projectGroups={assignGroups2}
+      />,
+    );
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search projects" }), { target: { value: "" } });
+
+    // Card follows the latest SSR group (Pipeline). With the bug, the stale g2 override
+    // would have masked the move and kept it under Archive.
+    await waitFor(() =>
+      expect(within(screen.getByLabelText("Pipeline")).getByRole("article")).toHaveTextContent("Loose"),
+    );
+    expect(screen.queryByLabelText("Archive")?.querySelector('[role="article"]')).toBeFalsy();
+  });
+
+  it("(F2) a single-move during an in-flight bulk is NOT clobbered when the bulk skips that id", async () => {
+    const user = userEvent.setup();
+    // Hold the bulk action open so the single-move can race it while it is in flight.
+    let resolveBulk: (value: { movedProjectIds: string[]; skippedProjectIds: string[] }) => void = () => {};
+    mocks.bulkAssignProjectsToGroup.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveBulk = (value) => resolve(value);
+        }),
+    );
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "One" }, { groupId: null }),
+          item({ id: "p2", name: "Two" }, { groupId: null }),
+        ]}
+        projectGroups={assignGroups2}
+      />,
+    );
+    // Select both, bulk-move to Pipeline (g1) — stays pending.
+    await user.click(within(screen.getByLabelText("One project, owned access")).getByRole("checkbox", { name: /select one/i }));
+    await user.click(within(screen.getByLabelText("Two project, owned access")).getByRole("checkbox", { name: /select two/i }));
+    await user.click(screen.getByRole("button", { name: "Move to group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+    // Optimistic: both cards are now under Pipeline.
+    expect(within(screen.getByLabelText("Pipeline")).getByText("One")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Pipeline")).getByText("Two")).toBeInTheDocument();
+
+    // While the bulk is in flight, single-move p1 to Archive (g2). The override for p1 is
+    // now g2, newer than the bulk's optimistic g1.
+    await user.click(screen.getByRole("button", { name: "Move One to a group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Archive" }));
+    expect(within(screen.getByLabelText("Archive")).getByRole("article")).toHaveTextContent("One");
+
+    // Resolve the bulk with p1 SKIPPED. The non-destructive rollback must only restore an
+    // id whose CURRENT value still equals the bulk's optimistic g1 — p1 is now g2, so it
+    // is left intact (NOT rolled back to pre-bulk null).
+    resolveBulk({ movedProjectIds: ["p2"], skippedProjectIds: ["p1"] });
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+    // p1 retains the newer single-move (Archive), NOT the pre-bulk Ungrouped (no rollback).
+    expect(within(screen.getByLabelText("Archive")).getByRole("article")).toHaveTextContent("One");
+    // No Ungrouped section exists (p1 is in Archive, p2 stays optimistically in Pipeline) —
+    // i.e. the skipped-rollback did NOT clobber p1 back to its pre-bulk null bucket.
+    expect(screen.queryByLabelText("Ungrouped")).not.toBeInTheDocument();
+  });
+
+  it("(F5) clears the moved selection on bulk-assign success", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          item({ id: "p1", name: "One" }, { groupId: null }),
+          item({ id: "p2", name: "Two" }, { groupId: null }),
+        ]}
+        projectGroups={assignGroups}
+      />,
+    );
+    await user.click(within(screen.getByLabelText("One project, owned access")).getByRole("checkbox", { name: /select one/i }));
+    await user.click(within(screen.getByLabelText("Two project, owned access")).getByRole("checkbox", { name: /select two/i }));
+    // The "Move to group" affordance is visible while the assignment selection is non-empty.
+    expect(screen.getByRole("button", { name: "Move to group" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Move to group" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+    await waitFor(() => expect(mocks.bulkAssignProjectsToGroup).toHaveBeenCalled());
+
+    // On success the moved ids are pruned from the selection ⇒ the bulk-move affordance and
+    // the delete dock both disappear (nothing selected anymore).
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Move to group" })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("button", { name: "Delete selected projects" })).not.toBeInTheDocument();
   });
 });
 

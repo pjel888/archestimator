@@ -569,9 +569,17 @@ export function ProjectsPageClient({
   const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [deleteProjectState, setDeleteProjectState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
-  // LD-6: capture isPending so the reconciliation effect can wait for the RSC refresh
-  // (router.refresh() inside startTransition) to settle before clearing overrides.
-  const [isGroupMutationPending, startTransition] = useTransition();
+  // Shared transition for group-CRUD (create/rename/recolor/delete) and the
+  // delete-preview/execute flow. Its pending flag is intentionally NOT consumed — the
+  // reconciliation gate tracks the assignment-only transition below (F3), so only the
+  // dispatcher (startTransition) is bound here.
+  const [, startTransition] = useTransition();
+  // F3: a SEPARATE transition dedicated to membership assignment (single move + bulk).
+  // The reconciliation gate must track ONLY the assignment RSC refresh — not unrelated
+  // group-CRUD or delete-preview/execute transitions, which would otherwise extend the
+  // gate and stall (or mis-time) override clearing. Group-CRUD + delete still use the
+  // shared `startTransition` above (their byte-identity is unchanged).
+  const [isGroupAssignPending, startGroupAssignTransition] = useTransition();
 
   const favoriteIds = useMemo(() => {
     const ids = new Set(favoriteProjectIds);
@@ -679,31 +687,45 @@ export function ProjectsPageClient({
     [selectableForAssignmentProjectIds, selectedProjectIds],
   );
 
-  // LD-6 reconciliation effect. Clears each per-project override ONLY once the transition
-  // has settled (isGroupMutationPending === false) AND the incoming SSR item.groupId for
-  // that id equals the override value — i.e. SSR is now authoritative for the move, with
-  // no early-clear flicker. NEVER cleared inside a router.refresh().then() (router.refresh
-  // is non-awaitable). This handles single-move, bulk-move, and the rapid-reassign
-  // interleaving case: an override that no longer matches SSR (the user reassigned again)
-  // is left intact until ITS own refresh lands, so the card never flickers to stale SSR.
+  // LD-6 reconciliation effect. Clears each per-project override ONLY once the ASSIGNMENT
+  // transition has settled (isGroupAssignPending === false, F3) AND the incoming SSR
+  // groupId for that id equals the override value — i.e. SSR is now authoritative for the
+  // move, with no early-clear flicker. NEVER cleared inside a router.refresh().then()
+  // (router.refresh is non-awaitable). This handles single-move, bulk-move, and the
+  // rapid-reassign interleaving case: an override that no longer matches SSR (the user
+  // reassigned again) is left intact until ITS own refresh lands, so the card never
+  // flickers to stale SSR.
+  //
+  // F1: iterate the FULL normalized item set (projectItems), NOT the search-filtered,
+  // tab-scoped displayLiveProjects. If a project is filtered out (search) or tab-switched
+  // before its refresh settles, the filtered loop would never visit it and its override
+  // would stick forever (masking later legitimate SSR moves and leaking the map). Keying
+  // reconciliation off the authoritative SSR groupId of EVERY known project clears the
+  // override as soon as SSR is authoritative, regardless of the active filter/tab.
   useEffect(() => {
-    if (isGroupMutationPending) return; // wait for the RSC refresh to settle
+    if (isGroupAssignPending) return; // wait for the assignment RSC refresh to settle
     setGroupOverrides((current) => {
-      if (Object.keys(current).length === 0) return current;
+      const keys = Object.keys(current);
+      if (keys.length === 0) return current;
+      const ssrGroupById = new Map(projectItems.map((entry) => [entry.project.id, entry.groupId ?? null]));
       let changed = false;
       const next = { ...current };
-      for (const item of displayLiveProjects) {
-        const id = item.project.id;
-        if (!Object.prototype.hasOwnProperty.call(next, id)) continue;
+      for (const id of keys) {
+        // A project that vanished from SSR entirely (deleted) also drops its stale override.
+        if (!ssrGroupById.has(id)) {
+          delete next[id];
+          changed = true;
+          continue;
+        }
         // SSR is authoritative for this id ⇒ drop the now-redundant override.
-        if ((item.groupId ?? null) === (next[id] ?? null)) {
+        if (ssrGroupById.get(id) === (next[id] ?? null)) {
           delete next[id];
           changed = true;
         }
       }
       return changed ? next : current;
     });
-  }, [isGroupMutationPending, displayLiveProjects]);
+  }, [isGroupAssignPending, projectItems]);
   const expandedProjectItem = useMemo(
     () => expandedProject ? projectItems.find((item) => item.project.id === expandedProject.id) ?? null : null,
     [expandedProject, projectItems],
@@ -803,7 +825,9 @@ export function ProjectsPageClient({
     const previousOverride = groupOverrides[projectId];
     setGroupOverrides((current) => ({ ...current, [projectId]: nextGroupId }));
     setPendingGroupProjectId(projectId);
-    startTransition(() => {
+    // F3: assignment uses its OWN transition so the reconciliation gate tracks only the
+    // membership RSC refresh, not unrelated group-CRUD/delete transitions.
+    startGroupAssignTransition(() => {
       void moveProjectToGroup({ projectId, groupId: nextGroupId })
         .then(() => {
           // LD-6: trigger the RSC refresh INSIDE the transition so isPending tracks it.
@@ -814,7 +838,13 @@ export function ProjectsPageClient({
         .catch(() => {
           setGroupOverrides((current) => {
             const next = { ...current };
-            if (hadOverride) next[projectId] = previousOverride;
+            // F4: restore the prior override only when it was a real present value
+            // (string | null). If there was no prior override — or the prior value was
+            // `undefined` — DELETE the key instead of writing `undefined`, keeping the
+            // three-state contract clean (absent = no override; present-string = group;
+            // present-null = Ungrouped). A key-present-with-undefined is interpreted
+            // inconsistently by the menu render and the reconcile effect.
+            if (hadOverride && previousOverride !== undefined) next[projectId] = previousOverride;
             else delete next[projectId];
             return next;
           });
@@ -843,7 +873,9 @@ export function ProjectsPageClient({
       for (const id of ids) next[id] = nextGroupId;
       return next;
     });
-    startTransition(() => {
+    // F3: bulk assignment uses the assignment-only transition so the reconciliation gate
+    // tracks only the membership RSC refresh.
+    startGroupAssignTransition(() => {
       void bulkAssignProjectsToGroup({ projectIds: ids, groupId: nextGroupId })
         .then((result) => {
           // LD-11: roll back the skipped ids (not owned / not verified); keep moved ids
@@ -854,8 +886,14 @@ export function ProjectsPageClient({
               const next = { ...current };
               for (const id of ids) {
                 if (!skipped.has(id)) continue;
+                // F2: non-destructive rollback. Only restore the pre-bulk value if the
+                // CURRENT override still equals what THIS bulk optimistically wrote
+                // (nextGroupId). If it differs, a newer action (e.g. a single-move that
+                // raced this bulk) owns the key — leave it untouched. F4: never write
+                // `undefined`; delete the key when there was no prior override.
+                if ((next[id] ?? null) !== (nextGroupId ?? null)) continue;
                 const [had, prev] = snapshot.get(id)!;
-                if (had) next[id] = prev;
+                if (had && prev !== undefined) next[id] = prev;
                 else delete next[id];
               }
               return next;
@@ -868,17 +906,36 @@ export function ProjectsPageClient({
               tone: "error",
             });
           }
+          // F5: prune the MOVED ids from the selection on success so a repeat bulk-move or
+          // the delete dock cannot reuse a stale selection (and overlapping bulks cannot
+          // snapshot each other's optimistic values). Skipped ids stay selected for retry.
+          if (result.movedProjectIds.length > 0) {
+            const moved = new Set(result.movedProjectIds);
+            setSelectedProjectIds((current) => {
+              if (current.size === 0) return current;
+              let changed = false;
+              const nextSelection = new Set(current);
+              for (const id of moved) {
+                if (nextSelection.delete(id)) changed = true;
+              }
+              return changed ? nextSelection : current;
+            });
+          }
           // LD-6: trigger the refresh inside the transition; the reconciliation effect
           // clears the moved overrides once SSR reflects them. Never clear here.
           router.refresh();
         })
         .catch(() => {
-          // Total failure (threw before returning a result): roll back EVERY id.
+          // Total failure (threw before returning a result): roll back ids this bulk still
+          // owns. F2: only restore an id whose CURRENT override still equals nextGroupId
+          // (a newer action that raced the bulk keeps its write). F4: delete rather than
+          // write `undefined`. Selection is intentionally NOT pruned (keep ids for retry).
           setGroupOverrides((current) => {
             const next = { ...current };
             for (const id of ids) {
+              if ((next[id] ?? null) !== (nextGroupId ?? null)) continue;
               const [had, prev] = snapshot.get(id)!;
-              if (had) next[id] = prev;
+              if (had && prev !== undefined) next[id] = prev;
               else delete next[id];
             }
             return next;
