@@ -15,10 +15,12 @@ const workspaceMocks = vi.hoisted(() => ({
   listProjectEstimateSheets: vi.fn(),
 }));
 const supabaseServerMocks = vi.hoisted(() => ({ createSupabaseServerClient: vi.fn() }));
+const supabaseServiceRoleMocks = vi.hoisted(() => ({ createSupabaseServiceRoleClient: vi.fn() }));
 
 vi.mock("next/cache", () => cacheMocks);
 vi.mock("@/lib/auth/session", () => ({ requireCurrentUserContext: authMocks.requireCurrentUserContext }));
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/supabase/service-role", () => supabaseServiceRoleMocks);
 vi.mock("@/lib/repositories/workspace-repository", () => workspaceMocks);
 
 const WORKSPACE_ID = "11111111-1111-4111-8111-111111111111";
@@ -42,6 +44,7 @@ beforeEach(() => {
   authMocks.requireCurrentUserContext.mockReset().mockResolvedValue({ userId: "user-1" });
   workspaceMocks.ensureDefaultWorkspace.mockReset().mockResolvedValue({ workspace: { id: WORKSPACE_ID } });
   supabaseServerMocks.createSupabaseServerClient.mockReset();
+  supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReset();
 });
 
 describe("template-surface revalidation (U11)", () => {
@@ -96,5 +99,110 @@ describe("template-surface revalidation (U11)", () => {
     await expect(createEstimateTemplate({ name: "Over the limit" })).rejects.toThrow(/limit/);
     expect(insert).not.toHaveBeenCalled();
     expect(cacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("library overview search guards", () => {
+  function makeSearchBuilder(table: string, observed: Array<{ table: string; method: string; args: unknown[] }>) {
+    const builder: Record<string, unknown> = {};
+    for (const method of ["select", "eq", "neq", "or", "ilike", "order"]) {
+      builder[method] = (...args: unknown[]) => {
+        observed.push({ table, method, args });
+        return builder;
+      };
+    }
+    builder.limit = async (...args: unknown[]) => {
+      observed.push({ table, method: "limit", args });
+      return { data: [], error: null };
+    };
+    return builder;
+  }
+
+  function makeServiceRoleClient(count = 1) {
+    const serviceCalls: Array<{ table: string; method: string; args: unknown[] }> = [];
+    const deleteBuilder = {
+      lt: vi.fn(async (...args: unknown[]) => {
+        serviceCalls.push({ table: "security_rate_limit_events", method: "lt", args });
+        return { error: null };
+      }),
+    };
+    const countBuilder: Record<string, unknown> = {};
+    for (const method of ["eq", "gte"]) {
+      countBuilder[method] = (...args: unknown[]) => {
+        serviceCalls.push({ table: "security_rate_limit_events", method, args });
+        return countBuilder;
+      };
+    }
+    countBuilder.select = (...args: unknown[]) => {
+      serviceCalls.push({ table: "security_rate_limit_events", method: "select", args });
+      return countBuilder;
+    };
+    countBuilder.then = (resolve: (value: { count: number; error: null }) => unknown) => resolve({ count, error: null });
+
+    supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
+      from: (table: string) => ({
+        delete: () => deleteBuilder,
+        insert: async (...args: unknown[]) => {
+          serviceCalls.push({ table, method: "insert", args });
+          return { error: null };
+        },
+        select: countBuilder.select,
+      }),
+    });
+    return serviceCalls;
+  }
+
+  it("does not run wildcard database search for one-character queries", async () => {
+    const observed: Array<{ table: string; method: string; args: unknown[] }> = [];
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+      from: (table: string) => makeSearchBuilder(table, observed),
+    });
+    const { searchLibraryOverview } = await import("@/lib/component-library/actions");
+
+    await expect(searchLibraryOverview({ query: "a" })).resolves.toEqual({ components: [], templates: [] });
+
+    expect(supabaseServiceRoleMocks.createSupabaseServiceRoleClient).not.toHaveBeenCalled();
+    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(observed).toEqual([]);
+  });
+
+  it("caps query length and records a durable per-user search rate limit before wildcard search", async () => {
+    const serviceCalls = makeServiceRoleClient();
+    const observed: Array<{ table: string; method: string; args: unknown[] }> = [];
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+      from: (table: string) => makeSearchBuilder(table, observed),
+    });
+    const { searchLibraryOverview } = await import("@/lib/component-library/actions");
+
+    await expect(searchLibraryOverview({ query: `${"x".repeat(100)}%_` })).resolves.toEqual({
+      components: [],
+      templates: [],
+    });
+
+    expect(serviceCalls.some((call) => call.method === "insert")).toBe(true);
+    expect(observed).toContainEqual({
+      table: "cost_library_items",
+      method: "or",
+      args: [`name.ilike.%${"x".repeat(80)}%,supplier.ilike.%${"x".repeat(80)}%,brand.ilike.%${"x".repeat(80)}%`],
+    });
+    expect(observed).toContainEqual({
+      table: "estimate_templates",
+      method: "ilike",
+      args: ["name", `%${"x".repeat(80)}%`],
+    });
+  });
+
+  it("rejects searches once the durable rate limit is exceeded", async () => {
+    makeServiceRoleClient(31);
+    const observed: Array<{ table: string; method: string; args: unknown[] }> = [];
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
+      from: (table: string) => makeSearchBuilder(table, observed),
+    });
+    const { searchLibraryOverview } = await import("@/lib/component-library/actions");
+
+    await expect(searchLibraryOverview({ query: "oak" })).rejects.toThrow(/Too many library searches/);
+
+    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(observed).toEqual([]);
   });
 });

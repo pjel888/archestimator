@@ -10,7 +10,9 @@ import {
   type LibraryOverviewSearchResult,
 } from "@/lib/component-library/actions";
 
-const SEARCH_DEBOUNCE_MS = 150;
+const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_MIN_LENGTH = 2;
+const SEARCH_MAX_LENGTH = 80;
 const LISTBOX_ID = "library-overview-search-results";
 
 type SearchEntry = {
@@ -28,8 +30,9 @@ function optionDomId(entryId: string) {
 /**
  * Cross-library search for the Overview home: a persistent 360px
  * `SearchInput` whose results popover groups Components and Templates,
- * fetched lazily through the `searchLibraryOverview` server action from the
- * first keystroke. Components deep-link to the Components tab (no per-item
+ * fetched lazily through the `searchLibraryOverview` server action once the
+ * query is long enough to avoid wasteful wildcard scans. Components
+ * deep-link to the Components tab (no per-item
  * selection link exists yet — documented v1 simplification); templates open
  * their editor. `⌘K` focuses the input, arrows move the highlight, Esc
  * closes.
@@ -47,12 +50,13 @@ export function LibraryOverviewSearch() {
 
   const trimmedQuery = query.trim();
 
-  // The search index lives server-side: results load lazily through the
-  // server action from the first keystroke. Empty-query resets happen in the
-  // change handler; the effect only owns the debounced fetch.
+  // The search index lives server-side: results load lazily only once the
+  // query is specific enough. Short-query resets happen in the change handler;
+  // the effect only owns the debounced fetch.
   const updateQuery = useCallback((value: string) => {
+    if (value.length > SEARCH_MAX_LENGTH) value = value.slice(0, SEARCH_MAX_LENGTH);
     setQuery(value);
-    if (!value.trim()) {
+    if (value.trim().length < SEARCH_MIN_LENGTH) {
       requestIdRef.current += 1;
       setResults(null);
       setPending(false);
@@ -64,7 +68,7 @@ export function LibraryOverviewSearch() {
   }, []);
 
   useEffect(() => {
-    if (!trimmedQuery) return;
+    if (trimmedQuery.length < SEARCH_MIN_LENGTH) return;
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     const timer = setTimeout(() => {
@@ -265,6 +269,7 @@ export function LibraryOverviewSearch() {
         aria-activedescendant={highlightedEntry ? optionDomId(highlightedEntry.id) : undefined}
         shortcutKey="⌘K"
         value={query}
+        maxLength={SEARCH_MAX_LENGTH}
         onChange={(event) => updateQuery(event.target.value)}
         onClear={() => {
           updateQuery("");

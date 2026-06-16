@@ -1,6 +1,6 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -22,6 +22,7 @@ import {
 } from "@/lib/repositories/workspace-repository";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
@@ -1524,18 +1525,72 @@ export type LibraryOverviewSearchResult = {
   templates: LibraryOverviewSearchTemplate[];
 };
 
+const LIBRARY_OVERVIEW_SEARCH_MIN_LENGTH = 2;
+const LIBRARY_OVERVIEW_SEARCH_MAX_LENGTH = 80;
+const LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SCOPE = "library_overview_search";
+const LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SECONDS = 60;
+const LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_ATTEMPTS = 30;
+
+function normalizeLibraryOverviewSearchQuery(input: unknown) {
+  if (typeof input !== "string") return "";
+  return input
+    .slice(0, LIBRARY_OVERVIEW_SEARCH_MAX_LENGTH)
+    .trim()
+    .replace(/[,()"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hashLibraryOverviewSearchRateLimitKey(workspaceId: string, userId: string) {
+  return createHash("sha256")
+    .update([LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SCOPE, workspaceId, userId].join("\u001f"))
+    .digest("base64url");
+}
+
+async function assertLibraryOverviewSearchRateLimit(workspaceId: string, userId: string) {
+  const supabase = createSupabaseServiceRoleClient("archestimator-library-overview-search-rate-limit");
+  const now = Date.now();
+  const keyHash = hashLibraryOverviewSearchRateLimitKey(workspaceId, userId);
+
+  const { error: cleanupError } = await supabase
+    .from("security_rate_limit_events")
+    .delete()
+    .lt("expires_at", new Date(now).toISOString());
+  if (cleanupError) throwActionError("Could not verify library search rate limit.", cleanupError);
+
+  const { error: insertError } = await supabase.from("security_rate_limit_events").insert({
+    scope: LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SCOPE,
+    key_hash: keyHash,
+    metadata_json: { route: "library_overview_search" } satisfies Json,
+    expires_at: new Date(now + LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SECONDS * 1000).toISOString(),
+  });
+  if (insertError) throwActionError("Could not verify library search rate limit.", insertError);
+
+  const { count, error } = await supabase
+    .from("security_rate_limit_events")
+    .select("id", { count: "exact", head: true })
+    .eq("scope", LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SCOPE)
+    .eq("key_hash", keyHash)
+    .gte("occurred_at", new Date(now - LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_SECONDS * 1000).toISOString());
+  if (error) throwActionError("Could not verify library search rate limit.", error);
+  if ((count ?? 0) > LIBRARY_OVERVIEW_SEARCH_RATE_LIMIT_ATTEMPTS) {
+    throw new Error("Too many library searches. Please wait 60 seconds and try again.");
+  }
+}
+
 /**
  * Cross-library search for the Overview home popover: name/supplier/brand
  * ilike over visible components (max 6) and name ilike over templates
- * (max 3). Fetched lazily from the first keystroke — the Overview payload
- * itself never carries the full datasets.
+ * (max 3). Short and oversized queries are bounded before wildcard matching,
+ * and authenticated users are durably rate-limited before database search.
  */
 export async function searchLibraryOverview(input: { query: string }): Promise<LibraryOverviewSearchResult> {
-  const [{ workspace }] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
-  // Commas, parens, and quotes are PostgREST `or=` syntax; wildcards would
-  // widen the match. Collapse them to spaces / escape before interpolating.
-  const query = input.query.trim().replace(/[,()"]/g, " ").replace(/\s+/g, " ").trim();
-  if (!query) return { components: [], templates: [] };
+  const [{ workspace }, userContext] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const query = normalizeLibraryOverviewSearchQuery(
+    input && typeof input === "object" && "query" in input ? input.query : undefined,
+  );
+  if (query.length < LIBRARY_OVERVIEW_SEARCH_MIN_LENGTH) return { components: [], templates: [] };
+  await assertLibraryOverviewSearchRateLimit(workspace.id, userContext.userId);
   const pattern = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 
   const supabase = await createSupabaseServerClient();

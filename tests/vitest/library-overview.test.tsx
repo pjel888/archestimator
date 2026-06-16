@@ -190,7 +190,7 @@ describe("LibraryOverview", () => {
     expect(document.querySelector('[data-library-overview-health="true"]')).toBeNull();
   });
 
-  it("searches the library from the first keystroke and groups popover results", async () => {
+  it("searches the library once the query is specific enough and groups popover results", async () => {
     actionMocks.searchLibraryOverview.mockResolvedValue({
       components: [{ id: "search-comp-1", name: "Engineered Oak Plank", category: "Floor Finishes", supplier: "FloorCo" }],
       templates: [{ id: "tpl-9", name: "Oak Floor Refresh", category: "Residential Rooms" }],
@@ -198,7 +198,12 @@ describe("LibraryOverview", () => {
 
     render(<LibraryOverview overview={baseOverview} />);
 
-    fireEvent.change(getSearchInput(), { target: { value: "oak" } });
+    const input = getSearchInput();
+
+    fireEvent.change(input, { target: { value: "o" } });
+    expect(actionMocks.searchLibraryOverview).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "oak" } });
 
     await waitFor(() => expect(actionMocks.searchLibraryOverview).toHaveBeenCalledWith({ query: "oak" }));
 
