@@ -3,9 +3,10 @@
 import dynamic from "next/dynamic";
 import { useMemo, useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDown, ArrowUp, Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
@@ -61,12 +62,26 @@ const PROJECT_VIEW_MODE_OPTIONS: Array<{
   { value: "medium", label: "Medium thumbnails", icon: GridFour },
   { value: "large", label: "Large thumbnails", icon: Cards },
 ];
+const VIEW_SELECT_OPTIONS: DropdownSelectOption[] = [
+  { value: "list", label: "View: List" },
+  { value: "small", label: "View: Small" },
+  { value: "medium", label: "View: Medium" },
+  { value: "large", label: "View: Large" },
+];
+const PROJECT_SORT_FIELD_OPTIONS = [
+  { value: "updated_at", label: "Sort: Last updated" },
+  { value: "created_at", label: "Sort: Date created" },
+  { value: "client_name", label: "Sort: Client" },
+  { value: "name", label: "Sort: Project name" },
+] as const satisfies readonly DropdownSelectOption[];
 const PROJECT_ACCESS_TABS = [
   { id: "your-projects", label: "Your Projects" },
   { id: "shared-to-you", label: "Projects shared to you" },
 ] as const;
 
 type ProjectAccessTab = (typeof PROJECT_ACCESS_TABS)[number]["id"];
+type ProjectSortField = (typeof PROJECT_SORT_FIELD_OPTIONS)[number]["value"];
+type ProjectSortDirection = "asc" | "desc";
 type ProjectAccessTabsProps = {
   activeTab: ProjectAccessTab;
   ownedCount: number;
@@ -170,6 +185,51 @@ function getProjectAccessPanelId(tab: ProjectAccessTab) {
 
 function formatProjectCount(count: number) {
   return `${count} ${count === 1 ? "project" : "projects"}`;
+}
+
+const projectNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+function isDateSortField(field: ProjectSortField) {
+  return field === "updated_at" || field === "created_at";
+}
+
+function defaultSortDirectionForField(field: ProjectSortField): ProjectSortDirection {
+  return isDateSortField(field) ? "desc" : "asc";
+}
+
+function getProjectSortDirectionLabel(field: ProjectSortField, direction: ProjectSortDirection) {
+  if (isDateSortField(field)) return direction === "desc" ? "Newest first" : "Oldest first";
+  return direction === "asc" ? "A to Z" : "Z to A";
+}
+
+function getProjectSortValue(item: ProjectListItem, field: ProjectSortField): string | number | null {
+  const value = item.project[field];
+  if (field === "updated_at" || field === "created_at") {
+    const time = typeof value === "string" ? new Date(value).getTime() : Number.NaN;
+    return Number.isFinite(time) ? time : null;
+  }
+  if (typeof value !== "string") return null;
+  const trimmedValue = value.trim();
+  return trimmedValue.length > 0 ? trimmedValue : null;
+}
+
+function compareProjectsByName(a: ProjectListItem, b: ProjectListItem) {
+  return projectNameCollator.compare(a.project.name ?? "", b.project.name ?? "");
+}
+
+function compareProjectsBySort(a: ProjectListItem, b: ProjectListItem, field: ProjectSortField, direction: ProjectSortDirection) {
+  const aValue = getProjectSortValue(a, field);
+  const bValue = getProjectSortValue(b, field);
+  if (aValue === null && bValue === null) return compareProjectsByName(a, b);
+  if (aValue === null) return 1;
+  if (bValue === null) return -1;
+
+  const order = direction === "asc" ? 1 : -1;
+  const primary = typeof aValue === "number" && typeof bValue === "number"
+    ? aValue - bValue
+    : projectNameCollator.compare(String(aValue), String(bValue));
+  if (primary !== 0) return primary * order;
+  return compareProjectsByName(a, b);
 }
 
 function ProjectAccessTabs({
@@ -291,6 +351,9 @@ export function ProjectsPageClient({
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
   const [pendingFavoriteId, setPendingFavoriteId] = useState<string | null>(null);
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(() => new Set());
+  const [sortField, setSortField] = useState<ProjectSortField>("updated_at");
+  const [sortDirection, setSortDirection] = useState<ProjectSortDirection>("desc");
+  const [sortTouched, setSortTouched] = useState(false);
   const [deleteProjectTargetIds, setDeleteProjectTargetIds] = useState<string[]>([]);
   const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
@@ -309,17 +372,17 @@ export function ProjectsPageClient({
   const activeBaseProjects = activeTab === "your-projects" ? ownedProjectItems : sharedProjectItems;
 
   const displayProjects = useMemo(() => {
-    if (!searchQuery.trim()) return activeBaseProjects;
-    const q = searchQuery.toLowerCase();
-    return activeBaseProjects.filter(
+    const searchedProjects = !searchQuery.trim() ? activeBaseProjects : activeBaseProjects.filter(
       (item) =>
-        item.project.name?.toLowerCase().includes(q) ||
-        item.project.client_name?.toLowerCase().includes(q) ||
-        item.project.project_code?.toLowerCase().includes(q) ||
-        item.project.location?.toLowerCase().includes(q) ||
-        getProjectAccessSearchText(item).includes(q),
+        item.project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.project.client_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.project.project_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.project.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getProjectAccessSearchText(item).includes(searchQuery.toLowerCase()),
     );
-  }, [activeBaseProjects, searchQuery]);
+    if (!sortTouched) return searchedProjects;
+    return [...searchedProjects].sort((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
+  }, [activeBaseProjects, searchQuery, sortDirection, sortField, sortTouched]);
 
   const filteredSamples = useMemo(() => {
     if (!searchQuery.trim()) return sampleProjects;
@@ -334,6 +397,7 @@ export function ProjectsPageClient({
 
   const hasLiveProjects = projectItems.length > 0;
   const hasActiveProjects = activeBaseProjects.length > 0;
+  const projectControlsDisabled = !hasActiveProjects;
   const displayLiveProjects = hasLiveProjects ? displayProjects : EMPTY_PROJECT_LIST_ITEMS;
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
@@ -348,24 +412,6 @@ export function ProjectsPageClient({
   const deleteProjectPhrase = deleteProjectTargetIds.length === 1 ? "DELETE PROJECT" : `DELETE ${deleteProjectTargetIds.length} PROJECTS`;
   const deleteProjectModalTitle = deleteProjectTargetIds.length === 1 ? "Delete project" : `Delete ${deleteProjectTargetIds.length} projects`;
 
-  const projectViewModeActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
-    return PROJECT_VIEW_MODE_OPTIONS.map((option) => {
-      const Icon = option.icon;
-      const isActive = projectViewMode === option.value;
-
-      return {
-        label: `View projects as ${option.label}`,
-        icon: <Icon size={12} weight="regular" aria-hidden="true" />,
-        onClick: () => writeProjectViewModePreference(option.value),
-        pressed: isActive,
-        className: cn(
-          "text-tertiary hover:bg-surfaceMuted hover:text-ink",
-          isActive ? "bg-surfaceMuted text-ink shadow-sm" : null,
-        ),
-      };
-    });
-  }, [projectViewMode]);
-
   const projectToolbarActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
     return [
       {
@@ -377,6 +423,20 @@ export function ProjectsPageClient({
       },
     ];
   }, []);
+  const sortDirectionLabel = getProjectSortDirectionLabel(sortField, sortDirection);
+  const SortDirectionIcon = sortDirection === "asc" ? ArrowUp : ArrowDown;
+
+  function handleSortFieldChange(nextField: string) {
+    const field = nextField as ProjectSortField;
+    setSortField(field);
+    setSortDirection(defaultSortDirectionForField(field));
+    setSortTouched(true);
+  }
+
+  function toggleSortDirection() {
+    setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+    setSortTouched(true);
+  }
 
   function toggleProjectFavorite(projectId: string, nextFavorite: boolean) {
     const previousFavorite = favoriteIds.has(projectId);
@@ -519,8 +579,40 @@ export function ProjectsPageClient({
       onSearchChange={setSearchQuery}
       toolbarLabel="Project tools"
       toolbarPrefix="projects"
-      leadingActions={projectViewModeActions}
-      leadingActionsLabel="Project view mode"
+      filterSlot={
+        <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+          <DropdownSelect
+            aria-label={projectControlsDisabled ? "View, disabled until this tab has projects" : "View"}
+            options={VIEW_SELECT_OPTIONS}
+            value={projectViewMode}
+            onValueChange={(next) => writeProjectViewModePreference(next as ProjectCardViewMode)}
+            disabled={projectControlsDisabled}
+            variant="boxed"
+            className="h-7 w-[108px] text-[10px]"
+          />
+          {projectControlsDisabled ? null : (
+            <>
+              <DropdownSelect
+                aria-label="Sort field"
+                options={PROJECT_SORT_FIELD_OPTIONS}
+                value={sortField}
+                onValueChange={handleSortFieldChange}
+                variant="boxed"
+                className="h-7 w-[138px] text-[10px]"
+              />
+              <button
+                type="button"
+                className="inline-flex h-7 min-w-24 shrink-0 items-center justify-center gap-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-secondary outline-none hover:bg-surfaceMuted hover:text-ink focus-visible:ring-2 focus-visible:ring-focus"
+                aria-label={sortDirectionLabel}
+                onClick={toggleSortDirection}
+              >
+                <SortDirectionIcon size={12} weight="regular" aria-hidden="true" className="shrink-0" />
+                <span className="truncate">{sortDirectionLabel}</span>
+              </button>
+            </>
+          )}
+        </div>
+      }
       addActions={projectToolbarActions}
       toolbarPanel={
         <ProjectAccessTabs

@@ -95,11 +95,32 @@ Before implementation, the plan pack should satisfy:
 
 ## Post-implementation evidence slot
 
-After code lands, update this section with one of:
+Status: `AUTH-BLOCKED`
 
-- `PASSED`: desktop and narrow toolbar smoke confirms Search, View, Sort, direction, Add, and tabs fit; Add remains reachable; dropdown popups are not clipped.
-- `AUTH-BLOCKED`: authenticated smoke could not run; include the auth/dev-auth blocker and the local unit/static substitutes used.
-- `FAILED`: include the viewport, screenshot or transcript path, failure mode, and required fix.
+Authenticated `/workshop/projects` browser smoke could not run from this shell. Local `/workshop` returned HTTP `307` to `/login?next=%2Fworkshop`, and the required dev-auth/storage/provider inputs were absent: `ARCHESTIMATOR_DEV_AUTH_BYPASS`, `ARCHESTIMATOR_DEV_AUTH_EMAIL`, `ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `PLAYWRIGHT_STORAGE_STATE`.
+
+Substitute local evidence:
+
+- `bunx vitest run tests/vitest/projects-page-view-mode.test.tsx tests/vitest/projects-page-access-tabs.test.tsx tests/vitest/projects-page-shared-access.test.tsx tests/vitest/projects-page-sort-controls.test.tsx tests/vitest/project-creation-ui.test.ts --maxWorkers=1` - pass, 39 tests.
+- `bun run type-check` - pass.
+- Changed-file ESLint for the three source files and five focused test files - pass.
+- `git diff --check` - pass.
+
+View pattern decision: `DropdownSelect` product override. The collapsed control shows selected labels as `View: List`, `View: Small`, `View: Medium`, and `View: Large`, so the active density is visible without opening the dropdown; full density discoverability still requires opening the select.
+
+Implemented source boundary:
+
+- `src/components/workshop/projects-page-client.tsx`
+- `src/components/workshop/WorkshopCollectionLayout.tsx`
+- `src/components/workshop/LiveProjectCard.tsx`
+
+UltraQA coverage summary:
+
+- Toolbar coexistence of Search, View, Sort, direction, Add, and tabs is covered by focused render tests.
+- Search+sort, sort+access tab, null/tie handling, and selected-ID persistence through reorder are covered by `projects-page-sort-controls.test.tsx`.
+- Empty/sample state rules are covered by focused tests: View disabled, Sort hidden.
+- Shared/pending card metadata remains covered by existing access/shared tests.
+- Browser-only gaps remain: desktop/narrow toolbar fit, dropdown clipping, and real focus behavior.
 
 ### Strategic notes (RD8 — deliberate, reversible v1 bets)
 

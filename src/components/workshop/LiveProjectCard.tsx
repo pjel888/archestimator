@@ -62,6 +62,10 @@ function formatUpdatedAt(value: string) {
   }).format(new Date(value));
 }
 
+function formatFullDate(value: string) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(new Date(value));
+}
+
 function getProjectImageUrl(metadata: Json) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata))
     return null;
@@ -394,6 +398,12 @@ export function LiveProjectCard({
                 ? `${isExpiredPendingInvite ? "Expired" : "Expires"} ${formatUpdatedAt(pendingInvite.expiresAt)}`
                 : `Updated ${formatUpdatedAt(project.updated_at)}`}
             </span>
+          </p>
+        ) : null}
+        {showSecondaryMeta && !isPendingInvite ? (
+          <p className="flex items-center gap-1.5 text-[9px] leading-3 text-[#5D5D5D]" title={formatFullDate(project.created_at)}>
+            <Clock size={12} aria-hidden="true" className="shrink-0" />
+            <span className="truncate">Created {formatUpdatedAt(project.created_at)}</span>
           </p>
         ) : null}
       </div>

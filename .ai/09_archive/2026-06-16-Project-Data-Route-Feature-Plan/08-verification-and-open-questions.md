@@ -88,6 +88,37 @@ Correctness is necessary but not sufficient — define outcome signals before sh
 - **Task success:** an estimator can answer "what does this sheet cost and how is it split?" in <5s in a quick hallway test.
 - **No silent loss:** zero "where did the comparison go?" reports in the first weeks (ties to OQ5 — confirm the comparison job is dead, don't assume).
 
+## Implementation verification receipt — 2026-06-16
+
+**Implemented outcome**
+
+- `/workshop/projects/[projectId]/data` is now a sheet-first Project Data route with KPI summary, selected-sheet cost breakdown, and cross-sheet cost bars.
+- Generated links use canonical `?sheet=`; legacy `?left=` remains a read-only fallback for old links and `?right=` is ignored.
+- `/workshop/projects/:projectId/charts` redirects permanently to `/workshop/projects/:projectId/data`.
+- Mixed-currency projects hide cross-sheet comparison and show the documented notice.
+- Projects with more than 20 estimate sheets use totals-only bars.
+- The route no longer mounts the legacy comparison client or comparison loading skeleton.
+
+**Verification completed**
+
+- `bunx vitest run tests/vitest/project-data-route-state.test.ts tests/vitest/project-data-repository.test.ts tests/vitest/route-error-smoke-gate.test.ts tests/vitest/project-charts-cache-freshness.test.ts tests/vitest/project-dashboard-charts-ui.test.ts tests/vitest/charts-to-data-redirect.test.ts tests/vitest/project-data-cost-breakdown-ui.test.tsx tests/vitest/project-data-cost-across-sheets-ui.test.tsx tests/vitest/project-data-a11y.test.tsx` — passed, 32 tests.
+- `bun test tests/unit/compare-href.test.ts` — passed, 6 tests.
+- Cross-pack focused regression bundle — passed, 75 Vitest tests.
+- `bun run type-check` — passed.
+- Changed-file ESLint over modified and new TypeScript/TSX files — passed.
+
+**Review fixes completed**
+
+- Removed invalid `aria-pressed` from focusable table rows.
+- Canonicalized stale invalid `sheet` params back to the selected fallback during interactions.
+- Added behavior-level route-state, repository-boundary, and redirect-config tests.
+- Removed unused exported repository helpers.
+
+**Blocked external proof**
+
+- Authenticated browser proof remains `AUTH-BLOCKED` in this shell: local workshop routes redirect to login and the required dev auth/storage-state/Supabase credentials are unavailable.
+- Substitute evidence is the focused route-state, repository, component, static, typecheck, and lint suite above.
+
 ## Planning-readiness scorecard
 
 | Dimension | Score | Evidence |
