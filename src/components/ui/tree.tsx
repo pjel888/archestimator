@@ -111,6 +111,7 @@ export type TreeRowDomProps = {
 export type TreeRootDropZonesOption =
   | boolean
   | {
+      edges?: readonly TreeRootDropEdge[];
       className?: (edge: TreeRootDropEdge, active: boolean) => string;
       render?: (edge: TreeRootDropEdge, active: boolean) => ReactNode;
     };
@@ -507,13 +508,13 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
         {expandable && !isFolder && <span className="w-4 shrink-0" />}
 
         {node.accent !== undefined ? (
-          // Occupancy dot (after the caret, before the label): orange iff this
-          // node directly holds components, muted otherwise. Renders on every
-          // row — folder or leaf — so the cue lives in one consistent column.
+          // Occupancy dot (after the caret, before the label): olive green iff
+          // this node directly holds components, muted otherwise. Renders on
+          // every row — folder or leaf — so the cue lives in one consistent column.
           <span className="shrink-0 mr-1.5 flex items-center" aria-hidden="true">
             <span
               data-occupancy-dot=""
-              className={cn("size-[3px] rounded-xs opacity-50", node.accent ? "bg-orange-600" : "bg-tertiary")}
+              className={cn("size-[3px] rounded-xs", node.accent ? "bg-[#6b8e23] opacity-70" : "bg-divider")}
             />
           </span>
         ) : node.icon ? (
@@ -927,6 +928,12 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     // ─── Root edge drop zones ──────────────────────────────────────
 
     const rootDropZonesEnabled = Boolean(rootDropZones) && draggable && nodes.length > 0;
+    const configuredRootDropEdges =
+      typeof rootDropZones === "object" && rootDropZones.edges ? rootDropZones.edges : undefined;
+    const rootDropEdgeEnabled = useCallback(
+      (edge: TreeRootDropEdge) => !configuredRootDropEdges || configuredRootDropEdges.includes(edge),
+      [configuredRootDropEdges]
+    );
 
     const resolveRootEdgeTarget = useCallback(
       (edge: TreeRootDropEdge): { id: string; position: TreeDropPosition } | null => {
@@ -1264,7 +1271,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         onKeyDown={handleKeyDown}
         onClick={() => flatNodes.length > 0 && !focusId && setFocusId(effectiveFocusId)}
       >
-        {rootDropZonesEnabled && renderRootEdge("top")}
+        {rootDropZonesEnabled && rootDropEdgeEnabled("top") && renderRootEdge("top")}
         {virtualEnabled ? (
           <div
             data-tree-virtualizer="true"
@@ -1297,7 +1304,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         ) : (
           flatNodes.map((flat) => renderFlatRow(flat))
         )}
-        {rootDropZonesEnabled && renderRootEdge("bottom")}
+        {rootDropZonesEnabled && rootDropEdgeEnabled("bottom") && renderRootEdge("bottom")}
         {nodes.length === 0 && (
           emptyState ?? (
             <div className="flex items-center justify-center py-8 text-[10px] text-muted">

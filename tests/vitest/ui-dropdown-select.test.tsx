@@ -53,6 +53,33 @@ describe("DropdownSelect", () => {
     expect(combobox).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("supports an icon-only trigger with icon and text options", () => {
+    const viewOptions: DropdownSelectOption[] = [
+      { value: "list", label: "List", icon: <span data-testid="list-icon" /> },
+      { value: "large", label: "Large thumbnails", icon: <span data-testid="large-icon" /> },
+    ];
+
+    render(
+      <DropdownSelect
+        options={viewOptions}
+        value="large"
+        triggerDisplay="icon"
+        aria-label="View"
+      />,
+    );
+
+    const combobox = trigger("View");
+    expect(combobox).not.toHaveTextContent("Large thumbnails");
+    expect(combobox).toHaveAttribute("title", "Large thumbnails");
+    expect(screen.getByTestId("large-icon")).toBeInTheDocument();
+
+    fireEvent.click(combobox);
+
+    const listOption = screen.getByRole("option", { name: "List" });
+    expect(listOption).toHaveTextContent("List");
+    expect(screen.getByTestId("list-icon")).toBeInTheDocument();
+  });
+
   it("opens with the selected option active (not the first) and keeps DOM focus on the trigger", () => {
     render(
       <DropdownSelect options={MODE_OPTIONS} defaultValue="discount" aria-label="Adjustment type" />,
