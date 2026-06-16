@@ -1253,12 +1253,36 @@ function isLocalLiveOrigin(value) {
   } catch { return false; }
 }
 
+function isStaticFileLiveOrigin(value) {
+  if (!value) return false;
+  if (value === 'null') return true;
+  try {
+    return new URL(value).protocol === 'file:';
+  } catch { return false; }
+}
+
+function isTrustedLivePageSource(value) {
+  return isLocalLiveOrigin(value) || isStaticFileLiveOrigin(value);
+}
+
+function isBrowserLikeRequest(req) {
+  const userAgent = String(req.headers['user-agent'] || '').toLowerCase();
+  const accept = String(req.headers.accept || '').toLowerCase();
+  return /\b(mozilla|chrome|safari|firefox|edge|edg|webkit)\b/.test(userAgent)
+    || accept.includes('text/html')
+    || accept.includes('application/xhtml+xml')
+    || req.headers['sec-fetch-dest'] === 'script';
+}
+
 function requestHasUntrustedBrowserSource(req) {
   const origin = req.headers.origin;
-  if (origin && !isLocalLiveOrigin(origin)) return true;
+  if (origin && !isTrustedLivePageSource(origin)) return true;
 
   const referer = req.headers.referer;
-  if (referer && !isLocalLiveOrigin(referer)) return true;
+  if (referer && !isTrustedLivePageSource(referer)) return true;
+
+  if (origin || referer) return false;
+  if (isBrowserLikeRequest(req)) return true;
 
   return req.headers['sec-fetch-site'] === 'cross-site';
 }

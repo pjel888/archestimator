@@ -1,7 +1,7 @@
 # Spreadsheet / XLSX Export — Audit & Improvement Plan
 
 **Created:** 2026-06-13 · **Branch:** `main` @ `f1a80c8d` · **Type:** audit + planning (no code changed) · **Owner:** Philip
-**Method:** read-only static analysis across 5 parallel audit lenses + a **run** benchmark + **10 real industry BOQ files** parsed with ExcelJS.
+**Method:** read-only static analysis across 5 parallel audit lenses + a **run** benchmark + **10 approved external BOQ reference workbooks** parsed with ExcelJS; committed evidence is sanitized or synthetic.
 
 This folder audits the estimate-sheet **"Export to spreadsheet / Export to XLSX"** feature (internally *"proposal export"*) from every angle the brief requested — UX/UI, the modal, format, performance, optimization, blast radius, security, and the **tabs → multiple-worksheets** behavior — and lays out a phased plan to make the export *honest, safe, and industry-compliant*.
 
@@ -9,7 +9,7 @@ This folder audits the estimate-sheet **"Export to spreadsheet / Export to XLSX"
 
 ## TL;DR
 
-- **The export is architecturally sound and safe to run** (not an exploitable IDOR; CPU/memory-light; well-tested), **but it over-promises**: the on-screen preview does not match the downloaded file, and the file omits things every real BOQ has.
+- **The export is architecturally sound and safe to run** (not an exploitable IDOR; CPU/memory-light; well-tested), **but it over-promises**: the on-screen preview does not match the downloaded file, and the file omits things every reference-style BOQ has.
 - **Tabs already export to separate worksheets** — that core requirement is met and tested. The gap is that the *preview* shows only the active tab while the *default download* is all tabs (wrong grand total on screen).
 - **Three credibility blockers** in the file vs. 10 industry references: **no real Material/Labor split** (labor hardcoded 0), **no VAT/contingency** (Grand Total == Direct Cost), and an **incomplete title block** with a `"Archestimator beta workbook"` placeholder.
 - **A large surface of dead configuration** (`audience`, `mode`, `consolidationMode`, `includeFormulas`) — declared in types, wired to nothing, never reaching the route.
@@ -24,7 +24,7 @@ This folder audits the estimate-sheet **"Export to spreadsheet / Export to XLSX"
 |---|---|---|---|
 | 00 | **this index** | Overview, scorecard, decisions | 100% |
 | 01 | [Current-state audit](01_current-state-audit.md) | How the feature works today; what's real vs. hollow; data flow; code surface | 100% |
-| 02 | [BOQ format benchmark](02_boq-format-benchmark.md) | Industry-standard format target (10 real files) + gap table | 100% |
+| 02 | [BOQ format benchmark](02_boq-format-benchmark.md) | Industry-standard format target (10 sanitized references) + gap table | 100% |
 | 03 | [UX/UI audit](03_ux-ui-audit.md) | The modal, the flow, preview-vs-file truth gaps, a11y, copy | 100% |
 | 04 | [Performance & reliability audit](04_performance-reliability-audit.md) | Measured benchmarks, complexity, serverless fit, error handling | 100% |
 | 05 | [Security & blast radius](05_security-and-blast-radius.md) | IDOR verdict, authz, injection, leakage, data integrity, change-impact | 100% |
@@ -35,7 +35,7 @@ This folder audits the estimate-sheet **"Export to spreadsheet / Export to XLSX"
 | 10 | [Data-model & migration design](10_data-model-and-migration-design.md) | DDL for D1/D3/D4/D5/D6 + JSONB-now vs column-later (added in 2nd pass) | 100% |
 | 11 | [QA & decision addendum](11_qa-and-decision-addendum.md) | Cross-app recalc QA gate + D0/D7/D8 + corrections (added in 2nd pass) | 100% |
 | 12 | [**Implementation handoff**](12_IMPLEMENTATION-HANDOFF.md) | **Cold-start kickoff prompt — use this to begin implementation** | 100% |
-| — | [`_research/`](_research/) | Raw per-lens audit reports + BOQ extraction + raw ExcelJS dump (evidence appendix) | — |
+| — | [`_research/`](_research/) | Per-lens audit reports + sanitized BOQ extraction + synthetic/redacted ExcelJS dump placeholder | — |
 
 > **† Second pass:** an independent **adversarial review** (6 reviewer-persona lenses + synthesis, [details below](#second-pass-adversarial-review)) scored the *first-pass* plan **70/100** and found real gaps — a false self-review claim, an orphaned HIGH finding (UX-3), an unsafe `audience='client'` default, two mis-framed constraints, and three undecided product forks. **All blocking gaps were fixed**: docs 09/10/11 were added and 00/07/08 corrected. The scores below are **post-second-pass**.
 
