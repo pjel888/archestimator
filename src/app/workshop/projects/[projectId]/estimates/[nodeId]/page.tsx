@@ -41,14 +41,6 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
   if (!project || !estimate) notFound();
 
   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
-  const estimateMetadata = {
-    projectId: project.id,
-    estimateId: estimate.id,
-    projectName: project.name,
-    estimateName: estimate.name,
-    estimateSheetCode: estimate.sheet_code,
-    projectBudget: estimate.project_budget,
-  };
   const proposalExportMetadata = {
     projectId: project.id,
     estimateId: estimate.id,
@@ -72,6 +64,15 @@ export default async function ProjectEstimateNodePage({ params, searchParams }: 
     // strip and tab affordances never render, so the boolean would go unused.
     tab ? resolveEstimateEditCapability(estimate.id) : Promise.resolve(false),
   ]);
+  const estimateMetadata = {
+    projectId: project.id,
+    estimateId: estimate.id,
+    projectName: project.name,
+    estimateName: estimate.name,
+    estimateSheetCode: estimate.sheet_code,
+    projectBudget: estimate.project_budget,
+    canEditEstimate,
+  };
 
   return (
     <>

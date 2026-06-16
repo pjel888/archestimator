@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EstimateRowItemsTable } from "@/components/workshop/estimate-sheet/rows/row-table";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import { ESTIMATE_COLUMN_TEMPLATE } from "@/lib/estimate-sheet/column-model";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
 
 const noop = vi.fn();
@@ -31,6 +33,81 @@ function rect(top: number, height: number) {
 }
 
 describe("estimate row table virtualization", () => {
+  it("uses the shared column template without changing row DOM contracts", () => {
+    const { container } = render(
+      <EstimateRowItemsTable
+        items={makeRows(2, "template")}
+        editableRows={{}}
+        setEditableRows={noop}
+        targetNodeId="template-node"
+        onInsertLibraryItem={noop}
+        onReplaceRowItem={noop}
+        onDeleteRowItem={noop}
+        onUpdateRowItem={noop}
+        onMarkRowDirty={noop}
+        onOpenRowDetails={noop}
+        onClearRowComponent={noop}
+        onRequestProjectSpecific={noop}
+        onMoveRowComponent={noop}
+        selectedRowIds={new Set()}
+        onToggleRowSelection={noop}
+        onToggleRowsSelection={noop}
+        virtualization={{ enabled: false }}
+      />
+    );
+
+    const headerRow = container.querySelector("thead tr") as HTMLElement;
+    const bodyRow = container.querySelector("tr[data-estimate-row-id='template-row-1']") as HTMLElement;
+
+    expect(headerRow.style.gridTemplateColumns).toBe(ESTIMATE_COLUMN_TEMPLATE);
+    expect(bodyRow.style.gridTemplateColumns).toBe(ESTIMATE_COLUMN_TEMPLATE);
+    expect(bodyRow).toHaveAttribute("data-estimate-row-id", "template-row-1");
+    expect(bodyRow.querySelectorAll("[data-estimate-cell-index]").length).toBeGreaterThan(0);
+  });
+
+  it("renders left-edge resize handles in each node table header when column resizing is enabled", () => {
+    const surfaceRef = createRef<HTMLElement | null>();
+    surfaceRef.current = document.createElement("div");
+    const onCommitWidths = vi.fn();
+    const onResetWidths = vi.fn();
+
+    render(
+      <EstimateRowItemsTable
+        items={makeRows(2, "resize")}
+        editableRows={{}}
+        setEditableRows={noop}
+        targetNodeId="resize-node"
+        onInsertLibraryItem={noop}
+        onReplaceRowItem={noop}
+        onDeleteRowItem={noop}
+        onUpdateRowItem={noop}
+        onMarkRowDirty={noop}
+        onOpenRowDetails={noop}
+        onClearRowComponent={noop}
+        onRequestProjectSpecific={noop}
+        onMoveRowComponent={noop}
+        selectedRowIds={new Set()}
+        onToggleRowSelection={noop}
+        onToggleRowsSelection={noop}
+        columnResize={{ surfaceRef, widths: {}, onCommitWidths, onResetWidths }}
+        virtualization={{ enabled: false }}
+      />
+    );
+
+    const handles = screen.getAllByRole("separator", { name: /Resize .* column/ });
+    expect(handles).toHaveLength(6);
+    fireEvent.keyDown(handles[0], { key: "ArrowRight" });
+    expect(onCommitWidths).toHaveBeenCalledWith({ material: 176 });
+
+    const quantityHandle = screen.getByRole("separator", { name: "Resize Qty column" });
+    fireEvent.pointerDown(quantityHandle, { button: 0, clientX: 100 });
+    fireEvent.pointerMove(window, { clientX: 84 });
+    fireEvent.pointerUp(window);
+    expect(onCommitWidths).toHaveBeenLastCalledWith({ material: 176, quantity: 74 });
+    expect(screen.queryByRole("button", { name: "Reset column widths" })).not.toBeInTheDocument();
+    expect(onResetWidths).not.toHaveBeenCalled();
+  });
+
   it("mounts a bounded row window when row virtualization is enabled", async () => {
     const { container } = render(
       <EstimateRowItemsTable

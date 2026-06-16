@@ -1,11 +1,9 @@
-import { DashboardMainSkeleton } from "@/components/workshop/dashboard/DashboardSkeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Route-level loading state for the project dashboard: zone-shaped skeletons,
- * never spinners (R13). Mirrors the `ProjectDashboardClient` shell — a 274px
- * details aside beside the cost-overview main — so the layout doesn't jump when
- * data resolves.
+ * Route-level loading state for the project dashboard shell. The main project
+ * dashboard area is intentionally empty; only the editable details aside keeps
+ * a small placeholder while project data resolves.
  */
 export default function ProjectDashboardLoading() {
   return (
@@ -15,9 +13,7 @@ export default function ProjectDashboardLoading() {
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-12 w-full" />
       </aside>
-      <main className="min-h-0 flex-1 overflow-auto p-lg">
-        <DashboardMainSkeleton />
-      </main>
+      <main className="min-h-0 flex-1 overflow-auto bg-white" aria-label="Project dashboard empty page" />
     </section>
   );
 }

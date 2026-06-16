@@ -26,15 +26,19 @@ export const estimateComponentLibrary = readFileSync("src/components/workshop/co
 export const projectEstimatesPage = readFileSync("src/app/workshop/projects/[projectId]/estimates/page.tsx", "utf8");
 export const projectEstimatesClient = readFileSync("src/components/workshop/ProjectEstimatesClient.tsx", "utf8");
 export const projectEstimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
-export const projectChartsPage = readFileSync("src/app/workshop/projects/[projectId]/charts/page.tsx", "utf8");
-export const projectChartsClient = readFileSync("src/components/workshop/project-charts/ProjectChartsClient.tsx", "utf8");
-export const projectCostDonutChart = readFileSync("src/components/workshop/project-charts/ProjectCostDonutChart.tsx", "utf8");
+export const projectChartsPage = readFileSync("src/app/workshop/projects/[projectId]/data/page.tsx", "utf8");
+export const projectDataLoading = readFileSync("src/app/workshop/projects/[projectId]/data/loading.tsx", "utf8");
+export const projectDataClient = readFileSync("src/components/workshop/project-data/ProjectDataClient.tsx", "utf8");
+export const projectDataCostBreakdown = readFileSync("src/components/workshop/project-data/CostBreakdownSection.tsx", "utf8");
+export const projectDataCostAcrossSheets = readFileSync("src/components/workshop/project-data/CostAcrossSheetsSection.tsx", "utf8");
+export const projectChartsClient = readOptional("src/components/workshop/project-charts/ProjectChartsClient.tsx");
+export const projectCostDonutChart = readOptional("src/components/workshop/project-charts/ProjectCostDonutChart.tsx");
 export const sharedCostDonutChart = readFileSync("src/components/charts/CostDonutChart.tsx", "utf8");
 // ProjectCostBubbleChart was deleted in the charts redesign (`03` UX-2 / `01` PERF-5);
 // `readOptional` keeps the fixtures importable and lets tests assert its absence.
 export const projectCostBubbleChart = readOptional("src/components/workshop/project-charts/ProjectCostBubbleChart.tsx");
-export const projectVarianceSpine = readFileSync("src/components/workshop/project-charts/ProjectVarianceSpine.tsx", "utf8");
-export const projectComparisonTable = readFileSync("src/components/workshop/project-charts/ProjectComparisonTable.tsx", "utf8");
+export const projectVarianceSpine = readOptional("src/components/workshop/project-charts/ProjectVarianceSpine.tsx");
+export const projectComparisonTable = readOptional("src/components/workshop/project-charts/ProjectComparisonTable.tsx");
 export const globalsCss = readFileSync("src/app/globals.css", "utf8");
 export const projectEstimatesLoading = readOptional("src/app/workshop/projects/[projectId]/estimates/loading.tsx");
 export const estimateWorkspaceClient = readOptional("src/components/workshop/EstimateWorkspaceClient.tsx");

@@ -11,6 +11,7 @@ export const WORKSHOP_VIRTUALIZATION_FLAGS = {
   tree: readPublicFlag(process.env.NEXT_PUBLIC_TREE_VIRTUALIZATION, true),
   estimateMasterColumn: readPublicFlag(process.env.NEXT_PUBLIC_EMC_VIRTUALIZATION, true),
   estimateRows: readPublicFlag(process.env.NEXT_PUBLIC_ESTIMATE_ROW_VIRTUALIZATION, true),
+  estimateColumnResize: readPublicFlag(process.env.NEXT_PUBLIC_ESTIMATE_COLUMN_RESIZE_ENABLED, false),
 } as const;
 
 export const WORKSHOP_VIRTUALIZATION_DEFAULTS = {

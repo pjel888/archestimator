@@ -34,6 +34,8 @@ describe("estimate action reconciliation payloads", () => {
       nodeCount: 6,
       rowItemCount: 0,
       totalProjectCost: 0,
+      isFavorite: false,
+      favoriteCreatedAt: null,
     });
 
     const keys = Object.keys(row);
