@@ -27,7 +27,7 @@ type EstimateTreeSummary = {
   totalCost: number;
 };
 
-function normalizeReusableSourceSearchText(value: string) {
+export function normalizeReusableSourceSearchText(value: string) {
   return value
     .replace(/[,()"]/g, " ")
     .replace(/\s+/g, " ")
@@ -36,7 +36,9 @@ function normalizeReusableSourceSearchText(value: string) {
 }
 
 export function textMatchesReusableSourceQuery(query: string, values: Array<string | null | undefined>) {
-  return values.some((value) => value ? normalizeReusableSourceSearchText(value).includes(query) : false);
+  const normalizedQuery = normalizeReusableSourceSearchText(query);
+  if (!normalizedQuery) return true;
+  return values.some((value) => value ? normalizeReusableSourceSearchText(value).includes(normalizedQuery) : false);
 }
 
 function summarizeEstimateRows(rows: readonly EstimateRowItem[] | undefined): EstimateTreeSummary {

@@ -106,6 +106,23 @@ describe("templates project-source performance helpers", () => {
     });
   });
 
+  it("normalizes punctuation when filtering server-returned project source matches", () => {
+    const sources: ReusableEstimateSource[] = [
+      {
+        kind: "project",
+        projectId: "project-smith",
+        name: "Smith LLC Medical Office",
+      },
+    ];
+
+    expect(filterProjectSourcesByQuery(sources, "Smith, LLC")).toEqual([
+      expect.objectContaining({
+        kind: "project",
+        projectId: "project-smith",
+      }),
+    ]);
+  });
+
   it("handles hostile search text without throwing or leaking unrelated sources", () => {
     const sources = makeProjectSources(2);
 

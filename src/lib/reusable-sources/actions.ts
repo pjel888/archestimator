@@ -34,6 +34,7 @@ import type {
 import {
   collectProjectNodeSearchSources,
   collectProjectNodeSources,
+  normalizeReusableSourceSearchText,
   summarizeEstimateTreeNodes,
   textMatchesReusableSourceQuery,
   type ProjectSourceSearchContext,
@@ -154,6 +155,17 @@ function toReusableSearchLikePattern(query: string): string {
   return `%${query.replace(/[\\%_]/g, "\\$&")}%`;
 }
 
+function toReusableSearchLikePatterns(rawQuery: string, normalizedQuery: string) {
+  return Array.from(
+    new Set(
+      [rawQuery, normalizeReusableSourceSearchText(normalizedQuery)]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map(toReusableSearchLikePattern),
+    ),
+  );
+}
+
 export async function searchReusableProjectSources(input: {
   query: string;
 }): Promise<ReusableProjectSourceSearchResult> {
@@ -162,11 +174,22 @@ export async function searchReusableProjectSources(input: {
   const query = normalizeReusableSourceSearchQuery(input.query);
   if (!query) return { sources: [] };
 
-  const { projects } = await listCurrentWorkspaceProjects({
-    limit: REUSABLE_SOURCE_SEARCH_PROJECT_LIMIT,
-  });
-  const accessibleProjects = projects
-    .filter((item) => item.accessKind !== "pending-invite");
+  const [recentProjectResult, matchingProjectResult] = await Promise.all([
+    listCurrentWorkspaceProjects({
+      limit: REUSABLE_SOURCE_SEARCH_PROJECT_LIMIT,
+    }),
+    listCurrentWorkspaceProjects({
+      limit: REUSABLE_SOURCE_SEARCH_PROJECT_LIMIT,
+      search: rawQuery,
+    }),
+  ]);
+  const accessibleProjects = Array.from(
+    new Map(
+      [...matchingProjectResult.projects, ...recentProjectResult.projects]
+        .filter((item) => item.accessKind !== "pending-invite")
+        .map((item) => [item.project.id, item]),
+    ).values(),
+  ).slice(0, REUSABLE_SOURCE_SEARCH_PROJECT_LIMIT);
   if (accessibleProjects.length === 0) return { sources: [] };
 
   type ProjectRecord = (typeof accessibleProjects)[number]["project"];
@@ -182,10 +205,22 @@ export async function searchReusableProjectSources(input: {
     const remainingEstimateSlots =
       REUSABLE_SOURCE_SEARCH_ESTIMATE_LIMIT - accessibleEstimateIds.length;
     if (remainingEstimateSlots <= 0) break;
-    const estimates = await listProjectEstimateSheets(item.project.id, {
+    const matchingEstimates = await listProjectEstimateSheets(item.project.id, {
       limit: remainingEstimateSlots,
+      search: rawQuery,
     });
-    for (const estimate of estimates) {
+    for (const estimate of matchingEstimates) {
+      estimateContextById.set(estimate.id, { project: item.project, estimate });
+      accessibleEstimateIds.push(estimate.id);
+    }
+    const recentEstimateSlots =
+      REUSABLE_SOURCE_SEARCH_ESTIMATE_LIMIT - accessibleEstimateIds.length;
+    if (recentEstimateSlots <= 0) continue;
+    const recentEstimates = await listProjectEstimateSheets(item.project.id, {
+      limit: recentEstimateSlots,
+    });
+    for (const estimate of recentEstimates) {
+      if (estimateContextById.has(estimate.id)) continue;
       estimateContextById.set(estimate.id, { project: item.project, estimate });
       accessibleEstimateIds.push(estimate.id);
     }
@@ -246,7 +281,7 @@ export async function searchReusableProjectSources(input: {
   // materialize ONLY those for the rich tab/node sources. RLS-scoped (user client
   // + the accessible-estimate id allow-list).
   const supabase = await createSupabaseServerClient();
-  const likePattern = toReusableSearchLikePattern(rawQuery);
+  const likePatterns = toReusableSearchLikePatterns(rawQuery, query);
   const estimatesToMaterialize = new Set<string>();
   const prefilterNodeById = new Map<
     string,
@@ -306,13 +341,21 @@ export async function searchReusableProjectSources(input: {
     name?: string | null;
   };
   async function readMatchingNodeRows(selectColumns: string) {
-    return await supabase
-      .from("estimate_nodes")
-      .select(selectColumns)
-      .in("estimate_id", accessibleEstimateIds)
-      .in("kind", ["group", "area"])
-      .ilike("name", likePattern)
-      .limit(REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT);
+    const rowsById = new Map<string, MatchingNodeRow>();
+    for (const likePattern of likePatterns) {
+      const result = await supabase
+        .from("estimate_nodes")
+        .select(selectColumns)
+        .in("estimate_id", accessibleEstimateIds)
+        .in("kind", ["group", "area"])
+        .ilike("name", likePattern)
+        .limit(REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT);
+      if (result.error) return result;
+      for (const row of (result.data ?? []) as MatchingNodeRow[]) {
+        if (row.id) rowsById.set(row.id, row);
+      }
+    }
+    return { data: Array.from(rowsById.values()), error: null };
   }
 
   let matchingNodeResult = await readMatchingNodeRows(
@@ -383,20 +426,29 @@ export async function searchReusableProjectSources(input: {
         };
       };
     };
-    const { data: matchingTabRows, error: matchingTabError } =
-      await tabSearchClient
-        .from("estimate_tabs")
-        .select("id, estimate_id")
-        .in("estimate_id", accessibleEstimateIds)
-        .ilike("name", likePattern)
-        .is("archived_at", null)
-        .limit(REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT);
-    if (
-      matchingTabError &&
-      !isMissingRelationError(matchingTabError as never, "estimate_tabs")
-    )
-      throw matchingTabError;
-    for (const row of matchingTabRows ?? []) {
+    const matchingTabsById = new Map<
+      string,
+      { id?: string | null; estimate_id: string | null }
+    >();
+    for (const likePattern of likePatterns) {
+      const { data: matchingTabRows, error: matchingTabError } =
+        await tabSearchClient
+          .from("estimate_tabs")
+          .select("id, estimate_id")
+          .in("estimate_id", accessibleEstimateIds)
+          .ilike("name", likePattern)
+          .is("archived_at", null)
+          .limit(REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT);
+      if (
+        matchingTabError &&
+        !isMissingRelationError(matchingTabError as never, "estimate_tabs")
+      )
+        throw matchingTabError;
+      for (const row of matchingTabRows ?? []) {
+        if (row.id) matchingTabsById.set(row.id, row);
+      }
+    }
+    for (const row of matchingTabsById.values()) {
       noteEstimateToMaterialize(row.estimate_id);
       if (row.estimate_id) notePrefilterTabId(row.estimate_id, row.id ?? null);
     }
