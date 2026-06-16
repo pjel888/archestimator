@@ -13,6 +13,10 @@ export const WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY = ["workspace-component-libra
 // invalidates this lite key.
 export const WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY = ["workspace-component-library", "lite"] as const;
 
+export function workspaceComponentLibraryLiteQueryKey(projectId: string) {
+  return [...WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, "project", projectId] as const;
+}
+
 // Library Optimization Plan P0 T3 — the Components *management* tab (LibraryPageClient
 // -> ComponentLibraryManager) caches its OWN dataset shape: ComponentRowsLibraryDataset
 // (rows + tree + suppliers + brands + folders, NO templates). This is a DIFFERENT shape
