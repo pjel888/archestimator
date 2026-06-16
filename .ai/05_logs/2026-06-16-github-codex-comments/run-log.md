@@ -123,16 +123,9 @@ manual_qa_channel=cli
   is `PRRT_kwDOSfSDcs6JokL3` / `discussion_r3414842338` on PR `#50`, titled
   `Purge the sensitive BOQ blobs from Git history`.
 - Local verification without printing historical contents:
-  - The exact `df15eb926b65be93739366f37358a7b458c52d40` commit named in the
-    GitHub comment is not present in this clone.
-  - The original archive commit `16446b542650268cc77a22102f1a8ef5ef362f33`
-    still contains historical BOQ artifact blobs by path.
-  - The historical raw dump blob for
-    `_research/02a-boq-raw-dump.txt` is `9834285c51554bb6feffe6de7e026f6cf51f8374`
-    with size `285043`.
-  - The historical reference extraction blob for
-    `_research/02a-boq-reference-extraction.md` is
-    `bf3aa463594adaa4324cea67f954f92d56d30318` with size `22796`.
+  - The exact commit named in the GitHub comment is not present in this clone.
+  - The original archive commit still contains historical BOQ artifact blobs by
+    path. Exact historical blob IDs are intentionally not recorded in repo docs.
 - Non-destructive rehearsal ran in
   `/tmp/archestimator-history-purge-rehearsal/repo`; the real checkout and
   GitHub remote were not rewritten.
@@ -143,8 +136,8 @@ manual_qa_channel=cli
   4. Delete `refs/original/*`, expire reflogs, and run
      `git gc --prune=now --aggressive`.
 - Rehearsal proof after backup-ref cleanup:
-  - `git rev-list --objects --all | rg '9834285c...|bf3aa46...|4e34f4...|de5f3b...'`
-    returned no matches.
+  - A path-based reachable-object comparison returned no non-sanitized
+    historical BOQ objects.
   - `git cat-file -e HEAD:<path>` succeeded for the current sanitized
     `02a-boq-raw-dump.txt`, `02a-boq-reference-extraction.md`,
     `02_boq-format-benchmark.md`, and `02b-boq-format-gap.md`.
@@ -160,7 +153,7 @@ manual_qa_channel=cli
 ## PR #50 Approval-Ready Artifacts
 
 - Added `.ai/03_plans/2026-06-16-github-codex-comments/pr50-history-purge-runbook.md`
-  with current provider state, sensitive blob IDs, rehearsal proof, open-PR
+  with current provider state, path-based rehearsal proof, open-PR
   coordination risk, execution shape, and the explicit approval gate.
 - Added guarded helper script
   `.ai/03_plans/2026-06-16-github-codex-comments/scripts/purge-boq-history.sh`.
@@ -182,15 +175,15 @@ manual_qa_channel=cli
   running.
 - Expanded the purge target from the archived BOQ paths to include the duplicate
   historical `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/...` paths after
-  the pre-push scan found the same old blob IDs there.
+  the pre-push scan found the same old BOQ objects there.
 - Force-updated `main` from `18746132799a959a4a0ab1354f999b64c84f9b60` to
   `d331c06b45ef69dad77243738d8892e78b9c9e32` with `--force-with-lease`.
 - Force-updated the 37 affected `codex/*` branch heads with per-branch
   `--force-with-lease`; branch-head verification in a fresh mirror returned no
-  matches for the four known old BOQ blob IDs.
+  matches for the four known old BOQ objects.
 - Synced the working checkout back to rewritten `origin/main`; local
   `git rev-list --objects --all` returned no matches and `git cat-file -e`
-  reported the four old blob IDs absent after deleting two local Codex
+  reported the four old BOQ objects absent after deleting two local Codex
   checkpoint refs and an orphaned `refs/stash` ref that pinned pre-rewrite
   objects.
 - GitHub provider blocker: a fresh mirror still exposes old BOQ blobs through

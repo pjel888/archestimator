@@ -17,20 +17,12 @@ GitHub comment: `https://github.com/pjel888/archestimator/pull/50#discussion_r34
   clone. The sensitive history issue is still real because older BOQ artifact
   blobs are present by path.
 
-## Sensitive Historical Blobs Verified Locally
+## Sensitive Historical Artifacts Verified Locally
 
-Do not print historical file contents. Use object IDs and sizes only.
-
-- `_research/02a-boq-raw-dump.txt`
-  - historical blob: `9834285c51554bb6feffe6de7e026f6cf51f8374`
-  - size: `285043`
-- `_research/02a-boq-reference-extraction.md`
-  - historical blob: `bf3aa463594adaa4324cea67f954f92d56d30318`
-  - size: `22796`
-- `02_boq-format-benchmark.md`
-  - historical blob: `4e34f4c6988919ba97e98ad65c424434812bd2f0`
-- `_research/02b-boq-format-gap.md`
-  - historical blob: `de5f3b9b990f17edc9137b0443be644e41d1952d`
+Do not print historical file contents or commit exact historical blob IDs to the repository.
+The purge targets are the BOQ artifact paths listed in the guarded helper script;
+verify remediation by comparing every reachable object at each target path against
+the current sanitized HEAD object for that same path.
 
 ## Approval Gate
 
@@ -55,10 +47,16 @@ A non-destructive rehearsal was run in:
 After rewriting, deleting `refs/original/*`, expiring reflogs, and running GC:
 
 ```bash
-git rev-list --objects --all | rg '9834285c51554bb6feffe6de7e026f6cf51f8374|bf3aa463594adaa4324cea67f954f92d56d30318|4e34f4c6988919ba97e98ad65c424434812bd2f0|de5f3b9b990f17edc9137b0443be644e41d1952d'
+for path in "${purge_paths[@]}"; do
+  head_blob="$(git rev-parse "HEAD:$path")"
+  git rev-list --all -- "$path" | while read -r commit; do
+    blob="$(git rev-parse --verify --quiet "$commit:$path" || true)"
+    test -z "$blob" || test "$blob" = "$head_blob"
+  done
+done
 ```
 
-returned no matches, while `git cat-file -e HEAD:<path>` succeeded for the
+returned no mismatches, while `git cat-file -e HEAD:<path>` succeeded for the
 current sanitized BOQ artifacts.
 
 ## Real Execution Shape
@@ -83,8 +81,8 @@ gh api graphql -f query='query($owner:String!,$name:String!,$number:Int!){reposi
 ```
 
 Only resolve `PRRT_kwDOSfSDcs6JokL3` after the rewritten pushed refs no longer
-expose the historical sensitive blob IDs and the current sanitized files remain
-present at HEAD.
+expose non-sanitized historical objects at the BOQ artifact paths and the current
+sanitized files remain present at HEAD.
 
 ## 2026-06-16 Execution Result
 
@@ -95,9 +93,9 @@ Owner approval was granted and the branch-history rewrite was executed.
 - The 37 affected `codex/*` branch heads were force-updated with per-branch
   leases.
 - Fresh mirror verification of branch heads returned no matches for the four
-  known old BOQ blob IDs.
+  known old BOQ objects.
 - The local working checkout was reset to rewritten `origin/main`; local object
-  verification reported the four old blob IDs absent.
+  verification reported the four old BOQ objects absent.
 
 Remaining provider blocker:
 

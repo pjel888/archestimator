@@ -77,18 +77,20 @@ done
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 
-old_blob_pattern='9834285c51554bb6feffe6de7e026f6cf51f8374|bf3aa463594adaa4324cea67f954f92d56d30318|4e34f4c6988919ba97e98ad65c424434812bd2f0|de5f3b9b990f17edc9137b0443be644e41d1952d'
-if git rev-list --objects --all | rg -q "$old_blob_pattern"; then
-  echo "Sensitive historical blob IDs are still reachable. Do not push." >&2
-  git rev-list --objects --all | rg "$old_blob_pattern" >&2
-  exit 1
-fi
-
 for path in "${purge_paths[@]}"; do
   git cat-file -e "HEAD:$path"
+  head_blob="$(git rev-parse "HEAD:$path")"
+
+  while read -r commit; do
+    blob="$(git rev-parse --verify --quiet "$commit:$path" || true)"
+    if [[ -n "$blob" && "$blob" != "$head_blob" ]]; then
+      echo "A non-sanitized historical object is still reachable at $path. Do not push." >&2
+      exit 1
+    fi
+  done < <(git rev-list --all -- "$path")
 done
 
-echo "History rewrite completed locally and sensitive blob IDs are absent from local refs."
+echo "History rewrite completed locally and BOQ purge paths contain only sanitized HEAD objects in local refs."
 
 if [[ "${ARCHESTIMATOR_CONFIRM_FORCE_PUSH:-}" == "FORCE_WITH_LEASE_MAIN" ]]; then
   git push --force-with-lease origin main
