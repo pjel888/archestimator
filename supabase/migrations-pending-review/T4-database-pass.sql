@@ -88,7 +88,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS shared_link_recipients_invited_by_idx
 -- SELECT cron.schedule(
 --   'security-rate-limit-gc',
 --   '*/30 * * * *',
---   $$ DELETE FROM public.security_rate_limit_events WHERE created_at < now() - interval '24 hours'; $$
+--   $$ DELETE FROM public.security_rate_limit_events WHERE expires_at < now(); $$
 -- );
 -- ROLLBACK: SELECT cron.unschedule('security-rate-limit-gc');
 
