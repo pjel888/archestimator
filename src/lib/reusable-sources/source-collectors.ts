@@ -27,8 +27,16 @@ type EstimateTreeSummary = {
   totalCost: number;
 };
 
+function normalizeReusableSourceSearchText(value: string) {
+  return value
+    .replace(/[,()"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase();
+}
+
 export function textMatchesReusableSourceQuery(query: string, values: Array<string | null | undefined>) {
-  return values.some((value) => value?.toLocaleLowerCase().includes(query));
+  return values.some((value) => value ? normalizeReusableSourceSearchText(value).includes(query) : false);
 }
 
 function summarizeEstimateRows(rows: readonly EstimateRowItem[] | undefined): EstimateTreeSummary {
