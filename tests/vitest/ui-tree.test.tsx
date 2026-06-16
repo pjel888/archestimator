@@ -149,6 +149,25 @@ describe("ui tree", () => {
     expect(row("a").querySelector('[data-tree-rail="drag"]')).not.toHaveClass("w-0");
   });
 
+  it("keeps the keyboard-focused row visually distinguishable from selection", async () => {
+    render(
+      <Tree
+        nodes={sampleNodes()}
+        ariaLabel="Sample tree"
+        selectedIds={["a"]}
+      />,
+    );
+
+    row("a").focus();
+    fireEvent.keyDown(row("a"), { key: "ArrowDown" });
+
+    await waitFor(() => expect(row("b")).toHaveFocus());
+    expect(row("b")).toHaveAttribute("tabindex", "0");
+    expect(row("b")).toHaveClass("border-l-focus", "bg-surfaceMuted");
+    expect(row("a")).toHaveClass("bg-accentSoft");
+    expect(row("a")).not.toHaveClass("border-l-focus");
+  });
+
   it("remaps the bottom band of an expanded folder to before its first child", () => {
     const onDrop = vi.fn();
     render(
@@ -254,6 +273,24 @@ describe("ui tree", () => {
     const gamma = screen.getByRole("treeitem", { name: "Gamma component" });
     fireEvent.doubleClick(gamma);
     expect(onRowDoubleClick).toHaveBeenCalledWith("c", expect.objectContaining({ id: "c" }));
+  });
+
+  it("focuses rows with selector metacharacters in node IDs without querying invalid selectors", async () => {
+    const malformedId = 'imported-node"with]selector\\characters';
+    const onRowClick = vi.fn();
+    render(
+      <Tree
+        nodes={[{ id: malformedId, label: "Imported first node", isLeaf: true }]}
+        ariaLabel="Imported tree"
+        onRowClick={onRowClick}
+      />,
+    );
+
+    const importedRow = screen.getByRole("treeitem", { name: "Imported first node" });
+    expect(() => fireEvent.click(importedRow)).not.toThrow();
+
+    await waitFor(() => expect(document.activeElement).toBe(importedRow));
+    expect(onRowClick).toHaveBeenCalledWith(malformedId, expect.objectContaining({ id: malformedId }));
   });
 
   it("passes the drag event to onNodeDragStart so consumers can restamp the payload", () => {

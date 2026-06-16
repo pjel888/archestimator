@@ -19,7 +19,7 @@ afterEach(() => {
 describe("SharePageDecision — anonymous (isValid:false) state", () => {
   it("renders a friendly read-only explanation, not the response actions", () => {
     mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
-    render(<SharePageDecision token="tok-anon" />);
+    render(<SharePageDecision token="tok-anon" viewToken="view-token" />);
 
     // The decision bar still exists (not a silent null) and is informational.
     const bar = screen.getByTestId("decision-anonymous-state");
@@ -36,7 +36,7 @@ describe("SharePageDecision — anonymous (isValid:false) state", () => {
 
   it("shows the response actions when a recipient session IS valid", () => {
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
-    render(<SharePageDecision token="tok-recipient" />);
+    render(<SharePageDecision token="tok-recipient" viewToken="view-token" />);
 
     expect(screen.queryByTestId("decision-anonymous-state")).toBeNull();
     expect(screen.getByRole("button", { name: /accept proposal/i })).toBeInTheDocument();

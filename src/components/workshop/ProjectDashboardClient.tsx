@@ -1,40 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useRef, useTransition } from "react";
-import { ChartPieSlice, ClipboardText, ListChecks } from "@phosphor-icons/react/dist/ssr";
+import { useMemo, useRef, useTransition, type ReactNode } from "react";
 
 import { ControlInput } from "@/components/ui/control-input";
-import { EmptyState } from "@/components/ui/empty-state";
 import { updateProjectDetails } from "@/lib/projects/actions";
-import type { ActivityViewModel } from "@/lib/activity/types";
 import type { Json, Tables } from "@/lib/supabase/types";
-import type { ProjectDashboardSummary } from "@/lib/workshop/dashboard-types";
-
-import { DashboardCostMix } from "./dashboard/DashboardCostMix";
-import { DashboardEstimateList } from "./dashboard/DashboardEstimateList";
-import { DashboardReadinessPanel } from "./dashboard/DashboardReadinessPanel";
-import { DashboardWorkSummary } from "./dashboard/DashboardWorkSummary";
-import { ProjectActivityList } from "./dashboard/ProjectActivityList";
 
 type ProjectMetadata = {
-  projectImageUrl?: string;
+  readonly projectImageUrl?: string;
 };
 
 type ProjectDashboardClientProps = {
-  project: Tables<"projects"> | null;
-  fallback: {
-    id: string;
-    name: string;
-    client: string;
-    location: string;
-    projectCode: string;
-    currencyCode: string;
+  readonly project: Tables<"projects"> | null;
+  readonly fallback: {
+    readonly id: string;
+    readonly name: string;
+    readonly client: string;
+    readonly location: string;
+    readonly projectCode: string;
+    readonly currencyCode: string;
   };
-  /** Server-assembled cost overview; null/empty renders the first-run next-step panel. */
-  summary?: ProjectDashboardSummary | null;
-  /** Curated activity rows (flag-gated); null when the feature flag is off. */
-  activity?: ActivityViewModel[] | null;
 };
 
 function readProjectMetadata(value: Json): ProjectMetadata {
@@ -54,8 +39,8 @@ function ProjectDataField({
   label,
   children,
 }: {
-  label: string;
-  children: React.ReactNode;
+  readonly label: string;
+  readonly children: ReactNode;
 }) {
   return (
     <label className="block space-y-1">
@@ -65,7 +50,7 @@ function ProjectDataField({
   );
 }
 
-function ProjectTimestampField({ label, value }: { label: string; value: string }) {
+function ProjectTimestampField({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="space-y-0.5 px-2 py-1.5">
       <span className="block text-[8px] font-medium uppercase tracking-normal text-gray-400">{label}</span>
@@ -74,34 +59,14 @@ function ProjectTimestampField({ label, value }: { label: string; value: string 
   );
 }
 
-function ProjectDashboardLink({
-  href,
-  label,
-  icon,
-}: {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-white px-2 !text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-    >
-      {icon}
-      {label}
-    </Link>
-  );
-}
-
 function AutoSubmitForm({
   projectId,
   projectImageUrl,
   children,
 }: {
-  projectId: string;
-  projectImageUrl?: string;
-  children: React.ReactNode;
+  readonly projectId: string;
+  readonly projectImageUrl?: string;
+  readonly children: ReactNode;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -119,8 +84,8 @@ function AutoSubmitForm({
       ref={formRef}
       action={updateProjectDetails}
       className={["flex min-h-0 flex-1 flex-col", isPending ? "opacity-60" : ""].filter(Boolean).join(" ")}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
           handleBlur();
         }
       }}
@@ -132,16 +97,14 @@ function AutoSubmitForm({
   );
 }
 
-export function ProjectDashboardClient({ project, fallback, summary, activity }: ProjectDashboardClientProps) {
+export function ProjectDashboardClient({ project, fallback }: ProjectDashboardClientProps) {
   const metadata = useMemo(() => readProjectMetadata(project?.metadata ?? null), [project?.metadata]);
   const name = project?.name ?? fallback.name;
   const client = project?.client_name ?? fallback.client;
   const location = project?.location ?? fallback.location;
   const projectCode = project?.project_code ?? fallback.projectCode;
+  const currencyCode = project?.currency_code ?? fallback.currencyCode;
   const projectId = project?.id ?? fallback.id;
-  const projectRoute = `/workshop/projects/${projectId}`;
-  const selectedEstimate = summary?.selectedEstimate ?? null;
-  const hasOverview = Boolean(selectedEstimate) && (summary?.estimateCount ?? 0) > 0;
 
   return (
     <section className="flex h-full min-h-0 justify-start bg-white" aria-label={`${name} project information`}>
@@ -167,7 +130,7 @@ export function ProjectDashboardClient({ project, fallback, summary, activity }:
               />
             </ProjectDataField>
 
-            <input type="hidden" name="currencyCode" value="PHP" />
+            <input type="hidden" name="currencyCode" value={currencyCode} />
 
             <ProjectDataField label="Project address">
               <textarea
@@ -185,71 +148,7 @@ export function ProjectDashboardClient({ project, fallback, summary, activity }:
           </div>
         </AutoSubmitForm>
       </aside>
-      {hasOverview && selectedEstimate && summary ? (
-        <main className="min-h-0 flex-1 overflow-auto p-3" aria-label="Project cockpit">
-          <div className="grid max-w-6xl grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="flex min-w-0 flex-col gap-3">
-              <DashboardWorkSummary
-                projectId={projectId}
-                selectedEstimate={selectedEstimate}
-                estimateCount={summary.estimateCount}
-                rollup={summary.rollup}
-                groupingMode={summary.selectedGroupingMode}
-              />
-              <DashboardEstimateList
-                projectId={projectId}
-                selectedEstimateId={selectedEstimate.id}
-                selectedGroupingMode={summary.selectedGroupingMode}
-                estimateSheets={summary.estimateSheets}
-                totalEstimateCount={summary.estimateCount}
-              />
-              <ProjectActivityList activities={activity ?? null} />
-            </div>
-            <div className="flex min-w-0 flex-col gap-3">
-              {summary.costMix ? (
-                <DashboardCostMix
-                  projectId={projectId}
-                  selectedEstimate={selectedEstimate}
-                  estimateSheets={summary.estimateSheets}
-                  selectedGroupingMode={summary.selectedGroupingMode}
-                  series={summary.costMix.series}
-                  currencyCode={summary.costMix.currencyCode}
-                  truncated={summary.costMix.truncated}
-                />
-              ) : null}
-              <DashboardReadinessPanel readiness={summary.readiness} risks={summary.risks} />
-            </div>
-          </div>
-        </main>
-      ) : (
-        <main className="min-h-0 flex-1 overflow-auto p-2" aria-label="Project dashboard next steps">
-          <EmptyState
-            icon={<ClipboardText size={18} weight="regular" aria-hidden="true" />}
-            title="Build this project from estimates"
-            description="Open the estimate list to create your first sheet, use Charts to review cost mix, or return to Projects when you are choosing another job."
-            action={
-              <div className="flex flex-wrap items-center justify-center gap-1">
-                <ProjectDashboardLink
-                  href={`${projectRoute}/estimates`}
-                  label="Open estimates"
-                  icon={<ListChecks size={12} weight="regular" aria-hidden="true" />}
-                />
-                <ProjectDashboardLink
-                  href={`${projectRoute}/charts`}
-                  label="View charts"
-                  icon={<ChartPieSlice size={12} weight="regular" aria-hidden="true" />}
-                />
-                <ProjectDashboardLink
-                  href="/workshop/projects"
-                  label="All projects"
-                  icon={<ClipboardText size={12} weight="regular" aria-hidden="true" />}
-                />
-              </div>
-            }
-            className="h-full bg-white"
-          />
-        </main>
-      )}
+      <main className="min-h-0 flex-1 overflow-auto bg-white" aria-label="Project dashboard empty page" />
     </section>
   );
 }

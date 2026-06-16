@@ -1244,18 +1244,73 @@ function statOrNull(filePath) {
 // HTTP request handler
 // ---------------------------------------------------------------------------
 
+function isLocalLiveOrigin(value) {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+      ['localhost', '127.0.0.1', '::1', '[::1]'].includes(parsed.hostname);
+  } catch { return false; }
+}
+
+function isStaticFileLiveOrigin(value) {
+  if (!value) return false;
+  if (value === 'null') return true;
+  try {
+    return new URL(value).protocol === 'file:';
+  } catch { return false; }
+}
+
+function isTrustedLivePageSource(value) {
+  return isLocalLiveOrigin(value) || isStaticFileLiveOrigin(value);
+}
+
+function isBrowserLikeRequest(req) {
+  const userAgent = String(req.headers['user-agent'] || '').toLowerCase();
+  const accept = String(req.headers.accept || '').toLowerCase();
+  return /\b(mozilla|chrome|safari|firefox|edge|edg|webkit)\b/.test(userAgent)
+    || accept.includes('text/html')
+    || accept.includes('application/xhtml+xml')
+    || req.headers['sec-fetch-dest'] === 'script';
+}
+
+function requestHasUntrustedBrowserSource(req) {
+  const origin = req.headers.origin;
+  if (origin && !isTrustedLivePageSource(origin)) return true;
+
+  const referer = req.headers.referer;
+  if (referer && !isTrustedLivePageSource(referer)) return true;
+
+  if (origin || referer) return false;
+  if (isBrowserLikeRequest(req)) return true;
+
+  return req.headers['sec-fetch-site'] === 'cross-site';
+}
+
+function applyCorsHeaders(req, res) {
+  res.setHeader('Vary', 'Origin');
+  const origin = req.headers.origin;
+  if (isLocalLiveOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+}
+
 function createRequestHandler({ detectScript, sessionPath, livePath }) {
   return (req, res) => {
     const url = new URL(req.url, `http://localhost:${state.port}`);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+    applyCorsHeaders(req, res);
+    if (req.method === 'OPTIONS') {
+      if (!isLocalLiveOrigin(req.headers.origin)) { res.writeHead(403); res.end('Forbidden'); return; }
+      res.writeHead(204); res.end(); return;
+    }
 
     const p = url.pathname;
 
     // --- Scripts ---
     if (p === '/live.js') {
+      if (requestHasUntrustedBrowserSource(req)) { res.writeHead(403); res.end('Forbidden'); return; }
       // Re-read from disk each request so edits to live-browser.js land on
       // the next tab reload. No-store headers prevent browser caching across
       // sessions — during iteration, a cached old script silently breaks

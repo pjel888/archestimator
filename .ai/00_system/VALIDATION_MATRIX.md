@@ -21,7 +21,7 @@ git diff --check
 - TypeScript type-check
 - ESLint
 - app/workshop design-system lint, enforcing the non-landing SF Pro scale, regular/medium weights, xs radius, zero tracking, reference color tokens, and regular icon weights
-- `npx impeccable detect --strict` design quality audit
+- `bun run lint:design` design quality audit using the repo-pinned local Impeccable detector
 - Bun unit tests
 - Vitest DOM/helper tests
 

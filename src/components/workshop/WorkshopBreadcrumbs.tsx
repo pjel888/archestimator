@@ -24,8 +24,8 @@ function getProjectSectionBreadcrumb(pathname: string | null, projectId?: string
   if (pathname === `${projectRoute}/estimates` || pathname.startsWith(`${projectRoute}/estimates/`)) {
     return { label: "Estimates", href: `${projectRoute}/estimates` };
   }
-  if (pathname === `${projectRoute}/charts` || pathname.startsWith(`${projectRoute}/charts/`)) {
-    return { label: "Charts", href: `${projectRoute}/charts` };
+  if (pathname === `${projectRoute}/data` || pathname.startsWith(`${projectRoute}/data/`)) {
+    return { label: "Data", href: `${projectRoute}/data` };
   }
   return null;
 }

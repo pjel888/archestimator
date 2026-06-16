@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
+  readPublicationViewSnapshotVersion: vi.fn(),
   // For component
   useSharedLinkSession: vi.fn(),
   // P6 repo
@@ -20,6 +21,7 @@ vi.mock("@/lib/publication/security", () => ({
   assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
   verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
   createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
+  readPublicationViewSnapshotVersion: mocks.readPublicationViewSnapshotVersion,
 }));
 
 vi.mock("@/hooks/use-shared-link-session", () => ({
@@ -63,6 +65,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
+    mocks.readPublicationViewSnapshotVersion.mockReturnValue(1);
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.insertSharedLinkComment.mockResolvedValue({ id: "comment-123" });
     mocks.checkSharedLinkCommentRateLimit.mockResolvedValue({ allowed: true });
@@ -264,6 +267,36 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect([201, 400, 503]).toContain(res.status);
     });
 
+    it("uses the signed rendered-view snapshot for content-only republishes", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        status: "published",
+        passwordRequired: false,
+        snapshotVersion: 2,
+        credentialVersion: "open",
+      });
+      mocks.readPublicationViewSnapshotVersion.mockReturnValueOnce(1);
+
+      const req = makeRequest(
+        { body: "Comment on the rendered view", viewToken: "signed-view-token-v1" },
+        { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" },
+      );
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(201);
+      expect(mocks.readPublicationViewSnapshotVersion).toHaveBeenCalledWith("signed-view-token-v1", {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+      });
+      expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedSnapshotVersion: 1,
+        }),
+      );
+    });
+
     // SEC-15 (AC-SEC-15): a forced UNEXPECTED RPC/DB error (mapping to 500) must return a
     // GENERIC message to the public client — the raw error string must not appear in the
     // response body — while the detailed message is logged server-side via console.error.
@@ -331,7 +364,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       // @ts-expect-error fetch mock
       global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ id: "c1" }) });
 
-      render(<SharePageComments token="t1" publicationId="pub1" />);
+      render(<SharePageComments token="t1" viewToken="view-token" />);
       await user.type(screen.getByPlaceholderText(/add a comment/i), "fresh csrf");
       await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
 
@@ -358,7 +391,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     });
 
     it("renders flat chronological list + composer textarea + character counter (1000)", () => {
-      const { container } = render(<SharePageComments token="t1" publicationId="pub1" />);
+      const { container } = render(<SharePageComments token="t1" viewToken="view-token" />);
       expect(screen.getByRole("region", { name: /comments/i })).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/add a comment/i)).toBeInTheDocument();
       // counter
@@ -412,7 +445,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
           }),
         });
 
-      render(<SharePageComments token="t1" publicationId="pub1" />);
+      render(<SharePageComments token="t1" viewToken="view-token" />);
 
       expect(await screen.findByText("Can we confirm the tile allowance?")).toBeInTheDocument();
       expect(global.fetch).toHaveBeenCalledWith(
@@ -434,7 +467,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
 
     it("is disabled / shows session error when !useSharedLinkSession().isValid (P5)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
-      render(<SharePageComments token="t1" publicationId="pub1" />);
+      render(<SharePageComments token="t1" viewToken="view-token" />);
       // When invalid, the panel renders message (no textarea by design) + session notice
       expect(screen.getByText(/session.*required|Recipient session required/i)).toBeInTheDocument();
       expect(screen.queryByPlaceholderText(/add a comment/i)).toBeNull();
@@ -446,7 +479,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       const origFetch = global.fetch;
       global.fetch = vi.fn().mockRejectedValue(new Error("network"));
 
-      render(<SharePageComments token="t1" publicationId="pub1" />);
+      render(<SharePageComments token="t1" viewToken="view-token" />);
       const ta = screen.getByPlaceholderText(/add a comment/i);
       await user.type(ta, "Optimistic test comment");
       await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
@@ -461,7 +494,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
 
     it("enforces client char limit, shows rate limit / offline / invalid session errors", async () => {
       const user = userEvent.setup();
-      render(<SharePageComments token="t1" publicationId="pub1" />);
+      render(<SharePageComments token="t1" viewToken="view-token" />);
       const ta = screen.getByPlaceholderText(/add a comment/i);
       await user.type(ta, "x".repeat(1001));
       // counter or prevent
@@ -471,7 +504,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     });
 
     it("aria-live polite updates on new comments / errors for screen readers", async () => {
-      const { container } = render(<SharePageComments token="t1" publicationId="pub1" />);
+      const { container } = render(<SharePageComments token="t1" viewToken="view-token" />);
       const liveRegion = container.querySelector('[aria-live="polite"]');
       expect(liveRegion?.getAttribute("aria-live")).toBe("polite");
       // content updates will be asserted in optimistic test
@@ -517,7 +550,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         const origFetch = global.fetch;
         global.fetch = vi.fn().mockRejectedValue(new Error("offline"));
 
-        render(<SharePageComments token="t1" />);
+        render(<SharePageComments token="t1" viewToken="view-token" />);
         const ta = screen.getByPlaceholderText(/add a comment/i);
         // type + post while offline should queue (no crash, error shows queued hint after impl)
         await userEvent.type(ta, "queued while offline");

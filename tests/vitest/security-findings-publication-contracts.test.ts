@@ -40,12 +40,11 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
     expect(migrationText).toContain("drop function if exists public.submit_client_response(text, text, text, text)");
     expect(latestSubmitClientResponse).toContain("p_expected_snapshot_version integer");
-    expect(latestSubmitClientResponse).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
+    expect(latestSubmitClientResponse).toContain("p_expected_snapshot_version > v_snapshot_version");
     expect(latestSubmitClientResponse).toContain("p_decision, left(p_note, 2000), p_expected_snapshot_version");
     expect(decisionRoute).toContain("resolveProjectPublicationAccessByToken(token)");
-    // AC-MOD-01: the cookie binding moved to credentialVersion, but the RPC optimistic
-    // lock MUST still bind to the real snapshot_version (the staleness guard).
-    expect(decisionRoute).toContain("expectedSnapshotVersion: access.snapshotVersion");
+    expect(decisionRoute).toContain("readPublicationViewSnapshotVersion");
+    expect(decisionRoute).toContain("const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
   });
@@ -57,13 +56,26 @@ describe("Codex publication and public-surface hardening contracts", () => {
 
     expect(migrationText).toContain("drop function if exists public.insert_client_comment(text, text, uuid, uuid, text)");
     expect(latestInsertClientComment).toContain("p_expected_snapshot_version integer");
-    expect(latestInsertClientComment).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
+    expect(latestInsertClientComment).toContain("p_expected_snapshot_version > v_snapshot_version");
     expect(commentRoute).toContain("resolveProjectPublicationAccessByToken(token)");
-    // AC-MOD-01: the cookie binding moved to credentialVersion, but the RPC optimistic
-    // lock MUST still bind to the real snapshot_version (the staleness guard).
-    expect(commentRoute).toContain("expectedSnapshotVersion: access.snapshotVersion");
+    expect(commentRoute).toContain("readPublicationViewSnapshotVersion");
+    expect(commentRoute).toContain("const expectedSnapshotVersion = viewedSnapshotVersion ?? access.snapshotVersion");
     expect(publicRepository).toContain("expectedSnapshotVersion: number");
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
+  });
+
+  it("rotates shared-link credentials under a locked current-row guard", () => {
+    const actions = read("src/lib/publication/actions.ts");
+    const rotationMigration = latestFunction("rotate_project_publication_credentials");
+
+    expect(actions).toContain("expected_encrypted_token: latest.encrypted_token");
+    expect(actions).not.toContain("p_snapshot_version: latest.snapshot_version + 1");
+    expect(actions).toContain('message: "Shared link changed while rotating. Refresh and try again."');
+    expect(rotationMigration).toContain("expected_encrypted_token text");
+    expect(rotationMigration).toContain("for update");
+    expect(rotationMigration).toContain("v_encrypted_token is distinct from expected_encrypted_token");
+    expect(rotationMigration).toContain("return -1");
+    expect(rotationMigration).toContain("v_next_snapshot_version := coalesce(v_snapshot_version, 0) + 1");
   });
 
   it("keeps password-protected share metadata generic before snapshot resolution", () => {
