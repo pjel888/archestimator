@@ -10,7 +10,7 @@ if [[ -n "${SUPABASE_ACCESS_TOKEN_FILE:-}" ]]; then
     printf 'SUPABASE_ACCESS_TOKEN_FILE is not readable: %s\n' "$SUPABASE_ACCESS_TOKEN_FILE" >&2
     exit 2
   fi
-  IFS= read -r token < "$SUPABASE_ACCESS_TOKEN_FILE"
+  IFS= read -r token < "$SUPABASE_ACCESS_TOKEN_FILE" || [[ -n "$token" ]]
 elif [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
   cat >&2 <<'EOF_ENV'
 Warning: SUPABASE_ACCESS_TOKEN is accepted for CI/backward compatibility, but
