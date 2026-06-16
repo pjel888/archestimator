@@ -189,7 +189,7 @@ function BreakdownTable({
                 >
                   <td className="px-2 py-1.5">
                     <span className="inline-flex min-w-0 items-center gap-2">
-                      <span className="size-2 shrink-0 rounded-[2px]" aria-hidden style={{ backgroundColor: bucket.color }} />
+                      <span className="size-2 shrink-0 rounded-xs" aria-hidden style={{ backgroundColor: bucket.color }} />
                       <span className="truncate text-ink">{bucket.label}</span>
                     </span>
                   </td>
