@@ -1,15 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetBranch } from "@/components/workshop/estimate-sheet/rows/branch";
 import { EstimateSheetExpansionContext } from "@/components/workshop/estimate-sheet/rows/expansion";
 import type { EditableRowValue } from "@/components/workshop/estimate-sheet/rows/editable-row-model";
-import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 
 const noop = vi.fn();
 
-function renderBranch() {
+function renderBranch(ancestorPath: { id: string; name: string }[] = []) {
   const node: EstimateTreeNode = {
     id: "mobilization-demobilization",
     name: "Mobilization + Demobilization",
@@ -28,7 +28,7 @@ function renderBranch() {
         <EstimateSheetBranch
           node={node}
           nodeCode="01.01.01"
-          ancestorPath={[]}
+          ancestorPath={ancestorPath}
           editableRows={editableRows}
           setEditableRows={setEditableRows}
           onInsertLibraryItem={noop}
@@ -42,6 +42,7 @@ function renderBranch() {
           onOpenRowDetails={noop}
           onClearRowComponent={noop}
           onRequestProjectSpecific={noop}
+          onPromoteRowToLibrary={noop}
           onMoveRowComponent={noop}
           selectedRowIds={new Set()}
           onToggleRowSelection={noop}
@@ -78,6 +79,7 @@ function renderBranchTree(node: EstimateTreeNode) {
           onOpenRowDetails={noop}
           onClearRowComponent={noop}
           onRequestProjectSpecific={noop}
+          onPromoteRowToLibrary={noop}
           onMoveRowComponent={noop}
           selectedRowIds={new Set()}
           onToggleRowSelection={noop}
@@ -91,15 +93,45 @@ function renderBranchTree(node: EstimateTreeNode) {
 }
 
 describe("estimate sheet branch header chrome", () => {
-  it("rests on a white surface with top and side borders", () => {
+  it("omits the bottom border when expanded without own rows", () => {
     renderBranch();
 
     const branch = screen.getByLabelText("Mobilization + Demobilization");
     const header = branch.querySelector(".min-h-10");
 
     expect(header).toHaveClass("bg-surfaceMuted/40", "py-2", "border-x", "border-t", "border-hairline");
-    expect(header).not.toHaveClass("hover:bg-surfaceMuted/40");
     expect(header).not.toHaveClass("border-b");
+    expect(header).not.toHaveClass("hover:bg-surfaceMuted/40");
+  });
+
+  it("keeps the bottom border when a node without own rows is collapsed", () => {
+    renderBranch();
+
+    const branch = screen.getByLabelText("Mobilization + Demobilization");
+    const header = branch.querySelector(".min-h-10");
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse Mobilization + Demobilization" }));
+
+    expect(header).toHaveClass("border-b");
+  });
+
+  it("lets the row table provide the bottom frame when expanded with own rows", () => {
+    const { container } = renderBranchTree({
+      id: "root",
+      name: "Root Area",
+      kind: "group",
+      total: "₱0.00",
+      estimateRowItems: [{ ...estimateLibraryItems[0], id: "root-row-1" }],
+      children: [],
+    });
+
+    const branch = screen.getByLabelText("Root Area");
+    const header = branch.querySelector(".min-h-10");
+    const rowTable = container.querySelector("[data-estimate-row-table-root='root']");
+
+    expect(header).toHaveClass("border-x", "border-t", "border-hairline");
+    expect(header).not.toHaveClass("border-b");
+    expect(rowTable).toHaveClass("border-x", "border-b", "border-hairline");
   });
 
   it("applies the depth name ramp and heading semantics", () => {
@@ -116,7 +148,21 @@ describe("estimate sheet branch header chrome", () => {
 
     expect(screen.getByRole("heading", { name: "Root Area", level: 1 })).toHaveClass("text-ink", "font-medium", "uppercase", "tracking-normal");
     expect(screen.getByRole("heading", { name: "Child Area", level: 2 })).toHaveClass("text-secondary", "font-normal");
+    const childBranch = screen.getByLabelText("Child Area");
+    const childHeader = childBranch.querySelector(".min-h-10");
+    expect(childHeader).toHaveClass("border-t");
     expect(screen.queryByText("01")).not.toBeInTheDocument();
+  });
+
+  it("removes the generated gap between breadcrumbs and the row table", () => {
+    renderBranch([
+      { id: "general-requirements", name: "General Requirements" },
+      { id: "construction-supervision", name: "Construction Supervision" },
+    ]);
+
+    const breadcrumbs = screen.getByLabelText("Mobilization + Demobilization breadcrumbs");
+
+    expect(breadcrumbs.nextElementSibling).toHaveClass("-mt-2");
   });
 
   it("renders a single inset white spacer before non-first child branches", () => {

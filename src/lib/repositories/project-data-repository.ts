@@ -1,0 +1,104 @@
+import type {
+  ProjectChartEstimateSeries,
+  ProjectChartGroupingMode,
+} from "@/lib/project-charts/types";
+import { getProjectChartsData } from "@/lib/repositories/project-charts-repository";
+import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
+import type { Tables } from "@/lib/supabase/types";
+
+export type ProjectDataEstimateSheet = {
+  id: string;
+  name: string;
+  sheetCode: string | null;
+  currencyCode: string;
+  updatedAt: string | null;
+  rowCount: number;
+  totalCost: number;
+};
+
+export type ProjectDataRollup =
+  | { kind: "single"; currencyCode: string; totalCost: number }
+  | { kind: "mixed"; currencyCodes: string[] };
+
+export type ProjectDataRouteSummary = {
+  projectId: string;
+  projectName: string;
+  estimateSheets: ProjectDataEstimateSheet[];
+  selectedEstimateId: string | null;
+  selectedGroupingMode: ProjectChartGroupingMode;
+  rollup: ProjectDataRollup;
+  seriesByEstimateId: Record<string, ProjectChartEstimateSeries>;
+  costAcrossSheetsMode: "stacked" | "totals-only";
+  didTruncate: boolean;
+  rowLimit: number;
+};
+
+export type GetProjectDataRouteSummaryOptions = {
+  selectedEstimateId?: string | null;
+  groupingMode?: ProjectChartGroupingMode;
+};
+
+export async function getProjectDataRouteSummary(
+  projectId: string,
+  options: GetProjectDataRouteSummaryOptions = {},
+): Promise<ProjectDataRouteSummary | null> {
+  const estimatesResult = await listProjectEstimates(projectId);
+  const { project, estimates, rowCountByEstimateId, totalCostByEstimateId } = estimatesResult;
+  if (!project) return null;
+
+  const estimateSheets = estimates.map((estimate) =>
+    toProjectDataEstimateSheet(project, estimate, {
+      rowCount: rowCountByEstimateId.get(estimate.id) ?? 0,
+      totalCost: totalCostByEstimateId.get(estimate.id) ?? 0,
+    }),
+  );
+  const allowedEstimateIds = new Set(estimateSheets.map((estimate) => estimate.id));
+  const selectedEstimateId =
+    options.selectedEstimateId && allowedEstimateIds.has(options.selectedEstimateId)
+      ? options.selectedEstimateId
+      : estimateSheets[0]?.id ?? null;
+
+  const chartsData = await getProjectChartsData(project.id, {
+    selectedEstimateIds: selectedEstimateId ? [selectedEstimateId] : [],
+  });
+
+  return {
+    projectId: project.id,
+    projectName: project.name,
+    estimateSheets,
+    selectedEstimateId,
+    selectedGroupingMode: options.groupingMode ?? "category",
+    rollup: computeProjectDataRollup(estimateSheets),
+    seriesByEstimateId: chartsData?.seriesByEstimateId ?? {},
+    costAcrossSheetsMode: estimateSheets.length > 20 ? "totals-only" : "stacked",
+    didTruncate: Boolean(chartsData?.didTruncate),
+    rowLimit: chartsData?.rowLimit ?? 5000,
+  };
+}
+
+function toProjectDataEstimateSheet(
+  project: Tables<"projects">,
+  estimate: Tables<"estimates">,
+  summary: { rowCount: number; totalCost: number },
+): ProjectDataEstimateSheet {
+  return {
+    id: estimate.id,
+    name: estimate.name,
+    sheetCode: estimate.sheet_code,
+    currencyCode: estimate.currency_code ?? project.currency_code ?? "PHP",
+    updatedAt: estimate.updated_at,
+    rowCount: summary.rowCount,
+    totalCost: summary.totalCost,
+  };
+}
+
+function computeProjectDataRollup(estimateSheets: ProjectDataEstimateSheet[]): ProjectDataRollup {
+  const currencyCodes = [...new Set(estimateSheets.map((estimate) => estimate.currencyCode || "PHP"))].sort();
+  if (currencyCodes.length > 1) return { kind: "mixed", currencyCodes };
+  const currencyCode = currencyCodes[0] ?? "PHP";
+  return {
+    kind: "single",
+    currencyCode,
+    totalCost: estimateSheets.reduce((sum, estimate) => sum + estimate.totalCost, 0),
+  };
+}

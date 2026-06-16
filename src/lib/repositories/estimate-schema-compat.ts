@@ -20,7 +20,9 @@ export function isMissingColumnError(error: MissingColumnErrorCandidate | null |
 
 export function isMissingRelationError(error: MissingColumnErrorCandidate | null | undefined, relation: string) {
   const message = error?.message?.toLowerCase() ?? "";
-  const missingRelationCodes = error?.code === "42P01" || error?.code === "PGRST205";
+  const missingEmbeddedRelationCode =
+    error?.code === "PGRST200" && message.includes("relationship") && message.includes("schema cache");
+  const missingRelationCodes = error?.code === "42P01" || error?.code === "PGRST205" || missingEmbeddedRelationCode;
   return missingRelationCodes && message.includes(relation.toLowerCase());
 }
 

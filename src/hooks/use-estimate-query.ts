@@ -66,6 +66,12 @@ export function useEstimateAreaTreeQuery({
     });
     return didChange ? bumpTreeRevision() : getTreeRevision();
   }, [bumpTreeRevision, getTreeRevision, queryClient, queryKey, tree]);
+  const setTreeWithoutRevisionBump = useCallback((nextTree: EstimateTreeNode[] | ((currentTree: EstimateTreeNode[]) => EstimateTreeNode[])) => {
+    queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) => {
+      const baseTree = currentTree ?? tree;
+      return typeof nextTree === "function" ? nextTree(baseTree) : nextTree;
+    });
+  }, [queryClient, queryKey, tree]);
   const snapshot = useCallback(() => queryClient.getQueryData<EstimateTreeNode[]>(queryKey) ?? tree, [queryClient, queryKey, tree]);
   const restore = useCallback((previousTree: EstimateTreeNode[], expectedRevision?: number) => {
     if (expectedRevision !== undefined && getTreeRevision() !== expectedRevision) return false;
@@ -78,7 +84,7 @@ export function useEstimateAreaTreeQuery({
     return queryClient.getQueryData<EstimateTreeNode[]>(queryKey) ?? tree;
   }, [queryClient, queryKey, tree]);
 
-  return { ...query, data: tree, tree, queryKey, setTree, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
+  return { ...query, data: tree, tree, queryKey, setTree, setTreeWithoutRevisionBump, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
 }
 
 export function useEstimateTabTreeQuery({
@@ -127,6 +133,12 @@ export function useEstimateTabTreeQuery({
     });
     return didChange ? bumpTreeRevision() : getTreeRevision();
   }, [bumpTreeRevision, getTreeRevision, queryClient, queryKey, tree]);
+  const setTreeWithoutRevisionBump = useCallback((nextTree: EstimateTreeNode[] | ((currentTree: EstimateTreeNode[]) => EstimateTreeNode[])) => {
+    queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) => {
+      const baseTree = currentTree ?? tree;
+      return typeof nextTree === "function" ? nextTree(baseTree) : nextTree;
+    });
+  }, [queryClient, queryKey, tree]);
   const snapshot = useCallback(() => queryClient.getQueryData<EstimateTreeNode[]>(queryKey) ?? tree, [queryClient, queryKey, tree]);
   const restore = useCallback((previousTree: EstimateTreeNode[], expectedRevision?: number) => {
     if (expectedRevision !== undefined && getTreeRevision() !== expectedRevision) return false;
@@ -139,7 +151,7 @@ export function useEstimateTabTreeQuery({
     return queryClient.getQueryData<EstimateTreeNode[]>(queryKey) ?? tree;
   }, [queryClient, queryKey, tree]);
 
-  return { ...query, data: tree, tree, queryKey, setTree, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
+  return { ...query, data: tree, tree, queryKey, setTree, setTreeWithoutRevisionBump, snapshot, restore, getTreeRevision, prepareOptimisticUpdate };
 }
 
 export function useEstimateTabsQuery({

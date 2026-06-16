@@ -167,7 +167,7 @@ function revalidateProjectDeletionPaths(projectIds: string[]) {
   for (const projectId of projectIds) {
     revalidatePath(`/workshop/projects/${projectId}`);
     revalidatePath(`/workshop/projects/${projectId}/estimates`);
-    revalidatePath(`/workshop/projects/${projectId}/charts`);
+    revalidatePath(`/workshop/projects/${projectId}/data`);
   }
 }
 
@@ -277,6 +277,7 @@ export async function updateProjectImageMetadata(projectId: string, image: Proje
 }
 
 export async function updateProjectDetails(formData: FormData) {
+  await requireCurrentUserContext();
   const supabase = await createSupabaseServerClient();
 
   const projectId = readRequiredText(formData, "projectId");

@@ -13,6 +13,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type RefCallback,
   type ReactNode,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -97,6 +98,7 @@ export type TreeRowDomProps = {
   "aria-dropeffect"?: "move" | "copy";
   tabIndex: number;
   draggable: boolean;
+  ref: RefCallback<HTMLElement>;
   "data-tree-row": string;
   onClick: (event: MouseEvent<HTMLElement>) => void;
   onDoubleClick?: (event: MouseEvent<HTMLElement>) => void;
@@ -111,6 +113,7 @@ export type TreeRowDomProps = {
 export type TreeRootDropZonesOption =
   | boolean
   | {
+      edges?: readonly TreeRootDropEdge[];
       className?: (edge: TreeRootDropEdge, active: boolean) => string;
       render?: (edge: TreeRootDropEdge, active: boolean) => ReactNode;
     };
@@ -414,6 +417,7 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
           "border border-transparent",
           node.rowClassName,
           (isSelected || isCurrent) && "bg-accentSoft",
+          state.isFocused && "border-l-focus bg-surfaceMuted",
           isDropTarget && dropPosition === "inside" && "bg-surfaceMuted",
           isDropTarget && dropPosition === "before" && "border-t-2 border-t-primary",
           isDropTarget && dropPosition === "after" && "border-b-2 border-b-primary",
@@ -507,13 +511,13 @@ const DefaultTreeRow = memo(function DefaultTreeRow({
         {expandable && !isFolder && <span className="w-4 shrink-0" />}
 
         {node.accent !== undefined ? (
-          // Occupancy dot (after the caret, before the label): orange iff this
-          // node directly holds components, muted otherwise. Renders on every
-          // row — folder or leaf — so the cue lives in one consistent column.
+          // Occupancy dot (after the caret, before the label): olive green iff
+          // this node directly holds components, muted otherwise. Renders on
+          // every row — folder or leaf — so the cue lives in one consistent column.
           <span className="shrink-0 mr-1.5 flex items-center" aria-hidden="true">
             <span
               data-occupancy-dot=""
-              className={cn("size-[3px] rounded-xs opacity-50", node.accent ? "bg-orange-600" : "bg-tertiary")}
+              className={cn("size-[3px] rounded-xs", node.accent ? "bg-[#6b8e23] opacity-70" : "bg-divider")}
             />
           </span>
         ) : node.icon ? (
@@ -587,6 +591,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     const [dropTarget, setDropTarget] = useState<{ id: string; position: TreeDropPosition } | null>(null);
     const [activeRootDropEdge, setActiveRootDropEdge] = useState<TreeRootDropEdge | null>(null);
     const [focusId, setFocusId] = useState<string | null>(null);
+    const rowElementsRef = useRef(new Map<string, HTMLElement>());
 
     const flatNodes = useMemo(
       () => flattenTree(nodes, expandedSet),
@@ -927,6 +932,12 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     // ─── Root edge drop zones ──────────────────────────────────────
 
     const rootDropZonesEnabled = Boolean(rootDropZones) && draggable && nodes.length > 0;
+    const configuredRootDropEdges =
+      typeof rootDropZones === "object" && rootDropZones.edges ? rootDropZones.edges : undefined;
+    const rootDropEdgeEnabled = useCallback(
+      (edge: TreeRootDropEdge) => !configuredRootDropEdges || configuredRootDropEdges.includes(edge),
+      [configuredRootDropEdges]
+    );
 
     const resolveRootEdgeTarget = useCallback(
       (edge: TreeRootDropEdge): { id: string; position: TreeDropPosition } | null => {
@@ -1076,10 +1087,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
     useEffect(() => {
       if (!focusId) return;
       const focusElement = () => {
-        const escapedId = typeof CSS !== "undefined" && CSS.escape
-          ? CSS.escape(focusId)
-          : focusId.replace(/"/g, '\\"');
-        const el = document.querySelector(`[data-tree-row="${escapedId}"]`);
+        const el = rowElementsRef.current.get(focusId);
         if (el instanceof HTMLElement) el.focus();
       };
       if (virtualEnabled) {
@@ -1127,6 +1135,13 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
           "aria-label": flat.node.ariaLabel,
           tabIndex: effectiveFocusId === flat.id ? 0 : -1,
           draggable: isNodeDraggable(flat.node),
+          ref: (element) => {
+            if (element) {
+              rowElementsRef.current.set(flat.id, element);
+            } else {
+              rowElementsRef.current.delete(flat.id);
+            }
+          },
           // U12 (UX-5): expose drag state to assistive tech. A grabbed source row
           // reads aria-grabbed=true; the row currently under the drag reads the
           // effect that would apply — "move" for an intra-tree reorder (a drag
@@ -1264,7 +1279,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         onKeyDown={handleKeyDown}
         onClick={() => flatNodes.length > 0 && !focusId && setFocusId(effectiveFocusId)}
       >
-        {rootDropZonesEnabled && renderRootEdge("top")}
+        {rootDropZonesEnabled && rootDropEdgeEnabled("top") && renderRootEdge("top")}
         {virtualEnabled ? (
           <div
             data-tree-virtualizer="true"
@@ -1297,7 +1312,7 @@ export const Tree = forwardRef<HTMLDivElement, TreeProps>(
         ) : (
           flatNodes.map((flat) => renderFlatRow(flat))
         )}
-        {rootDropZonesEnabled && renderRootEdge("bottom")}
+        {rootDropZonesEnabled && rootDropEdgeEnabled("bottom") && renderRootEdge("bottom")}
         {nodes.length === 0 && (
           emptyState ?? (
             <div className="flex items-center justify-center py-8 text-[10px] text-muted">

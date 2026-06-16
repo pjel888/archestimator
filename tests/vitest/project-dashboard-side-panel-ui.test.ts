@@ -28,13 +28,17 @@ describe("project dashboard side-panel UI governance", () => {
     expect(projectEstimateMetadataStrip).toContain('workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px")');
   });
 
-  it("keeps minimized estimate side-panel rails white instead of changing background color", () => {
-    expect(resizableSidePanel).toContain('"h-full rounded-xs border-hairline bg-white hover:bg-white"');
+  it("keeps the side-panel rail borders and warms the handle to orange on hover and drag", () => {
+    // Hairline edge chrome stays.
     expect(resizableSidePanel).toContain('side === "right" ? "border-l" : "border-r"');
-    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-white"');
-    expect(resizableSidePanel).not.toContain('className="h-full rounded-xs border-x border-hairline bg-white hover:bg-white"');
-    expect(resizableSidePanel).not.toContain('collapsed ? "bg-surface-muted" : "bg-white"');
-    expect(resizableSidePanel).not.toContain('hover:bg-surface-muted');
+    // Resizer: white at rest, light orange while hovered or dragging.
+    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-white hover:bg-brand-orange-soft"');
+    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-brand-orange-soft"');
+    // Grip dots track the same feedback, orange on hover/drag and grey at rest.
+    expect(resizableSidePanel).toContain("group-hover/resizer:bg-brand-orange");
+    expect(resizableSidePanel).toContain('isDragging ? "bg-brand-orange" : "bg-divider group-hover/resizer:bg-brand-orange"');
+    // Collapse toggle shares the orange hover language.
+    expect(resizableSidePanel).toContain("hover:bg-brand-orange-soft hover:text-brand-orange");
   });
 
   it("keeps shared search and icon toolbar rows at 38px with no component borders", () => {
@@ -56,5 +60,19 @@ describe("project dashboard side-panel UI governance", () => {
     expect(headerIconToolbar).not.toContain("min-h-10");
     expect(sharedSearchSurfaces).not.toContain('wrapperClassName="h-12 w-full"');
     expect(sharedSearchSurfaces).not.toMatch(/className="flex h-12 (shrink-0 )?items-center gap/);
+  });
+
+  it("plumbs estimate-list edit capabilities before rendering mutation controls", () => {
+    expect(projectEstimatesPage).toContain("resolveEstimateListEditCapabilities(projectId, estimateIds)");
+    expect(projectEstimatesPage).toContain('supabase.rpc("can_edit_project"');
+    expect(projectEstimatesPage).not.toContain('supabase.rpc("can_edit_estimate"');
+    expect(projectEstimatesPage).not.toContain("estimateIds.map(async");
+    expect(projectEstimatesPage).toContain('.from("estimate_sheet_members")');
+    expect(projectEstimatesPage).toContain('.from("estimate_sheet_access_settings")');
+    expect(projectEstimatesPage).toContain('.in("role", ["owner", "admin", "editor"])');
+    expect(projectEstimatesPage).toContain("canCreateEstimates={editCapabilities.canCreateEstimates}");
+    expect(projectEstimatesPage).toContain("canEditEstimateById={editCapabilities.canEditEstimateById}");
+    expect(projectEstimatesClient).toContain("canCreateEstimates");
+    expect(projectEstimatesClient).toContain("canEditEstimateById");
   });
 });

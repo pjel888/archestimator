@@ -18,7 +18,7 @@ import { computeNodeTotal, type EditableRowValue } from "./editable-row-model";
 import { useEstimateSheetExpansion } from "./expansion";
 import { getNodeCode, groupGap, nodeHeaderClasses, nodeNameClasses, nodeShellClasses, nodeTotalClasses } from "./node-visuals";
 import { ComponentDropTarget, TemplateDropZone } from "./drop-zones";
-import { EstimateRowItemsTable } from "./row-table";
+import { EstimateRowItemsTable, type EstimateTableColumnResizeConfig } from "./row-table";
 import type { ExpressInsertDraftState } from "./cells";
 import { useDragEdgeAutoScroll } from "./use-drag-edge-autoscroll";
 import { reportEstimateSheetBranchRender } from "../../estimate-sheet-render-probe";
@@ -42,6 +42,8 @@ export type EstimateSheetBranchProps = {
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onRequestProjectSpecific: (rowItemId: string) => void;
+  onPromoteRowToLibrary: (rowItemId: string) => void;
+  promotingRowId?: string | null;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   expressInsertDraftStates?: Record<string, ExpressInsertDraftState>;
   onRetryExpressDraft?: (rowItemId: string) => void;
@@ -49,6 +51,7 @@ export type EstimateSheetBranchProps = {
   selectedRowIds: ReadonlySet<string>;
   onToggleRowSelection: (rowItemId: string, checked: boolean) => void;
   onToggleRowsSelection: (rowItemIds: string[], checked: boolean) => void;
+  columnResize?: EstimateTableColumnResizeConfig;
   nodeTotals?: ReadonlyMap<string, number>;
   depth?: number;
   siblingIndex?: number;
@@ -73,6 +76,7 @@ export type SheetMutationHandlers = Pick<
   | "onOpenRowDetails"
   | "onClearRowComponent"
   | "onRequestProjectSpecific"
+  | "onPromoteRowToLibrary"
   | "onMoveRowComponent"
   | "onRetryExpressDraft"
   | "onDeleteExpressDraft"
@@ -123,12 +127,15 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
     prev.onOpenRowDetails !== next.onOpenRowDetails ||
     prev.onClearRowComponent !== next.onClearRowComponent ||
     prev.onRequestProjectSpecific !== next.onRequestProjectSpecific ||
+    prev.onPromoteRowToLibrary !== next.onPromoteRowToLibrary ||
+    prev.promotingRowId !== next.promotingRowId ||
     prev.onMoveRowComponent !== next.onMoveRowComponent ||
     prev.expressInsertDraftStates !== next.expressInsertDraftStates ||
     prev.onRetryExpressDraft !== next.onRetryExpressDraft ||
     prev.onDeleteExpressDraft !== next.onDeleteExpressDraft ||
     prev.onToggleRowSelection !== next.onToggleRowSelection ||
     prev.onToggleRowsSelection !== next.onToggleRowsSelection ||
+    prev.columnResize !== next.columnResize ||
     !areAncestorPathsEqual(prev.ancestorPath, next.ancestorPath)
   ) {
     return false;
@@ -148,7 +155,7 @@ export function areEstimateSheetBranchPropsEqual(prev: EstimateSheetBranchProps,
   return !branchRowStateChanged(next.node, prev, next, next.renderChildBranches ?? true);
 }
 
-function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
+function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplates, onInsertTemplateNode, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onPromoteRowToLibrary, promotingRowId, onMoveRowComponent, expressInsertDraftStates, onRetryExpressDraft, onDeleteExpressDraft, selectedRowIds, onToggleRowSelection, onToggleRowsSelection, columnResize, nodeTotals, depth = 0, siblingIndex = 0, renderChildBranches = true }: EstimateSheetBranchProps) {
   reportEstimateSheetBranchRender(node.id);
   const { collapsedNodeIds, setCollapsedNodeIds, searchActive = false } = useEstimateSheetExpansion();
   // Only the root (depth 0) drives edge auto-scroll for the whole sheet; it
@@ -176,6 +183,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
   // a single non-accumulated sticky layer cannot collide, clip, or overlap.
   const isStickyHeader = depth === 0;
   const headingLevel = Math.min(depth + 1, 6);
+  const headerNeedsTopBorder = true;
+  const headerNeedsBottomBorder = collapsed;
   // P6 single-node model: every node is a first-class area that can hold rows
   // AND child sub-areas, so a template/subtree drops directly into ANY node —
   // there is no area-wrap path anymore.
@@ -282,8 +291,9 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
       <div className={cn("bg-white", isStickyHeader && "sticky top-0 z-[20]")}>
         <div
           className={cn(
-            "flex min-h-10 items-center gap-2 border-x border-t border-hairline bg-surfaceMuted/40 px-1 py-2",
-            collapsed && "border-b",
+            "flex min-h-10 items-center gap-2 border-x border-hairline bg-surfaceMuted/40 px-1 py-2",
+            headerNeedsTopBorder && "border-t",
+            headerNeedsBottomBorder && "border-b",
             nodeHeaderClasses()
           )}
           style={{ paddingLeft: `${leftIndent + 8}px` }}
@@ -316,12 +326,12 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
             // active (carets suppressed, OD-3). Non-focusable, no aria-expanded.
             <span className="size-6 shrink-0" aria-hidden="true" />
           )}
-          {/* Occupancy dot between the caret and the name: orange iff this node
-              directly holds components, muted otherwise. */}
+          {/* Occupancy dot between the caret and the name: olive green iff this
+              node directly holds components, muted otherwise. */}
           <span
             data-occupancy-dot=""
             aria-hidden="true"
-            className={cn("size-[3px] shrink-0 rounded-xs opacity-50", hasOwnRows ? "bg-orange-600" : "bg-tertiary")}
+            className={cn("size-[3px] shrink-0 rounded-xs", hasOwnRows ? "bg-[#6b8e23] opacity-70" : "bg-divider")}
           />
           <div className="min-w-0 flex-1">
             <p className={nodeNameClasses(depth)} role="heading" aria-level={headingLevel}>{node.name}</p>
@@ -367,27 +377,32 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
               node's own rows from its children — no "Own items" eyebrow needed.
               Screen readers get the same disambiguation from headerAriaLabel
               ("{name}, area, N rows, M sub-areas") rendered sr-only above. */}
-          <EstimateRowItemsTable
-            items={estimateRowItems}
-            editableRows={editableRows}
-            setEditableRows={setEditableRows}
-            targetNodeId={node.id}
-            onInsertLibraryItem={onInsertLibraryItem}
-            onReplaceRowItem={onReplaceRowItem}
-            onDeleteRowItem={onDeleteRowItem}
-            onUpdateRowItem={onUpdateRowItem}
-            onMarkRowDirty={onMarkRowDirty}
-            onOpenRowDetails={onOpenRowDetails}
-            onClearRowComponent={onClearRowComponent}
-            onRequestProjectSpecific={onRequestProjectSpecific}
-            onMoveRowComponent={onMoveRowComponent}
-            expressInsertDraftStates={expressInsertDraftStates}
-            onRetryExpressDraft={onRetryExpressDraft}
-            onDeleteExpressDraft={onDeleteExpressDraft}
-            selectedRowIds={selectedRowIds}
-            onToggleRowSelection={onToggleRowSelection}
-            onToggleRowsSelection={onToggleRowsSelection}
-          />
+          <div className={showBreadcrumbs ? "-mt-2" : undefined}>
+            <EstimateRowItemsTable
+              items={estimateRowItems}
+              editableRows={editableRows}
+              setEditableRows={setEditableRows}
+              targetNodeId={node.id}
+              onInsertLibraryItem={onInsertLibraryItem}
+              onReplaceRowItem={onReplaceRowItem}
+              onDeleteRowItem={onDeleteRowItem}
+              onUpdateRowItem={onUpdateRowItem}
+              onMarkRowDirty={onMarkRowDirty}
+              onOpenRowDetails={onOpenRowDetails}
+              onClearRowComponent={onClearRowComponent}
+              onRequestProjectSpecific={onRequestProjectSpecific}
+              onPromoteRowToLibrary={onPromoteRowToLibrary}
+              promotingRowId={promotingRowId}
+              onMoveRowComponent={onMoveRowComponent}
+              expressInsertDraftStates={expressInsertDraftStates}
+              onRetryExpressDraft={onRetryExpressDraft}
+              onDeleteExpressDraft={onDeleteExpressDraft}
+              selectedRowIds={selectedRowIds}
+              onToggleRowSelection={onToggleRowSelection}
+              onToggleRowsSelection={onToggleRowsSelection}
+              columnResize={columnResize}
+            />
+          </div>
           {/* Add-row / drag-a-component strip. Always present on EVERY node —
               P6 lets any node hold rows even when it already has child
               sub-areas — so a quiet "Add row" affordance is always available,
@@ -423,6 +438,8 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
                 onOpenRowDetails={onOpenRowDetails}
                 onClearRowComponent={onClearRowComponent}
                 onRequestProjectSpecific={onRequestProjectSpecific}
+                onPromoteRowToLibrary={onPromoteRowToLibrary}
+                promotingRowId={promotingRowId}
                 onMoveRowComponent={onMoveRowComponent}
                 expressInsertDraftStates={expressInsertDraftStates}
                 onRetryExpressDraft={onRetryExpressDraft}
@@ -430,6 +447,7 @@ function EstimateSheetBranchBase({ node, nodeCode, ancestorPath = [], editableRo
                 selectedRowIds={selectedRowIds}
                 onToggleRowSelection={onToggleRowSelection}
                 onToggleRowsSelection={onToggleRowsSelection}
+                columnResize={columnResize}
                 nodeTotals={nodeTotals}
                 depth={depth + 1}
                 siblingIndex={childIndex}

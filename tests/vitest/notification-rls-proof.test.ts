@@ -27,6 +27,15 @@ type RlsProofFixture = {
   deliveryB: string;
 };
 
+type RlsProofCleanupTarget = {
+  userA?: Pick<RlsProofUser, "id">;
+  userB?: Pick<RlsProofUser, "id">;
+  definitionA: string;
+  definitionB: string;
+  deliveryA: string;
+  deliveryB: string;
+};
+
 function isLocalSupabaseUrl(value: string | undefined) {
   if (!value) return false;
   try {
@@ -80,7 +89,7 @@ async function createAuthenticatedClient(session: Session) {
   return supabase;
 }
 
-async function createRlsProofUser(label: string): Promise<RlsProofUser> {
+async function createRlsProofUser(label: string, onCreated?: (user: Pick<RlsProofUser, "id">) => void): Promise<RlsProofUser> {
   const admin = createAdminClient();
   const anon = createAnonClient();
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -94,6 +103,7 @@ async function createRlsProofUser(label: string): Promise<RlsProofUser> {
   });
   if (createError) throw createError;
   if (!created.user) throw new Error("Supabase did not return the RLS proof user.");
+  onCreated?.({ id: created.user.id });
 
   const { data: signedIn, error: signInError } = await anon.auth.signInWithPassword({ email, password });
   if (signInError) throw signInError;
@@ -104,74 +114,87 @@ async function createRlsProofUser(label: string): Promise<RlsProofUser> {
 
 async function createRlsProofFixture(): Promise<RlsProofFixture> {
   const admin = createAdminClient();
-  const userA = await createRlsProofUser("a");
-  const userB = await createRlsProofUser("b");
   const definitionA = randomUUID();
   const definitionB = randomUUID();
   const deliveryA = randomUUID();
   const deliveryB = randomUUID();
-  const startsAt = new Date(Date.now() - 60_000).toISOString();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const cleanupTarget: RlsProofCleanupTarget = { definitionA, definitionB, deliveryA, deliveryB };
 
-  const { error: definitionError } = await admin.from("notification_definitions").insert([
-    {
-      id: definitionA,
-      kind: "release_announcement",
-      title: "RLS proof A",
-      body: "Only user A should read this notification.",
-      severity: "info",
-      surface: "modal",
-      release_version: "0.1.0-rls-a",
-      dedupe_key: `notification-rls-a-${definitionA}`,
-      action_href: "/workshop",
-      payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
-      starts_at: startsAt,
-      expires_at: expiresAt,
-    },
-    {
-      id: definitionB,
-      kind: "system_notice",
-      title: "RLS proof B",
-      body: "Only user B should read this notification.",
-      severity: "warning",
-      surface: "center",
-      dedupe_key: `notification-rls-b-${definitionB}`,
-      action_href: "/workshop/projects",
-      payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
-      starts_at: startsAt,
-      expires_at: expiresAt,
-    },
-  ]);
-  if (definitionError) throw definitionError;
+  try {
+    const userA = await createRlsProofUser("a", (user) => {
+      cleanupTarget.userA = user;
+    });
+    cleanupTarget.userA = userA;
+    const userB = await createRlsProofUser("b", (user) => {
+      cleanupTarget.userB = user;
+    });
+    cleanupTarget.userB = userB;
+    const startsAt = new Date(Date.now() - 60_000).toISOString();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-  const { error: deliveryError } = await admin.from("notification_deliveries").insert([
-    {
-      id: deliveryA,
-      notification_id: definitionA,
-      user_id: userA.id,
-      delivery_reason: "rls_proof_user_a",
-      payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
-    },
-    {
-      id: deliveryB,
-      notification_id: definitionB,
-      user_id: userB.id,
-      delivery_reason: "rls_proof_user_b",
-      payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
-    },
-  ]);
-  if (deliveryError) throw deliveryError;
+    const { error: definitionError } = await admin.from("notification_definitions").insert([
+      {
+        id: definitionA,
+        kind: "release_announcement",
+        title: "RLS proof A",
+        body: "Only user A should read this notification.",
+        severity: "info",
+        surface: "modal",
+        release_version: "0.1.0-rls-a",
+        dedupe_key: `notification-rls-a-${definitionA}`,
+        action_href: "/workshop",
+        payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
+        starts_at: startsAt,
+        expires_at: expiresAt,
+      },
+      {
+        id: definitionB,
+        kind: "system_notice",
+        title: "RLS proof B",
+        body: "Only user B should read this notification.",
+        severity: "warning",
+        surface: "center",
+        dedupe_key: `notification-rls-b-${definitionB}`,
+        action_href: "/workshop/projects",
+        payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
+        starts_at: startsAt,
+        expires_at: expiresAt,
+      },
+    ]);
+    if (definitionError) throw definitionError;
 
-  return { userA, userB, definitionA, definitionB, deliveryA, deliveryB };
+    const { error: deliveryError } = await admin.from("notification_deliveries").insert([
+      {
+        id: deliveryA,
+        notification_id: definitionA,
+        user_id: userA.id,
+        delivery_reason: "rls_proof_user_a",
+        payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
+      },
+      {
+        id: deliveryB,
+        notification_id: definitionB,
+        user_id: userB.id,
+        delivery_reason: "rls_proof_user_b",
+        payload_json: { schemaVersion: 1, source: "notification-rls-proof" },
+      },
+    ]);
+    if (deliveryError) throw deliveryError;
+
+    return { userA, userB, definitionA, definitionB, deliveryA, deliveryB };
+  } catch (error) {
+    await cleanupRlsProofFixture(cleanupTarget);
+    throw error;
+  }
 }
 
-async function cleanupRlsProofFixture(fixture: RlsProofFixture | null) {
+async function cleanupRlsProofFixture(fixture: RlsProofFixture | RlsProofCleanupTarget | null) {
   if (!fixture) return;
   const admin = createAdminClient();
   await admin.from("notification_deliveries").delete().in("id", [fixture.deliveryA, fixture.deliveryB]);
   await admin.from("notification_definitions").delete().in("id", [fixture.definitionA, fixture.definitionB]);
-  await admin.auth.admin.deleteUser(fixture.userA.id);
-  await admin.auth.admin.deleteUser(fixture.userB.id);
+  if (fixture.userA) await admin.auth.admin.deleteUser(fixture.userA.id);
+  if (fixture.userB) await admin.auth.admin.deleteUser(fixture.userB.id);
 }
 
 const describeRlsProof = rlsProofSkipReason() ? describe.skip : describe;

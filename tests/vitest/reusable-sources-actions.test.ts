@@ -15,12 +15,16 @@ const repositoryMocks = vi.hoisted(() => ({
 const supabaseServerMocks = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
 }));
+const supabaseServiceRoleMocks = vi.hoisted(() => ({
+  createSupabaseServiceRoleClient: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/session", () => ({
   requireCurrentUserContext: authMocks.requireCurrentUserContext,
 }));
 
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/supabase/service-role", () => supabaseServiceRoleMocks);
 
 vi.mock("@/lib/repositories/workspace-repository", () => ({
   getEstimateTabs: repositoryMocks.getEstimateTabs,
@@ -46,16 +50,26 @@ function mockSearchPrefilter(
   resultByTable: Record<
     string,
     | SearchPrefilterResult
+    | SearchPrefilterResult[]
     | ((calls: SearchPrefilterCall[]) => SearchPrefilterResult)
   >,
 ) {
+  const callCountByTable = new Map<string, number>();
   const makeBuilder = (table: string) => {
     const builderCalls: SearchPrefilterCall[] = [];
+    let rangeBounds: { from: number; to: number } | null = null;
     const readResult = () => {
       const configured = resultByTable[table] ?? { data: [], error: null };
-      return typeof configured === "function"
+      const callCount = callCountByTable.get(table) ?? 0;
+      callCountByTable.set(table, callCount + 1);
+      const result = typeof configured === "function"
         ? configured(builderCalls)
-        : configured;
+        : Array.isArray(configured)
+          ? configured[Math.min(callCount, configured.length - 1)] ?? { data: [], error: null }
+          : configured;
+      return rangeBounds && Array.isArray(result.data)
+        ? { ...result, data: result.data.slice(rangeBounds.from, rangeBounds.to + 1) }
+        : result;
     };
     const builder: Record<string, unknown> = {};
     for (const method of [
@@ -66,11 +80,15 @@ function mockSearchPrefilter(
       "eq",
       "order",
       "limit",
+      "range",
     ]) {
       builder[method] = (...args: unknown[]) => {
         const call = { table, method, args };
         builderCalls.push(call);
         searchPrefilterCalls.push(call);
+        if (method === "range") {
+          rangeBounds = { from: Number(args[0]), to: Number(args[1]) };
+        }
         return builder;
       };
     }
@@ -83,6 +101,60 @@ function mockSearchPrefilter(
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
     from: (table: string) => makeBuilder(table),
   });
+}
+
+function mockReusableSearchRateLimit() {
+  const events: Array<{ scope: string; key_hash: string; occurred_at: string; expires_at: string }> = [];
+  const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
+  const makeBuilder = (table: string) => {
+    const filters: Array<{ method: string; column: string; value: unknown }> = [];
+    const builder = {
+      delete: () => {
+        calls.push({ table, method: "delete", args: [] });
+        return builder;
+      },
+      lt: (column: string, value: unknown) => {
+        calls.push({ table, method: "lt", args: [column, value] });
+        filters.push({ method: "lt", column, value });
+        return Promise.resolve({ error: null });
+      },
+      insert: (event: { scope: string; key_hash: string; expires_at: string }) => {
+        calls.push({ table, method: "insert", args: [event] });
+        events.push({
+          scope: event.scope,
+          key_hash: event.key_hash,
+          occurred_at: new Date().toISOString(),
+          expires_at: event.expires_at,
+        });
+        return Promise.resolve({ error: null });
+      },
+      select: (...args: unknown[]) => {
+        calls.push({ table, method: "select", args });
+        return builder;
+      },
+      eq: (column: string, value: unknown) => {
+        calls.push({ table, method: "eq", args: [column, value] });
+        filters.push({ method: "eq", column, value });
+        return builder;
+      },
+      gte: (column: string, value: unknown) => {
+        calls.push({ table, method: "gte", args: [column, value] });
+        filters.push({ method: "gte", column, value });
+        const count = events.filter((event) => filters.every((filter) => {
+          if (filter.method === "eq" && filter.column === "scope") return event.scope === filter.value;
+          if (filter.method === "eq" && filter.column === "key_hash") return event.key_hash === filter.value;
+          if (filter.method === "gte") return event.occurred_at >= String(filter.value);
+          return true;
+        })).length;
+        return Promise.resolve({ count, error: null });
+      },
+    };
+    return builder;
+  };
+  supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReturnValue({
+    from: (table: string) => makeBuilder(table),
+  });
+  return { calls, events };
 }
 
 const projectAId = "11111111-1111-4111-8111-111111111111";
@@ -99,8 +171,10 @@ beforeEach(() => {
   repositoryMocks.listProjectEstimateSheets.mockReset();
   repositoryMocks.listProjectEstimateSheets.mockResolvedValue([]);
   supabaseServerMocks.createSupabaseServerClient.mockReset();
+  supabaseServiceRoleMocks.createSupabaseServiceRoleClient.mockReset();
   // Default: no estimate matches the pre-filter (the search test sets the match).
   mockSearchPrefilter({});
+  mockReusableSearchRateLimit();
 });
 
 describe("reusable project source actions", () => {
@@ -384,6 +458,25 @@ describe("reusable project source actions", () => {
     ).not.toHaveBeenCalled();
   });
 
+  it("rate-limits repeated project source searches per authenticated user", async () => {
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "rate-user" });
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects: [] });
+    const rateLimit = mockReusableSearchRateLimit();
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+
+    for (let index = 0; index < 20; index += 1) {
+      await expect(searchReusableProjectSources({ query: `safe-${index}` })).resolves.toEqual({ sources: [] });
+    }
+    await expect(searchReusableProjectSources({ query: "safe-overflow" })).rejects.toThrow(
+      "Please wait a moment before searching project sources again.",
+    );
+    expect(supabaseServiceRoleMocks.createSupabaseServiceRoleClient).toHaveBeenCalledWith(
+      "archestimator-reusable-source-search-rate-limit",
+    );
+    expect(rateLimit.calls.some((call) => call.table === "security_rate_limit_events" && call.method === "insert")).toBe(true);
+    expect(rateLimit.events).toHaveLength(21);
+  });
+
   it("bounds project and estimate retrieval before prefilter work", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
@@ -411,10 +504,10 @@ describe("reusable project source actions", () => {
     await searchReusableProjectSources({ query: "missing" });
 
     expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
-      limit: 20,
+      limit: 50,
     });
     expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
-      limit: 20,
+      limit: 50,
       search: "missing",
     });
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
@@ -437,7 +530,7 @@ describe("reusable project source actions", () => {
   });
 
   it("includes project name matches from the search-aware project read before applying the cap", async () => {
-    const recentProjects = Array.from({ length: 20 }, (_, index) => ({
+    const recentProjects = Array.from({ length: 50 }, (_, index) => ({
       accessKind: "owner",
       project: {
         id: `recent-project-${index + 1}`,
@@ -460,7 +553,7 @@ describe("reusable project source actions", () => {
     const result = await searchReusableProjectSources({ query: "Smith, LLC" });
 
     expect(repositoryMocks.listCurrentWorkspaceProjects).toHaveBeenCalledWith({
-      limit: 20,
+      limit: 50,
       search: "Smith, LLC",
     });
     expect(result.sources).toContainEqual(
@@ -702,7 +795,7 @@ describe("reusable project source actions", () => {
       (call) => call.table === "estimate_nodes" && call.method === "select",
     );
     expect(nodeSelects.map((call) => call.args[0])).toEqual([
-      "id, estimate_id, estimate_tab_id, parent_id, kind, name",
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name, estimate_tabs!inner(id)",
       "id, estimate_id, parent_id, kind, name",
     ]);
     expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
@@ -721,6 +814,97 @@ describe("reusable project source actions", () => {
         nodeId: "legacy-node",
         name: "Legacy Site Works",
       }),
+    );
+  });
+
+  it("retries legacy node prefilter without the active-tab join when estimate_tabs is missing", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Legacy Estimate",
+        sheetCode: "EST-LEG",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "legacy-node",
+          name: "Legacy Site Works",
+          kind: "group",
+          total: "PHP 0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: [
+        {
+          data: null,
+          error: {
+            code: "PGRST200",
+            message: "Could not find a relationship between 'estimate_nodes' and 'estimate_tabs' in the schema cache",
+          },
+        },
+        {
+          data: [
+            {
+              id: "legacy-node",
+              estimate_id: estimateAId,
+              estimate_tab_id: tabAId,
+              parent_id: null,
+              kind: "group",
+              name: "Legacy Site Works",
+            },
+          ],
+          error: null,
+        },
+      ],
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "legacy site" });
+
+    const nodeSelects = searchPrefilterCalls.filter(
+      (call) => call.table === "estimate_nodes" && call.method === "select",
+    );
+    expect(nodeSelects.map((call) => call.args[0])).toEqual([
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name, estimate_tabs!inner(id)",
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name",
+    ]);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "project-node",
+          nodeId: "legacy-node",
+          name: "Legacy Site Works",
+        }),
+      ]),
     );
   });
 

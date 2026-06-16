@@ -15,8 +15,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
-import { loadCurrentWorkspaceComponentLibraryLite, loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
-import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
+import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
+import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
@@ -30,6 +31,8 @@ import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
+import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-flags";
+import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import { EstimateRightSidebar } from "./component-library";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
@@ -85,6 +88,10 @@ import {
   EMPTY_ESTIMATE_ROW_ITEMS,
 } from "./estimate-sheet/rows/constants";
 import {
+  collectEstimateRowItemIds,
+  replaceOptimisticTemplateRoots,
+} from "./estimate-sheet/template-insert-reconciliation";
+import {
   calculateContingencyValue,
   collectEditableRows,
   computeNodeTotal,
@@ -99,6 +106,7 @@ import {
 import { getNodeCode } from "./estimate-sheet/rows/node-visuals";
 import {
   canMakeProjectSpecific,
+  canPromoteEstimateRowToLibrary,
   type ExpressInsertDraftState,
 } from "./estimate-sheet/rows/cells";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
@@ -613,9 +621,10 @@ function EstimateSheetHeader({
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="relative sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
+    <header className="relative sticky top-0 z-30 border-b border-hairline bg-white/95 backdrop-blur" aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
+        showBottomBorder={false}
         ariaLabel="Tab tools"
         labelPrefix="tab"
         onExpandAll={onExpandAll}
@@ -1060,7 +1069,7 @@ export function EstimateSheetContent({
   reportEstimateSheetContentRender();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
-  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
+  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, promoteRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1083,6 +1092,7 @@ export function EstimateSheetContent({
     restore: restoreEstimateTree,
     getTreeRevision: getEstimateTreeRevision,
   } = dataTabId ? tabTreeQuery : legacyTreeQuery;
+  const estimatePointerSurfaceRef = useRef<HTMLDivElement | null>(null);
   const skipEditableRowsSyncRef = useRef(0);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const expressInsertDraftsRef = useRef<Record<string, ExpressInsertDraft>>({});
@@ -1098,6 +1108,31 @@ export function EstimateSheetContent({
   const [isDownloadingProposal, setIsDownloadingProposal] = useState(false);
   const [proposalDownloadError, setProposalDownloadError] = useState<string | null>(null);
   const [proposalExportSettings, setProposalExportSettings] = useState<ProposalExportUserSettings>(DEFAULT_PROPOSAL_EXPORT_USER_SETTINGS);
+  const estimateColumnResizeEnabled = WORKSHOP_VIRTUALIZATION_FLAGS.estimateColumnResize;
+  const committedEstimateColumnWidths = useEstimateColumnWidthsStore((state) =>
+    estimateId ? state.widthsByEstimateId[estimateId] ?? state.lastUsedWidths : EMPTY_ESTIMATE_COLUMN_WIDTHS,
+  );
+  const hydrateEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.hydrateEstimateColumnWidths);
+  const commitEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.commitEstimateColumnWidths);
+  const resetEstimateColumnWidths = useEstimateColumnWidthsStore((state) => state.resetEstimateColumnWidths);
+  const estimateColumnStyle = useMemo(
+    () => (estimateColumnResizeEnabled ? buildEstimateColumnVars(committedEstimateColumnWidths) : undefined),
+    [committedEstimateColumnWidths, estimateColumnResizeEnabled],
+  );
+  const estimateColumnResizeConfig = useMemo(() => {
+    if (!estimateColumnResizeEnabled || !estimateId) return undefined;
+    return {
+      surfaceRef: estimatePointerSurfaceRef,
+      widths: committedEstimateColumnWidths,
+      onCommitWidths: (widths: typeof committedEstimateColumnWidths) => commitEstimateColumnWidths(estimateId, widths),
+      onResetWidths: () => resetEstimateColumnWidths(estimateId),
+    };
+  }, [commitEstimateColumnWidths, committedEstimateColumnWidths, estimateColumnResizeEnabled, estimateId, resetEstimateColumnWidths]);
+
+  useEffect(() => {
+    if (!estimateColumnResizeEnabled || !estimateId) return;
+    hydrateEstimateColumnWidths(estimateId);
+  }, [estimateColumnResizeEnabled, estimateId, hydrateEstimateColumnWidths]);
 
   const setExpressInsertDrafts = useStableCallback((updater: SetStateAction<Record<string, ExpressInsertDraft>>) => {
     setExpressInsertDraftsState((current) => {
@@ -1119,6 +1154,7 @@ export function EstimateSheetContent({
   const activityScopeDirectOnly = useEstimateUiStore((s) => s.activityScopeDirectOnly);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
+  const [promotingRowId, setPromotingRowId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
   const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -1147,13 +1183,16 @@ export function EstimateSheetContent({
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
   const lazyLibraryQueryKey = projectId
-    ? [...WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, "project", projectId] as const
-    : WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY;
+    ? workspaceComponentLibraryLiteQueryKey(projectId)
+    : workspaceComponentLibraryLiteQueryKey("missing-project");
   const libraryQuery = useQuery({
     // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
     // dataset under its own key — never the full-graph key the editor surfaces use.
     queryKey: lazyLibraryQueryKey,
-    queryFn: () => projectId ? loadProjectComponentLibraryLite(projectId) : loadCurrentWorkspaceComponentLibraryLite(),
+    queryFn: () => {
+      if (!projectId) throw new Error("Project id is required to load the component library.");
+      return loadProjectComponentLibraryLite(projectId);
+    },
     enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
     staleTime: 5 * 60 * 1000,
     // U19: keep the warmed cache long after navigate-away so returning to the
@@ -2046,6 +2085,8 @@ export function EstimateSheetContent({
       const previousRows = editableRows;
       const rollbackRevision = getEstimateTreeRevision();
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
+      const optimisticRootNodeIds = new Set(optimisticTemplateNodes.map((node) => node.id));
+      const optimisticRowItemIds = collectEstimateRowItemIds(optimisticTemplateNodes);
       const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
       const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
       setEditableRows((current) => ({ ...current, ...nextEditableRows }));
@@ -2060,12 +2101,40 @@ export function EstimateSheetContent({
           targetTabId: dataTabId,
         })
           .then((result) => {
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+            if (result.partialFailureMessage) {
+              const serverTargetParentNode = findEstimateNode(result.tree, targetParentNodeId);
+              const committedRootNodeIds = new Set(result.insertedRootNodeIds);
+              const committedRootNodes = (serverTargetParentNode?.children ?? []).filter((node) => committedRootNodeIds.has(node.id));
+              if (getEstimateTreeRevision() === nextRevision) {
+                setEstimateTree(() => result.tree);
+              } else {
+                setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, committedRootNodes));
+              }
+              setEditableRows((current) => {
+                const next = { ...current, ...collectEditableRows(committedRootNodes) };
+                for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
+                return next;
+              });
+              console.error("[estimate] template batch insert partially failed", result.partialFailureMessage);
+              toast({ tone: "error", message: "Some templates couldn't be inserted. The sheet has been refreshed." });
+            } else if (getEstimateTreeRevision() === nextRevision) {
+              setEstimateTree(() => result.tree);
+            }
           })
           .catch((error: unknown) => {
             console.error("[estimate] template batch insert failed", error);
             toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
+            const expectedRevision = nextRevision ?? rollbackRevision;
+            if (getEstimateTreeRevision() === expectedRevision) {
+              restoreEstimateState(previousTree, previousRows, expectedRevision);
+            } else {
+              setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, []));
+              setEditableRows((current) => {
+                const next = { ...current };
+                for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
+                return next;
+              });
+            }
           });
       }
 
@@ -2381,6 +2450,64 @@ export function EstimateSheetContent({
     const rowItem = findEstimateRowItem(estimateTree, rowItemId);
     if (!rowItem || !canMakeProjectSpecific(rowItem)) return;
     setProjectSpecificRowId(rowItemId);
+  });
+
+  const promoteRowToLibrary = useStableCallback((rowItemId: string) => {
+    if (!projectId || !estimateId) return;
+    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
+    if (!rowItem || !canPromoteEstimateRowToLibrary(rowItem)) {
+      toast({ tone: "error", message: "This row is not eligible to promote to the library." });
+      return;
+    }
+    if (saveState === "dirty" || saveState === "saving") {
+      toast({ tone: "error", message: "Finish saving row edits before promoting this component." });
+      return;
+    }
+
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
+    const rollbackRevision = getEstimateTreeRevision();
+    setPromotingRowId(rowItemId);
+    promoteRow({
+      projectId,
+      estimateId,
+      rowId: rowItemId,
+      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      onSuccess: (result) => {
+        setEstimateTree((current) =>
+          current.map((node) => {
+            function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
+              return {
+                ...areaNode,
+                estimateRowItems: areaNode.estimateRowItems?.map((item) => {
+                  if (item.id !== rowItemId) return item;
+                  const metadata = readEstimateRowMetadata(item.metadata);
+                  delete metadata.expressComponent;
+                  delete metadata.projectComponentProjection;
+                  return {
+                    ...item,
+                    source: "library",
+                    sourceLibraryItemId: result.itemId,
+                    metadata,
+                    linkState: "linked-clean",
+                  };
+                }),
+                children: areaNode.children?.map(visit),
+              };
+            }
+            return visit(node);
+          }),
+        );
+        setPromotingRowId(null);
+        refetchProjectComponentProjection();
+        handleLibraryDataChanged();
+        toast({ tone: "success", message: `${rowItem.material || "Component"} promoted to the workspace library.` });
+      },
+      onError: (error) => {
+        setPromotingRowId(null);
+        toast({ tone: "error", message: error.message || "Could not promote component." });
+      },
+    });
   });
 
   function confirmProjectSpecific() {
@@ -2703,39 +2830,44 @@ export function EstimateSheetContent({
           <>
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div
+                ref={estimatePointerSurfaceRef}
                 className={cn("relative min-h-0 flex-1 overflow-auto px-2 pt-2", bulkSelectedRowCount > 0 ? "pb-16" : "pb-2")}
+                style={estimateColumnStyle}
                 data-estimate-pointer-surface
               >
                 <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
                 {displayedSheetNode ? (
                   <EstimateSheetExpansionContext.Provider value={sheetExpansionContextValue}>
-                  <EstimateSheetVirtualBranchList
-                    node={displayedSheetNode}
-                    nodeCode={selectedNodePresentation.nodeCode}
-                    ancestorPath={selectedNodePresentation.ancestorPath}
-                    editableRows={editableRows}
-                    setEditableRows={setEditableRows}
-                    onInsertLibraryItem={insertLibraryItem}
-                    onInsertTemplates={insertTemplatesIntoParentById}
-                    onInsertTemplateNode={insertTemplateNodeIntoParentById}
-                    onAddBlankRow={insertBlankRow}
-                    onReplaceRowItem={replaceRowItem}
-                    onDeleteRowItem={deleteRowItem}
-                    onUpdateRowItem={updateRowItem}
-                    onMarkRowDirty={markRowDirty}
-                    onOpenRowDetails={openRowDetails}
-                    onClearRowComponent={clearRowComponent}
-                    onRequestProjectSpecific={requestProjectSpecific}
-                    onMoveRowComponent={moveRowComponent}
-                    expressInsertDraftStates={expressInsertDraftStates}
-                    onRetryExpressDraft={retryExpressDraft}
-                    onDeleteExpressDraft={deleteExpressDraft}
-                    selectedRowIds={bulkSelectedRowIds}
-                    onToggleRowSelection={toggleRowSelection}
-                    onToggleRowsSelection={toggleRowsSelection}
-                    nodeTotals={displayedNodeTotals}
-                  />
-                </EstimateSheetExpansionContext.Provider>
+                    <EstimateSheetVirtualBranchList
+                      node={displayedSheetNode}
+                      nodeCode={selectedNodePresentation.nodeCode}
+                      ancestorPath={selectedNodePresentation.ancestorPath}
+                      editableRows={editableRows}
+                      setEditableRows={setEditableRows}
+                      onInsertLibraryItem={insertLibraryItem}
+                      onInsertTemplates={insertTemplatesIntoParentById}
+                      onInsertTemplateNode={insertTemplateNodeIntoParentById}
+                      onAddBlankRow={insertBlankRow}
+                      onReplaceRowItem={replaceRowItem}
+                      onDeleteRowItem={deleteRowItem}
+                      onUpdateRowItem={updateRowItem}
+                      onMarkRowDirty={markRowDirty}
+                      onOpenRowDetails={openRowDetails}
+                      onClearRowComponent={clearRowComponent}
+                      onRequestProjectSpecific={requestProjectSpecific}
+                      onPromoteRowToLibrary={promoteRowToLibrary}
+                      promotingRowId={promotingRowId}
+                      onMoveRowComponent={moveRowComponent}
+                      expressInsertDraftStates={expressInsertDraftStates}
+                      onRetryExpressDraft={retryExpressDraft}
+                      onDeleteExpressDraft={deleteExpressDraft}
+                      selectedRowIds={bulkSelectedRowIds}
+                      onToggleRowSelection={toggleRowSelection}
+                      onToggleRowsSelection={toggleRowsSelection}
+                      columnResize={estimateColumnResizeConfig}
+                      nodeTotals={displayedNodeTotals}
+                    />
+                  </EstimateSheetExpansionContext.Provider>
                 ) : (
                   <div className="mt-4 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center text-[10px] leading-4 text-tertiary">
                     No rows in this tab match &quot;{sheetSearchQuery}&quot;.
