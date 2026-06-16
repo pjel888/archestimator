@@ -251,8 +251,36 @@ export async function deleteProjectGroup(input: { groupId: string }): Promise<vo
   revalidateWorkshop();
 }
 
-export async function reorderProjectGroups(_input: { orderedGroupIds: string[] }): Promise<void> {
-  throw new Error("not implemented");
+export async function reorderProjectGroups(input: { orderedGroupIds: string[] }): Promise<void> {
+  // Bound the batch (mirror the bulk-assign cap) so a caller cannot force an
+  // unbounded fan-out of UPDATEs. A user can have at most MAX_PROJECT_GROUPS groups.
+  if (input.orderedGroupIds.length > MAX_PROJECT_GROUPS) {
+    throw new Error(`Cannot reorder more than ${MAX_PROJECT_GROUPS} groups at once.`);
+  }
+  for (const id of input.orderedGroupIds) {
+    assertUuid(id, "Group");
+  }
+  if (input.orderedGroupIds.length === 0) return;
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  const now = new Date().toISOString();
+  await Promise.all(
+    input.orderedGroupIds.map((groupId, index) =>
+      supabase
+        .from("project_groups")
+        .update({ position: index, updated_at: now })
+        .eq("id", groupId)
+        .eq("user_id", profile.id)
+        .eq("workspace_id", workspace.id)
+        .then(({ error }) => {
+          if (error) throw error;
+        }),
+    ),
+  );
+
+  revalidateWorkshop();
 }
 
 export async function moveProjectToGroup(_input: {

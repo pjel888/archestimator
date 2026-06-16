@@ -374,3 +374,41 @@ describe("deleteProjectGroup", () => {
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
   });
 });
+
+describe("reorderProjectGroups", () => {
+  it("rejects when any id is not a uuid (before any write)", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { reorderProjectGroups } = await import("@/lib/workshop/group-actions");
+
+    await expect(
+      reorderProjectGroups({ orderedGroupIds: [GROUP_ID, "not-a-uuid"] }),
+    ).rejects.toThrow(/invalid/i);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("is a no-op (no write, no revalidate) for an empty array", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { reorderProjectGroups } = await import("@/lib/workshop/group-actions");
+
+    await reorderProjectGroups({ orderedGroupIds: [] });
+    expect(stub.calls).toEqual([]);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("writes position = array index for each id, scoped to the owner", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: null, error: null });
+    stub.queueResult("project_groups", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { reorderProjectGroups } = await import("@/lib/workshop/group-actions");
+
+    await reorderProjectGroups({ orderedGroupIds: [GROUP_ID_2, GROUP_ID] });
+
+    const updates = stub.calls.filter((c) => c.op === "update");
+    expect(updates).toHaveLength(2);
+    expect(updates.map((u) => (u.payload as { position: number }).position).sort()).toEqual([0, 1]);
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects");
+  });
+});
