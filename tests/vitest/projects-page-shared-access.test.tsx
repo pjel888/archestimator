@@ -167,7 +167,9 @@ describe("ProjectsPageClient shared access", () => {
     const card = screen.getByLabelText("Lewis Residence project, owned access");
     expect(card.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
     expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
-    expect(within(card).getByText("4 opens")).toBeInTheDocument();
+    // NOTE: the inline "N opens" activity count was removed from the card in the
+    // concurrent card-links refactor (formatOpenCount/renderOpenActivityRow deleted,
+    // replaced by an icon-based Open action). Assertion dropped to match the shipped card.
   });
 
   it("does not show the empty sample state when only shared projects exist", () => {
