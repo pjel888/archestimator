@@ -356,46 +356,46 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const termsStatus = await getCurrentUserTermsAcceptanceStatus(userContext.userId);
-  if (termsStatus.requiresAcceptance) {
-    return NextResponse.json(
-      { error: "Current Terms acceptance is required before using protected workshop APIs." },
-      { status: 403 },
-    );
-  }
-
-  // P1-T10: per-user (+ client IP) rate limit on the heaviest endpoint in this surface.
-  const rateLimit = await checkProposalExportRateLimit({ userId: userContext.userId, request });
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: rateLimit.message, retryAfter: rateLimit.retryAfter },
-      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
-    );
-  }
-
   const startedAt = Date.now();
   const { projectId, estimateId } = await context.params;
   const url = new URL(request.url);
   const tabId = url.searchParams.get("tab");
 
-  // P2-T2/§C.2-C.3: validate export settings off the wire → 400 on malformed input (no silent
-  // clamp). The audience is NOT taken from here; it is server-resolved in build*Response.
-  const parsedSettings = parseExportSettings(url.searchParams);
-  if (!parsedSettings.ok) {
-    return NextResponse.json({ error: parsedSettings.error }, { status: 400 });
-  }
-  const exportContext: ProposalExportContext = {
-    startedAt,
-    estimateId,
-    userId: userContext.userId,
-    requestedSettings: parsedSettings.settings,
-    requestedInternal: parsedSettings.requestedInternal,
-  };
-
   // F-13 (P1-T4): one try/catch around the whole build so a DB/ExcelJS/throw becomes a
   // logged JSON 500 (consumed by the fetch-then-blob client), never an unhandled stack page.
   // `return await` is required so a rejected build promise is caught here, not escaped.
   try {
+    const termsStatus = await getCurrentUserTermsAcceptanceStatus(userContext.userId);
+    if (termsStatus.requiresAcceptance) {
+      return NextResponse.json(
+        { error: "Current Terms acceptance is required before using protected workshop APIs." },
+        { status: 403 },
+      );
+    }
+
+    // P1-T10: per-user (+ client IP) rate limit on the heaviest endpoint in this surface.
+    const rateLimit = await checkProposalExportRateLimit({ userId: userContext.userId, request });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: rateLimit.message, retryAfter: rateLimit.retryAfter },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } },
+      );
+    }
+
+    // P2-T2/§C.2-C.3: validate export settings off the wire → 400 on malformed input (no silent
+    // clamp). The audience is NOT taken from here; it is server-resolved in build*Response.
+    const parsedSettings = parseExportSettings(url.searchParams);
+    if (!parsedSettings.ok) {
+      return NextResponse.json({ error: parsedSettings.error }, { status: 400 });
+    }
+    const exportContext: ProposalExportContext = {
+      startedAt,
+      estimateId,
+      userId: userContext.userId,
+      requestedSettings: parsedSettings.settings,
+      requestedInternal: parsedSettings.requestedInternal,
+    };
+
     if (tabId) return await buildSingleTabResponse(projectId, estimateId, tabId, exportContext);
 
     // U1-5 (legacy fallback, from origin/main): without estimate_tabs applied, listing tabs
