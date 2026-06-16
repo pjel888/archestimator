@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -68,6 +68,18 @@ function createFavoritePrefetchRoutes(favoriteProjects: MainSidebarFavoriteProje
   ]);
 }
 
+/**
+ * Flattens the favorites list into the same top-to-bottom order the links render
+ * in (project, then its sheets, then the next project). Focus rescue (08) scans
+ * this order to land on the nearest surviving favorite when a focused link leaves.
+ */
+function getFavoriteLinkOrder(favoriteProjects: MainSidebarFavoriteProject[]) {
+  return favoriteProjects.flatMap((project) => [
+    project.href,
+    ...project.favoriteEstimateSheets.map((sheet) => sheet.href),
+  ]);
+}
+
 function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
   const base = [
     "group relative flex h-7 min-w-0 items-center gap-2 overflow-hidden rounded-xs outline-none transition-colors duration-[120ms] ease-out",
@@ -93,6 +105,55 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
   const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
   const showEmptyHint = !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
   const { politeText, assertiveText } = useSidebarFavoritesAnnouncer();
+  const navRef = useRef<HTMLElement | null>(null);
+  // Tracks which favorite link (by href) currently holds focus, plus the previous
+  // render's DOM-order href list — both feed the focus-rescue effect (08, QA-18/21).
+  const focusedFavoriteHrefRef = useRef<string | null>(null);
+  const favoriteLinkOrder = useMemo(() => getFavoriteLinkOrder(liveFavoriteProjects), [liveFavoriteProjects]);
+  const previousFavoriteOrderRef = useRef<string[]>(favoriteLinkOrder);
+
+  // Focus rescue: when the favorite link that held focus is removed (unfavorited),
+  // move focus to the nearest surviving favorite in DOM order — nearest-above first,
+  // then nearest-below — and fall back to the favorites header when the list empties.
+  // Without this, focus drops to <body> on optimistic removal (08 Focus management).
+  useLayoutEffect(() => {
+    const previousOrder = previousFavoriteOrderRef.current;
+    previousFavoriteOrderRef.current = favoriteLinkOrder;
+
+    const focusedHref = focusedFavoriteHrefRef.current;
+    if (!focusedHref) return;
+    if (favoriteLinkOrder.includes(focusedHref)) return; // focused link survived
+
+    focusedFavoriteHrefRef.current = null;
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const surviving = new Set(favoriteLinkOrder);
+    const removedIndex = previousOrder.indexOf(focusedHref);
+
+    // Nearest-above (then nearest-below) surviving href in the prior DOM order.
+    let targetHref: string | null = null;
+    for (let i = removedIndex - 1; i >= 0; i -= 1) {
+      if (surviving.has(previousOrder[i]!)) { targetHref = previousOrder[i]!; break; }
+    }
+    if (!targetHref) {
+      for (let i = removedIndex + 1; i < previousOrder.length; i += 1) {
+        if (surviving.has(previousOrder[i]!)) { targetHref = previousOrder[i]!; break; }
+      }
+    }
+
+    if (targetHref) {
+      const target = nav.querySelector<HTMLElement>(
+        `[data-sidebar-favorite-project] a[href="${targetHref}"], [data-sidebar-favorite-sheet][href="${targetHref}"], a[href="${targetHref}"]`,
+      );
+      if (target) {
+        target.focus();
+        return;
+      }
+    }
+
+    nav.querySelector<HTMLElement>("[data-sidebar-favorites-header]")?.focus();
+  }, [favoriteLinkOrder]);
   const favoritePrefetchRoutes = useMemo(() => createFavoritePrefetchRoutes(liveFavoriteProjects), [liveFavoriteProjects]);
   const prefetchRoutes = useMemo(() => [...sidebarPrefetchRoutes, ...favoritePrefetchRoutes], [favoritePrefetchRoutes]);
   const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
@@ -183,6 +244,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
         />
       )}
       <nav
+        ref={navRef}
         aria-label="Main navigation"
         className="fixed left-0 top-0 z-[100] hidden h-[100dvh] flex-col overflow-hidden bg-white will-change-[clip-path] lg:flex"
         style={sidebarStyle}
@@ -266,8 +328,19 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                         prefetch={false}
                         aria-current={projectActive ? "page" : undefined}
                         title={project.projectCode ? `${project.name} (${project.projectCode})` : project.name}
-                        onBlur={() => cancel(project.href)}
-                        onFocus={() => prefetch(project.href)}
+                        onBlur={(event) => {
+                          cancel(project.href);
+                          // Only clear focus tracking on a genuine focus-out. When the link is
+                          // unmounted (unfavorited), it blurs while detached — keep the ref so
+                          // the rescue effect can move focus to a surviving favorite.
+                          if (event.currentTarget.isConnected && focusedFavoriteHrefRef.current === project.href) {
+                            focusedFavoriteHrefRef.current = null;
+                          }
+                        }}
+                        onFocus={() => {
+                          prefetch(project.href);
+                          focusedFavoriteHrefRef.current = project.href;
+                        }}
                         onMouseEnter={() => prefetch(project.href)}
                         onMouseLeave={() => cancel(project.href)}
                         className={getFavoriteLinkClassName(projectActive, "project")}
@@ -287,8 +360,16 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                                 prefetch={false}
                                 aria-current={sheetActive ? "page" : undefined}
                                 title={sheet.sheetCode ? `${sheet.name} (${sheet.sheetCode})` : sheet.name}
-                                onBlur={() => cancel(sheet.href)}
-                                onFocus={() => prefetch(sheet.href)}
+                                onBlur={(event) => {
+                                  cancel(sheet.href);
+                                  if (event.currentTarget.isConnected && focusedFavoriteHrefRef.current === sheet.href) {
+                                    focusedFavoriteHrefRef.current = null;
+                                  }
+                                }}
+                                onFocus={() => {
+                                  prefetch(sheet.href);
+                                  focusedFavoriteHrefRef.current = sheet.href;
+                                }}
                                 onMouseEnter={() => prefetch(sheet.href)}
                                 onMouseLeave={() => cancel(sheet.href)}
                                 className={getFavoriteLinkClassName(sheetActive, "sheet")}
