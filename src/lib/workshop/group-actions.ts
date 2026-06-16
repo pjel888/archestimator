@@ -124,11 +124,66 @@ async function verifyOwnedProjectIds(
 
 // Stub bodies replaced task-by-task below. Each throws until implemented so the
 // failing tests are honest (not silent no-ops).
-export async function createProjectGroup(_input: {
+export async function createProjectGroup(input: {
   name: string;
   accentId?: string | null;
 }): Promise<{ id: string }> {
-  throw new Error("not implemented");
+  const name = normalizeGroupName(input.name);
+  const accentId = normalizeAccentId(input.accentId);
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  // Cap: 50 groups per user per workspace (Q2 soft-cap; app-layer only).
+  const { count, error: countError } = await supabase
+    .from("project_groups")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id);
+
+  if (countError) throw countError;
+  if ((count ?? 0) >= MAX_PROJECT_GROUPS) {
+    throw new ProjectGroupCapError(
+      `You can have at most ${MAX_PROJECT_GROUPS} groups. Delete one to add another.`,
+    );
+  }
+
+  // position = max(existing) + 1 (append to end). Highest first, take one row.
+  const { data: lastRow, error: positionError } = await supabase
+    .from("project_groups")
+    .select("position")
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (positionError) throw positionError;
+  const nextPosition = lastRow ? (lastRow.position ?? 0) + 1 : 0;
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("project_groups")
+    .insert({
+      workspace_id: workspace.id,
+      user_id: profile.id,
+      name,
+      accent_id: accentId,
+      position: nextPosition,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    // A name-index 23505 ⇒ duplicate name; any other 23505 (or error) rethrows raw.
+    if (isDuplicateNameViolation(insertError)) {
+      throw new ProjectGroupNameError("A group with this name already exists.");
+    }
+    throw insertError;
+  }
+  if (!inserted) throw new Error("Group could not be created.");
+
+  revalidateWorkshop();
+  return { id: inserted.id };
 }
 
 export async function renameProjectGroup(_input: { groupId: string; name: string }): Promise<void> {

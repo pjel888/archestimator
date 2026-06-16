@@ -121,3 +121,102 @@ describe("project group actions module", () => {
     expect(typeof mod.bulkAssignProjectsToGroup).toBe("function");
   });
 });
+
+describe("createProjectGroup", () => {
+  it("rejects an empty name without touching the database", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+
+    await expect(createProjectGroup({ name: "   " })).rejects.toBeInstanceOf(ProjectGroupNameError);
+    expect(stub.calls).toEqual([]);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rejects a name longer than 40 characters", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+
+    await expect(createProjectGroup({ name: "x".repeat(41) })).rejects.toBeInstanceOf(ProjectGroupNameError);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("rejects creation when the user is already at the 50-group cap", async () => {
+    const stub = makeSupabaseStub();
+    // First read = count of existing groups for (user, workspace) returns 50.
+    stub.queueResult("project_groups", { data: [], error: null, count: 50 });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup, ProjectGroupCapError } = await import("@/lib/workshop/group-actions");
+
+    await expect(createProjectGroup({ name: "Pipeline" })).rejects.toBeInstanceOf(ProjectGroupCapError);
+    // No insert happened.
+    expect(stub.calls.some((c) => c.op === "insert")).toBe(false);
+  });
+
+  it("trims the name, appends at position max+1, validates accent, and returns the new id", async () => {
+    const stub = makeSupabaseStub();
+    // 1) cap count read (3 existing groups)
+    stub.queueResult("project_groups", { data: [], error: null, count: 3 });
+    // 2) max(position) read returns the highest existing position (4) via .maybeSingle()
+    stub.queueResult("project_groups", { data: { position: 4 }, error: null });
+    // 3) insert ... select("id").single()
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    const result = await createProjectGroup({ name: "  Pipeline  ", accentId: "teal" });
+
+    expect(result).toEqual({ id: GROUP_ID });
+    const insert = stub.calls.find((c) => c.op === "insert");
+    expect(insert?.payload).toEqual({
+      workspace_id: WORKSPACE_ID,
+      user_id: USER_ID,
+      name: "Pipeline",
+      accent_id: "teal",
+      position: 5,
+    });
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop");
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects");
+  });
+
+  it("defaults position to 0 when the user has no groups yet", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: [], error: null, count: 0 }); // cap
+    stub.queueResult("project_groups", { data: null, error: null }); // max position: none
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null }); // insert
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await createProjectGroup({ name: "First", accentId: null });
+
+    const insert = stub.calls.find((c) => c.op === "insert");
+    expect((insert?.payload as { position: number }).position).toBe(0);
+    expect((insert?.payload as { accent_id: string | null }).accent_id).toBeNull();
+  });
+
+  it("rejects an unknown accent token", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(createProjectGroup({ name: "Pipeline", accentId: "neon" })).rejects.toThrow(/accent/i);
+    expect(stub.calls.some((c) => c.op === "insert")).toBe(false);
+  });
+
+  it("translates a duplicate-name unique violation (23505) into a name error", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: [], error: null, count: 1 }); // cap
+    stub.queueResult("project_groups", { data: { position: 0 }, error: null }); // max position
+    // The duplicate-name index raises 23505 with the name-index constraint, which
+    // isDuplicateNameViolation() matches by name (LD-8).
+    stub.queueResult("project_groups", {
+      data: null,
+      error: { code: "23505", constraint: "project_groups_user_workspace_lower_name_idx", message: "duplicate key" },
+    }); // insert
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { createProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+
+    await expect(createProjectGroup({ name: "Pipeline" })).rejects.toBeInstanceOf(ProjectGroupNameError);
+  });
+});
