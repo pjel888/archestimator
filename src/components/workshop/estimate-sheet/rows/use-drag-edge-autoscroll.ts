@@ -91,6 +91,15 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
 
     const handleDragLeave = (event: DragEvent) => {
       if (event.relatedTarget instanceof Node && scroller.contains(event.relatedTarget)) return;
+      const rect = scroller.getBoundingClientRect();
+      if (
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      ) {
+        return;
+      }
       stop();
     };
 
