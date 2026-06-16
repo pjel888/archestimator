@@ -336,3 +336,41 @@ describe("accent token contract", () => {
     }
   });
 });
+
+describe("deleteProjectGroup", () => {
+  it("rejects a non-uuid group id", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { deleteProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(deleteProjectGroup({ groupId: "bad" })).rejects.toThrow(/invalid/i);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("deletes only the group row scoped to the owning user; never touches projects", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { deleteProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await deleteProjectGroup({ groupId: GROUP_ID });
+
+    const deletes = stub.calls.filter((c) => c.op === "delete");
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0]?.table).toBe("project_groups");
+    // It must NEVER delete from projects or from memberships directly (cascade does that).
+    expect(stub.calls.some((c) => c.table === "projects")).toBe(false);
+    expect(stub.calls.some((c) => c.table === "project_group_memberships")).toBe(false);
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop");
+  });
+
+  it("propagates a delete error", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("project_groups", { data: null, error: { message: "boom" } });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { deleteProjectGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(deleteProjectGroup({ groupId: GROUP_ID })).rejects.toMatchObject({ message: "boom" });
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});

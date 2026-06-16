@@ -231,8 +231,24 @@ export async function recolorProjectGroup(input: {
   revalidateWorkshop();
 }
 
-export async function deleteProjectGroup(_input: { groupId: string }): Promise<void> {
-  throw new Error("not implemented");
+export async function deleteProjectGroup(input: { groupId: string }): Promise<void> {
+  assertUuid(input.groupId, "Group");
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  // Delete only the group definition. Membership rows cascade (ON DELETE CASCADE
+  // on project_group_memberships.group_id) -> projects fall to virtual Ungrouped.
+  // This NEVER deletes any project (D10).
+  const { error } = await supabase
+    .from("project_groups")
+    .delete()
+    .eq("id", input.groupId)
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id);
+
+  if (error) throw error;
+  revalidateWorkshop();
 }
 
 export async function reorderProjectGroups(_input: { orderedGroupIds: string[] }): Promise<void> {
