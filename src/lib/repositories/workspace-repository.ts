@@ -800,16 +800,21 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
   return { workspace, profile };
 });
 
-export async function listCurrentWorkspaceProjects() {
+export async function listCurrentWorkspaceProjects(options: { limit?: number } = {}) {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
+  const projectLimit =
+    typeof options.limit === "number" && options.limit > 0
+      ? Math.floor(options.limit)
+      : null;
+  const projectsQuery = supabase
+    .from("projects")
+    .select("*")
+    .eq("workspace_id", workspace.id)
+    .order("updated_at", { ascending: false });
 
   const [projectsResult, favoritesResult, estimateFavoritesResult, projectMembersResult, sheetMembersResult, workspaceMembershipResult] = await Promise.all([
-    supabase
-      .from("projects")
-      .select("*")
-      .eq("workspace_id", workspace.id)
-      .order("updated_at", { ascending: false }),
+    projectLimit ? projectsQuery.limit(projectLimit) : projectsQuery,
     supabase
       .from("project_favorites")
       .select("project_id")
@@ -856,7 +861,12 @@ export async function listCurrentWorkspaceProjects() {
       ...projectMembers.map((member) => member.project_id),
       ...sheetMembers.map((member) => member.project_id),
     ]),
-  ).filter((projectId) => !ownedProjectIds.has(projectId));
+  )
+    .filter((projectId) => !ownedProjectIds.has(projectId))
+    .slice(
+      0,
+      projectLimit ? Math.max(projectLimit - ownedProjects.length, 0) : undefined,
+    );
 
   let sharedProjects: Tables<"projects">[] = [];
   if (sharedProjectIds.length > 0) {
@@ -922,7 +932,7 @@ export async function listCurrentWorkspaceProjects() {
     ...sharedProjects.map((project) => {
       return createProjectListItem(project);
     }),
-  ];
+  ].slice(0, projectLimit ?? undefined);
   const publicationRows = await readOptionalProjectPublications(
     supabase,
     Array.from(new Set(projectItems.map((item) => item.project.id))),
@@ -1542,11 +1552,14 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
  * Used by ProjectPublicationHeader (Estimates tab picker) for selection without loading heavy node/row aggregates.
  * Additive for Shared Link Overhaul V2 (P1).
  */
-export async function listProjectEstimateSheets(projectId: string): Promise<ProjectEstimateSheetSummary[]> {
+export async function listProjectEstimateSheets(
+  projectId: string,
+  options: { limit?: number } = {},
+): Promise<ProjectEstimateSheetSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
 
-  return listProjectEstimateSheetsForProject(project.id);
+  return listProjectEstimateSheetsForProject(project.id, options);
 }
 
 type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
