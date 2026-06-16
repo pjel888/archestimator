@@ -61,7 +61,11 @@ describe("project dashboard side-panel UI governance", () => {
   it("plumbs estimate-list edit capabilities before rendering mutation controls", () => {
     expect(projectEstimatesPage).toContain("resolveEstimateListEditCapabilities(projectId, estimateIds)");
     expect(projectEstimatesPage).toContain('supabase.rpc("can_edit_project"');
-    expect(projectEstimatesPage).toContain('supabase.rpc("can_edit_estimate"');
+    expect(projectEstimatesPage).not.toContain('supabase.rpc("can_edit_estimate"');
+    expect(projectEstimatesPage).not.toContain("estimateIds.map(async");
+    expect(projectEstimatesPage).toContain('.from("estimate_sheet_members")');
+    expect(projectEstimatesPage).toContain('.from("estimate_sheet_access_settings")');
+    expect(projectEstimatesPage).toContain('.in("role", ["owner", "admin", "editor"])');
     expect(projectEstimatesPage).toContain("canCreateEstimates={editCapabilities.canCreateEstimates}");
     expect(projectEstimatesPage).toContain("canEditEstimateById={editCapabilities.canEditEstimateById}");
     expect(projectEstimatesClient).toContain("canCreateEstimates");

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
+import { requireCurrentUserContext } from "@/lib/auth/session";
 import { listCurrentUserEstimateFavoriteCreatedAtById } from "@/lib/repositories/estimate-favorites-repository";
 import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -46,18 +47,49 @@ export default async function ProjectEstimatesPage({ params }: ProjectEstimatesP
 
 async function resolveEstimateListEditCapabilities(projectId: string, estimateIds: string[]) {
   const supabase = await createSupabaseServerClient();
-  const [{ data: canEditProject, error: projectEditError }, estimateEntries] = await Promise.all([
+  if (estimateIds.length === 0) {
+    const { data, error } = await supabase.rpc("can_edit_project", { target_project_id: projectId });
+    return {
+      canCreateEstimates: error ? false : data === true,
+      canEditEstimateById: {},
+    };
+  }
+
+  const currentUser = await requireCurrentUserContext();
+  const [projectEditResult, sheetMembershipsResult, sheetSettingsResult] = await Promise.all([
     supabase.rpc("can_edit_project", { target_project_id: projectId }),
-    Promise.all(
-      estimateIds.map(async (estimateId) => {
-        const { data, error } = await supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId });
-        return [estimateId, error ? false : data === true] as const;
-      }),
-    ),
+    supabase
+      .from("estimate_sheet_members")
+      .select("estimate_id")
+      .eq("user_id", currentUser.userId)
+      .in("estimate_id", estimateIds)
+      .in("role", ["owner", "admin", "editor"]),
+    supabase
+      .from("estimate_sheet_access_settings")
+      .select("estimate_id, inherit_project_access")
+      .in("estimate_id", estimateIds),
   ]);
 
+  const canEditProject = projectEditResult.error ? false : projectEditResult.data === true;
+  if (sheetMembershipsResult.error || sheetSettingsResult.error) {
+    return {
+      canCreateEstimates: canEditProject,
+      canEditEstimateById: Object.fromEntries(estimateIds.map((estimateId) => [estimateId, false])),
+    };
+  }
+
+  const editableMemberEstimateIds = new Set((sheetMembershipsResult.data ?? []).map((membership) => membership.estimate_id));
+  const inheritsProjectAccessByEstimateId = new Map(
+    (sheetSettingsResult.data ?? []).map((settings) => [settings.estimate_id, settings.inherit_project_access]),
+  );
+
   return {
-    canCreateEstimates: projectEditError ? false : canEditProject === true,
-    canEditEstimateById: Object.fromEntries(estimateEntries),
+    canCreateEstimates: canEditProject,
+    canEditEstimateById: Object.fromEntries(
+      estimateIds.map((estimateId) => {
+        const inheritsProjectAccess = inheritsProjectAccessByEstimateId.get(estimateId) ?? true;
+        return [estimateId, editableMemberEstimateIds.has(estimateId) || (inheritsProjectAccess && canEditProject)];
+      }),
+    ),
   };
 }
