@@ -1569,6 +1569,7 @@ type EstimateTabQueryRow = {
 
 type EstimateTabsQuery = {
   eq: (column: string, value: string | boolean) => EstimateTabsQuery;
+  in: (column: string, values: string[]) => EstimateTabsQuery;
   is: (column: string, value: null) => EstimateTabsQuery;
   order: (column: string, options?: { ascending?: boolean }) => Promise<QueryResult<EstimateTabQueryRow[]>>;
   maybeSingle: () => Promise<QueryResult<EstimateTabQueryRow>>;
@@ -2104,8 +2105,9 @@ export function groupEstimateTabTrees(
 // F-14/F-24 (P2-T7): NEW additive function (no existing signature changes). Replaces the per-tab
 // getEstimateTabTree fan-out for the all-tabs export with one estimate lookup + one batched
 // nodes query + one batched rows query, preserving the LIMIT max+1 over-fetch guard so the
-// total (not per-tab) count is capped and the 413 fires early. Takes the already-resolved tab
-// summaries so it does not re-query estimate_tabs.
+// total (not per-tab) count is capped and the 413 fires early. Revalidates the passed tab
+// summaries against estimate_tabs immediately before reading nodes, so a tab archived after
+// the initial list is skipped like the old per-tab path.
 export async function getEstimateTreesForTabs(
   projectId: string,
   estimateId: string,
@@ -2126,6 +2128,25 @@ export async function getEstimateTreesForTabs(
   if (!estimate) return { workspace, project, estimate: null, tabs: [] };
 
   const tabIds = tabs.map((tab) => tab.id);
+  if (tabIds.length === 0) {
+    return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tabs: [] };
+  }
+
+  const { data: activeTabRows, error: tabsError } = await asEstimateTabsReadClient(supabase)
+    .from("estimate_tabs")
+    .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
+    .eq("estimate_id", estimate.id)
+    .in("id", tabIds)
+    .is("archived_at", null)
+    .order("sort_order", { ascending: true });
+
+  if (tabsError) throw tabsError;
+  const activeTabs = (activeTabRows ?? []).map(toEstimateTabSummary);
+  const activeTabIds = activeTabs.map((tab) => tab.id);
+  if (activeTabIds.length === 0) {
+    return { workspace, project, estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy), tabs: [] };
+  }
+
   const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
   const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
 
@@ -2133,7 +2154,7 @@ export async function getEstimateTreesForTabs(
     .from("estimate_nodes")
     .select(ESTIMATE_TREE_NODE_COLUMNS_WITH_TAB)
     .eq("estimate_id", estimate.id)
-    .in("estimate_tab_id", tabIds)
+    .in("estimate_tab_id", activeTabIds)
     .order("sort_order", { ascending: true });
   const nodesResult = maxNodeCount ? await nodesQuery.limit(maxNodeCount + 1) : await nodesQuery;
   if (nodesResult.error) throw nodesResult.error;
@@ -2169,7 +2190,7 @@ export async function getEstimateTreesForTabs(
     workspace,
     project,
     estimate: normalizeEstimateRecord(estimate as EstimateRecordWithLegacy),
-    tabs: groupEstimateTabTrees(tabs, limitedNodes.rows, limitedRows.rows),
+    tabs: groupEstimateTabTrees(activeTabs, limitedNodes.rows, limitedRows.rows),
     loadLimitState,
   };
 }
