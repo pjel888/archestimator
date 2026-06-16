@@ -710,24 +710,27 @@ async function readScopedEstimateTree({
     .eq("estimate_id", estimate.id);
   if (resolvedActiveTabId) nodesQuery.eq("estimate_tab_id", resolvedActiveTabId);
 
-  const [nodesResult, rowsResult] = await Promise.all([
-    nodesQuery
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_TREE_LIMIT),
-    supabase
-      .from("estimate_row_items")
-      .select("id, estimate_id, node_id, material, quantity, unit, unit_cost, contingency_percentage, misc_cost, row_revision, source_library_item_id")
-      .eq("estimate_id", estimate.id)
-      .order("sort_order", { ascending: true })
-      .limit(DEFAULT_ROW_LIMIT),
-  ]);
+  const nodesResult = await nodesQuery
+    .order("sort_order", { ascending: true })
+    .limit(DEFAULT_TREE_LIMIT);
   if (nodesResult.error) throw nodesResult.error;
-  if (rowsResult.error) throw rowsResult.error;
 
   const nodes = (nodesResult.data ?? []) as AiEstimateNodeSearchRow[];
   const scopedNodeIds = new Set(nodes.map((node) => node.id));
-  const allRows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
-  const rows = resolvedActiveTabId ? allRows.filter((row) => scopedNodeIds.has(row.node_id)) : allRows;
+  const rowsQuery = supabase
+    .from("estimate_row_items")
+    .select("id, estimate_id, node_id, material, quantity, unit, unit_cost, contingency_percentage, misc_cost, row_revision, source_library_item_id")
+    .eq("estimate_id", estimate.id);
+  if (resolvedActiveTabId) rowsQuery.in("node_id", Array.from(scopedNodeIds));
+
+  const rowsResult = scopedNodeIds.size === 0 && resolvedActiveTabId
+    ? { data: [], error: null }
+    : await rowsQuery
+      .order("sort_order", { ascending: true })
+      .limit(DEFAULT_ROW_LIMIT);
+  if (rowsResult.error) throw rowsResult.error;
+
+  const rows = (rowsResult.data ?? []) as AiEstimateRowSearchRow[];
   const compacted = compactEstimateTree({ nodes, rows });
   const compactEstimateSummary = compactEstimate({
     estimate: estimate as AiEstimateSearchRow,
