@@ -17,8 +17,8 @@ describe("route error smoke gate", () => {
   it("throws a sanitized route error only when explicitly enabled", () => {
     vi.stubEnv("ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE", "1");
 
-    expect(() => assertRouteErrorSmoke({ routeLabel: "Project charts", searchParams: { routeErrorSmoke: "1" } })).toThrow(
-      "Route error smoke: Project charts",
+    expect(() => assertRouteErrorSmoke({ routeLabel: "Project data", searchParams: { routeErrorSmoke: "1" } })).toThrow(
+      "Route error smoke: Project data",
     );
   });
 });
