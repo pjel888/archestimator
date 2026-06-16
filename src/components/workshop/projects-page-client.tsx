@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { Suspense, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   CalendarBlank,
@@ -26,7 +26,7 @@ import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructi
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { executeBulkDeleteProjects, previewBulkDeleteProjects } from "@/lib/projects/actions";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
-import { setProjectFavorite } from "@/lib/workshop/actions";
+import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
@@ -44,6 +44,7 @@ import { sampleProjects } from "./workshop-sample-projects";
 type ProjectsPageClientProps = {
   projects: Array<Tables<"projects"> | ProjectListItem>;
   favoriteProjectIds?: string[];
+  favoritesScope: { workspaceId: string; userId: string };
 };
 
 export type ProjectListItem = {
@@ -56,12 +57,19 @@ export type ProjectListItem = {
   publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   favoriteEstimateSheets?: ProjectFavoriteEstimateSheetSummary[];
+  // Part 7c (Project Groups): which user-group this project belongs to (null/absent = Ungrouped).
+  // Optional so synthesized items (normalizeProjectListItem) stay valid; `?? null` collapses undefined.
+  groupId?: string | null;
 };
 
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
 const EMPTY_PROJECT_LIST_ITEMS: ProjectListItem[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
+const PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS =
+  "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
+const PROJECT_GROUP_FLAG_BG_COLOR = "color-mix(in srgb, var(--brand-orange) 25%, white)";
+const PROJECT_GROUP_FLAG_RULE_COLOR = "color-mix(in srgb, var(--brand-orange) 35%, white)";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
 const NewProjectModal = dynamic(() => import("./NewProjectModal").then((mod) => mod.NewProjectModal));
 const ProjectDetailsModal = dynamic(() => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal));
@@ -99,6 +107,7 @@ type ProjectDateGroup = {
   key: string;
   label: string;
   items: ProjectListItem[];
+  kind: "date" | "client";
 };
 type ProjectAccessTabsProps = {
   activeTab: ProjectAccessTab;
@@ -282,6 +291,7 @@ function getProjectDateGroup(item: ProjectListItem, field: ProjectSortField) {
     return {
       key: `${field}:undated`,
       label: field === "created_at" ? "Created date missing" : "Updated date missing",
+      kind: "date" as const,
     };
   }
 
@@ -289,15 +299,38 @@ function getProjectDateGroup(item: ProjectListItem, field: ProjectSortField) {
   return {
     key: `${field}:${label}`,
     label,
+    kind: "date" as const,
   };
 }
 
-function groupProjectsByDate(items: ProjectListItem[], field: ProjectSortField): ProjectDateGroup[] {
+function getProjectClientGroup(item: ProjectListItem) {
+  const clientName = typeof item.project.client_name === "string" ? item.project.client_name.trim() : "";
+  if (!clientName) {
+    return {
+      key: "client_name:missing",
+      label: "No client yet",
+      kind: "client" as const,
+    };
+  }
+
+  return {
+    key: `client_name:${clientName.toLocaleLowerCase()}`,
+    label: clientName,
+    kind: "client" as const,
+  };
+}
+
+function getProjectGroup(item: ProjectListItem, field: ProjectSortField) {
+  if (field === "client_name") return getProjectClientGroup(item);
+  return getProjectDateGroup(item, field);
+}
+
+function groupProjects(items: ProjectListItem[], field: ProjectSortField): ProjectDateGroup[] {
   const groups: ProjectDateGroup[] = [];
   let currentGroup: ProjectDateGroup | null = null;
 
   for (const item of items) {
-    const group = getProjectDateGroup(item, field);
+    const group = getProjectGroup(item, field);
     if (!currentGroup || currentGroup.key !== group.key) {
       currentGroup = { ...group, items: [] };
       groups.push(currentGroup);
@@ -338,8 +371,10 @@ function canSelectProjectForDeletion(item: ProjectListItem) {
 export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
+  favoritesScope,
 }: ProjectsPageClientProps) {
   const router = useNavigationRouter();
+  const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedProject, setExpandedProject] =
     useState<Tables<"projects"> | null>(null);
@@ -418,10 +453,10 @@ export function ProjectsPageClient({
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
   const projectDateFlagLayoutClassName = getProjectDateFlagLayoutClassName(projectViewMode);
-  const shouldGroupProjectsByDate = isDateSortField(sortField) && displayLiveProjects.length > 0;
-  const dateGroupedLiveProjects = useMemo(
-    () => shouldGroupProjectsByDate ? groupProjectsByDate(displayLiveProjects, sortField) : [],
-    [displayLiveProjects, shouldGroupProjectsByDate, sortField],
+  const shouldGroupProjects = (isDateSortField(sortField) || sortField === "client_name") && displayLiveProjects.length > 0;
+  const groupedLiveProjects = useMemo(
+    () => shouldGroupProjects ? groupProjects(displayLiveProjects, sortField) : [],
+    [displayLiveProjects, shouldGroupProjects, sortField],
   );
   const selectableDisplayProjectIds = useMemo(
     () => displayLiveProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
@@ -431,8 +466,16 @@ export function ProjectsPageClient({
     () => selectableDisplayProjectIds.filter((id) => selectedProjectIds.has(id)),
     [selectableDisplayProjectIds, selectedProjectIds],
   );
+  const expandedProjectItem = useMemo(
+    () => expandedProject ? projectItems.find((item) => item.project.id === expandedProject.id) ?? null : null,
+    [expandedProject, projectItems],
+  );
+  const canDeleteExpandedProject = expandedProjectItem ? canSelectProjectForDeletion(expandedProjectItem) : false;
   const deleteProjectPhrase = deleteProjectTargetIds.length === 1 ? "DELETE PROJECT" : `DELETE ${deleteProjectTargetIds.length} PROJECTS`;
   const deleteProjectModalTitle = deleteProjectTargetIds.length === 1 ? "Delete project" : `Delete ${deleteProjectTargetIds.length} projects`;
+  const deleteProjectDescription = deleteProjectTargetIds.length === 1
+    ? "This permanently deletes the project, its estimates, and project data. Active shared links will be revoked."
+    : "This permanently deletes the selected projects, their estimates, and project data. Active shared links will be revoked upon deletion.";
 
   const projectToolbarActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
     return [
@@ -471,15 +514,28 @@ export function ProjectsPageClient({
   }
 
   function toggleProjectFavorite(projectId: string, nextFavorite: boolean) {
+    const item = projectItems.find((entry) => entry.project.id === projectId);
     const previousFavorite = favoriteIds.has(projectId);
     setFavoriteOverrides((current) => ({ ...current, [projectId]: nextFavorite }));
     setPendingFavoriteId(projectId);
-    startTransition(() => {
-      void setProjectFavorite({ projectId, favorite: nextFavorite })
-        .then(() => router.refresh())
-        .catch(() => setFavoriteOverrides((current) => ({ ...current, [projectId]: previousFavorite })))
-        .finally(() => setPendingFavoriteId(null));
-    });
+    toggleProjectFavoriteMutation.toggle(
+      {
+        project: {
+          id: projectId,
+          name: item?.project.name ?? "",
+          projectCode: item?.project.project_code ?? null,
+          href: `/workshop/projects/${projectId}/estimates`,
+          favoriteCreatedAt: null,
+        },
+        favorite: nextFavorite,
+      },
+      {
+        // One error signal rolls back both surfaces: the hook restores the shared
+        // sidebar cache from its snapshot; this caller restores the local card star.
+        onError: () => setFavoriteOverrides((current) => ({ ...current, [projectId]: previousFavorite })),
+        onSettled: () => setPendingFavoriteId(null),
+      },
+    );
   }
 
   function renderCreateProjectAction(ariaLabel: string) {
@@ -648,7 +704,12 @@ export function ProjectsPageClient({
             disabled={projectControlsDisabled}
             variant="boxed"
             triggerDisplay="icon"
-            className="h-7 w-11 px-2 text-[10px]"
+            className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
+          />
+          <span
+            aria-hidden="true"
+            className="h-4 w-px shrink-0 bg-hairline"
+            data-project-toolbar-view-divider=""
           />
           {projectControlsDisabled ? null : (
             <>
@@ -659,7 +720,7 @@ export function ProjectsPageClient({
                 onValueChange={handleSortFieldChange}
                 variant="boxed"
                 triggerDisplay="icon"
-                className="h-7 w-11 px-2 text-[10px]"
+                className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
               />
               <DropdownSelect
                 aria-label="Sort direction"
@@ -668,7 +729,7 @@ export function ProjectsPageClient({
                 onValueChange={handleSortDirectionChange}
                 variant="boxed"
                 triggerDisplay="icon"
-                className="h-7 w-11 px-2 text-[10px]"
+                className={PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS}
               />
             </>
           )}
@@ -693,7 +754,7 @@ export function ProjectsPageClient({
         <BulkActionToolbar
           selectedCount={selectedVisibleProjectIds.length}
           actionLabel="Delete selected projects"
-          helperText="Project deletion blocks active shared links and runs a dependency preview first."
+          helperText="Projects with active shared links cannot be deleted."
           placement="bottom-dock"
           onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
           onClear={() => setSelectedProjectIds(new Set())}
@@ -704,18 +765,25 @@ export function ProjectsPageClient({
             <section
               aria-label="Live projects"
               data-project-view-mode={projectViewMode}
-              className={shouldGroupProjectsByDate ? "space-y-4" : projectLayoutClassName}
+              className={shouldGroupProjects ? "space-y-4" : projectLayoutClassName}
             >
-              {shouldGroupProjectsByDate
-                ? dateGroupedLiveProjects.map((group) => (
+              {shouldGroupProjects
+                ? groupedLiveProjects.map((group) => (
                   <section
                     key={group.key}
                     aria-label={group.label}
                     className="space-y-2"
-                    data-project-date-group={group.key}
+                    data-project-group={group.key}
+                    data-project-group-kind={group.kind}
+                    {...(group.kind === "date" ? { "data-project-date-group": group.key } : { "data-project-client-group": group.key })}
                   >
                     <div className="pt-1">
-                      <div aria-hidden="true" className="h-px bg-hairline" />
+                      <div
+                        aria-hidden="true"
+                        className="h-px"
+                        data-project-group-rule
+                        style={{ backgroundColor: PROJECT_GROUP_FLAG_RULE_COLOR }}
+                      />
                       <div
                         className={cn(
                           "min-w-0 text-[9px] leading-3",
@@ -723,8 +791,13 @@ export function ProjectsPageClient({
                         )}
                       >
                         <h3
-                          className="min-w-0 border-x border-b border-hairline bg-hairline px-1 py-1.5 text-[9px] font-medium leading-3 tracking-normal text-secondary"
-                          data-project-date-group-label
+                          className="min-w-0 border-x border-b px-1 py-1.5 text-[9px] font-medium leading-3 tracking-normal text-brand-orange-dark"
+                          style={{
+                            backgroundColor: PROJECT_GROUP_FLAG_BG_COLOR,
+                            borderColor: PROJECT_GROUP_FLAG_RULE_COLOR,
+                          }}
+                          data-project-group-label
+                          {...(group.kind === "date" ? { "data-project-date-group-label": "" } : {})}
                         >
                           {group.label}
                         </h3>
@@ -784,23 +857,27 @@ export function ProjectsPageClient({
         />
       ))}
 
-      {isModalOpen && <NewProjectModal onClose={() => setIsModalOpen(false)} />}
-      {expandedProject ? (
-        <ProjectDetailsModal
-          project={expandedProject}
-          onClose={() => setExpandedProject(null)}
-          onDeleteProject={(project) => {
-            setExpandedProject(null);
-            openProjectDeletePreview([project.id]);
-          }}
-        />
-      ) : null}
+      <Suspense fallback={null}>
+        {isModalOpen && <NewProjectModal onClose={() => setIsModalOpen(false)} />}
+        {expandedProject ? (
+          <ProjectDetailsModal
+            project={expandedProject}
+            onClose={() => setExpandedProject(null)}
+            onDeleteProject={canDeleteExpandedProject
+              ? (project) => {
+                setExpandedProject(null);
+                openProjectDeletePreview([project.id]);
+              }
+              : undefined}
+          />
+        ) : null}
+      </Suspense>
       <BulkDestructivePreviewModal
         open={deleteProjectTargetIds.length > 0}
         title={deleteProjectModalTitle}
-        description="Deleting projects removes estimates and project data after active shared links and permissions are checked."
+        description={deleteProjectDescription}
         requiredPhrase={deleteProjectPhrase}
-        executeLabel="Delete projects"
+        executeLabel={deleteProjectTargetIds.length === 1 ? "Delete project" : "Delete projects"}
         loading={deleteProjectState === "loading"}
         executing={deleteProjectState === "executing"}
         preview={deleteProjectPreview}

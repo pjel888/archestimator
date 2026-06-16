@@ -113,6 +113,9 @@ type WorkshopProjectListItem = {
   publicationSummary: ProjectPublicationListSummary | null;
   sharedEstimateCount: number;
   favoriteEstimateSheets: ProjectFavoriteEstimateSheetSummary[];
+  // Part 7c (Project Groups): which user-group this project belongs to (null = Ungrouped).
+  // Non-optional: the repository stamps it on EVERY item (real value or null).
+  groupId: string | null;
 };
 
 export type ProjectFavoriteEstimateSheetSummary = Pick<
@@ -443,6 +446,8 @@ function createPendingInviteProjectListItem({
     publicationSummary: null,
     sharedEstimateCount: invite.scope === "estimate" ? 1 : 0,
     favoriteEstimateSheets: [],
+    // Part 7c (Project Groups): pending invites are never in a user group.
+    groupId: null,
   };
 }
 
@@ -968,6 +973,7 @@ export async function listCurrentWorkspaceProjects() {
       pendingInviteCount: 0,
       publicationSummary: null,
       favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
+      groupId: groupIdByProjectId.get(project.id) ?? null,
     };
   }
 
@@ -1021,6 +1027,7 @@ export async function listCurrentWorkspaceProjects() {
       ...pendingInviteItemsByProjectId.values(),
     ],
     favoriteProjectIds: (favoritesResult.data ?? []).map((favorite) => favorite.project_id),
+    projectGroups,
   };
 }
 
