@@ -92,3 +92,27 @@ manual_qa_channel=cli
   normal code fix.
 - No GitHub threads have been resolved yet in this run; provider mutations wait
   for commits and fresh thread inventory.
+
+## Commit And Provider Resolution
+
+- Pushed 7 commits to `origin/main`:
+  - `7236cbbf` Record Codex thread cleanup evidence
+  - `bd95f2cd` Preserve bounded reusable-source search matches
+  - `19d0a536` Harden overlay focus and trigger contracts
+  - `b7892cc1` Make template editor mutations lossless
+  - `37c289a5` Keep project components on the data surface
+  - `3fc5f718` Harden proof tooling and upload guards
+  - `ee3630ff` Close review gaps in comment fixes
+- Post-push parity: `git rev-list --left-right --count main...origin/main`
+  returned `0 0`; `git status --short --branch` returned `## main...origin/main`.
+- Resolved 85 GitHub review threads from the initial 86-thread Codex snapshot:
+  83 non-`#50` threads plus the two `#50` threads satisfied by current sanitized
+  files and preserved synthetic formula evidence.
+- Final GitHub provider audit queried 31 PRs from the original unresolved
+  snapshot and found exactly one remaining unresolved Codex thread:
+  `PRRT_kwDOSfSDcs6JokL3` on PR `#50`, path
+  `.ai/09_archive/store/2026-06-13-Spreadsheet-Export-Plan/_research/02a-boq-raw-dump.txt`,
+  comment `discussion_r3414842338`, title `Purge the sensitive BOQ blobs from Git history`.
+- This remaining thread is intentionally unresolved because satisfying it would
+  require destructive Git history rewriting and coordinated force-push/cache
+  remediation, not a normal forward commit.
