@@ -8,7 +8,7 @@ import {
 } from "@/lib/notifications/types";
 
 const WORKSHOP_ACTION_HREF_PATTERN = /^\/workshop(?:\/|$|\?)/;
-const FORBIDDEN_ACTION_HREF_PATTERN = /(^\/\/|[\s]|javascript:|https?:|%2f|%5c)/i;
+const FORBIDDEN_ACTION_HREF_PATTERN = /(^\/\/|[\s]|javascript:|https?:|%2f|%5c|\\|(^|[/\\])(\.|%2e){2}([/\\]|\?|#|$))/i;
 const LOCAL_URL_BASE = "http://archestimator.local";
 
 export function isAllowedNotificationActionHref(value: string | null): value is string | null {

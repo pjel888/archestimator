@@ -30,7 +30,7 @@ create table if not exists public.notification_definitions (
       action_href is null
       or (
         action_href ~ '^/workshop(/|$|\\?)'
-        and action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c|(^|/)(\.|%2e){2}(/|\?|#|$))'
+        and action_href !~* '(^//|[[:space:]]|javascript:|https?:|%2f|%5c|\\|(^|[/\\])(\.|%2e){2}([/\\]|\?|#|$))'
       )
     ),
   payload_json jsonb not null default '{}'::jsonb
