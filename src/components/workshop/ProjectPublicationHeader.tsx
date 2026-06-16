@@ -514,6 +514,14 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     }
 
     if (action === "regenerate") {
+      if (freshTokenPasswordRequired) {
+        confirmInFlightRef.current = false;
+        setActionFeedback({
+          text: "Enter a new password before creating a new protected link.",
+          tone: "error",
+        });
+        return;
+      }
       // AC-MOD-10: deliberate fresh-token mint (breaks existing recipient links). Only reached
       // from the expired-state "Create new link instead" path, behind this confirm. A brand-new
       // link must start LIVE, so we never carry a stale already-past expiry forward — only a
@@ -535,6 +543,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
   }
 
   const hasSelectedEstimates = selectedEstimateIds.length > 0;
+  // AC-MOD-22: a fresh token for an expired protected link cannot reuse the existing hash from
+  // the client-side draft. Require the owner to type a replacement password before minting a
+  // brand-new row, otherwise createProjectPublication would receive an empty string and create an
+  // open link while the UI still shows password protection.
+  const freshTokenPasswordRequired = isExpiredLink && requirePassword && !password.trim();
   const generateDisabled = !canManagePublication || !summary?.projectId || isPending || passwordRequiredForSubmit || !hasSelectedEstimates;
 
   return (
@@ -895,6 +908,11 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                   <p className="mt-2 text-[9px] leading-3 text-tertiary">
                     This link has expired. Reactivate it to keep the same URL and password, or create a brand-new link.
                   </p>
+                  {freshTokenPasswordRequired && (
+                    <p className="mt-2 text-[9px] leading-3 text-warning" role="status">
+                      Enter a new password on the Access tab before creating a brand-new protected link.
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {/* AC-MOD-10: safe primary — reactivate in place (same token + password, clears expiry). */}
                     <Button
@@ -925,7 +943,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
                       size="sm"
                       className="min-h-7 rounded-xs px-2 text-[10px]"
                       aria-label="Create new link instead"
-                      disabled={!canManagePublication || !summary?.projectId || isPending || !hasSelectedEstimates}
+                      disabled={!canManagePublication || !summary?.projectId || isPending || !hasSelectedEstimates || freshTokenPasswordRequired}
                       onClick={() => setDestructiveAction("regenerate")}
                     >
                       <LinkBreak size={11} aria-hidden="true" />

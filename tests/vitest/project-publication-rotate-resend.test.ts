@@ -480,6 +480,24 @@ describe("AC-MOD-15 setting a too-short password is rejected and never persisted
     }));
   }
 
+  it("createProjectPublication returns { ok:false } and writes no publication row for an empty supplied password", async () => {
+    const recorded: RecordedQuery[] = [];
+    mockManagerEnv(recorded, { hasLatest: false });
+
+    const { createProjectPublication } = await import("@/lib/publication/actions");
+    const result = await createProjectPublication({ projectId: PROJECT_ID, password: "" });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toBe("Password must be at least 4 characters.");
+
+    const publicationWrites = recorded.filter(
+      (query) =>
+        query.table === "project_publications" &&
+        (query.operation === "insert" || query.operation === "update"),
+    );
+    expect(publicationWrites).toHaveLength(0);
+  });
+
   it("createProjectPublication returns { ok:false } and writes no publication row for a 1-char password", async () => {
     const recorded: RecordedQuery[] = [];
     mockManagerEnv(recorded, { hasLatest: false });
