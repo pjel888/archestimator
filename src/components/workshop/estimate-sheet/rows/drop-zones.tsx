@@ -13,6 +13,10 @@ import { useEstimateWorkshopDrag } from "../../estimate-workshop-drag";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 import { LIBRARY_ITEM_DRAG_MIME_TYPE } from "./constants";
 
+const DROP_SLOT_SURFACE_CLASS =
+  "flex h-16 w-full items-center justify-center gap-1.5 border border-dashed border-hairline bg-surfaceMuted/30 text-tertiary transition-opacity";
+const DROP_SLOT_CONTENT_CLASS = "flex items-center gap-1.5 text-[10px] font-normal";
+
 /**
  * Dashed drop surface, rendered only while a compatible drag is in flight
  * (drag suppresses CSS hover, so the highlight is driven by `isDragOver`).
@@ -21,11 +25,11 @@ export function EstimateDropZone({ label, isDragOver = false }: { label: string;
   return (
     <div
       className={cn(
-        "flex h-16 w-full items-center justify-center gap-1.5 border border-dashed border-hairline bg-surfaceMuted/30 text-tertiary transition-opacity",
+        DROP_SLOT_SURFACE_CLASS,
         isDragOver ? "opacity-100" : "opacity-60",
       )}
     >
-      <div className="flex items-center gap-1.5 text-[10px] font-normal">
+      <div className={DROP_SLOT_CONTENT_CLASS}>
         <Plus size={12} weight="regular" aria-hidden="true" />
         <span>{label}</span>
       </div>
@@ -43,10 +47,16 @@ export function QuietAddRowButton({ nodeId, nodeName, onAddBlankRow }: {
       type="button"
       onClick={() => onAddBlankRow(nodeId)}
       aria-label={`Add blank estimate row to ${nodeName}`}
-      className="flex h-6 w-full cursor-pointer items-center gap-1.5 rounded-xs border border-transparent px-1.5 text-[9px] font-medium text-tertiary transition-colors hover:bg-surfaceMuted/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      title={`Add row to ${nodeName}`}
+      className={cn(
+        DROP_SLOT_SURFACE_CLASS,
+        "cursor-pointer opacity-60 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+      )}
     >
-      <Plus size={11} weight="regular" aria-hidden="true" />
-      <span>Add row</span>
+      <span className={DROP_SLOT_CONTENT_CLASS}>
+        <Plus className="shrink-0" size={12} weight="regular" aria-hidden="true" />
+        <span className="min-w-0 truncate">Add row to {nodeName}</span>
+      </span>
     </button>
   );
 }
@@ -81,7 +91,11 @@ export function ComponentDropTarget({
 
   if (!componentDragActive) {
     void empty;
-    return <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />;
+    return (
+      <div className="py-1">
+        <QuietAddRowButton nodeId={nodeId} nodeName={nodeName} onAddBlankRow={onAddBlankRow} />
+      </div>
+    );
   }
 
   return (

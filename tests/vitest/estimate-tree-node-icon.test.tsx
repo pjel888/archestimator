@@ -71,14 +71,14 @@ function renderTree(nodes: EstimateTreeNode[], selectedNodeId: string | null = "
 /**
  * The "has components" cue is an occupancy dot (after the caret, before the
  * label) — the node circle was removed. Returns true iff the row's dot is
- * orange (occupied) rather than muted.
+ * olive green (occupied) rather than muted.
  */
 function rowDotIsOrange(nodeId: string): boolean {
   const row = document.querySelector(`[data-tree-row="${nodeId}"]`);
   if (!row) throw new Error(`Tree row for node "${nodeId}" not found in DOM.`);
   const dot = row.querySelector("[data-occupancy-dot]");
   if (!dot) throw new Error(`No occupancy dot found in row for node "${nodeId}".`);
-  return (dot.getAttribute("class") ?? "").includes("bg-orange-600");
+  return (dot.getAttribute("class") ?? "").includes("bg-[#6b8e23]");
 }
 
 describe("estimate tree node occupancy cue (orange dot, Req 4)", () => {
