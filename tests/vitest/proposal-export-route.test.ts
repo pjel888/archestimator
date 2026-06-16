@@ -229,6 +229,29 @@ describe("proposal xlsx export route", () => {
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
+  it("returns a logged JSON 500 when the Terms acceptance lookup fails", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.getCurrentUserTermsAcceptanceStatus.mockRejectedValueOnce(
+      new Error("legal_terms_acceptances unavailable"),
+    );
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "Failed to generate the spreadsheet export. Please try again.",
+    });
+    expect(mocks.checkProposalExportRateLimit).not.toHaveBeenCalled();
+    expect(mocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ route: "proposal_export", outcome: "error" }),
+    );
+    errorSpy.mockRestore();
+  });
+
   it("returns a clean 429 JSON when the per-user export rate limit is exceeded", async () => {
     mocks.checkProposalExportRateLimit.mockResolvedValueOnce({
       allowed: false,

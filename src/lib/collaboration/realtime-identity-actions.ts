@@ -16,6 +16,7 @@
 
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
+import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import type { RealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity";
 
 /** Topic must be `project:<uuid>` or `estimate:<uuid>` (36-char uuid form). */
@@ -48,6 +49,9 @@ export async function issueRealtimeIdentity({
 
   const user = await getCurrentUserContext();
   if (!user) return null;
+
+  const termsStatus = await getCurrentUserTermsAcceptanceStatus(user.userId);
+  if (termsStatus.requiresAcceptance) return null;
 
   const { envelope, publicKey } = await issueRealtimeIdentityEnvelope({
     sub: user.userId,

@@ -6,6 +6,7 @@ import sharp from "sharp";
 
 import { getCurrentUserContext, requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
+import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
@@ -180,6 +181,9 @@ export async function GET(request: Request) {
 
   const currentUser = await getCurrentUserContext();
   if (!currentUser) return privateImageNotFound();
+
+  const termsStatus = await getCurrentUserTermsAcceptanceStatus(currentUser.userId);
+  if (termsStatus.requiresAcceptance) return privateImageNotFound();
 
   const serverSupabase = await createSupabaseServerClient();
   const { data: project, error: projectError } = await serverSupabase
