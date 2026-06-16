@@ -106,6 +106,30 @@ function toReusableSearchLikePattern(query: string): string {
   return `%${query.replace(/[\\%_]/g, "\\$&")}%`;
 }
 
+const REUSABLE_SEARCH_PREFILTER_PAGE_SIZE = 1000;
+
+type ReusableSearchPrefilterRow = { estimate_id: string | null };
+type ReusableSearchPrefilterResult = { data: ReusableSearchPrefilterRow[] | null; error: unknown };
+type ReusableSearchPrefilterQuery = PromiseLike<ReusableSearchPrefilterResult> & {
+  range: (from: number, to: number) => PromiseLike<ReusableSearchPrefilterResult>;
+};
+
+async function collectReusableSearchPrefilterEstimateIds(
+  makeQuery: () => ReusableSearchPrefilterQuery,
+  estimateIds: Set<string>,
+) {
+  for (let from = 0; ; from += REUSABLE_SEARCH_PREFILTER_PAGE_SIZE) {
+    const to = from + REUSABLE_SEARCH_PREFILTER_PAGE_SIZE - 1;
+    const { data, error } = await makeQuery().range(from, to);
+    if (error) throw error;
+    const rows = data ?? [];
+    for (const row of rows) {
+      if (row.estimate_id) estimateIds.add(row.estimate_id);
+    }
+    if (rows.length < REUSABLE_SEARCH_PREFILTER_PAGE_SIZE) break;
+  }
+}
+
 export async function searchReusableProjectSources(input: { query: string }): Promise<ReusableProjectSourceSearchResult> {
   await requireCurrentUserContext();
   const query = normalizeReusableSourceSearchQuery(input.query);
@@ -178,16 +202,15 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     return tabs;
   }
 
-  const { data: matchingNodeRows, error: matchingNodeError } = await supabase
-    .from("estimate_nodes")
-    .select("estimate_id")
-    .in("estimate_id", accessibleEstimateIds)
-    .in("kind", ["group", "area"])
-    .ilike("name", likePattern);
-  if (matchingNodeError) throw matchingNodeError;
-  for (const row of matchingNodeRows ?? []) {
-    if (row.estimate_id) estimatesToMaterialize.add(row.estimate_id);
-  }
+  await collectReusableSearchPrefilterEstimateIds(
+    () => supabase
+      .from("estimate_nodes")
+      .select("estimate_id")
+      .in("estimate_id", accessibleEstimateIds)
+      .in("kind", ["group", "area"])
+      .ilike("name", likePattern) as ReusableSearchPrefilterQuery,
+    estimatesToMaterialize,
+  );
 
   // Tab-name matches use estimate_tabs (added by the foundation; tolerate its absence
   // on the legacy schema, where the synthetic "Main" tab carries no searchable name).
@@ -197,22 +220,21 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         select: (columns: string) => {
           in: (column: string, values: string[]) => {
             ilike: (column: string, pattern: string) => {
-              is: (column: string, value: null) => Promise<{ data: Array<{ estimate_id: string | null }> | null; error: unknown }>;
+              is: (column: string, value: null) => ReusableSearchPrefilterQuery;
             };
           };
         };
       };
     };
-    const { data: matchingTabRows, error: matchingTabError } = await tabSearchClient
-      .from("estimate_tabs")
-      .select("estimate_id")
-      .in("estimate_id", accessibleEstimateIds)
-      .ilike("name", likePattern)
-      .is("archived_at", null);
-    if (matchingTabError && !isMissingRelationError(matchingTabError as never, "estimate_tabs")) throw matchingTabError;
-    for (const row of matchingTabRows ?? []) {
-      if (row.estimate_id) estimatesToMaterialize.add(row.estimate_id);
-    }
+    await collectReusableSearchPrefilterEstimateIds(
+      () => tabSearchClient
+        .from("estimate_tabs")
+        .select("estimate_id")
+        .in("estimate_id", accessibleEstimateIds)
+        .ilike("name", likePattern)
+        .is("archived_at", null),
+      estimatesToMaterialize,
+    );
   } catch (error) {
     if (!isMissingRelationError(error as never, "estimate_tabs")) throw error;
   }
