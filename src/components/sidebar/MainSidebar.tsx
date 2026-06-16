@@ -101,6 +101,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
   const favoritesQuery = useSidebarFavoritesQuery({
     scope: favoritesScope ?? { workspaceId: "none", userId: "none" }, // hook always called; null scope reads initialData
     initialData: favoriteProjects,
+    enabled: Boolean(favoritesScope), // null scope (loading shells/unauth): read initialData, don't refetch a junk key
   });
   const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
   const showEmptyHint = !favoritesQuery.isPending && liveFavoriteProjects.length === 0;

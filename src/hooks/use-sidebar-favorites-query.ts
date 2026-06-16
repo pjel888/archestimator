@@ -8,9 +8,9 @@ import { fetchSidebarFavoriteProjects } from "@/lib/favorites/sidebar-favorites-
 type SidebarFavoritesScope = { workspaceId: string; userId: string };
 
 export function useSidebarFavoritesQuery(args: {
-  scope: SidebarFavoritesScope; initialData: MainSidebarFavoriteProject[];
+  scope: SidebarFavoritesScope; initialData: MainSidebarFavoriteProject[]; enabled?: boolean;
 }): UseQueryResult<MainSidebarFavoriteProject[]> {
-  const { scope, initialData } = args;
+  const { scope, initialData, enabled = true } = args;
   const queryClient = useQueryClient();
 
   // D12 / C4: a key change alone does NOT evict the old entry (lingers gcTime, 5 min).
@@ -28,5 +28,6 @@ export function useSidebarFavoritesQuery(args: {
     queryFn: fetchSidebarFavoriteProjects,
     initialData,
     staleTime: 0, // D4: override global 5-min so remount + onSettled invalidation refetch
+    enabled, // null-scope loading shells/unauth read initialData without a junk-key refetch
   });
 }

@@ -44,6 +44,15 @@ describe("useSidebarFavoritesQuery", () => {
     await waitFor(() => expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(result.current.data?.map((entry) => entry.id)).toEqual(["p1", "p2"]));
   });
+  it("does not refetch when disabled (null-scope loading shell reads initialData only)", async () => {
+    const client = new QueryClient();
+    const { result } = renderHook(
+      () => useSidebarFavoritesQuery({ scope: { workspaceId: "none", userId: "none" }, initialData: [project("p1")], enabled: false }),
+      { wrapper: wrap(client) });
+    expect(result.current.data?.map((entry) => entry.id)).toEqual(["p1"]); // paints initialData
+    await Promise.resolve(); // flush a microtask — a junk-key refetch would have fired here
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
+  });
   it("evicts the previous scope's cache entry on scope change", async () => {
     // Never-resolving reconcile so a late refetch can't repopulate either key — assert the
     // eviction OUTCOME (entry gone), not merely that removeQueries was called.
