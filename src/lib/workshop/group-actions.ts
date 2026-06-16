@@ -81,7 +81,7 @@ function revalidateWorkshop() {
 // (workspace-repository.ts createWorkshopProjectAccessResolver): in-workspace AND
 // (member of the workspace OR created_by === user). created_by is NULLABLE, so the
 // workspace-role path is what keeps a created_by-IS-NULL project assignable. Do NOT
-// collapse to a bare `.eq("created_by", profile.id)` — that misses both cases.
+// collapse to a bare created_by SQL equality on profile.id — that misses both cases.
 async function resolveWorkspaceRole(
   supabase: SupabaseServerClient,
   workspaceId: string,
@@ -295,7 +295,7 @@ export async function moveProjectToGroup(input: {
   // D9 assign gate = the LD-2 ownership gate (§1.5): in-workspace AND (workspace-role
   // member OR created_by === user), with created_by NULLABLE. Independent of delete
   // eligibility, so a project delete-blocked by an active shared link is still
-  // groupable. Use the shared helper, NOT a bare `.eq("created_by", profile.id)` —
+  // groupable. Use the shared helper, NOT a bare created_by SQL equality on profile.id —
   // that would refuse an owned-via-workspace-role project and drop a created_by-IS-NULL
   // one. The membership's workspace_id is stamped from the verified project row so the
   // composite FK (project_id, workspace_id) → projects(id, workspace_id) is satisfiable.
@@ -368,7 +368,7 @@ export async function bulkAssignProjectsToGroup(input: {
 
   // Batched LD-2 OWNERSHIP verify (§1.5): only ids the user OWNS — in-workspace AND
   // (workspace-role member OR created_by === user), created_by nullable. NOT a bare
-  // `.eq("created_by", …)` (would refuse owned-via-role + null-created_by rows). Each
+  // created_by SQL equality (would refuse owned-via-role + null-created_by rows). Each
   // verified row carries its workspace_id so membership rows are composite-FK-safe.
   const verified = await verifyOwnedProjectIds(supabase, ids, workspace.id, profile.id);
   const verifiedIds = verified.map((row) => row.id);

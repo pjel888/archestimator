@@ -689,3 +689,70 @@ describe("bulkAssignProjectsToGroup", () => {
     expect(stub.calls.some((c) => c.op === "upsert")).toBe(true);
   });
 });
+
+describe("project group actions — source contract", () => {
+  const src = readFileSync("src/lib/workshop/group-actions.ts", "utf8");
+
+  it("is a server-action module cloning the favorites skeleton", () => {
+    expect(src).toContain('"use server"');
+    expect(src).toContain("ensureDefaultWorkspace");
+    expect(src).toContain("createSupabaseServerClient");
+    expect(src).toContain('revalidatePath("/workshop")');
+    expect(src).toContain('revalidatePath("/workshop/projects")');
+  });
+
+  it("ships exactly one assignment action (no setProjectGroupMembership)", () => {
+    expect(src).toContain("export async function moveProjectToGroup");
+    expect(src).not.toContain("setProjectGroupMembership");
+  });
+
+  it("enforces app-layer caps from the shared constants module and never adds a DB length/check constraint here", () => {
+    // Caps are imported from the shared (non-"use server") module so the UI can't drift.
+    expect(src).toContain('from "@/lib/workshop/group-constants"');
+    expect(src).toContain("MAX_PROJECT_GROUPS");
+    expect(src).toContain("MAX_PROJECT_GROUP_NAME_LENGTH");
+    expect(src).toContain("ProjectGroupCapError");
+    expect(src).toContain("ProjectGroupNameError");
+    // The cap VALUES live in the constants module, asserted once there.
+    const constants = readFileSync("src/lib/workshop/group-constants.ts", "utf8");
+    expect(constants).toContain("MAX_PROJECT_GROUPS = 50");
+    expect(constants).toContain("MAX_PROJECT_GROUP_NAME_LENGTH = 40");
+  });
+
+  it("translates the duplicate-name unique violation by code + constraint, distinct from the membership unique (LD-8)", () => {
+    expect(src).toContain('"23505"');
+    // Disambiguates the name index from the membership unique(user_id, project_id).
+    expect(src).toContain("isDuplicateNameViolation");
+    // It must not blanket-translate ALL 23505s into a name error.
+    expect(src).not.toMatch(/isUniqueViolation\([^)]*\)\)\s*\{\s*throw new ProjectGroupNameError/);
+  });
+
+  it("uses onConflict user_id,project_id for one-to-many membership", () => {
+    expect(src).toContain('onConflict: "user_id,project_id"');
+  });
+
+  it("upserts memberships through project_group_memberships and never sets a projects.group_id column", () => {
+    expect(src).toContain("project_group_memberships");
+    expect(src).not.toMatch(/from\("projects"\)[\s\S]{0,80}update\(/);
+  });
+
+  it("gates assignment on the LD-2 OWNERSHIP derivation, not mere readability and not a bare created_by eq (D9/D11/LD-2)", () => {
+    // The gate is the repo `owned` predicate (in-workspace AND (workspace-role OR
+    // created_by === user)), applied in app code via the shared helper — NOT a single
+    // SQL `.eq("created_by", profile.id)`, which would miss owned-via-workspace-role
+    // rows and silently drop created_by-IS-NULL rows (created_by is nullable).
+    expect(src).toContain("verifyOwnedProjectIds");
+    expect(src).toContain("workspace_members"); // the workspace-role read the predicate needs
+    expect(src).toContain("created_by === userId"); // the app-layer predicate, not a SQL eq
+    expect(src).not.toContain('.eq("created_by"'); // the bare-eq gate is forbidden (LD-2)
+  });
+
+  it("bulkAssignProjectsToGroup returns the typed partial-failure result (LD-11)", () => {
+    expect(src).toContain("movedProjectIds");
+    expect(src).toContain("skippedProjectIds");
+  });
+
+  it("caps the reorder fan-out at MAX_PROJECT_GROUPS (LD-8)", () => {
+    expect(src).toMatch(/orderedGroupIds\.length\s*>\s*MAX_PROJECT_GROUPS/);
+  });
+});
