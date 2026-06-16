@@ -444,6 +444,10 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     startTransition(async () => {
       try {
         const result = await action();
+        if (!result.ok) {
+          setActionFeedback({ text: result.message, tone: "error" });
+          return;
+        }
         if (result.clientLinkPath !== undefined) {
           setLocalResult({
             clientLinkPath: result.clientLinkPath,

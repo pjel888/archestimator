@@ -315,6 +315,36 @@ describe("ProjectPublicationHeader publication control", () => {
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
   });
 
+  it("treats ok:false publication action results as errors without clearing the password draft", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: false,
+      message: "Password must be at least 4 characters.",
+    });
+    const user = userEvent.setup();
+    const openSummary: ProjectPublicationSummary = { ...publicationSummary, passwordRequired: false };
+    render(<ProjectPublicationHeader summary={openSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByLabelText("Require password"));
+    await user.type(within(dialog).getByLabelText("Link password"), "abc");
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+
+    expect(publicationActions.republishProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1", "est-2"],
+      password: "abc",
+      clearPassword: false,
+      expiresAt: null,
+    });
+    const alerts = await within(dialog).findAllByRole("alert");
+    expect(alerts.some((alert) => alert.textContent === "Password must be at least 4 characters.")).toBe(true);
+    expect(within(dialog).queryByRole("status", { name: "Password must be at least 4 characters." })).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Link password")).toHaveValue("abc");
+    expect(within(dialog).getByText("Unsaved — Update to apply")).toBeInTheDocument();
+  });
+
   it("does not widen an existing shared link to every sheet when updating without changing sheet selection", async () => {
     publicationActions.republishProjectPublication.mockResolvedValueOnce({
       ok: true,
