@@ -412,7 +412,7 @@ describe("reusable project source actions", () => {
     mockSearchPrefilter({
       estimate_nodes: {
         data: [
-          ...Array.from({ length: 1000 }, () => ({ estimate_id: estimateAId })),
+          ...Array.from({ length: 5000 }, () => ({ estimate_id: estimateAId })),
           { estimate_id: estimateBId },
         ],
         error: null,
