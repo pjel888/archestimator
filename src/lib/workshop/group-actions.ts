@@ -283,11 +283,68 @@ export async function reorderProjectGroups(input: { orderedGroupIds: string[] })
   revalidateWorkshop();
 }
 
-export async function moveProjectToGroup(_input: {
+export async function moveProjectToGroup(input: {
   projectId: string;
   groupId: string | null;
 }): Promise<void> {
-  throw new Error("not implemented");
+  assertUuid(input.projectId, "Project");
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  // D9 assign gate = the LD-2 ownership gate (§1.5): in-workspace AND (workspace-role
+  // member OR created_by === user), with created_by NULLABLE. Independent of delete
+  // eligibility, so a project delete-blocked by an active shared link is still
+  // groupable. Use the shared helper, NOT a bare `.eq("created_by", profile.id)` —
+  // that would refuse an owned-via-workspace-role project and drop a created_by-IS-NULL
+  // one. The membership's workspace_id is stamped from the verified project row so the
+  // composite FK (project_id, workspace_id) → projects(id, workspace_id) is satisfiable.
+  const [project] = await verifyOwnedProjectIds(supabase, [input.projectId], workspace.id, profile.id);
+  if (!project) throw new Error("Project was not found in this workspace.");
+
+  // Remove == delete the membership row (project falls to virtual Ungrouped).
+  if (input.groupId === null) {
+    const { error } = await supabase
+      .from("project_group_memberships")
+      .delete()
+      .eq("user_id", profile.id)
+      .eq("project_id", project.id);
+
+    if (error) throw error;
+    revalidateWorkshop();
+    return;
+  }
+
+  // Move == upsert. Verify the target group is owned + in-workspace first.
+  assertUuid(input.groupId, "Group");
+  const { data: group, error: groupError } = await supabase
+    .from("project_groups")
+    .select("id")
+    .eq("id", input.groupId)
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+
+  if (groupError) throw groupError;
+  if (!group) throw new Error("Group was not found in this workspace.");
+
+  const { error } = await supabase
+    .from("project_group_memberships")
+    .upsert(
+      {
+        group_id: group.id,
+        // Stamp workspace_id from the VERIFIED project row, not ensureDefaultWorkspace,
+        // so the composite FK (project_id, workspace_id) → projects(id, workspace_id)
+        // is always satisfiable even if the project lives in a non-default workspace.
+        workspace_id: project.workspace_id,
+        user_id: profile.id,
+        project_id: project.id,
+      },
+      { onConflict: "user_id,project_id" },
+    );
+
+  if (error) throw error;
+  revalidateWorkshop();
 }
 
 export async function bulkAssignProjectsToGroup(_input: {
