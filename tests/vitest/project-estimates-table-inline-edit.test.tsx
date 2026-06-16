@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
+import { favoritesQueryKeys } from "@/lib/favorites/query-keys";
+import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 
 const routerMock = vi.hoisted(() => ({
   prefetch: vi.fn(),
@@ -69,16 +71,38 @@ function renderTable(
   estimate = makeEstimate(),
   options: {
     canEditEstimateById?: Record<string, boolean>;
+    parentProject?: {
+      id: string;
+      name: string;
+      projectCode: string | null;
+      href: string;
+      isSidebarFavorite: boolean;
+    };
+    scope?: { workspaceId: string; userId: string };
+    seedSidebar?: unknown;
   } = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
+      mutations: { retry: false },
     },
   });
+  if (options.scope && options.seedSidebar !== undefined) {
+    queryClient.setQueryData(
+      favoritesQueryKeys.sidebar(options.scope),
+      options.seedSidebar,
+    );
+  }
   render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" canEditEstimateById={options.canEditEstimateById} />
+      <ProjectEstimatesTable
+        estimates={[estimate]}
+        projectId="project-1"
+        canEditEstimateById={options.canEditEstimateById}
+        parentProject={options.parentProject}
+        scope={options.scope}
+      />
     </QueryClientProvider>,
   );
   return queryClient;
@@ -220,6 +244,43 @@ describe("project estimates table inline editing", () => {
       "title",
       "Favorite write failed.",
     );
+  });
+
+  it("drives the shared toggle hook: favoriting inserts the sheet into the seeded sidebar cache", async () => {
+    const scope = { workspaceId: "ws-1", userId: "user-1" };
+    const parentProject = {
+      id: "project-1",
+      name: "Lewis Residence",
+      projectCode: "AE-LR-001",
+      href: "/workshop/projects/project-1",
+      isSidebarFavorite: true,
+    };
+    const seededParent: MainSidebarFavoriteProject = {
+      id: "project-1",
+      name: "Lewis Residence",
+      projectCode: "AE-LR-001",
+      href: "/workshop/projects/project-1",
+      favoriteCreatedAt: "2026-06-05T00:00:00.000Z",
+      favoriteEstimateSheets: [],
+    };
+    const user = userEvent.setup();
+
+    const queryClient = renderTable(makeEstimate(), {
+      scope,
+      parentProject,
+      seedSidebar: [seededParent],
+    });
+
+    const favoriteButton = screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" });
+    await user.click(favoriteButton);
+
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledWith({
+      estimateId: "estimate-1",
+      favorite: true,
+    }));
+    const cache = queryClient.getQueryData<MainSidebarFavoriteProject[]>(favoritesQueryKeys.sidebar(scope));
+    expect(cache?.[0].favoriteEstimateSheets.map((sheet) => sheet.id)).toContain("estimate-1");
   });
 
   it("saves an inline estimate name edit once when Enter blurs the field", async () => {

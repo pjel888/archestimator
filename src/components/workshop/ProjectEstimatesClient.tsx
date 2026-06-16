@@ -3,12 +3,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { FileText, Plus } from "@phosphor-icons/react/dist/ssr";
+import {
+  CalendarBlank,
+  ClockCounterClockwise,
+  FileText,
+  FunnelSimple,
+  NewspaperClipping,
+  Plus,
+  SortAscending,
+  SortDescending,
+  Star,
+  TextAa,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ADD_BUTTON_CLASSNAME } from "@/components/ui/toolbar-icon-button";
 import { TreePanelHeader } from "@/components/ui/tree-panel-header";
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
+import type { EstimateFavoriteParentProject, EstimateFavoriteScope } from "@/components/workshop/ProjectEstimateFavoriteButton";
 import { createEstimateSheetDraft } from "@/lib/estimates/actions";
 import type { ProjectEstimateListRow } from "@/lib/estimates/project-estimate-list-row";
 import { createProjectEstimatesStore } from "@/stores/project-estimates-store";
@@ -19,25 +33,144 @@ import { createProjectEstimatesStore } from "@/stores/project-estimates-store";
 // aid, removed after P0 browser QA; not a permanent product feature flag.
 const OPTIMISTIC_ESTIMATE_LIST_ENABLED = true;
 
+const ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS =
+  "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
+
+const ESTIMATE_FILTER_OPTIONS = [
+  { value: "all", label: "All estimates", icon: <FunnelSimple size={12} weight="regular" aria-hidden="true" /> },
+  { value: "favorites", label: "Favorites", icon: <Star size={12} weight="regular" aria-hidden="true" /> },
+  { value: "recent", label: "Recent", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
+] as const satisfies readonly DropdownSelectOption[];
+
+type EstimateFilter = (typeof ESTIMATE_FILTER_OPTIONS)[number]["value"];
+
+const ESTIMATE_SORT_FIELD_OPTIONS = [
+  { value: "updated_at", label: "Last updated", icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" /> },
+  { value: "created_at", label: "Date created", icon: <CalendarBlank size={12} weight="regular" aria-hidden="true" /> },
+  { value: "name", label: "Estimate name", icon: <TextAa size={12} weight="regular" aria-hidden="true" /> },
+] as const satisfies readonly DropdownSelectOption[];
+
+type EstimateSortField = (typeof ESTIMATE_SORT_FIELD_OPTIONS)[number]["value"];
+
+type EstimateSortDirection = "asc" | "desc";
+
+const ESTIMATE_RECENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+const estimateNameCollator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+
+function isEstimateFilter(value: string): value is EstimateFilter {
+  return ESTIMATE_FILTER_OPTIONS.some((option) => option.value === value);
+}
+
+function isEstimateSortField(value: string): value is EstimateSortField {
+  return ESTIMATE_SORT_FIELD_OPTIONS.some((option) => option.value === value);
+}
+
+function isEstimateSortDirection(value: string): value is EstimateSortDirection {
+  return value === "asc" || value === "desc";
+}
+
 type ProjectEstimatesClientProps = {
   canCreateEstimates: boolean;
   canEditEstimateById: Record<string, boolean>;
   estimates: ProjectEstimateTableRow[];
   projectId: string;
   projectName: string;
+  parentProject?: EstimateFavoriteParentProject;
+  scope?: EstimateFavoriteScope;
 };
 
-function filterEstimateSheets(estimates: ProjectEstimateTableRow[], query: string) {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  if (!normalizedQuery) return estimates;
-
-  return estimates.filter((estimate) => {
-    const searchable = [estimate.sheet_code, estimate.name].join(" ").toLocaleLowerCase();
-    return searchable.includes(normalizedQuery);
-  });
+function getEstimateSortDirectionLabel(field: EstimateSortField, direction: EstimateSortDirection) {
+  if (field === "name") return direction === "asc" ? "A to Z" : "Z to A";
+  return direction === "asc" ? "Oldest first" : "Newest first";
 }
 
-export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById, estimates, projectId, projectName }: ProjectEstimatesClientProps) {
+function getEstimateSortDirectionOptions(field: EstimateSortField): DropdownSelectOption[] {
+  return [
+    {
+      value: "desc",
+      label: getEstimateSortDirectionLabel(field, "desc"),
+      icon: <SortDescending size={12} weight="regular" aria-hidden="true" />,
+    },
+    {
+      value: "asc",
+      label: getEstimateSortDirectionLabel(field, "asc"),
+      icon: <SortAscending size={12} weight="regular" aria-hidden="true" />,
+    },
+  ];
+}
+
+function defaultSortDirectionForEstimateField(field: EstimateSortField): EstimateSortDirection {
+  return field === "name" ? "asc" : "desc";
+}
+
+function getEstimateTimestamp(value: string) {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function matchesEstimateFilter(estimate: ProjectEstimateTableRow, filter: EstimateFilter, now: number) {
+  if (filter === "all") return true;
+  if (filter === "favorites") return estimate.isFavorite;
+
+  const updatedAt = getEstimateTimestamp(estimate.updated_at);
+  return updatedAt !== null && updatedAt >= now - ESTIMATE_RECENT_WINDOW_MS;
+}
+
+function matchesEstimateSearch(estimate: ProjectEstimateTableRow, query: string) {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) return true;
+
+  const searchable = [estimate.sheet_code, estimate.name].join(" ").toLocaleLowerCase();
+  return searchable.includes(normalizedQuery);
+}
+
+function getEstimateSortValue(estimate: ProjectEstimateTableRow, field: EstimateSortField) {
+  if (field === "name") return estimate.name.trim() || estimate.sheet_code;
+  return getEstimateTimestamp(estimate[field]);
+}
+
+function compareEstimatesByName(a: ProjectEstimateTableRow, b: ProjectEstimateTableRow) {
+  return estimateNameCollator.compare(a.name, b.name)
+    || estimateNameCollator.compare(a.sheet_code, b.sheet_code)
+    || estimateNameCollator.compare(a.id, b.id);
+}
+
+function compareEstimateSheets(
+  a: ProjectEstimateTableRow,
+  b: ProjectEstimateTableRow,
+  field: EstimateSortField,
+  direction: EstimateSortDirection,
+) {
+  const aValue = getEstimateSortValue(a, field);
+  const bValue = getEstimateSortValue(b, field);
+  if (aValue === null && bValue === null) return compareEstimatesByName(a, b);
+  if (aValue === null) return 1;
+  if (bValue === null) return -1;
+
+  const order = direction === "asc" ? 1 : -1;
+  const primary = typeof aValue === "number" && typeof bValue === "number"
+    ? aValue - bValue
+    : estimateNameCollator.compare(String(aValue), String(bValue));
+  if (primary !== 0) return primary * order;
+  return compareEstimatesByName(a, b);
+}
+
+function projectEstimateToolbarRows(
+  estimates: ProjectEstimateTableRow[],
+  query: string,
+  filter: EstimateFilter,
+  sortField: EstimateSortField,
+  sortDirection: EstimateSortDirection,
+) {
+  const now = Date.now();
+  return estimates
+    .filter((estimate) => matchesEstimateFilter(estimate, filter, now))
+    .filter((estimate) => matchesEstimateSearch(estimate, query))
+    .toSorted((a, b) => compareEstimateSheets(a, b, sortField, sortDirection));
+}
+
+export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById, estimates, projectId, projectName, parentProject, scope }: ProjectEstimatesClientProps) {
   const router = useNavigationRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -47,6 +180,9 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
   // Per-mount client store seeded from the server prop. Created once via the
   // lazy initializer so it resets on project change but survives re-renders.
   const [store] = useState(() => createProjectEstimatesStore(estimates));
+  const [filter, setFilter] = useState<EstimateFilter>("all");
+  const [sortField, setSortField] = useState<EstimateSortField>("updated_at");
+  const [sortDirection, setSortDirection] = useState<EstimateSortDirection>("desc");
 
   // Reseed settled rows when the server prop changes (external refresh, cross-tab
   // update, navigation). Pending optimistic rows are preserved by the store.
@@ -57,8 +193,13 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
 
   const liveEstimates = useStore(store, (state) => state.estimates);
   const sourceEstimates = OPTIMISTIC_ESTIMATE_LIST_ENABLED ? liveEstimates : estimates;
-  const filteredEstimates = useMemo(() => filterEstimateSheets(sourceEstimates, searchQuery), [sourceEstimates, searchQuery]);
-  const emptyMessage = searchQuery.trim() ? "No matching estimates" : "No estimates yet";
+  const filteredEstimates = useMemo(
+    () => projectEstimateToolbarRows(sourceEstimates, searchQuery, filter, sortField, sortDirection),
+    [filter, searchQuery, sortDirection, sortField, sourceEstimates],
+  );
+  const sortDirectionOptions = useMemo(() => getEstimateSortDirectionOptions(sortField), [sortField]);
+  const hasActiveListFilter = filter !== "all" || searchQuery.trim().length > 0;
+  const emptyMessage = hasActiveListFilter ? "No matching estimates" : "No estimates yet";
   const hasEstimates = sourceEstimates.length > 0;
   const hasFilteredEstimates = filteredEstimates.length > 0;
 
@@ -129,10 +270,53 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
         addActions={[
           {
             label: isCreating ? "Creating estimate" : "Create Estimate",
+            icon: <NewspaperClipping size={12} weight="regular" aria-hidden="true" />,
             disabled: !canCreateEstimates || isCreating,
             onClick: handleCreateEstimateSheet,
+            className: ADD_BUTTON_CLASSNAME,
           },
         ]}
+        filterSlot={
+          <div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+            <DropdownSelect
+              aria-label="Filter estimates"
+              options={ESTIMATE_FILTER_OPTIONS}
+              value={filter}
+              onValueChange={(next) => {
+                if (isEstimateFilter(next)) setFilter(next);
+              }}
+              variant="boxed"
+              triggerDisplay="icon"
+              className={ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS}
+            />
+            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-hairline" />
+            <DropdownSelect
+              aria-label="Sort field"
+              options={ESTIMATE_SORT_FIELD_OPTIONS}
+              value={sortField}
+              onValueChange={(next) => {
+                if (isEstimateSortField(next)) {
+                  setSortField(next);
+                  setSortDirection(defaultSortDirectionForEstimateField(next));
+                }
+              }}
+              variant="boxed"
+              triggerDisplay="icon"
+              className={ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS}
+            />
+            <DropdownSelect
+              aria-label="Sort direction"
+              options={sortDirectionOptions}
+              value={sortDirection}
+              onValueChange={(next) => {
+                if (isEstimateSortDirection(next)) setSortDirection(next);
+              }}
+              variant="boxed"
+              triggerDisplay="icon"
+              className={ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS}
+            />
+          </div>
+        }
       />
       {createError ? (
         <p className="border-y border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-medium text-danger" role="alert">
@@ -149,6 +333,8 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
             emptyMessage={emptyMessage}
             store={OPTIMISTIC_ESTIMATE_LIST_ENABLED ? store : undefined}
             optimistic={OPTIMISTIC_ESTIMATE_LIST_ENABLED}
+            parentProject={parentProject}
+            scope={scope}
           />
         ) : (
           <EmptyState
@@ -156,7 +342,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
             title={hasEstimates ? "No matching estimates" : "Create the first estimate"}
             description={
               hasEstimates
-                ? "Try an estimate code, estimate name, or clear search to return to all estimates."
+                ? "Adjust filters or clear search to return to more estimates."
                 : "Start an estimate before adding groups, inserting components, or exporting a bid workbook."
             }
             action={

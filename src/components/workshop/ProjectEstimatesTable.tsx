@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
 import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
-import { ProjectEstimateFavoriteButton } from "@/components/workshop/ProjectEstimateFavoriteButton";
+import { ProjectEstimateFavoriteButton, type EstimateFavoriteParentProject, type EstimateFavoriteScope } from "@/components/workshop/ProjectEstimateFavoriteButton";
 import { duplicateEstimateSheet, executeBulkDeleteEstimateSheets, fetchEstimateTree, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
@@ -44,6 +44,16 @@ type ProjectEstimatesTableProps = {
   estimates: ProjectEstimateTableRow[];
   projectId: string;
   emptyMessage?: string;
+  /**
+   * Parent-project sidebar metadata, threaded to the favorite button so the
+   * optimistic sidebar insert + legibility cue can fire. Optional: standalone
+   * renders fall back to a synthesized parent inside the button.
+   */
+  parentProject?: EstimateFavoriteParentProject;
+  /** Scope for the sidebar favorites cache key. */
+  scope?: EstimateFavoriteScope;
+  /** Fires the polite legibility cue when toggling under a non-sidebar-favorite parent. */
+  announceCue?: () => void;
   /**
    * Optimistic store owned by ProjectEstimatesClient. When present (P0 default),
    * mutations reconcile through it instead of `router.refresh()`. Absent in
@@ -204,6 +214,9 @@ type ProjectEstimateRowActionsProps = {
   projectId: string;
   store?: ProjectEstimatesStore;
   optimistic: boolean;
+  parentProject?: EstimateFavoriteParentProject;
+  scope?: EstimateFavoriteScope;
+  announceCue?: () => void;
 };
 
 function ProjectEstimateRowActions({
@@ -218,6 +231,9 @@ function ProjectEstimateRowActions({
   projectId,
   store,
   optimistic,
+  parentProject,
+  scope,
+  announceCue,
 }: ProjectEstimateRowActionsProps) {
   const estimateHref = getEstimateHref(estimate);
   const router = useNavigationRouter();
@@ -277,6 +293,9 @@ function ProjectEstimateRowActions({
         disabled={isPendingRow}
         optimistic={optimistic}
         store={store}
+        parentProject={parentProject}
+        scope={scope}
+        announceCue={announceCue}
       />
       <button
         type="button"
@@ -770,6 +789,9 @@ function ProjectEstimatesTableComponent({
   emptyMessage = "No estimates yet",
   store,
   optimistic = true,
+  parentProject,
+  scope,
+  announceCue,
 }: ProjectEstimatesTableProps) {
   const router = useNavigationRouter();
   const queryClient = useQueryClient();
@@ -946,6 +968,9 @@ function ProjectEstimatesTableComponent({
               projectId={projectId}
               store={store}
               optimistic={optimistic}
+              parentProject={parentProject}
+              scope={scope}
+              announceCue={announceCue}
             />
           );
         },
@@ -1058,7 +1083,7 @@ function ProjectEstimatesTableComponent({
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
     ],
-    [cancelEstimateRoute, editableEstimateIds, openDeleteEstimatePreview, optimistic, prefetchEstimateRoute, projectId, selectedEstimateIds, store, toggleEstimateSelection],
+    [announceCue, cancelEstimateRoute, editableEstimateIds, openDeleteEstimatePreview, optimistic, parentProject, prefetchEstimateRoute, projectId, scope, selectedEstimateIds, store, toggleEstimateSelection],
   );
 
   const table = useReactTable({

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { listCurrentUserEstimateFavoriteCreatedAtById } from "@/lib/repositories/estimate-favorites-repository";
-import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
+import { ensureDefaultWorkspace, listMainSidebarFavoriteProjects, listProjectEstimates } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ProjectEstimatesPageProps = {
@@ -18,15 +18,32 @@ export default async function ProjectEstimatesPage({ params }: ProjectEstimatesP
   if (!project) notFound();
 
   const estimateIds = estimates.map((estimate) => estimate.id);
-  const [favoriteCreatedAtByEstimateId, editCapabilities] = await Promise.all([
+  const [favoriteCreatedAtByEstimateId, editCapabilities, currentUser, workspaceBootstrap, sidebarFavoriteProjects] = await Promise.all([
     listCurrentUserEstimateFavoriteCreatedAtById(estimateIds),
     resolveEstimateListEditCapabilities(projectId, estimateIds),
+    requireCurrentUserContext(),
+    ensureDefaultWorkspace(),
+    listMainSidebarFavoriteProjects(),
   ]);
+
+  // isSidebarFavorite: membership in the scoped top-window favorites list (cached
+  // read, no extra query). Drives the optimistic sidebar insert + the legibility cue.
+  const isSidebarFavorite = sidebarFavoriteProjects.some((favorite) => favorite.id === project.id);
+  const parentProject = {
+    id: project.id,
+    name: project.name,
+    projectCode: project.project_code ?? null,
+    href: `/workshop/projects/${project.id}`,
+    isSidebarFavorite,
+  };
+  const scope = { workspaceId: workspaceBootstrap.workspace.id, userId: currentUser.userId };
 
   return (
     <ProjectEstimatesClient
       projectId={projectId}
       projectName={project.name}
+      parentProject={parentProject}
+      scope={scope}
       canCreateEstimates={editCapabilities.canCreateEstimates}
       canEditEstimateById={editCapabilities.canEditEstimateById}
       estimates={estimates.map((estimate) => {
