@@ -968,6 +968,40 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
   });
 
+  it("returns partial batch insert evidence when post-commit refresh fails", async () => {
+    repositoryMocks.getProjectEstimateTreeByEstimate.mockRejectedValue(new Error("refresh unavailable"));
+    const supabase = {
+      from: vi.fn((table: string) => {
+        throw new Error(`insertEstimateTemplatesIntoEstimate must not query ${table} outside the RPC.`);
+      }),
+      rpc: vi.fn(async (name: string, params?: { source_template_id?: string }) => {
+        if (name === "can_edit_estimate") return { data: true, error: null };
+        if (params?.source_template_id === "template-1") {
+          return { data: { inserted_root_node_ids: ["new-root-node"], inserted_node_count: 1, inserted_row_item_count: 0 }, error: null };
+        }
+        return { data: null, error: new Error("Estimate template not found in the current workspace.") };
+      }),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { insertEstimateTemplatesIntoEstimate } = await import("@/lib/estimates/actions");
+
+    const result = await insertEstimateTemplatesIntoEstimate({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      targetParentNodeId: "parent-group",
+      templateIds: ["template-1", "missing-template"],
+    });
+
+    expect(result).toEqual({
+      tree: [],
+      insertedRootNodeIds: ["new-root-node"],
+      partialFailureMessage: "Could not insert estimate template: Estimate template not found in the current workspace. The inserted templates are committed, but the sheet could not be refreshed automatically.",
+      refreshFailed: true,
+    });
+    expect(supabase.rpc).toHaveBeenCalledTimes(3);
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+  });
+
   it("denies a workspace-member viewer before the insert RPC (U4 / SEC-1)", async () => {
     const supabase = {
       from: vi.fn((table: string) => {

@@ -981,6 +981,81 @@ describe("estimate sheet library insertion persistence", () => {
     expect(reconciledTree[0].children?.[1].children).toEqual([]);
   });
 
+  it("removes optimistic descendants that were moved outside the optimistic root", () => {
+    const optimisticRoot: EstimateTreeNode = {
+      id: "optimistic-template-root",
+      name: "Failed Package",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const movedOptimisticChild: EstimateTreeNode = {
+      id: "optimistic-template-child",
+      name: "Moved Optimistic Area",
+      kind: "area",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const currentTree: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        children: [
+          optimisticRoot,
+          {
+            ...nodes[0],
+            children: [movedOptimisticChild],
+          },
+        ],
+      },
+    ];
+
+    const reconciledTree = replaceOptimisticTemplateRoots(
+      currentTree,
+      groupNodeId,
+      new Set([optimisticRoot.id, movedOptimisticChild.id]),
+      [],
+    );
+
+    expect(reconciledTree[0].children?.map((node) => node.id)).toEqual([targetNodeId]);
+    expect(reconciledTree[0].children?.[0].children).toEqual([]);
+  });
+
+  it("preserves existing nodes moved inside failed optimistic roots", () => {
+    const movedExistingNode: EstimateTreeNode = {
+      id: "existing-node-moved-into-template",
+      name: "Existing Area",
+      kind: "area",
+      total: "PHP 0.00",
+      children: [],
+      estimateRowItems: [],
+    };
+    const optimisticRoot: EstimateTreeNode = {
+      id: "optimistic-template-root",
+      name: "Failed Package",
+      kind: "group",
+      total: "PHP 0.00",
+      children: [movedExistingNode],
+      estimateRowItems: [],
+    };
+    const currentTree: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        children: [optimisticRoot],
+      },
+    ];
+
+    const reconciledTree = replaceOptimisticTemplateRoots(
+      currentTree,
+      groupNodeId,
+      new Set([optimisticRoot.id]),
+      [],
+    );
+
+    expect(reconciledTree[0].children?.map((node) => node.id)).toEqual([movedExistingNode.id]);
+  });
+
   it("keeps a committed quantity edit visible while the server save is delayed", async () => {
     const user = userEvent.setup();
     const save = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();

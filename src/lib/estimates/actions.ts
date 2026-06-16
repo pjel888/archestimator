@@ -68,6 +68,7 @@ type InsertEstimateTemplateIntoEstimateResult = {
   tree: EstimateTreeNode[];
   insertedRootNodeIds: string[];
   partialFailureMessage?: string;
+  refreshFailed?: boolean;
 };
 
 type InsertEstimateTemplatesIntoEstimateInput = {
@@ -2373,7 +2374,22 @@ export async function insertEstimateTemplatesIntoEstimate({
     insertedRootNodeIds.push(...readInsertedRootNodeIds(copyResult));
   }
 
-  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  let refreshedTree: Awaited<ReturnType<typeof refreshInsertedEstimateTree>>;
+  try {
+    refreshedTree = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
+  } catch (error) {
+    if (insertedRootNodeIds.length > 0 && partialFailureMessage) {
+      console.error("[estimate] template batch insert refresh failed after partial commit", error);
+      return {
+        tree: [],
+        insertedRootNodeIds,
+        partialFailureMessage: `${partialFailureMessage} The inserted templates are committed, but the sheet could not be refreshed automatically.`,
+        refreshFailed: true,
+      };
+    }
+    throw error;
+  }
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = refreshedTree;
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the templates.");
 
   return { tree, insertedRootNodeIds, partialFailureMessage };

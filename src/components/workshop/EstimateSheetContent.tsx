@@ -442,6 +442,18 @@ function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNode
   });
 }
 
+function collectEstimateTreeNodeIds(nodes: EstimateTreeNode[]): Set<string> {
+  const nodeIds = new Set<string>();
+
+  function visit(node: EstimateTreeNode) {
+    nodeIds.add(node.id);
+    node.children?.forEach(visit);
+  }
+
+  nodes.forEach(visit);
+  return nodeIds;
+}
+
 function removeEstimateRowItem(nodes: EstimateTreeNode[], rowItemId: string): EstimateTreeNode[] {
   return nodes.map((node) => ({
     ...node,
@@ -2085,7 +2097,7 @@ export function EstimateSheetContent({
       const previousRows = editableRows;
       const rollbackRevision = getEstimateTreeRevision();
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
-      const optimisticRootNodeIds = new Set(optimisticTemplateNodes.map((node) => node.id));
+      const optimisticNodeIds = collectEstimateTreeNodeIds(optimisticTemplateNodes);
       const optimisticRowItemIds = collectEstimateRowItemIds(optimisticTemplateNodes);
       const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
       const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
@@ -2102,13 +2114,19 @@ export function EstimateSheetContent({
         })
           .then((result) => {
             if (result.partialFailureMessage) {
+              if (result.refreshFailed) {
+                console.error("[estimate] template batch insert partially failed before refresh", result.partialFailureMessage);
+                toast({ tone: "error", message: "Some templates were inserted. Refreshing the sheet." });
+                void (dataTabId ? tabTreeQuery.refetch() : legacyTreeQuery.refetch());
+                return;
+              }
               const serverTargetParentNode = findEstimateNode(result.tree, targetParentNodeId);
               const committedRootNodeIds = new Set(result.insertedRootNodeIds);
               const committedRootNodes = (serverTargetParentNode?.children ?? []).filter((node) => committedRootNodeIds.has(node.id));
               if (getEstimateTreeRevision() === nextRevision) {
                 setEstimateTree(() => result.tree);
               } else {
-                setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, committedRootNodes));
+                setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticNodeIds, committedRootNodes));
               }
               setEditableRows((current) => {
                 const next = { ...current, ...collectEditableRows(committedRootNodes) };
@@ -2128,7 +2146,7 @@ export function EstimateSheetContent({
             if (getEstimateTreeRevision() === expectedRevision) {
               restoreEstimateState(previousTree, previousRows, expectedRevision);
             } else {
-              setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, []));
+              setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticNodeIds, []));
               setEditableRows((current) => {
                 const next = { ...current };
                 for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
