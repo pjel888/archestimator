@@ -8,6 +8,26 @@ import {
 } from "@/hooks/use-estimate-cursor-broadcast";
 import { issueRealtimeIdentityEnvelope } from "@/lib/collaboration/realtime-identity-server";
 
+const verifyKeyImportGate = vi.hoisted(() => ({
+  pause: false,
+  release: null as (() => void) | null,
+}));
+
+vi.mock("@/lib/collaboration/realtime-identity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/collaboration/realtime-identity")>();
+  return {
+    ...actual,
+    importVerifyKey: vi.fn(async (publicKey: string) => {
+      if (verifyKeyImportGate.pause) {
+        await new Promise<void>((resolve) => {
+          verifyKeyImportGate.release = resolve;
+        });
+      }
+      return actual.importVerifyKey(publicKey);
+    }),
+  };
+});
+
 // T1.2 / T5.1 / G3 / G19: cursor identity must be sender-bound. A cursor from
 // member B claiming member A — or any cursor without a valid signed envelope —
 // must render nothing. Verified locally with the same signing key the server uses.
@@ -64,7 +84,11 @@ function basePayload(overrides: Partial<EstimateCursorBroadcastPayload>): Estima
 
 describe("estimate cursor identity gate", () => {
   afterEach(() => {
+    verifyKeyImportGate.pause = false;
+    verifyKeyImportGate.release?.();
+    verifyKeyImportGate.release = null;
     cleanup();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -274,4 +298,38 @@ describe("estimate cursor identity gate", () => {
     unmount();
   });
 
+  it("does not schedule an identity refresh after cleanup during verify key import", async () => {
+    vi.useFakeTimers();
+    verifyKeyImportGate.pause = true;
+    const signingKey = await issueRealtimeIdentityEnvelope({ sub: "me", topic: TOPIC, role: "member" });
+    const { client, channel } = createFakeCursorClient();
+    let issueCount = 0;
+
+    const { unmount } = renderHook(() =>
+      useEstimateCursorCollaboration({
+        estimateId: ESTIMATE_ID,
+        userId: "me",
+        enabled: true,
+        clientFactory: () => client,
+        identityIssuer: async () => {
+          issueCount += 1;
+          return { envelope: signingKey.envelope, publicKey: signingKey.publicKey };
+        },
+      }),
+    );
+
+    act(() => channel.__emitStatus("SUBSCRIBED"));
+    await vi.waitFor(() => expect(issueCount).toBe(1));
+
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+
+    await act(async () => {
+      verifyKeyImportGate.release?.();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
