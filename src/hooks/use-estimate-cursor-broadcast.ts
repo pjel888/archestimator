@@ -184,8 +184,10 @@ export function useEstimateCursorCollaboration({
         try {
           const identity = await identityIssuerRef.current({ topic });
           if (cancelled || !identity) return;
+          const verifyKey = await importVerifyKey(identity.publicKey);
+          if (cancelled) return;
           envelopeRef.current = identity.envelope;
-          verifyKeyRef.current = await importVerifyKey(identity.publicKey);
+          verifyKeyRef.current = verifyKey;
           scheduleIdentityRefresh(identity.envelope);
         } catch (error) {
           reportRealtimeEvent({
