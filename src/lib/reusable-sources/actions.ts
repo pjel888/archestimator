@@ -373,32 +373,24 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
       accessibleEstimateIds.push(estimate.id);
     }
   };
-  const matchingEstimateResults = await Promise.all(
-    accessibleProjects.map(async (item) => ({
-      item,
-      estimates: await listProjectEstimateSheets(item.project.id, {
-        limit: REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT,
-        search: rawQuery,
-      }),
-    })),
-  );
-  for (const result of matchingEstimateResults) {
-    addAccessibleEstimates(result.item, result.estimates);
+  for (const item of accessibleProjects) {
+    const remainingMatchingSlots =
+      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
+    if (remainingMatchingSlots <= 0) break;
+    const estimates = await listProjectEstimateSheets(item.project.id, {
+      limit: remainingMatchingSlots,
+      search: rawQuery,
+    });
+    addAccessibleEstimates(item, estimates);
   }
-  if (accessibleEstimateIds.length < REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT) {
+  for (const item of accessibleProjects) {
     const remainingRecentSlots =
       REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
-    const recentEstimateResults = await Promise.all(
-      accessibleProjects.map(async (item) => ({
-        item,
-        estimates: await listProjectEstimateSheets(item.project.id, {
-          limit: remainingRecentSlots,
-        }),
-      })),
-    );
-    for (const result of recentEstimateResults) {
-      addAccessibleEstimates(result.item, result.estimates);
-    }
+    if (remainingRecentSlots <= 0) break;
+    const estimates = await listProjectEstimateSheets(item.project.id, {
+      limit: remainingRecentSlots,
+    });
+    addAccessibleEstimates(item, estimates);
   }
 
   const sourcesByKey = new Map<string, ProjectReusableEstimateSource>();

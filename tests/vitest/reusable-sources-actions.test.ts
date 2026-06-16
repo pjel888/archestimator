@@ -528,13 +528,9 @@ describe("reusable project source actions", () => {
       limit: 50,
       search: "missing",
     });
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(2);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
       projectAId,
-      { limit: 100, search: "missing" },
-    );
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
-      projectBId,
       { limit: 100, search: "missing" },
     );
     expect(
@@ -679,48 +675,44 @@ describe("reusable project source actions", () => {
     );
   });
 
-  it("starts estimate candidate search reads for all candidate projects before prefiltering", async () => {
+  it("bounds estimate candidate search reads by remaining global slots", async () => {
     const projects = [projectAId, projectBId, "55555555-5555-4555-8555-555555555555"].map((projectId, index) => ({
       accessKind: "owner",
       project: { id: projectId, name: `Project ${index + 1}` },
     }));
-    const matchingReads = [
-      createDeferred<TestEstimateSheet[]>(),
-      createDeferred<TestEstimateSheet[]>(),
-      createDeferred<TestEstimateSheet[]>(),
-    ];
+    const firstMatchingRead = createDeferred<TestEstimateSheet[]>();
     repositoryMocks.listCurrentWorkspaceProjectSearchCandidates
       .mockResolvedValueOnce({ projects })
       .mockResolvedValueOnce({ projects: [] });
-    repositoryMocks.listProjectEstimateSheets.mockImplementation((projectId: string, options?: { search?: string }) => {
-      if (options?.search) {
-        const readIndex = projects.findIndex((item) => item.project.id === projectId);
-        return matchingReads[readIndex]?.promise ?? Promise.resolve([]);
-      }
+    repositoryMocks.listProjectEstimateSheets.mockImplementation((_projectId: string, options?: { search?: string }) => {
+      if (options?.search) return firstMatchingRead.promise;
       return Promise.resolve([]);
     });
 
     const { searchReusableProjectSources } =
       await import("@/lib/reusable-sources/actions");
     const searchPromise = searchReusableProjectSources({ query: "steel" });
-    for (let attempt = 0; attempt < 20 && repositoryMocks.listProjectEstimateSheets.mock.calls.length < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 20 && repositoryMocks.listProjectEstimateSheets.mock.calls.length < 1; attempt += 1) {
       await Promise.resolve();
     }
 
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(3);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
+      projectAId,
+      { limit: 100, search: "steel" },
+    );
     expect(searchPrefilterCalls).toHaveLength(0);
 
-    matchingReads[0]?.resolve([
-      {
-        id: estimateAId,
-        name: "Steel Estimate",
-        sheetCode: "EST-001",
+    firstMatchingRead.resolve(
+      Array.from({ length: 100 }, (_, index) => ({
+        id: `steel-estimate-${index + 1}`,
+        name: `Steel Estimate ${index + 1}`,
+        sheetCode: `EST-${index + 1}`,
         updatedAt: "2026-06-12T08:00:00.000Z",
-      },
-    ]);
-    matchingReads[1]?.resolve([]);
-    matchingReads[2]?.resolve([]);
+      })),
+    );
     await searchPromise;
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
   });
 
   it("materializes only tabs identified by the search prefilter", async () => {
