@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Books, Folder, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { Books, FileText, Folder, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
+import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
 import {
@@ -15,6 +17,7 @@ import {
   SIDEBAR_TRANSITION,
   SIDEBAR_WIDTH_COLLAPSED,
   SIDEBAR_WIDTH_EXPANDED,
+  type MainSidebarFavoriteProject,
   type SidebarNavItem,
 } from "./sidebar-types";
 
@@ -26,6 +29,13 @@ type MainSidebarUser = {
 
 export type MainSidebarStatus = {
   projectsBadgeCount?: number;
+};
+
+type MainSidebarProps = {
+  favoriteProjects?: MainSidebarFavoriteProject[];
+  favoritesScope?: { workspaceId: string; userId: string } | null;
+  status?: MainSidebarStatus;
+  user?: MainSidebarUser;
 };
 
 const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
@@ -50,9 +60,40 @@ function formatPendingInviteBadgeLabel(count: number) {
   return `${count} pending ${count === 1 ? "invite" : "invites"}`;
 }
 
-export function MainSidebar({ status, user }: { status?: MainSidebarStatus; user?: MainSidebarUser }) {
+function createFavoritePrefetchRoutes(favoriteProjects: MainSidebarFavoriteProject[]) {
+  return favoriteProjects.flatMap((project) => [
+    { pathname: project.href },
+    ...project.favoriteEstimateSheets.map((sheet) => ({ pathname: sheet.href })),
+  ]);
+}
+
+function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
+  const base = [
+    "group relative flex h-7 min-w-0 items-center gap-2 overflow-hidden rounded-xs outline-none transition-colors duration-[120ms] ease-out",
+    "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
+    active ? "bg-orange-50 text-primary" : "text-tertiary hover:bg-accent-soft hover:text-primary",
+  ];
+
+  if (depth === "project") {
+    base.push("pl-3 pr-2");
+  } else {
+    base.push("pl-[52px] pr-2");
+  }
+
+  return base.join(" ");
+}
+
+export function MainSidebar({ favoriteProjects = [], favoritesScope, status, user }: MainSidebarProps) {
   const pathname = usePathname();
-  const { prefetch, cancel } = usePrefetchOnHover(sidebarPrefetchRoutes);
+  const favoritesQuery = useSidebarFavoritesQuery({
+    scope: favoritesScope ?? { workspaceId: "none", userId: "none" }, // hook always called; null scope reads initialData
+    initialData: favoriteProjects,
+  });
+  const liveFavoriteProjects = favoritesScope ? favoritesQuery.data ?? [] : favoriteProjects;
+  const showEmptyHint = !favoritesQuery.isPending && liveFavoriteProjects.length === 0;
+  const favoritePrefetchRoutes = useMemo(() => createFavoritePrefetchRoutes(liveFavoriteProjects), [liveFavoriteProjects]);
+  const prefetchRoutes = useMemo(() => [...sidebarPrefetchRoutes, ...favoritePrefetchRoutes], [favoritePrefetchRoutes]);
+  const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
   const userName = user?.displayName || user?.email || "Workspace";
   const userSubtitle = user?.email || "Archestimator";
   const userInitials = userName
@@ -171,6 +212,8 @@ export function MainSidebar({ status, user }: { status?: MainSidebarStatus; user
             </div>
           </div>
 
+          <div className="h-px shrink-0 bg-hairline" />
+
           <div className="flex flex-col gap-2 pb-2 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
             {resolvedSidebarNavItems.map((item) => (
               <SidebarNavItemRow
@@ -182,6 +225,94 @@ export function MainSidebar({ status, user }: { status?: MainSidebarStatus; user
                 onPrefetchCancel={cancel}
               />
             ))}
+          </div>
+
+          <div className="shrink-0 border-y border-hairline" style={{ paddingInline: SIDEBAR_PADDING }}>
+            <div
+              data-sidebar-favorites-header
+              tabIndex={-1}
+              className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs outline-none"
+            >
+              <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-xs text-warning">
+                <Star size={15} weight="fill" aria-hidden="true" className="shrink-0" />
+              </span>
+              <span
+                aria-hidden={!expanded}
+                className={[
+                  "min-w-0 truncate whitespace-nowrap text-[10px] font-medium leading-none text-ink transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+                  expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
+                ].join(" ")}
+              >
+                Favorites
+              </span>
+            </div>
+
+            {liveFavoriteProjects.length > 0 ? (
+              <div
+                aria-label="Favorite projects"
+                className={[
+                  "flex min-w-0 flex-col gap-0.5 pb-2 transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+                  expanded ? "translate-x-0 opacity-100" : "pointer-events-none hidden translate-x-1 opacity-0",
+                ].join(" ")}
+              >
+                {liveFavoriteProjects.map((project) => {
+                  const projectActive = isActiveHref(pathname, project.href);
+                  return (
+                    <div key={project.id} className="min-w-0" data-sidebar-favorite-project>
+                      <Link
+                        href={project.href}
+                        prefetch={false}
+                        aria-current={projectActive ? "page" : undefined}
+                        title={project.projectCode ? `${project.name} (${project.projectCode})` : project.name}
+                        onBlur={() => cancel(project.href)}
+                        onFocus={() => prefetch(project.href)}
+                        onMouseEnter={() => prefetch(project.href)}
+                        onMouseLeave={() => cancel(project.href)}
+                        className={getFavoriteLinkClassName(projectActive, "project")}
+                      >
+                        <Folder size={13} weight={projectActive ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
+                        <span className="min-w-0 truncate text-[9px] font-medium leading-none">{project.name}</span>
+                      </Link>
+
+                      {project.favoriteEstimateSheets.length > 0 ? (
+                        <div className="mt-0.5 flex min-w-0 flex-col gap-0.5">
+                          {project.favoriteEstimateSheets.map((sheet) => {
+                            const sheetActive = isActiveHref(pathname, sheet.href);
+                            return (
+                              <Link
+                                key={sheet.id}
+                                href={sheet.href}
+                                prefetch={false}
+                                aria-current={sheetActive ? "page" : undefined}
+                                title={sheet.sheetCode ? `${sheet.name} (${sheet.sheetCode})` : sheet.name}
+                                onBlur={() => cancel(sheet.href)}
+                                onFocus={() => prefetch(sheet.href)}
+                                onMouseEnter={() => prefetch(sheet.href)}
+                                onMouseLeave={() => cancel(sheet.href)}
+                                className={getFavoriteLinkClassName(sheetActive, "sheet")}
+                                data-sidebar-favorite-sheet
+                              >
+                                <FileText size={11} weight={sheetActive ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
+                                <span className="min-w-0 truncate text-[9px] leading-none">{sheet.name}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {showEmptyHint && expanded ? (
+              <p
+                data-sidebar-favorites-empty
+                className="pb-2 pl-3 text-[9px] font-normal leading-none text-tertiary"
+              >
+                Star a project to pin it here.
+              </p>
+            ) : null}
           </div>
         </div>
       </nav>

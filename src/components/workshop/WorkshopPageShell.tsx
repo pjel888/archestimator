@@ -10,6 +10,7 @@ import { WebVitalsProbe } from "@/components/workshop/WebVitalsProbe";
 import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { ensureDefaultWorkspace, listMainSidebarFavoriteProjects } from "@/lib/repositories/workspace-repository";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs";
 import { WorkshopFeedbackModal } from "./WorkshopFeedbackModal";
@@ -85,6 +86,10 @@ export async function WorkshopPageShell({
     getCurrentUserContext(),
     getSidePanelWidthCssVariables(),
   ]);
+  const sidebarFavoriteScope = currentUser
+    ? { workspaceId: (await ensureDefaultWorkspace()).workspace.id, userId: currentUser.userId }
+    : null;
+  const sidebarFavoriteProjects = sidebarFavoriteScope ? await listMainSidebarFavoriteProjects() : [];
   const sidebarUser = currentUser
     ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
     : undefined;
@@ -105,7 +110,12 @@ export async function WorkshopPageShell({
   return (
     <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden bg-canvas text-ink" aria-label={title}>
       <WebVitalsProbe />
-      <MainSidebar status={sidebarStatus} user={sidebarUser} />
+      <MainSidebar
+        favoriteProjects={sidebarFavoriteProjects}
+        favoritesScope={sidebarFavoriteScope}
+        status={sidebarStatus}
+        user={sidebarUser}
+      />
       <section
         data-workshop-page-shell-canvas
         className="flex h-full min-h-0 flex-col lg:pl-[64px]"
