@@ -620,6 +620,70 @@ describe("reusable project source actions", () => {
     ]);
   });
 
+  it("retries legacy node prefilter without the active-tab join when estimate_tabs is missing", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      { id: estimateAId, name: "Legacy Estimate", sheetCode: "EST-LEG", updatedAt: "2026-06-12T08:00:00.000Z" },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "legacy-node",
+          name: "Legacy Site Works",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    const prefilter = mockSearchPrefilter({
+      estimate_nodes: [
+        {
+          data: null,
+          error: {
+            code: "PGRST205",
+            message: "Could not find the 'estimate_tabs' relationship in the schema cache",
+          },
+        },
+        { data: [{ estimate_id: estimateAId }], error: null },
+      ],
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "legacy site" });
+
+    const nodeSelects = prefilter.calls.filter((call) => call.table === "estimate_nodes" && call.method === "select");
+    expect(nodeSelects.map((call) => call.args[0])).toEqual([
+      "estimate_id, estimate_tabs!inner(id)",
+      "estimate_id",
+    ]);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      { allowLegacyFallback: true },
+    );
+    expect(result.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "project-node",
+          nodeId: "legacy-node",
+          name: "Legacy Site Works",
+        }),
+      ]),
+    );
+  });
+
   it("skips an over-cap node match instead of returning only its non-selectable parent", async () => {
     const cappedProjects = Array.from({ length: 49 }, (_, index) => ({
       accessKind: "owner",

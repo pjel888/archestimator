@@ -352,15 +352,26 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     return tabs;
   }
 
-  const { data: matchingNodeEstimateIds, error: matchingNodeError } = await fetchDistinctReusableSearchEstimateMatches({
+  let matchingNodeResult = await fetchDistinctReusableSearchEstimateMatches({
     supabase: supabase as unknown as ReusableSearchPrefilterClient,
     table: "estimate_nodes",
     accessibleEstimateIds,
     likePattern,
     applyActiveTabFilter: true,
   });
-  if (matchingNodeError) throw matchingNodeError;
-  for (const estimateId of matchingNodeEstimateIds ?? []) {
+  if (
+    matchingNodeResult.error
+    && isMissingRelationError(matchingNodeResult.error as never, "estimate_tabs")
+  ) {
+    matchingNodeResult = await fetchDistinctReusableSearchEstimateMatches({
+      supabase: supabase as unknown as ReusableSearchPrefilterClient,
+      table: "estimate_nodes",
+      accessibleEstimateIds,
+      likePattern,
+    });
+  }
+  if (matchingNodeResult.error) throw matchingNodeResult.error;
+  for (const estimateId of matchingNodeResult.data ?? []) {
     addEstimateToMaterialize(estimateId);
   }
 
