@@ -532,7 +532,10 @@ export async function searchReusableProjectSources(input: {
       for (const nodeId of matchedNodeIds) {
         if (returnedNodeIds.has(nodeId)) continue;
         const node = prefilterNodeById.get(nodeId);
-        if (!node || node.tabId !== tab.id) continue;
+        if (!node) continue;
+        const nodeBelongsToTab =
+          node.tabId === tab.id || (node.tabId === null && tabsToMaterialize.length === 1);
+        if (!nodeBelongsToTab) continue;
         const source: ProjectNodeReusableSource = {
           kind: "project-node",
           projectId: project.id,

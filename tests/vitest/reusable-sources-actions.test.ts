@@ -580,16 +580,7 @@ describe("reusable project source actions", () => {
     ]);
     repositoryMocks.getEstimateTabTree.mockResolvedValue({
       estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
-      tree: [
-        {
-          id: "legacy-node",
-          name: "Legacy Site Works",
-          kind: "group",
-          total: "₱0.00",
-          children: [],
-          estimateRowItems: [],
-        },
-      ],
+      tree: [],
     });
     mockSearchPrefilter({
       estimate_nodes: (calls) => {
