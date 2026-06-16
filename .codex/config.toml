@@ -14,7 +14,7 @@ startup_timeout_sec = 15
 [features]
 multi_agent = true
 child_agents_md = true
-hooks = true
+hooks = false
 goals = true
 
 [shell_environment_policy.set]

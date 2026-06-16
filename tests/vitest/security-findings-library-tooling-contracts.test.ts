@@ -52,8 +52,10 @@ describe("Codex component-library and tooling hardening contracts", () => {
     }
 
     expect(codexConfig).toContain(`"${expectedPackage}"`);
+    expect(codexConfig).toContain("hooks = false");
     expect(codexConfig).not.toMatch(/^\s*"code-review-graph",\s*$/m);
-    expect(hookCommands.some((command) => command.includes("oh-my-codex/dist/scripts/codex-native-hook.js"))).toBe(true);
+    expect(codexHooks.hooks).toEqual({});
+    expect(hookCommands).toEqual([]);
     expect(
       hookCommands.filter(
         (command) =>
@@ -76,7 +78,7 @@ describe("Codex component-library and tooling hardening contracts", () => {
     const validationMatrix = read(".ai/00_system/VALIDATION_MATRIX.md");
     const floatingCommand = ["npx", "impeccable", "detect", "--strict"].join(" ");
 
-    expect(packageJson).toContain('"lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict"');
+    expect(packageJson).toContain('"lint:design": "node .agents/skills/impeccable/scripts/detect.mjs --strict src/components"');
     expect(packageJson).not.toContain(floatingCommand);
     expect(ciWorkflow).toContain("run: bun run lint:design");
     expect(ciWorkflow).not.toContain(floatingCommand);
