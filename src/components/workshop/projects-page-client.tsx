@@ -704,6 +704,11 @@ export function ProjectsPageClient({
   // override as soon as SSR is authoritative, regardless of the active filter/tab.
   useEffect(() => {
     if (isGroupAssignPending) return; // wait for the assignment RSC refresh to settle
+    // Intentional setState-in-effect: the D14/LD-6 optimistic reconciliation. router.refresh()
+    // is non-awaitable, so overrides can only be cleared once the assignment transition settles
+    // AND SSR is authoritative for each id. The updater returns the SAME reference when nothing
+    // changed (`changed ? next : current`), so this cannot cascade renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGroupOverrides((current) => {
       const keys = Object.keys(current);
       if (keys.length === 0) return current;
