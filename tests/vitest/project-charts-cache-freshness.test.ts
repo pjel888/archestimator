@@ -14,7 +14,7 @@ import type {
 /**
  * Cache freshness contract (`09` P2.8 / `13` R-3 / `10` D-13).
  *
- * The charts surface reads shared taxonomy/supplier facts. The freshness guarantee
+ * The project data surface reads shared taxonomy/supplier facts. The freshness guarantee
  * is two-fold and proven here:
  *   1. Labels are derived from the live category/supplier facts at aggregation
  *      time — changing a label changes the bucket output, so nothing stale is baked
@@ -42,7 +42,7 @@ function supplierFacts(name: string): ProjectChartSupplierFact[] {
   return [{ id: "sup-1", name, normalizedName: name.toLowerCase(), sortOrder: 1 }];
 }
 
-describe("project charts cache freshness (P2.8 / R-3)", () => {
+describe("project data cache freshness (P2.8 / R-3)", () => {
   it("derives category bucket labels from the current category facts (no stale label)", () => {
     const before = buildSeriesByEstimate(
       { estimates, rows, nodes, categoryNodes: categoryFacts("Masonry"), suppliers: supplierFacts("BuildMart") },
@@ -71,12 +71,14 @@ describe("project charts cache freshness (P2.8 / R-3)", () => {
 
   it("renders the data route dynamically so there is no static cache to stale", () => {
     const page = readFileSync(join(process.cwd(), "src/app/workshop/projects/[projectId]/data/page.tsx"), "utf8");
-    const repository = readFileSync(join(process.cwd(), "src/lib/repositories/project-charts-repository.ts"), "utf8");
+    const repository = readFileSync(join(process.cwd(), "src/lib/repositories/project-data-repository.ts"), "utf8");
     // No opt-in to static rendering / ISR on the route.
     expect(page).not.toContain('export const dynamic = "force-static"');
     expect(page).not.toMatch(/export const revalidate\s*=/);
     // Per-request data (searchParams + cookie-bound server client) → dynamic render.
     expect(page).toContain("searchParams");
-    expect(repository).toContain("createSupabaseServerClient");
+    expect(page).toContain("getProjectDataRouteSummary");
+    expect(repository).toContain("listProjectEstimates");
+    expect(repository).toContain("getProjectChartsData");
   });
 });
