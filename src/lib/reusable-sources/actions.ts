@@ -373,31 +373,27 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
       accessibleEstimateIds.push(estimate.id);
     }
   };
-  const matchingEstimateResults = await Promise.all(
-    accessibleProjects.map(async (item) => ({
+  for (const item of accessibleProjects) {
+    const remainingSlots = REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
+    if (remainingSlots <= 0) break;
+    addAccessibleEstimates(
       item,
-      estimates: await listProjectEstimateSheets(item.project.id, {
-        limit: REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT,
+      await listProjectEstimateSheets(item.project.id, {
+        limit: remainingSlots,
         search: rawQuery,
       }),
-    })),
-  );
-  for (const result of matchingEstimateResults) {
-    addAccessibleEstimates(result.item, result.estimates);
+    );
   }
   if (accessibleEstimateIds.length < REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT) {
-    const remainingRecentSlots =
-      REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
-    const recentEstimateResults = await Promise.all(
-      accessibleProjects.map(async (item) => ({
+    for (const item of accessibleProjects) {
+      const remainingSlots = REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATE_LOOKUP_LIMIT - accessibleEstimateIds.length;
+      if (remainingSlots <= 0) break;
+      addAccessibleEstimates(
         item,
-        estimates: await listProjectEstimateSheets(item.project.id, {
-          limit: remainingRecentSlots,
+        await listProjectEstimateSheets(item.project.id, {
+          limit: remainingSlots,
         }),
-      })),
-    );
-    for (const result of recentEstimateResults) {
-      addAccessibleEstimates(result.item, result.estimates);
+      );
     }
   }
 

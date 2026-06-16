@@ -528,13 +528,9 @@ describe("reusable project source actions", () => {
       limit: 50,
       search: "missing",
     });
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(2);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
     expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
       projectAId,
-      { limit: 100, search: "missing" },
-    );
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledWith(
-      projectBId,
       { limit: 100, search: "missing" },
     );
     expect(
@@ -679,7 +675,7 @@ describe("reusable project source actions", () => {
     );
   });
 
-  it("starts estimate candidate search reads for all candidate projects before prefiltering", async () => {
+  it("keeps estimate candidate search reads sequential and globally capped before prefiltering", async () => {
     const projects = [projectAId, projectBId, "55555555-5555-4555-8555-555555555555"].map((projectId, index) => ({
       accessKind: "owner",
       project: { id: projectId, name: `Project ${index + 1}` },
@@ -703,11 +699,11 @@ describe("reusable project source actions", () => {
     const { searchReusableProjectSources } =
       await import("@/lib/reusable-sources/actions");
     const searchPromise = searchReusableProjectSources({ query: "steel" });
-    for (let attempt = 0; attempt < 20 && repositoryMocks.listProjectEstimateSheets.mock.calls.length < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 20 && repositoryMocks.listProjectEstimateSheets.mock.calls.length < 1; attempt += 1) {
       await Promise.resolve();
     }
 
-    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(3);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(1);
     expect(searchPrefilterCalls).toHaveLength(0);
 
     matchingReads[0]?.resolve([
@@ -718,7 +714,21 @@ describe("reusable project source actions", () => {
         updatedAt: "2026-06-12T08:00:00.000Z",
       },
     ]);
+    for (let attempt = 0; attempt < 20 && repositoryMocks.listProjectEstimateSheets.mock.calls.length < 2; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(2);
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenLastCalledWith(
+      projectBId,
+      { limit: 99, search: "steel" },
+    );
+
     matchingReads[1]?.resolve([]);
+    for (let attempt = 0; attempt < 20 && repositoryMocks.listProjectEstimateSheets.mock.calls.length < 3; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(3);
+
     matchingReads[2]?.resolve([]);
     await searchPromise;
   });
