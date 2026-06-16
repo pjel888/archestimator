@@ -150,11 +150,16 @@ export function projectEstimateRowToLibraryItem(row: ProjectComponentProjectionR
   };
 }
 
-export async function getProjectComponentRowsLibrary(projectId: string): Promise<ComponentRowsLibraryDataset> {
+export async function getProjectComponentRowsLibrary(
+  projectId: string,
+  options: { includeDetailGraph?: boolean } = {},
+): Promise<ComponentRowsLibraryDataset> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return fallbackComponentRowsLibraryDataset;
 
-  const library = await getCurrentWorkspaceComponentRowsLibrary();
+  const library = await getCurrentWorkspaceComponentRowsLibrary({
+    includeDetailGraph: options.includeDetailGraph,
+  });
   if (!isExpressComponentProjectFolderEnabled()) return library;
 
   const supabase = await createSupabaseServerClient();

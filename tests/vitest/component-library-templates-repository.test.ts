@@ -20,6 +20,7 @@ describe("component-library template repository helpers", () => {
     expect(typeof getCurrentWorkspaceEstimateTemplates).toBe("function");
     expect(typeof getCurrentWorkspaceComponentLibrary).toBe("function");
     expect("templates" in fallbackComponentRowsLibraryDataset).toBe(false);
+    expect(getCurrentWorkspaceComponentRowsLibrary.toString()).toContain("includeDetailGraph: options.includeDetailGraph");
     expect(fallbackComponentLibraryDataset.templates).toEqual([]);
     expect(getCurrentWorkspaceComponentRowsLibrary.toString()).not.toContain("estimate_templates");
     const combinedHelperSource = getCurrentWorkspaceComponentLibrary.toString();

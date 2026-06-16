@@ -426,7 +426,7 @@ export async function loadCurrentWorkspaceComponentLibraryLite(): Promise<Compon
 export async function loadProjectComponentLibraryLite(projectId: string): Promise<ComponentLibraryDataset> {
   await requireCurrentUserContext();
   const [componentRows, templates] = await Promise.all([
-    getProjectComponentRowsLibrary(projectId),
+    getProjectComponentRowsLibrary(projectId, { includeDetailGraph: false }),
     getCurrentWorkspaceEstimateTemplates(),
   ]);
 

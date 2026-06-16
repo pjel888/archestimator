@@ -792,10 +792,14 @@ async function loadCurrentWorkspaceEstimateTemplates({
   return libraryTemplates;
 }
 
-export async function getCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
+export async function getCurrentWorkspaceComponentRowsLibrary(options: { includeDetailGraph?: boolean } = {}): Promise<ComponentRowsLibraryDataset> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
-  return loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id });
+  return loadCurrentWorkspaceComponentRowsLibrary({
+    supabase,
+    workspaceId: workspace.id,
+    includeDetailGraph: options.includeDetailGraph,
+  });
 }
 
 export type CurrentWorkspaceEstimateTemplatesSeed = {

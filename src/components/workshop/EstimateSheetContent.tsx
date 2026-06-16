@@ -16,8 +16,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { buildEstimateColumnVars, EMPTY_ESTIMATE_COLUMN_WIDTHS } from "@/lib/estimate-sheet/column-model";
-import { loadCurrentWorkspaceComponentLibraryLite, loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
-import { WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
+import { loadProjectComponentLibraryLite } from "@/lib/component-library/actions";
+import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, workspaceComponentLibraryLiteQueryKey } from "@/lib/component-library/query-keys";
 import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
@@ -1176,13 +1176,16 @@ export function EstimateSheetContent({
   const hasServerProvidedLibrary = Boolean(libraryItems);
   const shouldLoadLibraryLazily = !hasServerProvidedLibrary && Boolean(projectId && estimateId);
   const lazyLibraryQueryKey = projectId
-    ? [...WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY, "project", projectId] as const
-    : WORKSPACE_COMPONENT_LIBRARY_LITE_QUERY_KEY;
+    ? workspaceComponentLibraryLiteQueryKey(projectId)
+    : workspaceComponentLibraryLiteQueryKey("missing-project");
   const libraryQuery = useQuery({
     // U18: the panel reads only slim EstimateRowItem fields, so it loads the lite
     // dataset under its own key — never the full-graph key the editor surfaces use.
     queryKey: lazyLibraryQueryKey,
-    queryFn: () => projectId ? loadProjectComponentLibraryLite(projectId) : loadCurrentWorkspaceComponentLibraryLite(),
+    queryFn: () => {
+      if (!projectId) throw new Error("Project id is required to load the component library.");
+      return loadProjectComponentLibraryLite(projectId);
+    },
     enabled: shouldLoadLibraryLazily && (renderSidebar || showCommandPalette),
     staleTime: 5 * 60 * 1000,
     // U19: keep the warmed cache long after navigate-away so returning to the

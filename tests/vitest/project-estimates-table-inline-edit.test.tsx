@@ -27,11 +27,16 @@ const workshopActionMocks = vi.hoisted(() => ({
   setEstimateFavorite: vi.fn(),
 }));
 
+const componentLibraryActionMocks = vi.hoisted(() => ({
+  loadProjectComponentLibraryLite: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
 }));
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/component-library/actions", () => componentLibraryActionMocks);
 vi.mock("@/lib/workshop/actions", () => workshopActionMocks);
 vi.mock("@/lib/repositories/estimate-repository", () => ({
   estimateRepository: repositoryMocks,
@@ -76,6 +81,7 @@ function renderTable(
       <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" canEditEstimateById={options.canEditEstimateById} />
     </QueryClientProvider>,
   );
+  return queryClient;
 }
 
 describe("project estimates table inline editing", () => {
@@ -86,6 +92,15 @@ describe("project estimates table inline editing", () => {
     actionMocks.previewBulkDeleteEstimateSheets.mockReset();
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
+    componentLibraryActionMocks.loadProjectComponentLibraryLite.mockReset();
+    componentLibraryActionMocks.loadProjectComponentLibraryLite.mockResolvedValue({
+      libraryItems: [],
+      templates: [],
+      categoryTree: [],
+      suppliers: [],
+      brands: [],
+      libraryFolders: [],
+    });
     repositoryMocks.getEstimateTree.mockReset();
     workshopActionMocks.setEstimateFavorite.mockReset();
     workshopActionMocks.setEstimateFavorite.mockResolvedValue(undefined);
@@ -132,7 +147,7 @@ describe("project estimates table inline editing", () => {
     actionMocks.fetchEstimateTree.mockResolvedValue([]);
     repositoryMocks.getEstimateTree.mockResolvedValue({ id: "estimate-1" });
 
-    renderTable();
+    const queryClient = renderTable();
 
     const openLink = screen.getByLabelText("Open Original Estimate");
     fireEvent.mouseEnter(openLink);
@@ -148,6 +163,15 @@ describe("project estimates table inline editing", () => {
     expect(actionMocks.fetchEstimateTree).toHaveBeenCalledWith({
       projectId: "project-1",
       estimateId: "estimate-1",
+    });
+    expect(componentLibraryActionMocks.loadProjectComponentLibraryLite).toHaveBeenCalledWith("project-1");
+    expect(queryClient.getQueryData(["workspace-component-library", "lite", "project", "project-1"])).toEqual({
+      libraryItems: [],
+      templates: [],
+      categoryTree: [],
+      suppliers: [],
+      brands: [],
+      libraryFolders: [],
     });
   });
 
