@@ -1894,7 +1894,7 @@ async function buildLegacyTabTree(
 export async function getEstimateTabs(
   projectId: string,
   estimateId: string,
-  options: { allowLegacyFallback?: boolean } = {},
+  options: { allowLegacyFallback?: boolean; maxTabCount?: number } = {},
 ): Promise<EstimateTabSummary[]> {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return [];
@@ -1911,12 +1911,16 @@ export async function getEstimateTabs(
   if (!estimate) return [];
 
   try {
-    const { data, error } = await asEstimateTabsReadClient(supabase)
+    const maxTabCount = normalizeTreeLoadLimit(options.maxTabCount);
+    const tabsQuery = asEstimateTabsReadClient(supabase)
       .from("estimate_tabs")
       .select("id, estimate_id, name, sort_order, is_default, archived_at, metadata, created_at, updated_at")
       .eq("estimate_id", estimate.id)
       .is("archived_at", null)
       .order("sort_order", { ascending: true });
+    const { data, error } = maxTabCount
+      ? await (tabsQuery as unknown as { limit: (count: number) => Promise<{ data: EstimateTabQueryRow[] | null; error: unknown }> }).limit(maxTabCount + 1)
+      : await tabsQuery;
 
     if (error) throw error;
     return (data ?? []).map(toEstimateTabSummary);
