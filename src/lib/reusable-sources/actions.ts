@@ -107,10 +107,15 @@ function toReusableSearchLikePattern(query: string): string {
 }
 
 const REUSABLE_SEARCH_PREFILTER_PAGE_SIZE = 1000;
+const REUSABLE_SEARCH_PREFILTER_MAX_ROWS = 5000;
 
 type ReusableSearchPrefilterRow = { estimate_id: string | null };
 type ReusableSearchPrefilterResult = { data: ReusableSearchPrefilterRow[] | null; error: unknown };
 type ReusableSearchPrefilterQuery = PromiseLike<ReusableSearchPrefilterResult> & {
+  order: (
+    column: "estimate_id",
+    options: { ascending: true },
+  ) => ReusableSearchPrefilterQuery;
   range: (from: number, to: number) => PromiseLike<ReusableSearchPrefilterResult>;
 };
 
@@ -118,9 +123,19 @@ async function collectReusableSearchPrefilterEstimateIds(
   makeQuery: () => ReusableSearchPrefilterQuery,
   estimateIds: Set<string>,
 ) {
-  for (let from = 0; ; from += REUSABLE_SEARCH_PREFILTER_PAGE_SIZE) {
-    const to = from + REUSABLE_SEARCH_PREFILTER_PAGE_SIZE - 1;
-    const { data, error } = await makeQuery().range(from, to);
+  for (
+    let from = 0;
+    from < REUSABLE_SEARCH_PREFILTER_MAX_ROWS;
+    from += REUSABLE_SEARCH_PREFILTER_PAGE_SIZE
+  ) {
+    const to =
+      Math.min(
+        from + REUSABLE_SEARCH_PREFILTER_PAGE_SIZE,
+        REUSABLE_SEARCH_PREFILTER_MAX_ROWS,
+      ) - 1;
+    const { data, error } = await makeQuery()
+      .order("estimate_id", { ascending: true })
+      .range(from, to);
     if (error) throw error;
     const rows = data ?? [];
     for (const row of rows) {
