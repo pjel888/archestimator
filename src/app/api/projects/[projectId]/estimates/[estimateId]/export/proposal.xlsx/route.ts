@@ -4,6 +4,7 @@ import { buildProposalExportModel, defaultProposalExportSettings } from "@/lib/p
 import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-proposal-workbook";
 import { buildUniqueWorksheetNames } from "@/lib/proposal-export/worksheet-name";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
 import { checkProposalExportRateLimit } from "@/lib/publication/public-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEstimateTabs, getEstimateTabTree, getEstimateTreesForTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
@@ -353,6 +354,14 @@ export async function GET(request: NextRequest, context: ProposalExportRouteCont
   const userContext = await getCurrentUserContext();
   if (!userContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const termsStatus = await getCurrentUserTermsAcceptanceStatus(userContext.userId);
+  if (termsStatus.requiresAcceptance) {
+    return NextResponse.json(
+      { error: "Current Terms acceptance is required before using protected workshop APIs." },
+      { status: 403 },
+    );
   }
 
   // P1-T10: per-user (+ client IP) rate limit on the heaviest endpoint in this surface.
