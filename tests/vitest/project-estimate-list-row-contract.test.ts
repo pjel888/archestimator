@@ -25,6 +25,8 @@ const REQUIRED_FIELDS = [
   "nodeCount",
   "rowItemCount",
   "totalProjectCost",
+  "isFavorite",
+  "favoriteCreatedAt",
 ] as const;
 
 const FORBIDDEN_FIELDS = ["metadata", "created_by", "workspace_id", "assumptions"] as const;
@@ -69,7 +71,14 @@ describe("ProjectEstimateListRow contract", () => {
         created_by: "user-1",
         workspace_id: "workspace-1",
       } as never,
-      { firstNodeId: "node-1", nodeCount: 3, rowItemCount: 2, totalProjectCost: 1250 },
+      {
+        firstNodeId: "node-1",
+        nodeCount: 3,
+        rowItemCount: 2,
+        totalProjectCost: 1250,
+        isFavorite: true,
+        favoriteCreatedAt: "2026-05-26T00:00:00Z",
+      },
     );
 
     const keys = Object.keys(row);
@@ -81,5 +90,7 @@ describe("ProjectEstimateListRow contract", () => {
     }
     expect(row.firstNodeId).toBe("node-1");
     expect(row.totalProjectCost).toBe(1250);
+    expect(row.isFavorite).toBe(true);
+    expect(row.favoriteCreatedAt).toBe("2026-05-26T00:00:00Z");
   });
 });

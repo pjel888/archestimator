@@ -67,6 +67,7 @@ type InsertEstimateTemplateIntoEstimateInput = {
 type InsertEstimateTemplateIntoEstimateResult = {
   tree: EstimateTreeNode[];
   insertedRootNodeIds: string[];
+  partialFailureMessage?: string;
 };
 
 type InsertEstimateTemplatesIntoEstimateInput = {
@@ -1214,7 +1215,7 @@ async function createEstimateWithDefaultTree({
 function revalidateProjectEstimatePaths(projectId: string) {
   revalidatePath(`/workshop/projects/${projectId}`);
   revalidatePath(`/workshop/projects/${projectId}/estimates`);
-  revalidatePath(`/workshop/projects/${projectId}/charts`);
+  revalidatePath(`/workshop/projects/${projectId}/data`);
 }
 
 export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {
@@ -1550,6 +1551,8 @@ export async function createEstimateSheetDraft(projectId: string) {
     nodeCount,
     rowItemCount: 0,
     totalProjectCost: 0,
+    isFavorite: false,
+    favoriteCreatedAt: null,
   });
   return { row, estimateId: estimate.id, areaNodeId, sheetCode };
 }
@@ -1735,6 +1738,8 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     nodeCount: nodeIdBySourceId.size,
     rowItemCount: duplicatedRows.length,
     totalProjectCost: sumEstimateRowLineTotals(duplicatedRows),
+    isFavorite: false,
+    favoriteCreatedAt: null,
   });
 
   return { row, estimateId: duplicatedEstimate.id, firstNodeId, sheetCode };
@@ -2350,6 +2355,7 @@ export async function insertEstimateTemplatesIntoEstimate({
   await assertCanEditEstimate(supabase, estimateId);
 
   const insertedRootNodeIds: string[] = [];
+  let partialFailureMessage: string | undefined;
   for (const templateId of templateIds) {
     const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate_with_history", {
       target_project_id: project.id,
@@ -2359,14 +2365,18 @@ export async function insertEstimateTemplatesIntoEstimate({
       acting_user_id: currentUser.userId,
       correlation_id: randomUUID(),
     });
-    if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
+    if (copyError) {
+      partialFailureMessage = `Could not insert estimate template: ${copyError.message}`;
+      if (insertedRootNodeIds.length === 0) throw new Error(partialFailureMessage);
+      break;
+    }
     insertedRootNodeIds.push(...readInsertedRootNodeIds(copyResult));
   }
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await refreshInsertedEstimateTree(project.id, estimateId, targetTabId);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the templates.");
 
-  return { tree, insertedRootNodeIds };
+  return { tree, insertedRootNodeIds, partialFailureMessage };
 }
 
 type InsertEstimateTemplateNodeIntoEstimateInput = {

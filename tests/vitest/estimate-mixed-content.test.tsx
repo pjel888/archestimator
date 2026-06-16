@@ -153,7 +153,11 @@ describe("estimate mixed-content layout (P4)", () => {
     const emptyToggle = within(section).getByRole("button", { name: /Collapse Empty Area|Expand Empty Area/ });
     expect(emptyToggle).toHaveAttribute("aria-expanded", "true");
     expect(within(section).getByLabelText("Empty Area breadcrumbs")).toBeInTheDocument();
-    expect(within(section).getByRole("button", { name: "Add blank estimate row to Empty Area" })).toBeInTheDocument();
+    const addBlankRowButton = within(section).getByRole("button", { name: "Add blank estimate row to Empty Area" });
+    expect(addBlankRowButton).toBeInTheDocument();
+    expect(addBlankRowButton).toHaveClass("bg-surfaceMuted", "hover:bg-divider", "focus-visible:bg-divider");
+    expect(addBlankRowButton).not.toHaveClass("bg-white");
+    expect(addBlankRowButton).not.toHaveClass("hover:bg-surfaceMuted/60");
 
     await user.click(emptyToggle);
 
@@ -275,14 +279,14 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(within(buildingSection).getAllByText(/Building A, area/).length).toBeGreaterThan(0);
   });
 
-  it("shows an orange occupancy dot only for EMC nodes that DIRECTLY hold components (Req 4)", () => {
+  it("shows an olive-green occupancy dot only for EMC nodes that DIRECTLY hold components (Req 4)", () => {
     renderSheet(childrenOnlyTree(), "wrap");
     // "Wrap" has a child but no own components → muted dot.
     const wrapDot = screen.getByLabelText("Wrap").querySelector("[data-occupancy-dot]");
-    expect(wrapDot?.className).toMatch(/bg-tertiary/);
-    expect(wrapDot?.className).not.toMatch(/bg-orange-600/);
-    // "Leaf" directly holds a component → orange dot.
+    expect(wrapDot?.className).toContain("bg-divider");
+    expect(wrapDot?.className).not.toContain("bg-[#6b8e23]");
+    // "Leaf" directly holds a component → olive-green dot.
     const leafDot = screen.getByLabelText("Leaf").querySelector("[data-occupancy-dot]");
-    expect(leafDot?.className).toMatch(/bg-orange-600/);
+    expect(leafDot?.className).toContain("bg-[#6b8e23]");
   });
 });

@@ -4,12 +4,13 @@ const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
 
 const requireCurrentUserContext = vi.hoisted(() => vi.fn());
 const serverFrom = vi.hoisted(() => vi.fn());
+const createSupabaseServerClient = vi.hoisted(() => vi.fn(async () => ({ from: serverFrom })));
 const insertSpy = vi.hoisted(() => vi.fn());
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth/session", () => ({ requireCurrentUserContext }));
 vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServerClient: vi.fn(async () => ({ from: serverFrom })),
+  createSupabaseServerClient,
 }));
 vi.mock("@/lib/supabase/service-role", () => ({
   createSupabaseServiceRoleClient: vi.fn(() => ({ from: () => ({ insert: insertSpy }) })),
@@ -56,6 +57,7 @@ const BASE_FORM = {
 describe("updateProjectDetails audit instrumentation (R11)", () => {
   beforeEach(() => {
     serverFrom.mockReset();
+    createSupabaseServerClient.mockClear();
     insertSpy.mockReset();
     insertSpy.mockResolvedValue({ error: null });
     requireCurrentUserContext.mockResolvedValue({ userId: "user-1", email: "a@b.co", role: "admin" });
@@ -78,6 +80,16 @@ describe("updateProjectDetails audit instrumentation (R11)", () => {
 
   it("writes no event for a no-op save", async () => {
     await updateProjectDetails(formData({ ...BASE_FORM, clientName: "Old Client" }));
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  it("enforces auth before opening the project mutation client", async () => {
+    requireCurrentUserContext.mockRejectedValueOnce(new Error("NEXT_REDIRECT:/workshop/terms?next=%2Fworkshop"));
+
+    await expect(updateProjectDetails(formData({ ...BASE_FORM, clientName: "New Client" }))).rejects.toThrow("NEXT_REDIRECT:/workshop/terms");
+
+    expect(createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(serverFrom).not.toHaveBeenCalled();
     expect(insertSpy).not.toHaveBeenCalled();
   });
 

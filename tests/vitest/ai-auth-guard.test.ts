@@ -18,7 +18,16 @@ describe("AI auth guard", () => {
   it("classifies AI auth mode for audit without making browser context authoritative", () => {
     expect(aiAuthSource).toContain("authMode: \"dev-bypass\"");
     expect(aiAuthSource).toContain("authMode: \"supabase\"");
-    expect(aiAuthSource).toContain("workspaceId: profile?.default_workspace_id ?? null");
+    expect(aiAuthSource).toContain("getRequiredCurrentUserContextResult()");
+    expect(aiAuthSource).toContain("workspaceId: context.profile.default_workspace_id ?? null");
     expect(aiAuthSource).not.toContain("workspaceId: routeContext");
+  });
+
+  it("enforces current Terms acceptance through the shared auth helper", () => {
+    expect(aiAuthSource).toContain("getRequiredCurrentUserContextResult()");
+    expect(aiAuthSource).toContain('authResult.reason === "unauthenticated"');
+    expect(aiAuthSource).toContain("AI routes require current Terms acceptance.");
+    expect(aiAuthSource).not.toContain("createSupabaseServerClient");
+    expect(aiAuthSource).not.toContain(".auth.getUser()");
   });
 });

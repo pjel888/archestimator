@@ -18,6 +18,7 @@ type WorkshopCollectionLayoutProps = {
   onCollapseAll?: () => void;
   leadingActions?: HeaderIconToolbarAddAction[];
   leadingActionsLabel?: string;
+  filterSlot?: ReactNode;
   onAdd?: () => void;
   addVisibleLabel?: string;
   addDisabled?: boolean;
@@ -40,6 +41,7 @@ export function WorkshopCollectionLayout({
   onCollapseAll,
   leadingActions,
   leadingActionsLabel,
+  filterSlot,
   onAdd,
   addVisibleLabel,
   addDisabled,
@@ -63,10 +65,13 @@ export function WorkshopCollectionLayout({
         onCollapseAll={onCollapseAll}
         leadingActions={leadingActions}
         leadingActionsLabel={leadingActionsLabel}
+        filterSlot={filterSlot}
         onAdd={onAdd}
         addVisibleLabel={addVisibleLabel}
         addDisabled={addDisabled}
         addActions={addActions}
+        showBottomBorder={!toolbarPanel}
+        showToolbarBottomBorder={toolbarPanel ? true : undefined}
       />
 
       {toolbarPanel}

@@ -30,6 +30,8 @@ describe("estimate schema compatibility", () => {
   it("detects missing relation errors during staged migration rollout", () => {
     expect(isMissingRelationError({ code: "42P01", message: "relation public.estimate_templates does not exist" }, "estimate_templates")).toBe(true);
     expect(isMissingRelationError({ code: "PGRST205", message: "Could not find the table 'public.estimate_templates' in the schema cache" }, "estimate_templates")).toBe(true);
+    expect(isMissingRelationError({ code: "PGRST200", message: "Could not find a relationship between 'estimate_nodes' and 'estimate_tabs' in the schema cache" }, "estimate_tabs")).toBe(true);
+    expect(isMissingRelationError({ code: "PGRST200", message: "Could not find the table 'public.estimate_tabs' in the schema cache" }, "estimate_tabs")).toBe(false);
     expect(isMissingRelationError({ code: "PGRST205", message: "Could not find the table 'public.estimates' in the schema cache" }, "estimate_templates")).toBe(false);
   });
 });

@@ -17,6 +17,8 @@ const row = (id: string, name = "A"): ProjectEstimateListRow => ({
   nodeCount: 0,
   rowItemCount: 0,
   totalProjectCost: 0,
+  isFavorite: false,
+  favoriteCreatedAt: null,
 });
 
 describe("project-estimates-store", () => {

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { latestFunction, migrationText, read } from "./security-findings-test-helpers";
+import { latestFunction, latestMigrationBySuffix, migrationText, read } from "./security-findings-test-helpers";
+
+function sourceBlock(source: string, startMarker: string, endMarker: string) {
+  const start = source.indexOf(startMarker);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+  expect(end).toBeGreaterThan(start);
+  return source.slice(start, end);
+}
 
 describe("Codex auth and estimate-access hardening contracts", () => {
   it("requires a non-default shared secret before local dev auth/admin DB bypass can activate", () => {
@@ -60,6 +68,60 @@ describe("Codex auth and estimate-access hardening contracts", () => {
   it("requires estimate edit access for row detach in both RPC and server action paths", () => {
     expect(read("supabase/migrations/20260601184343_unlink_estimate_row_items.sql")).toContain("public.can_edit_estimate(target_estimate_id)");
     expect(read("src/lib/estimates/actions.ts")).toContain("assertCanEditEstimate");
+  });
+
+  it("requires estimate edit access for authenticated row insert history RPCs and server action paths", () => {
+    const estimateActions = read("src/lib/estimates/actions.ts");
+    const insertAction = sourceBlock(
+      estimateActions,
+      "export async function insertEstimateRowItemFromLibrary",
+      "export async function updateEstimateRowItem",
+    );
+    const insertRpc = latestFunction("insert_estimate_row_item_with_history");
+    const actionGuardIndex = insertAction.indexOf("await assertCanEditEstimate(supabase, estimateId);");
+
+    expect(actionGuardIndex).toBeGreaterThanOrEqual(0);
+    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('.from("estimate_nodes")'));
+    expect(actionGuardIndex).toBeLessThan(insertAction.indexOf('supabase.rpc("insert_estimate_row_item_with_history"'));
+    expect(insertRpc).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(insertRpc).not.toContain("resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);");
+  });
+
+  it("requires source estimate edit access before copying estimate nodes or tabs into workspace templates", () => {
+    const libraryActions = read("src/lib/component-library/actions.ts");
+    const nodePublishAction = sourceBlock(
+      libraryActions,
+      "export async function createEstimateTemplateFromEstimateNode",
+      "export type CreateEstimateTemplateFromTabInput",
+    );
+    const tabPublishAction = sourceBlock(
+      libraryActions,
+      "export async function createEstimateTemplateFromEstimateTab",
+      "export async function renameEstimateTemplate",
+    );
+    const sourceEditGuard = "await assertCanPublishEstimateTemplateFromEstimate(supabase, input.estimateId);";
+
+    expect(libraryActions).toContain('supabase.rpc("can_edit_estimate", { target_estimate_id: estimateId })');
+    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeGreaterThan(nodePublishAction.indexOf('if (!estimate) throw new Error("Estimate not found in the current workspace.");'));
+    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeLessThan(nodePublishAction.indexOf('.from("estimate_nodes")'));
+    expect(nodePublishAction.indexOf(sourceEditGuard)).toBeLessThan(nodePublishAction.indexOf('.from("estimate_templates")'));
+    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeGreaterThan(tabPublishAction.indexOf('if (!estimate) throw new Error("Estimate not found in the current workspace.");'));
+    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeLessThan(tabPublishAction.indexOf('.from("estimate_nodes")'));
+    expect(tabPublishAction.indexOf(sourceEditGuard)).toBeLessThan(tabPublishAction.indexOf('.from("estimate_templates")'));
+  });
+
+  it("hardens estimate metadata history updates at the RPC and UI edit-affordance boundaries", () => {
+    const estimateActions = read("src/lib/estimates/actions.ts");
+    const metadataStrip = read("src/components/workshop/ProjectEstimateMetadataStrip.tsx");
+    const metadataRpcHardening = latestMigrationBySuffix("_harden_estimate_metadata_history_edit_access.sql");
+
+    expect(metadataRpcHardening).toContain("public.assert_can_edit_estimate_for_history(target_project_id, target_estimate_id, acting_user_id)");
+    expect(metadataRpcHardening).toContain("raise exception 'public.update_estimate_details_with_history is missing estimate edit authorization.'");
+    expect(metadataRpcHardening).toContain("grant execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) to authenticated");
+    expect(estimateActions).toContain("await assertCanEditEstimate(supabase, input.estimateId);");
+    expect(metadataStrip).toContain("canEditEstimate: canEditEstimate === true");
+    expect(metadataStrip).toContain("if (!metadata || !canEditEstimate) return;");
+    expect(metadataStrip).toContain("disabled={!metadata || !canEditEstimate || isPending}");
   });
 
   it("prevents estimate-only collaborators from inheriting project-wide estimate access", () => {

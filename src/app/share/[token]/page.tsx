@@ -32,6 +32,7 @@ import {
 } from "@/lib/publication/public-repository";
 import {
   createPublicationAccessCookieName,
+  createPublicationViewToken,
   createSharedLinkSessionCookieName,
   readSharedLinkSessionCookieRecipientId,
   verifyPublicationAccessCookieValue,
@@ -61,11 +62,13 @@ function ProjectPublicationView({
   recipientToken,
   snapshot,
   token,
+  viewToken,
 }: {
   recipientEmail?: string | null;
   recipientToken?: string;
   snapshot: ProjectPublicationSnapshot;
   token: string;
+  viewToken: string;
 }) {
   return (
     <main aria-label="Proposal review" className="min-h-dvh bg-white text-ink">
@@ -76,7 +79,7 @@ function ProjectPublicationView({
       <ShareContainer className="share-print-content flex flex-col gap-5 py-6">
         <SharePageProposalHeader project={snapshot.project} />
         <SharePageSummaryCard snapshot={snapshot} />
-        <SharePageDecision token={token} />
+        <SharePageDecision token={token} viewToken={viewToken} />
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
             Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
@@ -87,7 +90,7 @@ function ProjectPublicationView({
           currencyCode={snapshot.project.currencyCode}
           token={token}
         />
-        <SharePageComments token={token} />
+        <SharePageComments token={token} viewToken={viewToken} />
         <footer className="share-print-hidden border-t border-hairline pt-3 text-[11px] leading-[15px] text-tertiary">
           Shared via Archestimator • Activity logged for security
         </footer>
@@ -206,6 +209,11 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   ]);
   if (!publication) notFound();
   const recipientEmailForBanner = recipientIdentity?.recipientEmail ?? null;
+  const viewToken = createPublicationViewToken({
+    token,
+    publicationId: publicationAccess.publicationId,
+    snapshotVersion: publication.snapshotVersion,
+  });
 
   // OPT-1 (PERF-02): move both telemetry writes off the response path with after(). The
   // request context is captured synchronously here so the closures stay valid once the
@@ -248,6 +256,7 @@ export default async function SharePage({ params, searchParams }: SharePageProps
       recipientToken={recipientToken}
       snapshot={publication.snapshot}
       token={token}
+      viewToken={viewToken}
     />
   );
 }

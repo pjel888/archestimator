@@ -61,13 +61,12 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardClient).not.toContain("dispatchProjectBudgetChange");
   });
 
-  it("keeps the project cockpit URL-state contract on the route page", () => {
-    expect(projectDashboardPage).toContain("searchParams");
-    expect(projectDashboardPage).toContain("readFirstSearchParam(resolvedSearchParams.estimate)");
-    expect(projectDashboardPage).toContain("readFirstSearchParam(resolvedSearchParams.mode)");
-    expect(projectDashboardPage).toContain("getProjectDashboardSummary(projectId, { selectedEstimateId, selectedGroupingMode })");
-    expect(projectDashboardClient).toContain("selectedGroupingMode={summary.selectedGroupingMode}");
-    expect(projectDashboardClient).toContain("selectedEstimateId={selectedEstimate.id}");
-    expect(projectDashboardClient).toContain("estimateSheets={summary.estimateSheets}");
+  it("keeps the project dashboard route as an empty main surface", () => {
+    expect(projectDashboardPage).not.toContain("searchParams");
+    expect(projectDashboardPage).not.toContain("getProjectDashboardSummary");
+    expect(projectDashboardPage).not.toContain("getProjectActivity");
+    expect(projectDashboardClient).toContain('aria-label="Project dashboard empty page"');
+    expect(projectDashboardClient).not.toContain("Project cockpit");
+    expect(projectDashboardClient).not.toContain("Project dashboard next steps");
   });
 });

@@ -198,6 +198,10 @@ describe("notification server actions and repository contract", () => {
     expect(isAllowedNotificationActionHref("javascript:alert(1)")).toBe(false);
     expect(isAllowedNotificationActionHref("/share/token")).toBe(false);
     expect(isAllowedNotificationActionHref("/workshop/%2fshare")).toBe(false);
+    expect(isAllowedNotificationActionHref("/workshop/../share/token")).toBe(false);
+    expect(isAllowedNotificationActionHref("/workshop/..\\share/token")).toBe(false);
+    expect(isAllowedNotificationActionHref("/workshop/.%2e\\share/token")).toBe(false);
+    expect(isAllowedNotificationActionHref("/workshop/%2e%2e/api/health")).toBe(false);
     expect(isAllowedNotificationActionHref("/workshop/projects bad")).toBe(false);
   });
 

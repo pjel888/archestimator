@@ -45,8 +45,6 @@ vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));
 
-const STORAGE_KEY = "archestimator_projects_view_mode_v1";
-
 const OWNED_PROJECT = {
   id: "11111111-1111-4111-8111-111111111111",
   workspace_id: "22222222-2222-4222-8222-222222222222",
@@ -137,7 +135,7 @@ describe("ProjectsPageClient shared access", () => {
     render(<ProjectsPageClient projects={PROJECTS} />);
 
     expect(screen.getByLabelText("Lewis Residence project, owned access")).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access")).toBeInTheDocument();
     expect(screen.getByLabelText("Shared Sheet Project project, estimate-only access, viewer access")).toBeInTheDocument();
@@ -166,14 +164,15 @@ describe("ProjectsPageClient shared access", () => {
     );
 
     const card = screen.getByLabelText("Lewis Residence project, owned access");
-    expect(within(card).getByText("Shared link")).toBeInTheDocument();
+    expect(card.querySelector("[data-project-card-shared-link-indicator]")).toBeNull();
+    expect(card.querySelector("[data-project-card-details-action]")).not.toBeNull();
     expect(within(card).getByText("4 opens")).toBeInTheDocument();
   });
 
   it("does not show the empty sample state when only shared projects exist", () => {
     render(<ProjectsPageClient projects={[PROJECTS[1], PROJECTS[2]]} />);
 
-    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Shared/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Live projects")).toBeInTheDocument();
     expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
@@ -235,7 +234,7 @@ describe("ProjectsPageClient shared access", () => {
       />,
     );
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     const pendingCard = screen.getByLabelText("Pending Museum Wing project, pending invite, viewer access");
     expect(pendingCard).toHaveAttribute("data-project-access-kind", "pending-invite");
@@ -244,7 +243,7 @@ describe("ProjectsPageClient shared access", () => {
     expect(within(pendingCard).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
 
     const expiredCard = screen.getByLabelText("Expired Gallery Wing project, pending invite, viewer access");
-    expect(within(expiredCard).getAllByText("Pending invite")).toHaveLength(2);
+    expect(within(expiredCard).getByText("Invite expired")).toBeInTheDocument();
     expect(within(expiredCard).getByText("Expired Jun 1")).toBeInTheDocument();
     expect(within(expiredCard).getByRole("button", { name: "Expired" })).toBeDisabled();
     expect(within(expiredCard).queryByRole("button", { name: "Accept invite for Expired Gallery Wing" })).not.toBeInTheDocument();
@@ -254,8 +253,8 @@ describe("ProjectsPageClient shared access", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
-    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    expect(screen.getByRole("tab", { name: /Projects/i })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
     expect(screen.queryByText("Lewis Residence")).not.toBeInTheDocument();
     expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
@@ -272,14 +271,15 @@ describe("ProjectsPageClient shared access", () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
-    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+    await user.click(screen.getByRole("tab", { name: /Shared/i }));
 
-    for (const label of ["List", "Small thumbnails", "Medium thumbnails", "Large thumbnails"]) {
-      await user.click(screen.getByRole("button", { name: `View projects as ${label}` }));
+    for (const [label, mode] of [["List", "list"], ["Small", "small"], ["Medium", "medium"], ["Large", "large"]] as const) {
+      await user.click(screen.getByRole("combobox", { name: "View" }));
+      await user.click(screen.getByRole("option", { name: label }));
       await waitFor(() => {
         expect(screen.getByLabelText("Live projects")).toHaveAttribute(
           "data-project-view-mode",
-          window.localStorage.getItem(STORAGE_KEY) ?? "large",
+          mode,
         );
       });
       const sharedCard = screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access");

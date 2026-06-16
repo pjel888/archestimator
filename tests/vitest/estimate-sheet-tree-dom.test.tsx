@@ -207,6 +207,12 @@ describe("estimate sheet tree DOM integration", () => {
 
     expect(screen.getByRole("tablist", { name: "Estimate sheets" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Sheet Tree" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("navigation", { name: "Modern Bungalow estimate areas" }).parentElement).toHaveClass("px-2", "pb-2", "pt-2");
+
+    const headerRoot = screen.getByLabelText("Tree tools").closest(".sticky");
+    expect(headerRoot).toBeInstanceOf(HTMLElement);
+    expect(headerRoot).not.toHaveClass("border-b");
+    expect(headerRoot?.firstElementChild).toHaveClass("border-b", "border-hairline");
   });
 
   it("scopes the drag/select rail reveal to the whole sidebar, not just the rows", () => {

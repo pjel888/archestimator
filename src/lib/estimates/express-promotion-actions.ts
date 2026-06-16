@@ -9,7 +9,7 @@ import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-reposit
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
 
-export type PromoteExpressRowToLibraryComponentInput = {
+export type PromoteEstimateRowToLibraryComponentInput = {
   projectId: string;
   estimateId: string;
   rowId: string;
@@ -17,7 +17,7 @@ export type PromoteExpressRowToLibraryComponentInput = {
   mutationId?: string;
 };
 
-export type PromoteExpressRowToLibraryComponentResult = {
+export type PromoteEstimateRowToLibraryComponentResult = {
   rowId: string;
   itemId: string;
   activePriceOptionId?: string | null;
@@ -25,11 +25,14 @@ export type PromoteExpressRowToLibraryComponentResult = {
   [key: string]: Json | undefined;
 };
 
-function readPromotionResult(value: unknown): PromoteExpressRowToLibraryComponentResult {
+export type PromoteExpressRowToLibraryComponentInput = PromoteEstimateRowToLibraryComponentInput;
+export type PromoteExpressRowToLibraryComponentResult = PromoteEstimateRowToLibraryComponentResult;
+
+function readPromotionResult(value: unknown): PromoteEstimateRowToLibraryComponentResult {
   const record = value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json | undefined> : {};
   const rowId = typeof record.rowId === "string" ? record.rowId : "";
   const itemId = typeof record.itemId === "string" ? record.itemId : "";
-  if (!rowId || !itemId) throw new Error("Express promotion did not return a promoted row and library item.");
+  if (!rowId || !itemId) throw new Error("Component promotion did not return a promoted row and library item.");
   return {
     ...record,
     rowId,
@@ -39,14 +42,14 @@ function readPromotionResult(value: unknown): PromoteExpressRowToLibraryComponen
   };
 }
 
-export async function promoteExpressRowToLibraryComponent({
+export async function promoteEstimateRowToLibraryComponent({
   projectId,
   estimateId,
   rowId,
   libraryFolderId = null,
   mutationId,
-}: PromoteExpressRowToLibraryComponentInput): Promise<PromoteExpressRowToLibraryComponentResult> {
-  if (!isExpressComponentPromotionEnabled()) throw new Error("Express component promotion is disabled.");
+}: PromoteEstimateRowToLibraryComponentInput): Promise<PromoteEstimateRowToLibraryComponentResult> {
+  if (!isExpressComponentPromotionEnabled()) throw new Error("Component promotion is disabled.");
 
   const [{ project }, currentUser] = await Promise.all([
     getCurrentWorkspaceProject(projectId),
@@ -56,7 +59,7 @@ export async function promoteExpressRowToLibraryComponent({
 
   const supabase = await createSupabaseServerClient();
   recordExpressComponentEvent("promotion_requested", { projectId: project.id, estimateId, rowId });
-  const rpcArgs: Database["public"]["Functions"]["promote_express_row_to_library_component"]["Args"] = {
+  const rpcArgs: Database["public"]["Functions"]["promote_estimate_row_to_library_component"]["Args"] = {
     target_project_id: project.id,
     target_estimate_id: estimateId,
     target_row_id: rowId,
@@ -64,20 +67,23 @@ export async function promoteExpressRowToLibraryComponent({
     ...(libraryFolderId ? { target_library_folder_id: libraryFolderId } : {}),
     ...(mutationId ? { correlation_id: mutationId } : {}),
   };
-  const { data, error } = await supabase.rpc("promote_express_row_to_library_component", rpcArgs);
+  const { data, error } = await supabase.rpc("promote_estimate_row_to_library_component", rpcArgs);
 
   if (error) {
     recordExpressComponentEvent("promotion_failed", { projectId: project.id, estimateId, rowId, reason: error.message });
-    throw new Error(`Could not promote express component: ${error.message}`);
+    throw new Error(`Could not promote component: ${error.message}`);
   }
   const result = readPromotionResult(data);
   recordExpressComponentEvent("promotion_succeeded", { projectId: project.id, estimateId, rowId, itemId: result.itemId });
 
   revalidatePath("/workshop/library");
   revalidatePath("/workshop/library/components");
-  revalidatePath(`/workshop/projects/${project.id}/components`);
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
   revalidatePath(`/workshop/projects/${project.id}/estimates/${estimateId}`);
 
   return result;
+}
+
+export async function promoteExpressRowToLibraryComponent(input: PromoteExpressRowToLibraryComponentInput) {
+  return promoteEstimateRowToLibraryComponent(input);
 }

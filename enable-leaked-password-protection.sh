@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-helper=".ai/03_plans/2026-06-14-Database-Migration-Check/evidence/enable-leaked-password-protection.sh"
+script_source="${BASH_SOURCE[0]}"
+while [[ -L "$script_source" ]]; do
+  script_dir="$(cd -P "$(dirname "$script_source")" >/dev/null 2>&1 && pwd)"
+  script_source="$(readlink "$script_source")"
+  [[ "$script_source" != /* ]] && script_source="$script_dir/$script_source"
+done
 
-if [[ ! -x "$helper" ]]; then
-  printf 'Could not find helper script at %s\n' "$helper" >&2
+repo_root="$(cd -P "$(dirname "$script_source")" >/dev/null 2>&1 && pwd)"
+helper_relative=".ai/09_archive/2026-06-14-Database-Migration-Check/evidence/enable-leaked-password-protection.sh"
+helper="$repo_root/$helper_relative"
+helper_real="$(realpath "$helper")"
+repo_root_real="$(realpath "$repo_root")"
+
+case "$helper_real" in
+  "$repo_root_real/$helper_relative") ;;
+  *)
+    printf 'Refusing to execute helper outside repository: %s\n' "$helper_real" >&2
+    exit 1
+    ;;
+esac
+
+if [[ ! -x "$helper_real" ]]; then
+  printf 'Could not find helper script at %s\n' "$helper_real" >&2
   exit 1
 fi
 
-printf 'Paste Supabase Management API token, then press Enter: ' >&2
-IFS= read -rs SUPABASE_ACCESS_TOKEN
-printf '\n' >&2
-
-if [[ -z "$SUPABASE_ACCESS_TOKEN" ]]; then
-  printf 'No token provided.\n' >&2
-  exit 2
-fi
-
-SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" "$helper"
+exec "$helper_real"

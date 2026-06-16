@@ -13,12 +13,16 @@ const actionMocks = vi.hoisted(() => ({
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),
 }));
+const workshopActionMocks = vi.hoisted(() => ({
+  setEstimateFavorite: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({ useRouter: () => routerMock }));
 vi.mock("@/stores/navigation-ui-store", () => ({
   useNavigationUiStore: (selector: (state: { show: typeof show }) => unknown) => selector({ show }),
 }));
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/workshop/actions", () => workshopActionMocks);
 vi.mock("@/lib/repositories/estimate-repository", () => ({ estimateRepository: { getEstimateTree: vi.fn() } }));
 
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
@@ -46,11 +50,15 @@ const canonicalRow = {
   nodeCount: 6,
   rowItemCount: 0,
   totalProjectCost: 0,
+  isFavorite: false,
+  favoriteCreatedAt: null,
 };
 
 describe("ProjectEstimatesClient optimistic create", () => {
   beforeEach(() => {
     Object.values(actionMocks).forEach((m) => m.mockReset());
+    workshopActionMocks.setEstimateFavorite.mockReset();
+    workshopActionMocks.setEstimateFavorite.mockResolvedValue(undefined);
     routerMock.refresh.mockReset();
     show.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue([]);

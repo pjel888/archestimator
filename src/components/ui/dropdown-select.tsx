@@ -35,6 +35,7 @@ export type DropdownSelectOption = {
   value: string;
   label: string;
   disabled?: boolean;
+  icon?: React.ReactNode;
 };
 
 export type DropdownSelectProps = {
@@ -56,6 +57,7 @@ export type DropdownSelectProps = {
   /** Controls trigger appearance. "underline" (default) keeps the current hairline-underline look;
    *  "boxed" renders a full-height bordered input-style trigger. */
   variant?: "underline" | "boxed";
+  triggerDisplay?: "label" | "icon";
   className?: string;
   panelClassName?: string;
   id?: string;
@@ -102,6 +104,7 @@ export function DropdownSelect({
   align = "start",
   side = "bottom",
   variant = "underline",
+  triggerDisplay = "label",
   className,
   panelClassName,
   id,
@@ -321,6 +324,8 @@ export function DropdownSelect({
   };
 
   const triggerLabel = selectedOption?.label ?? placeholder;
+  const triggerIcon = selectedOption?.icon;
+  const needsIconFallbackLabel = triggerDisplay === "icon" && !ariaLabel && !ariaLabelledBy;
   const activeOptionId = open && activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
 
   // Stable ref callback: an inline closure would be re-invoked
@@ -348,6 +353,7 @@ export function DropdownSelect({
         aria-invalid={invalid || undefined}
         aria-disabled={ariaDisabled || undefined}
         disabled={disabled}
+        title={triggerDisplay === "icon" ? triggerLabel : undefined}
         data-slot="dropdown-select-trigger"
         data-testid={dataTestId}
         data-placeholder={selectedOption ? undefined : "true"}
@@ -371,7 +377,14 @@ export function DropdownSelect({
         }}
         onKeyDown={handleTriggerKeyDown}
       >
-        <span className="truncate">{triggerLabel}</span>
+        {triggerDisplay === "icon" && triggerIcon ? (
+          <span className="inline-flex min-w-0 items-center justify-center" aria-hidden="true">
+            {triggerIcon}
+          </span>
+        ) : (
+          <span className="truncate">{triggerLabel}</span>
+        )}
+        {needsIconFallbackLabel ? <span className="sr-only">{triggerLabel}</span> : null}
         <CaretDown size={variant === "boxed" ? 12 : 8} weight="regular" aria-hidden="true" className="shrink-0 text-tertiary" />
       </button>
       {name ? (
@@ -445,6 +458,11 @@ export function DropdownSelect({
                 triggerButtonRef.current?.focus?.();
               }}
             >
+              {option.icon ? (
+                <span className="mr-1.5 inline-flex size-3 shrink-0 items-center justify-center text-tertiary" aria-hidden="true">
+                  {option.icon}
+                </span>
+              ) : null}
               <span className="truncate">{option.label}</span>
             </div>
           );

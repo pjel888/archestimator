@@ -1092,7 +1092,7 @@ describe("estimate sheet version control UI", () => {
       "tree_reordered",
       "tab_created",
       "tab_renamed",
-      "tab_reordered",
+      "tabs_reordered",
       "tab_duplicated",
       "tab_archived",
       "tab_deleted",

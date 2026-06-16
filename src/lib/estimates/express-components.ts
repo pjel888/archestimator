@@ -43,6 +43,7 @@ type EstimateRowForClassification = {
   material?: string | null;
   description?: string | null;
   supplier?: string | null;
+  source?: string | null;
   unit?: string | null;
   quantity?: number | null;
   unitCost?: number | null;
@@ -107,6 +108,10 @@ function isZeroishNumber(value: unknown) {
 
 function hasUsableSourceSnapshot(value: unknown) {
   return isRecord(value) && Object.keys(value).length > 0;
+}
+
+function isCatalogComponentSource(value: unknown) {
+  return value === "library" || value === "supplier";
 }
 
 function readTags(metadata: unknown) {
@@ -228,5 +233,6 @@ export function classifyEstimateRowSource(row: EstimateRowForClassification): Es
   }
   if (hasUsableSourceSnapshot(row.sourceSnapshot)) return "detached-library";
   if (isLegacyBlankEstimateRow(row)) return "legacy-blank";
+  if (isCatalogComponentSource(row.source)) return "linked-library";
   return "source-less-manual";
 }

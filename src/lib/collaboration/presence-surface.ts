@@ -18,7 +18,7 @@
 export const ACTIVE_SURFACES = [
   "overview",
   "estimates",
-  "charts",
+  "data",
   "library",
   "templates",
   "settings",
@@ -47,8 +47,8 @@ export function routeToActiveSurface(pathname: string | null | undefined): Activ
   // Estimate sheet or estimates list within a project → "estimates"
   // (no estimate id leaves the client — only the category).
   if (/\/workshop\/projects\/[^/]+\/estimates(\/|$)/.test(path)) return "estimates";
-  // Project-level analytics surface.
-  if (/\/workshop\/projects\/[^/]+\/charts(\/|$)/.test(path)) return "charts";
+  // Project-level data and comparison surface.
+  if (/\/workshop\/projects\/[^/]+\/data(\/|$)/.test(path)) return "data";
   // A specific project (overview) — still coarse; the project id is already
   // known to every channel subscriber (it IS the channel), so "overview" leaks nothing new.
   if (/\/workshop\/projects\/[^/]+(\/|$)/.test(path)) return "overview";
@@ -73,7 +73,7 @@ export function readCurrentActiveSurface(): ActiveSurface {
 const SURFACE_LABELS: Record<ActiveSurface, string> = {
   overview: "the project",
   estimates: "an estimate",
-  charts: "charts",
+  data: "data",
   library: "the library",
   templates: "templates",
   settings: "settings",
