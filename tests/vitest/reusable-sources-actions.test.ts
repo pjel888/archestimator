@@ -28,18 +28,29 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
   listProjectEstimateSheets: repositoryMocks.listProjectEstimateSheets,
 }));
 
-// U5: the server-side search pre-filters matching estimates via two bounded
-// ILIKE queries (estimate_nodes + estimate_tabs) before materializing trees. This
-// chainable stub resolves each `.from(table)...` chain to the configured result.
-function mockSearchPrefilter(resultByTable: Record<string, { data: unknown; error: unknown }>) {
+type MockSearchPrefilterResult = { data: unknown; error: unknown };
+
+// U5: the server-side search pre-filters matching estimates via bounded ILIKE
+// queries (estimate_nodes + estimate_tabs) before materializing trees. This
+// chainable stub resolves each `.from(table)...` chain to the configured result
+// and supports paged `.range()` reads for distinct-estimate grouping.
+function mockSearchPrefilter(resultByTable: Record<string, MockSearchPrefilterResult | MockSearchPrefilterResult[]>) {
+  const callCountByTable = new Map<string, number>();
   const makeBuilder = (table: string) => {
-    const result = resultByTable[table] ?? { data: [], error: null };
+    const tableResult = resultByTable[table] ?? { data: [], error: null };
     const builder: Record<string, unknown> = {};
-    for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit"]) {
+    for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit", "range"]) {
       builder[method] = () => builder;
     }
-    builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
-    builder.maybeSingle = async () => result;
+    builder.then = (resolve: (value: unknown) => unknown) => {
+      const callCount = callCountByTable.get(table) ?? 0;
+      callCountByTable.set(table, callCount + 1);
+      const result = Array.isArray(tableResult)
+        ? tableResult[Math.min(callCount, tableResult.length - 1)] ?? { data: [], error: null }
+        : tableResult;
+      return resolve(result);
+    };
+    builder.maybeSingle = async () => (Array.isArray(tableResult) ? tableResult[0] : tableResult);
     return builder;
   };
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from: (table: string) => makeBuilder(table) });
@@ -293,6 +304,140 @@ describe("reusable project source actions", () => {
     }
     await expect(searchReusableProjectSources({ query: "safe-overflow" })).rejects.toThrow(
       "Please wait a moment before searching project sources again.",
+    );
+  });
+
+  it("searches project names before applying the returned project cap", async () => {
+    const projects = Array.from({ length: 51 }, (_, index) => ({
+      accessKind: "owner",
+      project: {
+        id: `project-${String(index + 1).padStart(2, "0")}`,
+        name: index === 50 ? "Needle Project" : `Project ${index + 1}`,
+      },
+    }));
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValue([]);
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "needle" });
+
+    expect(repositoryMocks.listProjectEstimateSheets).toHaveBeenCalledTimes(51);
+    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+    expect(result.sources).toEqual([
+      {
+        kind: "project",
+        projectId: "project-51",
+        name: "Needle Project",
+        metadata: {
+          projectName: "Needle Project",
+        },
+      },
+    ]);
+  });
+
+  it("searches estimate names before applying the per-project materialization cap", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce(
+      Array.from({ length: 26 }, (_, index) => ({
+        id: `estimate-${String(index + 1).padStart(2, "0")}`,
+        name: index === 25 ? "Needle Estimate" : `Estimate ${index + 1}`,
+        sheetCode: `EST-${index + 1}`,
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      })),
+    );
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "needle" });
+
+    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+    expect(result.sources).toEqual([
+      {
+        kind: "project",
+        projectId: projectAId,
+        name: "Accessible Project",
+        metadata: {
+          projectName: "Accessible Project",
+        },
+      },
+      {
+        kind: "project-estimate",
+        projectId: projectAId,
+        estimateId: "estimate-26",
+        name: "Needle Estimate",
+        sheetCode: "EST-26",
+        metadata: {
+          projectName: "Accessible Project",
+          estimateName: "Needle Estimate",
+          sheetCode: "EST-26",
+          updatedAt: "2026-06-12T08:00:00.000Z",
+        },
+      },
+    ]);
+  });
+
+  it("groups DB prefilter rows by distinct estimate before materializing", async () => {
+    const crowdedEstimateId = "55555555-5555-4555-8555-555555555555";
+    const targetEstimateId = "66666666-6666-4666-8666-666666666666";
+    const targetTabId = "77777777-7777-4777-8777-777777777777";
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        { accessKind: "owner", project: { id: projectAId, name: "Accessible Project" } },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      { id: crowdedEstimateId, name: "Crowded Estimate", sheetCode: "EST-001", updatedAt: "2026-06-12T08:00:00.000Z" },
+      { id: targetEstimateId, name: "Target Estimate", sheetCode: "EST-002", updatedAt: "2026-06-12T08:00:00.000Z" },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: targetTabId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockImplementation(async (_projectId: string, estimateId: string) => ({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: estimateId === targetEstimateId ? "target-node" : "crowded-node",
+          name: estimateId === targetEstimateId ? "Needle Target Area" : "Needle Crowded Area",
+          kind: "area",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    }));
+    mockSearchPrefilter({
+      estimate_nodes: [
+        {
+          data: Array.from({ length: 50 }, () => ({ estimate_id: crowdedEstimateId })),
+          error: null,
+        },
+        {
+          data: [{ estimate_id: targetEstimateId }],
+          error: null,
+        },
+      ],
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "needle" });
+
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, crowdedEstimateId, targetTabId, { allowLegacyFallback: true });
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(projectAId, targetEstimateId, targetTabId, { allowLegacyFallback: true });
+    expect(result.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "project-node",
+          estimateId: targetEstimateId,
+          nodeId: "target-node",
+          name: "Needle Target Area",
+        }),
+      ]),
     );
   });
 
