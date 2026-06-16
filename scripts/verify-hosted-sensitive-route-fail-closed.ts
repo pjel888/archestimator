@@ -144,6 +144,10 @@ export function sanitizeText(value: string | null | undefined, fakeToken = DEFAU
   return value.replaceAll(fakeToken, "<redacted-fake-token>").replaceAll(encodeURIComponent(fakeToken), "<redacted-fake-token>");
 }
 
+export function sanitizeProbeForReport(probe: SensitiveRouteProbe, fakeToken = DEFAULT_FAKE_TOKEN): SensitiveRouteProbe {
+  return { ...probe, path: sanitizeText(probe.path, fakeToken) ?? probe.path };
+}
+
 function durationStats(samples: SensitiveRouteSample[]) {
   if (samples.length === 0) return { minDurationMs: null, avgDurationMs: null, maxDurationMs: null };
   const durations = samples.map((sample) => sample.durationMs);
@@ -207,7 +211,7 @@ export async function verifyHostedSensitiveRoutes(options: VerifySensitiveRoutes
       samples.push(await sampleSensitiveRoute({ baseUrl, fakeToken, probe, run, fetchImpl: options.fetchImpl }));
     }
     const stats = durationStats(samples);
-    results.push({ ...probe, samples, ...stats, passed: samples.every((sample) => sample.passed) });
+    results.push({ ...sanitizeProbeForReport(probe, fakeToken), samples, ...stats, passed: samples.every((sample) => sample.passed) });
   }
 
   return {

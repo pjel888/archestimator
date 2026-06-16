@@ -10,6 +10,7 @@ import {
   parseRunCount,
   verifyHostedSensitiveRoutes,
   writeMarkdown,
+  writeOutput,
 } from "../../scripts/verify-hosted-sensitive-route-fail-closed";
 
 function makeFetch(statusByPath: (path: string) => { status: number; headers?: Record<string, string>; body?: string }) {
@@ -78,6 +79,54 @@ describe("hosted sensitive route fail-closed verifier", () => {
 
     expect(report.passed).toBe(false);
     expect(report.results.find((result) => result.key === "project-image-missing-path")?.passed).toBe(false);
+  });
+
+  test("redacts token-bearing paths from the JSON report", async () => {
+    const report = await verifyHostedSensitiveRoutes({
+      baseUrl: "https://example.com",
+      fakeToken: "OWNER_APPROVED_SHARE_TOKEN_AbC123/slash?x=1",
+      runs: 1,
+      fetchImpl: makeFetch(() => ({
+        status: 404,
+        headers: { "cache-control": "no-store" },
+      })),
+    });
+    const serialized = JSON.stringify(report);
+
+    expect(report.results.find((result) => result.key === "share-page-invalid-token")?.path).toBe(
+      "/share/<redacted-fake-token>",
+    );
+    expect(report.results.find((result) => result.key === "share-api-invalid-token")?.path).toBe(
+      "/api/share/<redacted-fake-token>",
+    );
+    expect(report.results.find((result) => result.key === "share-activity-invalid-token")?.path).toBe(
+      "/api/share/<redacted-fake-token>/activity",
+    );
+    expect(serialized).not.toContain("OWNER_APPROVED_SHARE_TOKEN_AbC123");
+    expect(serialized).not.toContain("OWNER_APPROVED_SHARE_TOKEN_AbC123%2Fslash%3Fx%3D1");
+  });
+
+  test("writes JSON output without leaking the fake token", async () => {
+    const report = await verifyHostedSensitiveRoutes({
+      baseUrl: "https://example.com",
+      fakeToken: "raw-fake-token",
+      runs: 1,
+      fetchImpl: makeFetch(() => ({
+        status: 404,
+        headers: { "cache-control": "no-store", location: "/share/raw-fake-token" },
+        body: "raw-fake-token should be redacted",
+      })),
+    });
+    const dir = mkdtempSync(join(tmpdir(), "sensitive-routes-"));
+    try {
+      const file = join(dir, "report.json");
+      writeOutput(report, file);
+      const json = readFileSync(file, "utf8");
+      expect(json).toContain("<redacted-fake-token>");
+      expect(json).not.toContain("raw-fake-token");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("writes markdown without leaking the fake token", async () => {
