@@ -541,3 +541,151 @@ describe("moveProjectToGroup", () => {
     expect("setProjectGroupMembership" in mod).toBe(false);
   });
 });
+
+describe("bulkAssignProjectsToGroup", () => {
+  it("throws on an empty selection", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(bulkAssignProjectsToGroup({ projectIds: [], groupId: GROUP_ID })).rejects.toThrow(
+      /select at least one|no projects/i,
+    );
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("throws when the batch contains an invalid id", async () => {
+    const stub = makeSupabaseStub();
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(
+      bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID, "nope"], groupId: GROUP_ID }),
+    ).rejects.toThrow(/invalid/i);
+    expect(stub.calls).toEqual([]);
+  });
+
+  it("upserts one membership per verified owned project, returns the moved ids, and revalidates once", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "owner" }, error: null }); // LD-2 role read
+    // ownership verify returns both projects (with workspace_id for FK-safe stamping)
+    stub.queueResult("projects", {
+      data: [
+        { id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID },
+        { id: PROJECT_ID_2, workspace_id: WORKSPACE_ID, created_by: USER_ID },
+      ],
+      error: null,
+    });
+    // group ownership verify
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null });
+    // membership upsert resolves ok
+    stub.queueResult("project_group_memberships", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    const result = await bulkAssignProjectsToGroup({
+      projectIds: [PROJECT_ID, PROJECT_ID_2],
+      groupId: GROUP_ID,
+    });
+
+    const upsert = stub.calls.find((c) => c.op === "upsert");
+    expect(upsert?.table).toBe("project_group_memberships");
+    expect(Array.isArray(upsert?.payload)).toBe(true);
+    expect((upsert?.payload as Array<{ project_id: string }>).map((r) => r.project_id).sort()).toEqual(
+      [PROJECT_ID, PROJECT_ID_2].sort(),
+    );
+    expect(upsert?.options).toEqual({ onConflict: "user_id,project_id" });
+    // LD-11 result shape
+    expect(result.movedProjectIds.sort()).toEqual([PROJECT_ID, PROJECT_ID_2].sort());
+    expect(result.skippedProjectIds).toEqual([]);
+    // exactly one revalidate pair
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns the non-owned requested ids as skippedProjectIds (LD-11 partial failure)", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: null, error: null }); // no workspace role
+    // Only PROJECT_ID is owned (created_by === user); PROJECT_ID_2 is owned by someone else.
+    stub.queueResult("projects", {
+      data: [
+        { id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID },
+        { id: PROJECT_ID_2, workspace_id: WORKSPACE_ID, created_by: "someone-else" },
+      ],
+      error: null,
+    });
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null });
+    stub.queueResult("project_group_memberships", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    const result = await bulkAssignProjectsToGroup({
+      projectIds: [PROJECT_ID, PROJECT_ID_2],
+      groupId: GROUP_ID,
+    });
+
+    expect(result.movedProjectIds).toEqual([PROJECT_ID]);
+    expect(result.skippedProjectIds).toEqual([PROJECT_ID_2]);
+  });
+
+  it("deletes memberships for the verified projects when groupId is null", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "owner" }, error: null });
+    stub.queueResult("projects", { data: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: USER_ID }], error: null });
+    stub.queueResult("project_group_memberships", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    const result = await bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID], groupId: null });
+
+    const del = stub.calls.find((c) => c.op === "delete");
+    expect(del?.table).toBe("project_group_memberships");
+    expect(stub.calls.some((c) => c.op === "upsert")).toBe(false);
+    expect(result.movedProjectIds).toEqual([PROJECT_ID]);
+  });
+
+  it("is a no-op (NOT a throw) on the remove path when nothing verifies (LD-8)", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: null, error: null }); // no role
+    stub.queueResult("projects", { data: [], error: null }); // nothing owned
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    const result = await bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID], groupId: null });
+
+    expect(result).toEqual({ movedProjectIds: [], skippedProjectIds: [PROJECT_ID] });
+    expect(stub.calls.some((c) => c.op === "delete")).toBe(false);
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("throws on the ASSIGN path when none of the requested projects are owned/in-workspace", async () => {
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: null, error: null });
+    stub.queueResult("projects", { data: [], error: null }); // nothing verified
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    await expect(
+      bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID], groupId: GROUP_ID }),
+    ).rejects.toThrow(/not.*found|workspace/i);
+    expect(stub.calls.some((c) => c.op === "upsert")).toBe(false);
+  });
+
+  it("allows an owned-via-workspace-role project even when created_by !== user (LD-2/LD-5)", async () => {
+    // D9/LD-5: a delete-blocked but OWNED project is still bulk-groupable. Ownership
+    // here comes from the workspace role, not created_by — the bare created_by gate
+    // would wrongly skip it.
+    const stub = makeSupabaseStub();
+    stub.queueResult("workspace_members", { data: { role: "editor" }, error: null }); // workspace role ⇒ owned
+    stub.queueResult("projects", { data: [{ id: PROJECT_ID, workspace_id: WORKSPACE_ID, created_by: "someone-else" }], error: null });
+    stub.queueResult("project_groups", { data: { id: GROUP_ID }, error: null });
+    stub.queueResult("project_group_memberships", { data: null, error: null });
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
+    const { bulkAssignProjectsToGroup } = await import("@/lib/workshop/group-actions");
+
+    const result = await bulkAssignProjectsToGroup({ projectIds: [PROJECT_ID], groupId: GROUP_ID });
+
+    expect(result.movedProjectIds).toEqual([PROJECT_ID]);
+    expect(result.skippedProjectIds).toEqual([]);
+    expect(stub.calls.some((c) => c.op === "upsert")).toBe(true);
+  });
+});

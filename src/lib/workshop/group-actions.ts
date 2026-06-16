@@ -347,9 +347,83 @@ export async function moveProjectToGroup(input: {
   revalidateWorkshop();
 }
 
-export async function bulkAssignProjectsToGroup(_input: {
+export async function bulkAssignProjectsToGroup(input: {
   projectIds: string[];
   groupId: string | null;
 }): Promise<BulkAssignProjectsToGroupResult> {
-  throw new Error("not implemented");
+  const { ids, issues } = normalizeBulkActionIds(input.projectIds, {
+    label: "projects",
+    max: MAX_BULK_ASSIGN_PROJECTS,
+  });
+  const blocking = issues.find(
+    (issue) =>
+      issue.code === "empty_selection" ||
+      issue.code === "invalid_id" ||
+      issue.code === "batch_limit_exceeded",
+  );
+  if (blocking) throw new Error(blocking.message);
+
+  const { workspace, profile } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  // Batched LD-2 OWNERSHIP verify (§1.5): only ids the user OWNS — in-workspace AND
+  // (workspace-role member OR created_by === user), created_by nullable. NOT a bare
+  // `.eq("created_by", …)` (would refuse owned-via-role + null-created_by rows). Each
+  // verified row carries its workspace_id so membership rows are composite-FK-safe.
+  const verified = await verifyOwnedProjectIds(supabase, ids, workspace.id, profile.id);
+  const verifiedIds = verified.map((row) => row.id);
+  // LD-11: anything requested-but-not-verified is "skipped" (forged/foreign/non-owned).
+  const verifiedSet = new Set(verifiedIds);
+  const skippedProjectIds = ids.filter((id) => !verifiedSet.has(id));
+
+  if (input.groupId === null) {
+    // LD-8 remove path: zero-verify is a NO-OP (not a throw) — removing membership
+    // from no eligible projects is a benign idempotent outcome.
+    if (verifiedIds.length === 0) {
+      return { movedProjectIds: [], skippedProjectIds };
+    }
+    const { error } = await supabase
+      .from("project_group_memberships")
+      .delete()
+      .eq("user_id", profile.id)
+      .in("project_id", verifiedIds);
+
+    if (error) throw error;
+    revalidateWorkshop();
+    return { movedProjectIds: verifiedIds, skippedProjectIds };
+  }
+
+  // Assign path: zero-verify IS an error (the user asked to group projects and none
+  // were eligible) — honest failure to surface.
+  if (verifiedIds.length === 0) {
+    throw new Error("None of the selected projects were found in this workspace.");
+  }
+
+  assertUuid(input.groupId, "Group");
+  const { data: group, error: groupError } = await supabase
+    .from("project_groups")
+    .select("id")
+    .eq("id", input.groupId)
+    .eq("user_id", profile.id)
+    .eq("workspace_id", workspace.id)
+    .maybeSingle();
+
+  if (groupError) throw groupError;
+  if (!group) throw new Error("Group was not found in this workspace.");
+
+  const rows = verified.map((project) => ({
+    group_id: group.id,
+    // workspace_id from the verified project row (composite-FK-safe), not ensureDefaultWorkspace.
+    workspace_id: project.workspace_id,
+    user_id: profile.id,
+    project_id: project.id,
+  }));
+
+  const { error } = await supabase
+    .from("project_group_memberships")
+    .upsert(rows, { onConflict: "user_id,project_id" });
+
+  if (error) throw error;
+  revalidateWorkshop();
+  return { movedProjectIds: verifiedIds, skippedProjectIds };
 }
