@@ -89,3 +89,7 @@ yarn-error.log*
 /.codex/local
 /.codex/*.local.*
 /.codex/*.sqlite*
+
+# generated Playwright MCP browser audit artifacts may contain session/PII data
+/.playwright-mcp/
+/playwright-mcp/
