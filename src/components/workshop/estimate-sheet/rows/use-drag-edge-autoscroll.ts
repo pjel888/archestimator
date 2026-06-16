@@ -89,8 +89,14 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
       if (frame === null) frame = requestAnimationFrame(tick);
     };
 
+    const handleDragLeave = (event: DragEvent) => {
+      if (event.target !== scroller) return;
+      if (event.relatedTarget instanceof Node && scroller.contains(event.relatedTarget)) return;
+      stop();
+    };
+
     scroller.addEventListener("dragover", handleDragOver);
-    scroller.addEventListener("dragleave", stop);
+    scroller.addEventListener("dragleave", handleDragLeave);
     // A drag that ends or drops anywhere must halt the loop, even if the pointer
     // was sitting in the hot zone (a drop at the very bottom edge otherwise
     // scrolls forever). dragend fires on the source, so listen at the document.
@@ -100,7 +106,7 @@ export function useDragEdgeAutoScroll(anchorRef: RefObject<HTMLElement | null>, 
 
     return () => {
       scroller.removeEventListener("dragover", handleDragOver);
-      scroller.removeEventListener("dragleave", stop);
+      scroller.removeEventListener("dragleave", handleDragLeave);
       document.removeEventListener("dragend", stop, { capture: true });
       document.removeEventListener("drop", stop, { capture: true });
       window.removeEventListener("blur", stop);
