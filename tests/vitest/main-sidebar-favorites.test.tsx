@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -86,6 +86,13 @@ describe("MainSidebar favorites", () => {
     expect(favoriteSheet).toHaveAttribute("href", "/workshop/projects/project-1/estimates/sheet-1");
     expect(favoriteSheet).toHaveClass("pl-[52px]");
     expect(favoriteSheet).toHaveAttribute("aria-current", "page");
+
+    // The staleTime:0 reconcile actually runs on mount; the seeded SSR list must SURVIVE it
+    // with no flash to empty (08 §State table / §214). Prove the queryFn ran and the list
+    // persisted — without this the seeded-mock could pass as a pure initialData render test.
+    await waitFor(() => expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalled());
+    expect(within(navigation).getByRole("link", { name: "Lewis Residence" })).toBeInTheDocument();
+    expect(within(navigation).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
   });
 
   it("shows the empty hint once the query settles with zero favorites", async () => {
@@ -99,5 +106,48 @@ describe("MainSidebar favorites", () => {
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
     expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
+  });
+
+  it("does not flash to empty while an in-flight reconcile is pending, then shows the hint after it settles empty", async () => {
+    const seeded: MainSidebarFavoriteProject[] = [
+      {
+        favoriteCreatedAt: "2026-06-16T00:00:00.000Z",
+        favoriteEstimateSheets: [],
+        href: "/workshop/projects/project-1",
+        id: "project-1",
+        name: "Lewis Residence",
+        projectCode: "AE-LR-001",
+      },
+    ];
+    // Hold the reconcile in-flight so we can observe the window between first paint and settle.
+    let resolveReconcile!: (value: MainSidebarFavoriteProject[]) => void;
+    fetchSidebarFavoriteProjectsMock.mockReturnValue(
+      new Promise<MainSidebarFavoriteProject[]>((resolve) => {
+        resolveReconcile = resolve;
+      }),
+    );
+
+    renderWithClient(
+      <MainSidebar
+        favoritesScope={scope}
+        favoriteProjects={seeded}
+        user={{ displayName: "Philip Lewis", email: "philip@example.com" }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
+    const nav = screen.getByRole("navigation", { name: "Main navigation" });
+
+    // In-flight: the queryFn has fired (staleTime:0) but the seeded favorite is still painted
+    // and the empty hint must NOT flash in (08 §30 — no flash to empty during reconcile).
+    expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalled();
+    expect(within(nav).getByRole("link", { name: "Lewis Residence" })).toBeInTheDocument();
+    expect(within(nav).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
+
+    // Only once the reconcile settles to zero favorites may the hint appear and the link leave.
+    await act(async () => {
+      resolveReconcile([]);
+    });
+    expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Lewis Residence" })).not.toBeInTheDocument();
   });
 });
