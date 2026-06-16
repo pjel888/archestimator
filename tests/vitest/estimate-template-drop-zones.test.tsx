@@ -139,18 +139,31 @@ describe("estimate sheet drag-aware drop zones", () => {
 
     expect(screen.queryByText(/Drag and drop estimate component/i)).not.toBeInTheDocument();
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
-    expect(screen.getByRole("button", { name: "Add blank estimate row to Kitchen" })).toBeInTheDocument();
+    const kitchenAddRow = screen.getByRole("button", { name: "Add blank estimate row to Kitchen" });
+    expect(kitchenAddRow).toBeInTheDocument();
+    expect(kitchenAddRow).toHaveClass("h-16");
+    expect(kitchenAddRow).toHaveClass("border-dashed", "border-hairline", "bg-surfaceMuted/30", "opacity-60");
+    expect(screen.getByText("Add row to Kitchen")).toBeInTheDocument();
     // Empty nodes use the same quiet add-row affordance as populated nodes.
     expect(screen.queryByText(/Empty area\. Add a row/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add blank estimate row to Annex" })).toBeInTheDocument();
+    expect(screen.getByText("Add row to Annex")).toBeInTheDocument();
     expect(screen.queryByText(/No sub-areas yet/i)).not.toBeInTheDocument();
   });
 
   it("reveals component drop zones only while a library-item drag is active", () => {
     renderSheet();
 
+    const restingSlot = screen.getByRole("button", { name: "Add blank estimate row to Kitchen" }).closest(".py-1");
+    expect(restingSlot).not.toBeNull();
+
     act(() => beginEstimateWorkshopDrag({ kind: "library-item" }));
-    expect(screen.getByText("Drag and drop estimate component into Kitchen")).toBeInTheDocument();
+    const kitchenDropZoneLabel = screen.getByText("Drag and drop estimate component into Kitchen");
+    expect(kitchenDropZoneLabel).toBeInTheDocument();
+    const activeSlot = kitchenDropZoneLabel.closest(".py-1");
+    expect(activeSlot).not.toBeNull();
+    expect(activeSlot?.firstElementChild).toHaveClass("h-16");
+    expect(activeSlot?.firstElementChild).toHaveClass("border-dashed", "border-hairline", "bg-surfaceMuted/30", "opacity-60");
     expect(document.querySelector("[data-estimate-template-drop-zone]")).toBeNull();
 
     act(() => endEstimateWorkshopDrag());

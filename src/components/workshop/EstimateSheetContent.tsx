@@ -88,6 +88,10 @@ import {
   EMPTY_ESTIMATE_ROW_ITEMS,
 } from "./estimate-sheet/rows/constants";
 import {
+  collectEstimateRowItemIds,
+  replaceOptimisticTemplateRoots,
+} from "./estimate-sheet/template-insert-reconciliation";
+import {
   calculateContingencyValue,
   collectEditableRows,
   computeNodeTotal,
@@ -102,6 +106,7 @@ import {
 import { getNodeCode } from "./estimate-sheet/rows/node-visuals";
 import {
   canMakeProjectSpecific,
+  canPromoteEstimateRowToLibrary,
   type ExpressInsertDraftState,
 } from "./estimate-sheet/rows/cells";
 import { EstimateSheetVirtualBranchList } from "./estimate-sheet/rows/virtual-branch-list";
@@ -616,9 +621,10 @@ function EstimateSheetHeader({
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="relative sticky top-0 z-30 bg-white/95 backdrop-blur" aria-label="Tab controls">
+    <header className="relative sticky top-0 z-30 border-b border-hairline bg-white/95 backdrop-blur" aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
+        showBottomBorder={false}
         ariaLabel="Tab tools"
         labelPrefix="tab"
         onExpandAll={onExpandAll}
@@ -1063,7 +1069,7 @@ export function EstimateSheetContent({
   reportEstimateSheetContentRender();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
-  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
+  const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, promoteRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
   // Row tables are memoized on callback identity: every handler that reaches
   // EstimateSheetBranch/EstimateRowItemsTable must stay referentially stable.
   const markRowDirty = useStableCallback(markRowDirtyNow);
@@ -1148,6 +1154,7 @@ export function EstimateSheetContent({
   const activityScopeDirectOnly = useEstimateUiStore((s) => s.activityScopeDirectOnly);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
+  const [promotingRowId, setPromotingRowId] = useState<string | null>(null);
   const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
   const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -2078,6 +2085,8 @@ export function EstimateSheetContent({
       const previousRows = editableRows;
       const rollbackRevision = getEstimateTreeRevision();
       const optimisticTemplateNodes = cloneTemplateNodesForEstimate(templates.flatMap((template) => template.nodes));
+      const optimisticRootNodeIds = new Set(optimisticTemplateNodes.map((node) => node.id));
+      const optimisticRowItemIds = collectEstimateRowItemIds(optimisticTemplateNodes);
       const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
       const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
       setEditableRows((current) => ({ ...current, ...nextEditableRows }));
@@ -2092,12 +2101,40 @@ export function EstimateSheetContent({
           targetTabId: dataTabId,
         })
           .then((result) => {
-            if (getEstimateTreeRevision() === nextRevision) setEstimateTree(() => result.tree);
+            if (result.partialFailureMessage) {
+              const serverTargetParentNode = findEstimateNode(result.tree, targetParentNodeId);
+              const committedRootNodeIds = new Set(result.insertedRootNodeIds);
+              const committedRootNodes = (serverTargetParentNode?.children ?? []).filter((node) => committedRootNodeIds.has(node.id));
+              if (getEstimateTreeRevision() === nextRevision) {
+                setEstimateTree(() => result.tree);
+              } else {
+                setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, committedRootNodes));
+              }
+              setEditableRows((current) => {
+                const next = { ...current, ...collectEditableRows(committedRootNodes) };
+                for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
+                return next;
+              });
+              console.error("[estimate] template batch insert partially failed", result.partialFailureMessage);
+              toast({ tone: "error", message: "Some templates couldn't be inserted. The sheet has been refreshed." });
+            } else if (getEstimateTreeRevision() === nextRevision) {
+              setEstimateTree(() => result.tree);
+            }
           })
           .catch((error: unknown) => {
             console.error("[estimate] template batch insert failed", error);
             toast({ tone: "error", message: "Couldn't insert the templates. Try again." });
-            restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision);
+            const expectedRevision = nextRevision ?? rollbackRevision;
+            if (getEstimateTreeRevision() === expectedRevision) {
+              restoreEstimateState(previousTree, previousRows, expectedRevision);
+            } else {
+              setEstimateTree((current) => replaceOptimisticTemplateRoots(current, targetParentNodeId, optimisticRootNodeIds, []));
+              setEditableRows((current) => {
+                const next = { ...current };
+                for (const rowItemId of optimisticRowItemIds) delete next[rowItemId];
+                return next;
+              });
+            }
           });
       }
 
@@ -2413,6 +2450,64 @@ export function EstimateSheetContent({
     const rowItem = findEstimateRowItem(estimateTree, rowItemId);
     if (!rowItem || !canMakeProjectSpecific(rowItem)) return;
     setProjectSpecificRowId(rowItemId);
+  });
+
+  const promoteRowToLibrary = useStableCallback((rowItemId: string) => {
+    if (!projectId || !estimateId) return;
+    const rowItem = findEstimateRowItem(estimateTree, rowItemId);
+    if (!rowItem || !canPromoteEstimateRowToLibrary(rowItem)) {
+      toast({ tone: "error", message: "This row is not eligible to promote to the library." });
+      return;
+    }
+    if (saveState === "dirty" || saveState === "saving") {
+      toast({ tone: "error", message: "Finish saving row edits before promoting this component." });
+      return;
+    }
+
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
+    const rollbackRevision = getEstimateTreeRevision();
+    setPromotingRowId(rowItemId);
+    promoteRow({
+      projectId,
+      estimateId,
+      rowId: rowItemId,
+      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      onSuccess: (result) => {
+        setEstimateTree((current) =>
+          current.map((node) => {
+            function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
+              return {
+                ...areaNode,
+                estimateRowItems: areaNode.estimateRowItems?.map((item) => {
+                  if (item.id !== rowItemId) return item;
+                  const metadata = readEstimateRowMetadata(item.metadata);
+                  delete metadata.expressComponent;
+                  delete metadata.projectComponentProjection;
+                  return {
+                    ...item,
+                    source: "library",
+                    sourceLibraryItemId: result.itemId,
+                    metadata,
+                    linkState: "linked-clean",
+                  };
+                }),
+                children: areaNode.children?.map(visit),
+              };
+            }
+            return visit(node);
+          }),
+        );
+        setPromotingRowId(null);
+        refetchProjectComponentProjection();
+        handleLibraryDataChanged();
+        toast({ tone: "success", message: `${rowItem.material || "Component"} promoted to the workspace library.` });
+      },
+      onError: (error) => {
+        setPromotingRowId(null);
+        toast({ tone: "error", message: error.message || "Could not promote component." });
+      },
+    });
   });
 
   function confirmProjectSpecific() {
@@ -2760,6 +2855,8 @@ export function EstimateSheetContent({
                       onOpenRowDetails={openRowDetails}
                       onClearRowComponent={clearRowComponent}
                       onRequestProjectSpecific={requestProjectSpecific}
+                      onPromoteRowToLibrary={promoteRowToLibrary}
+                      promotingRowId={promotingRowId}
                       onMoveRowComponent={moveRowComponent}
                       expressInsertDraftStates={expressInsertDraftStates}
                       onRetryExpressDraft={retryExpressDraft}

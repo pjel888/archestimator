@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getEstimateTabTree: vi.fn(),
   getEstimateTreesForTabs: vi.fn(),
   getCurrentUserContext: vi.fn(),
+  getCurrentUserTermsAcceptanceStatus: vi.fn(),
   checkProposalExportRateLimit: vi.fn(),
 }));
 
@@ -21,6 +22,10 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: mocks.getCurrentUserContext,
+}));
+
+vi.mock("@/lib/legal/terms-acceptance", () => ({
+  getCurrentUserTermsAcceptanceStatus: mocks.getCurrentUserTermsAcceptanceStatus,
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
@@ -100,6 +105,7 @@ describe("proposal xlsx export route workbook integration", () => {
       displayName: "Owner",
       avatarUrl: null,
     });
+    mocks.getCurrentUserTermsAcceptanceStatus.mockResolvedValue({ requiresAcceptance: false });
     mocks.checkProposalExportRateLimit.mockResolvedValue({ allowed: true });
     mocks.getEstimateTabs.mockResolvedValue([]);
     mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({

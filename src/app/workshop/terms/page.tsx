@@ -14,7 +14,7 @@ type WorkshopTermsPageProps = {
 
 export default async function WorkshopTermsPage({ searchParams }: WorkshopTermsPageProps) {
   const params = await searchParams ?? {};
-  const context = await requireCurrentUserContext();
+  const context = await requireCurrentUserContext({ enforceTermsAcceptance: false });
   const returnTo = sanitizeNextPath(params.next, TERMS_GATE_FALLBACK_NEXT);
 
   return (

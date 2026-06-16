@@ -69,6 +69,7 @@ const REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATES_PER_PROJECT_LIMIT = 25;
 const REUSABLE_PROJECT_SOURCE_SEARCH_MATERIALIZATION_LIMIT = REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT;
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT = 50;
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT = 25;
+const REUSABLE_SEARCH_PREFILTER_PAGE_SIZE = 1000;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT = 20;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS = 60_000;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT_SCOPE = "reusable_project_source_search";
@@ -210,7 +211,7 @@ async function fetchDistinctReusableSearchEstimateMatches({
     }
     const { data, error } = await limitedQuery
       .order("estimate_id", { ascending: true })
-      .range(offset, offset + REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT - 1);
+      .range(offset, offset + REUSABLE_SEARCH_PREFILTER_PAGE_SIZE - 1);
     if (error) return { data: Array.from(matchingEstimateIds), error };
 
     const rows = data ?? [];
@@ -218,8 +219,8 @@ async function fetchDistinctReusableSearchEstimateMatches({
       if (row.estimate_id) matchingEstimateIds.add(row.estimate_id);
       if (matchingEstimateIds.size >= REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT) break;
     }
-    if (rows.length < REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT) break;
-    offset += REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT;
+    if (rows.length < REUSABLE_SEARCH_PREFILTER_PAGE_SIZE) break;
+    offset += REUSABLE_SEARCH_PREFILTER_PAGE_SIZE;
     pageCount += 1;
   }
 

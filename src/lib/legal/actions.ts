@@ -25,7 +25,7 @@ export async function acceptCurrentTermsAction(formData: FormData) {
     redirect(buildAcceptanceErrorRedirect("invalid_acceptance", next));
   }
 
-  const context = await requireCurrentUserContext();
+  const context = await requireCurrentUserContext({ enforceTermsAcceptance: false });
   const result = await recordCurrentTermsAcceptance({
     userId: context.userId,
     acceptanceContext: "workshop_terms_gate",

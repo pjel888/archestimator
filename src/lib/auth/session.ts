@@ -1,5 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { getCurrentUserTermsAcceptanceStatus } from "@/lib/legal/terms-acceptance";
+import { buildTermsAcceptanceRedirectPath } from "@/lib/legal/terms-gate";
 import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
 import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -84,8 +86,35 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
   };
 });
 
-export async function requireCurrentUserContext() {
+type RequireCurrentUserContextOptions = {
+  enforceTermsAcceptance?: boolean;
+  nextPath?: string | null;
+};
+
+type RequireCurrentUserContextResult =
+  | { ok: true; context: CurrentUserContext }
+  | { ok: false; reason: "unauthenticated" | "terms_acceptance_required"; redirectPath: string };
+
+export async function getRequiredCurrentUserContextResult(options: RequireCurrentUserContextOptions = {}): Promise<RequireCurrentUserContextResult> {
   const context = await getCurrentUserContext();
-  if (!context) redirect("/login");
-  return context;
+  if (!context) return { ok: false, reason: "unauthenticated", redirectPath: "/login" };
+
+  if (options.enforceTermsAcceptance ?? true) {
+    const acceptanceStatus = await getCurrentUserTermsAcceptanceStatus(context.userId);
+    if (acceptanceStatus.requiresAcceptance) {
+      return {
+        ok: false,
+        reason: "terms_acceptance_required",
+        redirectPath: buildTermsAcceptanceRedirectPath(options.nextPath ?? null),
+      };
+    }
+  }
+
+  return { ok: true, context };
+}
+
+export async function requireCurrentUserContext(options: RequireCurrentUserContextOptions = {}) {
+  const result = await getRequiredCurrentUserContextResult(options);
+  if (!result.ok) redirect(result.redirectPath);
+  return result.context;
 }

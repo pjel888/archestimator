@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-import { requireCurrentUserContext } from "@/lib/auth/session";
+import { getRequiredCurrentUserContextResult } from "@/lib/auth/session";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
@@ -27,6 +27,21 @@ const ALLOWED_ATTACHMENT_EXTENSIONS = [".pdf", ".xls", ".xlsx"] as const;
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+async function getUploadContext() {
+  const authResult = await getRequiredCurrentUserContextResult();
+  if (!authResult.ok) {
+    return {
+      response: jsonError(
+        authResult.reason === "unauthenticated" ? "Authentication required." : "Terms acceptance required.",
+        authResult.reason === "unauthenticated" ? 401 : 403,
+      ),
+    };
+  }
+
+  const { workspace } = await ensureDefaultWorkspace();
+  return { workspace, currentUser: authResult.context };
 }
 
 function includesAscii(bytes: Uint8Array, value: string) {
@@ -128,7 +143,9 @@ export async function POST(request: Request) {
     return jsonError("Attachment upload is too large. Choose a PDF or Excel file under 20 MB.", 413);
   }
 
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const uploadContext = await getUploadContext();
+  if ("response" in uploadContext) return uploadContext.response;
+  const { workspace, currentUser } = uploadContext;
   const formData = await request.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) return jsonError("Attachment file is required.");
@@ -173,7 +190,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const uploadContext = await getUploadContext();
+  if ("response" in uploadContext) return uploadContext.response;
+  const { workspace, currentUser } = uploadContext;
   const body = await request.json().catch(() => null);
   const paths = readStoragePaths(body).filter((path) => isOwnedAttachmentPath(path, workspace.id, currentUser.userId));
   if (paths.length === 0) return jsonError("No removable attachment paths were provided.");

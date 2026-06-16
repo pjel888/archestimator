@@ -15,7 +15,7 @@ vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
 vi.mock("@/lib/supabase/server", () => supabaseMocks);
 vi.mock("next/cache", () => cacheMocks);
 
-describe("promoteExpressRowToLibraryComponent", () => {
+describe("promoteEstimateRowToLibraryComponent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.EXPRESS_COMPONENT_PROMOTION_ENABLED = "true";
@@ -30,8 +30,8 @@ describe("promoteExpressRowToLibraryComponent", () => {
     }));
     supabaseMocks.createSupabaseServerClient.mockResolvedValue({ rpc });
 
-    const { promoteExpressRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
-    const result = await promoteExpressRowToLibraryComponent({
+    const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    const result = await promoteEstimateRowToLibraryComponent({
       projectId: PROJECT_ID,
       estimateId: ESTIMATE_ID,
       rowId: ROW_ID,
@@ -39,7 +39,7 @@ describe("promoteExpressRowToLibraryComponent", () => {
       mutationId: "88888888-8888-4888-8888-888888888888",
     });
 
-    expect(rpc).toHaveBeenCalledWith("promote_express_row_to_library_component", {
+    expect(rpc).toHaveBeenCalledWith("promote_estimate_row_to_library_component", {
       target_project_id: PROJECT_ID,
       target_estimate_id: ESTIMATE_ID,
       target_row_id: ROW_ID,
@@ -58,8 +58,21 @@ describe("promoteExpressRowToLibraryComponent", () => {
     const rpc = vi.fn();
     supabaseMocks.createSupabaseServerClient.mockResolvedValue({ rpc });
 
-    const { promoteExpressRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
-    await expect(promoteExpressRowToLibraryComponent({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID })).rejects.toThrow(/disabled/i);
+    const { promoteEstimateRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    await expect(promoteEstimateRowToLibraryComponent({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID })).rejects.toThrow(/disabled/i);
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("keeps the express-named export as a compatibility alias", async () => {
+    const rpc = vi.fn(async () => ({
+      data: { rowId: ROW_ID, itemId: "66666666-6666-4666-8666-666666666666" },
+      error: null,
+    }));
+    supabaseMocks.createSupabaseServerClient.mockResolvedValue({ rpc });
+
+    const { promoteExpressRowToLibraryComponent } = await import("@/lib/estimates/express-promotion-actions");
+    await promoteExpressRowToLibraryComponent({ projectId: PROJECT_ID, estimateId: ESTIMATE_ID, rowId: ROW_ID });
+
+    expect(rpc).toHaveBeenCalledWith("promote_estimate_row_to_library_component", expect.any(Object));
   });
 });

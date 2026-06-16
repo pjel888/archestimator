@@ -341,7 +341,7 @@ function ComponentCatalogueCard({
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
   const pricingSource = getItemPricingSourceLabel(item);
-  const canPromote = Boolean(onPromote && readProjectComponentProjectionMetadata(item.metadata)?.classification === "express");
+  const canPromote = Boolean(onPromote && isPromotableProjectProjectionItem(item));
   const lifecycleBadge = item.lifecycleState && item.lifecycleState !== "available"
     ? {
         label: COMPONENT_LIFECYCLE_FACET_LABELS[item.lifecycleState],
@@ -682,7 +682,14 @@ function isProjectProjectionItem(item: EstimateRowItem) {
 
 function canPromoteProjectProjectionItem(item: EstimateRowItem, projectId?: string, promotionEnabled = false) {
   const projection = readProjectComponentProjectionMetadata(item.metadata);
-  return Boolean(projectId && promotionEnabled && projection?.classification === "express" && projection.estimateId && isExpressComponentRow(item));
+  return Boolean(projectId && promotionEnabled && projection?.estimateId && isPromotableProjectProjectionItem(item));
+}
+
+function isPromotableProjectProjectionItem(item: EstimateRowItem) {
+  const projection = readProjectComponentProjectionMetadata(item.metadata);
+  if (projection?.classification === "express") return isExpressComponentRow(item);
+  if (projection?.classification === "detached-library") return item.linkState === "detached";
+  return false;
 }
 
 function toSupplierTreeNodeId(supplierId: string) {

@@ -18,4 +18,25 @@ describe("TreePanelHeader bottom border (Req 3)", () => {
     expect(toolbarRow.className).toMatch(/border-b/);
     expect(toolbarRow.className).toMatch(/border-hairline/);
   });
+
+  test("can omit its bottom divider when the next surface supplies the boundary", () => {
+    const { container } = render(<TreePanelHeader ariaLabel="Test panel" labelPrefix="test" showBottomBorder={false} />);
+    const root = container.firstElementChild as HTMLElement;
+    const toolbarRow = root.firstElementChild as HTMLElement;
+
+    expect(root.className).not.toMatch(/border-b/);
+    expect(toolbarRow.className).not.toMatch(/border-b/);
+  });
+
+  test("can keep the icon row divider while omitting the wrapper divider", () => {
+    const { container } = render(
+      <TreePanelHeader ariaLabel="Test panel" labelPrefix="test" showBottomBorder={false} showToolbarBottomBorder />,
+    );
+    const root = container.firstElementChild as HTMLElement;
+    const toolbarRow = root.firstElementChild as HTMLElement;
+
+    expect(root.className).not.toMatch(/border-b/);
+    expect(toolbarRow.className).toMatch(/border-b/);
+    expect(toolbarRow.className).toMatch(/border-hairline/);
+  });
 });

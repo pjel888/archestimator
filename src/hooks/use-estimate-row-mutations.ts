@@ -4,8 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY } from "@/lib/component-library/query-keys";
 import type { Json } from "@/lib/supabase/types";
 import { deleteEstimateRowItem, detachEstimateRowItemFromLibrary, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
+import { promoteEstimateRowToLibraryComponent, type PromoteEstimateRowToLibraryComponentResult } from "@/lib/estimates/express-promotion-actions";
 import { findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { estimateQueryKeys } from "./use-estimate-query";
 
@@ -50,6 +52,15 @@ type DetachEstimateRowInput = SharedMutationInput & {
   reason?: string;
   rollback?: () => void;
   onSuccess?: (result: UpdateEstimateRowItemResult) => void;
+};
+
+type PromoteEstimateRowInput = SharedMutationInput & {
+  rowId: string;
+  libraryFolderId?: string | null;
+  mutationId?: string;
+  rollback?: () => void;
+  onSuccess?: (result: PromoteEstimateRowToLibraryComponentResult) => void;
+  onError?: (error: Error) => void;
 };
 
 type UpdateEstimateRowInput = SharedMutationInput & {
@@ -137,6 +148,14 @@ function toDetachedRowPatch(result: UpdateEstimateRowItemResult): EstimateRowIte
     sourceLibraryItemId: null,
     linkState: result.linkState,
     rowRevision: result.rowRevision,
+  };
+}
+
+function toPromotedRowPatch(result: PromoteEstimateRowToLibraryComponentResult): EstimateRowItemPatch {
+  return {
+    source: "library",
+    sourceLibraryItemId: result.itemId,
+    linkState: "linked-clean",
   };
 }
 
@@ -302,6 +321,29 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
     },
   });
 
+  const promoteMutation = useMutation({
+    mutationFn: (input: PromoteEstimateRowInput) => promoteEstimateRowToLibraryComponent(withoutClientCallbacks(input)),
+    onMutate: () => markSaving(),
+    onSuccess: (result, input) => {
+      const queryKey = estimateTabId ? estimateQueryKeys.tabTree(input.estimateId, estimateTabId) : estimateQueryKeys.areaTree(input.estimateId);
+      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toPromotedRowPatch(result)) : currentTree,
+      );
+      markSaved();
+      void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_LIBRARY_QUERY_KEY, refetchType: "active" });
+      void queryClient.invalidateQueries({ queryKey: WORKSPACE_COMPONENT_ROWS_LIBRARY_QUERY_KEY, refetchType: "active" });
+      input.onSuccess?.(result);
+    },
+    onError: (error: Error, input) => {
+      input.rollback?.();
+      input.onError?.(error);
+      markFailed();
+      if (treeQueryKey) void queryClient.invalidateQueries({ queryKey: treeQueryKey, refetchType: "active" });
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: (input: UpdateEstimateRowInput) => updateEstimateRowItem(withoutClientCallbacks(input)),
     onMutate: async (input): Promise<UpdateMutationContext> => {
@@ -400,6 +442,10 @@ export function useEstimateRowMutations(estimateId?: string, estimateTabId?: str
     insertRow: (input: InsertEstimateRowInput) => insertMutation.mutate(withInsertMutationIdentity(input)),
     replaceRow: (input: ReplaceEstimateRowInput) => replaceMutation.mutate(withMutationIdentity(input)),
     detachRow: (input: DetachEstimateRowInput) => detachMutation.mutate(withMutationIdentity(input)),
+    promoteRow: (input: PromoteEstimateRowInput) => promoteMutation.mutate({
+      ...input,
+      mutationId: input.mutationId ?? createMutationId(),
+    }),
     deleteRow: (input: DeleteEstimateRowInput) => deleteMutation.mutate(withMutationIdentity(input)),
     updateRow: enqueueRowUpdate,
   };

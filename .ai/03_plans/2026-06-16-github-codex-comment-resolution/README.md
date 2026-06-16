@@ -64,3 +64,57 @@ Final active unresolved non-outdated threads: 0
 - All nine PR worktrees report `0 0` divergence against their upstream branches after push.
 - GitHub GraphQL thread audit across all 21 open PRs found `total_threads: 21` and `active_unresolved_not_outdated: 0`.
 - All 21 Codex review thread IDs in the matrix are resolved on GitHub.
+
+## Second-Pass Completion Evidence
+
+Collected: 2026-06-16T06:33:18Z
+
+After GitHub produced another review wave, a fresh GraphQL audit found 14
+additional active unresolved non-outdated `chatgpt-codex-connector` threads
+across PRs #83, #79, #78, #72, #69, #68, and #67. Those threads were fixed,
+pushed, and resolved:
+
+| PR | Final head | Threads resolved | Verification summary |
+| ---: | --- | --- | --- |
+| #83 | `2b3c7ae173a5520b8c1230f893958cc82996e810` | `PRRT_kwDOSfSDcs6JysOe` | Cursor identity Vitest, eslint, `git diff --check`. |
+| #79 | `1c29b961b526cd7ab2b70dc5dfff4818ce39367d` | `PRRT_kwDOSfSDcs6Jyoo8` | Drag autoscroll Vitest suites, typecheck, eslint, `git diff --check`. |
+| #78 | `cdbe7e40af729eefdbebed53834e4ad4bced7812` | `PRRT_kwDOSfSDcs6JyyLp` | Wrapper syntax checks, direct executable token-file harness, `git diff --check`. |
+| #72 | `1216b6ea5a0422823905eb080fdfd4059bb047b0` | `PRRT_kwDOSfSDcs6JyuNN`, `PRRT_kwDOSfSDcs6JyuNO`, `PRRT_kwDOSfSDcs6JyuNP` | Terms/API/AI auth Vitest batches, typecheck, lint, `git diff --check`. |
+| #69 | `440b6fe8c12037a9f1060a6e59a0da35c22c3d8c` | `PRRT_kwDOSfSDcs6JysyE`, `PRRT_kwDOSfSDcs6JysyG`, `PRRT_kwDOSfSDcs6JysyK`, `PRRT_kwDOSfSDcs6JysyL` | Reusable-sources Vitest, typecheck, eslint, `git diff --check`. |
+| #68 | `d419f97e876a460d89b4f6aa782f01a6dcc74291` | `PRRT_kwDOSfSDcs6Jys-9`, `PRRT_kwDOSfSDcs6Jys-_`, `PRRT_kwDOSfSDcs6Jys_E` | Reusable-sources Vitest, typecheck, lint, `git diff --check`; merged `origin/main` after GitHub reported the branch dirty. |
+| #67 | `54964215f5897571f7a13d6f0f032dbab39f37a4` | `PRRT_kwDOSfSDcs6JyoMO` | Reusable-sources Vitest, typecheck, `git diff --check`. |
+
+Final live audit:
+
+```text
+open PRs inspected: 21
+review threads inspected: 35
+active unresolved non-outdated Codex threads: 0
+active unresolved non-outdated threads from any author: 0
+touched PRs #67, #68, #69, #72, #78, #79, #83: CLEAN / MERGEABLE
+remaining merge concern outside comment scope: PR #66 DIRTY / CONFLICTING, with 0 active Codex review threads
+```
+
+## Late-Wave Completion Evidence
+
+Collected: 2026-06-16T06:49:17Z
+
+GitHub produced three additional Codex review threads after the second-pass
+tracker update. Those were fixed, pushed, and resolved:
+
+| PR | Final head | Threads resolved | Verification summary |
+| ---: | --- | --- | --- |
+| #81 | `2c47b6d37058522cc6ae8cd2fe21e2df95f4a247` | `PRRT_kwDOSfSDcs6Jy7iM`, `PRRT_kwDOSfSDcs6Jy7iQ` | Targeted template reconciliation Vitest, typecheck, eslint, `git diff --check`; full file run was stopped after hanging over two minutes. |
+| #69 | `b77f48dd71ca06ed6174e039a0c7278a3c5bb1e9` | `PRRT_kwDOSfSDcs6Jy9_-` | Reusable-sources Vitest, typecheck, eslint, `git diff --check`. |
+| #68 | `8fdd9b0ca27e71e16a14bac3508f950badf740fa` | `PRRT_kwDOSfSDcs6JzEFn` | Reusable-sources Vitest, typecheck, lint, `git diff --check`. |
+
+Final live audit after the late wave:
+
+```text
+open PRs inspected: 21
+review threads inspected: 39
+active unresolved non-outdated Codex threads: 0
+active unresolved non-outdated threads from any author: 0
+touched PRs #67, #68, #69, #72, #78, #79, #81, #83: CLEAN / MERGEABLE
+remaining merge concern outside comment scope: PR #66 DIRTY / CONFLICTING, with 0 active Codex review threads
+```

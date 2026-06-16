@@ -86,6 +86,11 @@ describe("express component estimate-row helpers", () => {
     expect(classifyEstimateRowSource(baseRow)).toBe("source-less-manual");
   });
 
+  it("keeps older catalog provenance rows in the library bucket", () => {
+    expect(classifyEstimateRowSource({ ...baseRow, source: "library" })).toBe("linked-library");
+    expect(classifyEstimateRowSource({ ...baseRow, source: "supplier" })).toBe("linked-library");
+  });
+
   it("keeps legacy blanks distinct from source-less manual rows", () => {
     const blank = {
       material: "",
@@ -162,6 +167,19 @@ describe("express component estimate-row helpers", () => {
     expect(migration).toContain("source_row.source_library_item_id is not null");
     expect(migration).toContain("source_row.source_snapshot->>'sourceType', '') = 'promoted_express_component");
     expect(migration).toContain("(coalesce(source_row.metadata, '{}'::jsonb) - 'expressComponent') || jsonb_build_object");
+  });
+
+  it("promotes project-specific rows by creating a fresh library component", () => {
+    const migration = readMigrationBySuffix("_promote_detached_estimate_rows_to_library.sql");
+
+    expect(migration).toContain("is_detached_project_row := source_row.source_library_item_id is null");
+    expect(migration).toContain("or coalesce(source_row.metadata->'projectComponentProjection'->>'classification', '') = 'detached-library'");
+    expect(migration).toContain("public.create_cost_library_component");
+    expect(migration).toContain("else 'project-specific-component-promotion'");
+    expect(migration).toContain("'createdFrom', promotion_kind");
+    expect(migration).toContain("else 'promoted_project_specific_component'");
+    expect(migration).toContain("'sourceLibraryItemId', promoted_item_id");
+    expect(migration).toContain("'promotedFromLinkState', source_row.link_state");
   });
 
   it("keeps the trigger-only rekey helper out of the exposed authenticated RPC surface", () => {
