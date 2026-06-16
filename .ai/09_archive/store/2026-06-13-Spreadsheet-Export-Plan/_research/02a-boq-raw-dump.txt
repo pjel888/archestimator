@@ -1,0 +1,35 @@
+# Redacted BOQ Research Dump
+
+Security note (2026-06-15): this archived research artifact previously contained raw construction bid/proposal spreadsheet extraction output. The raw content was removed because it included identifiable project/client details, contact information, addresses, and monetary bid/cost figures.
+
+This file is intentionally retained only as a non-sensitive placeholder so plan references remain understandable without exposing confidential business or customer data.
+
+## Synthetic replacement fixture
+
+The structure below is synthetic and may be used to reason about spreadsheet export parsing without relying on real customer, project, or bid data.
+
+```text
+Workbook: synthetic-boq-reference.xlsx
+Sheet: Project Summary
+Project: Example Renovation Project
+Location: Example City
+Client: Example Client LLC
+Prepared For: Example Recipient
+Prepared By: Example Estimator
+Contact Email: estimator@example.invalid
+Contact Phone: +1-555-0100
+Currency: USD
+
+Section,Item,Description,Unit,Quantity,Rate,Amount
+Preliminaries,1.1,Site setup,lot,1,1000.00,1000.00
+Demolition,2.1,Remove existing finishes,sq ft,500,2.50,1250.00
+Carpentry,3.1,Install framing,linear ft,200,8.00,1600.00
+Finishes,4.1,Paint wall surfaces,sq ft,1200,1.75,2100.00
+Summary,,Subtotal,,,,5950.00
+Summary,,Contingency,,,,595.00
+Summary,,Total,,,,6545.00
+```
+
+## Handling rule
+
+Do not commit raw client BOQs, tenders, proposal exports, customer addresses, personal contact details, or actual bid/cost figures to the repository. Store only synthetic fixtures or anonymized summaries that have been reviewed for disclosure risk.
