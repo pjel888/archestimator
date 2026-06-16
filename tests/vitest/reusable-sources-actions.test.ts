@@ -35,7 +35,7 @@ function mockSearchPrefilter(resultByTable: Record<string, { data: unknown; erro
   const makeBuilder = (table: string) => {
     const result = resultByTable[table] ?? { data: [], error: null };
     const builder: Record<string, unknown> = {};
-    for (const method of ["select", "in", "ilike", "is", "eq", "order"]) {
+    for (const method of ["select", "in", "ilike", "is", "eq", "order", "limit"]) {
       builder[method] = () => builder;
     }
     builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
@@ -270,6 +270,30 @@ describe("reusable project source actions", () => {
       getReusableEstimateOutline({ projectId: projectAId, estimateId: estimateAId }),
     ).rejects.toThrow(accessError);
     expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+  });
+
+  it("rejects too-short project source searches before workspace enumeration", async () => {
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "a" });
+
+    expect(result).toEqual({ sources: [] });
+    expect(repositoryMocks.listCurrentWorkspaceProjects).not.toHaveBeenCalled();
+    expect(repositoryMocks.listProjectEstimateSheets).not.toHaveBeenCalled();
+    expect(repositoryMocks.getEstimateTabs).not.toHaveBeenCalled();
+    expect(repositoryMocks.getEstimateTabTree).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits repeated project source searches per authenticated user", async () => {
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "rate-user" });
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects: [] });
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+
+    for (let index = 0; index < 20; index += 1) {
+      await expect(searchReusableProjectSources({ query: `safe-${index}` })).resolves.toEqual({ sources: [] });
+    }
+    await expect(searchReusableProjectSources({ query: "safe-overflow" })).rejects.toThrow(
+      "Please wait a moment before searching project sources again.",
+    );
   });
 
   it("searches readable project source outlines without returning pending invites", async () => {

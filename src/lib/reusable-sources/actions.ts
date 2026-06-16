@@ -59,8 +59,34 @@ function reusableProjectSourceResultKey(source: ProjectReusableEstimateSource) {
   return `project-node:${source.nodeId}`;
 }
 
+const REUSABLE_PROJECT_SOURCE_SEARCH_MIN_QUERY_LENGTH = 2;
+const REUSABLE_PROJECT_SOURCE_SEARCH_MAX_QUERY_LENGTH = 120;
+const REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT = 50;
+const REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT = 50;
+const REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATES_PER_PROJECT_LIMIT = 25;
+const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT = 50;
+const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT = 20;
+const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS = 60_000;
+
+const reusableProjectSourceSearchHitsByUser = new Map<string, number[]>();
+
 function addReusableSearchSource(sourcesByKey: Map<string, ProjectReusableEstimateSource>, source: ProjectReusableEstimateSource) {
+  if (sourcesByKey.size >= REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT && !sourcesByKey.has(reusableProjectSourceResultKey(source))) return;
   sourcesByKey.set(reusableProjectSourceResultKey(source), source);
+}
+
+function normalizeReusableProjectSourceSearchInput(query: string) {
+  return normalizeReusableSourceSearchQuery(query).slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_MAX_QUERY_LENGTH);
+}
+
+function assertReusableProjectSourceSearchRateLimit(userId: string, now = Date.now()) {
+  const windowStart = now - REUSABLE_PROJECT_SOURCE_SEARCH_RATE_WINDOW_MS;
+  const recentHits = (reusableProjectSourceSearchHitsByUser.get(userId) ?? []).filter((hit) => hit > windowStart);
+  if (recentHits.length >= REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT) {
+    throw new Error("Please wait a moment before searching project sources again.");
+  }
+  recentHits.push(now);
+  reusableProjectSourceSearchHitsByUser.set(userId, recentHits);
 }
 
 export async function listReusableProjectSources(): Promise<ReusableProjectSourceListResult> {
@@ -107,16 +133,22 @@ function toReusableSearchLikePattern(query: string): string {
 }
 
 export async function searchReusableProjectSources(input: { query: string }): Promise<ReusableProjectSourceSearchResult> {
-  await requireCurrentUserContext();
-  const query = normalizeReusableSourceSearchQuery(input.query);
-  if (!query) return { sources: [] };
+  const context = await requireCurrentUserContext();
+  const query = normalizeReusableProjectSourceSearchInput(input.query);
+  if (query.length < REUSABLE_PROJECT_SOURCE_SEARCH_MIN_QUERY_LENGTH) return { sources: [] };
+  assertReusableProjectSourceSearchRateLimit(context.userId);
 
   const { projects } = await listCurrentWorkspaceProjects();
-  const accessibleProjects = projects.filter((item) => item.accessKind !== "pending-invite");
+  const accessibleProjects = projects
+    .filter((item) => item.accessKind !== "pending-invite")
+    .slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT);
   if (accessibleProjects.length === 0) return { sources: [] };
 
   const estimatesByProject = await Promise.all(
-    accessibleProjects.map((item) => listProjectEstimateSheets(item.project.id)),
+    accessibleProjects.map(async (item) => {
+      const estimates = await listProjectEstimateSheets(item.project.id);
+      return estimates.slice(0, REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATES_PER_PROJECT_LIMIT);
+    }),
   );
 
   type ProjectRecord = (typeof accessibleProjects)[number]["project"];
@@ -183,7 +215,8 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
     .select("estimate_id")
     .in("estimate_id", accessibleEstimateIds)
     .in("kind", ["group", "area"])
-    .ilike("name", likePattern);
+    .ilike("name", likePattern)
+    .limit(REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT);
   if (matchingNodeError) throw matchingNodeError;
   for (const row of matchingNodeRows ?? []) {
     if (row.estimate_id) estimatesToMaterialize.add(row.estimate_id);
@@ -197,7 +230,9 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
         select: (columns: string) => {
           in: (column: string, values: string[]) => {
             ilike: (column: string, pattern: string) => {
-              is: (column: string, value: null) => Promise<{ data: Array<{ estimate_id: string | null }> | null; error: unknown }>;
+              is: (column: string, value: null) => {
+                limit: (count: number) => Promise<{ data: Array<{ estimate_id: string | null }> | null; error: unknown }>;
+              };
             };
           };
         };
@@ -208,7 +243,8 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
       .select("estimate_id")
       .in("estimate_id", accessibleEstimateIds)
       .ilike("name", likePattern)
-      .is("archived_at", null);
+      .is("archived_at", null)
+      .limit(REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT);
     if (matchingTabError && !isMissingRelationError(matchingTabError as never, "estimate_tabs")) throw matchingTabError;
     for (const row of matchingTabRows ?? []) {
       if (row.estimate_id) estimatesToMaterialize.add(row.estimate_id);
