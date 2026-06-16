@@ -7,15 +7,24 @@ export function replaceOptimisticTemplateRoots(
   committedRootNodes: EstimateTreeNode[],
 ): EstimateTreeNode[] {
   const committedRootNodeIds = new Set(committedRootNodes.map((node) => node.id));
+  const existingCommittedRootNodeIds = new Set<string>();
+
+  function collectExistingCommittedRoots(node: EstimateTreeNode) {
+    if (committedRootNodeIds.has(node.id) && !optimisticRootNodeIds.has(node.id)) existingCommittedRootNodeIds.add(node.id);
+    node.children?.forEach(collectExistingCommittedRoots);
+  }
+
+  nodes.forEach(collectExistingCommittedRoots);
 
   function reconcileNode(node: EstimateTreeNode): EstimateTreeNode {
     const nextChildren = (node.children ?? []).flatMap((child) => {
-      if (optimisticRootNodeIds.has(child.id) || committedRootNodeIds.has(child.id)) return [];
+      if (optimisticRootNodeIds.has(child.id)) return [];
       return [reconcileNode(child)];
     });
 
     if (node.id === targetParentNodeId) {
-      return { ...node, children: [...nextChildren, ...committedRootNodes] };
+      const missingCommittedRootNodes = committedRootNodes.filter((committedRootNode) => !existingCommittedRootNodeIds.has(committedRootNode.id));
+      return { ...node, children: [...nextChildren, ...missingCommittedRootNodes] };
     }
 
     return {
@@ -25,7 +34,7 @@ export function replaceOptimisticTemplateRoots(
   }
 
   return nodes
-    .filter((node) => !optimisticRootNodeIds.has(node.id) && !committedRootNodeIds.has(node.id))
+    .filter((node) => !optimisticRootNodeIds.has(node.id))
     .map(reconcileNode);
 }
 
