@@ -66,6 +66,7 @@ const REUSABLE_PROJECT_SOURCE_SEARCH_MAX_QUERY_LENGTH = 120;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT = 50;
 const REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT = 50;
 const REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATES_PER_PROJECT_LIMIT = 25;
+const REUSABLE_PROJECT_SOURCE_SEARCH_MATERIALIZATION_LIMIT = REUSABLE_PROJECT_SOURCE_SEARCH_RESULT_LIMIT;
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_LIMIT = 50;
 const REUSABLE_PROJECT_SOURCE_SEARCH_DB_MATCH_PAGE_LIMIT = 25;
 const REUSABLE_PROJECT_SOURCE_SEARCH_RATE_LIMIT = 20;
@@ -103,6 +104,7 @@ function addReusableSearchEstimateMaterializationCandidate({
   if (estimatesToMaterialize.has(estimateId)) return true;
   const ctx = estimateContextById.get(estimateId);
   if (!ctx) return false;
+  if (estimatesToMaterialize.size >= REUSABLE_PROJECT_SOURCE_SEARCH_MATERIALIZATION_LIMIT) return false;
   if (!materializedProjectIds.has(ctx.project.id) && materializedProjectIds.size >= REUSABLE_PROJECT_SOURCE_SEARCH_PROJECT_LIMIT) return false;
   const materializedEstimateCount = materializedEstimateCountsByProject.get(ctx.project.id) ?? 0;
   if (materializedEstimateCount >= REUSABLE_PROJECT_SOURCE_SEARCH_ESTIMATES_PER_PROJECT_LIMIT) return false;
@@ -402,6 +404,7 @@ export async function searchReusableProjectSources(input: { query: string }): Pr
   const firstPageDisplayQuery = normalizeReusableSourceSearchQuery(formatEstimatePageTabName(1));
   if (query === firstPageDisplayQuery) {
     for (const estimateId of accessibleEstimateIds) {
+      if (estimatesToMaterialize.size >= REUSABLE_PROJECT_SOURCE_SEARCH_MATERIALIZATION_LIMIT) break;
       const ctx = estimateContextById.get(estimateId);
       if (!ctx) continue;
       const tabs = await getSortedTabsForEstimate(ctx.project.id, estimateId);

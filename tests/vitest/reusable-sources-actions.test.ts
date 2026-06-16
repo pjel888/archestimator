@@ -756,6 +756,42 @@ describe("reusable project source actions", () => {
     expect(result.sources).toEqual([]);
   });
 
+  it("caps exact display tab label materialization across projects", async () => {
+    const projects = Array.from({ length: 3 }, (_, projectIndex) => ({
+      accessKind: "owner",
+      project: {
+        id: `project-${projectIndex + 1}`,
+        name: `Project ${projectIndex + 1}`,
+      },
+    }));
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({ projects });
+    repositoryMocks.listProjectEstimateSheets.mockImplementation(async (projectId: string) => (
+      Array.from({ length: 25 }, (_, estimateIndex) => ({
+        id: `${projectId}-estimate-${String(estimateIndex + 1).padStart(2, "0")}`,
+        name: `Estimate ${estimateIndex + 1}`,
+        sheetCode: `EST-${String(estimateIndex + 1).padStart(3, "0")}`,
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      }))
+    ));
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: { data: [], error: null },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } = await import("@/lib/reusable-sources/actions");
+    await searchReusableProjectSources({ query: "Page 001" });
+
+    expect(repositoryMocks.getEstimateTabs).toHaveBeenCalledTimes(50);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledTimes(50);
+  });
+
   it("searches derived display tab labels before an outline is loaded", async () => {
     repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
       projects: [
