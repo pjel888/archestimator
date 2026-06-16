@@ -34,11 +34,29 @@ vi.mock("@/lib/repositories/workspace-repository", () => ({
 // U5: the server-side search pre-filters matching estimates via two bounded
 // ILIKE queries (estimate_nodes + estimate_tabs) before materializing trees. This
 // chainable stub resolves each `.from(table)...` chain to the configured result.
+type SearchPrefilterResult = { data: unknown; error: unknown };
+type SearchPrefilterCall = {
+  table: string;
+  method: string;
+  args: unknown[];
+};
+const searchPrefilterCalls: SearchPrefilterCall[] = [];
+
 function mockSearchPrefilter(
-  resultByTable: Record<string, { data: unknown; error: unknown }>,
+  resultByTable: Record<
+    string,
+    | SearchPrefilterResult
+    | ((calls: SearchPrefilterCall[]) => SearchPrefilterResult)
+  >,
 ) {
   const makeBuilder = (table: string) => {
-    const result = resultByTable[table] ?? { data: [], error: null };
+    const builderCalls: SearchPrefilterCall[] = [];
+    const readResult = () => {
+      const configured = resultByTable[table] ?? { data: [], error: null };
+      return typeof configured === "function"
+        ? configured(builderCalls)
+        : configured;
+    };
     const builder: Record<string, unknown> = {};
     for (const method of [
       "select",
@@ -49,12 +67,19 @@ function mockSearchPrefilter(
       "order",
       "limit",
     ]) {
-      builder[method] = () => builder;
+      builder[method] = (...args: unknown[]) => {
+        const call = { table, method, args };
+        builderCalls.push(call);
+        searchPrefilterCalls.push(call);
+        return builder;
+      };
     }
-    builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
-    builder.maybeSingle = async () => result;
+    builder.then = (resolve: (value: unknown) => unknown) =>
+      resolve(readResult());
+    builder.maybeSingle = async () => readResult();
     return builder;
   };
+  searchPrefilterCalls.length = 0;
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({
     from: (table: string) => makeBuilder(table),
   });
@@ -392,6 +417,18 @@ describe("reusable project source actions", () => {
       projectAId,
       { limit: 100 },
     );
+    expect(
+      searchPrefilterCalls.filter(
+        (call) => call.table === "estimate_nodes" && call.method === "in" && call.args[0] === "estimate_id",
+      ),
+    ).toHaveLength(1);
+    expect(searchPrefilterCalls).not.toContainEqual(
+      expect.objectContaining({
+        table: "estimate_nodes",
+        method: "eq",
+        args: expect.arrayContaining(["estimate_id"]),
+      }),
+    );
   });
 
   it("materializes only tabs identified by the search prefilter", async () => {
@@ -519,6 +556,238 @@ describe("reusable project source actions", () => {
         totalCost: 0,
       },
     });
+  });
+
+  it("retries legacy node prefilter without estimate_tab_id when the column is missing", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Legacy Estimate",
+        sheetCode: "EST-LEG",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "legacy-node",
+          name: "Legacy Site Works",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: (calls) => {
+        const selectCall = calls.find((call) => call.method === "select");
+        return String(selectCall?.args[0] ?? "").includes("estimate_tab_id")
+          ? {
+              data: null,
+              error: {
+                code: "42703",
+                message: 'column estimate_nodes.estimate_tab_id does not exist',
+              },
+            }
+          : {
+              data: [
+                {
+                  id: "legacy-node",
+                  estimate_id: estimateAId,
+                  parent_id: null,
+                  kind: "group",
+                  name: "Legacy Site Works",
+                },
+              ],
+              error: null,
+            };
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "legacy site" });
+
+    const nodeSelects = searchPrefilterCalls.filter(
+      (call) => call.table === "estimate_nodes" && call.method === "select",
+    );
+    expect(nodeSelects.map((call) => call.args[0])).toEqual([
+      "id, estimate_id, estimate_tab_id, parent_id, kind, name",
+      "id, estimate_id, parent_id, kind, name",
+    ]);
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        nodeId: "legacy-node",
+        name: "Legacy Site Works",
+      }),
+    );
+  });
+
+  it("uses the raw punctuated query for database prefiltering while matching normalized candidates", async () => {
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Vendor Estimate",
+        sheetCode: "EST-V",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "smith-node",
+          name: "Smith, LLC",
+          kind: "area",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "smith-node",
+            estimate_id: estimateAId,
+            estimate_tab_id: tabAId,
+            parent_id: null,
+            kind: "area",
+            name: "Smith, LLC",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "Smith, LLC" });
+
+    expect(searchPrefilterCalls).toContainEqual({
+      table: "estimate_nodes",
+      method: "ilike",
+      args: ["name", "%Smith, LLC%"],
+    });
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        nodeId: "smith-node",
+        name: "Smith, LLC",
+      }),
+    );
+  });
+
+  it("does not let an archived prefilter tab pin hide active matching nodes", async () => {
+    const archivedTabId = "archived-tab";
+    repositoryMocks.listCurrentWorkspaceProjects.mockResolvedValue({
+      projects: [
+        {
+          accessKind: "owner",
+          project: { id: projectAId, name: "Accessible Project" },
+        },
+      ],
+    });
+    repositoryMocks.listProjectEstimateSheets.mockResolvedValueOnce([
+      {
+        id: estimateAId,
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+      },
+    ]);
+    repositoryMocks.getEstimateTabs.mockResolvedValue([
+      { id: tabAId, name: "Active Main", sortOrder: 0, isDefault: true },
+    ]);
+    repositoryMocks.getEstimateTabTree.mockResolvedValue({
+      estimate: { updated_at: "2026-06-12T08:45:00.000Z" },
+      tree: [
+        {
+          id: "active-node",
+          name: "Target Active Scope",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+          estimateRowItems: [],
+        },
+      ],
+    });
+    mockSearchPrefilter({
+      estimate_nodes: {
+        data: [
+          {
+            id: "archived-node",
+            estimate_id: estimateAId,
+            estimate_tab_id: archivedTabId,
+            parent_id: null,
+            kind: "group",
+            name: "Target Archived Scope",
+          },
+        ],
+        error: null,
+      },
+      estimate_tabs: { data: [], error: null },
+    });
+
+    const { searchReusableProjectSources } =
+      await import("@/lib/reusable-sources/actions");
+    const result = await searchReusableProjectSources({ query: "target" });
+
+    expect(repositoryMocks.getEstimateTabTree).toHaveBeenCalledWith(
+      projectAId,
+      estimateAId,
+      tabAId,
+      {
+        allowLegacyFallback: true,
+        maxNodeCount: 200,
+        maxRowItemCount: 200,
+      },
+    );
+    expect(result.sources).toContainEqual(
+      expect.objectContaining({
+        kind: "project-node",
+        nodeId: "active-node",
+        name: "Target Active Scope",
+      }),
+    );
   });
 
   it("reserves the final result slot for a matched node instead of ancestors", async () => {

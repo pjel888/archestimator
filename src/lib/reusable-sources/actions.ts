@@ -4,7 +4,10 @@ import { createHash } from "node:crypto";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isMissingRelationError } from "@/lib/repositories/estimate-schema-compat";
+import {
+  isMissingColumnError,
+  isMissingRelationError,
+} from "@/lib/repositories/estimate-schema-compat";
 import { isUuid } from "@/lib/ids";
 import {
   getEstimateTabs,
@@ -155,6 +158,7 @@ export async function searchReusableProjectSources(input: {
   query: string;
 }): Promise<ReusableProjectSourceSearchResult> {
   await requireCurrentUserContext();
+  const rawQuery = input.query.trim().replace(/\s+/g, " ").trim();
   const query = normalizeReusableSourceSearchQuery(input.query);
   if (!query) return { sources: [] };
 
@@ -242,7 +246,7 @@ export async function searchReusableProjectSources(input: {
   // materialize ONLY those for the rich tab/node sources. RLS-scoped (user client
   // + the accessible-estimate id allow-list).
   const supabase = await createSupabaseServerClient();
-  const likePattern = toReusableSearchLikePattern(query);
+  const likePattern = toReusableSearchLikePattern(rawQuery);
   const estimatesToMaterialize = new Set<string>();
   const prefilterNodeById = new Map<
     string,
@@ -293,44 +297,58 @@ export async function searchReusableProjectSources(input: {
     return tabs;
   }
 
-  for (const estimateId of accessibleEstimateIds) {
-    if (
-      estimatesToMaterialize.size >=
-      REUSABLE_SOURCE_SEARCH_MAX_ESTIMATES_TO_MATERIALIZE
-    )
-      break;
-    const { data: matchingNodeRows, error: matchingNodeError } = await supabase
+  type MatchingNodeRow = {
+    id?: string | null;
+    estimate_id?: string | null;
+    estimate_tab_id?: string | null;
+    parent_id?: string | null;
+    kind?: string | null;
+    name?: string | null;
+  };
+  async function readMatchingNodeRows(selectColumns: string) {
+    return await supabase
       .from("estimate_nodes")
-      .select("id, estimate_id, estimate_tab_id, parent_id, kind, name")
-      .eq("estimate_id", estimateId)
+      .select(selectColumns)
+      .in("estimate_id", accessibleEstimateIds)
       .in("kind", ["group", "area"])
       .ilike("name", likePattern)
-      .limit(1);
-    if (matchingNodeError) throw matchingNodeError;
-    for (const row of matchingNodeRows ?? []) {
-      if (
-        row.id &&
-        row.estimate_id &&
-        (row.kind === "group" || row.kind === "area")
-      ) {
-        prefilterNodeById.set(row.id, {
-          estimateId: row.estimate_id,
-          tabId: row.estimate_tab_id ?? null,
-          nodeId: row.id,
-          parentNodeId: row.parent_id ?? null,
-          nodeKind: row.kind,
-          name: row.name,
-        });
-        const nodeIds =
-          prefilterNodeIdsByEstimateId.get(row.estimate_id) ??
-          new Set<string>();
-        nodeIds.add(row.id);
-        prefilterNodeIdsByEstimateId.set(row.estimate_id, nodeIds);
-        notePrefilterTabId(row.estimate_id, row.estimate_tab_id ?? null);
-      }
-    }
-    if (prefilterNodeIdsByEstimateId.has(estimateId)) {
-      noteEstimateToMaterialize(estimateId);
+      .limit(REUSABLE_SOURCE_SEARCH_PREFILTER_ROW_LIMIT);
+  }
+
+  let matchingNodeResult = await readMatchingNodeRows(
+    "id, estimate_id, estimate_tab_id, parent_id, kind, name",
+  );
+  if (
+    matchingNodeResult.error &&
+    isMissingColumnError(matchingNodeResult.error, "estimate_tab_id")
+  ) {
+    matchingNodeResult = await readMatchingNodeRows(
+      "id, estimate_id, parent_id, kind, name",
+    );
+  }
+  if (matchingNodeResult.error) throw matchingNodeResult.error;
+  for (const row of (matchingNodeResult.data ?? []) as MatchingNodeRow[]) {
+    if (
+      row.id &&
+      row.estimate_id &&
+      row.name &&
+      (row.kind === "group" || row.kind === "area")
+    ) {
+      prefilterNodeById.set(row.id, {
+        estimateId: row.estimate_id,
+        tabId: row.estimate_tab_id ?? null,
+        nodeId: row.id,
+        parentNodeId: row.parent_id ?? null,
+        nodeKind: row.kind,
+        name: row.name,
+      });
+      const nodeIds =
+        prefilterNodeIdsByEstimateId.get(row.estimate_id) ??
+        new Set<string>();
+      nodeIds.add(row.id);
+      prefilterNodeIdsByEstimateId.set(row.estimate_id, nodeIds);
+      notePrefilterTabId(row.estimate_id, row.estimate_tab_id ?? null);
+      noteEstimateToMaterialize(row.estimate_id);
     }
   }
 
@@ -422,9 +440,12 @@ export async function searchReusableProjectSources(input: {
     const { project, estimate } = ctx;
     const tabs = await getSortedTabsForEstimate(project.id, estimate.id);
     const prefilterTabIds = prefilterTabIdsByEstimateId.get(estimate.id);
+    const pinnedTabs = prefilterTabIds
+      ? tabs.filter((tab) => prefilterTabIds.has(tab.id))
+      : [];
     const tabsToMaterialize =
-      prefilterTabIds && prefilterTabIds.size > 0
-        ? tabs.filter((tab) => prefilterTabIds.has(tab.id))
+      pinnedTabs.length > 0
+        ? pinnedTabs
         : tabs.slice(0, REUSABLE_SOURCE_SEARCH_TAB_TREE_LIMIT);
     const tabTrees = await Promise.all(
       tabsToMaterialize.map((tab) =>
