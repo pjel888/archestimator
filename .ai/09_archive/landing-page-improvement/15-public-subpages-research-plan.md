@@ -193,7 +193,7 @@ Current older snapshot from 2026-05-16 includes:
 - Whether Archestimator is Philippines-first, global, or geography-neutral for public copy.
 - Legal/company entity wording, if any.
 - Whether to mention architecture/construction background.
-- Whether to mention SlateCamp/related ventures or keep Archestimator separate.
+- Whether to mention archestimator/related ventures or keep Archestimator separate.
 - Whether there are real design-partner/customer-discovery conversations that can be referenced without names.
 
 **Brand sources to use:**

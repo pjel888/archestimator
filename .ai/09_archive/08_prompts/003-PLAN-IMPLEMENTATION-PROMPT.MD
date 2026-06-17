@@ -190,7 +190,7 @@ Important ArchEstimator-specific rules:
 - Before editing functions/classes/methods/exported API boundaries, perform impact analysis if the repo graph tools are available.
 - Before committing, run change detection if graph tools are available.
 - Never ignore HIGH/CRITICAL graph risk; document it and continue only with clear evidence.
-- Never touch SlateCamp Supabase resources.
+- Never touch archestimator Supabase resources.
 - If Supabase is relevant, only reference ArchEstimator project ebxxqidacheyapmmzavr.
 - Do not claim linked Supabase, Vercel, Resend, legal, support, hosted, production, or launch readiness from local-only evidence.
 - Non-landing app/workshop UI must follow DESIGN.md and design-system lint.
@@ -460,7 +460,7 @@ For landing/public marketing pages:
 - Do not apply app/workshop density rules blindly to landing hero/editorial surfaces.
 
 For Supabase/auth/data changes:
-- Never touch SlateCamp resources.
+- Never touch archestimator resources.
 - Only use ArchEstimator Supabase project ebxxqidacheyapmmzavr if Supabase is relevant.
 - Do not commit secrets or service-role keys.
 - Keep RLS/security boundaries intact.

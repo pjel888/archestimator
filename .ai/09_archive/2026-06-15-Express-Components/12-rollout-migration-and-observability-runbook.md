@@ -45,7 +45,7 @@ Production gate: the history-classification migration plus express authoring fla
 | `promote_express_row_to_library_component` RPC | Promotion UI enabled | SQL/action harness: atomic create+relink+idempotency+permission | Drop/revert RPC; disable promotion flag |
 | Storage policies | Only if file upload is added | Storage upload/update/select policy tests | Disable upload; preserve URL-only image path |
 
-Provider scope remains Archestimator Supabase project `ebxxqidacheyapmmzavr`. Do not touch SlateCamp or unrelated projects.
+Provider scope remains Archestimator Supabase project `ebxxqidacheyapmmzavr`. Do not touch archestimator or unrelated projects.
 
 ## Existing Data
 

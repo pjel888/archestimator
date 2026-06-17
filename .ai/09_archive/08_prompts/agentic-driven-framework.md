@@ -715,7 +715,7 @@ Must include:
 * Production deploy approval.
 * Provider-state evidence requirements.
 * RLS/Supabase safety if any future implementation touches data.
-* Never touch SlateCamp resources.
+* Never touch archestimator resources.
 * Only ArchEstimator Supabase project `ebxxqidacheyapmmzavr` may be referenced if Supabase is relevant.
 * Do not commit secrets.
 * Do not claim linked Supabase/hosted/provider state from local-only evidence.

@@ -45,7 +45,7 @@
 - Do not mark beta ready until external/provider/manual proof is captured.
 
 ## What not to touch
-Production source, migrations, packages, dependencies, generated files, provider settings, GitHub settings, Notion, secrets, SlateCamp resources.
+Production source, migrations, packages, dependencies, generated files, provider settings, GitHub settings, Notion, secrets, archestimator resources.
 
 ---
 

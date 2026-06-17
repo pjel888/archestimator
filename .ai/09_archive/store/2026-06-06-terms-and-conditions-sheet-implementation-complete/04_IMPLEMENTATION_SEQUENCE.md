@@ -7,7 +7,7 @@
 - Do not modify unrelated estimating, proposal export, share, AI, collaboration, component-library, or billing code.
 - Do not add dependencies.
 - Do not touch secrets or provider dashboards.
-- Do not touch SlateCamp resources.
+- Do not touch archestimator resources.
 - Do not broad-run `supabase db push`.
 - Do not mark feature implemented in `.ai` until validation is complete.
 

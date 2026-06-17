@@ -18,7 +18,7 @@ Rules:
 - Source/config/runtime changes: `bun run validate` and `bun run build` are required.
 - Browser/auth/protected-route/user-flow/release changes: `bun run test:e2e` is required unless blocked, with a documented safe substitute.
 - App/workshop UI changes: `bun run lint:design-system` is blocking.
-- Supabase migrations: run linked/local migration checks only when schema changes and only under approved ArchEstimator project `ebxxqidacheyapmmzavr`; never touch SlateCamp resources.
+- Supabase migrations: run linked/local migration checks only when schema changes and only under approved ArchEstimator project `ebxxqidacheyapmmzavr`; never touch archestimator resources.
 
 ## Agent compliance dry-run scenarios
 | ID | Scenario | Expected pass signal |

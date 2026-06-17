@@ -51,7 +51,7 @@ Read these before touching code or provider state:
 ## Non-Negotiable Boundaries
 
 - Only mutate Supabase project `ebxxqidacheyapmmzavr`.
-- Do not touch SlateCamp or any unrelated provider project.
+- Do not touch archestimator or any unrelated provider project.
 - Do not run `supabase db push --linked` until local and remote migration ledgers are intentionally reconciled.
 - Do not mass-apply all local-only migrations.
 - Do not apply `supabase/migrations-pending-review/T4-database-pass.sql` as a bundle.

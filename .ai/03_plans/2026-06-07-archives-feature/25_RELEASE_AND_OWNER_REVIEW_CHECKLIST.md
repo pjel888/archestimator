@@ -76,7 +76,7 @@
 - ⚠️ Do NOT use `supabase db push` (blocked by migration drift)
 - ✅ Use exact-file linked query: `supabase db query --linked --file migration.sql`
 - ✅ Verify remote migration history matches local after apply
-- ✅ Do NOT touch SlateCamp or any non-Archestimator Supabase resource
+- ✅ Do NOT touch archestimator or any non-Archestimator Supabase resource
 
 ## Final Docs
 

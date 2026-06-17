@@ -12,7 +12,7 @@ bun run test:e2e
 bun run lint:design-system
 ```
 
-Supabase commands must be discovered with `supabase --help` before use. Use migration/type/provider commands only for ArchEstimator project `ebxxqidacheyapmmzavr`, never SlateCamp.
+Supabase commands must be discovered with `supabase --help` before use. Use migration/type/provider commands only for ArchEstimator project `ebxxqidacheyapmmzavr`, never archestimator.
 
 ## Docs-only current task verification
 

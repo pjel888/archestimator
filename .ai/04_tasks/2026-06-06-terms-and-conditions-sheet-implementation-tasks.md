@@ -27,7 +27,7 @@
 - No billing implementation.
 - No absolute zero-liability claim.
 - No raw IP/user-agent acceptance storage by default.
-- No SlateCamp/provider mutation.
+- No archestimator/provider mutation.
 - No main merge without current-run owner authorization.
 
 ## Validation evidence

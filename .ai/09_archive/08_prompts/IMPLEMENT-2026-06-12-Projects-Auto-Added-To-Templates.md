@@ -362,7 +362,7 @@ DO-NOT-DO (hard rules — violating any of these is a failed iteration)
   construction-material strings ("sheet vinyl", "Sheet Membranes", unit "sheet").
 - Do NOT run `supabase db push`, linked SQL, hosted type regen, Vercel deploys,
   or any provider-mutating command without explicit owner authorization in the
-  run context. Project boundary: `ebxxqidacheyapmmzavr` only; never SlateCamp.
+  run context. Project boundary: `ebxxqidacheyapmmzavr` only; never archestimator.
 - Do NOT use the service-role/admin client for project-derived source reads or
   the new insert path.
 - Do NOT parallelize vitest (`--maxWorkers=1` is load-bearing) or reorder the

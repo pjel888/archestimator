@@ -20,7 +20,7 @@ The cleanup readiness decision is **READY FOR P0+P1 CLEANUP IMPLEMENTATION** (sa
 
 ## What we deliberately did NOT touch
 
-No source edited, no files deleted, no `package.json` changed, no migrations applied, no Supabase/Vercel/GitHub/DNS mutated, no secrets exposed, no SlateCamp/other provider projects touched. All DB findings are static (no live DB queried).
+No source edited, no files deleted, no `package.json` changed, no migrations applied, no Supabase/Vercel/GitHub/DNS mutated, no secrets exposed, no archestimator/other provider projects touched. All DB findings are static (no live DB queried).
 
 ## Honest quality notes
 

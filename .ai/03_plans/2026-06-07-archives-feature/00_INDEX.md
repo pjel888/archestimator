@@ -36,7 +36,7 @@ A multi-entity Archives Feature covering **projects, estimate sheets, cost-libra
 - Do NOT implement paid-client/subscriber retention now
 - Do NOT add duplicate archive columns to components (use existing lifecycle_state)
 - Do NOT modify project deletion flow
-- Do NOT touch SlateCamp or non-Archestimator Supabase resources
+- Do NOT touch archestimator or non-Archestimator Supabase resources
 - Do NOT modify production source code during planning
 
 ## Architecture Summary

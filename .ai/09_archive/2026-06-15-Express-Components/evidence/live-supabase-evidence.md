@@ -119,7 +119,7 @@ Target project was confirmed through Supabase MCP before mutation:
 - Region: `ap-southeast-2`
 - Status: `ACTIVE_HEALTHY`
 - Database: Postgres `17.6.1.121`
-- Non-target project visible but untouched: `SlateCamp` / `hrpdwqurngnyajuhbkdg`
+- Non-target project visible but untouched: `archestimator` / `hrpdwqurngnyajuhbkdg`
 
 Applied with Supabase MCP `apply_migration` to `ebxxqidacheyapmmzavr` only:
 

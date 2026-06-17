@@ -20,7 +20,7 @@ supabase db advisors --linked --type security --output json | jq 'group_by(.name
 
 - Supabase CLI version: `2.98.2`; CLI reported newer `2.104.0` available.
 - Linked project: `Archestimator`, reference id `ebxxqidacheyapmmzavr`, region `Oceania (Sydney)`.
-- Non-linked project also listed: `SlateCamp`, reference id `hrpdwqurngnyajuhbkdg`.
+- Non-linked project also listed: `archestimator`, reference id `hrpdwqurngnyajuhbkdg`.
 
 ## Linked CLI Read Evidence
 

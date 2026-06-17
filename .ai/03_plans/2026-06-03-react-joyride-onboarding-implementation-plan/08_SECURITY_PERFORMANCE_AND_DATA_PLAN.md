@@ -210,8 +210,8 @@ Follows existing migration naming convention. Migration includes:
 - No data shared with third parties
 - No data used for advertising or marketing
 
-### SlateCamp / Supabase Boundaries
+### archestimator / Supabase Boundaries
 
-- **NEVER touch SlateCamp Supabase resources**
+- **NEVER touch archestimator Supabase resources**
 - **Only ArchEstimator Supabase project `ebxxqidacheyapmmzavr`** may be referenced
 - **Do not claim linked Supabase state** from local-only evidence — migration parity must be verified

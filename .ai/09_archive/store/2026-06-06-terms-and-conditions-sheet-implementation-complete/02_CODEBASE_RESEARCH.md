@@ -116,7 +116,7 @@ rg -n "proxy|Route Handlers|headers\(|cookies\(|matcher|redirect" node_modules/n
 
 ## Supabase/Postgres evidence
 
-- Project safety: AGENTS says only ArchEstimator project `ebxxqidacheyapmmzavr`; never SlateCamp.
+- Project safety: AGENTS says only ArchEstimator project `ebxxqidacheyapmmzavr`; never archestimator.
 - Live local migrations: 81 files, not the stale counts in `.ai/README.md`/root `README.md`.
 - `20260601182522_closed_beta_allowed_emails.sql` creates closed beta allowlist, enables RLS, and revokes broad anon/authenticated table grants.
 - Generated types contain `user_onboarding_profiles.marketing_consent_at`, `account_security_events`, `closed_beta_allowed_emails`, and many domain/audit tables; no `terms_acceptance`/`legal_terms_acceptances` table was found.

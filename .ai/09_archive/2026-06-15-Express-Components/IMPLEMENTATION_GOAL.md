@@ -44,7 +44,7 @@ Mandatory orchestration:
 - Do not start U4 inline editor coding until `evidence/inline-vs-modal-spike-result.md` is completed with the spike result or the modal/popover fallback branch is selected.
 - Do not claim U5 fixes a production duplicate-instance bug unless `evidence/u5-duplicate-instance-repro-note.md` contains the required real-project reproduction. If the real bug does not reproduce, scope U5 as verification plus normalization hardening.
 - Do not start U7 promotion coding until provider evidence pins helper semantics, grants, policies, folder workspace binding, and negative member/editor/viewer cases.
-- Keep all Supabase/Postgres work scoped to Archestimator project `ebxxqidacheyapmmzavr`; never mutate SlateCamp or unrelated provider projects.
+- Keep all Supabase/Postgres work scoped to Archestimator project `ebxxqidacheyapmmzavr`; never mutate archestimator or unrelated provider projects.
 - Do not read or print secrets. If provider access is needed, use configured tooling without echoing environment values.
 
 Implementation sequence:

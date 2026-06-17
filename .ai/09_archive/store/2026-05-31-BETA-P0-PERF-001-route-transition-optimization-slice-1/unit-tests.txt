@@ -3,7 +3,7 @@ bun test v1.3.10 (30e609e0)
 
 tests/unit/reset-baseline.test.ts:
 (pass) workshop sidebar baseline > workshop page keeps the approved sidebar shell and bento favorites homebase [7.83ms]
-(pass) workshop sidebar baseline > main sidebar preserves SlateCamp sidebar measurements with overlay expansion [0.34ms]
+(pass) workshop sidebar baseline > main sidebar preserves archestimator sidebar measurements with overlay expansion [0.34ms]
 
 tests/unit/p3-shared-link-migration-red.test.ts:
 (pass) P3 Shared Link Overhaul — Database Migration Red Verification > requires the 4 new shared_link_* tables in generated Database types (RED until P3 migration + regen)

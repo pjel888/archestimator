@@ -13,7 +13,7 @@ This ledger maps the implemented Express Components work to U1-U9 and records th
 
 - Execution target: full plan pack U1-U9, including the formerly fast-follow U6 Project projection and U7 promotion slice.
 - Data-shape decision preserved: no new express table was created; express rows are estimate rows with `metadata.expressComponent` plus existing row/source fields.
-- Provider scope preserved: only Archestimator Supabase project `ebxxqidacheyapmmzavr` was mutated; SlateCamp was not touched.
+- Provider scope preserved: only Archestimator Supabase project `ebxxqidacheyapmmzavr` was mutated; archestimator was not touched.
 - Remaining proof boundary: authenticated browser editing proof could not be captured because this worktree has no local `.env*`, service-role/dev-auth values, or `PLAYWRIGHT_STORAGE_STATE`. The captured browser proof is an auth-gate smoke only; do not claim authenticated desktop/mobile editing proof from this run.
 
 ## Unit Ledger

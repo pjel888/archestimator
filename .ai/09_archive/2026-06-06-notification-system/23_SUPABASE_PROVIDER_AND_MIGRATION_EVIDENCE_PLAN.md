@@ -7,7 +7,7 @@ Separate local planning, local migration proof, branch-safe database proof, and 
 ## Provider Boundary
 
 - Supabase project ref: `ebxxqidacheyapmmzavr`
-- Never touch SlateCamp or unrelated Supabase projects.
+- Never touch archestimator or unrelated Supabase projects.
 - Keep closed-beta cost posture: do not enable PITR or paid features without owner reapproval.
 - Do not run broad `supabase db push` while migration history or target environment is unclear.
 - Do not record secrets in `.ai`.

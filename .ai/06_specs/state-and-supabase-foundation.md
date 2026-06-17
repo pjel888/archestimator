@@ -34,7 +34,7 @@ New state/data packages should be pinned to exact versions where practical:
 
 ## Supabase project boundary
 
-Archestimator must use its own Supabase project and must not share the SlateCamp database.
+Archestimator must use its own Supabase project and must not share the archestimator database.
 
 Current Archestimator project reference:
 

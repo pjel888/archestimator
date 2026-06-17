@@ -365,7 +365,7 @@ It must include ArchEstimator-specific UI constraints:
 - If not relevant, mark N/A with evidence.
 
 It must include:
-- Never touch SlateCamp resources.
+- Never touch archestimator resources.
 - Only ArchEstimator Supabase project ebxxqidacheyapmmzavr may be referenced if Supabase is relevant.
 - Do not commit secrets.
 - Do not claim linked Supabase/hosted/provider state from local-only evidence.

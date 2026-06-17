@@ -10,7 +10,7 @@
 
 ## Supabase/RLS concerns
 
-- Never touch SlateCamp resources.
+- Never touch archestimator resources.
 - Only ArchEstimator Supabase project `ebxxqidacheyapmmzavr` may be referenced if Supabase is relevant.
 - New public tables need explicit grants and RLS; Supabase changelog says Data API grants are now an explicit deliberate layer.
 - Recommended RLS:

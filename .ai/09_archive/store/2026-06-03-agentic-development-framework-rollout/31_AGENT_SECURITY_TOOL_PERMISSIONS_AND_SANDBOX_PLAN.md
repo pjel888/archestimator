@@ -9,7 +9,7 @@
 6. Provider/GitHub admin/Notion mutation — approval required.
 
 ## Prohibited without explicit approval
-Force push, reset hard, clean -fd, branch/worktree deletion, secrets access/printing, provider mutations, GitHub settings changes, Notion mutations, production writes, SlateCamp resources.
+Force push, reset hard, clean -fd, branch/worktree deletion, secrets access/printing, provider mutations, GitHub settings changes, Notion mutations, production writes, archestimator resources.
 
 ## CI/CD threat model
 Guard against poisoned pipelines, dependency chain abuse, overbroad tokens, untrusted third-party actions, artifact tampering, secret leakage, self-hosted runner abuse, and logs that expose credentials.

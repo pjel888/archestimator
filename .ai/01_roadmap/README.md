@@ -429,7 +429,7 @@ The app has substantial product surface:
 
 ## Permanent Guardrails
 
-- Never touch SlateCamp Supabase resources.
+- Never touch archestimator Supabase resources.
 - No app/workshop font above `12px`, no non-xs radius, no nonzero tracking, no bold/fill icon weights.
 - No duplicated feature-local controls; reuse shared UI primitives.
 - No AI writes, autonomous actions, retrieval/RAG, or stored conversations by implication.

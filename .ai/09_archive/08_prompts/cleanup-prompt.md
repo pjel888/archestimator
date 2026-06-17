@@ -31,7 +31,7 @@ However:
 - Do not apply production migrations yet.
 - Do not mutate Supabase/Vercel/GitHub/DNS/provider settings.
 - Do not expose secrets.
-- Do not touch SlateCamp or unrelated provider projects.
+- Do not touch archestimator or unrelated provider projects.
 - Do not enable paid add-ons.
 - Do not perform irreversible destructive data loss without a clearly documented recovery path and explicit owner gate.
 

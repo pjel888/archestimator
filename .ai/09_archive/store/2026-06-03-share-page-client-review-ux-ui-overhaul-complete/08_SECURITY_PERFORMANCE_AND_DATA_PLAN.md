@@ -33,7 +33,7 @@
 
 ### Security Rules Enforced
 
-- Never touch SlateCamp resources
+- Never touch archestimator resources
 - Only ArchEstimator Supabase project `ebxxqidacheyapmmzavr`
 - No secrets in code, `.ai`, or commits
 - No service-role key exposure

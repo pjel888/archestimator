@@ -103,7 +103,7 @@ Archive/restore uses existing Supabase project `ebxxqidacheyapmmzavr` and existi
 
 ## Required Rules
 
-- ✅ Never touch SlateCamp resources
+- ✅ Never touch archestimator resources
 - ✅ Only Archestimator Supabase project `ebxxqidacheyapmmzavr`
 - ✅ Do not commit secrets
 - ✅ Do not claim linked Supabase state from local-only evidence

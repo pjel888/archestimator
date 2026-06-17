@@ -26,7 +26,7 @@ The future implementation must support attorney-reviewed Terms, user acceptance,
 - No Supabase migrations, generated types, package/dependency/config, runtime behavior, or app UI changes in this task.
 - No final legal boilerplate or legal advice.
 - No claim that absolute zero liability is achievable or guaranteed.
-- No provider changes, no secrets, no SlateCamp resources, no billing implementation.
+- No provider changes, no secrets, no archestimator resources, no billing implementation.
 
 ## Legal/product guardrails
 

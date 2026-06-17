@@ -12,7 +12,7 @@ CRITICAL CONSTRAINTS:
 - Verify this plan against current repo reality before editing. Read AGENTS.md, .ai/README.md, .ai/00_system/DOCS_SOURCE_OF_TRUTH.md, .ai/00_system/AGENT_OPERATING_PROTOCOL.md, .ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md, .ai/00_system/VALIDATION_MATRIX.md, .ai/10_state/current-state.md, .ai/10_state/decisions.md, .ai/10_state/known-issues.md if present, .ai/01_roadmap/README.md, DESIGN.md, package.json, README.md, relevant .ai/06_specs, this plan folder, active plans, and relevant archives.
 - Use code-review-graph/GitNexus before broad grep and before editing symbols. Run impact analysis on any function/class/method before editing. If GitNexus is unavailable, document it and use code-review-graph/local inspection.
 - For Next.js route/proxy/handler/server-action work, read current local docs under node_modules/next/dist/docs before implementation assumptions.
-- For Supabase work, read the Supabase skill/docs/changelog, use only ArchEstimator project ebxxqidacheyapmmzavr, never SlateCamp, never commit secrets, never expose service_role in public code.
+- For Supabase work, read the Supabase skill/docs/changelog, use only ArchEstimator project ebxxqidacheyapmmzavr, never archestimator, never commit secrets, never expose service_role in public code.
 - FINAL LEGAL COPY MUST BE APPROVED BY A QUALIFIED LAWYER BEFORE PRODUCTION TERMS TEXT IS IMPLEMENTED OR ENFORCED. If approved copy is missing, implement only infrastructure or stop and report NEEDS_HUMAN_DECISION.
 - Do not claim absolute zero liability. Terms/UI must present commercially reasonable protections and user responsibility, subject to enforceability/legal review.
 

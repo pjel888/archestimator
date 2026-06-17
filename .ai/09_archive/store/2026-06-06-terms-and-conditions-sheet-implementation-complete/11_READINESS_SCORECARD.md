@@ -77,7 +77,7 @@ Commanded checks confirmed all 13 required documents exist, 21 Markdown files ar
 
 - No missing required documents.
 - No unresolved placeholder or filler markers found.
-- Required concept scan covered zero-liability caveat, qualified lawyer review, version/effective date, Privacy link, `accepted_at`, user id, IP/user-agent metadata, re-acceptance, RLS, Supabase, billing/refund/cancellation, accessibility, keyboard, design-system, audit, rollback, SlateCamp prohibition, ArchEstimator Supabase project id, professional-role disclaimers, AI/automated outputs, governing law, arbitration, and class-action decisions.
+- Required concept scan covered zero-liability caveat, qualified lawyer review, version/effective date, Privacy link, `accepted_at`, user id, IP/user-agent metadata, re-acceptance, RLS, Supabase, billing/refund/cancellation, accessibility, keyboard, design-system, audit, rollback, archestimator prohibition, ArchEstimator Supabase project id, professional-role disclaimers, AI/automated outputs, governing law, arbitration, and class-action decisions.
 
 ### Improve
 

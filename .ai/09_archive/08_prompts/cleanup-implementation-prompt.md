@@ -26,7 +26,7 @@ Scope = **P0 (safe code/asset/CSS deletes)** + **P2 (dependency cleanup)** + **P
 - **No P1 owner-gated feature cuts.** Do not touch the AI surface (`src/lib/ai/**`, `app/api/ai/**`, AI flags/tests — F25), follow-mode helpers/flag (F07), project page cursors (F26), `aec-classification` (F17), or story-only UI primitives (F15). Those await owner decisions in `19_OPEN_QUESTIONS_OWNER_GATES.md`.
 - **Do not disturb the estimate-tree single-node unification corridor** (compat code in `estimate-schema-compat.ts`, `LEGACY_MAIN_TAB_ID`, `__legacy_default_tab__`, `domain/estimate-tree.ts`, `estimate-mutations.ts`, and all `// legacy … plan 2026-06-12 §01-17` comments).
 - **Do not touch security/share/auth surfaces** (`lib/{publication,collaboration,share,auth,proposal-export}/**`) except the single explicit F14 route removal below, which must be verified first.
-- No provider mutation (Supabase/Vercel/GitHub/DNS), no secret exposure, no SlateCamp.
+- No provider mutation (Supabase/Vercel/GitHub/DNS), no secret exposure, no archestimator.
 - Work on a **new branch**; keep the change set revertible.
 
 ## Baseline gates (record before you start; do not regress)

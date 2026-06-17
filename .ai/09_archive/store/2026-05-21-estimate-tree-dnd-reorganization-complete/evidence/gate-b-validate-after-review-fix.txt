@@ -25,7 +25,7 @@ bun test v1.3.10 (30e609e0)
 
 tests/unit/reset-baseline.test.ts:
 (pass) workshop sidebar baseline > workshop page keeps only the approved sidebar shell and blank canvas [7.44ms]
-(pass) workshop sidebar baseline > main sidebar preserves SlateCamp sidebar measurements with overlay expansion [0.70ms]
+(pass) workshop sidebar baseline > main sidebar preserves archestimator sidebar measurements with overlay expansion [0.70ms]
 
  2 pass
  0 fail

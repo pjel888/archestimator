@@ -724,7 +724,7 @@ Received: "\"use client\";\n\nimport { useMemo, useState, useTransition } from \
 
       at <anonymous> (/Users/philiplewis/archestimator.omx-worktrees/launch-codex-projects-auto-added-to-templates/tests/unit/reset-baseline.test.ts:54:22)
 (fail) workshop sidebar baseline > workshop page keeps the approved sidebar shell and sparse greeting homebase [10.72ms]
-(pass) workshop sidebar baseline > main sidebar preserves SlateCamp sidebar measurements with overlay expansion [1.06ms]
+(pass) workshop sidebar baseline > main sidebar preserves archestimator sidebar measurements with overlay expansion [1.06ms]
 
 tests/unit/p3-shared-link-migration-red.test.ts:
 (pass) P3 Shared Link Overhaul — Database Migration Red Verification > requires the 4 new shared_link_* tables in generated Database types (RED until P3 migration + regen)

@@ -15,7 +15,7 @@ Use code-review-graph first. Try GitNexus; if it fails, record the exact failure
 
 Phase 1A allowed writes: .ai/00_system, .ai/12_agents, .ai/08_prompts, .ai/11_skills, .ai/04_tasks, .ai/05_logs, .ai/10_state, .ai/15_Bugs, and thin harness adapters only where authorized. Strictly no production source behavior unless Philip separately authorizes source work.
 
-Strict non-goals: no package/dependency/lockfile changes, no migrations, no generated/runtime config, no provider mutations, no GitHub settings/branch protection mutation, no Notion mutation during Phase 1A, no secrets, no SlateCamp resources.
+Strict non-goals: no package/dependency/lockfile changes, no migrations, no generated/runtime config, no provider mutations, no GitHub settings/branch protection mutation, no Notion mutation during Phase 1A, no secrets, no archestimator resources.
 
 Add/update tests only if implementation introduces scripts/checkers/helpers or source behavior; use TDD for any future production behavior changes.
 

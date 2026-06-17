@@ -8,7 +8,7 @@ Last updated: 2026-06-15
 Project: `ebxxqidacheyapmmzavr` (`Archestimator`)
 
 The local Supabase profile and connector both resolve this project as the linked
-Archestimator project. SlateCamp remains unlinked and was not touched.
+Archestimator project. archestimator remains unlinked and was not touched.
 
 ## Current WARN Breakdown
 

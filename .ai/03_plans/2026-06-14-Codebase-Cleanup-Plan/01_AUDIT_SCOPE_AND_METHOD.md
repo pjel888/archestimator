@@ -8,7 +8,7 @@ Whole-app cleanup intelligence pass: dead/dead-reachable/deprecated/duplicated/s
 
 - No source edits, no file deletion, no `package.json` change, no migrations applied.
 - No Supabase/Vercel/GitHub/DNS/provider mutation; no secret exposure; no paid add-ons.
-- No SlateCamp or unrelated provider projects.
+- No archestimator or unrelated provider projects.
 - No irreversible data loss; destructive DB cleanup only behind documented dump+rollback+owner gate.
 
 ## Inputs read first

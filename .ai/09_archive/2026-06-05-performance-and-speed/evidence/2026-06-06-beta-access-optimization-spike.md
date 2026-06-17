@@ -36,7 +36,7 @@ bun run test:dom -- tests/vitest/auth-proxy.test.ts tests/vitest/closed-beta-acc
 
 ## Live provider evidence
 
-Supabase project: `ebxxqidacheyapmmzavr` only. No SlateCamp or unrelated provider project was touched.
+Supabase project: `ebxxqidacheyapmmzavr` only. No archestimator or unrelated provider project was touched.
 
 ### Allowlist table stats
 

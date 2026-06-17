@@ -49,7 +49,7 @@ For each phase, [10_IMPLEMENTATION_PHASES.md](10_IMPLEMENTATION_PHASES.md) defin
 - Do **not** rename anything on the 01 §17 keep-list, including stored `sheet_*` event values and `sheet_code`.
 - Do **not** touch the three "sheet" false-friends: ExcelJS worksheet code, the `Sheet` overlay primitive (`src/components/ui/overlays/sheet-drawer.tsx`), construction-material strings.
 - Do **not** flip the `DELETE SHEET` phrase in only one of (`ProjectEstimatesTable.tsx:684`, `src/lib/mass-deletion/bulk-action.ts:76,82`).
-- Do **not** run `supabase db push`, hosted SQL, or type regeneration against the linked project without explicit owner authorization (project `ebxxqidacheyapmmzavr` only; never SlateCamp).
+- Do **not** run `supabase db push`, hosted SQL, or type regeneration against the linked project without explicit owner authorization (project `ebxxqidacheyapmmzavr` only; never archestimator).
 - Do **not** use the admin/service-role client for project-derived source reads or the new insert path (08 §5, §9).
 - Do **not** default the Projects section to current-project-only. The estimate-editor right sidebar must show all readable workspace projects by default; "Current project only" is an optional narrowing filter, default OFF.
 - Do **not** parallelize vitest (`--maxWorkers=1` is load-bearing) or rename `estimate-sheet-*` test files outside Phase 8 batches.

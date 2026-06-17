@@ -84,7 +84,7 @@ Work the inner loop per unit: implement → run the unit's validation gates → 
 
 ## 6. Provider / manual-proof boundary (owner-gated — pause points)
 
-- **Linked migration apply + type regen:** `npx supabase@2.98.2 db push` · `migration list` · `gen types typescript --project-id ebxxqidacheyapmmzavr > src/lib/supabase/types.ts`. Owner-authorized only. Project boundary: **`ebxxqidacheyapmmzavr` only — never SlateCamp or any other provider project.**
+- **Linked migration apply + type regen:** `npx supabase@2.98.2 db push` · `migration list` · `gen types typescript --project-id ebxxqidacheyapmmzavr > src/lib/supabase/types.ts`. Owner-authorized only. Project boundary: **`ebxxqidacheyapmmzavr` only — never archestimator or any other provider project.**
 - **`bun run launch:verify-hosted-export`** against production — owner-gated.
 - **No service-role / admin client** for project-source reads or the new insert path — RLS-scoped user client only.
 - **Workshop verification** runs through the user's authenticated Chrome session (dev-auth bypass is disabled; background tabs suspend the workshop; fresh worktrees need `.env.local` copied first).

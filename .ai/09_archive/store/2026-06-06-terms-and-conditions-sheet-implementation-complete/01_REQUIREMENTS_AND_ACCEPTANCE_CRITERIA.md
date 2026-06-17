@@ -55,7 +55,7 @@
 | SEC-001 | MUST | RLS prevents one user from reading/writing another user's acceptance records. | RLS denial tests pass for cross-user select/insert/update. |
 | SEC-002 | MUST | Server derives `user_id`, `accepted_at`, required version, and sensitive metadata where feasible. | Browser cannot forge another user/version/time/IP/UA. |
 | SEC-003 | MUST | Do not expose service-role key to browser; service-role use only server-only and bounded if admin retrieval is needed. | Static review and tests find no service-role public-client path. |
-| SEC-004 | MUST | Never touch SlateCamp resources. | Supabase project reference remains ArchEstimator `ebxxqidacheyapmmzavr`. |
+| SEC-004 | MUST | Never touch archestimator resources. | Supabase project reference remains ArchEstimator `ebxxqidacheyapmmzavr`. |
 | SEC-005 | SHOULD | Hash or omit IP/user-agent unless legal/privacy review says raw is required. | Privacy impact decision is documented and implemented. |
 
 ## Performance requirements

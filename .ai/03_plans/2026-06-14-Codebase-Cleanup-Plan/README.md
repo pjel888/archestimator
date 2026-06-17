@@ -10,7 +10,7 @@
 
 ## Non-goals (honored)
 
-No source edits · no file deletion · no `package.json` change · no migrations applied · no Supabase/Vercel/GitHub/DNS/provider mutation · no secret exposure · no SlateCamp · no irreversible data loss · DB findings are static (no live DB queried).
+No source edits · no file deletion · no `package.json` change · no migrations applied · no Supabase/Vercel/GitHub/DNS/provider mutation · no secret exposure · no archestimator · no irreversible data loss · DB findings are static (no live DB queried).
 
 ## File list & recommended reading order
 

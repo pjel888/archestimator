@@ -4,7 +4,7 @@
 
 **Decision context (D-A):** applying flips the active path from the legacy single-"Main"-tab fallback to real tabs across **export, AI read-context, publication snapshots, node-route, and the reusable-source outline** ([06](06_BLAST_RADIUS_ANALYSIS.md)). High value, high blast radius. The [12](12_FIRST_SLICE_IMPLEMENTATION_SPEC.md) U1 fallback makes the app correct **without** this apply, so the apply can be scheduled deliberately rather than rushed.
 
-> Project boundary (AGENTS.md): `ebxxqidacheyapmmzavr` only — never SlateCamp or any other provider project. Closed-beta posture: PITR is disabled; rely on a **manual logical dump** before applying.
+> Project boundary (AGENTS.md): `ebxxqidacheyapmmzavr` only — never archestimator or any other provider project. Closed-beta posture: PITR is disabled; rely on a **manual logical dump** before applying.
 
 ---
 
