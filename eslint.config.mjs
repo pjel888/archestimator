@@ -21,6 +21,7 @@ const eslintConfig = defineConfig([
     ".cursor/**",
     ".github/skills/**",
     ".hermes/**",
+    ".omx/**",
     "archestimator_pitch deck/**",
     "test-table.tsx",
     "coverage/**",

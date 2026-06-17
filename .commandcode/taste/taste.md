@@ -1,6 +1,9 @@
 # workflow
 See [workflow/taste.md](workflow/taste.md)
 
+# agent-orchestration
+- For complex multi-faceted tasks, spawn parallel sub-agents with dedicated /goal instructions, split work into independent pieces, dispatch concurrently, and synthesize results as they return. Have agents be able to communicate with each other to resolve conflicts. Assume multiple AI agents share the same directory. Confidence: 0.80
+
 # mvp-mandate
 - This is a pre-launch MVP with zero users. Freely make Supabase/database changes, skip heavy regression cycles, and prefer speed over caution. Mistakes are acceptable — the DB can be reset. Confidence: 0.85
 

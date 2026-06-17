@@ -508,8 +508,8 @@ tightly-scoped places that reuse the Tailwind `orange-*` scale already used at
 `projects-page-client.tsx:371`:
 
 **1. "Add" icon buttons** — Add Area (left tree), Add tab (middle), Add
-Component / Add Template (right sidebar) — use a light-orange affordance instead
-of strong neutral:
+Component / Add Template (right sidebar), and the Create Estimate button on the
+project estimates list — use a light-orange affordance instead of strong neutral:
 
 - resting:  `bg-orange-100` `text-orange-700`
 - hover:    `bg-orange-200` `text-orange-800`  (+ focus-visible mirror)

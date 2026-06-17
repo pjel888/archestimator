@@ -13,6 +13,23 @@ without fresh explicit instruction and a recovery path. This supersedes older
 default owner-gated database wording unless a newer, narrower decision
 explicitly reintroduces a gate for a specific database action.
 
+**Project delete active-publication hardening applied (2026-06-17, branch `codex/fix-project-delete`):**
+Project deletion with active published shared links is warning-based, not blocked:
+the delete preview/modal says active links will be revoked, hard blockers render
+once, and shared archive flows no longer show delete-specific permission copy.
+Supabase project `ebxxqidacheyapmmzavr` received follow-up migration
+`20260617010523_harden_project_delete_preview_and_audit_warnings`, which keeps
+unauthorized preview rows from disclosing project names and persists acknowledged
+warning context into `mass_deletion_events.metadata` before publications cascade
+away. Provider verification confirmed the migration row exists and live function
+definitions contain both hardening changes. Local proof: type-check, full lint
+(0 errors / known warnings), design-system, design lint, unit tests, whitespace
+check, and a 24-file / 206-test focused DOM regression matrix passed. Full
+`bun run validate` passed through type/lint/design/unit but the all-DOM phase
+hung silently twice; use targeted DOM matrices until that runner hang is
+isolated. Remaining coverage gap: no executable Postgres harness yet proves the
+preview -> execute path against seeded active `project_publications`.
+
 **Express Components Implemented Locally + Provider Migrations Applied (2026-06-15, branch `codex/express-components`):**
 The Express Components plan pack is implemented across U1-U9 without creating a new express table: express components are estimate rows with `metadata.expressComponent` and existing row/source fields. The branch adds express row classification/read mapping, Add row persisted-result reconciliation with draft retry/delete recovery, express field editing and row-total fallback, active-editor virtualization safety, project-scoped Components projection, atomic promotion to workspace library components, downstream preservation for activity/AI/export/proposal/charts/publication, telemetry, feature flags, and archive-safe evidence tests. Supabase project `ebxxqidacheyapmmzavr` received migrations `20260615093524_express_components_foundation` and `20260615093648_harden_express_trigger_execute`; rollback probes verified insert idempotency, copy rekeying, promotion idempotency/relinking, non-member denial, and zero provider-proof residue. Fresh local proof: focused Express/project suite passed 32 files / 421 tests; archive-doc compatibility passed 8 files / 37 tests; `bun run test:dom` passed 324 files / 2386 tests (1 file skipped, 3 tests skipped, 5 todo); `bun run test`, `bun run type-check`, changed-file ESLint, `bun run lint` (0 errors / 14 pre-existing warnings), `bun run lint:design-system`, `bun run lint:design`, `bun run build`, and `git diff --check` all passed. Browser proof is limited to an auth-gate Playwright smoke because this worktree had no auth storage state or dev-auth secrets; do not claim authenticated desktop/mobile editing proof until a real authenticated browser smoke is run. Evidence is archived with `.ai/09_archive/2026-06-15-Express-Components/`.
 
