@@ -1,0 +1,35 @@
+-- Fix: "unable to move a project to a group" (and the sibling "cannot favorite a project").
+--
+-- Root cause — a missing UPDATE table grant for an upsert access pattern.
+--
+-- The server actions persist these per-user rows with a Supabase `.upsert(..., { onConflict })`,
+-- which compiles to `INSERT ... ON CONFLICT DO UPDATE`:
+--   • moveProjectToGroup / bulkAssignProjectsToGroup -> project_group_memberships
+--   • setProjectFavorite (favorite = true)            -> project_favorites
+--
+-- PostgreSQL requires the UPDATE privilege on the target table for ANY statement that
+-- carries an ON CONFLICT DO UPDATE action. The privilege is checked at executor startup
+-- (ExecCheckRTPerms sets ACL_UPDATE on the result relation) UNCONDITIONALLY — it fails with
+-- 42501 "permission denied for table ..." even when the table is empty and no row actually
+-- conflicts. Verified against this database on Postgres 17: an INSERT ... ON CONFLICT DO
+-- UPDATE by a role holding only INSERT/SELECT/DELETE is denied on an empty table.
+--
+-- Both tables were created with `revoke all ... from authenticated` followed by
+-- `grant select, insert, delete` — the grant was cloned from the favorites *toggle* pattern
+-- (insert OR delete, never an upsert). project_group_memberships and the project_favorites
+-- "favorite = true" path diverged to an upsert, so the cloned grant is one privilege short.
+-- Result: every move-to-group upsert and every favorite-a-project upsert failed silently
+-- (the action threw 42501, the client showed a generic "could not …" toast). The unit tests
+-- mock the Supabase client, so they never exercised the real grant and never caught it.
+--
+-- Fix: grant UPDATE so the DO UPDATE arm is permitted. Row safety is unchanged — both tables'
+-- RLS policies are already FOR ALL (PERMISSIVE), so UPDATE is gated by the same per-user
+-- USING + WITH CHECK predicates (including the membership IDOR backstop that requires the
+-- referenced group to belong to the calling user). UPDATE adds NO new reachable rows; it only
+-- lets the existing, already-authorized upsert complete.
+--
+-- estimate_favorites is intentionally NOT granted UPDATE: its upsert uses
+-- `{ ignoreDuplicates: true }` -> ON CONFLICT DO NOTHING, which needs only INSERT.
+
+grant update on public.project_group_memberships to authenticated;
+grant update on public.project_favorites to authenticated;
