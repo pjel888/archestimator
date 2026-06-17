@@ -23,7 +23,7 @@ All payloads also inherit the loop-engineering contract from
 discover/audit -> `.ai/03_plans` plan pack -> `.ai/13_research` research ->
 loop execution -> maker/checker verification -> real-surface proof -> durable
 memory -> next decision. Claude, Codex, OpenCode, CommandCode, Antigravity,
-Kimi, DeepSeek, Cursor where approved, Gemini only if explicitly reapproved,
+Kimi, DeepSeek, Gemini only if explicitly reapproved,
 and future payloads must map their local capabilities back to that shared loop.
 
 Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent

@@ -156,7 +156,7 @@ highest-capability active agent/model for the session. The lead decides:
 - when the extra token/context cost is not worth delegation.
 
 The routing contract is agent-neutral. Claude, Codex, OpenCode, CommandCode,
-Antigravity CLI (`agy`), Kimi, DeepSeek, Cursor, Gemini if explicitly
+Antigravity CLI (`agy`), Kimi, DeepSeek, Gemini if explicitly
 reapproved, Hermes if approved, and future agents all inherit the same loop
 contract from `.ai/00_system`. Tool-specific payloads, prompts, skills, and
 connectors may expose capabilities, but they do not choose the lead, override
@@ -213,7 +213,7 @@ Default roles:
 - Archestimator Supabase/Postgres changes are pre-authorized for project `ebxxqidacheyapmmzavr` under the pre-launch MVP database mandate; never touch SlateCamp or unrelated provider resources.
 - AI capability is currently Ask-only unless Philip explicitly approves a wider slice. No Draft/Apply, write tools, retrieval/RAG, or stored conversation features may be added by implication.
 - Tool-specific adapter files (`CLAUDE.md`, `GEMINI.md`, `.agents/`,
-  `.claude/`, `.codex/`, `.cursor/`, `.gemini/`, `.commandcode/`) must stay
+  `.claude/`, `.codex/`, `.gemini/`, `.commandcode/`) must stay
   subordinate to `.ai/00_system` and `.ai/12_agents`. They may point to `.ai`;
   they must not fork policy.
 

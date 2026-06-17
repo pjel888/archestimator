@@ -8,7 +8,7 @@
 This document makes the agent operating framework executable without turning
 every tool into a separate source of truth. It applies to Codex, Claude,
 OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, DeepSeek, Hermes if
-approved, Cursor if approved, Gemini, Ollama, and any future agent or harness.
+approved, Gemini, Ollama, and any future agent or harness.
 
 `.ai/00_system`, `.ai/12_agents`, `.ai/08_prompts`, `.ai/11_skills`, current
 source files, tests, package scripts, and provider evidence remain the
@@ -32,7 +32,7 @@ The repo-local loop spine is:
   linked back to repo truth.
 
 This contract is agent-neutral. Codex, Claude, OpenCode, CommandCode,
-Antigravity CLI (`agy`), Kimi, DeepSeek, Cursor, Gemini if explicitly
+Antigravity CLI (`agy`), Kimi, DeepSeek, Gemini if explicitly
 reapproved, Hermes if approved, and future agents/harnesses use the same loop
 spine and proof boundary. Tool-specific files are adapters: they may translate
 commands, expose connector capabilities, or declare a default lane, but they

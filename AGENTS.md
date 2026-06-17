@@ -76,7 +76,7 @@ claim. Other agents are bounded workers, reviewers, or evidence lanes.
 - Token cost is an engineering constraint. Do not spawn agents just to look busy; spawn them when the expected time, quality, or coverage gain is worth the extra context and review cost.
 
 The mandate is agent-neutral. Claude, Codex, OpenCode, CommandCode,
-Antigravity, Kimi, DeepSeek, Cursor, Gemini if explicitly reapproved, and future
+Antigravity, Kimi, DeepSeek, Gemini if explicitly reapproved, and future
 agents all follow the same `.ai/00_system` loop contract; their tool-specific
 payloads are adapters, not separate policy sources. Direct solo execution
 remains correct for narrow, reversible work where a loop would add ceremony
@@ -109,7 +109,7 @@ Do not claim provider, GitHub, Notion, Vercel, production, or manual proof from 
 The repo should share durable agent/project intelligence across machines through Git:
 
 - Canonical project truth: `.ai/`, especially `.ai/00_system`, `.ai/10_state`, `.ai/11_skills`, `.ai/12_agents`, and `.ai/08_prompts`.
-- Tool adapters that are safe to share: `.codex/`, `.agents/`, `.claude/`, `.cursor/`, `.commandcode/`, and their README/config/skill/prompt/agent files.
+- Tool adapters that are safe to share: `.codex/`, `.agents/`, `.claude/`, `.commandcode/`, and their README/config/skill/prompt/agent files.
 - Local-only state stays ignored: `.omx/`, `.omo/`, `.gitnexus/`, `.code-review-graph/`, `.chunkhound/`, `.claude/worktrees/`, `.ai/99_scratch/`, `.ai/14_code_intelligence/`, build/test outputs, env files, caches, logs, sessions, and machine-local settings.
 
 Never commit secrets, private keys, `.env*` values, raw provider tokens, or machine-local session state.

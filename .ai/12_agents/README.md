@@ -25,7 +25,6 @@ features translate this loop; they do not replace it.
 | Kimi | conditional | UI/product, frontend review, long-context synthesis | UI work must pass `DESIGN.md` and design-system lint. |
 | DeepSeek | conditional | debugging, logic critique | Read-only/default diagnostic unless assigned. |
 | Hermes | unapproved until payload-backed | orchestration/evidence | May not orchestrate until explicitly approved. |
-| Cursor | conditional MCP/config support | editor/MCP support | Not an autonomous lane by default. |
 | Gemini | deprecated | none | Fail closed unless Philip reapproves for a specific task. |
 | Ollama | non-agent | embeddings only | No chat/planning/coding use without explicit approval. |
 

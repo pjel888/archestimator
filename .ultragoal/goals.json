@@ -1,0 +1,23 @@
+{
+  "aggregateObjective": "Pointer to .ultragoal/goals.json and .ultragoal/ledger.jsonl",
+  "constraints": [
+    "Mirror the /workshop/projects page toolbar dropdown UI pattern in the estimates page HeaderIconToolbar.",
+    "Only UI scaffolding is required; actual filter/sort behavior is out of scope.",
+    "Keep changes minimal and confined to the estimates client UI surface.",
+    "Run type-check after edits; no broad validation needed for this UI-only change."
+  ],
+  "stories": [
+    {
+      "id": "G001",
+      "title": "Add Filter and Sort dropdowns to estimates HeaderIconToolbar",
+      "objective": "Update ProjectEstimatesClient to render a filterSlot on TreePanelHeader containing DropdownSelect controls for filter/view and sort, copying the icon/button/dropdown style from the projects page. Confirm type-check passes.",
+      "status": "complete"
+    },
+    {
+      "id": "G002",
+      "title": "Style the Create Estimate add button like the estimate-sheet add buttons",
+      "objective": "Replace the default Plus icon on the estimates page Create Estimate toolbar button with the NewspaperClipping Phosphor icon and apply the shared ADD_BUTTON_CLASSNAME styling (light-orange bg/text/hover/focus) used by estimate-sheet add buttons. Confirm type-check passes.",
+      "status": "complete"
+    }
+  ]
+}
