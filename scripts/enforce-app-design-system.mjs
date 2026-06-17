@@ -23,6 +23,16 @@ const landingAllowlistPrefixes = ["src/components/landing/"];
 // (named-size prohibition, regular/medium weight, rounded-xs, tracking-0, icon weight,
 // reference tokens) still applies. The exemption is path-scoped, never app-wide.
 const sharePxExemptPrefixes = ["src/app/share/", "src/components/share/"];
+// Border-radius values permitted in app/workshop CSS. The xs token is the default
+// system rule; the two `--glass-*` radii are the documented, sidebar-scoped
+// "glass surface" exception (authorized 2026-06-17, recorded in DESIGN.md). These
+// tokens are only consumed by the liquid-glass sidebar surface classes.
+const allowedBorderRadiusValues = new Set([
+  "3px",
+  "var(--radius-xs)",
+  "var(--glass-radius)",
+  "var(--glass-nav-radius)",
+]);
 const ignoredDirs = new Set(["node_modules", ".next", ".git"]);
 const scannedExtensions = new Set([".tsx", ".ts", ".jsx", ".js", ".css"]);
 const namedTextSizes = new Map([
@@ -197,7 +207,7 @@ export function collectFileViolations(rel, text) {
 
     for (const match of line.matchAll(/border-radius\s*:\s*([^;]+);/g)) {
       const value = match[1].trim();
-      if (value !== "3px" && value !== "var(--radius-xs)") {
+      if (!allowedBorderRadiusValues.has(value)) {
         fileViolations.push(`${rel}:${index + 1} uses border-radius ${value}. App border radius must be xs only.`);
       }
     }
