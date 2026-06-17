@@ -13,19 +13,16 @@ import {
   MAX_PROJECT_GROUP_NAME_LENGTH,
   MAX_PROJECT_GROUPS,
 } from "@/lib/workshop/group-constants";
+// Typed errors + result shape live in a plain (non-"use server") module: Next.js only
+// allows async-function exports from a "use server" file, so a class/type export here is
+// a build error. Imported back here to throw / annotate the bulk return.
+import {
+  ProjectGroupCapError,
+  ProjectGroupNameError,
+  type BulkAssignProjectsToGroupResult,
+} from "@/lib/workshop/group-action-types";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-
-// --- typed errors the client rollback layer (§5.5) distinguishes -------------
-export class ProjectGroupCapError extends Error {} // thrown when the 50-group cap is hit
-export class ProjectGroupNameError extends Error {} // empty / >40-char / duplicate name
-
-// Result the client (§5.5) branches on to keep optimistic state for moved ids and
-// roll back skipped ids (forged/foreign/non-owned ids that failed the LD-2 gate).
-export type BulkAssignProjectsToGroupResult = {
-  movedProjectIds: string[];
-  skippedProjectIds: string[];
-};
 
 // --- accent allowlist (mirrors group-accent.ts GroupAccentId; validated here so
 //     the action never persists a junk accent_id even though 7d owns the palette

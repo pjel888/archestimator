@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 
+// Error classes moved out of the "use server" group-actions module (Next.js only allows
+// async-function exports there). No vi.resetModules() is used, so the cached graph keeps a
+// single class identity — instanceof against these statically-imported classes is valid.
+import { ProjectGroupCapError, ProjectGroupNameError } from "@/lib/workshop/group-action-types";
+
 const workspaceMocks = vi.hoisted(() => ({
   ensureDefaultWorkspace: vi.fn(),
 }));
@@ -144,7 +149,7 @@ describe("createProjectGroup", () => {
   it("rejects an empty name without touching the database", async () => {
     const stub = makeSupabaseStub();
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
-    const { createProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
 
     await expect(createProjectGroup({ name: "   " })).rejects.toBeInstanceOf(ProjectGroupNameError);
     expect(stub.calls).toEqual([]);
@@ -154,7 +159,7 @@ describe("createProjectGroup", () => {
   it("rejects a name longer than 40 characters", async () => {
     const stub = makeSupabaseStub();
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
-    const { createProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
 
     await expect(createProjectGroup({ name: "x".repeat(41) })).rejects.toBeInstanceOf(ProjectGroupNameError);
     expect(stub.calls).toEqual([]);
@@ -165,7 +170,7 @@ describe("createProjectGroup", () => {
     // First read = count of existing groups for (user, workspace) returns 50.
     stub.queueResult("project_groups", { data: [], error: null, count: 50 });
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
-    const { createProjectGroup, ProjectGroupCapError } = await import("@/lib/workshop/group-actions");
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
 
     await expect(createProjectGroup({ name: "Pipeline" })).rejects.toBeInstanceOf(ProjectGroupCapError);
     // No insert happened.
@@ -233,7 +238,7 @@ describe("createProjectGroup", () => {
       error: { code: "23505", constraint: "project_groups_user_workspace_lower_name_idx", message: "duplicate key" },
     }); // insert
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
-    const { createProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+    const { createProjectGroup } = await import("@/lib/workshop/group-actions");
 
     await expect(createProjectGroup({ name: "Pipeline" })).rejects.toBeInstanceOf(ProjectGroupNameError);
   });
@@ -252,7 +257,7 @@ describe("renameProjectGroup", () => {
   it("rejects an empty trimmed name", async () => {
     const stub = makeSupabaseStub();
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
-    const { renameProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+    const { renameProjectGroup } = await import("@/lib/workshop/group-actions");
 
     await expect(renameProjectGroup({ groupId: GROUP_ID, name: "  " })).rejects.toBeInstanceOf(
       ProjectGroupNameError,
@@ -282,7 +287,7 @@ describe("renameProjectGroup", () => {
       error: { code: "23505", constraint: "project_groups_user_workspace_lower_name_idx", message: "dup name" },
     });
     supabaseMocks.createSupabaseServerClient.mockResolvedValue(stub.client);
-    const { renameProjectGroup, ProjectGroupNameError } = await import("@/lib/workshop/group-actions");
+    const { renameProjectGroup } = await import("@/lib/workshop/group-actions");
 
     await expect(renameProjectGroup({ groupId: GROUP_ID, name: "Taken" })).rejects.toBeInstanceOf(
       ProjectGroupNameError,
