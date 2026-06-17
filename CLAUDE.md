@@ -34,7 +34,7 @@ code-review-graph blocks below ("MUST run impact analysis before editing any sym
 defaults that are SUBORDINATE to the proportional graph policy in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` (Safety rules) and
 `AGENT_FRAMEWORK_PROTOCOL.md`: prefer `rg`/targeted reads/LSP for normal and narrow work, and
 reach for the graph on broad architecture questions, high-risk shared-symbol/API refactors, or
-unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy.
+unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy. Re-index via `bun run graph:reindex` (which re-applies this proportional policy after the generator runs), and run `bun run graph:neutralize` after any `code-review-graph install`/`init`.
 
 ## Codex Delegation (codex-plugin-cc)
 
