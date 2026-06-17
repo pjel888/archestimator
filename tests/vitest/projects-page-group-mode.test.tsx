@@ -163,7 +163,7 @@ describe("ProjectsPageClient group mode", () => {
     expect(screen.queryByLabelText("Archive")).not.toBeInTheDocument(); // empty during search
   });
 
-  it("paints a group accent rule + dot for an accented group, none for null", () => {
+  it("paints a group accent flag for an accented group", () => {
     renderClient(
       <ProjectsPageClient
         projects={[item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" })]}
@@ -171,8 +171,15 @@ describe("ProjectsPageClient group mode", () => {
       />,
     );
     const pipeline = screen.getByLabelText("Pipeline");
-    expect(pipeline.querySelector("[data-project-group-accent-rule]")).not.toBeNull();
-    expect(pipeline.querySelector("[data-project-group-accent-dot]")).not.toBeNull();
+    const label = pipeline.querySelector("[data-project-group-label]") as HTMLElement;
+    const labelStyle = label.getAttribute("style") ?? "";
+    // The accent now tints the flag border, background, and text.
+    expect(labelStyle).toContain("background-color");
+    expect(labelStyle).toContain("border-color");
+    expect(labelStyle).toContain("color");
+    // The old left accent rule/dot are gone.
+    expect(pipeline.querySelector("[data-project-group-accent-rule]")).toBeNull();
+    expect(pipeline.querySelector("[data-project-group-accent-dot]")).toBeNull();
   });
 });
 
@@ -674,7 +681,7 @@ describe("ProjectsPageClient group a11y + responsiveness", () => {
     window.localStorage.setItem("archestimator_projects_organize_by_v1", "group");
   });
 
-  it("keeps the accent decorative (aria-hidden) and the label/count the real signal", () => {
+  it("keeps the accent visual and the label/count the real signal", () => {
     render(
       <ProjectsPageClient
         projects={[item({ id: "p1", name: "In Pipeline" }, { groupId: "g1" })]}
@@ -682,9 +689,12 @@ describe("ProjectsPageClient group a11y + responsiveness", () => {
       />,
     );
     const section = screen.getByLabelText("Pipeline");
-    expect(section.querySelector("[data-project-group-accent-rule]")).toHaveAttribute("aria-hidden", "true");
-    expect(section.querySelector("[data-project-group-accent-dot]")).toHaveAttribute("aria-hidden", "true");
-    expect(section.querySelector("[data-project-group-label]")).toHaveClass("text-secondary");
+    // The old left accent rule/dot are gone; color is now carried by the flag.
+    expect(section.querySelector("[data-project-group-accent-rule]")).toBeNull();
+    expect(section.querySelector("[data-project-group-accent-dot]")).toBeNull();
+    const label = section.querySelector("[data-project-group-label]") as HTMLElement;
+    expect(label).toHaveAttribute("data-project-group-label");
+    expect(label.getAttribute("style") ?? "").toContain("color");
   });
 
   it("toggles a group via keyboard on the collapse caret", async () => {

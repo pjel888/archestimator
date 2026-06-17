@@ -9,7 +9,12 @@ const actions = vi.hoisted(() => ({ setProjectFavorite: vi.fn() }));
 vi.mock("@/lib/workshop/actions", () => actions);
 const scope = { workspaceId: "ws-1", userId: "user-1" };
 const qcFactory = () => new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-const wrap = (qc: QueryClient) => ({ children }: { children: ReactNode }) => (<QueryClientProvider client={qc}>{children}</QueryClientProvider>);
+const wrap = (qc: QueryClient) => {
+  function QueryClientWrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  }
+  return QueryClientWrapper;
+};
 const existing = (): MainSidebarFavoriteProject => ({ id: "p-existing", name: "Existing", projectCode: "EX-1",
   href: "/workshop/projects/p-existing/estimates", favoriteCreatedAt: "2026-06-01T00:00:00.000Z", favoriteEstimateSheets: [] });
 const newInput = { project: { id: "p-new", name: "Harbor Tower", projectCode: "HT-9", href: "/workshop/projects/p-new/estimates", favoriteCreatedAt: null }, favorite: true } as const;

@@ -18,7 +18,7 @@ describe("favorite actions — boolean hygiene (D14 / 13 C2 / QA-13)", () => {
     expect(fromSpy).not.toHaveBeenCalled();
   });
   it("setEstimateFavorite rejects a non-boolean favorite before touching Supabase", async () => {
-    // @ts-expect-error
+    // @ts-expect-error — simulating a raw POST payload that bypasses the TS type
     await expect(setEstimateFavorite({ estimateId: ESTIMATE_ID, favorite: 1 })).rejects.toThrow(/invalid input/i);
     expect(fromSpy).not.toHaveBeenCalled();
   });

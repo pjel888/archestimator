@@ -31,7 +31,7 @@ function renderClient() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEstimatesClient projectId="p" projectName="Proj" estimates={[]} />
+      <ProjectEstimatesClient projectId="p" projectName="Proj" estimates={[]} canCreateEstimates canEditEstimateById={{}} />
     </QueryClientProvider>,
   );
 }
@@ -65,6 +65,15 @@ describe("ProjectEstimatesClient optimistic create", () => {
   });
 
   afterEach(() => vi.restoreAllMocks());
+
+  it("renders the estimate filter as an icon-only toolbar control", () => {
+    renderClient();
+
+    const filterControl = screen.getByRole("combobox", { name: "Filter estimates" });
+    expect(filterControl).toHaveAttribute("title", "All estimates");
+    expect(filterControl).toHaveClass("border-0", "gap-1.5", "px-1.5");
+    expect(screen.queryByText("All estimates")).not.toBeInTheDocument();
+  });
 
   it("shows an optimistic row immediately and never triggers the overlay", async () => {
     let resolveCreate: ((value: { row: typeof canonicalRow }) => void) | undefined;

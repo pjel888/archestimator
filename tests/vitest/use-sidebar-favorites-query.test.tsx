@@ -15,9 +15,12 @@ const project = (id: string): MainSidebarFavoriteProject => ({
   id, name: `Project ${id}`, projectCode: null, href: `/workshop/projects/${id}`,
   favoriteCreatedAt: "2026-06-16T00:00:00.000Z", favoriteEstimateSheets: [],
 });
-const wrap = (client: QueryClient) => ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={client}>{children}</QueryClientProvider>
-);
+const wrap = (client: QueryClient) => {
+  function QueryClientWrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  }
+  return QueryClientWrapper;
+};
 
 beforeEach(() => {
   fetchSidebarFavoriteProjectsMock.mockReset();

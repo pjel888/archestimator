@@ -81,14 +81,13 @@ describe("MainSidebar favorites", () => {
     expect(within(expandedLogo as HTMLElement).getByText("archestimator")).toHaveClass("text-[12px]");
     expect(within(navigation).getByText("Favorites")).toBeInTheDocument();
 
-    expect(within(navigation).getByRole("link", { name: "Lewis Residence" })).toHaveAttribute(
-      "href",
-      "/workshop/projects/project-1",
-    );
+    const favoriteProject = within(navigation).getByRole("link", { name: "Lewis Residence" });
+    expect(favoriteProject).toHaveAttribute("href", "/workshop/projects/project-1");
+    expect(favoriteProject).toHaveClass("pl-[52px]");
 
     const favoriteSheet = within(navigation).getByRole("link", { name: "Concept Budget" });
     expect(favoriteSheet).toHaveAttribute("href", "/workshop/projects/project-1/estimates/sheet-1");
-    expect(favoriteSheet).toHaveClass("pl-[52px]");
+    expect(favoriteSheet).toHaveClass("pl-[72px]");
     expect(favoriteSheet).toHaveAttribute("aria-current", "page");
 
     // The staleTime:0 reconcile actually runs on mount; the seeded SSR list must SURVIVE it

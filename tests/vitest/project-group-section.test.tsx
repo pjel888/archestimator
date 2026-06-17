@@ -131,8 +131,8 @@ describe("ProjectGroupSection client mode", () => {
 });
 
 describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
-  it("renders an accent rule + dot from the resolved swatch, never orange on the label text", () => {
-    const { ruleColor, dotColor } = resolveAccent("teal");
+  it("renders an accent flag from the resolved swatch, never orange on the label text", () => {
+    const { ruleColor } = resolveAccent("teal");
     // jsdom serializes inline hex to rgb(...); compare against that canonical form.
     const toRgb = (hex: string) => {
       const v = hex.replace("#", "");
@@ -152,21 +152,26 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     const section = screen.getByLabelText("Pipeline");
     expect(section).toHaveAttribute("data-project-group-kind", "group");
 
-    const rule = section.querySelector("[data-project-group-accent-rule]") as HTMLElement;
-    const dot = section.querySelector("[data-project-group-accent-dot]") as HTMLElement;
-    expect(rule.getAttribute("style")).toContain("background-color");
-    expect(dot.getAttribute("style")).toContain("background-color");
-    // The accent colors come from the resolver (inline style only).
-    expect(rule.style.backgroundColor).toBe(toRgb(ruleColor));
-    expect(dot.style.backgroundColor).toBe(toRgb(dotColor));
-    // Accent is NOT the brand-orange flag color.
-    expect(rule.getAttribute("style")).not.toContain("color-mix");
+    // The left accent rule/dot are gone; the accent now tints the flag border,
+    // background, and text.
+    expect(section.querySelector("[data-project-group-accent-rule]")).toBeNull();
+    expect(section.querySelector("[data-project-group-accent-dot]")).toBeNull();
 
-    // Label is readable + NON-orange (no brand-orange class, no inline color, no flag color-mix).
     const label = section.querySelector("[data-project-group-label]")!;
+    const labelStyle = label.getAttribute("style") ?? "";
+    expect(labelStyle).toContain("background-color");
+    expect(labelStyle).toContain("border-color");
+    expect(labelStyle).toContain("color");
+    // Accent is NOT the brand-orange flag color.
+    expect(labelStyle).not.toContain(FLAG_BG_COLOR);
+    expect(labelStyle).not.toContain(FLAG_RULE_COLOR);
+
+    // The horizontal rule shares the accent border color.
+    const rule = section.querySelector("[data-project-group-rule]") as HTMLElement;
+    expect(rule.style.backgroundColor).toBe(toRgb(ruleColor));
+
+    // Label is readable + NON-orange (no brand-orange class, no orange flag color-mix).
     expect(label).not.toHaveClass("text-brand-orange-dark");
-    expect(label.getAttribute("style") ?? "").not.toContain(FLAG_BG_COLOR);
-    expect(label.getAttribute("style") ?? "").not.toContain("color-mix");
     expect(within(section).getByText("Pipeline")).toBeInTheDocument();
   });
 

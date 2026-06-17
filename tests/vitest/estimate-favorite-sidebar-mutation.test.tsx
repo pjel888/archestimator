@@ -16,7 +16,12 @@ const makeRow = (o = {}) => ({ id: "est-1", project_id: "p1", name: "Concept Bud
   totalProjectCost: 0, isFavorite: false, favoriteCreatedAt: null, ...o });
 const favoritedParent = (): MainSidebarFavoriteProject => ({ id: "p1", name: "Lewis Residence", projectCode: "AE-LR-001",
   href: "/workshop/projects/p1", favoriteCreatedAt: "2026-06-05T00:00:00.000Z", favoriteEstimateSheets: [] });
-const wrap = (qc: QueryClient) => ({ children }: { children: ReactNode }) => (<QueryClientProvider client={qc}>{children}</QueryClientProvider>);
+const wrap = (qc: QueryClient) => {
+  function QueryClientWrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  }
+  return QueryClientWrapper;
+};
 const baseInput = {
   estimate: { id: "est-1", projectId: "p1", name: "Concept Budget", sheetCode: "ES-001", href: "/workshop/projects/p1/estimates/est-1", favoriteCreatedAt: null },
   project: { id: "p1", name: "Lewis Residence", projectCode: "AE-LR-001", href: "/workshop/projects/p1", isSidebarFavorite: true },

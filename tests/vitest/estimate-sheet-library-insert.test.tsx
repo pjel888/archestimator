@@ -1,10 +1,11 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { INSERT_ESTIMATE_TEMPLATE_EVENT } from "@/components/workshop/component-library/templates";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { isUuid } from "@/lib/ids";
 import { withExpressComponentMetadata } from "@/lib/estimates/express-components";
@@ -273,8 +274,17 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      mutations: { gcTime: Infinity, retry: false },
+      queries: { gcTime: Infinity, retry: false },
+    },
+  });
+}
+
 function renderPersistedEstimateSheet(sheetNodes = nodes) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const queryClient = makeQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <EstimateSheetContent
@@ -289,6 +299,12 @@ function renderPersistedEstimateSheet(sheetNodes = nodes) {
 }
 
 describe("estimate sheet library insertion persistence", () => {
+  afterEach(() => {
+    cleanup();
+    resetEstimateWorkspaceState();
+    vi.clearAllMocks();
+  });
+
   beforeEach(() => {
     resetEstimateWorkspaceState();
     vi.clearAllMocks();
@@ -633,8 +649,7 @@ describe("estimate sheet library insertion persistence", () => {
     ]);
   });
 
-  it("adds estimate templates from the right sidebar to the selected group node", async () => {
-    const user = userEvent.setup();
+  it("adds estimate templates from the shared template-drop event path", async () => {
     const insertedTree: EstimateTreeNode[] = [
       {
         ...nodesWithGroup[0],
@@ -642,25 +657,25 @@ describe("estimate sheet library insertion persistence", () => {
       },
     ];
     actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: insertedTree });
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
     render(
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent
           selectedNodeId={groupNodeId}
           nodes={nodesWithGroup}
           projectId={projectId}
           estimateId={estimateId}
-          libraryItems={[]}
+          renderSidebar={false}
           libraryTemplates={[starterTemplate]}
         />
       </QueryClientProvider>,
     );
 
-    await user.click(screen.getByRole("tab", { name: "Templates" }));
-    // Rows carry no add buttons: inserting goes through the context menu.
-    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Condo Fit-Out Starter estimate template" }), { clientX: 16, clientY: 16 });
-    await user.click(await screen.findByRole("menuitem", { name: "Add to Ground Floor" }));
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: { targetParentNodeId: groupNodeId, templateIds: [starterTemplate.id] },
+      }));
+    });
 
     await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
     expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
@@ -672,38 +687,25 @@ describe("estimate sheet library insertion persistence", () => {
     expect(await screen.findByLabelText("Interior Fit-Out")).toBeInTheDocument();
   });
 
-  it("drops estimate templates from the sidebar onto a group node", async () => {
-    const user = userEvent.setup();
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-    const data: Record<string, string> = {};
-    const dataTransfer = {
-      types: [] as string[],
-      effectAllowed: "",
-      dropEffect: "",
-      setDragImage: vi.fn(),
-      setData: vi.fn((type: string, value: string) => {
-        data[type] = value;
-        if (!dataTransfer.types.includes(type)) dataTransfer.types.push(type);
-      }),
-      getData: vi.fn((type: string) => data[type] ?? ""),
-    };
-
+  it("persists template drop events by template id without sending template payloads", async () => {
     render(
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent
           selectedNodeId={groupNodeId}
           nodes={nodesWithGroup}
           projectId={projectId}
           estimateId={estimateId}
-          libraryItems={[]}
+          renderSidebar={false}
           libraryTemplates={[starterTemplate]}
         />
       </QueryClientProvider>,
     );
 
-    await user.click(screen.getByRole("tab", { name: "Templates" }));
-    fireEvent.dragStart(screen.getByLabelText("Condo Fit-Out Starter estimate template"), { dataTransfer });
-    fireEvent.drop(screen.getByLabelText("Ground Floor"), { dataTransfer });
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(INSERT_ESTIMATE_TEMPLATE_EVENT, {
+        detail: { targetParentNodeId: groupNodeId, templateIds: [starterTemplate.id] },
+      }));
+    });
 
     await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
     expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).toMatchObject({
@@ -819,7 +821,7 @@ describe("estimate sheet library insertion persistence", () => {
     }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make component project-specific" })).not.toBeInTheDocument());
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
-    expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
+    expect(within(kitchenSection).getByText("Project-specific component")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
   });
 
@@ -858,7 +860,7 @@ describe("estimate sheet library insertion persistence", () => {
       expectedRowRevision: 7,
     }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make component project-specific" })).not.toBeInTheDocument());
-    expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
+    expect(within(kitchenSection).getByText("Project-specific component")).toBeInTheDocument();
     expect(within(kitchenSection).getAllByRole("button", { name: "Make Kitchen Cabinet project-specific" })).toHaveLength(1);
   });
 

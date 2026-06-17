@@ -72,7 +72,12 @@ function renderSheet(queryClient: QueryClient, props: Record<string, unknown> = 
 }
 
 function makeQueryClient() {
-  return new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });
+  return new QueryClient({
+    defaultOptions: {
+      mutations: { gcTime: Infinity, retry: false },
+      queries: { gcTime: Infinity, retry: false },
+    },
+  });
 }
 
 describe("component library lazy load (U4)", () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -122,6 +122,32 @@ function setMiddleDropRect(element: HTMLElement) {
     height: 28,
     toJSON: () => ({}),
   });
+}
+
+function setTopDropRect(element: HTMLElement) {
+  element.getBoundingClientRect = () => ({
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: 180,
+    bottom: 28,
+    width: 180,
+    height: 28,
+    toJSON: () => ({}),
+  });
+}
+
+function fireDragOverAt(element: HTMLElement, dataTransfer: ReturnType<typeof mockDataTransfer>, clientY: number) {
+  const event = createEvent.dragOver(element, { dataTransfer });
+  Object.defineProperty(event, "clientY", { value: clientY });
+  fireEvent(element, event);
+}
+
+function fireDropAt(element: HTMLElement, dataTransfer: ReturnType<typeof mockDataTransfer>, clientY: number) {
+  const event = createEvent.drop(element, { dataTransfer });
+  Object.defineProperty(event, "clientY", { value: clientY });
+  fireEvent(element, event);
 }
 
 function mockDataTransfer() {
@@ -353,12 +379,12 @@ describe("estimate sheet tree DOM integration", () => {
     }
   });
 
-  it("shows a large top root drop target for moving a Group Node before the first root item", async () => {
+  it("moves a Group Node before the first root item from the first row top band", async () => {
     actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
       tree: [
         {
-          id: "alternates",
-          name: "Alternates",
+          id: "phase-two",
+          name: "Phase Two",
           kind: "group",
           total: "₱0.00",
           children: [],
@@ -388,13 +414,6 @@ describe("estimate sheet tree DOM integration", () => {
           ],
         },
         {
-          id: "phase-two",
-          name: "Phase Two",
-          kind: "group",
-          total: "₱0.00",
-          children: [],
-        },
-        {
           id: "phase-three",
           name: "Phase Three",
           kind: "group",
@@ -405,24 +424,23 @@ describe("estimate sheet tree DOM integration", () => {
     });
     renderTree();
 
-    const alternates = treeNodeButton("alternates");
-    const rootTopDropZone = rootDropZone("top");
+    const phaseTwo = treeNodeButton("phase-two");
+    const projectScope = treeNodeButton("project-scope");
     const dataTransfer = mockDataTransfer();
 
-    fireEvent.dragStart(alternates, { dataTransfer });
-    fireEvent.dragOver(rootTopDropZone, { dataTransfer });
+    fireEvent.dragStart(phaseTwo, { dataTransfer });
+    setTopDropRect(projectScope);
+    fireDragOverAt(projectScope, dataTransfer, 0);
 
-    expect(rootDropZone("top")).toHaveAttribute("data-tree-root-drop-active", "true");
+    await waitFor(() => expect(projectScope).toHaveAttribute("aria-dropeffect", "move"));
 
-    fireEvent.drop(rootDropZone("top"), { dataTransfer });
+    fireDropAt(projectScope, dataTransfer, 0);
 
     await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
       updates: [
-        { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
-        { id: "alternates", parentId: null, sortOrder: 10 },
+        { id: "phase-two", parentId: null, sortOrder: 10 },
         { id: "project-scope", parentId: null, sortOrder: 20 },
-        { id: "phase-two", parentId: null, sortOrder: 30 },
-        { id: "phase-three", parentId: null, sortOrder: 40 },
+        { id: "phase-three", parentId: null, sortOrder: 30 },
       ],
     }));
   });

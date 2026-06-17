@@ -100,9 +100,21 @@ function openComponentViewMenu() {
   return screen.getByRole("menu", { name: "Component view mode" });
 }
 
+function librarySearchToggle(label: "Show library tree search" | "Hide library tree search") {
+  const element = document.querySelector(`button[aria-label="${label}"]`);
+  if (!(element instanceof HTMLButtonElement)) throw new Error(`Missing ${label} button.`);
+  return element;
+}
+
+function librarySearchInput() {
+  const element = document.querySelector(`input[aria-label="Search Library Tree"]`);
+  if (!(element instanceof HTMLInputElement)) throw new Error("Missing Search Library Tree input.");
+  return element;
+}
+
 function openLibrarySearch() {
-  fireEvent.click(screen.getByRole("button", { name: "Show library tree search" }));
-  return screen.getByLabelText("Search Library Tree");
+  fireEvent.click(librarySearchToggle("Show library tree search"));
+  return librarySearchInput();
 }
 
 describe("component library UI", () => {
@@ -113,11 +125,26 @@ describe("component library UI", () => {
   });
 
   beforeEach(() => {
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) =>
+      window.setTimeout(() => callback(performance.now()), 0),
+    );
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation((handle) => window.clearTimeout(handle));
     window.localStorage.clear();
+    useEstimateWorkshopDragState.setState({ activeDrag: null });
+    templateActionMocks.createEstimateTemplate.mockReset();
+    templateActionMocks.createEstimateTemplateFromEstimateTab.mockReset();
+    templateActionMocks.createEstimateTemplateFromEstimateNode.mockReset();
+    templateActionMocks.renameEstimateTemplate.mockReset();
+    templateActionMocks.deleteEstimateTemplate.mockReset();
     reusableSourceActionMocks.getReusableEstimateOutline.mockReset();
     reusableSourceActionMocks.listReusableProjectEstimateSources.mockReset();
     reusableSourceActionMocks.listReusableProjectSources.mockReset();
     reusableSourceActionMocks.searchReusableProjectSources.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
   });
 
   it("saves project-tab templates with the raw tab name while showing the display label", async () => {
@@ -174,11 +201,6 @@ describe("component library UI", () => {
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "tpl-project-tab" }));
   });
 
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
-
   it("renders the sidebar without a title bar and with a search disclosure", () => {
     renderSidebar();
     expect(screen.queryByRole("heading", { name: "Library" })).not.toBeInTheDocument();
@@ -190,16 +212,16 @@ describe("component library UI", () => {
   it("opens and closes the search dropdown from the toolbar toggle", () => {
     renderSidebar();
     openLibrarySearch();
-    expect(screen.getByPlaceholderText("Search Library Tree")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Hide library tree search" }));
-    expect(screen.queryByPlaceholderText("Search Library Tree")).not.toBeInTheDocument();
+    expect(librarySearchInput()).toHaveAttribute("placeholder", "Search Library Tree");
+    fireEvent.click(librarySearchToggle("Hide library tree search"));
+    expect(document.querySelector('input[placeholder="Search Library Tree"]')).toBeNull();
   });
 
   it("opens the search dropdown with the slash shortcut", () => {
     renderSidebar();
     expect(screen.queryByLabelText("Search Library Tree")).not.toBeInTheDocument();
     fireEvent.keyDown(window, { key: "/" });
-    expect(screen.getByLabelText("Search Library Tree")).toBeInTheDocument();
+    expect(librarySearchInput()).toBeInTheDocument();
   });
 
   it("keeps the search dropdown open on outside clicks while a query is active", () => {
@@ -208,7 +230,7 @@ describe("component library UI", () => {
 
     fireEvent.change(search, { target: { value: "love" } });
     fireEvent.pointerDown(document.body);
-    expect(screen.getByLabelText("Search Library Tree")).toBeInTheDocument();
+    expect(librarySearchInput()).toBeInTheDocument();
 
     fireEvent.change(search, { target: { value: "" } });
     fireEvent.pointerDown(document.body);

@@ -26,6 +26,34 @@ function TestIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 describe("SidebarNavItemRow", () => {
+  it("extends the active treatment across the label when expanded", () => {
+    render(
+      <SidebarNavItemRow
+        item={{ id: "projects", href: "/workshop/projects", label: "Projects", icon: TestIcon }}
+        active
+        expanded
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Projects" });
+    expect(link).toHaveClass("text-orange-700", "before:left-1.5", "before:right-1.5");
+    expect(link.className).not.toContain("before:w-9");
+  });
+
+  it("keeps the active treatment icon-sized when collapsed", () => {
+    render(
+      <SidebarNavItemRow
+        item={{ id: "projects", href: "/workshop/projects", label: "Projects", icon: TestIcon }}
+        active
+        expanded={false}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Projects" });
+    expect(link).toHaveClass("text-orange-700", "before:left-1.5", "before:w-9");
+    expect(link.className).not.toContain("before:right-1.5");
+  });
+
   it("keeps viewport prefetch disabled until hover intent, then restores Next hover prefetch", () => {
     const onPrefetchStart = vi.fn();
     const onPrefetchCancel = vi.fn();

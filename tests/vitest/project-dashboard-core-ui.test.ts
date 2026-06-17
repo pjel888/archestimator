@@ -79,13 +79,14 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).not.toContain('label="Currency"');
     expect(projectDashboardClient).not.toContain('type="text"');
     expect(projectDashboardClient).not.toContain("formatBudgetInput");
-    expect(projectDashboardClient).toContain('value="PHP"');
+    expect(projectDashboardClient).toContain('name="currencyCode"');
+    expect(projectDashboardClient).toContain("value={currencyCode}");
     expect(projectDashboardClient).toContain("<textarea");
     expect(projectDashboardClient).toContain("!text-[10px] font-medium leading-3 text-secondary");
     expect(projectDashboardClient).not.toContain("grid grid-cols-2 gap-2");
     expect(projectDashboardClient).toContain('label="Created"');
     expect(projectDashboardClient).toContain('label="Updated"');
-    expect(projectDashboardClient).toContain("grid grid-cols-2 divide-x divide-hairline border-t border-hairline pt-1");
+    expect(projectDashboardClient).toContain("grid grid-cols-2 divide-x divide-hairline border-t border-hairline");
     expect(projectDashboardClient).not.toContain("mt-auto grid grid-cols-2 divide-x divide-hairline");
     expect(projectDashboardClient).toContain("text-[8px] font-medium uppercase tracking-normal text-gray-400");
     expect(projectDashboardClient).toContain("text-[8px] font-medium leading-3 text-tertiary");

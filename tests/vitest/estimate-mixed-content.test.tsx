@@ -155,9 +155,9 @@ describe("estimate mixed-content layout (P4)", () => {
     expect(within(section).getByLabelText("Empty Area breadcrumbs")).toBeInTheDocument();
     const addBlankRowButton = within(section).getByRole("button", { name: "Add blank estimate row to Empty Area" });
     expect(addBlankRowButton).toBeInTheDocument();
-    expect(addBlankRowButton).toHaveClass("bg-surfaceMuted", "hover:bg-divider", "focus-visible:bg-divider");
+    expect(addBlankRowButton).toHaveClass("border-dashed", "bg-surfaceMuted/30", "hover:opacity-100", "focus-visible:opacity-100");
     expect(addBlankRowButton).not.toHaveClass("bg-white");
-    expect(addBlankRowButton).not.toHaveClass("hover:bg-surfaceMuted/60");
+    expect(addBlankRowButton).not.toHaveClass("hover:bg-divider");
 
     await user.click(emptyToggle);
 

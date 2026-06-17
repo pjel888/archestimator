@@ -160,8 +160,16 @@ describe("workshop sidebar baseline", () => {
     expect(headerFrame?.getAttribute("style")).toContain("height: 86px");
     const brandRow = navigation.querySelector("[data-sidebar-header-brand-row]");
     expect(brandRow).toBeTruthy();
-    expect(brandRow).toHaveClass("h-10", "items-center", "border-b");
-    expect(brandRow?.getAttribute("style")).toContain("color-mix(in srgb, var(--brand-orange) 25%, white)");
+    expect(brandRow).toHaveClass("h-10", "items-center");
+    expect(brandRow).not.toHaveClass("border-b");
+    expect(brandRow?.getAttribute("style")).toBeNull();
+    const primaryNavGroup = navigation.querySelector("[data-sidebar-primary-nav-group]");
+    expect(primaryNavGroup).toBeTruthy();
+    const primaryNavDividers = navigation.querySelectorAll("[data-sidebar-primary-nav-divider]");
+    expect(primaryNavDividers).toHaveLength(2);
+    primaryNavDividers.forEach((divider) => {
+      expect(divider).toHaveClass("h-px", "w-full", "bg-dividerSibling");
+    });
     const logoLock = navigation.querySelector("[data-sidebar-header-logo-lock]");
     expect(logoLock).toBeTruthy();
     expect(logoLock?.getAttribute("style")).toContain("width: 148px");

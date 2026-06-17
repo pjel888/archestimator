@@ -78,7 +78,7 @@ describe("workshop sidebar baseline", () => {
     expect(homebase).not.toContain("Favorite estimates");
     expect(homebase).not.toContain("Project shortcuts");
     expect(homebase).not.toContain("Estimate shortcuts");
-    expect(homebase).toContain("setProjectFavorite");
+    expect(homebase).toContain("useToggleProjectFavorite");
     expect(homebase).not.toContain("setEstimateFavorite");
     expect(homebase).not.toContain('title="First move"');
     expect(homebase).not.toContain('label="Recommended"');
@@ -113,7 +113,11 @@ describe("workshop sidebar baseline", () => {
     expect(source).toContain("SIDEBAR_WIDTH_COLLAPSED = SIDEBAR_PADDING * 2 + SIDEBAR_ICON_SLOT");
     expect(sidebar).toContain("fixed left-0 top-0 z-[100]");
     expect(sidebar).toContain("sidebarNavItems");
-    expect(sidebar).toContain("flex flex-col gap-2 pb-2 pt-2");
+    expect(sidebar).toContain("data-sidebar-primary-nav-group");
+    expect(sidebar).toContain('data-sidebar-primary-nav-divider="top"');
+    expect(sidebar).toContain('data-sidebar-primary-nav-divider="bottom"');
+    expect(sidebar).toContain("flex flex-col gap-2 py-2");
+    expect(sidebar).toContain("w-px bg-dividerSibling");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
     expect(sidebar).toContain("href: \"/workshop/library\"");
     // 2026-06-11 Library unification: the rail shows a single Library entry
@@ -136,6 +140,11 @@ describe("workshop sidebar baseline", () => {
     expect(sidebarNavItemRow).toContain("before:bg-orange-50");
     expect(sidebarNavItemRow).toContain("text-orange-700");
     expect(sidebarNavItemRow).toContain("rgb(194,65,12)");
+    expect(sidebarNavItemRow).toContain('weight="regular"');
+    expect(sidebar).toContain('<Star size={15} weight="regular"');
+    expect(sidebar).toContain('<Folder size={13} weight="regular"');
+    expect(sidebar).toContain('<FileText size={11} weight="regular"');
+    expect(sidebarHeader).toContain('<SidebarSimple size={16} weight="regular"');
     expect(sidebarNavItemRow).not.toContain('expanded ? "w-full pr-2"');
     expect(sidebar).toContain("clipPath");
   });

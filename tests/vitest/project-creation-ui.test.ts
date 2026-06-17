@@ -30,6 +30,10 @@ const liveProjectCard = readFileSync(
   "src/components/workshop/LiveProjectCard.tsx",
   "utf8",
 );
+const projectGridLayout = readFileSync(
+  "src/components/workshop/project-grid-layout.ts",
+  "utf8",
+);
 const projectActions = readFileSync("src/lib/projects/actions.ts", "utf8");
 const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 const projectImageRoute = readFileSync(
@@ -60,8 +64,8 @@ describe("project creation UI governance", () => {
     expect(projectsPage).toContain("favoriteProjectIds={favoriteProjectIds}");
     expect(projectsPageClient).toContain("LiveProjectCard");
     expect(projectsPageClient).toContain("NewProjectModal");
-    expect(projectsPageClient).toContain('from "@/lib/workshop/actions"');
-    expect(projectsPageClient).toContain("setProjectFavorite({ projectId, favorite: nextFavorite })");
+    expect(projectsPageClient).toContain('from "@/hooks/use-toggle-project-favorite"');
+    expect(projectsPageClient).toContain("toggleProjectFavoriteMutation.toggle(");
     expect(projectsPageClient).toContain("router.refresh()");
     expect(projectsPageClient).toContain("favoriteIds.has(item.project.id)");
     expect(projectsPageClient).toContain("PROJECT_VIEW_MODE_STORAGE_KEY");
@@ -88,7 +92,8 @@ describe("project creation UI governance", () => {
     expect(liveProjectCard).toContain("aria-pressed:border-tertiary/40 aria-pressed:bg-surfaceMuted aria-pressed:text-ink");
     expect(liveProjectCard).not.toContain("h-32");
     expect(liveProjectCard).not.toContain("min-h-[260px]");
-    expect(projectsPageClient).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");
+    expect(projectsPageClient).toContain("getProjectGridClassName(projectViewMode)");
+    expect(projectGridLayout).toContain("grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3");
   });
 
   it("keeps the project create action icon-only", () => {
@@ -96,6 +101,11 @@ describe("project creation UI governance", () => {
     expect(projectsPageClient).toContain('label: "Add projects"');
     expect(projectsPageClient).toContain("onClick: () => setIsModalOpen(true)");
     expect(projectsPageClient).not.toContain("addVisibleLabel");
+  });
+
+  it("keeps project deletion copy aligned with active shared-link revocation", () => {
+    expect(projectsPageClient).toContain("Active shared links will be revoked when deleted.");
+    expect(projectsPageClient).not.toContain("Projects with active shared links cannot be deleted.");
   });
 
   it("keeps the create project modal product-facing and composed", () => {

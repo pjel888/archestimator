@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactElement } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
@@ -36,10 +36,23 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      mutations: { gcTime: Infinity, retry: false },
+      queries: { gcTime: Infinity, retry: false },
+    },
+  });
+}
+
+function renderWithQueryClient(ui: ReactElement) {
+  const queryClient = makeQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 function renderEstimateSheet(selectedNodeId: string, props: Partial<ComponentProps<typeof EstimateSheetContent>> = {}) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={makeQueryClient()}>
       <EstimateSheetContent selectedNodeId={selectedNodeId} renderSidebar={false} {...props} />
       <EstimateHeaderActions />
     </QueryClientProvider>,
@@ -62,9 +75,14 @@ function createDataTransferStub(initialDropEffect = "none") {
   };
 }
 
+afterEach(() => {
+  cleanup();
+  resetEstimateWorkspaceState();
+});
+
 describe("estimate shell chrome", () => {
   it("renders breadcrumbs in the upper-left project header", async () => {
-    render(
+    renderWithQueryClient(
       await WorkshopPageShell({
         title: "Modern Bungalow",
         eyebrow: "Project",
@@ -87,7 +105,7 @@ describe("estimate shell chrome", () => {
   });
 
   it("keeps the project title and breadcrumbs visible when an estimate sheet publishes metadata", async () => {
-    render(
+    renderWithQueryClient(
       await WorkshopPageShell({
         title: "Modern Bungalow",
         eyebrow: "Project",
@@ -126,7 +144,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("renders the locally selected tree node before route props catch up", async () => {
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent selectedNodeId="living-area" estimateId="estimate-1" renderSidebar={false} />
       </QueryClientProvider>,
     );
@@ -142,7 +160,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("reconciles stale selected node ids to the first available tree node", async () => {
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent selectedNodeId="deleted-node" estimateId="estimate-1" renderSidebar={false} />
       </QueryClientProvider>,
     );
@@ -261,7 +279,7 @@ describe("estimate sheet cost inputs", () => {
     ];
 
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent selectedNodeId="manual-area" nodes={persistedBlankRowTree} renderSidebar={false} />
       </QueryClientProvider>,
     );
@@ -457,7 +475,7 @@ describe("estimate sheet cost inputs", () => {
     ];
 
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent selectedNodeId="lot" nodes={mixedSiblingTree} renderSidebar={false} />
       </QueryClientProvider>,
     );
@@ -514,7 +532,7 @@ describe("estimate sheet cost inputs", () => {
     ];
 
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+      <QueryClientProvider client={makeQueryClient()}>
         <EstimateSheetContent selectedNodeId="lot" nodes={areaOnlyTree} renderSidebar={false} />
       </QueryClientProvider>,
     );
@@ -524,15 +542,12 @@ describe("estimate sheet cost inputs", () => {
     expect(screen.getByLabelText("Living Room")).not.toHaveClass("mt-4");
   });
 
-  it("inserts from the production sidebar direct callback path", async () => {
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
-        <EstimateSheetContent selectedNodeId="kitchen" estimateId="estimate-sidebar-test" renderSidebar libraryItems={[estimateLibraryItems[0]]} />
-      </QueryClientProvider>,
-    );
+  it("inserts from the shared add-library-item callback path", async () => {
+    renderEstimateSheet("kitchen", { estimateId: "estimate-sidebar-test" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Expand all library tree" }));
-    fireEvent.click(await screen.findByLabelText(/^add to kitchen:/i));
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("archestimator:add-library-item", { detail: estimateLibraryItems[0] }));
+    });
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     await waitFor(() => expect(within(kitchenSection).getAllByRole("spinbutton").length).toBeGreaterThan(0));
