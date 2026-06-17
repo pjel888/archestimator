@@ -194,7 +194,7 @@ types without asking for per-change approval. Because there are no external
 users yet, the preferred posture is fast iteration with proportional validation,
 not exhaustive regression by default.
 
-This exception does not authorize unrelated provider projects, SlateCamp
+This exception does not authorize unrelated provider projects, archestimator
 resources, secrets exposure, paid add-ons, hosting production deploys,
 GitHub/Notion mutations, or irreversible destructive data loss without explicit
 fresh instruction and a recovery plan. It supersedes older default owner-gated

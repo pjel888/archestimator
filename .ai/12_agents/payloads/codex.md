@@ -49,7 +49,7 @@ explicitly scopes them and validation is available.
 ## Disallowed Edit Scope
 
 Do not touch secrets, paid add-ons, provider settings, GitHub settings, Notion,
-SlateCamp resources, unrelated files, or generated files unless the task
+archestimator resources, unrelated files, or generated files unless the task
 explicitly scopes them and evidence rules are satisfied.
 
 ## Branch And Worktree Rules

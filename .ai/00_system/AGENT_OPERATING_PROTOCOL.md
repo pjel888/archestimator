@@ -36,7 +36,7 @@ manual QA loops only when the change touches shared logic, auth/security, RLS,
 data integrity, release readiness, or another high-blast-radius surface.
 
 Standing authorization is not a license to cross hard boundaries. Never mutate
-SlateCamp or unrelated provider projects; never store or expose secrets; never
+archestimator or unrelated provider projects; never store or expose secrets; never
 enable paid add-ons such as PITR without explicit reapproval; never deploy to
 production as part of database work unless the task asks for deploy; and never
 perform irreversible destructive data loss without a clear recovery path and
@@ -210,7 +210,7 @@ Default roles:
 - Respect explicit read-only/audit-only user scopes. If stale docs are found during an audit-only task, report the exact patch target instead of editing.
 - For Next.js work, read the relevant local Next.js docs under `node_modules/next/dist/docs/` before changing framework APIs or route conventions.
 - Use graph/GitNexus impact analysis for risky shared symbol/API refactors when available. For narrow local edits, focused caller/import checks are enough.
-- Archestimator Supabase/Postgres changes are pre-authorized for project `ebxxqidacheyapmmzavr` under the pre-launch MVP database mandate; never touch SlateCamp or unrelated provider resources.
+- Archestimator Supabase/Postgres changes are pre-authorized for project `ebxxqidacheyapmmzavr` under the pre-launch MVP database mandate; never touch archestimator or unrelated provider resources.
 - AI capability is currently Ask-only unless Philip explicitly approves a wider slice. No Draft/Apply, write tools, retrieval/RAG, or stored conversation features may be added by implication.
 - Tool-specific adapter files (`CLAUDE.md`, `GEMINI.md`, `.agents/`,
   `.claude/`, `.codex/`, `.gemini/`, `.commandcode/`) must stay

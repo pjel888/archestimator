@@ -161,7 +161,7 @@ Do not use the old reset-era assumption that `/workshop` is intentionally blank 
 
 ## Required checks for Supabase/Auth changes
 
-- Never touch SlateCamp Supabase resources.
+- Never touch archestimator Supabase resources.
 - Use project `ebxxqidacheyapmmzavr` only.
 - Run migrations/types when schema changes:
 

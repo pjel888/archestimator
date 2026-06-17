@@ -28,10 +28,10 @@ Emotional goal: users should feel competent, focused, and in control. The tool d
 
 - **No construction clichés**: no blueprint backgrounds, hardhat icons, caution-stripe borders, cartoon workers, or "under construction" metaphors.
 - **No enterprise/B2B SaaS tropes**: no oversized hero metrics with gradient accents, no busy data-heavy grids without breathing room, no "streamline/empower/supercharge" copy.
-- **No orange brand accent**: orange is reserved for landing-page brand expression only; never in app/workshop UI.
-- **No decorative depth**: no heavy drop shadows, glassmorphism, glossy cards, or gradient text. Elevation through thin borders and whitespace.
+- **Restrained orange accent**: brand-orange is mostly landing expression, but is sanctioned for specific in-app affordances — the active navigation state, the brand logo slab, and the approved estimate-sheet affordances. It is an accent, never a fill for whole surfaces. See DESIGN.md.
+- **No *heavy* decorative depth**: the app uses a calm grey canvas with surfaces that float as white paper or frosted liquid glass (one soft shadow per surface) — but no heavy/glossy drop shadows, neon glows, or gradient text. Depth lives on the surface edge, not on every element. See DESIGN.md → "Surfaces & liquid glass".
 - **No generic dashboards**: no identical card grids with icon + heading + text repeated endlessly. Each surface serves a specific work purpose.
-- **No over-rounding**: app/workshop radius is 3px only. The product should feel precise and architectural, not toy-like.
+- **Deliberate radius scale**: `3px` for dense inner elements, `8px` for glass pills, `12px` for floating surface panels — and nothing else. The product should feel precise and architectural, not toy-like.
 
 ## Design Principles
 

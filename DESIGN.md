@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Archestimator Product Design System
-description: SF Pro, crisp-xs, neutral product UI for every non-landing Archestimator surface; landing pages may stay more experimental.
+description: SF Pro, crisp neutral product UI for every non-landing Archestimator surface, now layered on a calm grey canvas where primary surfaces float as white paper or frosted liquid-glass panels (sidebar first, rolling out app-wide). Landing pages may stay more experimental.
 colors:
   primary: "#3D3D3D"
   ink: "#3D3D3D"
@@ -470,26 +470,40 @@ Desktop target proportions:
 
 ## Elevation & Depth
 
-Intercom’s flat system is the baseline. Prefer:
+The app builds depth by **floating surfaces on a calm grey canvas** (`#eef0f3` in the workshop), not by decorating flat boxes. The canvas is the quiet field; primary surfaces float on it with a gutter of canvas around them. Two surface materials:
 
-- thin borders;
-- warm background bands;
-- product mockup wells;
-- crop marks / tiny corner markers;
-- selection/focus backgrounds;
-- whitespace.
+- **Paper** — solid white panels (the workspace card, content tiles, modals, inspectors): thin `--hairline` border + one soft floating shadow + a canvas gutter.
+- **Liquid glass** — frosted translucent *chrome* (navigation rails, overlays that sit over content): see [Surfaces & liquid glass](#surfaces--liquid-glass).
 
-Avoid heavy drop shadows, glass effects, gradients, glossy cards, and generic dashboard depth. Use subtle elevation only for drawers, popovers, command palette, modals, and floating inspectors.
+Depth belongs to the **surface edge** (one soft shadow + a hairline), never to elements *inside* it. Inside a surface stay flat: thin borders, whitespace, selection/focus backgrounds, warm bands — no nested shadows, no glossy or neon depth, no stacked cards. One surface, one shadow.
 
 ## Shapes
 
-Shapes are crisp and restrained outside the landing page:
+Radius is a small, deliberate **scale** — crisp for dense data, softer for floating surfaces:
 
-- `xs` (`3px`) is the only app/workshop border radius.
-- Do not use `rounded`, `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-full`, arbitrary radius utilities, or CSS radius values other than `3px` outside landing-approved surfaces.
-- Use no radius only when there is no border radius class/value at all; do not encode `rounded-none` as an app surface style.
+- `xs` (`3px`) — the default for everything *inside* a surface: table cells, inputs, chips, dense controls, buttons, content tiles.
+- `8px` (`--glass-nav-radius`) — pills and controls in glass chrome (nav items, the collapse toggle, segmented controls).
+- `12px` (`--glass-radius`) — floating **surface** panels themselves (the sidebar slab, the workspace card, large overlays).
 
-Do not over-round estimating, financial, or proposal surfaces. The product should feel precise and architectural, not toy-like.
+Do not invent other radii: no `rounded-sm/md/lg/xl/full` and no arbitrary radius values — use one of the three tokens above. Don't over-round dense estimating, financial, or proposal surfaces; those stay `3px`. The product should feel precise and architectural, not toy-like. (The enforcer currently allows `3px`, `--glass-radius`, and `--glass-nav-radius`; extend the allow-list as the floating language rolls out.)
+
+## Surfaces & liquid glass
+
+Archestimator has **two surface materials** floating on the grey canvas. Reach for the right one:
+
+- **Paper (solid white)** — anything that *holds content*: the workspace card, project/estimate tiles, tables, modals, proposal surfaces. White fill, `--hairline` border, soft floating shadow, `12px` radius for the panel itself (`3px` for dense things inside it).
+- **Liquid glass (frosted)** — *chrome* that frames or floats over content: the navigation rail today; later, command palette, floating inspectors, and over-content overlays. Frosted translucency that reads brighter than the canvas, so it floats.
+
+Glass is a **skin, never a behaviour change**. The reference implementation is the workshop navigation rail (`MainSidebar`), authorized 2026-06-17. Rules for any glass surface:
+
+- **One blurred surface.** Exactly one `backdrop-filter` per glass panel (e.g. `.sidebar-glass`). Children (header chips, nav pills, badges) fake glass with plain translucent fills + borders + inset highlights — never their own blur. Stacked blurs kill mobile GPU.
+- **Frosted-white, dark ink text.** The frost (`--glass-bg`) is a translucent white that floats above the grey canvas while labels stay dark (`--ink`/`--secondary`/`--tertiary`) and clear WCAG AA trivially. Paper surfaces are solid white; glass is frosted — the tonal difference is intentional, not a bug. No dark-theme glass; the accent stays brand-orange.
+- **Floating edge.** Inset on the canvas, `--glass-radius` corners, one soft outer shadow, and a soft 1px specular top edge. The brand logo slab is the one orange glass surface (white mark).
+- **Active/hover state.** Active = brand-orange *gradient* glass fill (stronger at the top edge) + inset specular hairline, wired to existing route detection, keeping a weight/brightness cue (state never by colour alone). Hover = faint neutral gradient pill + subtle icon scale; press scales the row — all transform/opacity, reduced-motion safe.
+- **Performance + fallbacks.** Blur capped 16–20px; never animate blur. Solid `--glass-bg-fallback` panel under `@supports not (backdrop-filter)` and `prefers-reduced-transparency: reduce`. The Apple-style SVG edge refraction is desktop-Chromium-only progressive enhancement, gated off touch/mobile/Safari/Firefox/reduced-motion/reduced-transparency.
+- **Tokens only.** All values live in the `--glass-*` layer in `globals.css`; no magic numbers in JSX. The grey canvas is `WorkshopGlassBackdrop` (static, GPU-cheap, no animation).
+
+App-wide rollout (header bars, panels, modals, command palette across every route) is a follow-up; the workshop shell sets the pattern.
 
 ## Components
 
@@ -626,9 +640,9 @@ Do not make client-facing proposal pages look like raw admin dashboards or Inter
 - Do not let the right library panel permanently steal width from the estimate grid.
 - Do not stack selected-row controls below the grid as a long form; move them into a contextual dock or inline grid editing.
 - Do not use construction-orange as the brand accent.
-- Do not use heavy shadows, gradients, glassmorphism, blueprint clichés, or decorative dashboard clutter.
+- Do not use **heavy/glossy** shadows, neon glows, blueprint clichés, or decorative dashboard clutter. Soft floating shadows and frosted glass are now part of the system — see [Surfaces & liquid glass](#surfaces--liquid-glass) — but keep them singular and quiet (one soft shadow per surface, not depth on every element).
 - Do not make buttons overly rounded, oversized, or visually loud.
-- Do not use any app/workshop radius except `xs`.
+- Do not use app/workshop radii outside the scale (`3px` inner, `8px` glass pills, `12px` floating panels).
 - Do not use app/workshop font weights beyond regular/medium or font sizes above `12px`.
 - Do not invent one-off button, badge, table, panel, or card styles outside this system.
 - Do not hide financial risk, source confidence, proposal state, or revision changes behind vague icons.
