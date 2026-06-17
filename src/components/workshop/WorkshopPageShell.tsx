@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from "react";
 import { cookies } from "next/headers";
 
 import { MainSidebar, type MainSidebarStatus } from "@/components/sidebar/MainSidebar";
+import { WorkshopGlassBackdrop } from "@/components/workshop/WorkshopGlassBackdrop";
 import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -108,8 +109,9 @@ export async function WorkshopPageShell({
   );
 
   return (
-    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden bg-canvas text-ink" aria-label={title}>
+    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden text-ink" aria-label={title}>
       <WebVitalsProbe />
+      <WorkshopGlassBackdrop />
       <MainSidebar
         favoriteProjects={sidebarFavoriteProjects}
         favoritesScope={sidebarFavoriteScope}
@@ -118,10 +120,17 @@ export async function WorkshopPageShell({
       />
       <section
         data-workshop-page-shell-canvas
-        className="flex h-full min-h-0 flex-col lg:pl-[64px]"
+        className="flex h-full min-h-0 flex-col p-2 lg:pl-[var(--sidebar-content-offset)]"
         style={{ ...ESTIMATE_CENTER_COLUMN_CSS_VARIABLES, ...sidePanelWidthCssVariables }}
         aria-label={`${title} canvas`}
       >
+        {/* Floating white workspace surface over the grey canvas. Header + content
+            + footer stay one card (no internal gaps) so the estimate centre-column
+            alignment is preserved. */}
+        <div
+          data-workshop-workspace-surface
+          className="sidebar-glass-shadow flex h-full min-h-0 flex-col overflow-hidden rounded-xs border border-hairline bg-white"
+        >
         <WorkshopTitleHeader
           title={title}
           eyebrow={eyebrow}
@@ -160,6 +169,7 @@ export async function WorkshopPageShell({
           ) : null}
           {showAskFlip ? <AskFlipFooterAssistant /> : null}
         </footer>
+        </div>
       </section>
     </main>
   );

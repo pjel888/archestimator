@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
+import { WorkshopGlassBackdrop } from "@/components/workshop/WorkshopGlassBackdrop";
 import { cn } from "@/lib/ui/cn";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
@@ -25,14 +26,19 @@ export function StaticWorkshopLoadingShell({
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:px-2" : "p-2";
 
   return (
-    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden bg-canvas text-ink" aria-label={`${title} loading`}>
+    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden text-ink" aria-label={`${title} loading`}>
+      <WorkshopGlassBackdrop />
       <MainSidebar />
       <section
         data-workshop-page-shell-canvas
-        className="flex h-full min-h-0 flex-col lg:pl-[64px]"
+        className="flex h-full min-h-0 flex-col p-2 lg:pl-[var(--sidebar-content-offset)]"
         style={ESTIMATE_CENTER_COLUMN_CSS_VARIABLES}
         aria-label={`${title} loading canvas`}
       >
+        <div
+          data-workshop-workspace-surface
+          className="sidebar-glass-shadow flex h-full min-h-0 flex-col overflow-hidden rounded-xs border border-hairline bg-white"
+        >
         <WorkshopTitleHeader
           title={title}
           eyebrow={eyebrow}
@@ -54,6 +60,7 @@ export function StaticWorkshopLoadingShell({
             chromePaddingClass,
           ].join(" ")}
         />
+        </div>
       </section>
     </main>
   );

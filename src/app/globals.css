@@ -41,6 +41,43 @@
   --proposal-paper: #fffdf8;
   --font-sf-pro: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --radius-xs: 3px;
+
+  /* ─── Liquid-glass sidebar (brand-adapted, light) ───────────────────────
+     Sidebar-only design-system exception (authorized 2026-06-17): a frosted
+     "glass surface" vocabulary that intentionally departs from the app's
+     3px-radius / no-shadow / no-glassmorphism defaults. Dark ink text on a
+     light warm frost keeps WCAG AA trivially satisfied. Calibrated against the
+     WorkshopGlassBackdrop mesh. See DESIGN.md → "Glass surface (sidebar)". */
+  --glass-bg: rgba(255, 255, 255, 0.72);          /* frosted white — floats brightly over the grey canvas */
+  --glass-bg-fallback: #fbfbfc;                   /* opaque: no-support / reduced-transparency */
+  --glass-blur: 18px;                             /* capped 16–20px for mobile GPU */
+  --glass-saturate: 145%;
+  --glass-border: rgba(38, 44, 58, 0.10);         /* cool neutral hairline (not warm/brown) */
+  --glass-border-top: rgba(255, 255, 255, 0.5);   /* soft specular top edge — present, not a white stripe */
+  --glass-inset-hi: inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
+  --glass-radius: 12px;
+  --glass-nav-radius: 8px;
+  /* Hover: a faint top-lit neutral gradient (not a flat tint). */
+  --glass-nav-hover-bg: linear-gradient(180deg, rgba(38, 44, 58, 0.07), rgba(38, 44, 58, 0.035));
+  /* Active pill: brand-orange glass — a soft vertical gradient (stronger at the
+     top edge where light catches), inset specular, accent hairline. */
+  --glass-nav-active-bg: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 18%, transparent), color-mix(in srgb, var(--brand-orange) 7%, transparent));
+  --glass-nav-active-border: color-mix(in srgb, var(--brand-orange) 30%, transparent);
+  --glass-nav-active-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
+  /* Combined active-pill shadow: inner top specular + inset accent hairline. */
+  --glass-nav-active-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-border);
+  /* Logo frame: orange liquid-glass slab with a white mark. */
+  --glass-logo-bg: linear-gradient(155deg, color-mix(in srgb, var(--brand-orange) 94%, white), var(--brand-orange-dark));
+  --glass-logo-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 2px 8px rgba(120, 45, 28, 0.18);
+  /* Section divider: 1px centre-faded hairline (replaces the hard gray line). */
+  --glass-divider: linear-gradient(90deg, transparent, rgba(38, 44, 58, 0.14), transparent);
+  --glass-grain-opacity: 0.035;
+  /* Left offset the workshop content reserves for the floating rail:
+     INSET(8) + COLLAPSED(64) + GAP(8) = 80px. Single source of truth — both
+     WorkshopPageShell and StaticWorkshopLoadingShell consume this, so they can
+     never drift. Mirrors SIDEBAR geometry in sidebar-types.ts. */
+  --sidebar-content-offset: 80px;
 }
 
 @theme inline {
@@ -147,6 +184,98 @@ body:has([data-workshop-page-shell-root]) {
   select,
   textarea {
     font: inherit;
+  }
+}
+
+/* ─── Liquid-glass sidebar surface ──────────────────────────────────────────
+   The ONE backdrop-filter in the sidebar subtree lives here. Children fake glass
+   with plain translucent fills only (never their own backdrop-filter). The outer
+   floating drop-shadow is carried by a separate, unclipped "shadow plate" element
+   because clip-path (used for the collapse animation) is applied AFTER filter and
+   would otherwise crop the shadow at the rail edge. */
+.sidebar-glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-border-top);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-inset-hi);
+}
+
+/* Desktop-Chromium refraction: swap the SINGLE backdrop-filter to the inline SVG
+   filter, which performs blur + saturate + displacement itself. Still exactly one
+   backdrop-filter. Gated at runtime by useLiquidGlassRefraction(). */
+.sidebar-glass[data-refraction="true"] {
+  -webkit-backdrop-filter: url(#sc-sidebar-glass);
+  backdrop-filter: url(#sc-sidebar-glass);
+}
+
+/* Soft 1px specular line along the top edge (simulates a light source above).
+   Kept gentle and centre-weighted so it reads as a glass glint, not a white stripe. */
+.sidebar-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-top-left-radius: var(--glass-radius);
+  border-top-right-radius: var(--glass-radius);
+  background: linear-gradient(90deg, transparent, var(--glass-border-top) 35%, var(--glass-border-top) 65%, transparent);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Orange liquid-glass logo frame (white mark sits inside). */
+.sidebar-logo-frame {
+  background: var(--glass-logo-bg);
+  box-shadow: var(--glass-logo-shadow);
+}
+
+/* Centre-faded 1px section divider — quieter than a hard gray line, suits the glass. */
+.sidebar-divider {
+  height: 1px;
+  width: 100%;
+  background: var(--glass-divider);
+}
+
+/* Floating shadow plate: unclipped sibling that carries the soft outer shadow. */
+.sidebar-glass-shadow {
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Frosted grain: faint noise so the blur reads as real frosted glass, not flat tint. */
+.sidebar-glass-grain {
+  opacity: var(--glass-grain-opacity);
+  mix-blend-mode: soft-light;
+  background-repeat: repeat;
+  background-size: 96px 96px;
+}
+
+/* Fallback A — no backdrop-filter support → solid, still-intentional panel. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar-glass {
+    background: var(--glass-bg-fallback);
+  }
+  .sidebar-glass-grain {
+    display: none;
+  }
+}
+
+/* Fallback B — user prefers reduced transparency → solid panel, no blur.
+   The `[data-refraction]` reset is repeated here at matching specificity so the
+   desktop refraction variant (0,2,0) can't win the cascade and re-introduce the
+   SVG displacement backdrop-filter; the JS gate also excludes this mode. */
+@media (prefers-reduced-transparency: reduce) {
+  .sidebar-glass,
+  .sidebar-glass[data-refraction="true"] {
+    background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .sidebar-glass-grain {
+    display: none;
   }
 }
 

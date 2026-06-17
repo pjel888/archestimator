@@ -19,15 +19,19 @@ function formatBadgeCount(count: number) {
   return String(count);
 }
 
+// Active pill — faked glass: brand-orange-tinted translucent fill + inset specular
+// hairline (no per-child backdrop-filter; the one blur lives on the panel). The
+// `text-orange-700` + `before:left-1.5/right-1.5/w-9` classes are contract-stable
+// (asserted by sidebar-nav-item-row.test.tsx) — keep them.
 const ACTIVE_NAV_ITEM_CLASSNAME =
-  "text-orange-700 hover:text-orange-700 before:bg-orange-50 before:shadow-[inset_0_0_0_1px_rgb(194,65,12)] before:opacity-100";
+  "text-orange-700 hover:text-orange-700 before:[background:var(--glass-nav-active-bg)] before:[box-shadow:var(--glass-nav-active-shadow)] before:opacity-100";
 
 const ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME = "before:left-1.5 before:right-1.5";
 
 const ACTIVE_NAV_ITEM_COLLAPSED_CLASSNAME = "before:left-1.5 before:w-9";
 
 const INACTIVE_NAV_ITEM_CLASSNAME =
-  "text-tertiary before:left-1.5 before:w-9 before:bg-accent-soft before:shadow-[inset_0_0_0_1px_rgba(255,122,26,0.12)] hover:text-primary hover:before:opacity-100";
+  "text-tertiary before:left-1.5 before:w-9 before:[background:var(--glass-nav-hover-bg)] hover:text-primary hover:before:opacity-100";
 
 export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onPrefetchCancel }: SidebarNavItemProps) {
   const Icon = item.icon;
@@ -56,8 +60,8 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
       onMouseEnter={startPrefetch}
       onMouseLeave={cancelPrefetch}
       className={[
-        "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-colors duration-[120ms] ease-out",
-        "before:absolute before:top-[-2px] before:z-0 before:h-9 before:rounded-xs before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",
+        "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-[color,transform] duration-[120ms] ease-out active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
+        "before:absolute before:top-[-2px] before:z-0 before:h-9 before:[border-radius:var(--glass-nav-radius)] before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",
         "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
         active
           ? [ACTIVE_NAV_ITEM_CLASSNAME, expanded ? ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME : ACTIVE_NAV_ITEM_COLLAPSED_CLASSNAME].join(" ")
@@ -65,7 +69,14 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
       ].join(" ")}
     >
       <span className="relative z-10 flex h-8 w-12 shrink-0 items-center justify-center rounded-xs transition-[background-color,box-shadow] duration-[120ms] ease-out">
-        <Icon size={16} weight="regular" className={["relative z-10 shrink-0", active ? "text-orange-700" : ""].join(" ")} />
+        <Icon
+          size={16}
+          weight="regular"
+          className={[
+            "relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none",
+            active ? "text-orange-700" : "",
+          ].join(" ")}
+        />
         {badgeText ? (
           <span
             aria-hidden="true"

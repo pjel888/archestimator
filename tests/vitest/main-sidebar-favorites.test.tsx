@@ -67,18 +67,21 @@ describe("MainSidebar favorites", () => {
     );
 
     const collapsedNavigation = screen.getByRole("navigation", { name: "Main navigation" });
+    // Redesign: the mark is locked into the 48px column (w-12) so it stays put on
+    // toggle; the wordmark lives beside it and fades, hidden when collapsed.
     const collapsedLogo = collapsedNavigation.querySelector("[data-sidebar-header-logo-lock]");
     expect(collapsedLogo).toBeTruthy();
-    expect(collapsedLogo?.getAttribute("style")).toContain("width: 148px");
-    expect(within(collapsedLogo as HTMLElement).getByText("archestimator")).toHaveClass("text-[12px]");
+    expect(collapsedLogo).toHaveClass("w-12");
+    expect((collapsedLogo as HTMLElement).querySelector("img")?.getAttribute("src")).toContain("archestimator_logo_white");
+    expect(within(collapsedLogo as HTMLElement).queryByText("archestimator")).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
 
     const navigation = screen.getByRole("navigation", { name: "Main navigation" });
     const expandedLogo = navigation.querySelector("[data-sidebar-header-logo-lock]");
     expect(expandedLogo).toBeTruthy();
-    expect(expandedLogo?.getAttribute("style")).toContain("width: 148px");
-    expect(within(expandedLogo as HTMLElement).getByText("archestimator")).toHaveClass("text-[12px]");
+    expect(expandedLogo).toHaveClass("w-12");
+    expect(within(navigation).getByText("archestimator")).toHaveClass("text-[12px]", "text-white");
     expect(within(navigation).getByText("Favorites")).toBeInTheDocument();
 
     const favoriteProject = within(navigation).getByRole("link", { name: "Lewis Residence" });

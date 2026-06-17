@@ -153,29 +153,34 @@ describe("workshop sidebar baseline", () => {
     expect(navigation).toBeTruthy();
     expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByRole("link", { name: "Projects, 3 pending invites" })).toBeTruthy();
-    expect(navigation.querySelector('div[class*="bg-surface-muted"]')).toBeTruthy();
-    expect(navigation.querySelector('div[style*="color-mix(in srgb, var(--brand-orange) 25%, white)"]')).toBeTruthy();
+    // Liquid-glass redesign: the brand header is now an orange glass logo slab
+    // (white mark) — not the old opaque bg-surface-muted chip — and the collapse
+    // toggle has moved out of it into its own row below the profile.
     const headerFrame = navigation.querySelector("[data-sidebar-header-frame]");
     expect(headerFrame).toBeTruthy();
-    expect(headerFrame?.getAttribute("style")).toContain("height: 86px");
+    expect(headerFrame).toHaveClass("sidebar-logo-frame");
+    expect(headerFrame?.getAttribute("style")).toContain("height: 56px");
     const brandRow = navigation.querySelector("[data-sidebar-header-brand-row]");
     expect(brandRow).toBeTruthy();
-    expect(brandRow).toHaveClass("h-10", "items-center");
+    expect(brandRow).toHaveClass("grid", "items-center");
     expect(brandRow).not.toHaveClass("border-b");
     expect(brandRow?.getAttribute("style")).toBeNull();
     const primaryNavGroup = navigation.querySelector("[data-sidebar-primary-nav-group]");
     expect(primaryNavGroup).toBeTruthy();
-    const primaryNavDividers = navigation.querySelectorAll("[data-sidebar-primary-nav-divider]");
-    expect(primaryNavDividers).toHaveLength(2);
-    primaryNavDividers.forEach((divider) => {
-      expect(divider).toHaveClass("h-px", "w-full", "bg-dividerSibling");
+    // Section order: profile → divider → toggle → divider → links → divider → favourites.
+    const sectionDividers = navigation.querySelectorAll("[data-sidebar-section-divider]");
+    expect(sectionDividers).toHaveLength(3);
+    sectionDividers.forEach((divider) => {
+      expect(divider).toHaveClass("sidebar-divider");
     });
     const logoLock = navigation.querySelector("[data-sidebar-header-logo-lock]");
     expect(logoLock).toBeTruthy();
-    expect(logoLock?.getAttribute("style")).toContain("width: 148px");
-    expect(within(logoLock as HTMLElement).getByText("archestimator")).toHaveClass("text-[12px]", "text-brand-orange");
+    expect(logoLock).toHaveClass("w-12"); // mark locked in the 48px column, stationary on toggle
+    const logoImg = (logoLock as HTMLElement).querySelector("img");
+    expect(logoImg).toBeTruthy(); // white mark
+    expect(logoImg?.getAttribute("src")).toContain("archestimator_logo_white");
+    expect(within(navigation).getByText("archestimator")).toHaveClass("text-[12px]", "text-white");
     expect(navigation.querySelector("[data-sidebar-workspace-shell]")).toBeNull();
-    expect(navigation.querySelector('span[class*="text-brand-orange"]')).toBeTruthy();
     expect(navigation.querySelector('[class*="backdrop-blur"]')).toBeNull();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();

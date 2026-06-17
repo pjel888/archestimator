@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Books, FileText, Folder, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
+import { Books, FileText, Folder, SidebarSimple, SquaresFour, Star } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,11 @@ import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 import { useSidebarFavoritesAnnouncer } from "@/hooks/use-sidebar-favorites-announcer";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
+import SidebarGlassFilter from "./SidebarGlassFilter";
+import { GLASS_GRAIN_DATA_URI } from "./glass-grain";
+import { useLiquidGlassRefraction } from "./useLiquidGlassRefraction";
 import {
-  SIDEBAR_BACKGROUND_COLOR,
+  SIDEBAR_GLASS_RADIUS,
   SIDEBAR_PADDING,
   SIDEBAR_TRANSITION,
   SIDEBAR_WIDTH_COLLAPSED,
@@ -79,6 +82,21 @@ function getFavoriteLinkOrder(favoriteProjects: MainSidebarFavoriteProject[]) {
     project.href,
     ...project.favoriteEstimateSheets.map((sheet) => sheet.href),
   ]);
+}
+
+const TOGGLE_ROW_CLASSNAME = [
+  "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 text-tertiary outline-none transition-[color,transform] duration-[120ms] ease-out hover:text-primary active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
+  "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:[border-radius:var(--glass-nav-radius)] before:[background:var(--glass-nav-hover-bg)] before:opacity-0 before:transition-opacity before:duration-[120ms] before:ease-out before:content-[''] hover:before:opacity-100",
+  "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
+].join(" ");
+
+/** 1px centre-faded section divider, padded to the rail gutter. */
+function SidebarSectionDivider() {
+  return (
+    <div className="shrink-0 py-1" style={{ paddingInline: SIDEBAR_PADDING }}>
+      <div data-sidebar-section-divider aria-hidden="true" className="sidebar-divider" />
+    </div>
+  );
 }
 
 function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
@@ -206,12 +224,17 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const { refractionEnabled } = useLiquidGlassRefraction();
   const clippedWidth = SIDEBAR_WIDTH_EXPANDED - SIDEBAR_WIDTH_COLLAPSED;
   const sidebarStyle = useMemo<React.CSSProperties>(() => {
+    // The glass surface, border, radius, and grain come from the `sidebar-glass`
+    // class. Only the dynamic collapse clip lives inline. The `round` keyword keeps
+    // the clipped rail's revealed right edge curved to match the floating slab.
     const base: React.CSSProperties = {
-      backgroundColor: SIDEBAR_BACKGROUND_COLOR,
       width: SIDEBAR_WIDTH_EXPANDED,
-      clipPath: expanded ? "inset(0 0 0 0)" : `inset(0 ${clippedWidth}px 0 0)`,
+      clipPath: expanded
+        ? `inset(0 0 0 0 round ${SIDEBAR_GLASS_RADIUS}px)`
+        : `inset(0 ${clippedWidth}px 0 0 round ${SIDEBAR_GLASS_RADIUS}px)`,
     };
 
     if (prefersReducedMotion) return base;
@@ -222,16 +245,19 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
     };
   }, [clippedWidth, expanded, prefersReducedMotion]);
 
-  const borderStyle = useMemo<React.CSSProperties>(() => {
+  // Unclipped shadow plate sitting behind the panel: its width tracks the collapse
+  // so the floating drop-shadow always hugs the visible rail (clip-path would crop
+  // a shadow drawn on the panel itself).
+  const shadowPlateStyle = useMemo<React.CSSProperties>(() => {
     const base: React.CSSProperties = {
-      left: expanded ? SIDEBAR_WIDTH_EXPANDED - 1 : SIDEBAR_WIDTH_COLLAPSED - 1,
+      width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED,
     };
 
     if (prefersReducedMotion) return base;
 
     return {
       ...base,
-      transition: `left ${expanded ? SIDEBAR_TRANSITION.expandDuration : SIDEBAR_TRANSITION.collapseDuration}ms ${SIDEBAR_TRANSITION.easing}`,
+      transition: `width ${expanded ? SIDEBAR_TRANSITION.expandDuration : SIDEBAR_TRANSITION.collapseDuration}ms ${SIDEBAR_TRANSITION.easing}`,
     };
   }, [expanded, prefersReducedMotion]);
   return (
@@ -245,15 +271,27 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
           onClick={() => setExpanded(false)}
         />
       )}
+      {refractionEnabled ? <SidebarGlassFilter /> : null}
+      <div
+        aria-hidden="true"
+        className="sidebar-glass-shadow pointer-events-none fixed left-2 top-2 z-[99] hidden h-[calc(100dvh-16px)] lg:block"
+        style={shadowPlateStyle}
+      />
       <nav
         ref={navRef}
         aria-label="Main navigation"
-        className="fixed left-0 top-0 z-[100] hidden h-[100dvh] flex-col overflow-hidden will-change-[clip-path] lg:flex"
+        data-refraction={refractionEnabled ? "true" : "false"}
+        className="sidebar-glass fixed left-2 top-2 z-[100] hidden h-[calc(100dvh-16px)] flex-col overflow-hidden will-change-[clip-path] lg:flex"
         style={sidebarStyle}
       >
-        <SidebarHeader expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
+        <div
+          aria-hidden="true"
+          className="sidebar-glass-grain pointer-events-none absolute inset-0 z-0"
+          style={{ backgroundImage: GLASS_GRAIN_DATA_URI }}
+        />
+        <SidebarHeader expanded={expanded} />
 
-        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="relative z-[1] flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex h-[46px] shrink-0 items-center" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs">
               <div className="flex h-10 w-12 shrink-0 items-center justify-center">
@@ -278,8 +316,38 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
             </div>
           </div>
 
+          <SidebarSectionDivider />
+
+          <div className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              aria-expanded={expanded}
+              aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+              className={TOGGLE_ROW_CLASSNAME}
+            >
+              <span className="relative z-10 flex h-8 w-12 shrink-0 items-center justify-center">
+                <SidebarSimple
+                  size={16}
+                  weight="regular"
+                  className="relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none"
+                />
+              </span>
+              <span
+                aria-hidden={!expanded}
+                className={[
+                  "relative z-10 min-w-0 truncate whitespace-nowrap text-[10px] leading-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+                  expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
+                ].join(" ")}
+              >
+                Collapse
+              </span>
+            </button>
+          </div>
+
+          <SidebarSectionDivider />
+
           <div data-sidebar-primary-nav-group className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
-            <div data-sidebar-primary-nav-divider="top" className="h-px w-full bg-dividerSibling" />
             <div className="flex flex-col gap-2 py-2">
               {resolvedSidebarNavItems.map((item) => (
                 <SidebarNavItemRow
@@ -292,8 +360,9 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                 />
               ))}
             </div>
-            <div data-sidebar-primary-nav-divider="bottom" className="h-px w-full bg-dividerSibling" />
           </div>
+
+          <SidebarSectionDivider />
 
           <div className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div
@@ -429,11 +498,6 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
           </div>
         </div>
       </nav>
-      <div
-        aria-hidden="true"
-        className="fixed top-0 z-[100] hidden h-[100dvh] w-px bg-dividerSibling shadow-[4px_0_12px_rgba(0,0,0,0.10)] pointer-events-none lg:block"
-        style={borderStyle}
-      />
     </>
   );
 }

@@ -103,7 +103,7 @@ describe("workshop sidebar baseline", () => {
     }
   });
 
-  test("main sidebar preserves SlateCamp sidebar measurements with overlay expansion", async () => {
+  test("main sidebar preserves archestimator sidebar measurements with overlay expansion", async () => {
     const source = await Bun.file("src/components/sidebar/sidebar-types.ts").text();
     const sidebar = await Bun.file("src/components/sidebar/MainSidebar.tsx").text();
     const sidebarHeader = await Bun.file("src/components/sidebar/SidebarHeader.tsx").text();
@@ -111,13 +111,21 @@ describe("workshop sidebar baseline", () => {
 
     expect(source).toContain("SIDEBAR_WIDTH_EXPANDED = 288");
     expect(source).toContain("SIDEBAR_WIDTH_COLLAPSED = SIDEBAR_PADDING * 2 + SIDEBAR_ICON_SLOT");
-    expect(sidebar).toContain("fixed left-0 top-0 z-[100]");
+    // Liquid-glass redesign: the rail floats (inset) and carries the single
+    // backdrop-filter via the `sidebar-glass` surface class.
+    expect(sidebar).toContain("sidebar-glass fixed left-2 top-2 z-[100]");
     expect(sidebar).toContain("sidebarNavItems");
     expect(sidebar).toContain("data-sidebar-primary-nav-group");
-    expect(sidebar).toContain('data-sidebar-primary-nav-divider="top"');
-    expect(sidebar).toContain('data-sidebar-primary-nav-divider="bottom"');
+    // Redesign: hard top/bottom nav dividers replaced by centre-faded section dividers
+    // (profile → divider → toggle → divider → links → divider → favourites).
+    expect(sidebar).not.toContain("data-sidebar-primary-nav-divider");
+    expect(sidebar).toContain("data-sidebar-section-divider");
     expect(sidebar).toContain("flex flex-col gap-2 py-2");
-    expect(sidebar).toContain("w-px bg-dividerSibling");
+    // The old hard 1px border line is replaced by the floating glass shadow plate.
+    expect(sidebar).not.toContain("w-px bg-dividerSibling");
+    expect(sidebar).toContain("sidebar-glass-shadow");
+    expect(sidebar).toContain("sidebar-glass-grain");
+    expect(sidebar).toContain("data-refraction");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
     expect(sidebar).toContain("href: \"/workshop/library\"");
     // 2026-06-11 Library unification: the rail shows a single Library entry
@@ -137,15 +145,35 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).not.toContain("mt-auto");
     expect(sidebarHeader).not.toContain("absolute bottom-0 border-b border-hairline");
     expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
-    expect(sidebarNavItemRow).toContain("before:bg-orange-50");
+    // Active pill is now faked glass (brand-orange-tinted fill + inset specular),
+    // wired to the same active-route detection. text-orange-700 is contract-stable.
+    expect(sidebarNavItemRow).toContain("var(--glass-nav-active-bg)");
     expect(sidebarNavItemRow).toContain("text-orange-700");
-    expect(sidebarNavItemRow).toContain("rgb(194,65,12)");
+    expect(sidebarNavItemRow).toContain("var(--glass-nav-active-shadow)");
     expect(sidebarNavItemRow).toContain('weight="regular"');
     expect(sidebar).toContain('<Star size={15} weight="regular"');
     expect(sidebar).toContain('<Folder size={13} weight="regular"');
     expect(sidebar).toContain('<FileText size={11} weight="regular"');
-    expect(sidebarHeader).toContain('<SidebarSimple size={16} weight="regular"');
+    // The collapse toggle moved out of the header into its own row in MainSidebar.
+    expect(sidebar).toContain('<SidebarSimple');
+    expect(sidebar).toContain('aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}');
+    expect(sidebarHeader).not.toContain("SidebarSimple");
     expect(sidebarNavItemRow).not.toContain('expanded ? "w-full pr-2"');
     expect(sidebar).toContain("clipPath");
+  });
+
+  test("workshop shells share one glass footprint: same content offset, mesh backdrop, no flat canvas", async () => {
+    const pageShell = await Bun.file("src/components/workshop/WorkshopPageShell.tsx").text();
+    const loadingShell = await Bun.file("src/components/workshop/StaticWorkshopLoadingShell.tsx").text();
+    // Both reserve the SAME floating-rail offset via the single CSS-var source of
+    // truth — prevents the 64px/80px drift that misaligns content under the rail.
+    for (const shell of [pageShell, loadingShell]) {
+      expect(shell).toContain("lg:pl-[var(--sidebar-content-offset)]");
+      expect(shell).not.toContain("lg:pl-[64px]");
+      // Both mount the mesh so the frosted rail reads as glass (no dead-flat glass
+      // during loading), and neither paints an opaque flat canvas over the mesh.
+      expect(shell).toContain("<WorkshopGlassBackdrop />");
+      expect(shell).not.toContain("bg-canvas");
+    }
   });
 });
