@@ -142,7 +142,7 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
             </ProjectDataField>
           </div>
 
-          <div className="grid grid-cols-2 divide-x divide-hairline border-t border-hairline pt-1">
+          <div className="grid grid-cols-2 divide-x divide-hairline border-t border-hairline">
             <ProjectTimestampField label="Created" value={formatDate(project?.created_at)} />
             <ProjectTimestampField label="Updated" value={formatDate(project?.updated_at)} />
           </div>

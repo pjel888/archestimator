@@ -1339,7 +1339,7 @@ export function ProjectsPageClient({
         <BulkActionToolbar
           selectedCount={selectedVisibleProjectIds.length}
           actionLabel="Delete selected projects"
-          helperText="Projects with active shared links cannot be deleted."
+          helperText="Active shared links will be revoked when deleted."
           placement="bottom-dock"
           onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
           onClear={() => setSelectedProjectIds(new Set())}
@@ -1451,6 +1451,7 @@ export function ProjectsPageClient({
           <ProjectDetailsModal
             project={expandedProject}
             onClose={() => setExpandedProject(null)}
+            onSaved={() => router.refresh()}
             onDeleteProject={canDeleteExpandedProject
               ? (project) => {
                 setExpandedProject(null);

@@ -56,7 +56,7 @@ async function requireWorkspaceTemplate(supabase: SupabaseServerClient, workspac
 
 async function requireTemplateEditorAccess(supabase: SupabaseServerClient, workspaceId: string) {
   const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
-  if (error) throw new Error(`Could not verify template editor access: ${error.message}`);
+  if (error) throwActionError("Could not verify template editor access.", error);
   if (data !== true) throw new Error("Only workspace editors/admins can edit estimate templates.");
 }
 

@@ -140,6 +140,9 @@ const LIBRARY_TREE_TABS = [
 ] as const;
 
 const EMPTY_REUSABLE_PROJECT_SOURCES: ReusableEstimateSource[] = [];
+const EMPTY_SUPPLIER_OPTIONS: ComponentLibrarySupplierOption[] = [];
+const EMPTY_COMPONENT_BRANDS: ComponentLibraryBrand[] = [];
+const EMPTY_LIBRARY_FOLDERS: LibraryFolderRecord[] = [];
 const PROJECT_SOURCE_NODE_PREFIX = "source-project-";
 const PROJECT_ESTIMATE_SOURCE_NODE_PREFIX = "source-estimate-";
 
@@ -797,9 +800,9 @@ function EstimateRightSidebarBase({
   projectSources = EMPTY_REUSABLE_PROJECT_SOURCES,
   onInsertProjectSource,
   categoryTree = componentCategoryTree,
-  suppliers = [],
-  brands = [],
-  libraryFolders = [],
+  suppliers = EMPTY_SUPPLIER_OPTIONS,
+  brands = EMPTY_COMPONENT_BRANDS,
+  libraryFolders = EMPTY_LIBRARY_FOLDERS,
   onLibraryDataChanged,
   templateCreateMode = "estimate-node",
 }: EstimateRightSidebarProps = {}) {

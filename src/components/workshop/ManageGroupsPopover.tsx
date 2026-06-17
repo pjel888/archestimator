@@ -132,7 +132,7 @@ export function ManageGroupsPopover({
                 aria-label={swatch.label}
                 title={swatch.label}
                 className={cn(
-                  // DESIGN.md: swatches are rounded-xs, never rounded-full.
+                  // DESIGN.md: swatches use the standard app radius.
                   "size-4 rounded-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
                   draftAccent === swatch.id ? "border-ink" : "border-hairline",
                 )}
@@ -209,7 +209,7 @@ export function ManageGroupsPopover({
                             data-action-menu-item-check="true"
                             className="absolute inset-0 flex items-center justify-center text-white"
                           >
-                            <Check size={10} weight="bold" aria-hidden="true" />
+                            <Check size={10} weight="regular" aria-hidden="true" />
                           </span>
                         ) : null}
                       </button>

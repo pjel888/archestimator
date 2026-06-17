@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartBar, ChartBarHorizontal, ClipboardText } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, ChartBarHorizontal, ClipboardText, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 type ProjectMiniSidebarProps = {
@@ -37,6 +37,12 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       href: `/workshop/projects/${projectId}/data`,
       label: "Data",
       icon: ChartBarHorizontal,
+      exact: false,
+    },
+    {
+      href: `/workshop/projects/${projectId}/publish`,
+      label: "Publish",
+      icon: ShareNetwork,
       exact: false,
     },
   ];

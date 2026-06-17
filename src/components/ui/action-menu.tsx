@@ -96,7 +96,7 @@ export function ContextActionMenuContent({ groups, renderer = contextMenuRendere
                 className={item.shortcut ? "flex size-3 shrink-0 items-center justify-center" : "ml-auto flex size-3 shrink-0 items-center justify-center"}
                 data-action-menu-item-check="true"
               >
-                <Check aria-hidden="true" weight="bold" />
+                <Check aria-hidden="true" weight="regular" />
               </span>
             ) : null}
           </Item>
