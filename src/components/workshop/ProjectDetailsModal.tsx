@@ -1,6 +1,10 @@
 "use client";
 
-import { useId, useMemo, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+// NOTE: keep this a pure client overlay — saving runs the server action and then
+// closes the modal, instead of a raw `<form action={serverAction}>` whose
+// `revalidatePath` re-streams /workshop/projects underneath the open modal
+// (which read to users as a full-page refresh).
 import { X, FloppyDisk, ImageSquare, MagicWand, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +27,7 @@ type ProjectDetailsModalProps = {
   project: Tables<"projects">;
   onClose: () => void;
   onDeleteProject?: (project: Tables<"projects">) => void;
+  onSaved?: () => void;
 };
 
 type ProjectMetadata = {
@@ -86,7 +91,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
   return <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">{children}</span>;
 }
 
-export function ProjectDetailsModal({ project, onClose, onDeleteProject }: ProjectDetailsModalProps) {
+export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved }: ProjectDetailsModalProps) {
   const metadata = readProjectMetadata(project.metadata);
   const fileInputId = useId();
   const initialCurrencyCode = normalizeCurrencyCode(project.currency_code);
@@ -112,6 +117,27 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject }: Proje
   );
   const imageUploadBusy = imageUpload.state === "uploading";
   const imagePreviewUrl = projectImage?.thumbnailUrl || projectImage?.url;
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  function handleSaveDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
+    setSaveError(null);
+    const formData = new FormData(event.currentTarget);
+    void updateProjectDetails(formData)
+      .then(() => {
+        // Close after the save resolves so the underlying list reconciles with
+        // the modal already dismissed — no page-reload flash while it is open.
+        onClose();
+        onSaved?.();
+      })
+      .catch((error: unknown) => {
+        // Keep the modal open so the edit can be retried; nothing was lost.
+        setSaveError(error instanceof Error ? error.message : "Could not save project details.");
+        setIsSaving(false);
+      });
+  }
 
   async function handleProjectImageUpload(file: File) {
     if (file.type && !ALLOWED_PROJECT_IMAGE_TYPES.has(file.type)) {
@@ -179,7 +205,7 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject }: Proje
           </Button>
         </div>
 
-        <form action={updateProjectDetails} className="min-h-0 flex-1 overflow-auto p-2">
+        <form onSubmit={handleSaveDetails} className="min-h-0 flex-1 overflow-auto p-2">
           <input type="hidden" name="projectId" value={project.id} />
           <input type="hidden" name="projectImageRemove" value={imageRemoved ? "1" : "0"} />
           {projectImage ? (
@@ -348,20 +374,28 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject }: Proje
             </div>
           </div>
 
-          <div className="sticky bottom-0 -mx-2 mt-2 flex justify-between gap-2 border-t border-hairline bg-white/90 px-2 py-2 backdrop-blur">
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              className="h-8"
-              onClick={() => onDeleteProject?.(project)}
-            >
-              Delete project
-            </Button>
+          {saveError ? (
+            <p role="alert" className="mt-2 rounded-xs border border-dangerSoft bg-dangerSoft/25 px-2 py-1.5 text-[10px] font-medium leading-4 text-danger">
+              {saveError}
+            </p>
+          ) : null}
+
+          <div className="sticky bottom-0 -mx-2 mt-2 flex justify-end gap-2 border-t border-hairline bg-white/90 px-2 py-2 backdrop-blur">
+            {onDeleteProject ? (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                className="mr-auto h-8"
+                onClick={() => onDeleteProject(project)}
+              >
+                Delete project
+              </Button>
+            ) : null}
             <div className="flex gap-2">
-              <Button type="submit" variant="primary" size="sm" className="h-8 gap-1.5">
+              <Button type="submit" variant="primary" size="sm" className="h-8 gap-1.5" disabled={isSaving}>
                 <FloppyDisk size={13} weight="regular" aria-hidden="true" />
-                Save details
+                {isSaving ? "Saving…" : "Save details"}
               </Button>
             </div>
           </div>

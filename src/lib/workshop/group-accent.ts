@@ -5,9 +5,11 @@
  * group accent swatches and pure helpers to resolve/validate them.
  *
  * Design constraints:
- * - Accent colors are applied ONLY via inline style (a 3px left rule and a
- *   6px dot). They are NEVER applied to text and NEVER emitted as Tailwind
- *   utility classes.
+ * - Accent colors are applied ONLY via inline style. They are NEVER emitted as
+ *   Tailwind utility classes.
+ * - In the group-mode flag, the accent becomes the border color; a lighter tint
+ *   of the accent becomes the background; and the label text is a contrast
+ *   variant (dark on light, light on dark) so it stays readable.
  * - The palette is provably non-brand-orange: no swatch reads as the brand
  *   orange (#AA412A / rgb(170,65,42)) or any vermillion/orange hue.
  * - `DEFAULT_GROUP_ACCENT.id` is "neutral" — a distinct sentinel that is NOT a
@@ -28,8 +30,8 @@ export type GroupAccentId =
 export type GroupAccentSwatch = {
   id: GroupAccentId | "neutral";
   label: string;
-  ruleColor: string; // hex, inline-style only (3px left rule)
-  dotColor: string; // hex, inline-style only (6px dot)
+  ruleColor: string; // hex, inline-style only
+  dotColor: string; // hex, inline-style only (legacy, no longer rendered)
 };
 
 export const GROUP_ACCENT_SWATCHES: readonly GroupAccentSwatch[] = [
@@ -70,6 +72,84 @@ export function resolveAccent(
   return {
     ruleColor: DEFAULT_GROUP_ACCENT.ruleColor,
     dotColor: DEFAULT_GROUP_ACCENT.dotColor,
+  };
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const sanitized = hex.replace("#", "");
+  if (!/^[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/.test(sanitized)) {
+    return null;
+  }
+  const full =
+    sanitized.length === 3
+      ? sanitized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : sanitized;
+  const num = parseInt(full, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function mixHex(hex: string, otherHex: string, percent: number): string {
+  const rgb = hexToRgb(hex);
+  const other = hexToRgb(otherHex);
+  if (!rgb || !other) {
+    return hex;
+  }
+  const p = Math.max(0, Math.min(100, percent)) / 100;
+  const mix = (channel: number, otherChannel: number) =>
+    Math.round(channel * p + otherChannel * (1 - p));
+  return rgbToHex(
+    mix(rgb.r, other.r),
+    mix(rgb.g, other.g),
+    mix(rgb.b, other.b),
+  );
+}
+
+function getLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) {
+    return 1;
+  }
+  const srgb = [rgb.r, rgb.g, rgb.b].map((c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+}
+
+/**
+ * Colors for the group-mode flag derived from a group's accent.
+ *
+ * - `borderColor` is the accent color itself (matches the horizontal rule).
+ * - `backgroundColor` is a lighter tint of the accent.
+ * - `textColor` adapts to the background: dark on light, light on dark.
+ */
+export function getGroupFlagColors(accentId: string | null | undefined): {
+  borderColor: string;
+  backgroundColor: string;
+  textColor: string;
+} {
+  const { ruleColor } = resolveAccent(accentId);
+  const backgroundColor = mixHex(ruleColor, "#FFFFFF", 20);
+  const luminance = getLuminance(backgroundColor);
+  const textColor =
+    luminance > 0.5
+      ? mixHex(ruleColor, "#000000", 75)
+      : mixHex(ruleColor, "#FFFFFF", 90);
+  return {
+    borderColor: ruleColor,
+    backgroundColor,
+    textColor,
   };
 }
 
