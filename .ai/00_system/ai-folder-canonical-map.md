@@ -31,6 +31,7 @@ Repo-level entrypoints outside `.ai` still matter:
 - `11_skills/` — reusable project procedures; live payloads under `payloads/`
 - `12_agents/` — agent-role contracts and model routing; live payloads under `payloads/`
 - `13_research/` — domain, market, product, code/legal, cost, materials, competitor research
+- `15_Bugs/` — dated bug plans for material blockers, stale source-of-truth claims, validation failures, and proof gaps; written per `00_system/AGENT_FRAMEWORK_PROTOCOL.md` Bug Protocol
 - `99_inbox/` — temporary unsorted intake only
 
 ## Placement rules
@@ -49,6 +50,7 @@ Repo-level entrypoints outside `.ai` still matter:
 - New reusable skill/playbook: `11_skills/` or `11_skills/payloads/`
 - New agent/model payload: `12_agents/payloads/`
 - New research pack: `13_research/`
+- New bug plan: `15_Bugs/`
 - Unsorted scratch notes: `99_inbox/`, then triage quickly
 
 ## Active authority shortcuts
@@ -60,6 +62,13 @@ Repo-level entrypoints outside `.ai` still matter:
 - Validation gates: `00_system/VALIDATION_MATRIX.md`.
 - Feature-specific implementation contracts: the active plan/spec named by `10_state/current-state.md`.
 - Historical plans under `03_plans/` or `09_archive/store/` are not active instructions unless current-state links them as current.
+
+## Legacy / duplicate-numbered folders
+
+These predate the current numbering and are superseded. Do not add new files; use the canonical home:
+
+- `05_decisions/` → superseded by `10_state/decisions.md` (durable decisions live there).
+- `07_design/` → superseded by `DESIGN.md` and `06_specs/brand/`.
 
 ## Anti-drift rule
 

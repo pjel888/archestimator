@@ -21,8 +21,8 @@ verification, real-surface proof, durable memory, and next decision.
 ## Reading Chain
 
 If reapproved for a specific task, Gemini must read `AGENTS.md`, `.ai/README.md`,
-`DOCS_SOURCE_OF_TRUTH.md`, `AGENT_OPERATING_PROTOCOL.md`,
-`AGENT_FRAMEWORK_PROTOCOL.md`, `VALIDATION_MATRIX.md`, current state, decisions,
+`.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`, `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, `.ai/00_system/VALIDATION_MATRIX.md`, current state, decisions,
 and task-specific docs.
 
 ## Repo-Safety Commands

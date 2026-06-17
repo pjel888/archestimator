@@ -20,9 +20,9 @@ next decision.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
-`AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
-`VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
+`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
+`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
 `.ai/10_state/decisions.md`, `DESIGN.md`, and relevant UI primitives before UI
 edits.
 
@@ -49,7 +49,7 @@ Use current checkout for narrow assigned edits when appropriate; use isolated br
 
 ## Validation Rules
 
-Run targeted UI tests where useful, `bun run lint:design-system` for substantial or shared UI changes, and broader checks per `VALIDATION_MATRIX.md`.
+Run targeted UI tests where useful, `bun run lint:design-system` for substantial or shared UI changes, and broader checks per `.ai/00_system/VALIDATION_MATRIX.md`.
 
 ## Design-System Guidance
 

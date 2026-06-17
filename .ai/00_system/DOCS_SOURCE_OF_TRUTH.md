@@ -11,8 +11,8 @@ The `.ai` folder prevents agent drift. Each type of knowledge has one canonical 
 - Agent operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
 - Agent framework protocol: `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
 - Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
-- Loop-engineering mandate pack: `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/`
-- Loop-engineering research: `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`
+- Loop-engineering contract (canonical): the loop sections of `AGENT_OPERATING_PROTOCOL.md` and `AGENT_FRAMEWORK_PROTOCOL.md` above. Origin/background only (not a required active restart read): archived pack `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and research note `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
+- Reusable non-trivial-work loop prompt template: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 - Known issues and risks: `.ai/10_state/known-issues.md`
 - Feature inventory (code↔doc cross-reference): `.ai/06_specs/feature-inventory.md`
 

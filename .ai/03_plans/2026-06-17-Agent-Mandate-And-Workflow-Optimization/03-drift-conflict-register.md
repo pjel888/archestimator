@@ -1,0 +1,27 @@
+# 03 — Drift / Conflict Register
+
+Severity: **P0** unsafe/destructive/provider-mutation · **P1** wrong stack/architecture/validation/authority ·
+**P2** friction/duplication/token burn · **P3** copy/style/organization.
+Status: **fixed** (patched this loop) · **strengthened** (governing doc patched, per-file follow-up recommended) ·
+**recommend** (not applied — rationale in `06`) · **refuted** (verified non-issue).
+
+| ID | Sev | Path | Conflict / stale claim | Current truth | Evidence | Fix / Status |
+|---|---|---|---|---|---|---|
+| D1 | P1 | `CODEX.md:12` | "local-first JSON data … future Supabase/Postgres migration" | Supabase/Postgres is the LIVE baseline | package.json supabase-js 2.106.2; 110 migrations; current-state.md active mandate | **fixed** — live baseline + thin pointers |
+| D2 | P1 | `AGENTS.md` (gitnexus fence), `CLAUDE.md:51/59/89-103`, `GEMINI.md` | Absolutist "MUST run impact before editing any symbol / NEVER edit without impact / ALWAYS use graph BEFORE Grep" | Proportional: graph for broad/high-risk; rg/targeted for narrow edits | AGENT_OPERATING_PROTOCOL.md:212; AGENT_FRAMEWORK_PROTOCOL.md:86-87; AGENTS.md:88-90 (intra-file contradiction) | **fixed** (proportional-governs note outside fences) + **recommend** injector neutralization |
+| D3 | P1 | `.commandcode/taste/taste.md:8` | "Freely make DB changes … Mistakes are acceptable — the DB can be reset" | Bounded DB mandate: project scope, no irreversible loss, proportional validation | decisions.md:128-155; AGENT_OPERATING_PROTOCOL.md DB mandate | **fixed** — boundaries restored, marked advisory |
+| D4 | P1 | `.commandcode/agents/*.md` (16) | `tools:"*"` (write/migrate/exec) on a review-default lane | CommandCode = conditional, review/sentinel default | grep `tools: "*"` ×16; payload commandcode.md:39 | **strengthened** (README binds capability ceiling) + **recommend** per-file restriction |
+| D5 | P2 | `.ai/00_system/ai-folder-canonical-map.md` | Omits `15_Bugs/` (and duplicate-numbered `05_decisions/`,`07_design/`) | `15_Bugs/` is the mandated bug-plan home | AGENT_FRAMEWORK_PROTOCOL.md:210; 14 dated bug plans | **fixed** — added `15_Bugs` + placement rule + legacy note |
+| D6 | P2 | `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md:14` | Archived loop-eng pack listed in "Current restart entry point" | Loop contract already canonical in 00_system; pack is history | pack README:4 "implemented and archived"; 00_INDEX.md:31-42 | **fixed** — relabelled origin/background |
+| D7 | P2 | `CLAUDE.md` | No pointer to `payloads/claude.md` or self-diagnostic | Both exist + are canonical | grep: no match in CLAUDE.md | **fixed** — read-order + self-diagnostic pointer added |
+| D8 | P2 | `.commandcode/agents/*.md` (16) | Self-declared "authoritative release gatekeeper / block or approve merges"; no `.ai` back-pointer | Lead owns integration/validation/final claim | release-sentinel.md:3/7; qa-sentinel.md:3/13 | **strengthened** (README) + **recommend** per-file header |
+| D9 | P2 | `.agents/skills/{review-changes,debug-issue,refactor-safely,explore-codebase}` | Unconditional graph-first Steps; "ALWAYS get_minimal_context"; ≤5-call/≤800-token cap; no `.ai` back-pointer | Proportional policy; effort modes govern budgets | SKILL.md:12-16/25-29 | **recommend** (vendored mirror → skills-fleet workflow) |
+| D10 | P3 | `.ai/12_agents/payloads/*` | Bare vs `.ai/`-qualified canonical filenames (3 styles) | Fully-qualified `.ai/00_system/…` is unambiguous | antigravity.md:23 etc. bare; claude.md:24 qualified | **recommend** path normalization |
+| D11 | P3 | `.commandcode/taste/workflow/taste.md` | Autonomous commit/push/merge/branch-delete directives | Commit/push/merge gated by the lead | workflow/taste.md:8/10/12 | **recommend** tag advisory / gate behind assignment |
+| D12 | — | `.commandcode/agents/*.md` | Auditor flagged `pjel888/archestimator` slug as possibly stale | Repo IS `pjel888/archestimator` (per source prompt) | source prompt "Repo: pjel888/archestimator" | **refuted** — not stale |
+| D13 | P3 | `.ai/` tree | `05_decisions/`, `07_design/` duplicate-numbered, unmapped | Superseded by `10_state/decisions.md` / `DESIGN.md`+`06_specs/brand/` | folders exist, git-untouched since 2026-05 | **fixed** — legacy note in canonical map |
+| D14 | P3 | adapters | No adapter directly links self-diagnostic | Reachable via 3 first-tier reading-order paths (redundant) | grep no-match; AGENTS.md:14-17 → README:15 / map:19 / operating:130 | **partly fixed** (CLAUDE.md + CODEX.md now link it) — was P2, downgraded to P3 |
+| D15 | P3 | `CLAUDE.md:18-40` | Duplicated Codex-delegation block + "Review gate is enabled" (can go stale if toggled) | Gate is toggleable via `/codex:setup` | CLAUDE.md:36-40 | **recommend** thin to pointer |
+| D16 | P3 | `CLAUDE.md:45`, `AGENTS.md` gitnexus block | Hardcoded stale graph stats (symbols/relationships/flows) | Auto-injected counts drift each re-index | CLAUDE.md:45 | **recommend** regenerate to thin content |
+| D17 | P3 | `.codex/` | Committed sqlite runtime state; machine-local hook paths; dangling `.codex/skills` ref | README:11-12 says keep runtime state out of Git | goals/logs *.sqlite; hooks.json absolute node path | **recommend** gitignore/portability housekeeping |
+| — | none | `.ai/10_state/{current-state,decisions,execution-ledger}.md` | (Hypothesis) `local-first` mentions are current-baseline drift | All 4 mentions are historical/superseded | "Superseded prototype direction"/"Superseded decisions" headers | **refuted** — leave untouched |

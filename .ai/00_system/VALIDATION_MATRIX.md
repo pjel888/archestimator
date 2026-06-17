@@ -64,6 +64,20 @@ when auth, protected-route behavior, login rendering, route redirects, or other
 browser-only flows are changed. `test:e2e` is a separate Playwright command,
 not part of the default app gate.
 
+## Looped implementation work
+
+For non-trivial work run through the bounded loop (`AGENT_OPERATING_PROTOCOL.md`
+"Loop activation criteria and bounds"), validate each ITERATION with the narrowest
+evidence that proves that iteration's change — focused type/test/LSP/route checks —
+and record the proof boundary in the `LOOP_LEDGER.md`. Do not run the full gate on
+every iteration. Escalate to the broad gate (`bun run validate` + `bun run build`,
+`test:e2e`, Storybook, `lint:design-system`, provider/RLS proof) only when the loop
+touches shared logic, auth/security, RLS/database, release readiness, or another
+high-blast-radius surface — typically at the final integration step, owned by the
+lead. Docs/governance loops use path checks + `git diff --check`. Label proof
+precisely (`local-only` / `provider-proven` / `browser-proven` / `manual-proof-pending`
+/ `not-verified`) and never claim a surface you did not exercise.
+
 ## Current active route surface
 
 ```txt

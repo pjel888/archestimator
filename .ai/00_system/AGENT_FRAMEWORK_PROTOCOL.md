@@ -46,6 +46,52 @@ research, `ultraqa` for adversarial behavior proof, and `vercel:agent-browser`
 for browser-facing proof. Direct solo execution remains valid for narrow work
 where a loop would add ceremony without improving correctness.
 
+## Durable Loop Artifacts And Loop Ledger
+
+Non-trivial implementation work persists loop state in `.ai`, never in chat:
+
+- Plan pack: `.ai/03_plans/<YYYY-MM-DD>-<task-slug>/` with a `LOOP_LEDGER.md`.
+- Run log (major / risky / multi-agent / provider / release / database / security / agent-framework
+  work): `.ai/05_logs/<YYYY-MM-DD>-<task-slug>-implementation-run.md`.
+- Research note (uncertain external / technical / dependency / pricing / regulation / cost / code /
+  labor / materials claims): `.ai/13_research/<YYYY-MM-DD>-<topic>.md`, source-dated.
+
+`LOOP_LEDGER.md` is the control surface; update it DURING the work, not at the end. Minimum sections:
+
+```md
+# Loop Ledger
+## Goal
+## Scope
+## Non-goals
+## Branch / Status
+## Source of Truth Read
+## Acceptance Criteria
+## Validation Plan
+## Iteration Log
+### Iteration N
+- Hypothesis:
+- Action:
+- Files changed:
+- Evidence:
+- Result:
+- Next decision:
+## Stop Condition
+## Proof Boundary
+## Remaining Risks
+## Follow-up Bugs / Plans
+```
+
+Maker/checker: the lane that implements does not treat its own edits as final — use a separate review
+lane, adversarial self-review, targeted test, or graph/impact check before claiming done. Worker
+success, one green check, or a completed iteration is not completion; the lead owns final integration
+and evidence. Maker/checker separation is expected when risk, breadth, or user-visible impact justifies it.
+
+Proof-boundary labels (use precisely; never call a local check provider/browser proof):
+`local-only` · `provider-proven` · `browser-proven` · `manual-proof-pending` · `not-verified`. Match
+the surface to the claim: code → focused tests/type/lint/build-when-justified; UI/browser →
+browser/manual/Playwright when user-visible; Supabase/Postgres → migration status + SQL/RPC/RLS proof +
+generated types; provider claims → provider evidence; docs-only → path checks + `git diff --check`.
+
 ## Agent Receipt
 
 Use this internal receipt for broad, risky, provider-facing, or durable
@@ -58,7 +104,7 @@ scope=<files/features/providers in scope>
 non_goals=<explicitly out of scope>
 writes=<allowed write folders or none>
 validation=<commands/checks/manual proof required>
-proof_boundary=<local-only|provider-proven|manual-proof-pending>
+proof_boundary=<local-only|provider-proven|browser-proven|manual-proof-pending|not-verified>
 stop_condition=<done/blocker/owner-decision/destructive-approval>
 orchestrator=<lead agent/tool owning scope, routing, integration, final claim>
 loop_phase=<none|plan|execute|review|qa|cleanup|complete>
@@ -177,8 +223,8 @@ Major framework, release, provider-proof, or multi-agent work should create or u
 - bug plans created;
 - final status and remaining risks.
 
-Use `local-only`, `provider-proven`, and `manual-proof-pending` labels
-precisely. Never call a local check provider proof.
+Use `local-only`, `provider-proven`, `browser-proven`, `manual-proof-pending`, and
+`not-verified` labels precisely. Never call a local check provider or browser proof.
 
 ## Provider, GitHub, Notion, And Secrets
 

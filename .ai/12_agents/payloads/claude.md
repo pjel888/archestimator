@@ -66,7 +66,7 @@ Use current checkout for narrow assigned edits when appropriate. Use isolated br
 ## Validation Rules
 
 Docs-only changes require referenced paths and `git diff --check`. Source/UI
-changes follow `VALIDATION_MATRIX.md`.
+changes follow `.ai/00_system/VALIDATION_MATRIX.md`.
 
 ## Design-System Guidance
 

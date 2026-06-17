@@ -3,6 +3,10 @@ name: Review Changes
 description: Perform a structured code review using change detection and impact
 ---
 
+<!-- ARCHESTIMATOR REPO-LOCAL OVERRIDE — additive; preserve through fleet 3-way merge. Do not delete. -->
+> **ArchEstimator repo policy (override):** This skill's graph-first workflow applies to broad/high-risk/unfamiliar-code work. For narrow, reversible local edits, a focused `rg`/targeted-read/LSP check is sufficient — do not force full graph traversal or the token cap on small changes. Canonical authority: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` + `AGENT_FRAMEWORK_PROTOCOL.md`; `.ai` wins on any conflict.
+<!-- END ARCHESTIMATOR REPO-LOCAL OVERRIDE -->
+
 ## Review Changes
 
 Perform a thorough, risk-aware code review using the knowledge graph.

@@ -20,9 +20,9 @@ next decision.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
-`AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
-`VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
+`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
+`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
 `.ai/10_state/decisions.md`, `DESIGN.md`, and relevant `.commandcode/taste/*`
 for review tone only.
 
@@ -50,7 +50,7 @@ Use current checkout for narrow assigned edits when appropriate. Use isolated br
 
 ## Validation Rules
 
-Review outputs need file/line evidence. Edits follow `VALIDATION_MATRIX.md`.
+Review outputs need file/line evidence. Edits follow `.ai/00_system/VALIDATION_MATRIX.md`.
 
 ## Design-System Guidance
 

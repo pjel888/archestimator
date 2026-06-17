@@ -5,7 +5,7 @@ See [workflow/taste.md](workflow/taste.md)
 - For complex multi-faceted tasks, spawn parallel sub-agents with dedicated /goal instructions, split work into independent pieces, dispatch concurrently, and synthesize results as they return. Have agents be able to communicate with each other to resolve conflicts. Assume multiple AI agents share the same directory. Confidence: 0.80
 
 # mvp-mandate
-- This is a pre-launch MVP with zero users. Freely make Supabase/database changes, skip heavy regression cycles, and prefer speed over caution. Mistakes are acceptable — the DB can be reset. Confidence: 0.85
+- Pre-launch MVP (no external users yet): favor fast, useful iteration and proportional validation over heavyweight regression ceremony, per the standing Supabase mandate in `.ai/10_state/decisions.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Boundaries still hold and are not optional: stay inside Supabase project `ebxxqidacheyapmmzavr` only; no irreversible destructive data loss without a recovery path and fresh owner approval; run broad validation for shared-logic / auth / RLS / data-integrity / release changes. Advisory taste only — `.ai`, source, tests, and provider evidence win. Confidence: 0.85
 
 # review-format
 - When requesting multi-faceted architecture/code reviews, use the structured format: TASK (one-line objective), DELIVERABLE (specific outputs expected), SCOPE (repo paths, read-only constraint), VERIFY (citation standards, status markers like CLEAR/WATCH/BLOCK, EXPAND section). Confidence: 0.80

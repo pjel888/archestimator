@@ -69,6 +69,36 @@ The normal Archestimator product-development loop is:
 6. Record what passed, what failed, cleanup receipts, and the next decision in
    `.ai`, `.omx`, `.omo`, an issue tracker, or another approved durable state.
 
+### Loop activation criteria and bounds
+
+A loop is REQUIRED for non-trivial work: feature or `.ai/03_plans` plan implementation;
+multi-file source changes; shared components/hooks/libraries; server actions, repositories, or API
+routes; database/Supabase/RLS/RPC/migration/generated-types work; auth, invites, or
+publication/shared links; provider-facing behavior; app/workshop or design-system-sensitive UI;
+route or browser behavior; proposal/export; performance work; unclear debugging or root-cause
+analysis; security; launch/release readiness; CI/CD or validation-framework work; codebase-wide
+audits or refactors; and agent-framework, prompt, payload, or orchestration changes.
+
+A loop is NOT required for trivial work: typo fixes, narrow docs cleanup that does not alter policy,
+simple lookups or explanations, one-line reversible local fixes, bounded formatting, or direct
+answers with no repo mutation. Even then, verify proportionally and never claim completion from intent.
+
+Loop shape (named): `DISCOVER current repo truth → PLAN in .ai/03_plans/<YYYY-MM-DD>-<slug>/ →
+EXECUTE the next smallest coherent change → VERIFY with the narrowest evidence that proves the change
+→ RECORD evidence, proof boundary, gaps, next decision → DECIDE iterate / stop / escalate`.
+
+Stop only when one is true: (1) proven pass against acceptance criteria; (2) explicit blocker with
+evidence; (3) owner decision required; (4) a destructive / paid / production / cross-provider action
+needs fresh approval; (5) iteration cap reached with remaining risks recorded. Default cap 3–6
+meaningful iterations unless the task sets its own. Never loop endlessly; never stop on a worker
+self-report, a plan doc, or one green check unless the whole requested outcome is proven.
+
+Proportionality: the loop increases speed, quality, and memory — it is not ceremony. Validation stays
+proportional to risk (`VALIDATION_MATRIX.md`); reserve broad `bun run validate`/build/E2E/Storybook/
+visual/provider proof and multi-agent orchestration for blast radius that justifies them. Durable loop
+artifacts (plan pack + `LOOP_LEDGER.md`) live in `.ai`, not chat — see `AGENT_FRAMEWORK_PROTOCOL.md`.
+Reusable prompt: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
+
 Loop surface routing:
 
 - Use direct execution for small, reversible, tightly coupled work.

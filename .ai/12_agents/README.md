@@ -13,6 +13,13 @@ adequate loop surface, verify with maker/checker and real-surface evidence,
 persist state outside chat, then decide the next iteration. Tool-specific
 features translate this loop; they do not replace it.
 
+The loop activation criteria (trivial vs non-trivial), the named loop shape, stop
+conditions, and bounds are canonical in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+("Loop activation criteria and bounds"); the durable-artifact + `LOOP_LEDGER`
+contract is in `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`; the reusable prompt is
+`.ai/08_prompts/templates/codebase-ai-loop-task.md`. Payloads point to these — they
+do not restate the policy.
+
 ## Roster
 
 | Agent/harness | Status | Primary lane | Notes |

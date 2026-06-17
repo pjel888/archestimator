@@ -20,9 +20,9 @@ next decision.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `DOCS_SOURCE_OF_TRUTH.md`,
-`AGENT_OPERATING_PROTOCOL.md`, `AGENT_FRAMEWORK_PROTOCOL.md`,
-`AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `VALIDATION_MATRIX.md`,
+`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
+`.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/00_system/VALIDATION_MATRIX.md`,
 `.ai/10_state/current-state.md`, `.ai/10_state/decisions.md`, and `DESIGN.md`
 for UI.
 

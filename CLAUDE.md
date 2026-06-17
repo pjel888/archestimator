@@ -15,29 +15,38 @@ TanStack Query, Zustand, and repository boundaries. Keep recommendations
 aligned with `DESIGN.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, and
 `.ai/10_state/decisions.md`.
 
+Read order for current truth: `AGENTS.md` → `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`
+→ `AGENT_OPERATING_PROTOCOL.md` + `AGENT_FRAMEWORK_PROTOCOL.md` →
+`.ai/12_agents/payloads/claude.md` (Claude role/scope) → `.ai/10_state/current-state.md`
++ `decisions.md`. If the agent feels stale, confused, or off-direction, stop and run
+`.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before continuing.
+
+For non-trivial work (features, multi-file or shared-surface changes, DB/auth/security,
+performance, UI/workshop, provider-facing, release, or unclear debugging), follow the bounded
+loop-engineering default defined in `AGENTS.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+("Loop activation criteria and bounds"): discover current truth, plan in a dated `.ai/03_plans/`
+pack with a `LOOP_LEDGER.md`, execute, verify with proportional evidence, record, and decide the
+next iteration. Trivial reversible work stays direct. Do not duplicate that policy here.
+
+**Graph-tool policy is proportional and canonical.** The auto-generated GitNexus and
+code-review-graph blocks below ("MUST run impact analysis before editing any symbol",
+"ALWAYS use the code-review-graph MCP tools BEFORE Grep/Glob/Read", etc.) are tool-vendor
+defaults that are SUBORDINATE to the proportional graph policy in `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` (Safety rules) and
+`AGENT_FRAMEWORK_PROTOCOL.md`: prefer `rg`/targeted reads/LSP for normal and narrow work, and
+reach for the graph on broad architecture questions, high-risk shared-symbol/API refactors, or
+unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy.
+
 ## Codex Delegation (codex-plugin-cc)
 
-Codex is the implementation lane (`CODEX.md`): diffs, refactors, tests, deep
-bug investigation, long-running background work. Claude stays the lead —
-product judgment, planning, review — and **delegates execution-heavy or
-deep-analysis work to Codex** instead of grinding it solo. Codex runs against
-ChatGPT/OpenAI limits, so reach for it deliberately, not reflexively.
-
-Delegate to Codex when:
-
-- A bug needs deep root-cause analysis or a second diagnosis pass — `/codex:rescue` (or the `codex:codex-rescue` subagent).
-- Work is long-running or parallelizable — run it with `--background`, poll `/codex:status`, collect with `/codex:result`.
-- A design/implementation decision should be pressure-tested before shipping — `/codex:adversarial-review`.
-- You want an independent review of uncommitted changes or a branch — `/codex:review [--base <ref>]`.
-
-Commands: `/codex:review`, `/codex:adversarial-review`, `/codex:rescue`,
-`/codex:status`, `/codex:result`, `/codex:cancel`, `/codex:setup`.
-
-**Review gate is enabled** for this repo: a Codex review must pass before Claude
-stops. When it surfaces issues, address them before claiming work is complete —
-don't loop indefinitely; escalate to the user if Codex and Claude disagree.
-Verify Codex's output the same as any other agent's — adopt fixes on the merits,
-not on authority. Toggle the gate with `/codex:setup [--enable-review-gate | --disable-review-gate]`.
+Codex is the implementation/diff/test/deep-bug lane; Claude stays lead (product
+judgment, planning, review) and delegates execution-heavy or deep-analysis work
+rather than grinding it solo. The **Codex review gate is enabled**: a Codex review
+must pass before Claude stops — adopt its fixes on the merits, escalate
+disagreements to the owner. Commands: `/codex:review`, `/codex:adversarial-review`,
+`/codex:rescue`, `/codex:status`, `/codex:result`, `/codex:cancel`, `/codex:setup`
+(toggle the gate with `/codex:setup [--enable-review-gate | --disable-review-gate]`).
+Full delegation contract: `.ai/12_agents/payloads/claude.md` ("Codex Delegation Lane")
+and `CODEX.md` — not duplicated here.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
@@ -46,20 +55,15 @@ This project is indexed by GitNexus as **archestimator** (11889 symbols, 29549 r
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
-## Always Do
+> **Proportional policy (canonical) governs this auto-generated block.** Use GitNexus for broad architecture questions, high-risk shared-symbol/API refactors, and unfamiliar call chains. For narrow, reversible local edits, `rg`/targeted reads/LSP are sufficient and the graph is optional. See `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` (proportional graph policy) and `AGENT_FRAMEWORK_PROTOCOL.md`. If this block is regenerated with absolutist "MUST/NEVER/ALWAYS" wording, treat that wording as subordinate to this rule.
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+## When to use (proportional)
 
-## Never Do
-
-- NEVER edit a function, class, or method without first running `impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit changes without running `detect_changes()` to check affected scope.
+- Broad exploration / "how does X work?" → `query({query: "concept"})`, `context({name: "symbolName"})`.
+- Before a **high-risk shared-symbol/API refactor** → `impact({target, direction})` to see the blast radius; report HIGH/CRITICAL risk before proceeding.
+- Before committing a **broad or high-risk** change → `detect_changes()` to confirm affected scope.
+- Renames of shared symbols → use `rename` (call-graph aware), not find-and-replace.
+- Narrow local edits → a focused caller/import check or `rg` is enough; the graph is optional.
 
 ## Resources
 
@@ -86,21 +90,20 @@ This project is indexed by GitNexus as **archestimator** (11889 symbols, 29549 r
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 
-**IMPORTANT: This project has a knowledge graph. ALWAYS use the
-code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
-the codebase.** The graph is faster, cheaper (fewer tokens), and gives
-you structural context (callers, dependents, test coverage) that file
-scanning cannot.
+**This project has a code-review-graph knowledge graph.** Use it where it is cheaper
+than manual tracing — broad architecture questions, high-risk shared-symbol/API
+refactors, unfamiliar call chains, and token-efficient review context. For normal and
+narrow local work, `rg`/targeted reads/LSP remain the default first tool (per
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`); reach for the graph when blast radius or
+unfamiliarity justifies it. If this block is regenerated with "ALWAYS use … BEFORE
+Grep/Glob/Read" wording, treat that as subordinate to the proportional policy above.
 
-### When to use graph tools FIRST
+### Useful for
 
-- **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
-- **Understanding impact**: `get_impact_radius` instead of manually tracing imports
-- **Code review**: `detect_changes` + `get_review_context` instead of reading entire files
-- **Finding relationships**: `query_graph` with callers_of/callees_of/imports_of/tests_for
-- **Architecture questions**: `get_architecture_overview` + `list_communities`
-
-Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
+- **Broad exploration / relationships**: `semantic_search_nodes`, `query_graph` (callers_of/callees_of/imports_of/tests_for)
+- **Impact / blast radius** of a high-risk change: `get_impact_radius`, `get_affected_flows`
+- **Review context** without reading whole files: `detect_changes` + `get_review_context`
+- **Architecture overview**: `get_architecture_overview` + `list_communities`
 
 ### Key Tools
 

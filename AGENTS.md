@@ -61,6 +61,14 @@ The highest-capability agent in the session is the lead orchestrator. It owns
 scope, routing, model/effort selection, integration, validation, and the final
 claim. Other agents are bounded workers, reviewers, or evidence lanes.
 
+**For non-trivial work, bounded loop engineering is the default execution
+contract:** `DISCOVER → PLAN → EXECUTE → VERIFY → RECORD → DECIDE`, repeated until
+a proven pass, explicit blocker, owner decision, approval-gated action, or the
+iteration cap. Trivial, reversible work stays direct with proportional
+verification. See `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Loop activation
+criteria and bounds") for the trigger list, exclusions, stop conditions, and cap,
+and `.ai/08_prompts/templates/codebase-ai-loop-task.md` for the reusable prompt.
+
 - Loop-engineered product development is the default shape for non-trivial
   feature work. The loop is: discover or audit current reality, write or update
   the dated `.ai/03_plans/` plan pack, research uncertain claims, execute
@@ -88,6 +96,7 @@ without improving correctness.
 - Prefer `rg`, targeted file reads, TypeScript/LSP diagnostics, focused tests, and `git diff --check` for normal work.
 - Use code-review-graph, GitNexus, or similar indexes for broad architecture questions, high-risk refactors, unfamiliar call chains, or when a graph answer is cheaper than manual tracing.
 - Use GitNexus impact analysis before risky symbol/API refactors when available; for narrow local edits, a focused caller/import check is enough.
+- This proportional graph policy is canonical. The auto-generated GitNexus block appended later in this file, and the GitNexus / code-review-graph blocks in `CLAUDE.md`, are tool-vendor defaults that are SUBORDINATE to this rule and to `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Their absolutes (e.g. "MUST run impact analysis before editing any symbol", "ALWAYS use the code-review-graph MCP tools before Grep/Glob/Read") do not apply to narrow local edits: use the graph for broad/high-risk/unfamiliar work, and `rg`/targeted reads for narrow local edits. Do not treat those generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy.
 - Use Compound Engineering, Superpowers, OMX, or other workflow plugins as optional accelerators, not mandatory gates.
 - Use Impeccable and visual QA tooling for high-risk UI polish, design audits, or explicit visual-review tasks. Routine UI fixes should follow `DESIGN.md` and existing component patterns without loading a full design workflow.
 - Reuse existing UI primitives from `src/components/ui/` when it is practical and cheaper than duplicating behavior. Do not block small fixes on Storybook inventory work.
@@ -121,20 +130,15 @@ This project is indexed by GitNexus as **archestimator** (11889 symbols, 29549 r
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
-## Always Do
+> **Proportional policy (canonical) governs this auto-generated block.** Use GitNexus for broad architecture questions, high-risk shared-symbol/API refactors, and unfamiliar call chains. For narrow, reversible local edits, `rg`/targeted reads/LSP are sufficient and the graph is optional. See `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` (proportional graph policy) and `AGENT_FRAMEWORK_PROTOCOL.md`. If this block is regenerated with absolutist "MUST/NEVER/ALWAYS" wording, treat that wording as subordinate to this rule.
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+## When to use (proportional)
 
-## Never Do
-
-- NEVER edit a function, class, or method without first running `impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit changes without running `detect_changes()` to check affected scope.
+- Broad exploration / "how does X work?" → `query({query: "concept"})`, `context({name: "symbolName"})`.
+- Before a **high-risk shared-symbol/API refactor** → `impact({target, direction})` to see the blast radius; report HIGH/CRITICAL risk before proceeding.
+- Before committing a **broad or high-risk** change → `detect_changes()` to confirm affected scope.
+- Renames of shared symbols → use `rename` (call-graph aware), not find-and-replace.
+- Narrow local edits → a focused caller/import check or `rg` is enough; the graph is optional.
 
 ## Resources
 
