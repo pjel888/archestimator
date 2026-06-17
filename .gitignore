@@ -19,8 +19,8 @@
 /out/
 /next-env.d.ts
 
-# chunkhound
-.chunkhound.json
+# chunkhound (config + local backups; may contain API keys — never commit)
+.chunkhound.json*
 .auto_doc/
 *.duckdb
 *.duckdb.wal
@@ -63,7 +63,6 @@ yarn-error.log*
 
 # generated code intelligence indexes are local-only
 .chunkhound/
-.chunkhound.json
 
 # generated agent/dev scratch backups are local-only
 /.ai/99_scratch/
