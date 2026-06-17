@@ -14,6 +14,7 @@ import { useSidebarFavoritesAnnouncer } from "@/hooks/use-sidebar-favorites-anno
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
 import {
+  SIDEBAR_BACKGROUND_COLOR,
   SIDEBAR_PADDING,
   SIDEBAR_TRANSITION,
   SIDEBAR_WIDTH_COLLAPSED,
@@ -88,9 +89,9 @@ function getFavoriteLinkClassName(active: boolean, depth: "project" | "sheet") {
   ];
 
   if (depth === "project") {
-    base.push("pl-3 pr-2");
-  } else {
     base.push("pl-[52px] pr-2");
+  } else {
+    base.push("pl-[72px] pr-2");
   }
 
   return base.join(" ");
@@ -208,6 +209,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
   const clippedWidth = SIDEBAR_WIDTH_EXPANDED - SIDEBAR_WIDTH_COLLAPSED;
   const sidebarStyle = useMemo<React.CSSProperties>(() => {
     const base: React.CSSProperties = {
+      backgroundColor: SIDEBAR_BACKGROUND_COLOR,
       width: SIDEBAR_WIDTH_EXPANDED,
       clipPath: expanded ? "inset(0 0 0 0)" : `inset(0 ${clippedWidth}px 0 0)`,
     };
@@ -232,7 +234,6 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
       transition: `left ${expanded ? SIDEBAR_TRANSITION.expandDuration : SIDEBAR_TRANSITION.collapseDuration}ms ${SIDEBAR_TRANSITION.easing}`,
     };
   }, [expanded, prefersReducedMotion]);
-
   return (
     <>
       {expanded && (
@@ -247,13 +248,13 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
       <nav
         ref={navRef}
         aria-label="Main navigation"
-        className="fixed left-0 top-0 z-[100] hidden h-[100dvh] flex-col overflow-hidden bg-white will-change-[clip-path] lg:flex"
+        className="fixed left-0 top-0 z-[100] hidden h-[100dvh] flex-col overflow-hidden will-change-[clip-path] lg:flex"
         style={sidebarStyle}
       >
         <SidebarHeader expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
 
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex h-[72px] shrink-0 items-center xl:h-[80px]" style={{ paddingInline: SIDEBAR_PADDING }}>
+          <div className="flex h-[46px] shrink-0 items-center" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs">
               <div className="flex h-10 w-12 shrink-0 items-center justify-center">
                 <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-xs bg-linear-to-br from-secondary to-primary text-[10px] font-medium leading-none text-white ring-1 ring-black/10">
@@ -277,29 +278,31 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
             </div>
           </div>
 
-          <div className="h-px shrink-0 bg-hairline" />
-
-          <div className="flex flex-col gap-2 pb-2 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
-            {resolvedSidebarNavItems.map((item) => (
-              <SidebarNavItemRow
-                key={item.id}
-                item={item}
-                active={item.id === dashboardItem.id ? pathname === item.href : isActiveHref(pathname, item.href)}
-                expanded={expanded}
-                onPrefetchStart={prefetch}
-                onPrefetchCancel={cancel}
-              />
-            ))}
+          <div data-sidebar-primary-nav-group className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
+            <div data-sidebar-primary-nav-divider="top" className="h-px w-full bg-dividerSibling" />
+            <div className="flex flex-col gap-2 py-2">
+              {resolvedSidebarNavItems.map((item) => (
+                <SidebarNavItemRow
+                  key={item.id}
+                  item={item}
+                  active={item.id === dashboardItem.id ? pathname === item.href : isActiveHref(pathname, item.href)}
+                  expanded={expanded}
+                  onPrefetchStart={prefetch}
+                  onPrefetchCancel={cancel}
+                />
+              ))}
+            </div>
+            <div data-sidebar-primary-nav-divider="bottom" className="h-px w-full bg-dividerSibling" />
           </div>
 
-          <div className="shrink-0 border-y border-hairline" style={{ paddingInline: SIDEBAR_PADDING }}>
+          <div className="shrink-0" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div
               data-sidebar-favorites-header
               tabIndex={-1}
               className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs outline-none"
             >
               <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-xs text-warning">
-                <Star size={15} weight="fill" aria-hidden="true" className="shrink-0" />
+                <Star size={15} weight="regular" aria-hidden="true" className="shrink-0" />
               </span>
               <span
                 aria-hidden={!expanded}
@@ -350,7 +353,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                         onMouseLeave={() => cancel(project.href)}
                         className={getFavoriteLinkClassName(projectActive, "project")}
                       >
-                        <Folder size={13} weight={projectActive ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
+                        <Folder size={13} weight="regular" aria-hidden="true" className="shrink-0" />
                         <span className="min-w-0 truncate text-[9px] font-medium leading-none">{project.name}</span>
                       </Link>
 
@@ -380,7 +383,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                                 className={`${getFavoriteLinkClassName(sheetActive, "sheet")} transition-[opacity] duration-[120ms] ease-out motion-reduce:transition-none`}
                                 data-sidebar-favorite-sheet
                               >
-                                <FileText size={11} weight={sheetActive ? "fill" : "regular"} aria-hidden="true" className="shrink-0" />
+                                <FileText size={11} weight="regular" aria-hidden="true" className="shrink-0" />
                                 <span className="min-w-0 truncate text-[9px] leading-none">{sheet.name}</span>
                               </Link>
                             );
@@ -428,7 +431,7 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
       </nav>
       <div
         aria-hidden="true"
-        className="fixed top-0 z-[100] hidden h-[100dvh] w-px bg-hairline shadow-[4px_0_12px_rgba(0,0,0,0.10)] pointer-events-none lg:block"
+        className="fixed top-0 z-[100] hidden h-[100dvh] w-px bg-dividerSibling shadow-[4px_0_12px_rgba(0,0,0,0.10)] pointer-events-none lg:block"
         style={borderStyle}
       />
     </>

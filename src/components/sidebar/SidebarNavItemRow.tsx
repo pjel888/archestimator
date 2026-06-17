@@ -20,10 +20,14 @@ function formatBadgeCount(count: number) {
 }
 
 const ACTIVE_NAV_ITEM_CLASSNAME =
-  "text-primary hover:text-primary before:bg-orange-50 before:shadow-[inset_0_0_0_1px_rgb(194,65,12)] before:opacity-100";
+  "text-orange-700 hover:text-orange-700 before:bg-orange-50 before:shadow-[inset_0_0_0_1px_rgb(194,65,12)] before:opacity-100";
+
+const ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME = "before:left-1.5 before:right-1.5";
+
+const ACTIVE_NAV_ITEM_COLLAPSED_CLASSNAME = "before:left-1.5 before:w-9";
 
 const INACTIVE_NAV_ITEM_CLASSNAME =
-  "text-tertiary before:bg-accent-soft before:shadow-[inset_0_0_0_1px_rgba(255,122,26,0.12)] hover:text-primary hover:before:opacity-100";
+  "text-tertiary before:left-1.5 before:w-9 before:bg-accent-soft before:shadow-[inset_0_0_0_1px_rgba(255,122,26,0.12)] hover:text-primary hover:before:opacity-100";
 
 export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onPrefetchCancel }: SidebarNavItemProps) {
   const Icon = item.icon;
@@ -53,9 +57,11 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
       onMouseLeave={cancelPrefetch}
       className={[
         "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-colors duration-[120ms] ease-out",
-        "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:rounded-xs before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",
+        "before:absolute before:top-[-2px] before:z-0 before:h-9 before:rounded-xs before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",
         "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
-        active ? ACTIVE_NAV_ITEM_CLASSNAME : INACTIVE_NAV_ITEM_CLASSNAME,
+        active
+          ? [ACTIVE_NAV_ITEM_CLASSNAME, expanded ? ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME : ACTIVE_NAV_ITEM_COLLAPSED_CLASSNAME].join(" ")
+          : INACTIVE_NAV_ITEM_CLASSNAME,
       ].join(" ")}
     >
       <span className="relative z-10 flex h-8 w-12 shrink-0 items-center justify-center rounded-xs transition-[background-color,box-shadow] duration-[120ms] ease-out">
