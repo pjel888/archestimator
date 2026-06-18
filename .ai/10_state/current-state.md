@@ -40,6 +40,15 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Workshop Dashboard query-batching Phase 0-2 implemented locally (2026-06-19):**
+The plan pack `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/`
+now has app-only implementation through Phase 2: dormant `PERF_TRACE=1`
+request-scoped timing/Supabase round-trip instrumentation, `perf:dashboard-query-count`,
+homebase wave merging, and `getLibraryDashboardSpotlight()` for dashboard-lean
+library counts/recent components. No migration/RPC/provider mutation was made.
+Phase 3 remains gated on real authenticated branch-environment measurement
+showing the app-only result still needs DB consolidation.
+
 **Workshop Dashboard query-batching plan canonicalized (2026-06-19):**
 The plan pack `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/`
 is the canonical owner for `workspace_homebase_summary` if Phase 3 proceeds.

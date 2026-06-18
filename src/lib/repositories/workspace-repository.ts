@@ -136,6 +136,7 @@ export type ProjectGroupSummary = {
 };
 
 const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
+const WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT = 50;
 const MAIN_SIDEBAR_FAVORITE_PROJECT_LIMIT = 8;
 const MAIN_SIDEBAR_FAVORITE_SHEET_LIMIT = 5;
 
@@ -148,6 +149,22 @@ type WorkshopEstimateRecord = Pick<
   Tables<"estimates">,
   "id" | "project_id" | "name" | "sheet_code" | "updated_at"
 >;
+type WorkshopEstimateQueryResult = {
+  data: WorkshopEstimateRecord[] | null;
+  error: unknown;
+};
+type WorkshopProjectQueryResult = {
+  data: WorkshopProjectRecord[] | null;
+  error: unknown;
+};
+type WorkshopEstimateNodeRecord = Pick<
+  Tables<"estimate_nodes">,
+  "id" | "estimate_id" | "kind" | "parent_id" | "sort_order"
+>;
+type WorkshopEstimateNodeQueryResult = {
+  data: WorkshopEstimateNodeRecord[] | null;
+  error: unknown;
+};
 
 type ProjectMemberRow = Pick<Tables<"project_members">, "project_id" | "role" | "user_id" | "workspace_id">;
 type EstimateSheetMemberRow = Pick<Tables<"estimate_sheet_members">, "estimate_id" | "project_id" | "role" | "user_id">;
@@ -1047,6 +1064,14 @@ function sortByFavoriteCreatedAt<T extends { id: string }>(records: T[], favorit
   });
 }
 
+function sortByUpdatedAtDescThenIdDesc<T extends { id: string; updated_at: string | null }>(records: T[]) {
+  return [...records].sort((left, right) => {
+    const updatedAtCompare = (right.updated_at ?? "").localeCompare(left.updated_at ?? "");
+    if (updatedAtCompare !== 0) return updatedAtCompare;
+    return right.id.localeCompare(left.id);
+  });
+}
+
 export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
@@ -1123,17 +1148,61 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
     workspaceRole,
   });
 
-  let favoriteProjects: WorkshopProjectRecord[] = [];
-  if (favoriteProjectIds.length > 0) {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
-      .in("id", favoriteProjectIds);
+  const recentProjects = (recentProjectsResult.data ?? []) as WorkshopProjectRecord[];
+  const recentProjectIds = recentProjects.map((project) => project.id);
+  const recentEstimateProjectIds = Array.from(new Set([...recentProjectIds, ...favoriteProjectIds]));
+  const limitedFavoriteEstimateIds = favoriteEstimateIds.slice(0, WORKSHOP_HOMEBASE_FAVORITE_ESTIMATE_LIMIT);
+  const emptyEstimateQueryResult: WorkshopEstimateQueryResult = { data: [], error: null };
+  const recentEstimatesPromise: Promise<WorkshopEstimateQueryResult> =
+    recentEstimateProjectIds.length > 0
+      ? (supabase
+          .from("estimates")
+          .select("id, project_id, name, sheet_code, updated_at")
+          .in("project_id", recentEstimateProjectIds)
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT) as unknown as Promise<WorkshopEstimateQueryResult>)
+      : Promise.resolve(emptyEstimateQueryResult);
+  const favoriteEstimatesPromise: Promise<WorkshopEstimateQueryResult> =
+    limitedFavoriteEstimateIds.length > 0
+      ? (supabase
+          .from("estimates")
+          .select("id, project_id, name, sheet_code, updated_at")
+          .in("id", limitedFavoriteEstimateIds) as unknown as Promise<WorkshopEstimateQueryResult>)
+      : Promise.resolve(emptyEstimateQueryResult);
+
+  const [recentEstimatesResult, favoriteEstimatesResult] = await traced("homebase.H3H4.estimates", () =>
+    Promise.all([recentEstimatesPromise, favoriteEstimatesPromise]),
+  );
+
+  if (recentEstimatesResult.error) throw recentEstimatesResult.error;
+  if (favoriteEstimatesResult.error) throw favoriteEstimatesResult.error;
+
+  const recentEstimates = sortByUpdatedAtDescThenIdDesc((recentEstimatesResult.data ?? []) as WorkshopEstimateRecord[]);
+  const favoriteEstimates = sortByFavoriteCreatedAt(
+    (favoriteEstimatesResult.data ?? []) as WorkshopEstimateRecord[],
+    estimateFavoriteCreatedAt,
+  );
+  const estimates = mergeHomebaseRecords(favoriteEstimates, recentEstimates);
+  const estimateProjectIds = Array.from(new Set(estimates.map((estimate) => estimate.project_id)));
+  const initialKnownProjectIds = new Set(recentProjectIds);
+  const missingProjectIds = estimateProjectIds.filter((projectId) => !initialKnownProjectIds.has(projectId));
+  const backfillProjectIds = Array.from(new Set([...favoriteProjectIds, ...missingProjectIds]));
+
+  let backfillProjects: WorkshopProjectRecord[] = [];
+  if (backfillProjectIds.length > 0) {
+    const { data, error } = await traced("homebase.H2H5.projects", () =>
+      supabase
+        .from("projects")
+        .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
+        .in("id", backfillProjectIds) as unknown as Promise<WorkshopProjectQueryResult>,
+    );
 
     if (error) throw error;
-    favoriteProjects = data ?? [];
+    backfillProjects = data ?? [];
   }
 
+  const favoriteProjects = backfillProjects.filter((project) => projectFavoriteCreatedAt.has(project.id));
   const visibleFavoriteProjectIds = new Set(favoriteProjects.map((project) => project.id));
   const removedProjectFavorites = favoriteProjectIds
     .filter((projectId) => !visibleFavoriteProjectIds.has(projectId))
@@ -1143,83 +1212,44 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
       projectCode: null,
       favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
     }));
-
-  const projects = mergeHomebaseRecords(
-    sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt),
-    (recentProjectsResult.data ?? []) as WorkshopProjectRecord[],
-  );
-  const projectIds = projects.map((project) => project.id);
-
-  let recentEstimates: WorkshopEstimateRecord[] = [];
-  if (projectIds.length > 0) {
-    const { data, error } = await supabase
-      .from("estimates")
-      .select("id, project_id, name, sheet_code, updated_at")
-      .in("project_id", projectIds)
-      .order("updated_at", { ascending: false })
-      .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT);
-
-    if (error) throw error;
-    recentEstimates = data ?? [];
-  }
-
-  let favoriteEstimates: WorkshopEstimateRecord[] = [];
-  if (favoriteEstimateIds.length > 0) {
-    const { data, error } = await supabase
-      .from("estimates")
-      .select("id, project_id, name, sheet_code, updated_at")
-      .in("id", favoriteEstimateIds);
-
-    if (error) throw error;
-    favoriteEstimates = data ?? [];
-  }
-
-  const estimates = mergeHomebaseRecords(
-    sortByFavoriteCreatedAt(favoriteEstimates, estimateFavoriteCreatedAt),
-    recentEstimates,
-  );
-  const estimateProjectIds = Array.from(new Set(estimates.map((estimate) => estimate.project_id)));
-  const missingProjectIds = estimateProjectIds.filter((projectId) => !projectIds.includes(projectId));
-  if (missingProjectIds.length > 0) {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
-      .in("id", missingProjectIds);
-
-    if (error) throw error;
-    projects.push(...((data ?? []) as WorkshopProjectRecord[]));
+  const projects = mergeHomebaseRecords(sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt), recentProjects);
+  for (const project of backfillProjects) {
+    if (!projects.some((existingProject) => existingProject.id === project.id)) projects.push(project);
   }
 
   const projectById = new Map(projects.map((project) => [project.id, project]));
-  const homebasePublicationRows = await readOptionalProjectPublications(
-    supabase,
-    Array.from(new Set(projects.map((project) => project.id))),
-  );
+  const allProjectIds = Array.from(new Set(projects.map((project) => project.id)));
+  const manageableProjectIds = projects
+    .filter((project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole))
+    .map((project) => project.id);
+  const estimateIds = estimates.map((estimate) => estimate.id);
+  const estimateNodesPromise: Promise<WorkshopEstimateNodeQueryResult> =
+    estimateIds.length > 0
+      ? (supabase
+          .from("estimate_nodes")
+          .select("id, estimate_id, kind, parent_id, sort_order")
+          .in("estimate_id", estimateIds)
+          .order("sort_order", { ascending: true }) as unknown as Promise<WorkshopEstimateNodeQueryResult>)
+      : Promise.resolve({ data: [], error: null });
+
+  const [homebasePublicationRows, pendingInviteVisibility, estimateNodesResult] = await traced("homebase.H6H7H8.tail", () => Promise.all([
+    readOptionalProjectPublications(supabase, allProjectIds),
+    readPendingCollaborationVisibilitySummary({
+      email: profile.email,
+      projectIds: manageableProjectIds,
+      supabase,
+    }),
+    estimateNodesPromise,
+  ]));
+  if (estimateNodesResult.error) throw estimateNodesResult.error;
+
   const homebasePublicationByProjectId = new Map<string, ProjectPublicationListRow>();
   for (const publication of homebasePublicationRows) {
     if (!homebasePublicationByProjectId.has(publication.project_id)) {
       homebasePublicationByProjectId.set(publication.project_id, publication);
     }
   }
-  const pendingInviteVisibility = await readPendingCollaborationVisibilitySummary({
-    email: profile.email,
-    projectIds: projects
-      .filter((project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole))
-      .map((project) => project.id),
-    supabase,
-  });
-  const estimateIds = estimates.map((estimate) => estimate.id);
-  let firstNodeByEstimateId = new Map<string, string>();
-  if (estimateIds.length > 0) {
-    const { data, error } = await supabase
-      .from("estimate_nodes")
-      .select("id, estimate_id, kind, parent_id, sort_order")
-      .in("estimate_id", estimateIds)
-      .order("sort_order", { ascending: true });
-
-    if (error) throw error;
-    firstNodeByEstimateId = selectFirstEstimateNodeIds(data ?? []);
-  }
+  const firstNodeByEstimateId = selectFirstEstimateNodeIds(estimateNodesResult.data ?? []);
 
   return {
     workspace,

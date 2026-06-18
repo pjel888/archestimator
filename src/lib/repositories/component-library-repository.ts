@@ -869,6 +869,13 @@ export type LibraryOverview = {
   health: LibraryOverviewHealth;
 };
 
+export type LibraryDashboardSpotlight = {
+  componentCount: number;
+  templateCount: number;
+  recentComponents: Array<Pick<LibraryOverviewComponent, "id" | "name" | "category" | "updatedAt">>;
+  recentTemplates: [];
+};
+
 function toLibraryOverviewTemplate(template: EstimateTemplate): LibraryOverviewTemplate {
   const summary = summarizeEstimateTemplate(template);
   return {
@@ -880,6 +887,28 @@ function toLibraryOverviewTemplate(template: EstimateTemplate): LibraryOverviewT
     areaCount: summary.areaCount,
     rowCount: summary.rowCount,
     total: summary.total,
+  };
+}
+
+const LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS =
+  "id, name, category, supplier, unit, unit_cost, thumbnail_path, lifecycle_state, updated_at";
+
+type LibraryOverviewComponentRow = Pick<
+  Tables<"cost_library_items">,
+  "id" | "name" | "category" | "supplier" | "unit" | "unit_cost" | "thumbnail_path" | "lifecycle_state" | "updated_at"
+>;
+
+function toLibraryOverviewComponent(row: LibraryOverviewComponentRow): LibraryOverviewComponent {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    supplier: row.supplier ?? "",
+    unit: row.unit,
+    unitCost: Number(row.unit_cost),
+    imageUrl: row.thumbnail_path ?? undefined,
+    lifecycleState: row.lifecycle_state,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -929,7 +958,7 @@ export async function getLibraryOverview(): Promise<LibraryOverview> {
       .eq("workspace_id", workspaceId),
     supabase
       .from("cost_library_items")
-      .select("id, name, category, supplier, unit, unit_cost, thumbnail_path, lifecycle_state, updated_at")
+      .select(LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS)
       .eq("workspace_id", workspaceId)
       .neq("lifecycle_state", "archived")
       .order("updated_at", { ascending: false })
@@ -983,17 +1012,7 @@ export async function getLibraryOverview(): Promise<LibraryOverview> {
   if (lastUpdateResult.error) throw lastUpdateResult.error;
   if (discontinuedIdsResult.error) throw discontinuedIdsResult.error;
 
-  const recentComponents: LibraryOverviewComponent[] = (recentComponentsResult.data ?? []).map((row) => ({
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    supplier: row.supplier ?? "",
-    unit: row.unit,
-    unitCost: Number(row.unit_cost),
-    imageUrl: row.thumbnail_path ?? undefined,
-    lifecycleState: row.lifecycle_state,
-    updatedAt: row.updated_at,
-  }));
+  const recentComponents: LibraryOverviewComponent[] = (recentComponentsResult.data ?? []).map(toLibraryOverviewComponent);
 
   // Templates: counts need nodes + rows, fetched for just the 5 recent ids.
   // A missing templates table falls back to the seed list (same behavior as
@@ -1092,6 +1111,49 @@ export async function getLibraryOverview(): Promise<LibraryOverview> {
       missingBrandCount: missingBrandCountResult.count ?? 0,
       lastLibraryUpdate: lastUpdateResult.data?.[0]?.updated_at ?? null,
     },
+  };
+}
+
+export async function getLibraryDashboardSpotlight(): Promise<LibraryDashboardSpotlight | null> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const workspaceId = workspace.id;
+
+  const [componentCountResult, recentComponentsResult, templateCountResult] = await Promise.all([
+    supabase
+      .from("cost_library_items")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived"),
+    supabase
+      .from("cost_library_items")
+      .select(LIBRARY_DASHBOARD_RECENT_COMPONENT_COLUMNS)
+      .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("estimate_templates")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+  ]);
+
+  if (componentCountResult.error) throw componentCountResult.error;
+  if (recentComponentsResult.error) throw recentComponentsResult.error;
+  if (templateCountResult.error && !isMissingRelationError(templateCountResult.error, "estimate_templates")) {
+    throw templateCountResult.error;
+  }
+
+  return {
+    componentCount: componentCountResult.count ?? 0,
+    templateCount: templateCountResult.error ? 0 : (templateCountResult.count ?? 0),
+    recentComponents: (recentComponentsResult.data ?? []).map(toLibraryOverviewComponent).map((component) => ({
+      id: component.id,
+      name: component.name,
+      category: component.category,
+      updatedAt: component.updatedAt,
+    })),
+    recentTemplates: [],
   };
 }
 

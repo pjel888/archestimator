@@ -24,7 +24,8 @@ describe("workshop dashboard baseline", () => {
     expect(source).toContain("WorkshopHomebaseClient");
     expect(source).toContain("getWorkshopHomebaseData");
     expect(source).toContain("listMainSidebarFavoriteProjects");
-    expect(source).toContain("getLibraryOverview");
+    expect(source).toContain("getLibraryDashboardSpotlight");
+    expect(source).not.toContain("getLibraryOverview");
     expect(source).toContain("requireCurrentUserContext");
     expect(source).toContain('redirect("/workshop/pending-invite")');
     expect(source).toContain("archestimator_pending_invite");
@@ -35,9 +36,10 @@ describe("workshop dashboard baseline", () => {
       expect(source).not.toContain(forbidden);
     }
 
-    // The homebase client renders the dashboard and keeps the removed-favorite
-    // recovery flow (the one mutation the homepage owns).
-    expect(homebase).toContain("WorkshopDashboard");
+    // The page renders the dashboard server-side and the homebase client keeps
+    // the removed-favorite recovery flow (the one mutation the homepage owns).
+    expect(source).toContain("WorkshopDashboard");
+    expect(homebase).toContain("children: ReactNode");
     expect(homebase).toContain("useToggleProjectFavorite");
     // Search/filter/group chrome still does NOT belong on the homebase.
     expect(homebase).not.toContain("Search Workshop");
@@ -53,11 +55,10 @@ describe("workshop dashboard baseline", () => {
       "DashboardHero",
       "ImageDestinationCard",
       "LibraryHubCard",
+      "LibraryCardLink",
       "RecentProjectsList",
       "RecentSheetsList",
       "FavoritesTree",
-      "ContinueCard",
-      "CreateActions",
       "DashboardEmptyState",
     ]) {
       expect(dashboard).toContain(moduleName);

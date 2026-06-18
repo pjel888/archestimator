@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
 import { createDevSupabaseAdminClient, getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth";
+import { instrumentSupabaseFetch } from "@/lib/perf/server-timing";
 import type { Database } from "./types";
 
 export async function createSupabaseServerClient() {
@@ -21,6 +22,9 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(url, anonKey, {
+    global: {
+      fetch: instrumentSupabaseFetch(fetch),
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -44,7 +44,8 @@ Make the `/workshop` dashboard's server-side data fetch faster by **cutting the 
 12. `11-security-threat-model-and-rpc-authz.md` — RPC authz matrix, branch DB trust boundary, logging/privacy rules.
 13. `12-phase-3-ownership-cutover-and-rollout.md` — RPC ownership, decision tree, feature-flag cutover, rollback.
 14. `13-test-proof-matrix-and-readiness-scorecard.md` — Consolidated scores and objective implementation proof matrix.
-15. `LOOP_LEDGER.md` — Iteration ledger + proof boundary + acceptance criteria.
+15. `14-codebase-ai-implementation-plan.md` — Single execution guide for codebase AI implementers, including phase gates, SWOT, pros/cons, tests, and rollback.
+16. `LOOP_LEDGER.md` — Iteration ledger + proof boundary + acceptance criteria.
 
 ## Relationship to Existing Packs (do not duplicate)
 

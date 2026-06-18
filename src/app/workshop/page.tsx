@@ -16,7 +16,8 @@ import {
   getWorkshopHomebaseData,
   listMainSidebarFavoriteProjects,
 } from "@/lib/repositories/workspace-repository";
-import { getLibraryOverview } from "@/lib/repositories/component-library-repository";
+import { getLibraryDashboardSpotlight } from "@/lib/repositories/component-library-repository";
+import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/lib";
 
 /**
@@ -26,23 +27,7 @@ import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/
  */
 async function loadDashboardLibrarySpotlight(): Promise<DashboardLibrarySpotlight | null> {
   try {
-    const overview = await getLibraryOverview();
-    return {
-      componentCount: overview.componentCount,
-      templateCount: overview.templateCount,
-      recentComponents: overview.recentComponents.slice(0, 5).map((component) => ({
-        id: component.id,
-        name: component.name,
-        category: component.category,
-        updatedAt: component.updatedAt,
-      })),
-      recentTemplates: overview.recentTemplates.slice(0, 4).map((template) => ({
-        id: template.id,
-        name: template.name,
-        category: template.category,
-        rowCount: template.rowCount,
-      })),
-    };
+    return await traced("workshop.branch.library-dashboard-spotlight", () => getLibraryDashboardSpotlight());
   } catch {
     return null;
   }
@@ -113,17 +98,19 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
     redirect("/workshop/pending-invite");
   }
 
-  // Fetch the dashboard's data in parallel. All repository calls are React-cached,
-  // so favorites + workspace reuse the work WorkshopPageShell already performed for
-  // the same request; the library spotlight degrades to null on failure and never
-  // blocks the rest of the dashboard.
-  const [homebase, currentUser, { workspace }, favoriteProjects, librarySpotlight] = await Promise.all([
-    getWorkshopHomebaseData(),
-    requireCurrentUserContext(),
-    ensureDefaultWorkspace(),
-    listMainSidebarFavoriteProjects(),
-    loadDashboardLibrarySpotlight(),
-  ]);
+  // Fetch the dashboard's data in one server render wave. Some repository calls
+  // are request-cached; homebase and the library spotlight also carry their own
+  // guarded measurement labels because they are the dashboard's performance path.
+  const [homebase, currentUser, { workspace }, favoriteProjects, librarySpotlight] = await withPerfTraceRequest(
+    "workshop.dashboard",
+    () => Promise.all([
+      traced("workshop.branch.homebase", () => getWorkshopHomebaseData()),
+      traced("workshop.branch.current-user", () => requireCurrentUserContext()),
+      traced("workshop.branch.workspace", () => ensureDefaultWorkspace()),
+      traced("workshop.branch.sidebar-favorites", () => listMainSidebarFavoriteProjects()),
+      loadDashboardLibrarySpotlight(),
+    ]),
+  );
   const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
 
   return (
