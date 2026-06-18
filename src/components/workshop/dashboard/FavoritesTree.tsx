@@ -237,7 +237,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
                 </div>
 
                 {hasSheets && open ? (
-                  <div role="group" className="pl-5">
+                  <div role="group" className="pl-16">
                     {project.favoriteEstimateSheets.map((sheet) => {
                       const sheetKey = `sheet:${sheet.id}`;
                       const sheetIndex = flatItems.findIndex(
@@ -251,7 +251,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
                           role="treeitem"
                           aria-selected={false}
                           aria-label={sheet.name}
-                          className="flex items-center px-2"
+                          className="flex items-center"
                         >
                           <Link
                             href={sheet.href}

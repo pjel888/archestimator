@@ -168,8 +168,8 @@ export function WorkshopDashboard({
                     minHeight: 0,
                     paddingBlock: 8,
                     paddingRight: 0,
-                    borderTop: "1px solid var(--glass-border)",
-                    borderBottom: "1px solid var(--glass-border)",
+                    borderTop: "1px solid var(--destination-inner-border, var(--glass-border))",
+                    borderBottom: "1px solid var(--destination-inner-border, var(--glass-border))",
                   }}
                 >
                   <div
@@ -181,7 +181,7 @@ export function WorkshopDashboard({
                       height: "100%",
                       minHeight: 0,
                       padding: 8,
-                      borderRight: "1px solid var(--glass-border)",
+                      borderRight: "1px solid var(--destination-inner-border, var(--glass-border))",
                     }}
                   >
                     <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
@@ -239,8 +239,8 @@ export function WorkshopDashboard({
                     minHeight: 0,
                     paddingBlock: 8,
                     paddingRight: 0,
-                    borderTop: "1px solid var(--glass-border)",
-                    borderBottom: "1px solid var(--glass-border)",
+                    borderTop: "1px solid var(--destination-inner-border, var(--glass-border))",
+                    borderBottom: "1px solid var(--destination-inner-border, var(--glass-border))",
                   }}
                 >
                   <div
@@ -252,7 +252,7 @@ export function WorkshopDashboard({
                       height: "100%",
                       minHeight: 0,
                       padding: 8,
-                      borderRight: "1px solid var(--glass-border)",
+                      borderRight: "1px solid var(--destination-inner-border, var(--glass-border))",
                     }}
                   >
                     <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">

@@ -33,13 +33,13 @@ export function RecentProjectsList({ projects, embedded = false }: RecentProject
         embedded ? "" : "rounded-xs border border-hairline",
       )}
     >
-      <div className="flex h-12 shrink-0 items-center px-2">
+      <div className="flex h-12 shrink-0 items-center border-b border-hairline px-2">
         <h2 className="text-[12px] font-medium text-ink">Projects</h2>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {rows.length === 0 ? (
-          <p className="border-t border-hairline px-2 py-2 text-[10px] text-secondary">
+          <p className="px-2 py-2 text-[10px] text-secondary">
             No recent projects yet
           </p>
         ) : (
@@ -47,7 +47,7 @@ export function RecentProjectsList({ projects, embedded = false }: RecentProject
             {rows.map((project) => {
               const meta = project.client_name ?? project.location;
               return (
-                <li key={project.id} className="border-t border-hairline">
+                <li key={project.id}>
                   <Link
                     href={projectHref(project.id)}
                     className={cn(
