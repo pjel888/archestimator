@@ -28,6 +28,56 @@
   --brand-orange: rgb(170,65,42);
   --brand-orange-dark: rgb(140,54,35);
   --brand-orange-soft: color-mix(in srgb, var(--brand-orange) 14%, white);
+  /* Warm-bloom palette extension (Workshop Dashboard, 2026-06-17): the amber and
+     soft-peach mid-stops of the bottom-right gradient bloom. Brand-coherent warm
+     family with --brand-orange (clay → amber → peach → transparent). Dashboard
+     bloom only. */
+  --brand-amber: #e7a977;
+  --brand-peach: #f4cdb0;
+  /* ── Dashboard v2 bento system (owner directive 2026-06-18) ───────────────
+     Image cards, tonal scrims, the Library-hub gradient, the two hero gradients,
+     the quiet canvas wash, color-block fallbacks, and the warm-dark sidebar.
+     Dashboard-scoped surface vocabulary; brand-coherent warm clay family. */
+  --image-card-radius: var(--glass-radius);
+  --image-card-border: 1px solid var(--glass-border);
+  --image-card-shadow: var(--glass-shadow);
+  /* Per-render tonal bottom scrims — feel native to each render, not a black bar. */
+  --scrim-terracotta: linear-gradient(0deg, rgba(40, 18, 10, 0.8) 0%, rgba(40, 18, 10, 0.42) 42%, transparent 78%);
+  --scrim-sage: linear-gradient(0deg, rgba(22, 30, 20, 0.78) 0%, rgba(22, 30, 20, 0.4) 42%, transparent 78%);
+  --scrim-indigo: linear-gradient(0deg, rgba(16, 22, 40, 0.8) 0%, rgba(16, 22, 40, 0.42) 42%, transparent 78%);
+  /* Library hub — terracotta-bloom mesh (no render on disk); AA-proven for white. */
+  --library-hub-base: var(--brand-orange);
+  --library-hub-gradient:
+    radial-gradient(120% 120% at 100% 100%, var(--brand-orange-dark) 0%, color-mix(in srgb, var(--brand-orange-dark) 0%, transparent) 55%),
+    radial-gradient(90% 90% at 12% 8%, color-mix(in srgb, var(--brand-amber) 55%, transparent) 0%, transparent 48%),
+    radial-gradient(140% 130% at 50% 120%, color-mix(in srgb, var(--brand-peach) 30%, transparent) 0%, transparent 60%),
+    linear-gradient(135deg, color-mix(in srgb, var(--brand-orange) 95%, white) 0%, var(--brand-orange-dark) 100%);
+  /* On-art label scale — white only, over scrims/gradient. */
+  --on-art: #ffffff;
+  --on-art-muted: rgba(255, 255, 255, 0.85);
+  --on-art-faint: rgba(255, 255, 255, 0.62);
+  /* Two hero gradients — the only richly-coloured glass cells (Continue wins the duel). */
+  --grad-hero-continue: linear-gradient(135deg, color-mix(in srgb, var(--brand-orange) 22%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 16%, var(--glass-bg)) 48%, color-mix(in srgb, var(--brand-peach) 10%, var(--glass-bg)) 100%);
+  --grad-hero-create: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 17%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 11%, var(--glass-bg)) 100%);
+  /* Canvas wash — whisper-quiet warm pools bottom-right so frost reads as depth. */
+  --grad-canvas-wash:
+    radial-gradient(120% 95% at 88% 100%, color-mix(in srgb, var(--brand-orange) 9%, transparent) 0%, transparent 46%),
+    radial-gradient(90% 80% at 100% 92%, color-mix(in srgb, var(--brand-amber) 7%, transparent) 0%, transparent 52%),
+    radial-gradient(70% 60% at 96% 78%, color-mix(in srgb, var(--brand-peach) 6%, transparent) 0%, transparent 58%),
+    linear-gradient(155deg, #ffffff 0%, #fbfafa 40%, #f7f6f5 100%);
+  --grad-canvas-wash-fallback: #f7f6f5;
+  /* Flat color-block fallbacks (failed image / first-run). White-AA safe. */
+  --block-clay: var(--brand-orange);
+  --block-sage: #4a5d4e;
+  --block-indigo: #3b4a6b;
+  --block-ink: #2c2c2c;
+  --glass-shadow-hover: 0 12px 36px rgba(30, 35, 50, 0.16), 0 3px 10px rgba(30, 35, 50, 0.08);
+  /* Warm-dark sidebar (scoped to the rail). */
+  --glass-bg-sidebar: color-mix(in srgb, var(--brand-orange-dark) 12%, rgba(26, 20, 18, 0.74));
+  --sidebar-texture: url("/sidebar-BG.png");
+  --on-rail: rgba(255, 255, 255, 0.94);
+  --on-rail-muted: rgba(255, 255, 255, 0.74);
+  --rail-hairline: rgba(255, 255, 255, 0.12);
   --source-boundary: #e8d8cf;
   --accent-dark: #2A2A2A;
   --accent-soft: #f5f5f5;
@@ -124,6 +174,13 @@
   --color-proposalPaper: var(--proposal-paper);
   --font-sans: var(--font-sf-pro);
   --font-mono: var(--font-roboto-mono);
+  /* Dashboard-hero display + numeric families (Workshop Dashboard, 2026-06-17).
+     `font-display` = Zilla Slab slab-serif for the greeting/section titles;
+     `font-numeric` reuses the already-loaded Roboto Mono for codes/dates/totals
+     (a distinct utility name so the dashboard never needs the banned monospace
+     class). Path-scoped to the dashboard; the rest of the app keeps SF Pro. */
+  --font-display: var(--font-zilla-slab), Georgia, "Times New Roman", serif;
+  --font-numeric: var(--font-roboto-mono), ui-monospace, monospace;
   --radius-xs: var(--radius-xs);
 }
 
@@ -194,13 +251,46 @@ body:has([data-workshop-page-shell-root]) {
    because clip-path (used for the collapse animation) is applied AFTER filter and
    would otherwise crop the shadow at the rail edge. */
 .sidebar-glass {
-  background: var(--glass-bg);
+  /* Warm-dark rail (owner directive 2026-06-18): the sidebar-BG amber→maroon grid
+     texture under a dark warm frost, framing the bright bento canvas. Still ONE
+     backdrop-filter (the texture + frost are layered fills). */
+  background:
+    var(--glass-bg-sidebar),
+    var(--sidebar-texture) center / cover no-repeat;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-border);
-  border-top-color: var(--glass-border-top);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.22);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-inset-hi);
+  color: var(--on-rail);
+  /* Invert the compact tokens for the dark rail — every existing utility class
+     (text-ink, text-tertiary, hover:bg-surface-muted, the active orange pill,
+     dividers) resolves through these, so no component markup changes. */
+  --color-ink: var(--on-rail);
+  --color-primary: var(--on-rail);
+  --color-foreground: var(--on-rail);
+  --color-secondary: var(--on-rail-muted);
+  --color-tertiary: var(--on-rail-muted);
+  --color-muted: var(--on-rail-muted);
+  --color-muted-foreground: var(--on-rail-muted);
+  --color-warning: var(--brand-amber);
+  --color-surface-muted: rgba(255, 255, 255, 0.08);
+  --color-surfaceMuted: rgba(255, 255, 255, 0.08);
+  --color-accent-soft: rgba(255, 255, 255, 0.08);
+  --color-accentSoft: rgba(255, 255, 255, 0.08);
+  --color-orange-700: #ffffff;
+  --color-orange-50: color-mix(in srgb, var(--brand-orange) 30%, transparent);
+  --color-divider: var(--rail-hairline);
+  --color-hairline: var(--rail-hairline);
+  --glass-divider: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  --glass-nav-hover-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+}
+
+/* Profile avatar fallback keeps a branded gradient (the primary/secondary tokens
+   are now light on the rail, so restore an explicit on-brand fill). */
+.sidebar-glass [class*="bg-linear-to-br"] {
+  background-image: linear-gradient(to bottom right, var(--brand-orange), var(--brand-orange-dark));
 }
 
 /* Desktop-Chromium refraction: swap the SINGLE backdrop-filter to the inline SVG
@@ -256,7 +346,8 @@ body:has([data-workshop-page-shell-root]) {
 /* Fallback A — no backdrop-filter support → solid, still-intentional panel. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .sidebar-glass {
-    background: var(--glass-bg-fallback);
+    /* Solid dark-warm fallback (texture stays; no blur needed). */
+    background: linear-gradient(rgba(30, 23, 20, 0.9), rgba(30, 23, 20, 0.9)), var(--sidebar-texture) center / cover no-repeat;
   }
   .sidebar-glass-grain {
     display: none;
@@ -270,7 +361,7 @@ body:has([data-workshop-page-shell-root]) {
 @media (prefers-reduced-transparency: reduce) {
   .sidebar-glass,
   .sidebar-glass[data-refraction="true"] {
-    background: var(--glass-bg-fallback);
+    background: linear-gradient(rgba(30, 23, 20, 0.94), rgba(30, 23, 20, 0.94)), var(--sidebar-texture) center / cover no-repeat;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1005,4 +1096,230 @@ input[type="number"] {
 
 .duration-300 { animation-duration: 0.3s; }
 .duration-200 { animation-duration: 0.2s; }
+
+/* ─── Workshop Dashboard surface (2026-06-17) ─────────────────────────────────
+   The "command center" homebase: a warm bottom-right bloom dissolving into the
+   clean white top-left, frosted-glass widgets floating over it, and a faint
+   drafting grid as texture. Tokens reuse the brand terracotta + sidebar glass
+   recipe so the dashboard reads as one family with the rest of the app.
+   Scoped to the dashboard only — the global WorkshopGlassBackdrop stays calm. */
+
+/* One large soft warm bloom anchored just off the bottom-right corner, radiating
+   inward/up-left and fully dissolving to transparent before the center. Hues
+   pulled from the brand: clay/terracotta → amber → soft peach → transparent. */
+.workshop-dashboard-bloom {
+  background:
+    radial-gradient(
+      125% 115% at 100% 100%,
+      color-mix(in srgb, var(--brand-orange) 20%, transparent) 0%,
+      color-mix(in srgb, var(--brand-orange) 13%, transparent) 16%,
+      color-mix(in srgb, var(--brand-amber) 11%, transparent) 34%,
+      color-mix(in srgb, var(--brand-peach) 7%, transparent) 50%,
+      transparent 72%
+    );
+}
+
+/* Faint drafting dot-grid — decoration on warm/glass cards only, never under
+   body text. Very low opacity, sits beneath content. */
+.dashboard-grid-pattern {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--brand-orange) 24%, transparent) 0.75px,
+    transparent 0.75px
+  );
+  background-size: 14px 14px;
+  opacity: 0.4;
+}
+
+/* Liquid-glass dashboard panel — extends the sidebar glass recipe to the
+   dashboard (documented exception). One backdrop-filter per panel; cap the
+   number of simultaneous glass panels (a few large widgets, not every row). */
+.dashboard-glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow), var(--glass-inset-hi);
+}
+
+/* Soft variant for over-bloom CTA cards: slightly warmer frost so the bloom
+   diffuses through, still keeps crisp dark-ink content on top (AA-safe). */
+.dashboard-glass-warm {
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--brand-orange) 6%, var(--glass-bg)),
+      var(--glass-bg)
+    );
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid color-mix(in srgb, var(--brand-orange) 18%, var(--glass-border));
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow), var(--glass-inset-hi);
+}
+
+/* Non-blur fallback: solid translucent surface where backdrop-filter is
+   unsupported, and when the viewer asks for reduced transparency. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dashboard-glass,
+  .dashboard-glass-warm {
+    background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .dashboard-glass,
+  .dashboard-glass-warm {
+    background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .workshop-dashboard-bloom { opacity: 0.5; }
+}
+
+/* ── Dashboard v2 bento surfaces (owner directive 2026-06-18) ─────────────────
+   Full-bleed bento: editorial image cards (the triptych), a terracotta-bloom
+   Library hub, two warm-glass hero cells, white-paper data ledgers, all on a
+   whisper-quiet warm canvas wash. */
+
+/* Quiet warm canvas wash behind the whole dashboard (replaces the loud bloom). */
+.dashboard-canvas-wash {
+  background: var(--grad-canvas-wash);
+  background-attachment: local;
+}
+
+/* Full-bleed image destination cards (Projects / Components / Templates). */
+.image-card {
+  position: relative;
+  overflow: hidden;
+  border: var(--image-card-border);
+  border-radius: var(--image-card-radius);
+  box-shadow: var(--image-card-shadow);
+}
+/* Scrim geometry is standalone so the Library hub (.library-hub, not .image-card)
+   gets the same bottom darkening, not just the gradient background. */
+.image-card-scrim {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 60%;
+  pointer-events: none;
+}
+.image-card-projects .image-card-scrim { background: var(--scrim-terracotta); }
+.image-card-components .image-card-scrim { background: var(--scrim-sage); }
+.image-card-templates .image-card-scrim { background: var(--scrim-indigo); }
+
+/* Library hub — gradient body (no render on disk). */
+.library-hub {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--library-hub-base);
+  background-image: var(--library-hub-gradient);
+  border: var(--image-card-border);
+  border-radius: var(--image-card-radius);
+  box-shadow: var(--image-card-shadow);
+}
+.library-hub .image-card-scrim { background: var(--scrim-terracotta); }
+
+/* Two warm-glass hero cells carry the operational gradient wash. */
+.dashboard-hero-continue { background-image: var(--grad-hero-continue); }
+.dashboard-hero-create { background-image: var(--grad-hero-create); }
+
+/* Gentle lift on interactive cards (transform only; reduced-motion safe). */
+.dashboard-card-hover {
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+}
+.dashboard-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-card-hover { transition: none; }
+  .dashboard-card-hover:hover { transform: none; }
+}
+
+/* SVG-noise grain — kills banding on gradient cards; sits under content. */
+.grain-overlay { position: relative; isolation: isolate; }
+.grain-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .grain-overlay::after { opacity: 0; }
+  .dashboard-canvas-wash { background: var(--grad-canvas-wash-fallback); }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dashboard-canvas-wash { background: var(--grad-canvas-wash-fallback); }
+}
+
+/* ── Dashboard v2 bento layout (full-bleed, 3 bands) ─────────────────────── */
+.dashboard-root {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  row-gap: 16px;
+}
+.dashboard-masthead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.85fr);
+  column-gap: 16px;
+  align-items: stretch;
+}
+/* No Continue hero → single column. Unlayered + compound so it beats the base
+   rule (a layered Tailwind arbitrary utility would lose the cascade-layer fight). */
+.dashboard-masthead.dashboard-masthead--solo {
+  grid-template-columns: 1fr;
+}
+.dashboard-imageband {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  grid-auto-rows: clamp(160px, 18vw, 224px);
+  gap: 16px;
+}
+.dashboard-desk {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(112px, auto);
+  gap: 16px;
+  grid-template-areas:
+    "create create create create stats   stats   stats   recproj recproj recproj recsheet recsheet"
+    "create create create create favs    favs    favs    recproj recproj recproj recsheet recsheet"
+    "libspot libspot libspot libspot favs favs    favs    recproj recproj recproj recsheet recsheet";
+}
+.desk-create { grid-area: create; }
+.desk-libspot { grid-area: libspot; }
+.desk-stats { grid-area: stats; }
+.desk-favs { grid-area: favs; }
+.desk-recproj { grid-area: recproj; }
+.desk-recsheet { grid-area: recsheet; }
+
+@media (max-width: 1023px) {
+  .dashboard-masthead { grid-template-columns: 1fr; row-gap: 12px; }
+  .dashboard-imageband { grid-template-columns: repeat(2, 1fr); grid-auto-rows: clamp(150px, 26vw, 196px); }
+  .dashboard-desk {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas:
+      "create  create  create  stats    stats    stats"
+      "create  create  create  favs     favs     favs"
+      "recproj recproj recproj recsheet recsheet recsheet"
+      "libspot libspot libspot libspot  libspot  libspot";
+  }
+}
+@media (max-width: 639px) {
+  .dashboard-imageband { grid-template-columns: 1fr; grid-auto-rows: 132px; }
+  .dashboard-desk {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    grid-template-areas: "create" "stats" "recproj" "recsheet" "favs" "libspot";
+  }
+}
+
 .duration-150 { animation-duration: 0.15s; }

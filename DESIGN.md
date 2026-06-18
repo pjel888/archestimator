@@ -375,6 +375,36 @@ Target text rhythm:
 - App meta/eyebrow/helper labels: `8-9px`; these must be visually smaller than paired inputs, controls, values, and body text.
 - Estimate cells: normally `10px` with strong contrast, tabular numbers, and enough row height for scanning.
 
+#### Named app exception: Workshop Dashboard (2026-06-17; broadened 2026-06-18 — EXPLORATORY)
+
+The Workshop dashboard ("command center" homebase, `src/components/workshop/dashboard/`)
+is the app's own exploratory design language. As of the 2026-06-18 bento redesign the
+whole dashboard directory is **fully exempt** from `enforce-app-design-system.mjs`
+(owner directive: "don't be constrained by DESIGN.md" for this surface) — it may use
+display type, the Roboto Mono voice, color-blocking, complex gradients, larger card
+radii, and reversed-out type. Path-scoped to the dashboard directory only, never
+app-wide. **This direction is NOT finalized** — it is pending the owner's live visual
+review, so do not treat the values below as locked tokens of record yet. Highlights:
+
+- **Display family:** `Zilla Slab` loaded via `next/font` → `--font-display` (utility
+  `font-display`). Used for the greeting hero name, first-run headline, and key CTA
+  titles only. Body UI keeps the SF Pro system stack.
+- **Numeric family:** the already-loaded Roboto Mono is re-exposed as `--font-numeric`
+  (utility `font-numeric`) for codes, dates, counts, and totals — a distinct utility so
+  the dashboard never needs the banned monospace class.
+- **Type scale:** Roboto Mono (`font-numeric`) is the greeting-kicker/label/numeric voice;
+  Zilla Slab (`font-display`) is the hero name (~34px) + first-run headline (~24px). Larger
+  display sizes are allowed dashboard-wide under the full exemption above.
+- **Bento + glass:** the v2 dashboard is a full-bleed 3-band bento (`.dashboard-root/
+  -masthead/-imageband/-desk`). Destination cards use the `public/Cards/*-Card.jpg` triptych
+  (`.image-card` + tonal `--scrim-*`); Library is a terracotta-bloom gradient hub
+  (`.library-hub`). Warm-glass hero cells (`.dashboard-glass-warm` + `--grad-hero-*`) over a
+  whisper-quiet `--grad-canvas-wash`; dense data stays plain white for legibility; ≤4
+  simultaneous backdrop-blur panels. Reduced-transparency / no-backdrop fallbacks degrade.
+- **Warm-dark sidebar (shipped, reversible):** `.sidebar-glass` layers `public/sidebar-BG.png`
+  under a dark frost (`--glass-bg-sidebar`) with scoped `--color-*` overrides inverting the
+  rail to light; square 48×48 logo slab. Pending the owner's live review.
+
 ## Data visualization
 
 Charts (cost comparison, distribution, variance) follow the compact scale but carry

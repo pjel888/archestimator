@@ -23,6 +23,14 @@ const landingAllowlistPrefixes = ["src/components/landing/"];
 // (named-size prohibition, regular/medium weight, rounded-xs, tracking-0, icon weight,
 // reference tokens) still applies. The exemption is path-scoped, never app-wide.
 const sharePxExemptPrefixes = ["src/app/share/", "src/components/share/"];
+// The Workshop Dashboard ("command center" homebase) is its OWN exploratory
+// design language (owner directive 2026-06-18: "don't be constrained by DESIGN.md"
+// for the dashboard bento redesign). The whole dashboard directory is fully exempt
+// from the compact app/workshop enforcement so it can use display type, the Roboto
+// Mono voice, color-blocking, rich gradients, larger card radii, and reversed-out
+// type. Path-scoped to this directory only — never an app-wide disable. (Naming
+// kept as `*PxExempt*` for back-compat with the guard test's import.)
+const dashboardPxExemptPrefixes = ["src/components/workshop/dashboard/"];
 // Border-radius values permitted in app/workshop CSS. The xs token is the default
 // system rule; the two `--glass-*` radii are the documented, sidebar-scoped
 // "glass surface" exception (authorized 2026-06-17, recorded in DESIGN.md). These
@@ -32,6 +40,11 @@ const allowedBorderRadiusValues = new Set([
   "var(--radius-xs)",
   "var(--glass-radius)",
   "var(--glass-nav-radius)",
+  // Dashboard bento image/hub cards alias the 12px glass radius via this token.
+  "var(--image-card-radius)",
+  // `inherit` is not a magic radius — it adopts the parent surface's corner so
+  // pseudo-element overlays (grain, scrims) match the card they sit on.
+  "inherit",
 ]);
 const ignoredDirs = new Set(["node_modules", ".next", ".git"]);
 const scannedExtensions = new Set([".tsx", ".ts", ".jsx", ".js", ".css"]);
@@ -147,10 +160,26 @@ export function isSharePxExemptPath(rel) {
   return sharePxExemptPrefixes.some((prefix) => normalized.startsWith(prefix));
 }
 
+/** True when `rel` is inside the Workshop Dashboard surface (its own design language). */
+export function isDashboardPxExemptPath(rel) {
+  const normalized = rel.split("\\").join("/");
+  return dashboardPxExemptPrefixes.some((prefix) => normalized.startsWith(prefix));
+}
+
 /** Collect every design-system violation for a single file's source text. */
 export function collectFileViolations(rel, text) {
   const fileViolations = [];
+  // The Workshop Dashboard ("command center" homebase) is its own exploratory
+  // design language (owner directive 2026-06-18): the entire dashboard directory
+  // is FULLY exempt from the compact app/workshop enforcement so the bento
+  // redesign can use display type, the Roboto Mono voice, color-blocking, rich
+  // multi-layer gradients, larger card radii, and reversed-out type. Path-scoped
+  // to the dashboard directory only — never an app-wide disable.
+  if (isDashboardPxExemptPath(rel)) return fileViolations;
   const shareExempt = isSharePxExemptPath(rel);
+  // The /share Client Portal lifts ONLY the three px-threshold rules; every other
+  // rule below stays enforced everywhere outside the dashboard.
+  const pxExempt = shareExempt;
   const lines = text.split(/\r?\n/);
   lines.forEach((line, index) => {
     const lineTextSizes = textSizesOnLine(line);
@@ -160,17 +189,17 @@ export function collectFileViolations(rel, text) {
         fileViolations.push(`${rel}:${index + 1} uses ${label}. App/workshop typography must use explicit text-[8px], text-[9px], text-[10px], text-[11px], or text-[12px] role sizes.`);
       }
 
-      if (px > maxPx && !shareExempt) {
+      if (px > maxPx && !pxExempt) {
         fileViolations.push(`${rel}:${index + 1} uses ${label} (${px}px). App/workshop text must stay at or below ${maxPx}px.`);
       }
     }
 
-    if (!shareExempt && lineTextSizes.some(({ px }) => px > labelLikeTextSizeLimitPx) && hasClassToken(line, "uppercase")) {
+    if (!pxExempt && lineTextSizes.some(({ px }) => px > labelLikeTextSizeLimitPx) && hasClassToken(line, "uppercase")) {
       fileViolations.push(`${rel}:${index + 1} uses uppercase label/meta text above ${labelLikeTextSizeLimitPx}px. Labels, eyebrows, metadata, and section kickers must be 8-9px and never larger than paired input/control text.`);
     }
 
     if (
-      !shareExempt &&
+      !pxExempt &&
       lineTextSizes.some(({ px }) => px > secondaryTextSizeLimitPx) &&
       includesAnyClass(line, secondaryTextToneClasses) &&
       !includesAnyClass(line, primaryToneClasses)
@@ -180,14 +209,14 @@ export function collectFileViolations(rel, text) {
 
     for (const match of line.matchAll(/(?:^|[^A-Za-z0-9_-])(?:[a-z0-9_-]+:)*!?text-\[([0-9.]+)(px|rem)\]/g)) {
       const px = pxFromArbitrary(match[1], match[2]);
-      if (px !== null && px > maxPx && !shareExempt) {
+      if (px !== null && px > maxPx && !pxExempt) {
         fileViolations.push(`${rel}:${index + 1} uses text-[${match[1]}${match[2]}] (${px}px). App/workshop text must stay at or below ${maxPx}px.`);
       }
     }
 
     for (const match of line.matchAll(/font-size\s*:\s*([0-9.]+)(px|rem)/g)) {
       const px = pxFromArbitrary(match[1], match[2]);
-      if (px !== null && px > maxPx && !shareExempt) {
+      if (px !== null && px > maxPx && !pxExempt) {
         fileViolations.push(`${rel}:${index + 1} uses font-size ${match[1]}${match[2]} (${px}px). App/workshop text must stay at or below ${maxPx}px.`);
       }
     }

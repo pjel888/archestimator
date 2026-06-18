@@ -1,0 +1,80 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "#e7a977",
+        "reason": "Directive-confirmed warm-bloom amber mid-stop (--brand-amber), Workshop Dashboard 2026-06-17",
+        "createdAt": "2026-06-17T14:18:52.470Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#f4cdb0",
+        "reason": "Directive-confirmed warm-bloom soft-peach mid-stop (--brand-peach), Workshop Dashboard 2026-06-17",
+        "createdAt": "2026-06-17T14:18:52.559Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(40, 18, 10, 0.8)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.127Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(40, 18, 10, 0.42)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.274Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(22, 30, 20, 0.78)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.400Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(22, 30, 20, 0.4)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.490Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(16, 22, 40, 0.8)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.577Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(16, 22, 40, 0.42)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.655Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#4a5d4e",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.747Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#3b4a6b",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.835Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#2c2c2c",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:10.942Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(28, 22, 20, 0.66)",
+        "reason": "Dashboard v2 bento scrim/block/sidebar literal (owner-authorized exploration palette 2026-06-18)",
+        "createdAt": "2026-06-17T16:37:11.036Z"
+      }
+    ]
+  }
+}
