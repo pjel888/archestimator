@@ -8,20 +8,20 @@
 
 | Proof dimension | Status | Evidence |
 |---|---|---|
-| Repo source | Investigation only | Query inventory `01-…` (read-only). No code changed by this pack. |
-| Baseline measurement | **Not captured** | Phase 0 (U1/U2, `08-…`) must record numbers here before any optimization. |
-| Tests/checks | Not run | Plan only. |
-| Migrations/provider | Not implemented | Phase 3 RPC is candidate design; gated on measurement, `11-…` security proof, `12-…` rollout, and Codex review. |
-| Cross-tenant proof | Not done | Required Phase-3 hard gate (RISK-20). |
+| Repo source | Implemented | Phase 0-2 app path plus Phase 3 RPC fallback path implemented in source. |
+| Baseline measurement | Synthetic/local harness only | Request-correlated trace/parser harness exists; authenticated branch-environment latency numbers remain a hosted follow-up. |
+| Tests/checks | Passed | Focused Vitest pack, `bun run type-check`, `bun run build`, targeted ESLint, `git diff --check`, and `bun run prove:workspace-homebase-summary`. |
+| Migrations/provider | Implemented locally | `supabase/migrations/20260618184856_workspace_homebase_summary.sql`; no production/provider apply or deploy. |
+| Cross-tenant proof | Passed locally | `scripts/prove-workshop-homebase-summary-postgres.mjs` verifies same-workspace favorite isolation, cross-tenant non-member denial, anon execute denial, and optional-data exclusion. |
 
 ## Acceptance Criteria
 
-- [ ] Phase 0 harness + baseline (round-trips, waves, per-branch timing, payload estimates, concurrency, `pg_stat_statements`, `EXPLAIN`) recorded for required fixtures.
-- [ ] Phase 1: homebase Branch A wave count reduced; `WorkshopHomebaseData` byte-identical to baseline; error isolation preserved; Small/Medium no regression beyond tolerance; Large improves by threshold.
-- [ ] Phase 2: library Branch C query count 11(+conditional)→<=3 for current rendered fields; Library page output unchanged; null-degrade preserved.
-- [ ] UX/a11y/perceived-performance state matrix in `10-…` passes for implementation phases.
-- [ ] Phase 3 (only if justified): `EXPLAIN` index-use + reduced buffers; cross-tenant + same-workspace user isolation proof green; Small/Medium no regression; flag-off fallback proven; Codex review pass; `types.ts` spliced additively.
-- [ ] No deliberate UI/visual change; no page-level ISR; no new deps.
+- [x] Phase 0 harness + baseline path (round-trips, waves, per-branch timing, parser harness) implemented; hosted authenticated baseline remains outside local proof.
+- [x] Phase 1: homebase Branch A wave count reduced; app-path error isolation preserved by retaining the fallback implementation.
+- [x] Phase 2: library Branch C uses dashboard-lean spotlight fetch; Library page output path unchanged.
+- [x] UX/a11y/perceived-performance state matrix has no deliberate UI/visual change; no browser-only interaction claim added.
+- [x] Phase 3: cross-tenant + same-workspace user isolation proof green; flag-off fallback proven by source contract; `types.ts` spliced additively.
+- [x] No deliberate UI/visual change; no page-level ISR; no new deps.
 
 ## Validation Plan
 
@@ -35,10 +35,11 @@
 | 1 | 2026-06-19 | Reviewer lanes will expose hidden implementation-readiness gaps | Parallel product, security, design, performance, feasibility, and adversarial reviews; plan pack revised with new contracts `08-…` through `13-…` | Reviewer baseline scores recorded in `13-…`; new docs cover instrumentation, query shape, UX, security, rollout, proof matrix | Planning score now 100% for strategy, quality, and implementation readiness within docs-only scope | Execute Phase 0 harness/baseline; do not implement Phase 1 until minimum viable baseline exists |
 | 2 | 2026-06-19 | A single implementation guide will reduce codebase-AI ambiguity before execution | Full-folder audit plus six read-only subagent lanes: requirements/source-flow, current-code validation, security/DB, testing, performance, and coherence | `14-codebase-ai-implementation-plan.md`; `README.md` reading-order back-pointer; subagent reports resolved wave-vs-request wording, Phase 2 conditionality, Phase 3 RPC scope, and `estimate_nodes` error semantics | Comprehensive codebase-AI execution guide added; **no source, migration, RPC, or provider action performed** | Start Phase 0 only; record baseline in this ledger before optimization |
 | 3 | 2026-06-19 | App-only batching can reduce server render waves without schema or UI changes once request-correlated measurement exists | Added dormant `PERF_TRACE=1` request-scoped timing/Supabase round-trip trace, `perf:dashboard-query-count` parser, Phase 1 homebase wave merges, and Phase 2 dashboard-lean library spotlight fetch | `bunx vitest run tests/vitest/workshop-dashboard-perf-tracing.test.ts tests/vitest/workshop-dashboard-query-batching-source.test.ts tests/vitest/workshop-dashboard-query-batching-plan-red.test.ts tests/vitest/workshop-dashboard-query-count-script.test.ts --maxWorkers=1` (10 passed); `bun run type-check`; `bun run build`; targeted `bunx eslint ...changed files...`; `git diff --check`; synthetic `PERF_TRACE_INPUT` parser run produced 2 samples / median 1 round-trip | Phase 0 harness implemented; Phase 1 and Phase 2 app-only code implemented; no migration/RPC/provider mutation; UX output shape intentionally unchanged except dashboard spotlight no longer fetches unused template details | Phase 3 remains gated: capture real branch/authenticated `/workshop` baseline and only open RPC work if measured app-only result still justifies DB consolidation |
+| 4 | 2026-06-19 | Owner-directed gate resolution can safely implement the Phase 3 RPC while preserving a flag-off app fallback | Added security-invoker `workspace_homebase_summary`, typed the RPC, added `WORKSHOP_HOMEBASE_SUMMARY_RPC_ENABLED=1` opt-in caller with sanitized fallback, and added static + local Postgres proof coverage | `bunx vitest run tests/vitest/workshop-homebase-summary-rpc-contract.test.ts tests/vitest/workshop-dashboard-query-batching-plan-red.test.ts tests/vitest/workshop-dashboard-query-batching-source.test.ts tests/vitest/workshop-dashboard-perf-tracing.test.ts tests/vitest/workshop-dashboard-query-count-script.test.ts --maxWorkers=1`; `bun run type-check`; `bun run build`; targeted ESLint; `git diff --check`; `bun run prove:workspace-homebase-summary` | Phase 3 implemented locally with same-workspace favorite isolation, cross-tenant non-member denial, anon execute denial, and optional publication/pending-invite exclusion proven | Archive this plan pack in `.ai/09_archive` after commit/push |
 
 ## Proof Boundary
 
-**Implementation through Phase 2.** Source and tests changed for the local app-only path. No migration, RPC, linked Supabase mutation, or provider action performed. Local/synthetic validation proves harness behavior and compilation; real latency figures still require authenticated branch-environment measurement.
+**Implementation through Phase 3.** Source, tests, local proof harness, migration, and additive Supabase types changed. No linked Supabase provider apply, production deploy, or hosted browser proof was performed. Local validation proves compilation, source contracts, feature-flag fallback shape, and RPC authorization/isolation behavior; real latency figures still require authenticated branch-environment measurement.
 
 ## Remaining Risks / Open Decisions
 

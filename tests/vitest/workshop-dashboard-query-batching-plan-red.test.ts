@@ -9,7 +9,9 @@ function read(path: string) {
 }
 
 function getFunctionBody(source: string, functionName: string) {
-  const start = source.indexOf(`export async function ${functionName}`);
+  const exportedStart = source.indexOf(`export async function ${functionName}`);
+  const localStart = source.indexOf(`async function ${functionName}`);
+  const start = exportedStart >= 0 ? exportedStart : localStart;
   expect(start, `${functionName} should be exported`).toBeGreaterThanOrEqual(0);
   const bodyStart = source.indexOf("{", start);
   let depth = 0;
@@ -35,7 +37,7 @@ describe("Workshop Dashboard query batching plan RED contracts", () => {
 
   it("fetches recent and favorite homebase estimate arms in one bounded Phase 1 wave", () => {
     const repository = read("src/lib/repositories/workspace-repository.ts");
-    const body = getFunctionBody(repository, "getWorkshopHomebaseData");
+    const body = getFunctionBody(repository, "getWorkshopHomebaseDataAppPath");
 
     expect(body).toContain("recentEstimateProjectIds");
     expect(body).toMatch(/recentEstimate(?:s)?Result/);
@@ -46,7 +48,7 @@ describe("Workshop Dashboard query batching plan RED contracts", () => {
 
   it("uses one merged project backfill for favorite projects and missing estimate projects", () => {
     const repository = read("src/lib/repositories/workspace-repository.ts");
-    const body = getFunctionBody(repository, "getWorkshopHomebaseData");
+    const body = getFunctionBody(repository, "getWorkshopHomebaseDataAppPath");
 
     expect(body).toContain("missingProjectIds");
     expect(body).toMatch(/projectBackfillIds|backfillProjectIds/);

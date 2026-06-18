@@ -26,6 +26,7 @@
     "prove:notification-rls": "node scripts/prove-notification-rls-postgres.mjs",
     "prove:estimate-tabs-rls": "node scripts/prove-estimate-tabs-postgres.mjs",
     "prove:estimate-list-summaries": "node scripts/prove-estimate-list-summaries-postgres.mjs",
+    "prove:workspace-homebase-summary": "node scripts/prove-workshop-homebase-summary-postgres.mjs",
     "prove:rls-initplan": "node scripts/prove-rls-initplan-postgres.mjs",
     "prove:unify-kinds": "node scripts/prove-unify-estimate-node-kinds-postgres.mjs",
     "launch:verify-hosted-auth": "bun run scripts/verify-hosted-auth-routes.ts",

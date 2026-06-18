@@ -1,16 +1,16 @@
 # Workshop Dashboard — Query Batching & Round-Trip Reduction
 
 **Date:** 2026-06-19
-**Status:** Planning only. No source, migrations, RPCs, or provider actions are created by this pack.
+**Status:** Implemented and archived. Phase 0-3 source, migration, fallback, and proof work landed locally on 2026-06-19 before archive.
 **Blast radius:** HIGH (data layer — Supabase reads, candidate RPC, RLS surface). Codex review gate applies before any code lands.
 
 ## Evidence Anchors
 
 | Proof dimension | Status | Evidence |
 |---|---|---|
-| Repo source | Read-only investigation | Query inventory in `01-current-query-and-round-trip-inventory.md`, anchored to `src/lib/repositories/workspace-repository.ts`, `src/lib/repositories/component-library-repository.ts`, `src/app/workshop/page.tsx`. |
-| Tests/checks | Not run | This is a plan. No code changed; no gates executed. |
-| Migrations/provider | Not implemented | No migration or RPC created. Phase 3 RPC is a *candidate* design only, gated behind measurement + Codex review. |
+| Repo source | Implemented | Query inventory in `01-current-query-and-round-trip-inventory.md`; implementation in `src/lib/repositories/workspace-repository.ts`, `src/lib/repositories/component-library-repository.ts`, `src/app/workshop/page.tsx`, and `src/lib/perf/server-timing.ts`. |
+| Tests/checks | Passed | `bunx vitest run tests/vitest/workshop-homebase-summary-rpc-contract.test.ts tests/vitest/workshop-dashboard-query-batching-plan-red.test.ts tests/vitest/workshop-dashboard-query-batching-source.test.ts tests/vitest/workshop-dashboard-perf-tracing.test.ts tests/vitest/workshop-dashboard-query-count-script.test.ts --maxWorkers=1`; `bun run type-check`; `bun run build`; targeted ESLint; `git diff --check`; `bun run prove:workspace-homebase-summary`. |
+| Migrations/provider | Implemented locally | `supabase/migrations/20260618184856_workspace_homebase_summary.sql` adds the security-invoker RPC. No production/provider apply or deploy was performed. |
 | Hosted/browser proof | Not applicable | Latency proof requires the measurement protocol in `05-…` against a Supabase branch DB, not local. |
 | DB-lane proof | Required before any RPC/caller switch | Phase 3 (RPC) must not start until Phase 0 baseline + Phase 1 wins are measured, Phase 2 is measured if Branch C/library load remains decision-relevant, branch-DB/security gates pass, and the work stays inside the authorized Archestimator Supabase project boundary. Fresh owner approval is required only for production, destructive, unrelated-provider, cost-changing, or policy-overriding actions. |
 
@@ -20,7 +20,7 @@ Make the `/workshop` dashboard's server-side data fetch faster by **cutting the 
 
 ## Explicit Warnings
 
-- This pack is **not evidence of implementation.**
+- This archived pack is now evidence of implementation through Phase 3.
 - Do **not** create a migration or RPC until Phase 0 baseline and Phase 1 app-only wins are measured; Phase 2 is also required first if Branch C/library load remains part of the slow-path decision (`05-…`, `08-…`, `12-…`).
 - Do **not** apply any RPC or index directly to production. Use a Supabase branch DB.
 - Candidate SQL in `03-…` is **directional design, not ready-to-run DDL.**

@@ -3503,6 +3503,10 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: boolean
       }
+      workspace_homebase_summary: {
+        Args: { recent_limit?: number; target_workspace_id: string }
+        Returns: Json
+      }
       can_assign_estimate_role: {
         Args: {
           target_estimate_id: string

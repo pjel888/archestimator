@@ -40,6 +40,20 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Workshop Dashboard query-batching Phase 0-3 implemented and archived (2026-06-19):**
+The plan pack `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/`
+has been completed and moved to `.ai/09_archive/`. Phase 3 added the
+security-invoker `workspace_homebase_summary` migration, additive Supabase
+types, an opt-in `WORKSHOP_HOMEBASE_SUMMARY_RPC_ENABLED=1` caller path with
+sanitized fallback to the app path, and a local Postgres proof harness. Evidence:
+focused Vitest query-batching/RPC-contract pack passed; `bun run type-check`;
+`bun run build`; targeted ESLint; `git diff --check`; and
+`bun run prove:workspace-homebase-summary` proving same-workspace favorite
+isolation, cross-tenant non-member denial, anon execute denial, and optional
+publication/pending-invite exclusion. No linked Supabase provider apply,
+production deploy, or hosted browser proof was performed; authenticated
+branch-environment latency measurement remains a follow-up if needed.
+
 **Workshop Dashboard query-batching Phase 0-2 implemented locally (2026-06-19):**
 The plan pack `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/`
 now has app-only implementation through Phase 2: dormant `PERF_TRACE=1`

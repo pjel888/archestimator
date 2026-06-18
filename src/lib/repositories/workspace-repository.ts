@@ -165,6 +165,22 @@ type WorkshopEstimateNodeQueryResult = {
   data: WorkshopEstimateNodeRecord[] | null;
   error: unknown;
 };
+type WorkshopHomebaseSummaryRpcResult = {
+  data: Json | null;
+  error: unknown;
+};
+type WorkshopHomebaseFavoriteProjectRef = Pick<Tables<"project_favorites">, "project_id" | "created_at">;
+type WorkshopHomebaseFavoriteEstimateRef = Pick<Tables<"estimate_favorites">, "estimate_id" | "project_id" | "created_at">;
+type WorkshopHomebaseSummaryPayload = {
+  projectFavorites: WorkshopHomebaseFavoriteProjectRef[];
+  estimateFavorites: WorkshopHomebaseFavoriteEstimateRef[];
+  recentProjects: WorkshopProjectRecord[];
+  favoriteProjects: WorkshopProjectRecord[];
+  estimateProjects: WorkshopProjectRecord[];
+  recentEstimates: WorkshopEstimateRecord[];
+  favoriteEstimates: WorkshopEstimateRecord[];
+  estimateNodes: WorkshopEstimateNodeRecord[];
+};
 
 type ProjectMemberRow = Pick<Tables<"project_members">, "project_id" | "role" | "user_id" | "workspace_id">;
 type EstimateSheetMemberRow = Pick<Tables<"estimate_sheet_members">, "estimate_id" | "project_id" | "role" | "user_id">;
@@ -1073,6 +1089,177 @@ function sortByUpdatedAtDescThenIdDesc<T extends { id: string; updated_at: strin
 }
 
 export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
+  if (process.env.WORKSHOP_HOMEBASE_SUMMARY_RPC_ENABLED === "1") {
+    const rpcHomebase = await getWorkshopHomebaseDataRpcPath();
+    if (rpcHomebase) return rpcHomebase;
+  }
+  return getWorkshopHomebaseDataAppPath();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readRpcArray(payload: Record<string, unknown>, key: keyof WorkshopHomebaseSummaryPayload) {
+  const value = payload[key];
+  if (!Array.isArray(value)) throw new Error("workspace_homebase_summary invalid shape");
+  return value;
+}
+
+function parseWorkshopHomebaseSummaryPayload(value: unknown): WorkshopHomebaseSummaryPayload {
+  if (!isRecord(value)) throw new Error("workspace_homebase_summary invalid payload");
+  return {
+    projectFavorites: readRpcArray(value, "projectFavorites") as WorkshopHomebaseFavoriteProjectRef[],
+    estimateFavorites: readRpcArray(value, "estimateFavorites") as WorkshopHomebaseFavoriteEstimateRef[],
+    recentProjects: readRpcArray(value, "recentProjects") as WorkshopProjectRecord[],
+    favoriteProjects: readRpcArray(value, "favoriteProjects") as WorkshopProjectRecord[],
+    estimateProjects: readRpcArray(value, "estimateProjects") as WorkshopProjectRecord[],
+    recentEstimates: readRpcArray(value, "recentEstimates") as WorkshopEstimateRecord[],
+    favoriteEstimates: readRpcArray(value, "favoriteEstimates") as WorkshopEstimateRecord[],
+    estimateNodes: readRpcArray(value, "estimateNodes") as WorkshopEstimateNodeRecord[],
+  };
+}
+
+async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | null> {
+  try {
+    const { workspace, profile } = await ensureDefaultWorkspace();
+    const supabase = await createSupabaseServerClient();
+
+    const [
+      summaryResult,
+      projectMembersResult,
+      sheetMembersResult,
+      workspaceMembershipResult,
+    ] = await Promise.all([
+      traced("homebase.rpc.workspace_homebase_summary", () =>
+        supabase.rpc("workspace_homebase_summary", {
+          target_workspace_id: workspace.id,
+          recent_limit: WORKSHOP_HOMEBASE_ITEM_LIMIT,
+        }) as unknown as Promise<WorkshopHomebaseSummaryRpcResult>,
+      ),
+      supabase
+        .from("project_members")
+        .select("project_id, workspace_id, role, user_id")
+        .eq("user_id", profile.id),
+      supabase
+        .from("estimate_sheet_members")
+        .select("estimate_id, project_id, role, user_id")
+        .eq("user_id", profile.id),
+      supabase
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", workspace.id)
+        .eq("user_id", profile.id)
+        .maybeSingle(),
+    ]);
+
+    if (summaryResult.error) throw summaryResult.error;
+    if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
+    if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
+    if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
+
+    const payload = parseWorkshopHomebaseSummaryPayload(summaryResult.data);
+    const projectFavoriteCreatedAt = new Map(payload.projectFavorites.map((favorite) => [favorite.project_id, favorite.created_at]));
+    const estimateFavoriteCreatedAt = new Map(payload.estimateFavorites.map((favorite) => [favorite.estimate_id, favorite.created_at]));
+    const projectMembers = (projectMembersResult.error ? [] : projectMembersResult.data ?? []) as ProjectMemberRow[];
+    const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
+    const workspaceRole = workspaceMembershipResult.data?.role
+      ? mapWorkspaceRoleToCollaborationRole(workspaceMembershipResult.data.role)
+      : null;
+    const resolveProjectAccess = createWorkshopProjectAccessResolver({
+      profileId: profile.id,
+      projectMembers,
+      sheetMembers,
+      workspace,
+      workspaceRole,
+    });
+
+    const recentProjects = payload.recentProjects;
+    const favoriteProjects = sortByFavoriteCreatedAt(payload.favoriteProjects, projectFavoriteCreatedAt);
+    const projects = mergeHomebaseRecords(favoriteProjects, recentProjects);
+    for (const project of payload.estimateProjects) {
+      if (!projects.some((existingProject) => existingProject.id === project.id)) projects.push(project);
+    }
+    const estimates = mergeHomebaseRecords(
+      sortByFavoriteCreatedAt(payload.favoriteEstimates, estimateFavoriteCreatedAt),
+      sortByUpdatedAtDescThenIdDesc(payload.recentEstimates),
+    );
+    const projectById = new Map(projects.map((project) => [project.id, project]));
+    const visibleFavoriteProjectIds = new Set(projects.filter((project) => projectFavoriteCreatedAt.has(project.id)).map((project) => project.id));
+    const removedProjectFavorites = Array.from(projectFavoriteCreatedAt.keys())
+      .filter((projectId) => !visibleFavoriteProjectIds.has(projectId))
+      .map((projectId) => ({
+        id: projectId,
+        name: null,
+        projectCode: null,
+        favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
+      }));
+    const allProjectIds = Array.from(new Set(projects.map((project) => project.id)));
+    const manageableProjectIds = projects
+      .filter((project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole))
+      .map((project) => project.id);
+
+    const [homebasePublicationRows, pendingInviteVisibility] = await traced("homebase.rpc.tail", () => Promise.all([
+      readOptionalProjectPublications(supabase, allProjectIds),
+      readPendingCollaborationVisibilitySummary({
+        email: profile.email,
+        projectIds: manageableProjectIds,
+        supabase,
+      }),
+    ]));
+
+    const homebasePublicationByProjectId = new Map<string, ProjectPublicationListRow>();
+    for (const publication of homebasePublicationRows) {
+      if (!homebasePublicationByProjectId.has(publication.project_id)) {
+        homebasePublicationByProjectId.set(publication.project_id, publication);
+      }
+    }
+    const firstNodeByEstimateId = selectFirstEstimateNodeIds(payload.estimateNodes);
+
+    return {
+      workspace,
+      projects: projects.map((project) => {
+        const access = resolveProjectAccess(project);
+        return {
+          id: project.id,
+          name: project.name,
+          client_name: project.client_name,
+          project_code: project.project_code,
+          location: project.location,
+          updated_at: project.updated_at,
+          ...access,
+          isFavorite: projectFavoriteCreatedAt.has(project.id),
+          favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
+          pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(project.id) ?? 0,
+          publicationSummary: readProjectPublicationListSummary(homebasePublicationByProjectId.get(project.id) ?? null),
+        };
+      }),
+      estimates: estimates.map((estimate) => {
+        const project = projectById.get(estimate.project_id);
+        return {
+          id: estimate.id,
+          project_id: estimate.project_id,
+          name: estimate.name,
+          sheet_code: estimate.sheet_code,
+          updated_at: estimate.updated_at,
+          projectName: project?.name ?? "Unknown project",
+          projectCode: project?.project_code ?? null,
+          firstNodeId: firstNodeByEstimateId.get(estimate.id) ?? null,
+          isFavorite: estimateFavoriteCreatedAt.has(estimate.id),
+          favoriteCreatedAt: estimateFavoriteCreatedAt.get(estimate.id) ?? null,
+        };
+      }),
+      pendingInvites: pendingInviteVisibility.receivedPendingInvites,
+      removedProjectFavorites,
+      receivedPendingInviteCount: pendingInviteVisibility.receivedPendingInviteCount,
+    };
+  } catch {
+    console.warn("[workspace_homebase_summary] RPC unavailable; using app path");
+    return null;
+  }
+}
+
+async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
