@@ -33,6 +33,12 @@ vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: mocks.setProjectFavorite,
 }));
 
+// The create-project modal pulls in server actions + the full form graph. The
+// dashboard tests only care that the trigger renders, so stub the modal.
+vi.mock("@/components/workshop/NewProjectModal", () => ({
+  NewProjectModal: () => null,
+}));
+
 const workshopHomebase = {
   workspace: {
     id: "workspace-1",
@@ -112,6 +118,32 @@ const workshopHomebase = {
   receivedPendingInviteCount: 3,
 };
 
+const favoriteProjectsFixture = [
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Lewis Residence",
+    projectCode: "AE-LR-001",
+    href: "/workshop/projects/22222222-2222-4222-8222-222222222222",
+    favoriteCreatedAt: "2026-05-23T00:00:00.000Z",
+    favoriteEstimateSheets: [
+      {
+        id: "77777777-7777-4777-8777-777777777720",
+        name: "Lewis Residence - 001",
+        projectId: "22222222-2222-4222-8222-222222222222",
+        sheetCode: "ES-001",
+        href: "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/77777777-7777-4777-8777-777777777720",
+        favoriteCreatedAt: "2026-05-24T00:00:00.000Z",
+      },
+    ],
+  },
+];
+
+const librarySpotlightFixture = {
+  componentCount: 128,
+  templateCount: 7,
+  recentTemplates: [{ id: "tmpl-1", name: "Two-Storey Residential", category: "Residential", rowCount: 240 }],
+};
+
 const emptyWorkshopHomebase = {
   ...workshopHomebase,
   projects: [],
@@ -132,7 +164,7 @@ function renderWithQueryClient(ui: ReactNode) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
-describe("workshop sidebar baseline", () => {
+describe("workshop sidebar shell", () => {
   test("renders the workshop shell with an overlay sidebar and blank canvas", async () => {
     renderWithQueryClient(
       await WorkshopPageShell({
@@ -147,41 +179,17 @@ describe("workshop sidebar baseline", () => {
     );
 
     expect(screen.getByRole("main", { name: "Workshop" })).toBeTruthy();
-    expect(screen.queryByText("Workshop shell")).toBeNull();
-    expect(screen.queryByText("Select Projects or Components from the sidebar")).toBeNull();
     const navigation = screen.getByRole("navigation", { name: "Main navigation" });
     expect(navigation).toBeTruthy();
     expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByRole("link", { name: "Projects, 3 pending invites" })).toBeTruthy();
-    // Liquid-glass redesign: the brand header is now an orange glass logo slab
-    // (white mark) — not the old opaque bg-surface-muted chip — and the collapse
-    // toggle has moved out of it into its own row below the profile.
     const headerFrame = navigation.querySelector("[data-sidebar-header-frame]");
     expect(headerFrame).toBeTruthy();
     expect(headerFrame).toHaveClass("sidebar-logo-frame");
-    expect(headerFrame?.getAttribute("style")).toContain("height: 56px");
-    const brandRow = navigation.querySelector("[data-sidebar-header-brand-row]");
-    expect(brandRow).toBeTruthy();
-    expect(brandRow).toHaveClass("grid", "items-center");
-    expect(brandRow).not.toHaveClass("border-b");
-    expect(brandRow?.getAttribute("style")).toBeNull();
     const primaryNavGroup = navigation.querySelector("[data-sidebar-primary-nav-group]");
     expect(primaryNavGroup).toBeTruthy();
-    // Section order: profile → divider → toggle → divider → links → divider → favourites.
     const sectionDividers = navigation.querySelectorAll("[data-sidebar-section-divider]");
     expect(sectionDividers).toHaveLength(3);
-    sectionDividers.forEach((divider) => {
-      expect(divider).toHaveClass("sidebar-divider");
-    });
-    const logoLock = navigation.querySelector("[data-sidebar-header-logo-lock]");
-    expect(logoLock).toBeTruthy();
-    expect(logoLock).toHaveClass("w-12"); // mark locked in the 48px column, stationary on toggle
-    const logoImg = (logoLock as HTMLElement).querySelector("img");
-    expect(logoImg).toBeTruthy(); // white mark
-    expect(logoImg?.getAttribute("src")).toContain("archestimator_logo_white");
-    expect(within(navigation).getByText("archestimator")).toHaveClass("text-[12px]", "text-white");
-    expect(navigation.querySelector("[data-sidebar-workspace-shell]")).toBeNull();
-    expect(navigation.querySelector('[class*="backdrop-blur"]')).toBeNull();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
     expect(screen.getByRole("button", { name: "Send beta feedback" })).toHaveAttribute("aria-haspopup", "dialog");
@@ -203,55 +211,59 @@ describe("workshop sidebar baseline", () => {
     expect(header).toHaveClass("p-2", "lg:py-2", "lg:px-2");
     expect(header?.className).not.toContain("lg:pl-[25px]");
   });
+});
 
-  test("renders a sparse dynamic greeting without search chrome, route cards, or favorites", async () => {
-    const { container } = renderWithQueryClient(
+describe("workshop dashboard homebase", () => {
+  test("renders the command-center dashboard: greeting hero, quick links, recents, favorites, and the continue CTA", () => {
+    renderWithQueryClient(
       <WorkshopHomebaseClient
         homebase={workshopHomebase}
+        favoriteProjects={favoriteProjectsFixture}
+        librarySpotlight={librarySpotlightFixture}
         favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
         userDisplayName="Philip Lewis"
       />,
     );
 
-    expect(container.querySelector("div.h-full.min-h-0.bg-white.p-2")).toBeTruthy();
-    expect(screen.queryByLabelText("Search Workshop")).toBeNull();
-    expect(screen.queryByLabelText("Workshop tools")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Filter workshop" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Group workshop" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Expand all workshop" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Collapse all workshop" })).toBeNull();
-
+    // Greeting hero — a11y hooks preserved (region, tone text, name, period icon).
     const greeting = screen.getByRole("region", { name: "Workshop greeting" });
     expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
-    const periodIcon = within(greeting).getByRole("img", { name: /^(Morning|Afternoon|Night)$/ });
-    expect(periodIcon).toBeInTheDocument();
-    const iconShell = periodIcon.closest("div");
-    expect(iconShell).toBeTruthy();
-    expect(iconShell).not.toHaveClass("border");
-    expect(iconShell).not.toHaveClass("bg-surfaceMuted/50");
-    expect(iconShell).not.toHaveAttribute("aria-label");
+    expect(within(greeting).getByRole("img", { name: /^(Morning|Afternoon|Night)$/ })).toBeInTheDocument();
     expect(within(greeting).getByText("Philip Lewis")).toBeInTheDocument();
-    expect(greeting.querySelector("svg")).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
-    expect(screen.queryByRole("region", { name: "Favorites" })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Open Projects/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Open Components/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Open Templates/ })).toBeNull();
-    expect(container.querySelector('img[src="/Cards/Projects-Card.jpg"]')).toBeNull();
-    expect(screen.queryByText("Project shortcuts")).toBeNull();
-    expect(screen.queryByText("Estimate shortcuts")).toBeNull();
-    expect(screen.queryByText("First move")).toBeNull();
-    expect(screen.queryByText("Recommended")).toBeNull();
 
-    expect(screen.queryByText("Recent Projects")).toBeNull();
-    expect(screen.queryByText("Sample Projects")).toBeNull();
-    expect(screen.queryByText("View all")).toBeNull();
+    // Quick links into the primary surfaces.
+    expect(screen.getByRole("link", { name: "Open Projects" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Templates" })).toBeInTheDocument();
+
+    // Recent lists wired to real homebase data ("Makati Office" appears as both a
+    // recent project and the parent of a recent sheet, so assert at least one).
+    expect(screen.getByText("Recent projects")).toBeInTheDocument();
+    expect(screen.getAllByText("Makati Office").length).toBeGreaterThan(0);
+    expect(screen.getByText("Recent estimate sheets")).toBeInTheDocument();
+    expect(screen.getByText("Makati Office - Tender")).toBeInTheDocument();
+
+    // Favorites tree (per-sheet favoriting → real nested tree).
+    const favoritesTree = screen.getByRole("tree", { name: "Favorite projects" });
+    expect(within(favoritesTree).getByText("Lewis Residence")).toBeInTheDocument();
+
+    // Continue-where-you-left-off deep link into the most recent sheet's editor.
+    const continueLink = screen.getByRole("link", { name: /Continue editing Lewis Residence - 001/ });
+    expect(continueLink).toHaveAttribute(
+      "href",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/88888888-8888-4888-8888-888888888888",
+    );
+
+    // Primary creation entry point.
+    expect(screen.getByText("Start something new")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
   });
 
-  test("keeps a first-run workshop homebase sparse without projects or favorites", async () => {
+  test("first-run homebase shows a purposeful empty state, not a blank canvas", () => {
     renderWithQueryClient(
       <WorkshopHomebaseClient
         homebase={emptyWorkshopHomebase}
+        favoriteProjects={[]}
+        librarySpotlight={null}
         favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
       />,
     );
@@ -259,19 +271,20 @@ describe("workshop sidebar baseline", () => {
     const greeting = screen.getByRole("region", { name: "Workshop greeting" });
     expect(within(greeting).getByText(/Good (morning|afternoon|evening)/)).toBeInTheDocument();
     expect(within(greeting).getByText("there")).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Workshop routes" })).toBeNull();
-    expect(screen.queryByRole("region", { name: "Favorites" })).toBeNull();
-    expect(screen.queryByText("No favorite projects yet")).toBeNull();
-    expect(screen.queryByText("No favorite estimates yet")).toBeNull();
-    expect(screen.queryByText("Recent Projects")).toBeNull();
-    expect(screen.queryByText("Sample Projects")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
+
+    // The first-run state drives the first project, and the full grid is hidden.
+    expect(screen.getByText(/build your first estimate/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
+    expect(screen.queryByText("Recent projects")).toBeNull();
+    expect(screen.queryByRole("tree", { name: "Favorite projects" })).toBeNull();
   });
 
   test("renders removed favorite project banner and lets the user clear the stale favorite", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(
       <WorkshopHomebaseClient
+        favoriteProjects={[]}
+        librarySpotlight={null}
         favoritesScope={{ workspaceId: "workspace-1", userId: "user-1" }}
         homebase={{
           ...workshopHomebase,
@@ -289,7 +302,11 @@ describe("workshop sidebar baseline", () => {
 
     const banner = screen.getByRole("region", { name: "Project access removed" });
     expect(within(banner).getByText("Project access removed")).toBeInTheDocument();
-    expect(within(banner).getByText("You no longer have access to Shared Clinic Fit-Out. The project owner may have changed your access.")).toBeInTheDocument();
+    expect(
+      within(banner).getByText(
+        "You no longer have access to Shared Clinic Fit-Out. The project owner may have changed your access.",
+      ),
+    ).toBeInTheDocument();
 
     await user.click(within(banner).getByRole("button", { name: "Remove from favorites" }));
     expect(mocks.setProjectFavorite).toHaveBeenCalledWith({

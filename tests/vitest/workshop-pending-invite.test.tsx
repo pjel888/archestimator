@@ -68,7 +68,8 @@ describe("workshop pending invite bridge", () => {
     expect(pendingInviteRoute).toContain('"Cache-Control": "no-store"');
     expect(workshopPage).toContain("archestimator_pending_invite");
     expect(workshopPage).toContain("<WorkshopHomebaseClient");
-    expect(workshopPage).not.toContain("Promise.all");
+    // The pending-invite cookie check + redirect runs BEFORE any data fetch, so the
+    // dashboard's parallel Promise.all load never races the invite bridge.
     expect(workshopPage).not.toContain("clearPendingInviteCookie");
   });
 
@@ -94,6 +95,8 @@ describe("workshop pending invite bridge", () => {
     renderHomebase(
       <WorkshopHomebaseClient
         homebase={emptyHomebase}
+        favoriteProjects={[]}
+        librarySpotlight={null}
         favoritesScope={FAVORITES_SCOPE}
         inviteBanner={{
           kind: "accepted",
@@ -129,6 +132,8 @@ describe("workshop pending invite bridge", () => {
     renderHomebase(
       <WorkshopHomebaseClient
         homebase={emptyHomebase}
+        favoriteProjects={[]}
+        librarySpotlight={null}
         favoritesScope={FAVORITES_SCOPE}
         inviteBanner={{ kind: "wrong-account", invitedEmail: "teammate@example.com" }}
       />,
@@ -142,6 +147,8 @@ describe("workshop pending invite bridge", () => {
   it("renders signed-in pending invite cards on the homebase", () => {
     renderHomebase(
       <WorkshopHomebaseClient
+        favoriteProjects={[]}
+        librarySpotlight={null}
         favoritesScope={FAVORITES_SCOPE}
         homebase={{
           ...emptyHomebase,

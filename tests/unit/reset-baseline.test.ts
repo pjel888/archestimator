@@ -1,106 +1,80 @@
 import { describe, expect, test } from "bun:test";
 
-const forbiddenPrototypeReferences = [
+// Heavy data/dep references that must never leak into the lightweight dashboard
+// page — it composes from the cached homebase repositories, not bespoke fetchers.
+const forbiddenPageReferences = [
   "createMutableLocalRepository",
   "WorkshopShell",
-  "/component-library",
-  "/proposals",
   "@glideapps/glide-data-grid",
   "@dnd-kit/core",
+  "listCurrentWorkspaceProjects",
+  "liveProjects",
 ];
 
-describe("workshop sidebar baseline", () => {
-  test("workshop page keeps the approved sidebar shell and sparse greeting homebase", async () => {
+describe("workshop dashboard baseline", () => {
+  test("workshop page composes the command-center dashboard from existing data-access", async () => {
     const source = await Bun.file("src/app/workshop/page.tsx").text();
-    const loading = await Bun.file("src/app/workshop/loading.tsx").text();
     const homebase = await Bun.file("src/components/workshop/WorkshopHomebaseClient.tsx").text();
-    const shell = await Bun.file("src/components/workshop/WorkshopPageShell.tsx").text();
+    const dashboard = await Bun.file("src/components/workshop/dashboard/WorkshopDashboard.tsx").text();
+    const hero = await Bun.file("src/components/workshop/dashboard/DashboardHero.tsx").text();
+
+    // Page reuses the cached homebase + favorites + library repositories and keeps
+    // the pending-invite bridge. No parallel data layer.
     expect(source).toContain("WorkshopPageShell");
     expect(source).toContain("WorkshopHomebaseClient");
     expect(source).toContain("getWorkshopHomebaseData");
-    expect(source).not.toContain("listCurrentWorkspaceProjects");
-    expect(source).not.toContain("liveProjects");
-    expect(source).toContain('redirect("/workshop/pending-invite")');
-    expect(source).not.toContain("resolveWorkshopPendingInvite");
-    expect(source).not.toContain("clearPendingInviteCookie");
-    expect(source).toContain("archestimator_pending_invite");
+    expect(source).toContain("listMainSidebarFavoriteProjects");
+    expect(source).toContain("getLibraryOverview");
     expect(source).toContain("requireCurrentUserContext");
-    expect(source).toContain("userDisplayName={currentUser.displayName}");
-    expect(source).not.toContain("Promise.all");
+    expect(source).toContain('redirect("/workshop/pending-invite")');
+    expect(source).toContain("archestimator_pending_invite");
+    expect(source).toContain("favoriteProjects={favoriteProjects}");
+    expect(source).toContain("librarySpotlight={librarySpotlight}");
     expect(source).toContain("removedProjectBanner={removedProjectBanner}");
-    expect(homebase).not.toContain("WorkshopCollectionLayout");
-    expect(homebase).not.toContain("Search Workshop");
-    expect(homebase).not.toContain("Workshop tools");
-    expect(homebase).not.toContain("onFilter");
-    expect(homebase).not.toContain("onGroup");
-    expect(homebase).not.toContain("onExpandAll");
-    expect(homebase).not.toContain("onCollapseAll");
-    expect(homebase).not.toContain("filterOptions");
-    expect(homebase).not.toContain("searchTerms");
-    expect(homebase).toContain('className="flex h-full min-h-0 w-full flex-col gap-2 bg-white p-2"');
-    expect(homebase).toContain('aria-label="Workshop greeting"');
-    expect(homebase).toContain("min-h-[180px] w-full flex-1");
-    expect(homebase).toContain("WorkshopGreeting");
-    expect(homebase).toContain("getWorkshopGreetingTone");
-    expect(homebase).toContain("formatWorkshopGreetingName");
-    expect(homebase).toContain("Good morning");
-    expect(homebase).toContain("Good afternoon");
-    expect(homebase).toContain("Good evening");
-    expect(homebase).toContain("Morning");
-    expect(homebase).toContain("Night");
-    expect(homebase).toContain('icon: "sun"');
-    expect(homebase).toContain('icon: "moon"');
-    expect(homebase).toContain("w-[280px]");
-    expect(homebase).toContain("grid-cols-[36px_minmax(0,1fr)]");
-    expect(homebase).toContain("flex size-9 items-center justify-center text-secondary");
-    expect(homebase).not.toContain("min-w-[96px]");
-    expect(homebase).not.toContain("bg-surfaceMuted/50");
-    expect(homebase).toContain("text-[12px]");
-    expect(homebase).toContain("text-[11px]");
-    expect(homebase).not.toContain("Workshop bento");
-    expect(homebase).not.toContain("destinations");
-    expect(homebase).not.toContain("DestinationTile");
-    expect(homebase).not.toContain("BentoPanel");
-    expect(homebase).not.toContain("FavoritesPanel");
-    expect(homebase).not.toContain("WorkshopTreeTabs");
-    expect(homebase).not.toContain("favoriteTabs");
-    expect(homebase).not.toContain("activeFavoriteTab");
-    expect(homebase).not.toContain('import Image from "next/image"');
-    expect(homebase).not.toContain('imageSrc: "/Cards/Projects-Card.jpg"');
-    expect(homebase).not.toContain('imageSrc: "/Cards/Components-Card.jpg"');
-    expect(homebase).not.toContain('imageSrc: "/Cards/Templates-Card.jpg"');
-    expect(homebase).not.toContain("aspect-square w-full");
-    expect(homebase).not.toContain("Open Projects");
-    expect(homebase).not.toContain("Open Components");
-    expect(homebase).not.toContain("Open Templates");
-    expect(homebase).not.toContain("Estimates");
-    expect(homebase).not.toContain("Favorite projects");
-    expect(homebase).not.toContain("Favorite estimates");
-    expect(homebase).not.toContain("Project shortcuts");
-    expect(homebase).not.toContain("Estimate shortcuts");
-    expect(homebase).toContain("useToggleProjectFavorite");
-    expect(homebase).not.toContain("setEstimateFavorite");
-    expect(homebase).not.toContain('title="First move"');
-    expect(homebase).not.toContain('label="Recommended"');
-    expect(homebase).not.toContain("ButtonLink");
-    expect(homebase).not.toContain("Gauge");
-    expect(homebase).not.toContain("max-w-[980px]");
-    expect(homebase).not.toContain("Recent Projects");
-    expect(homebase).not.toContain("Sample Projects");
-    expect(homebase).not.toContain("View all");
-    expect(loading).toContain("Workshop greeting skeleton");
-    expect(loading).not.toContain("Workshop bento skeleton");
-    expect(loading).not.toContain("aspect-square");
-    expect(source).not.toContain("Workshop empty canvas");
-    expect(shell).toContain("MainSidebar");
-    expect(shell).toContain("aria-label={`${title} canvas`}");
-    expect(shell).not.toContain("footer?:");
-    expect(shell).not.toContain("Local sample workspace");
-    expect(shell).not.toContain("ml-auto flex shrink-0 items-center gap-2");
-
-    for (const forbidden of forbiddenPrototypeReferences) {
+    for (const forbidden of forbiddenPageReferences) {
       expect(source).not.toContain(forbidden);
     }
+
+    // The homebase client renders the dashboard and keeps the removed-favorite
+    // recovery flow (the one mutation the homepage owns).
+    expect(homebase).toContain("WorkshopDashboard");
+    expect(homebase).toContain("useToggleProjectFavorite");
+    // Search/filter/group chrome still does NOT belong on the homebase.
+    expect(homebase).not.toContain("Search Workshop");
+    expect(homebase).not.toContain("onExpandAll");
+    expect(homebase).not.toContain("onCollapseAll");
+
+    // The v2 bento lays the masthead + image band (triptych destination cards +
+    // Library hub) + working desk (glass heroes + white-paper ledgers) full-bleed.
+    for (const moduleName of [
+      "DashboardHero",
+      "ImageDestinationCard",
+      "LibraryHubCard",
+      "RecentProjectsList",
+      "RecentSheetsList",
+      "FavoritesTree",
+      "ContinueCard",
+      "CreateActions",
+      "LibrarySpotlight",
+      "DashboardStatStrip",
+      "DashboardEmptyState",
+    ]) {
+      expect(dashboard).toContain(moduleName);
+    }
+    expect(dashboard).toContain("dashboard-imageband");
+    expect(dashboard).toContain("dashboard-desk");
+    expect(dashboard).toContain("isFirstRun");
+
+    // The greeting hero keeps its accessibility + time-of-day contract.
+    expect(hero).toContain('aria-label="Workshop greeting"');
+    expect(hero).toContain("getWorkshopGreetingTone");
+    expect(hero).toContain("formatWorkshopGreetingName");
+    expect(hero).toContain("Good morning");
+    expect(hero).toContain("Good afternoon");
+    expect(hero).toContain("Good evening");
+    expect(hero).toContain('icon: "sun"');
+    expect(hero).toContain('icon: "moon"');
+    expect(hero).toContain("font-display");
   });
 
   test("main sidebar preserves archestimator sidebar measurements with overlay expansion", async () => {
@@ -111,25 +85,18 @@ describe("workshop sidebar baseline", () => {
 
     expect(source).toContain("SIDEBAR_WIDTH_EXPANDED = 288");
     expect(source).toContain("SIDEBAR_WIDTH_COLLAPSED = SIDEBAR_PADDING * 2 + SIDEBAR_ICON_SLOT");
-    // Liquid-glass redesign: the rail floats (inset) and carries the single
-    // backdrop-filter via the `sidebar-glass` surface class.
     expect(sidebar).toContain("sidebar-glass fixed left-2 top-2 z-[100]");
     expect(sidebar).toContain("sidebarNavItems");
     expect(sidebar).toContain("data-sidebar-primary-nav-group");
-    // Redesign: hard top/bottom nav dividers replaced by centre-faded section dividers
-    // (profile → divider → toggle → divider → links → divider → favourites).
     expect(sidebar).not.toContain("data-sidebar-primary-nav-divider");
     expect(sidebar).toContain("data-sidebar-section-divider");
     expect(sidebar).toContain("flex flex-col gap-2 py-2");
-    // The old hard 1px border line is replaced by the floating glass shadow plate.
     expect(sidebar).not.toContain("w-px bg-dividerSibling");
     expect(sidebar).toContain("sidebar-glass-shadow");
     expect(sidebar).toContain("sidebar-glass-grain");
     expect(sidebar).toContain("data-refraction");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
     expect(sidebar).toContain("href: \"/workshop/library\"");
-    // 2026-06-11 Library unification: the rail shows a single Library entry
-    // (Components + Templates live inside /workshop/library).
     expect(sidebar).toContain("label: \"Library\"");
     expect(sidebar).not.toContain("href: \"/workshop/templates\"");
     expect(sidebar).not.toContain("label: \"Templates\"");
@@ -145,8 +112,6 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).not.toContain("mt-auto");
     expect(sidebarHeader).not.toContain("absolute bottom-0 border-b border-hairline");
     expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
-    // Active pill is now faked glass (brand-orange-tinted fill + inset specular),
-    // wired to the same active-route detection. text-orange-700 is contract-stable.
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-bg)");
     expect(sidebarNavItemRow).toContain("text-orange-700");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-shadow)");
@@ -154,7 +119,6 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).toContain('<Star size={15} weight="regular"');
     expect(sidebar).toContain('<Folder size={13} weight="regular"');
     expect(sidebar).toContain('<FileText size={11} weight="regular"');
-    // The collapse toggle moved out of the header into its own row in MainSidebar.
     expect(sidebar).toContain('<SidebarSimple');
     expect(sidebar).toContain('aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}');
     expect(sidebarHeader).not.toContain("SidebarSimple");
@@ -165,13 +129,9 @@ describe("workshop sidebar baseline", () => {
   test("workshop shells share one glass footprint: same content offset, mesh backdrop, no flat canvas", async () => {
     const pageShell = await Bun.file("src/components/workshop/WorkshopPageShell.tsx").text();
     const loadingShell = await Bun.file("src/components/workshop/StaticWorkshopLoadingShell.tsx").text();
-    // Both reserve the SAME floating-rail offset via the single CSS-var source of
-    // truth — prevents the 64px/80px drift that misaligns content under the rail.
     for (const shell of [pageShell, loadingShell]) {
       expect(shell).toContain("lg:pl-[var(--sidebar-content-offset)]");
       expect(shell).not.toContain("lg:pl-[64px]");
-      // Both mount the mesh so the frosted rail reads as glass (no dead-flat glass
-      // during loading), and neither paints an opaque flat canvas over the mesh.
       expect(shell).toContain("<WorkshopGlassBackdrop />");
       expect(shell).not.toContain("bg-canvas");
     }
