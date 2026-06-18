@@ -1,6 +1,8 @@
 # Codex /goal Cards — Atomic Split Edition
 
-**Last updated:** 2026-06-01
+> **Roadmap-sync note (2026-06-18):** Code reconciled against the live codebase. Several cards marked `READY FOR CODEX` already have shipped implementation and were re-statused to `IMPLEMENTED (…) / … OPEN` with file-path evidence: BETA-P0-SEC-005D, BETA-P0-SEC-005E (durable DB-backed rate limiting via `security_rate_limit_events`), BETA-P0-OBS-001E (health endpoint), BETA-P0-PERF-002A (bundle analyzer wired). IMPORTANT caveats confirmed in code and NOT changed: the SEC-005 EPIC's Upstash/**Redis** store does **not** exist (rate limiting was shipped via a Postgres table instead); SEC-005C auth/magic-link rate limiting is **not** implemented in-app (relies on Supabase's own throttling); SEC-004 secrets scanning is **not** in CI; OBS-001 **Sentry** is absent (only `console.warn` telemetry stubs); BETA-P1-SEC-006 **Turnstile** is absent; UX-004 **desktop/mobile guard** is absent; REL-001 root `error.tsx`/`not-found.tsx` are absent; ANA-001 first-party product-events table is absent. The header counts below are from the 2026-06-01 edition and were NOT recomputed in this sync.
+
+**Last updated:** 2026-06-01 (header counts); 2026-06-18 (status reconciliation, see sync note)
 **Total atomic executable cards:** 93 (78 original + 10 new collab/share + 5 new DBIDX from 2026-05-30 sync)
 **EPIC headers / non-executable reference nodes:** 15
 **Ready for Codex (immediately):** 60
@@ -59,8 +61,8 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-SEC-005A | READY FOR CODEX |
 | BETA-P0-SEC-005B | READY FOR CODEX |
 | BETA-P0-SEC-005C | READY FOR CODEX |
-| BETA-P0-SEC-005D | READY FOR CODEX |
-| BETA-P0-SEC-005E | READY FOR CODEX |
+| BETA-P0-SEC-005D | IMPLEMENTED (DB-DURABLE, NOT REDIS) / VERIFY-SCOPE OPEN — see card |
+| BETA-P0-SEC-005E | IMPLEMENTED (DB-DURABLE, NOT REDIS) / VERIFY-SCOPE OPEN — see card |
 | BETA-P0-SEC-005F | READY FOR CODEX |
 | BETA-P1-SEC-006 | READY FOR CODEX |
 | BETA-P0-OBS-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
@@ -68,7 +70,7 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-OBS-001B | READY FOR CODEX AFTER DSN EXISTS |
 | BETA-P0-OBS-001C | READY FOR CODEX |
 | BETA-P0-OBS-001D | READY FOR CODEX AFTER SENTRY INTEGRATION |
-| BETA-P0-OBS-001E | READY FOR CODEX |
+| BETA-P0-OBS-001E | IMPLEMENTED (HEALTH ENDPOINT) / UPTIME-PLAN OPEN — see card |
 | BETA-P0-PERF-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
 | BETA-P0-PERF-001A | PARTIAL / MANUAL CHROME PROOF OPEN |
 | BETA-P0-PERF-001B | PARTIAL / MANUAL CHROME PROOF OPEN |
@@ -77,7 +79,7 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-PERF-001E | READY FOR CODEX |
 | BETA-P0-PERF-001F | READY FOR CODEX |
 | BETA-P0-PERF-002 | **EPIC / SPLIT REQUIRED** — see sub-cards |
-| BETA-P0-PERF-002A | READY FOR CODEX |
+| BETA-P0-PERF-002A | IMPLEMENTED (ANALYZER WIRED) / CI-ARCHIVE OPEN — see card |
 | BETA-P0-PERF-002B | READY FOR CODEX |
 | BETA-P0-PERF-002C | READY FOR CODEX |
 | BETA-P0-PERF-002D | IMPLEMENTED / TRUE ANALYZER CAPTURED / NOT BETA DONE |
@@ -1307,10 +1309,12 @@ Thresholds, persistence test evidence, 429 response screenshot.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED (DB-DURABLE, NOT REDIS) / VERIFY-SCOPE OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-SEC-005B |
 | Explicit non-goals | Rate limiting shared link viewing, rate limiting comment submission |
+
+> **Code-state note (2026-06-18 sync):** Shared-link password attempts AND invite-token resolution are already rate-limited in code via the DB-durable `security_rate_limit_events` store (migration `supabase/migrations/20260601003000_security_rate_limit_events.sql`), so lockout survives restarts. Wired in `src/app/api/share/[token]/password/route.ts` (durable + in-memory progressive lockout, 429 + `Retry-After`, `isPasswordLocked`) and `src/lib/collaboration/invite-entry.ts` (durable per-token invite rate limit). This was built via a Postgres table, NOT the Upstash/Redis store the parent EPIC (SEC-005B) specifies — SEC-005B's Redis integration does NOT exist (the only `Redis` reference is a comment in `src/lib/publication/actions.ts:1284`). Remaining open: confirm thresholds match this card's intent and whether the Redis architecture is still required vs. the shipped DB approach.
 
 ### Outcome
 Shared-link password attempts rate-limited. Invite resolution rate-limited.
@@ -1346,10 +1350,12 @@ Thresholds, persistence evidence, 429 screenshot.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED (DB-DURABLE, NOT REDIS) / VERIFY-SCOPE OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-SEC-005B |
 | Explicit non-goals | Rate limiting per AI provider, cost-based throttling |
+
+> **Code-state note (2026-06-18 sync):** AI Ask is already per-user rate-limited via the DB-durable `security_rate_limit_events` store: `src/lib/ai/rate-limit.ts` (`checkAiAskQuota`, dual-window) and `src/app/api/ai/ask/handler.ts` (429 + `Retry-After`). Package-builder handler (`src/app/api/ai/package-builder/handler.ts`) shares the AI **auth** path (`getAiRequestUserContext`) but is **NOT rate-limited** — it has no `checkAiAskQuota`/429/`Retry-After` call (verified 2026-06-18); only the Ask route enforces the quota. Built on Postgres, NOT the Upstash/Redis store SEC-005B specifies. NOTE: the AI routes themselves are flag-gated OFF by default (`ARCHESTIMATOR_AI_ENABLED`, returns 404), so the limiter is only exercised when AI is enabled. Remaining open: confirm thresholds match this card's intent.
 
 ### Outcome
 AI Ask and package-builder routes rate-limited per user.
@@ -1659,10 +1665,12 @@ Alert rule description, test error trigger evidence, alert delivery screenshot.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED (HEALTH ENDPOINT) / UPTIME-PLAN OPEN |
 | Owner | Codex |
 | Dependencies | None |
 | Explicit non-goals | Complex health checks (DB, Redis, AI), status page |
+
+> **Code-state note (2026-06-18 sync):** The health endpoint is BUILT: `src/app/api/health/route.ts` is a public `force-dynamic` GET returning `{ ok: true, service: "archestimator", timestamp }` with `Cache-Control: no-store` (liveness-only — does NOT check DB/Redis/AI, matching the non-goals). Note the shape is `{ ok: true }`, not the `{ status: "ok" }` literally specified in AC 1. A readiness-check script + test also exist (`scripts/check-vercel-health-readiness.ts`, `tests/vitest/vercel-health-readiness-script.test.ts`). Remaining open (genuinely not in code): the uptime-monitor plan/wiring — no in-code uptime pinger or external monitor consumes `/api/health`; that is an operator/external setup fact.
 
 ### Outcome
 Minimal /api/health endpoint returns 200. Uptime check plan documented for Vercel or external monitor.
@@ -1995,10 +2003,12 @@ Bundle analyzer integrated, heavy modules lazily loaded, main bundle < 200KB gzi
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED (ANALYZER WIRED) / CI-ARCHIVE OPEN |
 | Owner | Codex |
 | Dependencies | None |
 | Explicit non-goals | Lazy-loading modules, reducing bundle size |
+
+> **Code-state note (2026-06-18 sync):** `@next/bundle-analyzer` is integrated in `next.config.ts` (`createBundleAnalyzer({ enabled: process.env.ANALYZE === "true" })`, wrapped via `withBundleAnalyzer(nextConfig)`) and the package is in `package.json` — so `ANALYZE=true bun run build` produces the analyzer report (AC 1, 2, 4 met). Captured analyzer reports exist (e.g. `.ai/09_archive/store/2026-06-01-route-transition-analyzer-lighthouse-refresh/client.html`). Remaining open: AC 3 — CI does NOT generate/archive the analyzer report automatically (`ANALYZE` is not set in `.github/workflows/ci.yml`); analysis is manual/opt-in.
 
 ### Outcome
 @next/bundle-analyzer integrated. Bundle composition visible in CI and locally.
@@ -2121,7 +2131,7 @@ Before/after main chunk size, lazy chunk size, export functionality verification
 | Dependencies | BETA-P0-PERF-002A |
 | Explicit non-goals | Rewriting chart components, removing Three.js |
 
-**2026-05-31 / 2026-06-01 evidence:** route-transition slice dynamically imports the landing wireframe background, estimate workspace tree/content wrapper, component library manager, add-component modal, library folder tree surface, and project bubble chart, and uses D3 submodule imports. `/workshop/library` initial JS in the Next.js client reference manifest dropped from 618,452 bytes at `HEAD` to roughly 232-234KB in this branch. True webpack analyzer reports (`client.html`, `nodejs.html`, `edge.html`) are captured under `.ai/09_archive/store/route-transition-analyzer-lighthouse-refresh-20260601T101500Z/`. This is not a beta-DONE pack because the broader route-transition card still needs manual Chrome bfcache and React Profiler proof.
+**2026-05-31 / 2026-06-01 evidence:** route-transition slice dynamically imports the landing wireframe background, estimate workspace tree/content wrapper, component library manager, add-component modal, library folder tree surface, and project bubble chart, and uses D3 submodule imports. `/workshop/library` initial JS in the Next.js client reference manifest dropped from 618,452 bytes at `HEAD` to roughly 232-234KB in this branch. True webpack analyzer reports (`client.html`, `nodejs.html`, `edge.html`) are captured under `.ai/09_archive/store/2026-06-01-route-transition-analyzer-lighthouse-refresh/` (path corrected 2026-06-18 sync; the previously-cited `…-refresh-20260601T101500Z/` folder does not exist, but `client.html` is confirmed present at the corrected path). This is not a beta-DONE pack because the broader route-transition card still needs manual Chrome bfcache and React Profiler proof.
 
 ### Outcome
 D3 and Three.js loaded via next/dynamic. Only loaded when charts/3D views accessed.

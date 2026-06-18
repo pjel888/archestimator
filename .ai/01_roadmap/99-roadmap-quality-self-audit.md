@@ -1,7 +1,9 @@
 # Roadmap Quality Self-Audit
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-05-30 (code-sync touch 2026-06-18)
 **Audit scope:** All files in `.ai/01_roadmap/` after Codex execution layer upgrade + 10 new collab/share goal cards (2026-05-30 sync)
+
+> **Code-sync note (2026-06-18):** This audit is a point-in-time consistency snapshot. Its card/decision/count tables (e.g. Summary Statistics, "1 card DONE", "78 atomic cards") are frozen 2026-05-30 audit values and are NOT re-derived from current code here — only the one verifiable code-fact that had drifted (migration file count) was refreshed in the Contradiction Resolution table below. Code spot-checks confirmed: AI provider is DeepSeek (`src/lib/ai/deepseek.ts`); the route-protection layer is `src/proxy.ts` using `auth.getUser()` (there is NO `src/middleware.ts`); password-gated share lockout exists (`src/app/api/share/[token]/password/route.ts`, `src/lib/publication/security.ts`).
 
 ---
 
@@ -104,7 +106,7 @@ No other contradictions found after this sync pass.
 |---|---|---|---|
 | 1 | **PDF status:** Some docs marked as beta blocker | Marked ENTERPRISE-P1-PROD-002. Consistently classified as enterprise MVP P1 across all docs (22, 23, 24, 26, 27, 28). | **FIXED** |
 | 2 | **Password-gated share:** Some docs said "planned", others said "implemented with in-memory lockout" | Codebase verified: 4 files with P10 lockout exist. Status: `IMPLEMENTED / NEEDS EVIDENCE`. Consistent across all docs. | **FIXED** |
-| 3 | **Migration parity:** "48 applied" vs "47/48 confirmed" | Verified: 48 local migration files. Truthful wording: "48 local migration files present. Full supabase db diff not proven." 00-dashboard uses `UNKNOWN`. | **FIXED** |
+| 3 | **Migration parity:** "48 applied" vs "47/48 confirmed" | Truthful wording: "local migration files present; full supabase db diff not proven." 00-dashboard uses `UNKNOWN`. **Count drift (2026-06-18 code-sync): code ground truth is now 110 `.sql` files in `supabase/migrations/` (was recorded as 48); sibling doc `03-supabase-rls-storage-readiness.md` already carries the corrected 110.** | **FIXED (count refreshed 2026-06-18)** |
 | 4 | **Runbooks:** Dashboard status was "LEFT TO DO" | Status corrected to `TEMPLATED / NEEDS DRILL / NEEDS OWNER APPROVAL`. 09-support-incident-runbooks.md exists with 20 templates. | **FIXED** |
 | 5 | **Beta docs:** Dashboard status was "LEFT TO DO" | Status `DRAFTED / NEEDS OWNER APPROVAL` or resolved. Beta scope, legal pack, support ops all now have explicit goal cards. | **FIXED** |
 | 6 | **AI provider keys:** "OpenAI/Anthropic keys" referenced | Verified codebase: AI provider is DeepSeek. All new docs use "DeepSeek" or generic "model provider key." | **FIXED** |

@@ -7,6 +7,13 @@
 
 > **Note from second-pass review:** Several severity ratings have been corrected (downgraded where overstated). The single most impactful change is the addition of `search_path` hardening as a verified strength. The CSP `frame-ancestors` claim has been corrected — it IS present in `next.config.ts`. See `22_SECOND_PASS_REVIEW/README.md` for full corrections.
 
+## 2026-06-18 Status Guardrail
+
+This folder is a read-only audit/remediation roadmap, not a compliance closeout
+or authorization to mutate provider settings. Some remediations have landed in
+later work, but any release/security claim must be revalidated against current
+source, CI, provider state, and the active launch-readiness gates.
+
 ## Index
 
 | # | Doc | Description |

@@ -6,6 +6,18 @@ recent projects + sheets, a real favorites tree, quick links, library spotlight,
 honest stat strip, and a designed first-run state — all on a warm-bloom + liquid
 glass canvas, wired to the existing data layer with zero fabricated values.
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source | Implemented | `src/app/workshop/page.tsx`, `src/components/workshop/WorkshopHomebaseClient.tsx`, `src/components/workshop/dashboard/*`, dashboard tokens/classes in `src/app/globals.css`, and font wiring in `src/app/layout.tsx`. |
+| Tests/checks | Historical pass recorded | This close note records `tsc`, `next build`, design-system lint, dashboard DOM, enforcer, pending-invite, and sidebar-favorites suites passing when captured. |
+| Migrations/provider | Not applicable | Dashboard work reused existing repositories and did not require database/provider mutations. |
+| Hosted/browser proof | Not freshly verified | No hosted/browser/device proof was run during the 2026-06-18 refresh. |
+| Owner/manual proof | Pending | The close note still records Philip input items for display font, true totals, and mobile direction. |
+
 ## New fonts
 - **Zilla Slab** (display) via `next/font/google` in `src/app/layout.tsx` → `--font-display` / `font-display`.
 - **Roboto Mono** reused (already loaded) → `--font-numeric` / `font-numeric` for codes/dates/totals.

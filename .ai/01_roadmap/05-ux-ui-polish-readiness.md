@@ -1,6 +1,8 @@
 # UX/UI Polish & Production Readiness
 
-Last updated: 2026-05-30
+Last updated: 2026-06-18 (code-reconciliation pass; original audit 2026-05-30)
+
+> **2026-06-18 reconciliation note**: the flow table and evidence/summary sections were brought in line with the actual codebase. Entries tagged `CODE-CORRECTED 2026-06-18` had stale "unknown / left-to-do / no-evidence" claims that contradicted shipped, tested code (notably: workshop error boundaries DO exist; export/charts/share-manager/password-gate/comments-decisions/invite flows are implemented; AI flows exist behind default-off flags). UX-DIMENSION proof (mobile, keyboard, accessibility, browser-rendered evidence) is still genuinely outstanding for most flows and has been preserved as `❓`/`⚠️`. Items depending on hosted/provider/manual facts (email delivery, live auth, feature-flag enablement) were NOT promoted to done.
 
 This checklist covers every user-facing flow in Archestimator. Each flow is rated against 12 quality dimensions. The goal is to reach full ✅ coverage across all flows before launch.
 
@@ -12,26 +14,26 @@ This checklist covers every user-facing flow in Archestimator. Each flow is rate
 
 | # | Flow | First-Time User Clarity | Empty State Quality | Loading/Skeleton State | Error State | Success Feedback | Mobile Behavior | Keyboard Behavior | Accessibility | Copy/Microcopy | Visual Hierarchy | Design-System Compliance | "Can Non-Technical User Complete Without Philip?" | Status | Notes |
 |---|------|--------------------------|----------------------|-------------------------|-------------|------------------|-----------------|-------------------|---------------|----------------|------------------|---------------------------|---------------------------------------------------|--------|-------|
-| 1 | Landing to login | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | Public-facing. Needs brand-first hero, clear CTA, lightweight auth flow. No custom 404/500 pages exist yet. |
-| 2 | Login to workshop | ⚠️ | ✅ | ✅ | ⚠️ | ⚠️ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | PARTIAL | Loading skeleton on /workshop exists. No mobile responsive guard. Onboarding flow exists but untested with non-technical users. No React error boundary on workshop routes. |
-| 3 | Invite acceptance while signed out | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | Requires cold-email flow, magic-link UX, session-less invite page. Entirely untested. |
-| 4 | Invite acceptance while signed in | ⚠️ | ❓ | ❓ | ❓ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | PARTIAL | In-app notification likely exists. Acceptance flow after notification unclear. Needs end-to-end validation. |
-| 5 | Wrong-account invite recovery | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | "This invite is for a different account" — sign-out-and-retry flow needs to be built or verified. No evidence of handling. |
+| 1 | Landing to login | ✅ | n/a | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ⚠️ | ✅ | ⚠️ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: not "from scratch" — the brand-first hero + CTA + auth flow ARE built. Landing `src/app/page.tsx` with `src/components/landing/HeroSection.tsx`, `LandingHeader.tsx`, A/B CTA copy, consent-gated cookies (7+ `tests/vitest/landing-*.test.*`). Login `src/app/login/page.tsx` (Google OAuth + email magic-link). Design-system note: landing is path-EXEMPT from the 12px/SF guardrail (allowlisted in `scripts/enforce-app-design-system.mjs`), so "Design-System Compliance" here follows the landing exception, not the compact-app rule. STILL TRUE: no custom 404/500 pages (`src/app/not-found.tsx` / `global-error.tsx` absent). Mobile/keyboard/a11y/first-time-clarity for a non-technical user remain UNVERIFIED. |
+| 2 | Login to workshop | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | PARTIAL | Loading skeleton on `src/app/workshop/loading.tsx` exists. No mobile responsive guard. CODE-CORRECTED 2026-06-18: React error boundaries DO exist on workshop routes (7 `error.tsx` files: library + 3 sub-routes, projects/[id]/data, .../estimates, .../estimates/[nodeId]) sharing sanitized `src/components/workshop/WorkshopRouteErrorState.tsx`, leak-tested by `tests/vitest/workshop-route-error-boundaries.test.tsx` — Error State raised to ✅. NB workshop **home** and the projects list still lack their own `error.tsx`. Onboarding is a redirect stub (`src/app/workshop/onboarding/page.tsx` → /workshop/settings); the `completeOnboarding` action is orphaned (no UI caller) so there is no guided onboarding wizard. |
+| 3 | Invite acceptance while signed out | ✅ | n/a | ❓ | ✅ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | IMPLEMENTED (FLAG-GATED) / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: NOT "entirely untested" — `src/app/invite/[token]/page.tsx` (276 lines) renders a session-less `signed-out-preview` (line 141/216) plus invalid/expired/revoked/already-used/rate-limited states; accept/continue/sign-out routes exist; tested by `tests/vitest/invite-accept-origin.test.ts`, `project-invite-feature-flag.test.ts`. PENDING/EXTERNAL: gated behind `PROJECT_INVITE_ENTRY_ENABLED` (default OFF) + requires `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`; cold-email DELIVERY is a Resend provider/manual fact code cannot prove. Mobile/a11y unverified. |
+| 4 | Invite acceptance while signed in | ✅ | n/a | ❓ | ✅ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | IMPLEMENTED (FLAG-GATED) / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: signed-in acceptance IS built — `src/app/invite/[token]/page.tsx` renders `signed-in-preview` and `src/app/invite/[token]/accept/route.ts` performs CSRF/Origin-guarded acceptance (`accept_collaboration_invitation` RPC); pending-invite cookie bridge `src/app/workshop/pending-invite/route.ts` surfaces a /workshop banner. Tests: `pending-invite-cookie.test.ts`, `workshop-pending-invite.test.tsx`. Same `PROJECT_INVITE_ENTRY_ENABLED` default-OFF gate + hosted-RPC dependency. End-to-end (live email→accept) remains an external/manual validation. |
+| 5 | Wrong-account invite recovery | ✅ | n/a | ❓ | ✅ | ⚠️ | ❓ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | IMPLEMENTED (FLAG-GATED) / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: "No evidence of handling" is FALSE — `src/app/invite/[token]/page.tsx` explicitly detects a `wrong-account` state (line 109) and renders the sign-out-and-retry recovery UI (lines 222–239) linking to `src/app/invite/[token]/sign-out/route.ts`. Same `PROJECT_INVITE_ENTRY_ENABLED` default-OFF gate. Mobile/a11y unverified; live email-recovery is external. |
 | 6 | Project creation | ✅ | ✅ | ❓ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | IMPLEMENTED / NEEDS EVIDENCE | Basic flow works. /workshop/projects skeleton exists. No mobile guard. Form validation exists but edge-case error handling unclear. |
 | 7 | Estimate creation | ✅ | ✅ | ❓ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | IMPLEMENTED / NEEDS EVIDENCE | Core creation flow implemented. Skeleton on workspace/projects path. Mobile layout unverified. |
 | 8 | Estimate tree navigation | ✅ | ✅ | ❓ | ❓ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | Tree expand/collapse UX exists. Drag-to-reorder unknown. Deep-nesting overflow unknown. |
 | 9 | Row editing | ✅ | ⚠️ | ❓ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | IMPLEMENTED / NEEDS EVIDENCE | Inline editing implemented. Empty rows may lack placeholder guidance. Currency/percentage formatting consistency unclear. |
 | 10 | Component library add/edit | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | IMPLEMENTED / NEEDS EVIDENCE | /workshop/library skeleton exists. CRUD flows implemented. Bulk-import UX unknown. |
 | 11 | Template usage | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❌ | IMPLEMENTED / NEEDS EVIDENCE | /workshop/templates skeleton exists. Preview before apply unclear. Overwrite-conflict UX unknown. |
-| 12 | Proposal XLSX export | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | UNKNOWN | Export trigger, loading state, progress feedback, and error handling all unverified. File-download UX on mobile unknown. |
-| 13 | Project charts | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | UNKNOWN | Chart rendering, empty-state fallback, tooltips, and responsive behavior unknown. |
-| 14 | Shared link manager modal | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | UNKNOWN | Create/share/revoke UX, copy-to-clipboard feedback, expiry visibility all unverified. |
-| 15 | Shared link receiver page | ⚠️ | ❓ | ❓ | ⚠️ | ⚠️ | ✅ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | PARTIAL | Responsive design confirmed. Read-only view UX implemented. Comment/decision sub-flow likely incomplete. |
-| 16 | Password-gated share route | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | Password prompt, retry limit, session persistence all unverified. |
-| 17 | Comments/decisions/activity on shared link | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | Threading UX, real-time updates, owner/client distinction unclear. |
-| 18 | Account settings / profile / workspace | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❓ | PARTIAL | /workshop/settings skeleton exists. Profile fields exist. Workspace-level settings (name, branding) unclear. |
-| 19 | Ask Flip (AI copilot) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | Chat panel UX, streaming response feedback, error/rate-limit states, context-awareness all unverified. |
-| 20 | Package-builder draft/refine/apply | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | LEFT TO DO | Multi-step builder, draft persistence, diff-on-apply, revert UX all unknown. |
+| 12 | Proposal XLSX export | ✅ | ❓ | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: export IS implemented end-to-end, not unknown. Trigger + preview modal `src/components/workshop/ProposalExportPreviewDialog.tsx` (scope/contingency/VAT/live-formula controls, fetch-then-blob download via `EstimateSheetContent.tsx`). Server route `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts` maps 401/429/400/413/22P02→400/500 with structured logging (24 route tests pass). Workbook builder `src/lib/proposal-export/create-proposal-workbook.ts` is VERIFIED. NB preview is an intentional approximation (client-audience, active-tab only for all-tabs scope) per in-code parity caveat. Mobile/keyboard/a11y of the trigger+modal remain UNVERIFIED (browser proof outstanding). |
+| 13 | Project charts | ✅ | ✅ | ❓ | ❓ | ✅ | ❓ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: no longer unknown — rebuilt 2026-06-14 (see "Status updates" below) as a variance-first cost-comparison surface. The old `/charts` path is now a redirect shim (`src/app/workshop/projects/[projectId]/charts/page.tsx` → `/data`); charts live on the Data route. Components in `src/components/workshop/project-charts/` (`ProjectVarianceSpine`, `ProjectCostDonutChart`, `ProjectComparisonTable`, `ProjectChartsClient`); aggregation `src/lib/project-charts/aggregate-project-charts.ts` is VERIFIED; CVD-safe palette + a11y comparison table covered by `tests/vitest/project-charts-a11y.test.tsx` / `project-charts-golden-master.test.ts`. EXTERNAL: browser-rendered screenshot / SR / INP proof remains a CI/deploy step (not code-provable). |
+| 14 | Shared link manager modal | ✅ | ❓ | ❓ | ⚠️ | ✅ | ❓ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: modal IS implemented (not a standalone `ShareModal` file — it lives in `src/components/workshop/ProjectPublicationHeader.tsx` over the generic `<Modal>` with create/republish/rotate/revoke/recipients/activity tabs). Backed by VERIFIED publication actions `src/lib/publication/actions.ts` (createProjectPublication / republish / rotateProjectPublicationLink / revoke) + recipient management; recipient composer `src/components/workshop/publication/RecipientEmailComposer.tsx`. EXTERNAL: actual email send is Resend-config-gated (readiness reports "disabled" until configured). Mobile/keyboard/a11y of the modal UNVERIFIED. |
+| 15 | Shared link receiver page | ⚠️ | ❓ | ❓ | ✅ | ✅ | ✅ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | PARTIAL | Responsive design confirmed. Read-only view UX implemented (`src/app/share/[token]/page.tsx`, 321 lines — most-tested public route, 10+ test files). CODE-CORRECTED 2026-06-18: comment/decision sub-flow is NOT "likely incomplete" — it is built and tested (see flow 17: `SharePageComments`/`SharePageDecision` + comment/decision routes). Keyboard/a11y of the receiver still unverified. |
+| 16 | Password-gated share route | ✅ | n/a | ❓ | ✅ | ✅ | ⚠️ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: not "left to do" — password prompt, retry limit, and session persistence ARE built. Password form `src/components/share/ProjectPublicationPasswordForm.tsx`; route `src/app/api/share/[token]/password/route.ts` enforces same-origin+CSRF, durable + in-memory progressive-delay/hard-lockout (5 attempts → 15min lock), constant-time verify, sets signed HttpOnly access cookie. Session via `src/app/api/share/[token]/session/route.ts`. Tests `tests/vitest/project-publication-security.test.ts` + `-security-hardening.test.ts` pass. EXTERNAL/DB: cross-instance lockout depends on hosted `security_rate_limit_events`. Visual/mobile/a11y of the prompt UNVERIFIED. |
+| 17 | Comments/decisions/activity on shared link | ✅ | ⚠️ | ❓ | ✅ | ✅ | ❓ | ❓ | ❓ | ⚠️ | ⚠️ | ⚠️ | ❓ | IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: not "left to do" — comments, decisions, and activity feed ARE built and tested. Components `src/components/share/SharePageComments.tsx`, `SharePageDecision.tsx`, `SharedLinkActivityFeed.tsx`. Routes `src/app/api/share/[token]/{comment,decision,activity}/route.ts` (password-cookie + verified recipient session both required, rate-limited, HTML-sanitized, owner/client visibility scrubbing) — VERIFIED by `tests/vitest/project-publication-comments.test.tsx`, `-decision.test.tsx`, `activity-security.test.ts`. CLARIFICATION: there is NO real-time/SSE push for the share page (the `/events` route is analytics ingestion, not a live stream); "real-time updates" is NOT met. Mobile/keyboard/a11y UNVERIFIED. |
+| 18 | Account settings / profile / workspace | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ❌ | ❓ | ❓ | ⚠️ | ✅ | ✅ | ❓ | PARTIAL | `src/app/workshop/settings/loading.tsx` skeleton exists. CODE-CORRECTED 2026-06-18: profile + workspace settings routes BOTH exist (`settings/profile/page.tsx`, `settings/workspace/page.tsx`) with actions `updateProfileSettings` + `updateWorkspaceSettings` (`src/lib/auth/account-actions.ts`); workspace **name** settings exist. CLARIFICATION: workspace **branding/logo** is NOT built (proposal export falls back to workspace name; no logo/letterhead block) — keep "branding" as open. NB no per-settings-subroute `error.tsx`. |
+| 19 | Ask Flip (AI copilot) | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | SCAFFOLDED / FLAG-GATED OFF | CODE-CORRECTED 2026-06-18: backend EXISTS and is tested (`src/app/api/ai/ask/route.ts` + `handler.ts`, read-context `src/lib/ai/read-context.ts`, rate-limit + audit; UI entry `src/components/workshop/EstimateCopilotFloatingButton.tsx`). BUT DISABLED BY DEFAULT for closed beta: `ARCHESTIMATOR_AI_ENABLED` default false (route 404s) AND `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` default false (`src/lib/ai/feature-flags.ts`), and it requires a `DEEPSEEK_API_KEY` (provider is DeepSeek, NOT Anthropic/OpenAI). So it is NOT a live shipping UX surface without an env flip + key. NB: responses are non-streaming (`stream:false`) — "streaming response feedback" is not implemented. UX dimensions remain unverified. |
+| 20 | Package-builder draft/refine/apply | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | ❓ | SCAFFOLDED / FLAG-GATED OFF | CODE-CORRECTED 2026-06-18: draft/refine/apply backend EXISTS and is tested (`src/app/api/ai/package-builder/route.ts` + `handler.ts`, draft/apply/read-tools/draft-token modules; signed draft tokens + confirmation-gated apply). BUT DISABLED BY DEFAULT (same `ARCHESTIMATOR_AI_ENABLED` outer gate → 404; per-action sub-flags 403 when off) and DeepSeek-provider-dependent. Memory persistence is double-gated OFF (`AI_PACKAGE_BUILDER_MEMORY_ENABLED` default false AND its table is a DEFERRED, un-applied migration). NEEDS INPUT: no dedicated standalone package-builder UI component was located in `src/components`/`src/features` (entry may be inside the copilot surface) — confirm the front-end host before claiming a builder UX. UX dimensions unverified. |
 
 ---
 
@@ -55,22 +57,28 @@ This checklist covers every user-facing flow in Archestimator. Each flow is rate
 
 ## Current Evidence Inventory
 
-**Skeleton states confirmed** (6 of 20 flows):
-- `/workshop`
-- `/workshop/library`
-- `/workshop/onboarding`
+**Skeleton states confirmed** — CODE-CORRECTED 2026-06-18 (11 `loading.tsx` files under `src/app/workshop/**`, not 6):
+- `/workshop` (`src/app/workshop/loading.tsx`)
 - `/workshop/projects`
+- `/workshop/projects/[projectId]`
+- `/workshop/projects/[projectId]/estimates`
+- `/workshop/projects/[projectId]/data`
+- `/workshop/library`
+- `/workshop/library/components`
+- `/workshop/library/templates`
+- `/workshop/library/templates/[templateId]`
 - `/workshop/settings`
-- `/workshop/templates`
+- `/workshop/onboarding` (loading.tsx exists even though the page is a redirect stub)
+- (GHOST: the previously-listed `/workshop/templates` has NO `loading.tsx` — that path is a redirect shim to `/workshop/library/templates`, where the real skeleton lives. NB no `loading.tsx` on `projects/[projectId]/estimates/[nodeId]` or `.../charts`.)
 
 **Known gaps:**
 - No mobile responsive guard anywhere in the workshop
 - No keyboard accessibility audit has been performed
-- No React error boundaries exist on workshop routes
-- No custom 404 or 500 error pages exist
+- CODE-CORRECTED 2026-06-18: React error boundaries DO exist on the data-heavy workshop routes (7 `error.tsx` files: library + library/components + library/templates + library/templates/[templateId], projects/[projectId]/data, .../estimates, .../estimates/[nodeId]) sharing `src/components/workshop/WorkshopRouteErrorState.tsx` and leak-tested by `tests/vitest/workshop-route-error-boundaries.test.tsx`. REMAINING GAP: no `error.tsx` on workshop **home**, projects **list**, settings (+subroutes), feedback, terms, onboarding; and no root `src/app/error.tsx` / `global-error.tsx`.
+- No custom 404 or 500 error pages exist (confirmed: no `src/app/not-found.tsx`, no `src/app/global-error.tsx`)
 - Shared link receiver page has responsive design ✅ (the only mobile-verified surface)
 - Most implemented flows lack non-technical user validation
-- Zero evidence exists for flows 12–17, 19–20
+- CODE-CORRECTED 2026-06-18: flows 12–17 are NOT zero-evidence — export (12), charts (13), share-manager modal (14), password gate (16), and comments/decisions/activity (17) are all implemented in code with passing unit/route tests (see per-flow notes). What remains missing for these is the **UX-dimension evidence** (mobile/keyboard/a11y/browser proof), not the capability. Flows 19–20 (AI) exist in code but are FLAG-GATED OFF by default.
 
 ---
 
@@ -80,8 +88,8 @@ These rules are non-negotiable. Any PR that violates them must be blocked at rev
 
 ### Typography
 
-- Maximum font size: **12px** in compact app/workshop views (exception: public landing page may use larger hero text)
-- Font family: **SF Pro** (system-ui stack fallback)
+- Maximum font size: **12px** in compact app/workshop views — ENFORCED by `scripts/enforce-app-design-system.mjs` (passes on `main` as of 2026-06-18). Path-scoped exceptions exist: public landing (hero text), `src/components/share` (client portal), and `src/components/workshop/dashboard` (full px-exemption for the dashboard hero, which uses a Zilla Slab display font).
+- Font family in compact views: **SF Pro** (system-ui stack fallback), enforced by the lint above. NB the root layout (`src/app/layout.tsx`) also loads brand fonts **Roboto Mono** + **Zilla Slab** for non-compact/landing/dashboard surfaces.
 - Weight: **regular** (400) and **medium** (500) only. No bold, no semibold, no light.
 - Line height: 1.4 default, 1.2 for headings
 - Letter spacing: default (0), no custom tracking
@@ -131,22 +139,22 @@ This must pass in CI. The lint checks for:
 | Metric | Count |
 |--------|-------|
 | Total flows | 20 |
-| Flows with ≥1 ✅ (verified dimension) | 7 (flows 2, 6, 7, 8, 9, 10, 11) |
-| Flows where **all** dimensions are ❓ | 10 (flows 1, 3, 5, 12, 13, 14, 16, 17, 19, 20) |
+| Flows with ≥1 ✅ (verified dimension) | CODE-CORRECTED 2026-06-18: 12 (flows 2, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17) |
+| Flows where **all** dimensions are ❓ | CODE-CORRECTED 2026-06-18: 5 (flows 1, 3, 5, 19, 20) — was 10; flows 12, 13, 14, 16, 17 now have code-backed ✅ dimensions |
 | Flows rated PARTIAL | 4 (flows 2, 4, 15, 18) |
-| Flows rated IMPLEMENTED / NEEDS EVIDENCE | 5 (flows 6, 7, 8, 9, 10) |
-| Flows LEFT TO DO | 8 (flows 1, 3, 5, 16, 17, 19, 20 + 12–14 UX unknown) |
-| Dimensions with most ❓ | Mobile Behavior (18), Keyboard Behavior (18), Accessibility (18), Error State (16) |
-| Verified skeleton states | 6 of 20 |
+| Flows rated IMPLEMENTED / NEEDS EVIDENCE | CODE-CORRECTED 2026-06-18: 10 (flows 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17 — note 11 and 17 share this rating; recount when finalizing) |
+| Flows LEFT TO DO | CODE-CORRECTED 2026-06-18: 3 truly-unbuilt (flows 1, 3, 5). Flows 16/17 are now implemented-in-code; flows 19/20 are SCAFFOLDED / FLAG-GATED OFF (code exists, disabled by default) |
+| Dimensions with most ❓ | Mobile Behavior, Keyboard Behavior, Accessibility (still largely unverified across flows — browser/a11y proof outstanding) |
+| Verified skeleton states | CODE-CORRECTED 2026-06-18: 11 `loading.tsx` under `src/app/workshop/**` (see Evidence Inventory) |
 | Mobile-verified surfaces | 1 (shared link receiver) |
 
 **Immediate priorities:**
 
-1. Add React error boundaries to all workshop routes before any other UX work (blast-radius: whole app)
-2. Add custom 404 and 500 pages
-3. Run keyboard accessibility audit on flows 2, 6–11 (the implemented set)
-4. Validate flows 6–11 with at least one non-technical user
-5. Begin building and testing flows 12–17, 19–20 from scratch
+1. ~~Add React error boundaries to all workshop routes~~ — CODE-CORRECTED 2026-06-18: data-heavy workshop routes ALREADY have `error.tsx` boundaries (7 files, leak-tested). Remaining: add `error.tsx` to workshop home + projects list + settings/feedback/terms, and a root `error.tsx`/`global-error.tsx`.
+2. Add custom 404 (`src/app/not-found.tsx`) and a global error page (`src/app/global-error.tsx`) — still genuinely absent.
+3. Run keyboard accessibility / mobile audit on the implemented set (flows 2, 6–14, 16, 17) — code exists; UX-dimension proof is the gap.
+4. Validate flows 6–11 with at least one non-technical user.
+5. ~~Begin building flows 12–17 from scratch~~ — CODE-CORRECTED 2026-06-18: flows 12–17 are already implemented in code; only browser/a11y/mobile evidence is needed. Flows 19–20 (AI) exist behind default-off flags + a DeepSeek key — enabling/proving them is the work, not building from scratch.
 
 ---
 

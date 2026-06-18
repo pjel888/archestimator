@@ -15,13 +15,40 @@ Current planning baseline:
 - The deleted full prototype remains superseded.
 - Future work must be route-scoped, screen-scoped, and easy to delete if Philip rejects it.
 
-Active/current plans:
+Current filesystem inventory, refreshed 2026-06-18:
 
-- `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/` — archived implemented planning pack for Terms and Conditions / Terms of Service sheet, versioned Terms acceptance, Supabase/RLS acceptance evidence, re-acceptance, legal-review handoff, and UI/auth/protected-route gating. Implementation has been completed on branch `codex/terms-and-conditions`; final Terms language still requires qualified legal review and must not claim absolute zero liability.
-- `.ai/03_plans/2026-06-15-Estimate-Sheet-Content-Table/` — active docs-only planning pack for user-resizable estimate-sheet content columns synced across all node groups. **Read `00-README.md`, `06-recommendation-and-migration-plan.md`, and `10-implementation-worker-handoff.md` first; `10` is the single codebase-AI worker prompt.** Current canonical direction: shared-surface CSS variables for live drag, commit-on-end per-estimate width store, fixed-height virtualization preserved through single-line/truncate cells, feature-flag rollback, and explicit UX/performance/implementation/blast-radius gates. No source code, migrations, dependencies, provider settings, or runtime configuration changed.
-- `.ai/03_plans/2026-06-16-Project-Data-Route-Feature-Plan/` — active docs-only, audit-closed implementation plan for replacing the project `/data` route's over-complex comparison page with a calm cost-breakdown + cross-sheet cost view. **Read `00-README.md`, `06-recommended-design.md`, `07-implementation-roadmap.md`, `08-verification-and-open-questions.md`, and `09-implementation-agent-handoff.md` first.** Current planning-readiness score is 100/100 after closing the 2026-06-16 audit backlog. No source code, migrations, dependencies, provider settings, secrets, or runtime configuration changed.
-- `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/` — refined docs-only planning pack for UI component optimization, tree-core componentization, share-tree MVP slicing, and future editable estimate-tree/sheet decomposition. **Implementers must read `CURRENT_CANONICAL_PLAN.md` and `README.md` first.** Refinement addressed the external audit gaps with plan metadata, measurement protocol, GitNexus/code-review graph blast-radius evidence, risk register, implementation matrix, route-transition deconfliction, API contracts, rollout strategy, owner sign-off gates, and handoff docs. No source code, dependencies, migrations, provider settings, secrets, or runtime configuration changed. MVP Phases 0-3 are the future implementation handoff; full editable-tree/performance work remains measurement- and owner-gated.
-- `.ai/03_plans/database-indexing-and-query-performance/` — active database indexing and query-performance planning pack. **Planning pack created. No indexes implemented. No migrations created.** Exists to guide future DB indexing/query-performance work. Covers: estimate tree/editor, component library, collaboration invites, shared-link publication, AI audit logs, and future server-side search. BETA P0: query/index audit, migration parity, EXPLAIN protocol. BETA P1: candidate index migration draft (staging only). ENTERPRISE MVP: search/full-text index strategy. Do NOT treat this plan as implementation evidence.
+| Path | Current status | Notes |
+|---|---|---|
+| `.ai/03_plans/000-Follow Ups/` | Backlog / deferred follow-ups | Parent efforts have shipped in pieces, but these items remain follow-up work unless a future dated plan selects one for execution. Do not silently promote backlog items. |
+| `.ai/03_plans/2026-06-01-security-owasp-compliance-audit/` | Audit / remediation roadmap | Some security remediations landed elsewhere. This pack is not compliance proof and does not authorize provider/security setting changes without current gates. |
+| `.ai/03_plans/2026-06-03-react-joyride-onboarding-implementation-plan/` | Planning only | No `react-joyride` dependency, production runtime, onboarding table/RLS, or feature flag exists in current source. |
+| `.ai/03_plans/2026-06-06-ui-component-optimization-componentization/` | Partially implemented | Component-library and Storybook layer implemented; production app migration remains explicitly deferred. See `00_STATUS.md`. |
+| `.ai/03_plans/2026-06-07-archives-feature/` | Refined / not implemented | Adjacent archive concepts exist, but the multi-entity archives feature is not implemented. Do not mutate provider/database from this pack without its migration/proof gates. |
+| `.ai/03_plans/2026-06-14-Codebase-Cleanup-Plan/` | Audit / deletion-readiness only | Planning only. Do not delete code, deps, files, or DB objects from this pack without fresh proof and the owner gates it names. |
+| `.ai/03_plans/2026-06-14-Overall-Site-Performance-And-Optimization/` | Audit / readiness only | Planning only. Do not mutate provider, database, Vercel, CI, or production from this pack without missing measurement gates. |
+| `.ai/03_plans/2026-06-16-Project-Groups-Implementation/` | Implemented in repo; proof-bounded | Source, tests, generated types, and migrations exist in current repo. Provider/browser/manual proof must be checked separately for release claims. |
+| `.ai/03_plans/2026-06-16-Sidebar-Favorite-Projects-And-Estimates/` | Implemented in repo; browser proof gap | Source and targeted tests exist; authenticated browser proof was recorded as unavailable. |
+| `.ai/03_plans/2026-06-16-estimates-toolbar-functionality/` | Implemented in repo | Filter/sort/search projection source and focused tests exist; no provider/browser proof required. |
+| `.ai/03_plans/2026-06-16-github-codex-comment-resolution/` | Historical resolution tracker; fresh audit required for release | Recorded evidence once showed zero active threads. A fresh 2026-06-18 GitHub audit found active unresolved Codex threads; see that folder's README before release. |
+| `.ai/03_plans/2026-06-16-github-codex-comments/` | Partially implemented / blocked security-history runbook | Sensitive-history cleanup remains provider/GitHub-retention-sensitive. Do not resolve or release-gate from local evidence only. |
+| `.ai/03_plans/2026-06-17-Agent-Mandate-And-Workflow-Optimization/` | Implemented docs/governance | Local docs/governance proof only; no provider/browser/runtime proof claimed. |
+| `.ai/03_plans/2026-06-17-Performance-Refactor/` | Planning only | Large future performance refactor plan. No source, migrations, DB actions, or package changes were made by the plan pack. |
+| `.ai/03_plans/2026-06-17-Workshop-Dashboard/` | Implemented in repo; visual/owner proof gap | Dashboard source/tests/build evidence is recorded. Live visual, device, and owner-signoff proof remain separate. |
+| `.ai/03_plans/2026-06-17-loop-engineering-default-mandate/` | Implemented docs/governance | Instruction-level mandate; no CI/tool enforcement claimed. |
+| `.ai/03_plans/2026-06-18-r1-graph-injector-neutralization/` | Implemented locally | Neutralizer and scripts exist. Real generator run was intentionally not performed. |
+| `.ai/03_plans/database-indexing-and-query-performance/` | Repo audit helper only | `DBIDX-001` repo audit helper exists. No indexes, candidate index migrations, or live EXPLAIN/provider proof are implemented. |
+
+Archived entries that were previously mislisted as active:
+
+- `.ai/09_archive/2026-06-15-Estimate-Sheet-Content-Table/` — archived docs-only planning pack for user-resizable estimate-sheet content columns.
+- `.ai/09_archive/2026-06-16-Project-Data-Route-Feature-Plan/` — archived docs-only plan for replacing the project `/data` route's over-complex comparison page.
+- `.ai/09_archive/store/2026-06-06-terms-and-conditions-sheet-implementation-complete/` — archived implemented Terms/Terms-of-Service evidence pack. Final Terms language still requires qualified legal review and must not claim absolute zero liability.
+
+Current guardrails:
+
+- Performance, cleanup, DB indexing, archives, and security packs are not permission to mutate provider state. Follow their evidence gates and current owner/provider constraints before any Supabase, Vercel, GitHub, DNS, env, CI, or production action.
+- `000-Follow Ups` stays backlog unless a future dated plan explicitly selects and scopes a follow-up for execution.
+- GitHub Codex comment status is release-sensitive. If it matters for release, run a fresh GitHub review-thread audit rather than relying on historical tracker evidence.
 
 Archived 2026-06-15 (plans-folder cleanup):
 

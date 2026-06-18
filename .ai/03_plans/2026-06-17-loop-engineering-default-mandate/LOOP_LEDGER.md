@@ -18,6 +18,18 @@ in-fence blocks. Plus this plan pack.
 No `src/**`, `tests/**`, `scripts/**`, package, DB/migration, provider, GitHub, or deploy changes.
 No parallel `.ai` system. No duplicated policy in adapters. No mandatory loops for trivial work.
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo docs | Implemented | Acceptance criteria below point at `AGENTS.md`, `.ai/00_system/*`, adapter docs, and `.ai/08_prompts/templates/codebase-ai-loop-task.md`. |
+| Tests/checks | Historical pass recorded | Validation plan and iteration log record `git diff --check`, path/discoverability checks, and adversarial review. |
+| Migrations/provider | Not applicable | Docs/governance work only; no database/provider mutation. |
+| Hosted/browser proof | Not applicable | No hosted/browser/runtime proof claimed or required. |
+| Owner/manual proof | Not freshly verified | No separate owner/manual acceptance pass was run during the 2026-06-18 refresh. |
+
 ## Branch / Status
 
 `feat/dashboard-content-uxui-improvement`. Tree has a CONCURRENT Workshop-Dashboard agent editing

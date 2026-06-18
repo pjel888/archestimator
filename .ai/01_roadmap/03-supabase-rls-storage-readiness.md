@@ -1,9 +1,13 @@
 # Supabase, RLS & Storage Readiness
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-05-30 (header counts reconciled to code 2026-06-18)
 **Linked Supabase project:** `ebxxqidacheyapmmzavr`
-**Total migrations applied:** 47/48 on linked remote (1 local-only not applied)
+**Local migration files present (code-verified):** 110 in `supabase/migrations/` (was recorded as 48; code ground-truth `ls supabase/migrations/`)
+**Pending-review (deliberately NOT applied):** `supabase/migrations-pending-review/` — `AC-MOD-04`, `AC-MOD-06`, `T4-database-pass.sql`, `deferred/` (`20260528103341_ai_package_builder_memory.sql`, `20260614021500_get_project_chart_buckets_rpc.sql`), `superseded/`
+**Remote-applied count:** UNVERIFIABLE FROM CODE — the prior "47/48 applied on linked remote" is an EXTERNAL/HOSTED fact a repo cannot prove. Migration *intent/history* is in `supabase/migrations/`; live application is checked by `scripts/check-supabase-migration-readiness.ts` against the Supabase CLI, not by these files.
 **Local Supabase/Docker verification:** Blocked (authorized to proceed with linked remote)
+
+> RECONCILIATION NOTE (2026-06-18): This doc was written at the 48-migration mark (2026-05-30). The codebase has since added ~62 migrations (estimate tabs, node-kind unification, project groups, closed-beta allowlist, beta feedback, mass-deletion governance, shared-link overhaul/rotation, notifications, legal terms, express components, AI audit/apply, etc.). Sections below have been surgically reconciled where code contradicts the doc; tables that enumerate the original 48-migration era are PARTIAL (they predate the newer surface) and are flagged inline rather than rewritten wholesale. All "applied to remote" cells remain EXTERNAL claims code cannot confirm.
 
 ---
 
@@ -11,7 +15,9 @@
 
 ### 1.1 Remote Parity Status
 
-48 local migration files present. 47/48 confirmed on linked remote `ebxxqidacheyapmmzavr`. 1 local-only AI memory migration (`20260528103341_ai_package_builder_memory.sql`) not applied. Full db diff not proven. Key milestone migrations and repair history:
+> DRIFT (code-verified 2026-06-18): "48 local files / 47 applied" is stale. **110** migration files now exist in `supabase/migrations/` (code: `ls supabase/migrations/`). How many are applied to the linked remote is UNVERIFIABLE from code (external/hosted fact). The `ai_package_builder_memory` migration is **not** a "local-only not-yet-pushed" file — it lives in `supabase/migrations-pending-review/deferred/20260528103341_ai_package_builder_memory.sql`, deliberately OUTSIDE the CLI-applied path (it will not be picked up by `supabase db push`); see `supabase/migrations-pending-review/README.md`. The milestone table below is a PARTIAL snapshot of the 48-migration era and predates the ~62 newer migrations.
+
+48 local migration files were present at authoring time; now **110**. Full db diff not proven (local Docker blocked). Key milestone migrations and repair history (PARTIAL — original-era snapshot):
 
 | Migration | Timestamp | Description | Remote Status | Repair History |
 |---|---|---|---|---|
@@ -24,17 +30,17 @@
 | `20260524132800_estimate_node_activity_history.sql` | Activity | `create_estimate_node_with_history`, `rename_estimate_node_with_history` | Applied | Repaired into history (was missing) |
 | `20260525013900_estimate_activity_retention_metrics.sql` | Metrics | Read-only retention metrics RPC | Applied | Verified after repair |
 | `20260523144932_ai_audit_foundation.sql` | AI audit | `ai_action_runs`, `ai_tool_calls`, `ai_data_access_events` | Applied | Original application |
-| `20260528103341_ai_package_builder_memory.sql` | AI memory | `ai_package_builder_memory_signals` | **NOT applied to remote** | Local only; not yet pushed |
+| `20260528103341_ai_package_builder_memory.sql` | AI memory | `ai_package_builder_memory_signals` | **NOT applied (deferred)** | DRIFT: not "local-only not yet pushed" — file is in `supabase/migrations-pending-review/deferred/`, deliberately outside the CLI-applied path; deferred while `AI_PACKAGE_BUILDER_MEMORY_ENABLED` is default-off (README) |
 | `20260523120957_component_library_item_versioning.sql` | Component versioning | `cost_library_item_versions`, `cost_library_item_price_options`, etc. | Applied | Original application |
 | `20260527120000_project_client_publication.sql` | Publication | `project_publications`, `project_publication_events` | Applied | Original application |
 | `20260528220000_project_shared_link_overhaul.sql` | Shared Link V2 | Recipients, comments, responses, events, RPCs | Applied | Applied during P14 overhaul |
 
 ### 1.2 Local vs Remote Drift
 
-- **48/48** migration files present locally
-- **47/48** confirmed applied to remote (1 local-only: `ai_package_builder_memory`)
-- **No schema drift detected** between local migration files and remote application verified via linked grant verification RPCs
-- **Local Supabase/Docker unavailable** for full `supabase db diff` comparison; current parity assessment based on RPC verification, metadata-only audit checks, and linked-smoke persistence verification
+- **110** migration files present locally in `supabase/migrations/` (code-verified 2026-06-18; was recorded as 48/48)
+- **5 additional reviewed-but-deliberately-unapplied** SQL files in `supabase/migrations-pending-review/` (AC-MOD-04, AC-MOD-06, T4-database-pass.sql, deferred/ai_package_builder_memory, deferred/get_project_chart_buckets_rpc) plus a `superseded/` file — these are intentionally NOT in the CLI-applied path
+- **Remote-applied count: UNVERIFIABLE from code** (external/hosted). The earlier "47/48 confirmed applied" and "no schema drift detected" assertions cannot be confirmed OR denied from the repo; treat them as historical operator claims, not current proof
+- **Local Supabase/Docker unavailable** for full `supabase db diff` comparison; live parity is the job of `scripts/check-supabase-migration-readiness.ts` (parses Supabase CLI output) + `scripts/check-supabase-linked-readiness.ts`, run by an operator against the remote
 
 ---
 
@@ -64,6 +70,11 @@
 | `collaboration_audit_events` | Yes | Authenticated workspace members can read own audit events | Workspace-scoped via project/estimate refs | **No** | Metadata-only audit trail |
 
 ### 2.3 Publication & Shared Link Tables
+
+> GAP (code-verified 2026-06-18): Two DB-level integrity guarantees for these tables are REVIEWED BUT DELIBERATELY NOT APPLIED (in `supabase/migrations-pending-review/`, outside the CLI path):
+> - **AC-MOD-04** (`shared_link_responses` recipient `ON DELETE SET NULL`): until applied, a recipient hard-delete CASCADE-destroys that recipient's locked accept/decline/revision decision row. The app already shows a confirm dialog (UI half shipped), but the DB still cascades. So the "one response per recipient" audit row is NOT durably protected.
+> - **AC-MOD-06** (partial unique index `(project_id) WHERE status='published'`): until applied, only a non-unique index exists, so two concurrent create/rotate calls can leave two simultaneously-`published` rows. In-place rotation (AC-MOD-02) mitigates the common path, but the durable DB guarantee is not in the applied schema.
+> Both require a human DBA to apply + relocate; see `supabase/migrations-pending-review/README.md`.
 
 | Table | RLS Enabled? | Policy Description | Access Model | Denial Tested? | Notes |
 |---|---|---|---|---|---|
@@ -114,14 +125,14 @@
 | `ai_tool_calls` | Yes | Actors can view/insert own; workspace admins can view | `actor_user_id = auth.uid()` + workspace member | **No** | Constraint trigger enforces workspace refs |
 | `ai_data_access_events` | Yes | Actors can view/insert own; workspace admins can view | `actor_user_id = auth.uid()` + workspace member | **No** | Metadata-only; filter/result hashes stored |
 | `ai_package_apply_commands` | Yes (via Apply RPC migration) | RPC-internal; no direct client access | Service-owned; idempotency key enforcement | **No** | Rollback smoke verified 0 residue |
-| `ai_package_builder_memory_signals` | N/A | **Local-only migration**; not applied to remote | Not on production remote | No | Feature-flagged ranking hints |
+| `ai_package_builder_memory_preferences` | N/A | **Deferred migration** in `migrations-pending-review/deferred/`; not in CLI-applied path | Not applied | No | DRIFT: doc named it `..._signals`; actual table is `ai_package_builder_memory_preferences` (migration `20260528103341`). Deferred while `AI_PACKAGE_BUILDER_MEMORY_ENABLED` default-off |
 
 ### 2.8 Estimate Version Control & Activity Tables
 
 | Table | RLS Enabled? | Policy Description | Access Model | Denial Tested? | Notes |
 |---|---|---|---|---|---|
-| `estimate_sheet_events` | Yes (via version control migration) | Workspace members can read events | Transitively workspace-scoped | **No** | Append-only mutation history |
-| `estimate_sheet_versions` | Yes (via version control migration) | Workspace members can manage versions | Transitively workspace-scoped | **No** | Named snapshots; restore-as-copy RPC |
+| `estimate_sheet_events` | Yes (via version control migration) | Workspace members can read events | Transitively workspace-scoped | **No** | Append-only mutation history (this is the live "version control" = audit/activity feed) |
+| `estimate_sheet_versions` | Yes (via version control migration) | Workspace members can manage versions | Transitively workspace-scoped | **No** | DRIFT: table + RPCs exist (migration `20260524033151`) but the named-snapshot feature is **DORMANT at the app layer** — `src/lib/estimates/actions.ts` defines `DORMANT_NAMED_VERSION_EVENT_TYPES` and throws "Dormant named-version events are not supported in Activity." No server action creates/restores a named version. "Named snapshots; restore-as-copy" is NOT a shipped user capability |
 | `project_publications` (see §2.3) | Yes | — | — | — | — |
 
 ---
@@ -139,8 +150,8 @@
 | `replace_estimate_row_item_with_history` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Component replacement with source snapshot |
 | `delete_estimate_row_item_with_history` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Row delete with expected revision protection |
 | `delete_estimate_node_with_history` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Cascade node delete + history event |
-| `create_estimate_sheet_version` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Named snapshot creation |
-| `restore_estimate_sheet_version_as_copy` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Restore as new estimate copy |
+| `create_estimate_sheet_version` | `security definer` | Workspace member via estimate→project chain | DB-defined; **no app caller** | **No** | DRIFT: RPC exists in migration `20260524033151` but is DORMANT — no shipped server action invokes it; named-version events are filtered/rejected in `src/lib/estimates/actions.ts` (`DORMANT_NAMED_VERSION_EVENT_TYPES`) |
+| `restore_estimate_sheet_version_as_copy` | `security definer` | Workspace member via estimate→project chain | DB-defined; **no app caller** | **No** | DRIFT: same as above — DORMANT; no user-facing restore-as-copy path exists |
 | `insert_estimate_template_into_estimate` | `security definer` | Workspace member + template workspace match | Yes (auth) | **No** | Whole-template insertion with area enforcement |
 | `update_estimate_details_with_history` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Estimate detail/metadata updates |
 | `reorder_estimate_nodes` | `security definer` | Workspace member via estimate→project chain | Yes (auth) | **No** | Node sort-order reordering |
@@ -234,6 +245,7 @@
 |---|---|---|---|---|---|
 | `component-images` | Yes (public read) | 12 MB | `image/webp` | Public read; auth upload/update/delete user-scoped by workspace path | 4 policies: public SELECT, auth INSERT/UPDATE/DELETE gated by workspace membership + UUID folder prefix + user-id subfolder |
 | `component-attachments` | No (private) | 20 MB | `application/pdf`, `application/vnd.ms-excel`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | Auth-only read; auth upload/update/delete user-scoped by workspace path | 4 policies: auth SELECT/INSERT/UPDATE/DELETE gated by workspace membership + UUID folder prefix + user-id subfolder |
+| `project-images` | No (private) | 12 MB | `image/webp` | Auth-only; user+workspace+project path-scoped | UNTRACKED (added 2026-06-18): introduced by `supabase/migrations/20260603222628_private_project_image_storage.sql` (with hardening `20260603224800`, `20260604023101`). Private because project covers can carry client-identifying context. Route: `src/app/api/projects/images/route.ts` (validates workspaceId/ownerUserId/projectId UUID segments + project↔workspace match) |
 
 ### 4.2 Storage Access Controls
 
@@ -248,6 +260,12 @@
 - Auth SELECT: workspace member check on first path segment
 - Auth INSERT/UPDATE/DELETE: same path validation + workspace membership check
 - File type enforcement: only PDF and Excel (XLS/XLSX) allowed at bucket level
+
+**`project-images` bucket** (UNTRACKED addition, code-verified 2026-06-18, migration `20260603222628` + hardening `20260603224800`/`20260604023101`):
+- Private: `public = false`; no anon SELECT
+- WebP-only, 12 MB cap (bucket-level)
+- Path-scoped to workspace UUID + owner user-id + project; route `src/app/api/projects/images/route.ts` re-validates the project belongs to the resolved workspace before serving/uploading
+- Same "not tested" denial status as the other buckets (no cross-workspace isolation proof)
 
 ### 4.3 Storage Denial Testing Status
 
@@ -381,7 +399,7 @@ All AI audit tables store metadata only; no raw prompts, hidden prompts, full re
 | `ai_tool_calls` | `args_hash`, `result_hash` | Must start with `sha256:` prefix | Hashed tool arguments + results |
 | `ai_data_access_events` | `filter_hash` | Must start with `sha256:` prefix | Hashed data access filters |
 | `ai_package_apply_commands` | `draft_hash`, `idempotency_key` | Unique constraint | Apply authorization + replay prevention |
-| `ai_package_builder_memory_signals` | `source_type`, `source_id`, `signal_kind` | Local-only; not on remote | Feature-flagged ranking hints |
+| `ai_package_builder_memory_preferences` | (per deferred migration) | Deferred; not in applied path | DRIFT: doc named it `..._signals`; actual table is `ai_package_builder_memory_preferences`, defined in `migrations-pending-review/deferred/20260528103341_*.sql` (deferred, default-off flag) |
 
 ### 10.2 Access Model
 
@@ -462,9 +480,9 @@ The following items block production readiness:
 
 | # | Requirement | Status | Evidence Gap |
 |---|---|---|---|
-| 1 | Migration parity proof | **Partial** | 47/48 applied; 1 local-only; no `supabase db diff` run to confirm zero drift |
-| 2 | RLS denial tests | **Missing** | Zero cross-workspace isolation tests exist; policies defined but unverified |
-| 3 | Storage denial tests | **Missing** | Zero cross-workspace storage access tests for either bucket |
+| 1 | Migration parity proof | **Partial** | 110 local files; remote-applied count UNVERIFIABLE from code; no `supabase db diff` run to confirm zero drift. Tooling exists: `scripts/check-supabase-migration-readiness.ts` (operator-run vs Supabase CLI) — the *check script* is BUILT but live parity remains an external/operator fact |
+| 2 | RLS denial tests | **Partial (was "Missing")** | No comprehensive CI-gated cross-workspace suite covering every core table. BUT local Postgres prove-harnesses now assert owner/collaborator/non-member access decisions for specific surfaces: `scripts/prove-rls-initplan-postgres.mjs`, `scripts/prove-notification-rls-postgres.mjs`, `scripts/prove-estimate-tabs-postgres.mjs`. These are NOT in `.github/workflows/ci.yml`, require local `postgresql` binaries, and cover only a few surfaces — so the broad gap stands, but "zero" is inaccurate |
+| 3 | Storage denial tests | **Missing** | Zero cross-workspace storage access tests for any of the three buckets (`component-images`, `component-attachments`, `project-images`) |
 | 4 | Auth provider dashboard configuration | **Missing** | Google OAuth unverified; CAPTCHA not configured; rate limiting in-memory only; no Supabase Auth settings screenshot evidence |
 | 5 | Backup/recovery approach | **Missing** | No recovery runbook; no PITR configuration; no restoration drill |
 | 6 | Staging vs production separation | **Missing** | Single remote Supabase project used for both development and intended production; no dedicated staging environment |
@@ -476,29 +494,30 @@ The following items block production readiness:
 - AI audit tables with revoked direct grants (metadata-only)
 - Invite entry token lifecycle with pepper-hashed tokens and narrow RPCs
 - Shared Link V2 overhaul with RPC-gated anon writes
-- Component library storage with workspace-scoped path prefix enforcement
+- Component library storage with workspace-scoped path prefix enforcement (+ private `project-images` bucket added since this doc, migration `20260603222628`)
 - AI package-builder idempotency with route-authorization gating
 - Auth account data migration repaired and applied
 - Platform admin (CEO) override with email-based role resolution
 - Account security events with hashed IP/UA metadata
+- (Added since 2026-05-30, code-verified) estimate tabs foundation (`20260612094734`), node-kind unification (`20260614003639`), project groups (`20260617090000`), closed-beta allowlist + beta feedback (`20260601182522`/`20260602*`), mass-deletion governance (`20260603160000`), shared-link rotation + viewed-snapshot RPC (`20260616094500`), notification system (`20260614125313`), legal terms acceptance (`20260606095935`), express-components foundation (`20260615093524`), RLS initplan `(select auth.uid())` perf rewrite (`20260613192344`/`20260613201302`, proven access-neutral by `scripts/prove-rls-initplan-postgres.mjs`)
 
 ### 13.3 What Is NOT Done
 
-- Zero automated RLS denial tests across the entire schema
-- Zero storage cross-workspace isolation tests
-- Zero automated migration validation in CI
+- No comprehensive CI-gated RLS denial suite covering every core table (partial local prove-harnesses now exist for initplan/notifications/estimate-tabs surfaces — `scripts/prove-*-postgres.mjs` — but they are NOT in CI and require local Postgres; the "zero RLS denial tests" claim is no longer literally true)
+- Zero storage cross-workspace isolation tests (all three buckets)
+- No `supabase db diff`/parity gate in CI (only operator-run `scripts/check-supabase-*-readiness.ts` exist; prove-harnesses are local-only, not in `.github/workflows/ci.yml`)
 - No staging/production Supabase separation
-- No PITR configuration or recovery runbook
+- No PITR configuration or recovery runbook (operator-run readiness check exists: `scripts/check-supabase-backup-readiness.ts` — tooling BUILT, hosted state still unproven)
 - No Supabase Auth dashboard configuration evidence
 - No automated seed-reset script
-- No storage object cleanup for orphaned files
-- One migration (`ai_package_builder_memory`) exists locally but is not applied to remote
+- No storage object cleanup for orphaned files (note: mass-deletion governance migration `20260603160000` + service-role storage cleanup path now exist for governed bulk deletes — orphan-from-single-delete cleanup remains unaddressed)
+- `ai_package_builder_memory` migration is deferred in `migrations-pending-review/deferred/` (not "local-only awaiting push"); plus `AC-MOD-04`, `AC-MOD-06`, `T4-database-pass.sql`, and `deferred/get_project_chart_buckets_rpc.sql` are reviewed-but-deliberately-unapplied DB guarantees
 
 ### 13.4 Path to Readiness
 
 1. **RLS denial tests:** Create automated Vitest suite that authenticates as Workspace A user, attempts to read/write Workspace B data, and asserts denial for every core table
 2. **Storage denial tests:** Create automated tests that attempt cross-workspace storage access for both `component-images` and `component-attachments` buckets
-3. **Migration parity:** Run local Supabase/Docker, apply all 48 migrations, and run `supabase db diff` against remote to confirm zero drift
+3. **Migration parity:** Run local Supabase/Docker, apply all **110** migrations (count code-verified 2026-06-18), and run `supabase db diff` against remote to confirm zero drift; additionally a DBA must decide on the 5 `migrations-pending-review/` files (AC-MOD-04, AC-MOD-06, T4-database-pass, deferred ai-memory + chart-buckets)
 4. **Staging environment:** Provision dedicated Supabase project for staging; configure CI to push migrations to staging before production
 5. **Auth configuration:** Complete Google OAuth verification, configure CAPTCHA, implement persistent rate limiting (Redis), and document Supabase Auth dashboard settings
 6. **Backup/recovery:** Enable PITR on production Supabase, document recovery runbook, and perform one restoration drill

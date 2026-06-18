@@ -6,6 +6,19 @@
 
 These are the deferred items flagged during implementation — **none are regressions**; they are QA, polish, and optional hygiene that don't block the shipped feature.
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence and the recorded parent closeout.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source | Parent implemented | Current source still contains the mixed-node affordances noted here, including `allowInsideOnLeaves` in `src/components/ui/tree.tsx` and related estimate-tree usage. |
+| Tests/checks | Historical pass recorded | Parent closeout and `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md` record the P0-P6 implementation checks. This follow-up refresh did not rerun those suites. |
+| Migrations/provider | Historical provider apply recorded | Parent status records P5/P6 applied to Supabase project `ebxxqidacheyapmmzavr`; this 2026-06-18 refresh did not re-query provider state. |
+| Hosted/browser proof | Still open | FU-1, FU-2, and FU-3 remain browser/visual proof gaps. |
+| Owner/manual proof | Still open where named | FU-1 is explicitly owner/browser-owned; no owner/manual pass was run during this refresh. |
+| Backlog promotion | Not selected | No follow-up in this folder was promoted into a new dated plan in this pass. |
+
 ---
 
 ## FU-1 — In-app mixed-create QA (the one proof that needs a real browser) · **owner**

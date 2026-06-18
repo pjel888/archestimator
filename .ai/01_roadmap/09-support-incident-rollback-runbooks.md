@@ -65,9 +65,9 @@ Last updated: 2026-05-30
 | **Symptoms** | User receives "Invite expired" or "Link invalid" error; invite record shows `expires_at < now()` in database; user cannot complete workspace onboarding. |
 | **Severity** | Medium |
 | **Owner** | OWNER_NAME_PLACEHOLDER (until delegated) |
-| **First Response** | 1. Confirm invite exists in `workspace_invites` table. 2. Check `expires_at` and `accepted_at` fields. 3. Verify user identity matches invite email. 4. Acknowledge to user within 1 business hour. |
-| **Containment Steps** | If invite is genuinely expired and user is legitimate: do NOT extend the existing invite (audit trail). Instead, revoke the expired invite and issue a new one with a fresh 7-day window. Log the reissue in an audit comment. |
-| **Customer Message Template** | "Thanks for letting us know. Your invitation link has expired. We've sent a new invitation to [email]. It's valid for 7 days. Let us know if you run into any issues." |
+| **First Response** | 1. Confirm invite exists in `collaboration_invitations` table (the actual invite table — there is no `workspace_invites` table; see `supabase/migrations/20260526142913_project_sheet_collaboration_access.sql`). 2. Check `expires_at`, `accepted_at`, and `revoked_at` fields. 3. Verify user identity matches invite email. 4. Acknowledge to user within 1 business hour. |
+| **Containment Steps** | If invite is genuinely expired and user is legitimate: do NOT extend the existing invite (audit trail). Instead, revoke the expired invite and issue a new one with a fresh window (current schema default is 14 days, not 7 — `expires_at default (now() + interval '14 days')` in the migration above). Log the reissue in an audit comment. |
+| **Customer Message Template** | "Thanks for letting us know. Your invitation link has expired. We've sent a new invitation to [email]. It's valid for 14 days. Let us know if you run into any issues." |
 | **Recovery Steps** | 1. Revoke old invite. 2. Create new invite to same email. 3. Confirm delivery. 4. Follow up after 24 hours if not accepted. |
 | **Evidence to Preserve** | Original invite record (export); timestamps of expiration and reissue; user communication thread. |
 | **Post-Incident Action** | Review invite expiry window. Consider automated re-invite nudge 48 hours before expiry. Add "resend invite" self-service for workspace admins. |
@@ -116,7 +116,7 @@ Last updated: 2026-05-30
 |---|---|
 | **Incident ID** | WS-002 |
 | **Scenario** | A user within a workspace cannot see a project they expect to have access to. |
-| **Symptoms** | User reports project not in list; project exists in `projects` table but user has no `project_members` row; project may be archived or visibility changed; RLS may be filtering incorrectly. |
+| **Symptoms** | User reports project not in list; project exists in `projects` table but user has no `project_members` row; RLS may be filtering incorrectly. (NOTE — code reality: the current schema has **no project archive/soft-delete and no per-project visibility column** on `projects`; deletion is a hard-delete RPC, `execute_bulk_delete_projects` — see `supabase/migrations/20260603160000_mass_deletion_governance.sql`. So an "archived/visibility-changed" cause is not a current code path; the realistic causes are a missing `project_members` row or an RLS filter.) |
 | **Severity** | Medium |
 | **Owner** | OWNER_NAME_PLACEHOLDER (until delegated) |
 | **First Response** | 1. Confirm project exists and is not soft-deleted. 2. Check `project_members` for user. 3. Check project visibility setting (workspace-wide vs. invited-only). 4. Verify RLS policy on `projects` table. 5. Respond within 4 hours. |
@@ -178,7 +178,7 @@ Last updated: 2026-05-30
 | **Customer Message Template** | "We've identified and fixed a vulnerability related to URL redirects. If you received an unexpected redirect after signing in, please do not interact with the destination page and report it to EMAIL_PLACEHOLDER. No account credentials were exposed through this issue." |
 | **Recovery Steps** | 1. Deploy redirect validation fix. 2. Test all sign-in flows with valid and invalid redirect params. 3. Audit redirect allowlist in Supabase. 4. Verify no other redirect vectors exist in the application. |
 | **Evidence to Preserve** | Server logs showing redirect patterns; Supabase Auth redirect configuration at time of incident; any phishing URLs reported; timeline of fix deployment. |
-| **Post-Incident Action** | Implement centralized redirect validation utility. Add open-redirect test cases to security test suite. Configure CSP headers with `form-action` directive. Add WAF rule for suspicious redirect patterns. |
+| **Post-Incident Action** | A centralized redirect validation utility already exists and is tested — `sanitizeNextPath` / `getAllowedAppOrigins` / `resolveAuthOrigin` in `src/lib/auth/redirects.ts`, covered by `tests/vitest/auth-redirect-sanitizer.test.ts` (so this is a harden/extend step, not a build-from-scratch). Add open-redirect test cases to the security test suite. Configure CSP headers with `form-action` directive. Add WAF rule for suspicious redirect patterns. |
 
 ---
 
@@ -223,8 +223,8 @@ Last updated: 2026-05-30
 | Field | Detail |
 |---|---|
 | **Incident ID** | ABUSE-002 |
-| **Scenario** | Monitoring detects a high volume of failed sign-in attempts targeting user accounts, suggesting a brute-force or credential-stuffing attack. |
-| **Symptoms** | Spike in Supabase Auth "failed login" events; elevated rate of `/auth/v1/token?grant_type=password` calls; multiple accounts targeted from same IP; user reports of unexpected "too many attempts" messages; Auth logs showing rapid-fire attempts. |
+| **Scenario** | Monitoring detects a high volume of failed authentication/password attempts, suggesting a brute-force or credential-stuffing attack. (IMPORTANT code reality: there is **no password-based user sign-in** — auth is magic-link OTP `signInWithOtp` + Google OAuth `signInWithOAuth` only, `src/lib/auth/actions.ts`, so `grant_type=password` brute-force does not apply to user login. The real password-brute-force surface is the **shared-link password gate** `POST /api/share/[token]/password`, which already has progressive-delay + hard-lockout + durable per-IP rate limiting — `src/lib/publication/security.ts`. Target this runbook at that surface and the magic-link/OAuth request floods, not at a non-existent password login.) |
+| **Symptoms** | Spike in Supabase Auth "failed login"/OTP-request events; elevated rate of failed share-link password attempts (`security_rate_limit_events` `password_failure` rows); multiple accounts/links targeted from same IP; user reports of unexpected "too many attempts" messages; Auth logs showing rapid-fire attempts. |
 | **Severity** | High |
 | **Owner** | OWNER_NAME_PLACEHOLDER (until delegated) |
 | **First Response** | 1. Confirm attack via Supabase Dashboard > Authentication > Logs (filter by error type). 2. Identify target accounts and source IPs. 3. Check if any accounts were successfully compromised (successful login after burst of failures). 4. Declare within 30 minutes of detection. |
@@ -241,8 +241,8 @@ Last updated: 2026-05-30
 | Field | Detail |
 |---|---|
 | **Incident ID** | AI-001 |
-| **Scenario** | The DeepSeek API is unreachable, returning errors, or experiencing degraded performance. AI-powered features (estimate generation, proposal drafting) are unavailable. |
-| **Symptoms** | DeepSeek API returns 5xx or connection timeouts; estimate generation hangs or returns errors; proposal export fails at AI generation step; DeepSeek status page shows incident; elevated error rate in AI service logs. |
+| **Scenario** | The DeepSeek API is unreachable, returning errors, or experiencing degraded performance. The AI-powered features are unavailable. (Code reality: the real AI surfaces are the read-only **Ask** assistant `POST /api/ai/ask` and the **Package Builder** `POST /api/ai/package-builder` (draft/refine/apply); both are **OFF by default** behind `ARCHESTIMATOR_AI_ENABLED` — `src/lib/ai/feature-flags.ts` — and route to DeepSeek via `src/lib/ai/deepseek.ts`. There is no standalone "estimate generation" feature beyond the Package Builder.) |
+| **Symptoms** | DeepSeek API returns 5xx or connection timeouts; Ask/Package-Builder requests hang or return errors; DeepSeek status page shows incident; elevated error rate in AI service logs. (NOTE: proposal/XLSX export does **not** call AI — it is exceljs-only `src/lib/proposal-export/create-proposal-workbook.ts` — so an AI outage does not break export; an export failure is EXP-001, not AI-001.) |
 | **Severity** | High |
 | **Owner** | OWNER_NAME_PLACEHOLDER (until delegated) |
 | **First Response** | 1. Check DeepSeek status page. 2. Verify API key validity and rate limits. 3. Test a minimal API call. 4. Determine if this is provider-wide or key-specific. 5. Post to `#incidents` within 15 minutes. |
@@ -335,7 +335,7 @@ Last updated: 2026-05-30
 | **Symptoms** | Spike in error rate after deploy; users report broken features; 500 errors on specific routes; client-side JS errors; build log warnings that were ignored; Vercel deployment shows increased error rate. |
 | **Severity** | Critical |
 | **Owner** | OWNER_NAME_PLACEHOLDER (until delegated) |
-| **First Response** | 1. **IMMEDIATE: Assess whether to roll back (DEP-002) or fix forward.** If >50% of users affected or core feature broken: roll back immediately. 2. Identify the specific deploy (Vercel deployment ID, commit SHA). 3. Check error logs, Sentry/DataDog, and Vercel analytics. 4. Determine scope: specific route, feature, or systemic. 5. Declare within 5 minutes. |
+| **First Response** | 1. **IMMEDIATE: Assess whether to roll back (DEP-002) or fix forward.** If >50% of users affected or core feature broken: roll back immediately. 2. Identify the specific deploy (Vercel deployment ID, commit SHA). 3. Check error logs and Vercel analytics. (NOTE: there is **no Sentry/DataDog/error-tracking integration wired** today — `realtime-telemetry.ts` / `express-components-telemetry.ts` are `console.warn` seams marked "swap for Clarity/Sentry later", and `package.json` has no Sentry/DataDog deps. So rely on Vercel logs/analytics + `/api/health`; do not expect a Sentry dashboard until one is added.) 4. Determine scope: specific route, feature, or systemic. 5. Declare within 5 minutes. |
 | **Containment Steps** | Option A (preferred for critical): Execute DEP-002 rollback to previous known-good deploy. Option B (for minor issues): Deploy hotfix forward. Enable maintenance mode if fix will take >15 minutes. Communicate status. |
 | **Customer Message Template** | "We're aware of an issue introduced in our latest update and have reverted to the previous version. Service is being restored. We apologize for the disruption and will share details after our review." |
 | **Recovery Steps** | 1. Roll back to last known-good deploy (DEP-002). 2. Verify core features (sign-in, workspace load, estimate creation, export). 3. Investigate root cause in the bad deploy. 4. Fix in a branch, test thoroughly, and re-deploy with increased monitoring. |

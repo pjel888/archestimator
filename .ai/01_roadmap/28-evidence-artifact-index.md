@@ -1,20 +1,20 @@
 # Evidence Artifact Index
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-18 (artifact-path reconciliation; evidence go/no-go statuses unchanged)
 **Rule:** A roadmap item cannot move to DONE unless it has: evidence artifact path, validation output, screenshots or trace where relevant, performance evidence if feature touches critical path, security evidence if feature touches auth/data/storage/share/API, UX evidence if feature is user-facing, owner signoff if launch decision changes.
 
 ## Current MVP Launch Evidence Handoff
 
 The MVP launch-readiness local implementation lane is frozen at `6ab5b38`; docs/status/contract guard evidence is pushed through `bdf9b03`. Closed beta remains **NO-GO** until the external/provider/manual evidence packet is completed.
 
-Use these active artifacts for the next pass:
+Use these active artifacts for the next pass (the `mvp-launch-readiness-2026-06-01` plan folder was archived in commit `b0ff67c3`, so these paths now resolve under `.ai/09_archive/`):
 
-- `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`
-- `.ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md`
-- `.ai/03_plans/mvp-launch-readiness-2026-06-01/48-manual-proof-packet-template.md`
+- `.ai/09_archive/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`
+- `.ai/09_archive/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md`
+- `.ai/09_archive/mvp-launch-readiness-2026-06-01/48-manual-proof-packet-template.md`
 - `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/`
 
-Archive cleanup folder: `.ai/09_archive/store/mvp-launch-readiness-2026-06-01/`.
+Archive cleanup folder: `.ai/09_archive/mvp-launch-readiness-2026-06-01/` (path corrected 2026-06-18; the prior `.ai/09_archive/store/mvp-launch-readiness-2026-06-01/` location does not exist).
 
 
 ## Tree Selection / Bulk Delete Local Evidence
@@ -69,7 +69,7 @@ Evidence artifacts are classified by category for filtering and prioritization:
 | Storage denial test result | `04-security-notes.md` | Test output proving cross-workspace storage denial | "user_b_download_workspace_a_file: 403" |
 | API auth audit | `04-security-notes.md` | Checklist of all routes with auth verification | "/api/ai/ask: getSession() ✓" |
 | Secrets scan result | `04-security-notes.md` | CI output showing credential block | "commit blocked: SUPABASE_SERVICE_ROLE_KEY found" |
-| Rate limiting proof | `04-security-notes.md` | Test output showing rate limiting active (Redis/Upstash) | "429 returned after 5 requests in 1s: PASS" |
+| Rate limiting proof | `04-security-notes.md` | Test output showing rate limiting active (durable Postgres `security_rate_limit_events` table + in-memory backstop — NOT Redis/Upstash; Redis does not exist in code) | "429 + Retry-After returned after threshold exceeded: PASS" |
 | Turnstile integration proof | `04-security-notes.md` | Screenshot of Turnstile on login/auth forms | "Turnstile widget rendered on /login" |
 | PII scrub verification | `04-security-notes.md` | Review of Sentry/log output — no PII | "Sentry payload reviewed: no emails, names, or tokens" |
 | Analytics setup proof | `02-screenshots-or-links.md` | Dashboard screenshot of first-party analytics active | "Analytics dashboard: pageviews captured" |
@@ -91,7 +91,7 @@ Evidence artifacts are classified by category for filtering and prioritization:
 | BETA-P0-SEC-002 | Storage denial test output (01, 04) | security-evidence |
 | BETA-P0-SEC-003 | API auth audit checklist + test output (01, 04) | security-evidence |
 | BETA-P0-SEC-004 | Secrets scan CI output, service-role verification (01, 04) | security-evidence |
-| BETA-P0-SEC-005 | Rate limiting test output (Redis/Upstash), 429 proof (01, 04) | security-evidence, ops-evidence |
+| BETA-P0-SEC-005 | Rate limiting test output (durable Postgres `security_rate_limit_events` table + in-memory backstop — NOT Redis/Upstash), 429 + Retry-After proof (01, 04) | security-evidence, ops-evidence |
 | BETA-P1-SEC-006 | Turnstile integration screenshot, CAPTCHA test output (01, 02, 04) | security-evidence |
 | BETA-P0-OBS-001 | Sentry dashboard screenshots, error capture proof (02, 04) | ops-evidence |
 | BETA-P0-ANA-001 | Analytics dashboard screenshot, pageview capture proof (02, 04) | ops-evidence |
@@ -197,4 +197,4 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 
 ## Activity History Overhaul V1 evidence
 
-The evidence ledger for completed Activity History Overhaul V1 is `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. It records milestone status, validation commands, commit SHAs, production telemetry NO-GO truth, and the final archive location at `.ai/09_archive/store/activity-history-overhaul-v1/`.
+The evidence ledger for completed Activity History Overhaul V1 is `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. It records milestone status, validation commands, commit SHAs, production telemetry NO-GO truth, and the final archive location at `.ai/09_archive/store/2026-06-03-activity-history-overhaul-v1/` (path corrected 2026-06-18; the archived folder carries a `2026-06-03-` date prefix, so the bare `.ai/09_archive/store/activity-history-overhaul-v1/` reference in doc 35 is also stale).

@@ -1,6 +1,6 @@
 # Archestimator Production-Readiness Command Center
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-18 (code-reconciliation pass — see CODE-SYNC notes)
 **Status:** Pre-launch MVP — repo-local launch implementation remains controlled; external/provider/manual proof lane remains open.
 
 ## 2026-06-06 UI Component Library + Storybook plan
@@ -47,6 +47,7 @@
 - Status: `AUDIT COMPLETE — planning only, no code/schema/data changed.` 18 documents with 2nd-pass adversarial review. Owner decisions D-A, D-B, D-C required to proceed.
 - Scope: Full end-to-end audit of the Templates feature including the "Projects Auto-Added To Templates" capability. Covers custom templates, project-derived sources, estimate-tab strip, tab-aware XLSX export, and the library browse route. Multi-perspective audit across architecture, UX/UI, performance, data/state, database/RLS/security, blast radius, functional defects, and strategy.
 - Headline findings: Custom templates are solid; the project-source capability is browse-only live (estimate_tabs foundation not applied to live DB, insert path never built, live outline 500s with raw error leak). Live insert RPC authorizes on workspace membership only (viewer can insert — privilege gap). Recommended first slice: outline fallback fix + safe error surface + insert RPC gate hardening + outline caching.
+- CODE-SYNC 2026-06-18: The code-provable halves of these findings have moved. The insert path IS NOW BUILT — `insertProjectSourceIntoEstimate` exists at `src/lib/reusable-sources/actions.ts:361`, routes through `insert_estimate_subtree_into_estimate_with_history`, and the action comment states "the RPC re-checks `can_edit` (target) + `can_access` (source)" (the viewer-can-insert privilege gap is addressed at the RPC layer). `getReusableEstimateOutline` (line ~296) carries the legacy-tab-name fallback. The `estimate_tabs_foundation` migration file now exists in `supabase/migrations/`. STILL EXTERNAL/OPEN: whether these migrations/RPCs are applied + correct on the hosted DB, and the live-outline behavior, are hosted facts code cannot prove. Owner decisions D-A/D-B/D-C remain open.
 - No application code, migration, type, test, config, or provider state was modified by this planning pass.
 
 ## 2026-06-13 Shared Link Improvement Plan
@@ -69,6 +70,7 @@
 
 - Plan package: `.ai/03_plans/2026-06-13-Add-New-Tabs/`.
 - Status: `PLANNING COMPLETE — feature already built behind D-15 gate; planning covers lifting the gate, permission-gating, and browser-grade polish.`
+- CODE-SYNC 2026-06-18: D-15 has since been LIFTED in code — `src/components/workshop/estimate-sheet/EstimateTabStrip.tsx` (header comment confirms "release gate D-15 was lifted once tab-aware [export] shipped") wires the full tab CRUD live (`createEstimateTab` at line ~378 + rename/duplicate/reorder/delete) and threads `canEditEstimate` via `onCreateTabStateChange`. The `estimate_tabs_foundation` migration exists at `supabase/migrations/20260612094734_estimate_tabs_foundation.sql`. Remaining open: applying that migration to the hosted DB (EXTERNAL) and any browser-grade-polish items.
 - Scope: The "Add New Tab" "+" button already exists in code — built and unit-tested, hidden behind a deliberate release gate (D-15) whose precondition (tab-aware export) has since shipped. This plan covers: lift D-15, thread `canEditEstimate` permission check, replace persistent toolbar row with right-click context menu, double-click rename, browser-grade polish, verify downstream consumers. No DB/RPC/RLS/type change required — the only production dependency is applying the existing migration to the hosted DB.
 - No code, schema, or data was changed by this planning pass.
 
@@ -113,7 +115,7 @@ These documents form the Ralph Loop execution command center:
 | 23 | [Codex /goal Execution Plan](./23-codex-goal-execution-plan.md) | **Start here.** Wave plan, sequencing, what Codex must and must not do |
 | 24 | [Owner Decision Packet](./24-owner-decision-packet.md) | All 21 resolved decisions with defaults and goal-card mappings |
 | 25 | [Active Workstreams](./25-active-workstreams.md) | 8 workstreams organized by wave, with status dashboard |
-| 26 | [Codex Goal Cards](./26-codex-goal-cards.md) | 78 atomic goal cards (plus 15 EPIC headers) for Codex `/goal` |
+| 26 | [Codex Goal Cards](./26-codex-goal-cards.md) | 93 atomic executable goal cards — 78 original + 10 collab/share + 5 DBIDX (plus 15 EPIC headers) for Codex `/goal` |
 | 27 | [Performance Budget & Regression Gates](./27-performance-budget-and-regression-gates.md) | Makes performance unavoidable in every implementation |
 | 28 | [Evidence Artifact Index](./28-evidence-artifact-index.md) | Where Codex saves evidence; DONE requires evidence path |
 | 29 | [Enterprise MVP Scope & Owner Defaults](./29-enterprise-mvp-scope-and-owner-defaults.md) | Enterprise-grade MVP scope definition and 21 approved owner defaults |
@@ -143,7 +145,7 @@ These documents provide detailed readiness analysis across all domains:
 | 11 | [Release & Deployment Go/No-Go](./11-release-deployment-go-no-go.md) | Staging/production separation, rollback |
 | 12 | [Beta Launch & Feedback Loop](./12-beta-launch-feedback-loop.md) | Controlled design-partner beta plan |
 | 13 | [Risk Register](./13-risk-register.md) | Numbered risks with probability/impact |
-| 14 | [Owner Decisions](./14-owner-decisions.md) | Full register of 32 pending decisions |
+| 14 | [Owner Decisions](./14-owner-decisions.md) | Full register of 32 owner decisions; 21 decided, 11 remain |
 | 15 | [Product-Management Operating Model](./15-product-management-operating-model.md) | North star, activation, PM cadence |
 | 16 | [Onboarding & Activation Readiness](./16-onboarding-activation-readiness.md) | 12-phase onboarding, 6 persona variants |
 | 17 | [Personas & Jobs-to-be-Done](./17-personas-jobs-to-be-done.md) | 6 personas with goals, anxieties, JTBD |
@@ -169,7 +171,7 @@ These files remain for git history only. Do not reference for current state:
 
 1. **Read** `29-enterprise-mvp-scope-and-owner-defaults.md` — understand the 21 approved owner defaults and enterprise MVP scope
 2. **Read** `23-codex-goal-execution-plan.md` — understand the wave structure
-3. **Read** `26-codex-goal-cards.md` — review all 78 atomic goal cards (Atomic Split Edition)
+3. **Read** `26-codex-goal-cards.md` — review all 93 atomic goal cards (Atomic Split Edition: 78 original + 10 collab/share + 5 DBIDX)
 4. **Select** one goal card marked `READY FOR CODEX`
 5. **Check** `27-performance-budget-and-regression-gates.md` — validate performance before claiming done
 6. **Implement** only that goal — one bounded card at a time
@@ -216,11 +218,11 @@ Archestimator is production-ready only when:
 | Area | Status | Launch Blocker? | Evidence Required | Owner | Next Decision | Target Phase |
 |---|---|---|---|---|---|---|
 | Security — cross-workspace isolation | `IMPLEMENTED / NEEDS EVIDENCE` | YES | RLS denial tests, storage denial tests | Philip | Execute BETA-P0-SEC-001 | Beta |
-| Security — invite token lifecycle | `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` | YES | Supabase Auth email/provider proof + hosted invite template/confirmation proof + invite env vars + real invite staging/prod E2E | Philip | Provide provider/env proof, then run real invite lifecycle smoke from `.ai/03_plans/share-and-collaboration-implementation/` | Beta |
+| Security — invite token lifecycle | `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` | YES | Supabase Auth email/provider proof + hosted invite template/confirmation proof + invite env vars + real invite staging/prod E2E | Philip | Provide provider/env proof, then run real invite lifecycle smoke from `.ai/09_archive/share-and-collaboration-implementation/` (MOVED 2026-06-18 from `.ai/03_plans/...`; see 34 §3) | Beta |
 | Security — shared link boundaries | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Penetration tests, token scope tests | Philip | Execute BETA-P0-SEC-003 | Beta |
-| Security — CSP/headers | `PARTIAL` | YES | Strict CSP on workshop routes | Philip | Enterprise MVP hardening | Enterprise MVP |
-| Security — rate limiting | `DECIDED / REQUIRED BEFORE EXTERNAL BETA` | BETA | Persistent rate limiting implemented | Philip | Execute BETA-P0-SEC-005 | Beta |
-| Security — CAPTCHA | `DECIDED / CLOUDFLARE TURNSTILE` | BETA | Cloudflare Turnstile integrated | Philip | Execute BETA-P1-SEC-006 | Beta |
+| Security — CSP/headers | `PARTIAL (SHARE ENFORCED / WORKSHOP REPORT-ONLY)` | YES | Strict CSP on workshop routes — enforced `Content-Security-Policy` now live on `/share/:path*` (P11, `next.config.ts`; `/api/share/:path*` gets the hardening headers); `/workshop/*` + `/invite/*` remain `Content-Security-Policy-Report-Only` | Philip | Enterprise MVP hardening (flip workshop to enforced) | Enterprise MVP |
+| Security — rate limiting | `IMPLEMENTED (DB-DURABLE) / NEEDS LOAD EVIDENCE` | BETA | Persistent rate limiting implemented — durable DB-backed via `security_rate_limit_events` (migration `supabase/migrations/20260601003000_security_rate_limit_events.sql`) consumed by `src/lib/publication/public-repository.ts`, `src/lib/ai/rate-limit.ts`, `src/lib/collaboration/invite-entry.ts`, and the export route; NOT Redis-backed | Philip | Execute BETA-P0-SEC-005 (load/multi-instance evidence) | Beta |
+| Security — CAPTCHA | `DECIDED / CLOUDFLARE TURNSTILE — NOT BUILT` | BETA | Cloudflare Turnstile to be integrated (decision made; ZERO code today — no `turnstile`/`captcha` in `src/` or `package.json`, see dashboard 1.27) | Philip | Execute BETA-P1-SEC-006 | Beta |
 | Supabase — RLS policies | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Table-by-table denial tests | Philip | Execute BETA-P0-SEC-001 | Beta |
 | Supabase — migration parity | `PARTIAL / TERMS MIGRATION VERIFIED / BROAD DB PUSH DRIFT OPEN` | YES | Local vs remote reconciliation plus exact-file proof | Philip | Reconcile migration history drift before broad db push | Beta |
 | Supabase — storage policies | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Cross-workspace storage access tests | Philip | Execute BETA-P0-SEC-002 | Beta |
@@ -237,8 +239,8 @@ Archestimator is production-ready only when:
 | UX — mobile workshop | `DECIDED / DESKTOP GUARD FOR MVP` | — | Desktop-only guard in workshop routes | Philip | Execute BETA-P0-UX-004 | Beta |
 | UX — package-builder | `DECIDED / OPTIONAL FEATURE-FLAGGED BETA` | — | Feature flag for beta opt-in | Philip | Implement feature flag | Beta |
 | Performance — route transitions | `IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES` | BETA | Sub-100ms benchmarks | Philip | Complete manual benchmark screenshots, Lighthouse/full analyzer proof, and unrelated validation cleanup before archive | Beta |
-| Performance — large estimate sheets | `UNKNOWN` | BETA | 500+ row benchmarks | Philip | Execute BETA-P0-PERF-001 | Beta |
-| Performance — XLSX export | `UNKNOWN` | BETA | Timeout benchmarks | Philip | Run export load test | Beta |
+| Performance — large estimate sheets | `RELIEF CODE BUILT / HOSTED BENCHMARK UNKNOWN` | BETA | 500+ row benchmarks — row virtualization built (`src/components/workshop/estimate-sheet/rows/virtual-branch-list.tsx`) with perf tests in `tests/vitest/perf/`; actual large-sheet timing under load is still an open hosted/manual benchmark | Philip | Execute BETA-P0-PERF-001 | Beta |
+| Performance — XLSX export | `LIMITS + BENCHMARK TOOLING BUILT / HOSTED TIMING UNKNOWN` | BETA | Timeout benchmarks — size caps enforced (node 1200 / row 3000 / tab 50, `maxDuration=60`) in the export route + `scripts/benchmark-proposal-workbook.ts`; actual hosted/serverless timing at the caps is still open | Philip | Run export load test | Beta |
 | Observability — APM/error tracking | `LEFT TO DO` | YES | Sentry or equivalent configured | Philip | Execute BETA-P0-OBS-001 | Beta |
 | Observability — log aggregation | `LEFT TO DO` | BETA | Centralized log shipping | Philip | Execute BETA-P0-OBS-001 | Beta |
 | Analytics — product events | `DECIDED / FIRST-PARTY PRODUCT EVENTS FOR BETA` | BETA | First-party analytics instrumentation | Philip | Execute BETA-P0-ANA-001 | Beta |
@@ -331,7 +333,7 @@ This roadmap is backed by detailed tracking documents:
 | 11 | [Release & Deployment Go/No-Go](./11-release-deployment-go-no-go.md) | Staging/production separation, rollback |
 | 12 | [Beta Launch & Feedback Loop](./12-beta-launch-feedback-loop.md) | Controlled design-partner beta plan |
 | 13 | [Risk Register](./13-risk-register.md) | Numbered risks with probability/impact |
-| 14 | [Owner Decisions](./14-owner-decisions.md) | All pending owner decisions |
+| 14 | [Owner Decisions](./14-owner-decisions.md) | Full register of 32 owner decisions; 21 decided, 11 remain |
 | 15 | [Product-Management Operating Model](./15-product-management-operating-model.md) | North star, activation, PM cadence, decision framework |
 | 16 | [Onboarding & Activation Readiness](./16-onboarding-activation-readiness.md) | 12-phase onboarding, 6 persona variants |
 | 17 | [Personas & Jobs-to-be-Done](./17-personas-jobs-to-be-done.md) | 6 personas with goals, anxieties, JTBD |
@@ -380,7 +382,7 @@ The app has substantial product surface:
 - Revision comparison and issued-proposal audit policy
 - Stored AI conversations, vector/RAG, broad persistent memory, autonomous AI mutations
 - Strict CSP on workshop routes (ENTERPRISE MVP hardening)
-- Persistent rate limiting (Redis-backed, BETA P0)
+- ~~Persistent rate limiting (Redis-backed, BETA P0)~~ — DRIFT: durable DB-backed persistent rate limiting is now IMPLEMENTED (`security_rate_limit_events` table + consumers in publication/AI/invite-entry/export). It is DB-durable, not Redis-backed; the only open work is the Redis/multi-instance variant + load evidence.
 - Production APM/error tracking (BETA P0)
 - Cloudflare Turnstile CAPTCHA (BETA P1)
 - First-party product event analytics (BETA P0)

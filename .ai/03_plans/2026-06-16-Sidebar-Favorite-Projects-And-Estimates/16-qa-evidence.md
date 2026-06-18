@@ -9,6 +9,18 @@
 > (2 pre-existing favorites-adjacent files — `workshop-favorites-schema`, `sidebar-nav-item-row`
 > — also still pass, unaffected by this work.)
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source | Implemented | `src/lib/favorites/*`, `src/hooks/use-sidebar-favorites-query.ts`, `src/hooks/use-toggle-project-favorite.ts`, `src/hooks/use-toggle-estimate-favorite.ts`, `src/components/sidebar/MainSidebar.tsx`, and related workshop shell/page wiring. |
+| Tests/checks | Implemented | Favorites suite recorded below as 13 files / 53 tests passed; current repo still contains sidebar favorites, cache, query, mutation, live-region, focus, and action-hygiene tests. |
+| Migrations/provider | Not changed by this pack | The feature uses existing favorites tables/actions; no new migration/provider mutation is claimed here. |
+| Hosted/browser proof | Gap recorded | Authenticated browser proof was unavailable and is still not claimed. |
+| Owner/manual proof | Not freshly verified | No owner/manual acceptance pass was run during the 2026-06-18 refresh. |
+
 ## Commands + exit codes
 ```
 [0] bun run type-check                                          # tsc --noEmit, clean

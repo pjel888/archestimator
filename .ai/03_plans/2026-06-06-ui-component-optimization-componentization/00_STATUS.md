@@ -4,6 +4,18 @@
 **Status:** COMPLETE — ~60 source components, 85 stories, all gates pass. Migration deferred by design.
 **Updated:** 2026-06-07
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source | Implemented | `.storybook/`, `src/stories/`, and `src/components/ui/` exist in the current checkout. |
+| Tests/checks | Implemented | `tests/vitest/storybook-component-coverage.test.ts`, `tests/vitest/storybook-plan-matrix.test.ts`, and package scripts `storybook:*` / `build-storybook` exist. Historical gate status remains recorded below. |
+| Migrations/provider | Not applicable | This component-library layer did not require database or provider mutations. |
+| Hosted/browser proof | Not freshly verified | No hosted Storybook or browser proof was run during the 2026-06-18 status refresh. |
+| Owner/manual proof | Deferred | Production app migration remains not started and requires a separate owner-scoped implementation plan. |
+
 ## Library Stats
 - **60+ source components** across Actions, Forms, Overlays, Navigation, Data, Feedback, Layout, Domain, Utility
 - **85 Storybook stories**, 443+ exports, 78 component-level, 52 linked

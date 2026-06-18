@@ -114,7 +114,7 @@ Let me know!
 3. **Risk disclosure (2 min):** Read limitations disclosure. Confirm acknowledgment.
 4. **Sign-in walkthrough (5 min):** Google OAuth or magic link. Confirm they land in workshop.
 5. **Core loop demo (10 min):** Create project → estimate → add rows → see costs → export XLSX → share link
-6. **AI features (5 min):** Ask Flip (read-only) and Package-builder (draft/confirm). Disclaimers.
+6. **AI features (5 min), ONLY if enabled:** Ask Flip (read-only) and Package-builder (draft/confirm). Disclaimers. **Code status (2026-06-18 sync):** both are flag-gated OFF by default — `ARCHESTIMATOR_AI_ENABLED=false` makes the AI routes return 404, and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false` hides the UI (`.env.example`; `src/lib/ai/feature-flags.ts`). The provider is DeepSeek (`src/lib/ai/deepseek.ts`) and needs `DEEPSEEK_API_KEY`. Skip this step unless the flags are on and the key is set for the beta environment.
 7. **Feedback setup (3 min):** How they'll give feedback weekly. Contact method.
 8. **Q&A + next steps**
 
@@ -170,6 +170,8 @@ Name: ____________________
 Date: ____________________
 ```
 
+> **Code-evidence note (2026-06-18 sync):** The subprocessor disclosure above is accurate against code — the AI provider is **DeepSeek** (`src/lib/ai/deepseek.ts`, `https://api.deepseek.com`), not Anthropic/OpenAI, so the "AI interactions go to DeepSeek" line is correct. Supabase region, the support inbox (`SUPPORT_INBOX_PLACEHOLDER`), and self-serve data copy/deletion are **external/manual facts**: there is NO self-serve data export or account-deletion flow in code (deletion is "email support"), so the "request a copy or deletion at any time" line is a manual operator commitment, not an in-product capability.
+
 ## 11. What Each Participant Will Test
 
 | Participant Role | Primary Test Scenarios |
@@ -180,7 +182,7 @@ Date: ____________________
 | Independent contractor (solo) | Solo estimating workflow, template reuse, library building, export workflow |
 | Construction PM | Client-facing shared receiver, comments/decisions, revision requests, activity feed |
 | Supplier rep | Component library contribution, pricing data entry, attachment uploads |
-| Repeat (any role) | AI Ask usage, Package-builder testing (if feature-flagged on), stress testing larger estimates |
+| Repeat (any role) | AI Ask usage *(only if AI flags enabled — OFF by default)*, Package-builder testing (if feature-flagged on), stress testing larger estimates |
 
 ---
 

@@ -5,6 +5,18 @@
 **Done** (within docs/governance scope). All `LOOP_LEDGER.md` acceptance criteria are checked,
 validation is complete, and the applied diff passed an independent adversarial review.
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source/docs | Implemented | Canonical docs/adapters listed below were changed in the original task; current repo still contains the governance updates. |
+| Tests/checks | Historical pass recorded | Validation below records `git diff --check`, path-existence checks, stack verification, adversarial audit, and review gate. |
+| Migrations/provider | Not applicable | Docs/governance work only; no database/provider mutation. |
+| Hosted/browser proof | Not applicable | No hosted/browser/runtime proof claimed or required. |
+| Owner/manual proof | Not freshly verified | No separate owner/manual acceptance pass was run during the 2026-06-18 refresh. |
+
 ## Iterations completed
 
 5 (cap is 7).

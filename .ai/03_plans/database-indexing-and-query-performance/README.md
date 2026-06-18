@@ -3,6 +3,18 @@
 **Date:** 2026-05-30
 **Status:** Repo-only DBIDX-001 audit helper implemented on 2026-06-02. No indexes implemented. No migrations created.
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source | Helper implemented | `scripts/audit-dbidx-repo.ts` and package script `dbidx:audit-repo` exist. |
+| Tests/checks | Helper guard exists | `tests/vitest/dbidx-repo-audit.test.ts` exists. No fresh test run was performed during this docs refresh. |
+| Migrations/provider | Not implemented | No DBIDX candidate index migration was found; no live Supabase advisor/EXPLAIN proof is claimed. |
+| Hosted/browser proof | Not applicable | DB indexing readiness has no browser surface. |
+| Owner/manual proof | Required before DDL | Candidate indexes remain future work behind DBIDX-001/002/003 evidence and owner-approved shortlist. |
+
 ## Purpose
 
 Formal strategy for database indexing, query-plan validation, and Supabase performance readiness. Exists to guide future Codex/Ralph Loop agents through atomic indexing/audit cards without speculative DDL.

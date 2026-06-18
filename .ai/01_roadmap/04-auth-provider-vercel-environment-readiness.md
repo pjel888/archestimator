@@ -1,8 +1,10 @@
 # Auth Provider & Vercel Environment Readiness
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-18 (code-sync pass — code references reconciled; external provider/dashboard/Vercel facts unchanged and still open)
 **Status:** Active audit — external provider/dashboard proof still open.
 **Scope:** Authentication provider configuration (Google OAuth, Supabase Auth, Resend SMTP), Vercel deployment environment readiness, and environment variable audit.
+
+> **Code-sync note (2026-06-18):** This pass only reconciled in-repo code references against the actual codebase (see corrected file paths/defaults below) and added a pointer to the now-existing launch-readiness check scripts. It did **not** and **cannot** change any external/provider/Vercel/DNS status — every "Verified in Staging/Production", dashboard, and `LEFT TO DO` item below remains open because those are hosted/manual facts that code cannot prove.
 
 ---
 
@@ -19,7 +21,7 @@ Most auth code paths are implemented in the application layer (`src/lib/auth/`, 
 | Redirect URIs (Google Cloud Console) | N/A (provider dashboard) | Yes — `http://localhost:3000/auth/callback` works | No | No | No |
 | Redirect URIs (Supabase Auth dashboard) | N/A (provider dashboard) | Yes — Supabase callback URL configured | No | No | No |
 | Supabase Site URL configuration | N/A (provider dashboard) | Yes — localhost:3000 set | No | No | No |
-| Supabase redirect allow-list | `src/proxy.ts` — `ALLOWED_REDIRECT_HOSTS` | Yes — localhost allowed | No | No | No |
+| Supabase redirect allow-list | `src/lib/auth/redirects.ts` — `getAllowedAppOrigins` (env-driven: `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_SITE_URL` / `VERCEL_PROJECT_PRODUCTION_URL` / `ARCHESTIMATOR_ALLOWED_APP_ORIGINS`); `src/proxy.ts` only sanitizes the `next` path via `sanitizeNextPath` _(code-sync 2026-06-18: there is no `ALLOWED_REDIRECT_HOSTS` constant in code — corrected reference)_ | Yes — localhost allowed | No | No | No |
 | Email sign-in link behavior | Supabase Auth + Resend | Yes — magic links deliver to dev email | No | No | No |
 | SMTP/templates | Supabase Auth dashboard + `src/lib/email/resend-client.ts` | Partial — local/shared-link email code and webhook handling exist; collaboration invite, magic-link provider templates, hosted invite template, and confirmation settings are unverified | No | No | No |
 | OTP expiry settings | N/A (Supabase dashboard) | Unknown — default Supabase settings assumed | No | No | No |
@@ -32,8 +34,8 @@ Most auth code paths are implemented in the application layer (`src/lib/auth/`, 
 | CAPTCHA decision status | DECIDED / CLOUDFLARE TURNSTILE | Not applicable | Not applicable | Not applicable | **DECIDED / CLOUDFLARE TURNSTILE** — Cloudflare Turnstile selected as CAPTCHA provider. BETA P1. See 29-enterprise-mvp-scope-and-owner-defaults.md. |
 | Provider outage behavior plan | Not applicable | Not applicable | Not applicable | Not applicable | **ACCEPTED RISK (implicit)** — no documented fallback; Supabase Auth and Google OAuth outages are unmitigated |
 | Wrong-account invite recovery flow | `src/app/invite/[token]/` — shows mismatch when signed-in identity differs from invite target | Yes — tested with wrong Google account | No | No | No |
-| Expired invite recovery flow | `src/lib/collaboration/actions.ts` — token expiry check | Unknown — expiry path not explicitly tested | No | No | No |
-| Login redirect-away behavior | `src/app/auth/callback/route.ts` — safe redirect sanitizer | Yes — rejects non-allowlisted hosts | No | No | No |
+| Expired invite recovery flow | Expiry set in `src/lib/collaboration/actions.ts` (`INVITE_EXPIRATION_DAYS = 14`, `expires_at`); resolved/displayed `expired` state via `resolve_collaboration_invitation` RPC in `src/app/invite/[token]/page.tsx` _(code-sync 2026-06-18: added recovery-flow location)_ | Unknown — expiry path not explicitly tested | No | No | No |
+| Login redirect-away behavior | Sanitizer in `src/lib/auth/redirects.ts` (`sanitizeNextPath` — multi-pass decode + open-redirect/nested-`next` guards), consumed by `src/app/auth/callback/route.ts` _(code-sync 2026-06-18)_ | Yes — rejects non-allowlisted hosts | No | No | No |
 | Logout/session expiry behavior | Supabase Auth default + `src/proxy.ts` redirect to /login | Yes — session expiry redirects to login | No | No | No |
 | Account deletion/deactivation policy | DECIDED / MANUAL DSAR FOR BETA | Not applicable | Not applicable | Not applicable | **DECIDED / MANUAL DSAR FOR BETA** — Manual DSAR/export/delete process sufficient for beta. Self-serve UI required for public launch. See 29-enterprise-mvp-scope-and-owner-defaults.md. |
 
@@ -110,14 +112,16 @@ All variables referenced in code or configuration, grouped by category. Values a
 | Variable | Purpose | Local | Staging | Production |
 |---|---|---|---|---|
 | `RESEND_API_KEY` | Resend API key for transactional email delivery | Present | Missing | Missing |
-| `RESEND_FROM` | Optional sender override (defaults to `Archestimator <EMAIL_PLACEHOLDER>`) | Absent (uses default) | Missing | Must be verified domain |
+| `RESEND_FROM` | Sender address; **no default** — empty when unset. `readEmailDeliveryConfig` (`src/lib/email/resend-client.ts`) treats delivery as unconfigured unless `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` + `RESEND_API_KEY` + `RESEND_FROM` are all set. `.env.example` ships `RESEND_FROM=` blank. _(code-sync 2026-06-18: corrected — there is no `Archestimator <…>` default in code)_ | Absent (empty → unconfigured) | Missing | Must be verified domain |
+| `RESEND_REPLY_TO` | Reply-to address for transactional email (in `.env.example` as `support@archestimator.com`; part of email-delivery readiness) _(code-sync 2026-06-18: added — referenced by `scripts/check-vercel-env-readiness.ts` + readiness checks)_ | Present (`.env.example` default) | Missing | Must be configured |
+| `RESEND_WEBHOOK_SECRET` | svix signing secret for the Resend delivery webhook (`/api/webhooks/resend` returns 503 until set; `src/lib/email/resend-webhooks.ts`) _(code-sync 2026-06-18: added)_ | Absent (`.env.example` blank → webhook disabled) | **Required** for delivery-status webhooks | **Required** for delivery-status webhooks |
 
 ### AI (DeepSeek)
 
 | Variable | Purpose | Local | Staging | Production |
 |---|---|---|---|---|
 | `DEEPSEEK_API_KEY` | DeepSeek API key for Ask Flip and Package Builder | Present | Missing | Missing |
-| `DEEPSEEK_MODEL` | Optional model override (defaults to `deepseek-chat`) | Absent (uses default) | Missing | Missing |
+| `DEEPSEEK_MODEL` | Optional model override; defaults to `deepseek-v4-flash` (`DEFAULT_DEEPSEEK_MODEL` in `src/lib/ai/deepseek.ts`) _(code-sync 2026-06-18: corrected from `deepseek-chat`)_ | Absent (uses default) | Missing | Missing |
 
 ### AI — Package Builder
 
@@ -185,6 +189,31 @@ Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMAT
 10. **Add `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`** to all environment maps (local, staging, production).
 11. **Verify invite E2E** with `ARCHESTIMATOR_E2E_INVITE_ENTRY=1` after config unblock.
 12. **Record redacted dashboard evidence** for Supabase Auth email provider, hosted invite template/confirmation settings, Resend webhook configuration, and invite env var configuration.
+
+---
+
+## Section D — Launch-readiness check scripts (tooling) — _added by code-sync 2026-06-18_
+
+Since this doc was last authored, a suite of in-repo **readiness check / verifier scripts** has been built that directly serves this doc's scope (Vercel env, Resend, Supabase, hosted auth). **These scripts are BUILT tooling, not external proof.** They parse pasted CLI transcripts / operator-supplied flags or probe a live URL when one is provided; by their own embedded notes they do **not** read secret values, prove provider-dashboard configuration, prove email deliverability/DNS, or promote a deployment. Running them does not change any "No" / `LEFT TO DO` status above — that still requires operator-supplied, owner-approved external evidence.
+
+| Script (npm script) | What it checks | What it does NOT prove |
+|---|---|---|
+| `scripts/check-vercel-env-readiness.ts` (`launch:check-vercel-env`) | Presence of core / email / invite env **names** in a `vercel env ls` transcript | Secret values, callback-URL correctness, provider dashboard config, delivery, hosted auth behavior |
+| `scripts/check-resend-readiness.ts` (`launch:check-resend-readiness`) | `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` + `RESEND_*` presence | Sender/domain verification, DNS (SPF/DKIM/DMARC), webhook registration, actual delivery |
+| `scripts/check-supabase-migration-readiness.ts` (`launch:check-supabase-migrations`) | Local-vs-remote migration history shape (via CLI transcript) | Whether migrations are actually applied to the hosted DB |
+| `scripts/check-supabase-linked-readiness.ts` (`launch:check-supabase-linked-readiness`) | Linked-project readiness transcript shape | Live project linkage state |
+| `scripts/check-supabase-backup-readiness.ts` (`launch:check-supabase-backup`) | Backup/PITR readiness flags | Actual hosted backup configuration |
+| `scripts/check-vercel-production-readiness.ts` (`launch:check-vercel-production`) | Production-posture transcript shape | Deployment promotion, env values, alias correctness, hosted auth |
+| `scripts/check-vercel-health-readiness.ts` (`launch:check-vercel-health`) | Probes `/api/health` URLs for `200 + ok:true` | Env values, rollback, alias correctness beyond probed URLs, hosted auth |
+| `scripts/check-vercel-speed-insights-readiness.ts` (`perf:check-speed-insights`) | Queries hosted Speed Insights metrics via `vercel` CLI | Anything locally; `@vercel/speed-insights` is **not** installed/wired |
+| `scripts/check-support-email-dns.ts` (`launch:check-support-dns`) | Public DNS readiness for support email | Inbox monitoring, form delivery, alert routing |
+| `scripts/check-support-monitoring-readiness.ts` (`launch:check-support-monitoring`) | Operator-confirmed monitoring/alert proof flags | Real uptime/error alerting (no Sentry/Datadog/PagerDuty integration exists) |
+| `scripts/check-legal-owner-readiness.ts` (`launch:check-legal-owner`) | Operator-attested legal-owner readiness flags | The underlying legal-ownership/counsel-review fact |
+| `scripts/verify-hosted-auth-routes.ts` (`launch:verify-hosted-auth`) | Live `/workshop` redirect behavior (signed-out/allowed/denied/revoked/expired) + `private,no-store`, given a hosted base URL + real session cookies | Anything without operator-supplied live URL + cookies; without them it emits failures |
+| `scripts/verify-hosted-sensitive-route-fail-closed.ts` (`launch:verify-hosted-sensitive-routes`) | Credential-free fail-closed + no-store probe (invalid share token, unauthenticated private image) | Valid-token / private-media correctness (separate owner-approved evidence gates) |
+| `scripts/verify-hosted-export-route.ts` (`launch:verify-hosted-export`) | Hosted proposal-export route smoke (requires auth material) | Anything without live host + auth material |
+
+> Several of these `check-*` scripts have co-located Vitest unit tests (e.g. `tests/vitest/vercel-env-readiness-script.test.ts`, `resend-readiness-script.test.ts`, `supabase-migration-readiness-script.test.ts`) that verify the script **logic**, not the live infrastructure state. None of these scripts run in CI; their green status is an operator-run, external/hosted fact.
 
 ---
 

@@ -1,12 +1,25 @@
 # Release & Deployment Go/No-Go
 
-Last updated: 2026-05-30
+Last updated: 2026-06-18 (roadmap-sync pass: readiness *tooling* now exists; hosted/provider/manual *proof* remains open)
+
+> Sync note (2026-06-18): Since the 2026-05-30 baseline, a substantial readiness
+> *tooling* layer landed in code: a full CI pipeline (`.github/workflows/ci.yml`)
+> plus ~17 readiness/verifier scripts under `scripts/check-*.ts` and
+> `scripts/verify-*.ts` (Vercel env/health/production/speed-insights, Supabase
+> linked/backup/migration, Resend, support DNS/monitoring, legal owner, hosted
+> auth/export/sensitive-route fail-closed). These prove the *scaffolding is BUILT*.
+> They do NOT prove any hosted deploy, applied migration, staging environment,
+> provider config, legal review, or green CI run — those remain external/manual
+> facts. No gate below has been promoted to MET on the strength of code alone.
 
 ---
 
 ## 1. Deployment Architecture (planned, not implemented)
 
 Archestimator's deployment architecture exists only on paper. Nothing is configured yet.
+(Evidence: no staging entry in `supabase/config.toml` — single project model; a root
+`vercel.json` exists but only disables git deploys — `{"git":{"deploymentEnabled":false}}` —
+so no staging/production hosting is configured, and hosting state is not code-provable.)
 
 | Environment | Target | Status |
 |---|---|---|
@@ -38,15 +51,15 @@ Archestimator's deployment architecture exists only on paper. Nothing is configu
 
 | Check | Required For | Status |
 |---|---|---|
-| All CI checks pass (typecheck, lint, design-system, unit tests, DOM tests, E2E) | Beta | Not yet passing |
-| RLS denial tests pass | Beta | Not yet passing |
-| Invite lifecycle staging tests pass | Beta | Not yet passing |
-| Workshop smoke test pass | Beta | Not yet run |
+| All CI checks pass (typecheck, lint, design-system, unit tests, DOM tests, E2E) | Beta | Pipeline BUILT (`.github/workflows/ci.yml`: validate → build → impeccable → playwright e2e + perf smoke); green-run status is an external GitHub Actions fact, not code-provable. NOTE: in CI 16/18 e2e specs skip (no Supabase service-role/dev-auth secrets) |
+| RLS denial tests pass | Beta | Tooling BUILT: `scripts/prove-rls-initplan-postgres.mjs` + 4 other `scripts/prove-*-postgres.mjs` harnesses (require local Postgres binaries, NOT in CI). Live RLS on hosted DB remains unproven |
+| Invite lifecycle staging tests pass | Beta | Not yet passing (e2e `e2e/project-invite-entry.spec.ts` exists but is env-gated/skipped without hosted Supabase + pepper; PROJECT_INVITE_ENTRY_ENABLED defaults OFF) |
+| Workshop smoke test pass | Beta | Not yet run (gated e2e specs; require dev-auth/hosted session) |
 | No secrets in diff | Always | Per-deploy check |
 | Philip approval obtained | Always | Per-deploy gate |
-| Migration parity verified | Beta | Not yet verified |
-| Rollback plan documented | Production | Not yet documented |
-| Support runbooks current | Production | Not yet written |
+| Migration parity verified | Beta | Tooling BUILT: `scripts/check-supabase-migration-readiness.ts` (parses Supabase CLI transcript); actual local-vs-remote parity is an external/operator fact. NOTE: 2 reviewed migrations deliberately NOT applied (`supabase/migrations-pending-review/`) |
+| Rollback plan documented | Production | Template documented in §5 below (still requires a drilled, deployment-specific runbook) |
+| Support runbooks current | Production | Drafted: `.ai/01_roadmap/09-support-incident-rollback-runbooks.md` exists; "current/drilled" remains an owner/manual fact |
 
 ---
 
@@ -77,16 +90,16 @@ No CI automation, no scheduled deploy, no "merge to main and it ships" workflow 
 
 | Gate | Beta Requirement | Production Requirement | Current Status |
 |---|---|---|---|
-| Security | RLS denial tests pass, invite E2E on staging, no known critical vulns | All security gates + pen test | Not met |
-| Legal | Owner acknowledged risk | Reviewed Privacy Notice + Terms published | Not met |
-| Deployment | Staging environment exists, preview protection on | Production URL, CD pipeline, DNS/SSL, rollback drilled | Not met |
-| QA | Core smoke tests pass, invite lifecycle staging pass | Full validation matrix pass, perf smoke, a11y audit | Not met |
-| UX | Critical flows understandable by test users | All flows validated, non-technical user testing complete | Not met |
-| AI | No autonomous claims in copy | Truthfulness audit, leakage tests | Partial |
-| Support | Critical runbooks templated | All runbooks drilled, named owners | Not met |
+| Security | RLS denial tests pass, invite E2E on staging, no known critical vulns | All security gates + pen test | Not met (prove-*-postgres RLS harnesses BUILT but local-only/not in CI; live-DB RLS + invite E2E remain external) |
+| Legal | Owner acknowledged risk | Reviewed Privacy Notice + Terms published | Not met (Terms/Privacy copy + pages BUILT in code — `src/lib/legal/terms-content.ts` self-declares `legalReviewStatus='...pending_counsel_review'`; counsel review is an external/manual fact. `scripts/check-legal-owner-readiness.ts` records owner attestation only) |
+| Deployment | Staging environment exists, preview protection on | Production URL, CD pipeline, DNS/SSL, rollback drilled | Not met (no staging in `supabase/config.toml`; Vercel readiness *check scripts* BUILT — `scripts/check-vercel-*-readiness.ts` — but hosted deploy/staging/DNS are external) |
+| QA | Core smoke tests pass, invite lifecycle staging pass | Full validation matrix pass, perf smoke, a11y audit | Not met (CI runs unit+DOM+e2e smoke+perf smoke; in CI 16/18 e2e specs skip without secrets; no a11y/coverage gate in CI) |
+| UX | Critical flows understandable by test users | All flows validated, non-technical user testing complete | Not met (user-testing is a manual fact) |
+| AI | No autonomous claims in copy | Truthfulness audit, leakage tests | Partial (AI surface is default-OFF, `ARCHESTIMATOR_AI_ENABLED=false` → 404; DeepSeek-only, requires `DEEPSEEK_API_KEY`; audit-trail BUILT+tested (`src/lib/ai/audit.ts` + `tests/vitest/ai-audit-flow.test.ts`); AI tenant/auth isolation enforced and tested (`tests/vitest/ai-package-builder-security-contract.test.ts` asserts no service-role client, `requireCurrentUserContext`, workspace-editor RPC checks). NOTE: prompt-injection defense is system-prompt framing only ("untrusted data" notices in `src/lib/ai/read-context.ts`/`package-builder/provider.ts`) — no dedicated injection-defense module/test exists; truthfulness/leakage audit + copy review remain open) |
+| Support | Critical runbooks templated | All runbooks drilled, named owners | Not met (runbook doc 09 drafted; `scripts/check-support-monitoring-readiness.ts` records operator flags only — no integrated monitoring/alerting exists in code) |
 | Owner | Philip signs off on beta scope | Philip signs off on production launch | Pending |
 
-**Decision rule:** ALL gates must be MET before the corresponding deployment stage proceeds. A single NOT MET blocks the deploy. No exceptions.
+**Decision rule:** ALL gates must be MET before the corresponding deployment stage proceeds. A single NOT MET blocks the deploy. No exceptions. (Sync note: code/scaffolding/check-scripts existing does NOT satisfy a gate — every gate above still requires its hosted/provider/manual/owner proof.)
 
 ---
 

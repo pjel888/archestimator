@@ -1,7 +1,9 @@
 # Launch Gates Master Checklist
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-18 (roadmap-sync code reconciliation pass)
 **Status:** Pre-launch MVP audit complete. Repo-local launch implementation is frozen; external/provider/manual proof gates remain open.
+
+> **2026-06-18 reconciliation note (code ground-truth pass):** Statuses were checked against the actual codebase. External/provider/manual proof items (RLS-in-CI, staging Supabase, Google OAuth verification, Resend SPF/DKIM/DMARC, Sentry/Redis, Vercel CD/domain, legal review, hosted/manual smokes) remain at their existing pending/open/NO-GO status because code cannot prove a hosted/provider/manual fact. Two items were code-verifiably stale and were corrected in place: **UX-12** (workshop React error boundaries now exist) and **UX-10** (design-system lint is wired into `validate` and passing). Evidence pointers were appended inline. Several "Validation Method" entries name test files that do not yet exist (e.g. `tests/integration/rls-isolation.test.ts` — no `tests/integration/` dir exists); those are intended future validations, not current evidence, and were left unchanged.
 
 ## Current MVP Launch Handoff
 
@@ -16,14 +18,14 @@ Use `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md` as 
 | Metric | Count |
 |---|---|
 | Total items across all gates | 89 |
-| **Beta Minimum Gate items** | **25** (expanded from 18 — invite/share items split + DB index audit) |
+| **Beta Minimum Gate items** | **26** (19 numbered + 7 sub-gates 5a–5d/6a–6c; expanded from 18 — invite/share items split + DB index audit) |
 | **Enterprise MVP Gate items** | **12** |
 | **Public Launch Gate items** | **45** (full 5-gate checklist) |
 | DONE | 1 |
-| IMPLEMENTED / NEEDS EVIDENCE / EXTERNAL PROOF OPEN | 12+ |
-| PARTIAL / MANUAL OR PROVIDER PROOF OPEN | 8+ |
+| IMPLEMENTED / NEEDS EVIDENCE / EXTERNAL PROOF OPEN | 14+ (2026-06-18: UX-10, UX-12 reclassified into this bucket per code evidence) |
+| PARTIAL / MANUAL OR PROVIDER PROOF OPEN | 7+ |
 | PLANNED / DRAFTED | 12 |
-| LEFT TO DO | 26 |
+| LEFT TO DO | 25 |
 | HARD CONFIG BLOCKED | External/provider/manual proof lane open: Vercel, Supabase, Resend, legal, support, spreadsheet, hosted E2E |
 | BLOCKED | Broad MVP launch goal blocked until proof lane is configured and captured |
 | OWNER DECISION REQUIRED | 3 (remaining — all public launch only) |
@@ -61,7 +63,7 @@ Use `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md` as 
 
 The Beta Minimum Gate defines the absolute minimum required before controlled invite-only beta with 5–8 design partners. Everything else is ENTERPRISE MVP (P1) or PUBLIC LAUNCH.
 
-**Gate status:** `0 of 25 DONE — PRE-IMPLEMENTATION` (25 numbered items including sub-gates 5a–5d, 6a–6c, and DB index audit)
+**Gate status:** `0 of 26 DONE — PRE-IMPLEMENTATION` (26 enumerated rows: 19 numbered items including the DB index audit, plus sub-gates 5a–5d and 6a–6c)
 **Owner decisions resolved:** All 21 gate-blocking decisions decided 2026-05-30.
 
 ### Beta Minimum Checklist
@@ -82,7 +84,7 @@ The Beta Minimum Gate defines the absolute minimum required before controlled in
 | 6b | Shared-link recipient tracking / open tracking | N/A | `IMPLEMENTED / LIVE ROUTE PROOF EXISTS / REAL EMAIL PROOF OPEN` | **BETA P1** |
 | 6c | Shared-link visibility indicators (project-card/homebase badges, one-click copy) | N/A | `IMPLEMENTED / LOCAL UI PROOF EXISTS` | **BETA P1** |
 | 7 | Core performance smoke benchmarks (route transitions, large sheet, XLSX) | UX-06, UX-07, UX-08 | `PARTIAL / MANUAL CHROME PROOF OPEN` | **BETA P0** |
-| 8 | Persistent rate limiting (Redis-backed — in-memory NOT acceptable for beta) | SEC-10 | `LEFT TO DO` | **BETA P0** |
+| 8 | Persistent rate limiting (durable, survives restart — in-memory alone NOT acceptable for beta) | SEC-10 | `IMPLEMENTED (DB-DURABLE) / HOSTED RESTART-SURVIVAL PROOF OPEN` | **BETA P0** |
 | 9 | Basic error tracking (Sentry or equivalent APM) | REL-01 | `LEFT TO DO` | **BETA P0** |
 | 10 | Support channel configured (email + lightweight tracker) | LEG-13 | `LEFT TO DO` | **BETA P0** |
 | 11 | Beta legal pack: written limitation disclosure + known-limitations doc | LEG-10, D-014 | `DECIDED / APPROVED DEFAULT` | **BETA P0** |
@@ -90,18 +92,18 @@ The Beta Minimum Gate defines the absolute minimum required before controlled in
 | 13 | Desktop guard for workshop (mobile viewport < 768px shows clear overlay) | UX-13, D-027 | `LEFT TO DO` | **BETA P0** |
 | 14 | Manual DSAR process documented (not self-serve — self-serve is public launch) | LEG-04, LEG-05 | `LEFT TO DO` | **BETA P0** |
 | 15 | Google OAuth verification (strongly preferred for beta; mandatory for public launch) | SEC-08 | `LEFT TO DO` | **BETA P1 (strongly preferred)** |
-| 16 | Cloudflare Turnstile on auth endpoints (CAPTCHA provider decided) | SEC-13, D-004 | `DECIDED / CLOUDFLARE TURNSTILE` | **BETA P1** |
+| 16 | Cloudflare Turnstile on auth endpoints (CAPTCHA provider decided) | SEC-13, D-004 | `DECIDED / CLOUDFLARE TURNSTILE — NOT BUILT` (ZERO code; see SEC-13 / dashboard 1.27) | **BETA P1** |
 | 17 | Beta onboarding script + known limitations disclosure | LEG-10 | `DECIDED / APPROVED DEFAULT` | **BETA P0** |
 | 18 | Beta scope defined (invite-only, 5–8 partners, controlled — DECIDED) | LEG-10, D-006 | `DECIDED / APPROVED DEFAULT` | **BETA P0** |
 | 19 | Database index & query-plan audit complete | DBIDX-001/002/003 | `LEFT TO DO` | **BETA P0** |
 
 ### Beta Minimum Gate Acceptance Criteria
 
-- All 25 Beta Minimum Gate items (including sub-gates) marked `DONE` with evidence
+- All 26 Beta Minimum Gate rows (including sub-gates) marked `DONE` with evidence
 - 4 critical runbooks templated (auth outage, data leak, bad deploy, invite failure)
 - Philip signs beta approval (go decision)
 - Risk acceptance register signed for all BETA P1 items
-- Persistent rate limiting is Redis-backed and survives server restarts (in-memory NOT acceptable)
+- Persistent rate limiting is durable (DB-backed via `security_rate_limit_events`) and its survives-restart behavior is proven against the hosted DB (in-memory alone NOT acceptable). Redis-backed limiting at public traffic scale is a PUBLIC LAUNCH item, not a beta gate.
 
 ### Items Explicitly NOT in Beta Minimum Gate
 
@@ -179,7 +181,7 @@ This gate is complete when every user-facing data boundary is proven by automate
 8. Email infrastructure is authenticated (SPF/DKIM/DMARC pass) to prevent spoofing.
 9. Workshop routes enforce a strict Content Security Policy with no `unsafe-inline` or `unsafe-eval`.
 10. Secrets scanning in CI blocks accidental credential commits.
-11. Rate limiting and lockout state survives server restarts (Redis-backed, not in-memory).
+11. Rate limiting and lockout state survives server restarts (durable, DB-backed via `security_rate_limit_events`, not in-memory only; Redis at public traffic scale is a later public-launch item).
 
 #### Checklist
 
@@ -194,10 +196,10 @@ This gate is complete when every user-facing data boundary is proven by automate
 | SEC-07 | Migration parity verification | P0 | UNKNOWN | Local migration files produce the same schema as the live remote Supabase database. No drift, no unapplied migrations, no manual remote-only changes. | Run `supabase db diff` between local and remote. Output must be empty (no differences). | SEC-06 (staging Supabase) | BLOCKS PUBLIC LAUNCH |
 | SEC-08 | Google OAuth verification | P0 | LEFT TO DO | Google Cloud Console OAuth consent screen shows "Verified" status. Users authenticating via Google see no warning screen. No 100-user cap. | Screenshot of Google Cloud Console with verified status. Live authentication flow records no "unverified app" interstitial. | SEC-11 (Privacy Notice), SEC-12 (Terms of Service) | BLOCKS PUBLIC LAUNCH (strongly preferred for beta) |
 | SEC-09 | Email domain authentication (SPF/DKIM/DMARC) | P0 | PARTIAL | Resend-sent emails pass SPF, DKIM, and DMARC checks. Gmail headers show `spf=pass`, `dkim=pass`, `dmarc=pass`. | Send test email to Gmail address. Inspect raw message headers. All three authentication results must be `PASS`. | PRD-01 (domain/DNS) | BLOCKS PUBLIC LAUNCH |
-| SEC-10 | Persistent rate limiting (Redis-backed) | P0 | LEFT TO DO | Brute-force lockout and magic-link rate limits survive dev server / serverless function restarts. Lockout state is stored in Redis (Upstash or equivalent). | Simulation test: trigger lockout, restart server, confirm lockout persists. Simulate >N magic-link requests in a window, confirm rate limit applies and survives restart. | None | BLOCKS BETA (also public launch) |
+| SEC-10 | Persistent rate limiting (durable; Redis at scale for public launch) | P0 | IMPLEMENTED (DB-DURABLE) / HOSTED RESTART-SURVIVAL PROOF OPEN | Brute-force lockout and rate limits survive dev server / serverless function restarts. Durable state is implemented via the Postgres `security_rate_limit_events` table (NOT Redis), backing an in-memory progressive-delay/lockout layer; the Redis/Upstash variant for public traffic scale is a PUBLIC LAUNCH item. NOTE: sign-in/OAuth (magic-link) actions have NO app-level limiter and rely on Supabase's own throttling. | Simulation test: trigger lockout, restart server, confirm lockout persists. Confirm the `security_rate_limit_events` table is applied/enforced on the hosted DB (external/hosted fact). | None | BLOCKS BETA (also public launch) |
 | SEC-11 | Enforced CSP on workshop routes | P1 | PARTIAL | `/workshop/*` routes serve a strict CSP header with no `unsafe-inline` and no `unsafe-eval`. Report-Only CSP is removed from workshop routes. | Browser DevTools CSP panel shows enforced policy on workshop routes. No CSP violation reports for workshop domains. | Dependency resolution on `@firecms/neat` and react-complex-tree inline styles | BLOCKS PUBLIC LAUNCH |
 | SEC-12 | API route auth audit | P0 | IMPLEMENTED / NEEDS EVIDENCE | Every `/api/*` route requires valid authentication for any read or write operation. No route returns data to unauthenticated requests. No write route accepts unauthenticated input. | Manual audit checklist: enumerate all `/api` routes in `src/app/api/`, verify each has a server-side auth check before data access. Automated test for top 10 write routes. | None | BLOCKS PUBLIC LAUNCH |
-| SEC-13 | CAPTCHA on auth endpoints (Cloudflare Turnstile) | P1 | DECIDED / CLOUDFLARE TURNSTILE | Magic-link creation and auth callback routes require CAPTCHA validation before processing. Automated abuse scripts cannot flood these endpoints. | Load test: 50 rapid magic-link requests without CAPTCHA must be rate-limited or rejected. Cloudflare Turnstile integrated. | None | BLOCKS BETA |
+| SEC-13 | CAPTCHA on auth endpoints (Cloudflare Turnstile) | P1 | DECIDED / CLOUDFLARE TURNSTILE — NOT BUILT | Magic-link creation and auth callback routes require CAPTCHA validation before processing. Automated abuse scripts cannot flood these endpoints. (Decision made; ZERO code today — no `turnstile`/`captcha` in `src/` or `package.json`. See dashboard 1.27.) | Load test: 50 rapid magic-link requests without CAPTCHA must be rate-limited or rejected. Build and verify Cloudflare Turnstile integration. | None | BLOCKS BETA |
 | SEC-14 | Secrets scanning in CI | P1 | LEFT TO DO | CI pipeline fails on any commit that contains a Supabase service-role key, API key, private key, or secret token pattern. | Test: push a commit with a fake `supabase_service_role_key=test-secret-xxx`. CI must fail. | None | BLOCKS BETA |
 | SEC-15 | Cookie consent persistence | P2 | LEFT TO DO | Cookie consent selections are archived to the database, not stored only in browser cookies. Audit trail exists for consent timestamps and versions. | Verify consent record exists in database after user accepts. Verify consent version is tracked for re-consent scenarios. | None | NICE TO HAVE |
 | SEC-16 | RLS denial test suite (automated) | P0 | LEFT TO DO | Comprehensive automated test suite covers all user-data tables. Each test: create data as Workspace A user, attempt cross-read as Workspace B user (must fail), attempt cross-write as Workspace B user (must fail). | `bun test tests/integration/rls-isolation.test.ts` passes in CI with 100% table coverage. | SEC-06 (staging Supabase for CI) | BLOCKS PUBLIC LAUNCH |
@@ -241,9 +243,9 @@ This gate is complete when a first-time user, without Philip explaining anything
 | UX-07 | Large estimate sheet performance | P1 | UNKNOWN | Estimate sheet with 500+ rows scrolls at 60fps. Row editing latency is indistinguishable from small sheets. Tree expansion/collapse is instant. | Load test: seed a project with 500 rows across 20 area nodes. Measure: scroll frame rate (must be 60fps), edit response time (must be <100ms from click to UI update), tree expand time (must be <50ms). | None | BLOCKS BETA |
 | UX-08 | XLSX export performance | P1 | UNKNOWN | XLSX export for a 500-row estimate completes within 10 seconds. Export for a 100-row estimate completes within 3 seconds. No browser tab freeze or "page unresponsive" dialog. | Load test: export 3 estimate sizes (50, 200, 500 rows). Measure wall-clock time from click to download prompt. All must be under their respective timeouts. | None | BLOCKS BETA |
 | UX-09 | Accessibility audit | P1 | LEFT TO DO | aXe or WAVE automated audit finds zero critical or serious violations on: landing page, login page, workshop homebase, estimate sheet editor, shared link receiver, and settings pages. | Run aXe CLI or WAVE browser extension on each listed route. Export report; must show 0 critical, 0 serious. | None | BLOCKS PUBLIC LAUNCH (enterprise MVP) |
-| UX-10 | Design system primitive compliance | P1 | PARTIAL | All interactive elements in workshop routes use shared UI primitives (Button, Badge, Modal, Toast, SearchInput, ControlInput, etc.). No raw Tailwind button classes (`bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded`) remain in app code. | Run `bun run lint:design-system` and verify 0 violations. Manual spot-check: grep for `bg-blue-` in workshop components, must return 0 results. | None | NICE TO HAVE |
-| UX-11 | Custom error pages (404/500) | P1 | LEFT TO DO | Custom `not-found.tsx` and `error.tsx` pages exist that: (a) match the design system (SF Pro, 12px max, xs radius, neutral palette), (b) show clear recovery actions (go home, retry), (c) do not leak stack traces or internal paths. | Visit a non-existent workshop route (must render custom 404, not Next.js default). Trigger a deliberate render error in a workshop component (must render custom error page with retry button, not a blank white screen). | None | BLOCKS BETA |
-| UX-12 | React error boundaries on workshop | P1 | LEFT TO DO | If any workshop component crashes during render, the error boundary catches it and shows an inline recovery UI. The rest of the page remains functional. A single component failure does not white-screen the entire app. | Inject a `throw new Error("test")` into EstimateSheetContent render. Verify the error boundary shows an inline error card with a retry button. Verify other page sections (sidebar, header) remain interactive. | None | BLOCKS BETA |
+| UX-10 | Design system primitive compliance | P1 | IMPLEMENTED / NEEDS EVIDENCE | All interactive elements in workshop routes use shared UI primitives (Button, Badge, Modal, Toast, SearchInput, ControlInput, etc.). No raw Tailwind button classes (`bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded`) remain in app code. _(Code: `scripts/enforce-app-design-system.mjs` enforces the app/workshop design system — 12px font cap, named-size prohibition, weight/radius/tracking/token rules — and is wired into `bun run validate` (package.json) and the CI `validate` job; it passes (exit 0) on current main. CAVEAT — not yet fully DONE: enforcement is path-scoped with explicit exemptions (landing allowlist, `src/components/share`, `src/components/workshop/dashboard` full exemption, glass-sidebar radii), so "no raw Tailwind in ALL app code" is not globally proven; the `bg-blue-` grep is a manual spot-check, not part of the automated gate.)_ | Run `bun run lint:design-system` and verify 0 violations (currently passing). Manual spot-check: grep for `bg-blue-` in workshop components, must return 0 results. Confirm the exempted dirs are intentional before claiming DONE. | None | NICE TO HAVE |
+| UX-11 | Custom error pages (404/500) | P1 | LEFT TO DO | Custom `not-found.tsx` and `error.tsx` pages exist that: (a) match the design system (SF Pro, 12px max, xs radius, neutral palette), (b) show clear recovery actions (go home, retry), (c) do not leak stack traces or internal paths. _(Code confirms still open: NO root `src/app/not-found.tsx`, NO root `src/app/error.tsx`, NO `src/app/global-error.tsx` — unmatched routes and root-layout errors fall back to the Next.js defaults. This is distinct from UX-12: per-segment workshop `error.tsx` boundaries do exist, but there is no global custom 404/500.)_ | Visit a non-existent workshop route (must render custom 404, not Next.js default). Trigger a deliberate render error in a workshop component (must render custom error page with retry button, not a blank white screen). | None | BLOCKS BETA |
+| UX-12 | React error boundaries on workshop | P1 | IMPLEMENTED / NEEDS EVIDENCE | If any workshop component crashes during render, the error boundary catches it and shows an inline recovery UI. The rest of the page remains functional. A single component failure does not white-screen the entire app. _(Code: 7 route `error.tsx` boundaries under `src/app/workshop/**` — library, library/components, library/templates(+/[templateId]), projects/[projectId]/data, projects/[projectId]/estimates(+/[nodeId]) — backed by shared `src/components/workshop/WorkshopRouteErrorState.tsx` and tested by `tests/vitest/workshop-route-error-boundaries.test.tsx` (asserts secrets/stack/SQL/digest not leaked + retry UI renders). NOTE: coverage is partial — NO boundary on workshop home, projects list, settings(+subroutes), feedback, terms, onboarding, library overview leaf; and there is still no root `src/app/error.tsx`/`global-error.tsx`, so this remains "needs evidence" not DONE.)_ | Inject a `throw new Error("test")` into EstimateSheetContent render. Verify the error boundary shows an inline error card with a retry button. Verify other page sections (sidebar, header) remain interactive. Extend coverage to the uncovered routes above. | None | BLOCKS BETA |
 | UX-13 | Mobile viewport guard on workshop | P2 | LEFT TO DO | Visiting any `/workshop/*` route on a viewport narrower than 768px shows a clear overlay: "Archestimator works best on desktop. Please open this page on a laptop or desktop computer." The overlay blocks interaction with the broken desktop layout. | Chrome DevTools device emulation: set to iPhone 12, navigate to `/workshop/projects`. Verify overlay appears, disables interaction, and shows clear desktop guidance. | None | BLOCKS BETA |
 | UX-14 | Offline mutation queue persistence | P2 | LEFT TO DO | If a user edits an estimate row while offline, the mutation is queued and survives a browser reload. When connectivity returns, queued mutations are replayed in order. | Test: disconnect network, edit 3 row values, reload browser, reconnect network. Verify all 3 edits are applied and appear in the estimate sheet. Verify no data loss. | None | NICE TO HAVE |
 | UX-15 | Font loading CLS elimination | P2 | LEFT TO DO | Lighthouse audit reports 0 Cumulative Layout Shift on public marketing pages. Fonts are preloaded via `@next/font` or hosted locally. No flash of unstyled text (FOUT). | Run Lighthouse on `/`, `/about`, `/features`, and `/pricing`. CLS score must be 0.00 for all four pages. | None | NICE TO HAVE |
@@ -344,7 +346,7 @@ This gate is complete when a first-time user, without Philip explaining anything
 |---|---|---|
 | SEC-02 (table RLS audit) | SEC-01 (cross-workspace isolation tests) | SEC-02 uses SEC-01 test results as evidence |
 | SEC-04 (invite token hardening) | SEC-06 (staging Supabase) | Requires staging environment for E2E |
-| SEC-05 (shared link boundary) | SEC-10 (persistent rate limiting) | Lockout persistence requires Redis |
+| SEC-05 (shared link boundary) | SEC-10 (persistent rate limiting) | Lockout persistence requires durable storage (implemented via `security_rate_limit_events`) |
 | SEC-07 (migration parity) | SEC-06 (staging Supabase) | Requires staging for safe diff |
 | SEC-08 (Google OAuth verification) | LEG-01 (Privacy Notice), LEG-02 (Terms) | Google requires published legal pages |
 | SEC-16 (RLS denial test suite) | SEC-06 (staging Supabase) | Requires CI-accessible Supabase instance |

@@ -3,7 +3,7 @@
 **Last updated:** 2026-06-01
 **Purpose:** Makes performance unavoidable in every Codex implementation. No feature ships without considering perf. Applies at three tiers: Beta, Enterprise MVP, Public Launch.
 
-> **⚠️ Canonical Route Transition Plan:** For all route-transition performance work, `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the single source of truth and conflict-resolution authority. Key corrections from the canonical plan:
+> **⚠️ Canonical Route Transition Plan:** **STALE PATH (2026-06-18):** the originally-cited `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` no longer exists at that location — that plan was moved to `.ai/09_archive/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md`, and the current active performance plan is `.ai/03_plans/2026-06-14-Overall-Site-Performance-And-Optimization/CURRENT_CANONICAL_PLAN.md`. For all route-transition performance work, the (archived) canonical plan remains the conflict-resolution authority of record. Key corrections from the canonical plan:
 > - `src/proxy.ts` is **active Next.js 16 middleware** — it is NOT dead code. Do not create `src/middleware.ts`.
 > - Do **NOT** replace `getUser()` with `getSession()` in middleware — this is a security risk (JWT forgery).
 > - Phase 0 baseline measurement is **required** before readiness claims.
@@ -223,12 +223,12 @@ Until full perf optimization is complete, these risks are documented:
 
 | Risk | Current State | Enterprise MVP Acceptable? | Mitigation |
 |---|---|---|---|
-| Rate limiting not persistent | In-memory only | No — BETA P0 blocker (SEC-005) | Wave 1: BETA-P0-SEC-005 (Redis/Upstash) |
+| Rate limiting not persistent | **DRIFT (2026-06-18):** Durable, cross-instance rate limiting now exists backed by the `security_rate_limit_events` Postgres table — `DurableRateLimitResult` + `checkRecordedRateLimit` for publication/share scopes (`src/lib/publication/public-repository.ts`) and dual-window AI quota (`src/lib/ai/rate-limit.ts`). An in-memory progressive-delay/lockout layer still backstops password attempts per-process. NOTE (external): durable limiting depends on the `security_rate_limit_events` table being applied on the hosted DB — not provable from code. Not Redis/Upstash. | Durable path BUILT; effectiveness across instances pending live-DB confirmation | Wave 1: BETA-P0-SEC-005 (was Redis/Upstash; superseded by Postgres durable limiter) |
 | PDF generation >10s for large proposals | Not implemented | Accept if <10s for normal (<200 row) proposals | Async generation for large proposals |
 | Snapshot generation blocks editor | Not implemented | No — Enterprise MVP hard block | Non-blocking RPC + polling (ENTERPRISE-P1-PROD-001) |
 | Main bundle exceeds 150KB | Unknown | Accept if 150-170KB with documented plan to reduce | Bundle split plan required |
 | Instrumentation adds latency | Not measured | Accept if <10ms total overhead | Defer to idle; measure with trace |
-| No performance regression CI gate | Not configured | Accept if manual smoke test passes before go/no-go | CI gate deferred to public launch |
+| No performance regression CI gate | **DRIFT (2026-06-18):** A route-transition performance smoke gate is now wired into CI — `.github/workflows/ci.yml` runs `bun run test:e2e:perf` (`e2e/route-transition-performance.spec.ts` + externalized budgets `e2e/route-transition-performance-budgets.json`), plus a tested readiness gate `scripts/check-route-transition-readiness.ts` (`perf:check-routes`, exits non-zero on budget breach; `tests/vitest/route-transition-readiness-script.test.ts`). LIMITED: budgets are loose (multi-second medians); authenticated scenarios skip in CI without dev-auth/storage-state secrets; the readiness gate only validates a benchmark artifact someone must produce. No bundle-size CI budget (size-limit/bundlewatch) exists. | Smoke gate BUILT/wired; tight perf budgets + authenticated coverage still deferred | Tighten budgets + authenticated perf coverage at public launch |
 
 ## Database Performance Rules
 

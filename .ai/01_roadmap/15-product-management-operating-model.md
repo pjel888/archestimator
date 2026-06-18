@@ -85,9 +85,11 @@ Each candidate metric is evaluated below on its merits, weaknesses, and how prac
 
 **Pros:** Measures the full journey from creation to client-ready output. High completion rate means the product works end-to-end. Low completion rate points to specific drop-off points.
 
-**Cons:** "Proposal" is not a defined product state yet — the proposal package feature is still in the roadmap. Premature to measure. Completion rate is a ratio, which means small numerator changes produce wild swings when the denominator is small. Not suitable for a beta with fewer than a few hundred estimates.
+**Cons:** A proposal *export* now exists (XLSX Bid Form / BOQ — see code note below), but there is still no distinct in-product "proposal" lifecycle *state* an estimate transitions into, so "completion" has no canonical definition. Completion rate is a ratio, which means small numerator changes produce wild swings when the denominator is small. Not suitable for a beta with fewer than a few hundred estimates.
 
-**Measurement feasibility:** LOW. Proposal state doesn't exist in the product. Even when it does, "completion" is a fuzzy concept — is a proposal "complete" when exported as PDF? When the client accepts? When the job is won? Each definition changes the number dramatically.
+**Measurement feasibility:** LOW. A proposal-export pipeline is BUILT (`src/lib/proposal-export/` — `build-proposal-export-model.ts`, `create-proposal-workbook.ts`; HTTP route `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts`; output is XLSX only, **no PDF/CSV path**). But a proposal as a tracked product *state* still doesn't exist, and "completion" is a fuzzy concept — is a proposal "complete" when exported? When the client accepts? When the job is won? Each definition changes the number dramatically.
+<!-- ROADMAP_SYNC 2026-06-18: DRIFT fixed — prior text claimed "the proposal package feature is still in the roadmap" / "Proposal state doesn't exist in the product." Code shows proposal/BOQ XLSX export is implemented and route-wired; only the proposal *lifecycle state* is still absent. -->
+
 
 ---
 
@@ -178,6 +180,9 @@ The user invokes AI help — asking for a line-item recommendation, requesting a
 **Key accelerant:** Domain-specific training. The more the AI knows about construction estimating norms in the user's trade, the less review is needed before application.
 
 **Friction point:** Trust. If the AI gets something wrong early, the user stops using it entirely. Mitigate with confidence indicators, source explanations ("this price is based on RSMeans 2024 data"), and always-visible undo.
+
+<!-- ROADMAP_SYNC 2026-06-18: this loop is DESIGN, not a live default. The AI Ask + Package-Builder routes are IN PROGRESS and FLAG-GATED OFF by default (`src/lib/ai/feature-flags.ts` — isAiRoutesEnabled() defaults false; disabled routes return 404 "AI is disabled for closed beta"). The provider is DeepSeek, not Claude/OpenAI (`src/lib/ai/deepseek.ts`), and requires an external DEEPSEEK_API_KEY at runtime. So this loop does not run in the default closed-beta deployment. -->
+
 
 ---
 
@@ -357,7 +362,7 @@ These decisions can't be delegated to the codebase assistant or to the developme
 | **Activation definition** | PENDING | Section 6 defines activation as project + estimate + row item within 7 days. Philip must confirm or adjust. |
 | **Beta persona** | PENDING | Who exactly is the ideal beta user? Residential? Commercial? Solo estimator? Small team? This decision determines outreach, onboarding, and feature priority. |
 | **Onboarding strategy** | PENDING | How do beta users discover the product? Direct invitation? Waitlist? Open signup? This affects growth rate and feedback quality. |
-| **PDF export priority** | PENDING | Is export-to-PDF a launch requirement or a post-launch feature? This affects the MVP scope significantly. |
+| **PDF export priority** | PENDING | Is export-to-PDF a launch requirement or a post-launch feature? This affects the MVP scope significantly. Code note (2026-06-18): an XLSX proposal/BOQ export is already BUILT (`src/lib/proposal-export/`, route `.../export/proposal.xlsx`), but **no PDF export path exists** — so this decision is specifically about whether to add PDF on top of the existing spreadsheet export. Owner decision; not promoted. |
 | **Pricing timeline** | PENDING | When does Archestimator start charging? Never (free forever)? Post-beta? Day one of GA? This affects user expectations and revenue planning. |
 
 ### What Codebase AI May Propose But Not Decide
@@ -385,7 +390,10 @@ When the codebase assistant proposes a decision in a domain it shouldn't decide,
 
 ## Addendum: Instrumentation Notes
 
-As of 2026-05-30, no metrics are instrumented. All baselines are `UNKNOWN / NEEDS INSTRUMENTATION`. The first implementation task for any metric is building the client-side event tracking that feeds it. Local-first architecture means analytics must be opt-in and privacy-respecting — no server-side telemetry without explicit user consent.
+As of 2026-05-30, no **product-usage** metrics are instrumented. All baselines are `UNKNOWN / NEEDS INSTRUMENTATION`. The first implementation task for any metric is building the client-side event tracking that feeds it. Local-first architecture means analytics must be opt-in and privacy-respecting — no server-side telemetry without explicit user consent.
+
+<!-- ROADMAP_SYNC 2026-06-18: status held (NEEDS INSTRUMENTATION is still accurate for the North Star / supporting-metric pipeline). Precision note: some *traffic/perf* analytics scaffolding now exists but does NOT feed the product metrics above. Specifically: privacy-redacted Vercel Web Analytics is wired app-wide (`src/lib/analytics/vercel-web-analytics.ts` redacts /workshop, /share, /invite; mounted in `src/app/layout.tsx`); a consent-gated landing A/B + GA4/Clarity path exists (`src/lib/ab-testing/*`); and a dev-only Web Vitals probe console-logs behind NEXT_PUBLIC_PERF_TRACE=1 (`src/components/workshop/WebVitalsProbe.tsx`). There is still NO event store, no activation/share/return-rate pipeline, and no metrics dashboard — so the activation/share/return baselines and the North Star remain uninstrumented. Telemetry seams (`src/lib/collaboration/realtime-telemetry.ts`, `src/lib/estimates/express-components-telemetry.ts`) are console stubs, not a sink. -->
+
 
 Recommended first instrumentation tasks (in order):
 

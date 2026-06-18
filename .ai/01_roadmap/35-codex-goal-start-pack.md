@@ -1,7 +1,15 @@
 # Codex /goal Start Pack
 
 **Last updated:** 2026-05-30
+**Reconciled against code:** 2026-06-18 (ROADMAP_SYNC_LOOP) — see inline `[SYNC 2026-06-18]` notes.
 **Purpose:** Single compact starter doc for Ralph Loop / Codex execution. Read this first.
+
+> **[SYNC 2026-06-18] STALE-QUEUE WARNING.** This pack and its sibling `36-first-execution-queue.md`
+> were written on 2026-05-30 as a *not-yet-started* execution queue. Substantial implementation has
+> shipped since (estimates, library/templates, collaboration, publication/share, charts, proposal
+> export, notifications, terms gate, error/loading boundaries, perf harnesses, bundle analyzer are all
+> BUILT/VERIFIED in code). Several "First 10" cards below are therefore already implemented; statuses
+> have been annotated inline. Do NOT treat the original "READY TO START" framing as current.
 
 ---
 
@@ -13,7 +21,7 @@
 | **CONTROLLED BETA** | `CONDITIONAL / OWNER DEFAULTS DECIDED` |
 | **ENTERPRISE MVP** | `PLANNED` |
 | **DOCS / PLANNING** | `ACTIVE` |
-| **IMPLEMENTATION** | `READY TO START (Wave 1)` |
+| **IMPLEMENTATION** | `IN PROGRESS — Wave 1 largely shipped` [SYNC 2026-06-18: was `READY TO START (Wave 1)`. Code shows estimates/library/collaboration/publication/charts/proposal-export/notifications all BUILT or VERIFIED — see src/lib/estimates/actions.ts, src/lib/component-library/actions.ts, src/lib/publication/actions.ts, src/app/share/[token]/, src/lib/proposal-export/.] |
 
 ---
 
@@ -41,28 +49,33 @@ Everything else is **REFERENCE ONLY**. Do not read unless the goal card specific
 
 ## 4. First 10 Atomic Goal Cards (in execution order)
 
+> **[SYNC 2026-06-18] Status column added from code evidence.** `DONE (code)` = implementation
+> exists in the repo (does NOT assert an evidence-artifact pack under `.ai/09_archive/store/` was
+> recorded — confirm before checking the card off per §7). `OPEN` = no code evidence found, still
+> actionable. `NEEDS INPUT` = external/manual fact not provable from code.
+
 ### Before staging exists (Codex can start now):
 
-| # | Goal ID | Title |
-|---|---|---|
-| 1 | `CODEX-P0-INF-001C` | Env var inventory and staging mapping |
-| 2 | `BETA-P0-SEC-004` | Secrets scanning / service-role leak audit |
-| 3 | `BETA-P0-SEC-003A` | API route inventory |
-| 4 | `BETA-P0-PERF-001A` | Benchmark harness foundation |
-| 5 | `BETA-P0-PERF-002A` | Bundle analyzer integration |
-| 6 | `BETA-P0-UX-004` | Workshop desktop guard |
-| 7 | `BETA-P0-LEGAL-001A` | Minimum beta privacy notice draft |
-| 8 | `BETA-P0-OPS-001B` | Feedback intake tracker |
-| 9 | `BETA-P0-SEC-003D` | Server action inventory |
-| 10 | `BETA-P0-REL-001` | Error boundaries + 404/500 + mobile guard |
+| # | Goal ID | Title | [SYNC 2026-06-18] Status & evidence |
+|---|---|---|---|
+| 1 | `CODEX-P0-INF-001C` | Env var inventory and staging mapping | NEEDS INPUT — `.env.example` is a comprehensive env contract, but a staging-mapping *artifact* could not be confirmed in roadmap/code; verify whether the inventory deliverable was produced. |
+| 2 | `BETA-P0-SEC-004` | Secrets scanning / service-role leak audit | OPEN (ghost) — no gitleaks/trufflehog/detect-secrets step in `.github/workflows/ci.yml`; no secret-scan in `scripts/`. Tooling NOT built. |
+| 3 | `BETA-P0-SEC-003A` | API route inventory | NEEDS INPUT — route handlers exist under `src/app/api/**` (health, share/*, ai/*, webhooks/resend, projects/images, component-library/*, proposal export) but an inventory *deliverable* artifact was not confirmed; read-only audit may still be outstanding. |
+| 4 | `BETA-P0-PERF-001A` | Benchmark harness foundation | DONE (code) — `scripts/measure-route-transitions.ts`, `scripts/benchmark-proposal-workbook.ts`, `e2e/route-transition-performance.spec.ts`, `package.json` perf:* scripts. |
+| 5 | `BETA-P0-PERF-002A` | Bundle analyzer integration | DONE (code) — `next.config.ts` `@next/bundle-analyzer` (ANALYZE=true) + `experimental.optimizePackageImports`. |
+| 6 | `BETA-P0-UX-004` | Workshop desktop guard | OPEN (ghost) — no desktop/min-viewport guard component found (no WorkshopDesktopGuard / unsupported-viewport gate in `src/components/workshop/`). Not built. |
+| 7 | `BETA-P0-LEGAL-001A` | Minimum beta privacy notice draft | DONE (code) — `src/app/privacy/page.tsx`, `src/app/terms/page.tsx`, `src/lib/legal/terms-content.ts`. NOTE: `legalReviewStatus = closed_beta_owner_approved_pending_counsel_review` — copy is owner-authored, NOT counsel-reviewed (external/manual). |
+| 8 | `BETA-P0-OPS-001B` | Feedback intake tracker | NEEDS INPUT — in-app beta feedback exists (`src/lib/workshop/beta-feedback-actions.ts`, settings/feedback routes), but the card's `.ai/` log/tracker deliverable could not be confirmed; verify intended scope. |
+| 9 | `BETA-P0-SEC-003D` | Server action inventory | NEEDS INPUT — many `src/lib/*/actions.ts` modules exist (auth, projects, estimates, collaboration, publication, component-library, notifications, workshop), but an inventory *deliverable* artifact was not confirmed. |
+| 10 | `BETA-P0-REL-001` | Error boundaries + 404/500 + mobile guard | PARTIAL (code) — 7 `error.tsx` + 11 `loading.tsx` under `src/app/workshop/**`. GAPS: no root `src/app/global-error.tsx`, no custom `src/app/not-found.tsx`, and no "mobile guard" component found (see card 6). |
 
 ### After staging exists:
 
-| # | Goal ID | Title |
-|---|---|---|
-| 11 | `BETA-P0-SEC-001A` | RLS test harness foundation |
-| 12 | `BETA-P0-SEC-001B` | Core hierarchy RLS denial tests |
-| 13 | `BETA-P0-SEC-002A` | Storage test harness foundation |
+| # | Goal ID | Title | [SYNC 2026-06-18] Status & evidence |
+|---|---|---|---|
+| 11 | `BETA-P0-SEC-001A` | RLS test harness foundation | PARTIAL / NEEDS INPUT — RLS proof harnesses exist (`scripts/prove-rls-initplan-postgres.mjs`, `prove-notification-rls-postgres.mjs`, etc.) but they are local-only (require local Postgres binaries) and NOT in CI; no staging-Supabase harness. There is NO `tests/integration/` dir. The card's *staging-target* harness remains OPEN (external/staging dependent). |
+| 12 | `BETA-P0-SEC-001B` | Core hierarchy RLS denial tests | NEEDS INPUT — `tests/vitest/notification-rls-proof.test.ts` exists but is describe.skip unless live Supabase env is present. Real denial tests against staging are an external/staging fact; OPEN. |
+| 13 | `BETA-P0-SEC-002A` | Storage test harness foundation | OPEN — `tests/vitest/storage-cleanup-allowlist.test.ts` covers cleanup allowlist logic (mocked), not a storage RLS/upload-denial harness against staging. Staging-target storage harness OPEN. |
 
 Additional cards continue from `26-codex-goal-cards.md`.
 

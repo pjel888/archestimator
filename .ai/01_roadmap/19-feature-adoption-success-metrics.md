@@ -10,7 +10,9 @@
 
 Every feature below feeds this metric. If a feature does not drive estimate edits, exports, or shares within a workspace, it does not earn its place in the product. This document defines, for each of 20 planned features, what activation, adoption, success, and failure look like, how to measure them, and what instrumentation is required.
 
-**State of instrumentation:** No analytics events exist today. All data sources are planned Supabase analytics tables. Every baseline is UNKNOWN. Every status is PLANNED or NEEDS INSTRUMENTATION. This document is the specification for what must be built before any target can be measured.
+**State of instrumentation:** No product-feature analytics events exist today. All data sources are planned Supabase analytics tables. Every baseline is UNKNOWN. Every status is PLANNED or NEEDS INSTRUMENTATION. This document is the specification for what must be built before any target can be measured.
+
+> **Code reconciliation (2026-06-18):** Confirmed against the codebase — NONE of the per-feature `Required Analytics Event`s below are emitted, there is no Supabase product-analytics events table, no metric-materialization job, and no metrics/north-star dashboard (zero hits for `analytics_events`/`experiment_events`/`metric_results` tables in `supabase/migrations/`). The *only* analytics wired today are (a) Vercel Web Analytics for page traffic with `/workshop` paths privacy-redacted (`src/lib/analytics/vercel-web-analytics.ts`) and (b) landing-page A/B `experiment_view`/conversion events fired to GA4/Clarity, gated on those external scripts loading (`src/lib/ab-testing/experiment-tracker.ts`). Neither emits any of the 20 feature events in this table, and the A/B significance calculator (`src/lib/ab-testing/results-calculator.ts`) has no production data source (consumed only by its own test). All statuses below therefore remain accurate; baselines/targets stay UNKNOWN pending production telemetry that does not yet exist.
 
 ---
 

@@ -1,13 +1,15 @@
 # Active Workstreams
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-18 (code-state reconciliation pass — stale plan-pack paths corrected and per-workstream "Code-state note" entries added against actual code; planning structure preserved)
 **Purpose:** Organizes the implementation roadmap into 8 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
 
 ## Current MVP Launch Handoff
 
 Status: repo-local launch implementation is frozen at `6ab5b38`; the broad MVP launch goal is blocked until external/provider/manual proof is configured and captured.
 
-Active next workstream for the MVP launch pack: proof collection against `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`.
+Active next workstream for the MVP launch pack: proof collection against `.ai/09_archive/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`.
+
+> **⚠️ Path corrected (2026-06-18 cross-doc sync):** The previously-cited `.ai/03_plans/mvp-launch-readiness-2026-06-01/` no longer exists; the pack (including `46-manual-proof-matrix.md`) was archived to `.ai/09_archive/mvp-launch-readiness-2026-06-01/` (commit `b0ff67c3`, filesystem-verified). This matches the resolved paths in `28-evidence-artifact-index.md`. The bare `.ai/03_plans/...` form remains a GHOST REFERENCE if seen in any sibling roadmap doc.
 
 Do not schedule more local launch implementation unless a new repo-local defect is found. The remaining work is Vercel/Supabase/Resend provider proof, hosted auth/manual E2E, spreadsheet-app proof, legal/owner signoff, support/alert ownership, rollback, and demo rehearsal evidence.
 
@@ -16,14 +18,14 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 ## 2026-06-14 — Templates Panel: comprehensive fix pass landed; deferred backlog filed
 
 Estimate-sheet **right sidebar** (templates + reusable sources + insert flows). Comprehensive audit (5 parallel agents) → fixes → adversarial code review. **Landed on local `main` worktree (UNPUSHED):** RS-1 (non-default-tab insert showed wrong tab), INS-1/2/4 (lost inserts on category drop → batched action; silent failures → toasts; edit-clobber), and perf (precomputed totals, deferred search, `React.memo` sidebar, `refetchType:"none"`, removed duplicate tree build). tsc + eslint + targeted vitest green. DB/RPC layer audited = **fully applied on hosted, no drift** (corrects the stale "estimate_tabs unapplied / insert path unbuilt" assumption — see `.ai/10_state/` and the templates-projects-auto-added memory).
-- **Deferred backlog (implementation-ready):** `.ai/03_plans/2026-06-14-Templates-Panel-Followups/` — PERF-1 lazy template nodes, INS-3 atomic insert/wrap, RS-2/3/4 reusable-source query perf, RS-5/6 + error taxonomy, and a future-improvements file (hover-prefetch, shared-Tree memoization/virtualization, DB index hygiene, regression tests).
+- **Deferred backlog (implementation-ready):** `.ai/03_plans/000-Follow Ups/2026-06-14-Templates-Panel-Followups/` (relocated from `.ai/03_plans/2026-06-14-Templates-Panel-Followups/` — verified 2026-06-18) — PERF-1 lazy template nodes, INS-3 atomic insert/wrap, RS-2/3/4 reusable-source query perf, RS-5/6 + error taxonomy, and a future-improvements file (hover-prefetch, shared-Tree memoization/virtualization, DB index hygiene, regression tests).
 - **Recommended next:** hover-prefetch the lite library query (PERF-2, infra already exists) + regression tests for RS-1/INS-1.
 
 ---
 
 ## 2026-06-14 — Estimate-Tree Single-Node Unification: FULLY IMPLEMENTED (P0–P6); P5+P6 migrations APPLIED to prod
 
-Plan `.ai/03_plans/2026-06-13-Estimate-Tree-Single-Node-Unification/` (**NOT archived** — work intentionally incomplete). Branch `2026-06-13-Estimate-Tree-Single-Node-Unification` (worktree retained). Ledger: `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md`.
+Plan now at `.ai/09_archive/store/2026-06-13-Estimate-Tree-Single-Node-Unification/` (archived since this entry was written; the "NOT archived" note below is stale — verified 2026-06-18). Branch `2026-06-13-Estimate-Tree-Single-Node-Unification` (worktree retained). Ledger: `.ai/05_logs/2026-06-14-estimate-tree-unification-implementation.md` (confirmed present). Code-state confirmed: `src/lib/estimates/tree-hierarchy.ts` (`ESTIMATE_NODE_DISPLAY_NAME = "Area"`, `normalizeEstimateTreeNodeKind`); migrations `20260614003639_unify_estimate_node_kinds.sql` + `20260614013638_enable_estimate_node_mixed_writes_p6.sql` present in canonical history (commit `bf05415e`). NOTE: "APPLIED to prod" is an owner-supervised hosted fact recorded in the ledger; code can only prove the migrations are merged to canonical history, not that they ran on the live DB.
 - **Landed on `main`** (`b0dec7fc`→`1eb7195f`, ff-push): P0 (`prove:unify-kinds` + O2 share oracle), P1 (public **share firewall** — rows survive on any node), P2-export (proposal export keeps rows on any node), P3-crash-safety (row-move throw + hierarchy-validator error removed). All monotonic, production no-ops; 5 touched suites 54 passed/5 todo, type-check 0 errors.
 - **NOW DONE (P0–P6, owner-supervised, final tip `bf05415e`):** P2-charts (own-node bucketing, no double-count, golden-master conserved); P3 activity-scope (stored/stable cache key); P4 "Area" vocab + mixed-content layout (rows-first, sticky cascade, one icon); **P5 relax migration + P6 RPC relax APPLIED to prod** (`20260614003639_unify_estimate_node_kinds`, `enable_estimate_node_mixed_writes_p6`) + UI write-enable (wrap machinery + client kind-guards deleted, single "Add Area" creates, insertion targets any node). P7 dead-code removed (except still-wired `correctKinds`). **Point of no return crossed.**
 - **Owner decisions resolved:** Q-1 **"Area"**; Q-3 window **= now**.
@@ -53,27 +55,27 @@ moved from planning to implemented on branch `2026-06-14-Library-Optimization-Pl
 Four new plan packs were created on 2026-06-13, all planning/audit only (no code, schema, or data changed):
 
 ### Templates Feature Audit & Improvement Plan
-- **Package:** `.ai/03_plans/2026-06-13-Templates-Audit-And-Improvement-Plan/` (18 docs)
+- **Package:** `.ai/09_archive/store/2026-06-13-Templates-Audit-And-Improvement-Plan/` (18 docs; archived since this entry was written — verified 2026-06-18).
 - **Status:** AUDIT COMPLETE — planning only. Owner decisions D-A/D-B/D-C required.
-- **Summary:** Custom templates solid; project-source capability browse-only live (estimate_tabs not applied to live DB, insert path never built, live outline 500s). Privilege gap: live insert RPC auths on workspace membership.
-- **Owner decisions needed:** Apply estimate_tabs migration? Build insert path or scope to browse-only?
+- **Summary (PARTIALLY SUPERSEDED — verified 2026-06-18):** Custom templates solid (`src/lib/component-library/actions.ts`, `template-editor-actions.ts`). The "estimate_tabs not applied / insert path never built / live outline 500s" assessment is now stale: the estimate_tabs foundation (`supabase/migrations/20260612094734_estimate_tabs_foundation.sql`) is in canonical history, the **insert path IS built** (`src/lib/reusable-sources/actions.ts` `insertProjectSourceIntoEstimate` → RPC `insert_estimate_subtree_into_estimate_with_history`, migration `20260613134852_insert_estimate_subtree_rpc.sql`), and `getReusableEstimateOutline` exists in the same file. The "2026-06-14 — Templates Panel" entry above already records this correction. The privilege-gap note (insert RPC auths on workspace membership) is a hosted-RPC/RLS fact not provable from app code.
+- **Owner decisions needed:** Apply estimate_tabs migration? → migration now in canonical history; live-apply remains a hosted fact. Build insert path or scope to browse-only? → insert path built.
 
 ### Shared Link Improvement Plan
-- **Package:** `.ai/03_plans/2026-06-13-Shared-Link-Improvement-Plan/` (15 docs, 2 adversarial passes)
-- **Status:** PLANNING COMPLETE — ready for owner sign-off.
-- **Summary:** Full-browser layout overhaul for `/share/[token]` (currently max-w-[960px] with 8-12px type). 42 bugs found in owner modal (7 high-severity). UI-only / zero-DB / LOW blast radius.
-- **Owner decision needed:** Approve "Client Portal" type-scale exception (requires design-system enforcer change).
+- **Package:** `.ai/09_archive/store/2026-06-13-Shared-Link-Improvement-Plan/` (15 docs, 2 adversarial passes; archived since this entry was written — verified 2026-06-18).
+- **Status:** PLANNING COMPLETE — ready for owner sign-off. **Layout overhaul appears SHIPPED (verified 2026-06-18):** `src/components/share/ShareContainer.tsx` now encodes a responsive width ladder (`max-w-[820px] lg:max-w-[1120px] xl:max-w-[1280px] 2xl:max-w-[1440px]`), superseding the "currently max-w-[960px] with 8-12px type" summary. The "Client Portal" px type-scale exception is live in the enforcer (`scripts/enforce-app-design-system.mjs` exempts `src/components/share`).
+- **Summary:** Full-browser layout overhaul for `/share/[token]`. 42 bugs found in owner modal (7 high-severity). UI-only / zero-DB / LOW blast radius.
+- **Owner decision needed:** Approve "Client Portal" type-scale exception (requires design-system enforcer change) — exception is already present in the enforcer.
 
 ### Spreadsheet / XLSX Export Audit & Improvement Plan
-- **Package:** `.ai/03_plans/2026-06-13-Spreadsheet-Export-Plan/` (12 docs, 2nd-pass adversarial)
-- **Status:** AUDIT COMPLETE — planning only. 9 owner decisions (D0–D8).
+- **Package:** `.ai/09_archive/store/2026-06-13-Spreadsheet-Export-Plan/` (12 docs, 2nd-pass adversarial; archived since this entry was written — verified 2026-06-18).
+- **Status:** AUDIT COMPLETE — planning only. 9 owner decisions (D0–D8). **Several findings now addressed in code (verified 2026-06-18):** Material/Labor split exists as an interim compatibility mode (`src/lib/proposal-export/build-proposal-export-model.ts` `laborUnitCost` + `LABOR_DISCLAIMER_NOTE`/`cost_split_compatibility_mode`); VAT + contingency are consumed (`resolveProjectCharges`/`buildTotals`); audience redaction is server-derived (export route `resolveExportAudience`). Still open per Capability Map: preview≠download is intentional (preview built client-safe/active-tab only), and `ProposalExportMode`/`ProposalConsolidationMode` remain DEAD CONFIG (declared, never read).
 - **Summary:** 34 findings (6 CRITICAL, 9 HIGH). Export is safe but over-promises: preview≠download, missing Material/Labor split, VAT/contingency, incomplete title block. Dead config surface. Tabs already export to separate worksheets.
 - **Owner decisions needed:** Primary audience, preview approach, multi-tab total display, labor data source, VAT/contingency policy, etc.
 
 ### Add New Tabs Plan
-- **Package:** `.ai/03_plans/2026-06-13-Add-New-Tabs/` (10 docs + mockups)
-- **Status:** PLANNING COMPLETE — feature already built behind D-15 gate.
-- **Summary:** The "+" button for new estimate tabs exists in code already, behind a release gate whose precondition (tab-aware export) has since shipped. Plan covers lifting the gate, permission-gating on `canEditEstimate`, replacing toolbar row with right-click context menu, and browser-grade polish. No DB/RPC/RLS/type change required.
+- **Package:** `.ai/09_archive/2026-06-13-Add-New-Tabs/` (10 docs + mockups; archived since this entry was written — verified 2026-06-18).
+- **Status:** SHIPPED (verified 2026-06-18) — the D-15 release gate has been **lifted**, not merely "built behind" it: `src/components/workshop/estimate-sheet/EstimateTabStrip.tsx` wires `createEstimateTab` with a `canEditEstimate` gate and notes "release gate D-15 was lifted once tab-aware [export] shipped". Full tab CRUD+reorder is BUILT/VERIFIED per Capability Map (`src/lib/estimates/actions.ts`, tests `estimate-tab-strip.test.tsx`).
+- **Summary:** The "+" button for new estimate tabs exists in code already; its release gate (precondition: tab-aware export) has since shipped and the gate is lifted. Plan covered lifting the gate, permission-gating on `canEditEstimate`, replacing toolbar row with right-click context menu, and browser-grade polish. No DB/RPC/RLS/type change required.
 - **Implementation ready:** U1–U7 units defined, test/QA plan in place.
 
 ---
@@ -97,6 +99,8 @@ claim provider readiness.
 
 **Now-Unblocked Cards:**
 - BETA-P0-INF-001 — Staging/environment separation plan and implementation
+
+**Code-state note (verified 2026-06-18):** TOOLING built, external proof OPEN. A CI pipeline exists (`.github/workflows/ci.yml`: `validate` → `build` → `test:e2e` → `test:e2e:perf`) and environment/readiness CHECK SCRIPTS exist (`scripts/check-vercel-env-readiness.ts`, `check-vercel-production-readiness.ts`, `check-vercel-health-readiness.ts`, `check-supabase-linked-readiness.ts`) — but these only parse transcripts/probe URLs. The staging Supabase project, Vercel preview, env provisioning, and preview protection themselves are EXTERNAL/HOSTED facts no code can prove; this card stays OPEN until operator-run evidence is captured.
 
 **Blocked Goal Cards:** None
 
@@ -152,6 +156,8 @@ claim provider readiness.
 - BETA-P0-SEC-004 — Secrets scanning and service-role leak check
 - BETA-P0-SEC-005 — Persistent rate limiting or equivalent durable protection
 - BETA-P1-SEC-006 — Cloudflare Turnstile (BETA P1 — recommended but can be accepted risk)
+
+**Code-state note (verified 2026-06-18):** Several of these cards already have substantial code, though the *evidence-against-staging* deliverable remains open. BUILT in repo: BETA-P0-SEC-005 persistent/durable rate limiting (`src/lib/publication/public-repository.ts` `checkRecordedRateLimit`, `src/lib/ai/rate-limit.ts`, migration `supabase/migrations/20260601003000_security_rate_limit_events.sql`); BETA-P0-SEC-003 API/server-action authorization is enforced in-action across the codebase (`requireCurrentUserContext`, `assertCan*` helpers) with tests (e.g. `estimate-sheet-actions-authz.test.ts`). PARTIAL: BETA-P0-SEC-001/002 RLS/storage denial proofs exist only as local-Postgres harnesses (`scripts/prove-rls-initplan-postgres.mjs`, `scripts/prove-notification-rls-postgres.mjs`) that are NOT in CI and need local PG binaries; running them against staging is still pending. NOT STARTED in repo: BETA-P0-SEC-004 secrets-scanning CI (no gitleaks/trufflehog config in `.github/`) and BETA-P1-SEC-006 Turnstile (no integration in code). NEEDS INPUT: staging-Supabase test execution + bundle service-role audit are external/hosted facts not provable from code.
 
 **Blocked Goal Cards:** None
 
@@ -212,6 +218,8 @@ claim provider readiness.
 - CODEX-P0-DBIDX-002 — Migration Parity & Shared-Link Schema Reconciliation
 - CODEX-P0-DBIDX-003 — EXPLAIN Protocol for Critical Queries
 - CODEX-P1-DBIDX-004 — Candidate Index Migration Draft for Staging
+
+**Code-state note (verified 2026-06-18):** BUILT in repo: BETA-P0-PERF-001 route-transition benchmark harness (`scripts/measure-route-transitions.ts`, `e2e/route-transition-performance.spec.ts`, readiness gate `scripts/check-route-transition-readiness.ts`); BETA-P0-PERF-002 bundle analyzer + bundle config (`@next/bundle-analyzer` in `package.json` + `next.config.ts`, `experimental.optimizePackageImports`/`staleTimes`); BETA-P0-ANA-001 first-party/Vercel web analytics with privacy redaction (`src/lib/analytics/vercel-web-analytics.ts`, `@vercel/analytics`, mounted in `src/app/layout.tsx`); CODEX-DBIDX EXPLAIN/inventory evidence (`metrics/p2-explain-before.txt`/`-after.txt`, `scripts/build-performance-query-inventory.ts`). NOT STARTED in repo: BETA-P0-OBS-001 Sentry/error-tracking — there is NO `@sentry/*` SDK or any exception-monitoring integration anywhere (`src/lib/*-telemetry.ts` are console-only seams). The Web Vitals probe is dev-only console logging, not RUM; `@vercel/speed-insights` is not installed. NEEDS INPUT: ExcelJS/D3/Three are all present in `package.json`, but whether they are `next/dynamic` code-split, plus Lighthouse/staging benchmark execution, remain to verify (not provable from the inventory alone).
 
 **Blocked Goal Cards:** None
 
@@ -282,6 +290,8 @@ claim provider readiness.
 - BETA-P0-UX-004 — Desktop guard for workshop
 - BETA-P0-REL-001 — Error boundaries, custom 404/500, degraded states
 
+**Code-state note (verified 2026-06-18):** Mixed. PARTIAL: BETA-P0-REL-001 — workshop route `error.tsx` boundaries are BUILT (7 files under `src/app/workshop/**`: library, library/components, library/templates[/[templateId]], projects/[projectId]/data, .../estimates[/[nodeId]]) with sanitized-retry UI tested (`workshop-route-error-boundaries.test.tsx`), BUT there is **no custom `not-found.tsx` anywhere** (no custom 404) and **no root `src/app/error.tsx`/`global-error.tsx`** (landing/login/share/invite fall back to Next defaults). NOT STARTED in repo: BETA-P0-UX-001 guided onboarding/first-value wizard — `src/app/workshop/onboarding/page.tsx` is a redirect stub to `/workshop/settings`, `completeOnboarding` (`src/lib/auth/account-actions.ts`) is orphaned with no UI caller, and there is no react-joyride/wizard component (the `2026-06-03-react-joyride-onboarding-implementation-plan` remains a plan); BETA-P0-UX-004 desktop guard <768px — no dedicated viewport-guard component found. BETA-P0-UX-002 estimating happy path is largely BUILT (estimate-core is mature per Capability Map). NEEDS INPUT: non-technical-user walkthrough evidence + empty-state CTA coverage are manual/QA facts not provable from code.
+
 **Blocked Goal Cards:** None
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
@@ -343,6 +353,8 @@ claim provider readiness.
 **Now-Unblocked Cards:**
 - BETA-P0-UX-003 — Shared-link client receiver comprehension
 - BETA-P0-AI-001 — Ask/package-builder clarity and safety evidence
+
+**Code-state note (verified 2026-06-18):** BUILT in repo: BETA-P0-UX-003 shared-link receiver surface is mature and the most-tested public route (`src/app/share/[token]/page.tsx`, `src/app/api/share/[token]/**`, password lockout + recipient session + comments/decisions, 10+ test files) — receiver code is VERIFIED-grade, but *non-technical-user comprehension* is a manual-QA fact. BETA-P0-AI-001 AI Ask + package-builder are BUILT with auth/audit + injection defense and provider identification (`src/app/api/ai/ask/**`, `src/app/api/ai/package-builder/**`, `src/lib/ai/deepseek.ts`). NOTE (verified 2026-06-18): per-user **rate-limiting/quota** (`checkAiAskQuota`) is wired on the **Ask** route only; the **package-builder** route is auth-gated but **NOT rate-limited** (no quota/429/`Retry-After` call) — consistent with `26-codex-goal-cards.md` SEC-005E. Both are **flag-gated OFF by default** (`ARCHESTIMATOR_AI_ENABLED` default false → 404; UI flag `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` default false) and require a `DEEPSEEK_API_KEY` at runtime. The provider is **DeepSeek** (model `deepseek-v4-flash`), NOT OpenAI/Anthropic — consistent with this card's "AI provider identification" requirement. NEEDS INPUT: AI clarity/safety *evidence capture* and live answer quality are provider/runtime/manual facts not provable from code; cross-workspace AI denial is enforced in code (`src/lib/ai/auth.ts`) but full proof needs the flag enabled + a live session.
 
 **Blocked Goal Cards:** None
 
@@ -416,6 +428,8 @@ claim provider readiness.
 - ENTERPRISE-P1-SEC-001 — Strict CSP on workshop routes + feature flags
 - ENTERPRISE-P1-UX-001 — Accessibility baseline beyond critical blockers + self-serve DSAR + full restore drill + full browser matrix + full mobile editing
 
+**Code-state note (verified 2026-06-18):** Mixed; most of this workstream is genuinely open. BUILT in repo: a feature-flag system already exists and over-satisfies the "minimum 3 flags" requirement of ENTERPRISE-P1-SEC-001 (`src/lib/ai/feature-flags.ts`, `src/lib/collaboration/feature-flags.ts`, express-component flags, `closed-beta-access.ts`); publication snapshot foundation for ENTERPRISE-P1-PROD-001 exists (`src/lib/publication/snapshot.ts` `buildProjectPublicationSnapshot`, `snapshot_json`), though true write-once immutability is a hosted-DB fact. STILL OPEN in repo: ENTERPRISE-P1-PROD-002 PDF workflow — there is NO PDF library or PDF code path anywhere (export is XLSX-only via ExcelJS); ENTERPRISE-P1-SEC-001 *strict* CSP on workshop — `next.config.ts` ships `/workshop` as **Report-Only** CSP (only `/share` is enforced, per decision D-9), so the "switch to strict" deliverable is not done; ENTERPRISE-P1-UX-001 self-serve DSAR/export/delete — no DSAR flow exists (deletion is "email support@archestimator.com"). NEEDS INPUT: ENTERPRISE-P1-LEGAL-001 counsel review — `src/lib/legal/terms-content.ts` self-declares `legalReviewStatus: 'closed_beta_owner_approved_pending_counsel_review'` (owner-authored, NOT counsel-reviewed); accessibility/browser-matrix/PITR-restore/mobile-editing are manual/external facts.
+
 **Blocked Goal Cards:** None
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
@@ -474,6 +488,8 @@ claim provider readiness.
 - BETA-P0-BETA-001 — Controlled beta kickoff system
 - BETA-P0-OPS-001 — Support email configuration
 - BETA-P0-LEGAL-001 — Beta legal / limitations pack
+
+**Code-state note (verified 2026-06-18):** Supporting infra for BETA-P0-BETA-001 is BUILT in repo: closed-beta allowlist + admin queue (`supabase/migrations/20260601182522_closed_beta_allowed_emails.sql`, `src/lib/auth/beta-allowlist-admin.ts`), beta-feedback submission + review (`src/lib/workshop/beta-feedback-actions.ts`, `beta-feedback-review-actions.ts`) and admin pages (`src/app/workshop/settings/{beta-users,feedback}/page.tsx`). Beta legal/limitations copy exists (`src/lib/legal/terms-content.ts`, `/terms` + `/privacy` pages) but is owner-authored/`pending_counsel_review`. STILL OPEN (external/manual): BETA-P0-OPS-001 support email/auto-responder (provider+mailbox config), the beta checklist/risk-register/partner-list/runbook-drill artifacts, and OWNER_NAME_PLACEHOLDER beta signoff — none provable from code; closed-beta allow/deny at runtime also depends on hosted Supabase data.
 
 **Blocked Goal Cards:**
 - PUBLIC-P0-LEGAL-001 — Final Privacy/Terms/Subprocessor (Wave 8)
@@ -544,6 +560,8 @@ claim provider readiness.
 - CODEX-P1-SHARE-003 — Shared-Link Owner Digest Sender Fix
 - CODEX-P1-SHARE-004 — Shared-Link Destructive Confirmations
 
+**Code-state note (verified 2026-06-18):** Most of the agent-executable cards here are BUILT in repo. CODEX-P0-COLLAB-002 invite-accept fail-closed/POST-only — `src/app/invite/[token]/accept/route.ts` mutates only on `POST` and is origin-guarded (`isAllowedInviteOrigin`), tested (`invite-accept-origin.test.ts`). CODEX-P1-SHARE-002 recipient tracking, CODEX-P1-SHARE-003 owner digest, recipient management — all in `src/lib/publication/actions.ts` (`listSharedLinkRecipients`/`addSharedLinkRecipients`/`maybeTriggerSharedLinkActivityDigest`). Mass-deletion/destructive confirmation patterns (relevant to SHARE-004) are BUILT/VERIFIED per Capability Map (`src/lib/mass-deletion/**`). CAVEAT: project-invite entry links are **FEATURE-FLAGGED OFF by default** (`PROJECT_INVITE_ENTRY_ENABLED` must === 'true', `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` blank by default) — the default collaboration path is a direct `project_members` upsert. NEEDS INPUT / external: HUMAN-P0-COLLAB-001A Supabase Auth email provider config and CODEX-P0-COLLAB-003 invite lifecycle E2E both depend on hosted Supabase + email delivery (Resend) — these stay OPEN; "Email sent" truthfulness depends on real delivery, which code cannot prove.
+
 **Blocked Goal Cards:** None
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
@@ -604,6 +622,8 @@ claim provider readiness.
 | 8. Collaboration & Sharing Hardening | Waves 1-5 | 10 | 0 | 0 (human setup for invite config) | Partial (needs Wave 1 staging + Supabase email provider) | **P0: READY for human setup. P1: QUEUED — unblocks after Wave 4** |
 
 **All 8 workstreams are unblocked for planning.** Owner decisions are codified (Wave 0 is DONE). Workstream 1 (Environment & Deployment) can begin immediately. Workstream 8 (Collaboration & Sharing) has P0 human external setup ready now. Subsequent workstreams activate in wave order as dependencies are satisfied.
+
+> **Dashboard accuracy note (verified 2026-06-18):** This table encodes the original *planning sequence* and "Active/Blocked Card" counts, not current build state. Since it was written, much of the agent-executable implementation in WS2 (rate limiting, server-action authz), WS3 (perf harness, bundle analyzer, web analytics — but NOT Sentry), WS4 (workshop error boundaries — but NOT custom 404/global-error or onboarding wizard), WS5 (share receiver, AI Ask/package-builder behind default-OFF flags), WS6 (feature-flag system, publication snapshot foundation — but NOT PDF, strict-workshop-CSP, or DSAR), and WS8 (invite fail-closed, recipient tracking, digest) has LANDED in code — see each workstream's "Code-state note" above. The remaining MVP-launch work is overwhelmingly the external/provider/manual proof described in "Current MVP Launch Handoff", not fresh repo-local implementation.
 
 ---
 
@@ -679,9 +699,9 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 |---|---|
 | Status | `COMPLETED / ARCHIVED — repo-local implementation complete; final main merge pending` |
 | Branch | `feat/activity-history-overhaul-v1` |
-| Archived plan | `.ai/09_archive/store/activity-history-overhaul-v1/` |
+| Archived plan | `.ai/09_archive/store/2026-06-03-activity-history-overhaul-v1/` (path corrected — verified 2026-06-18) |
 | Evidence ledger | `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md` |
-| Archive path | `.ai/09_archive/store/activity-history-overhaul-v1/` |
+| Archive path | `.ai/09_archive/store/2026-06-03-activity-history-overhaul-v1/` (path corrected — verified 2026-06-18) |
 | Production telemetry | `NO-GO` until docs 64/66/68 gates have real evidence |
 
 This workstream covers PR 2 through PR 9 repo-local implementation: preflight correctness, composer module, estimate UI integration, shared-link API integration, recipient actor copy, privacy-safe access telemetry, pagination/Realtime hardening, telemetry operations hardening, and UI/accessibility/performance polish.

@@ -3,6 +3,8 @@
 **Last updated:** 2026-05-30
 **Status:** 21 of 32 decisions DECIDED in 2026-05-30 roadmap pass. 11 remain for public launch only or are deferred.
 
+> **Code-evidence reconciliation (2026-06-18, ROADMAP_SYNC_LOOP):** This is a governance/owner-decision log; a "DECIDED" status is an owner attestation, not a build claim, and code cannot prove or refute most decisions here (jurisdiction, beta scope, support, pricing, incident/rollback ownership, legal). The few decisions that embed a verifiable *code-state* claim were checked against the codebase. CONFIRMED-IN-CODE: D-026 password-gated share — scrypt hashing + progressive lockout + audit events are implemented (`src/lib/publication/security.ts`: `passwordHashPrefix = "scrypt-sha256-v1"`, `PROGRESSIVE_DELAYS_MS`, `PASSWORD_LOCKOUT_DURATION_MS`); D-016 — workshop/landing CSP is Report-Only and only `/share` is enforced (`next.config.ts`); D-017 — `@firecms/neat@0.8.0` is still pinned + patched (`package.json`, `patches/@firecms%2Fneat@0.8.0.patch`). NOT-YET-BUILT (decision is a target, implementation absent): D-004 — there is NO Redis/Upstash dependency and NO Cloudflare Turnstile/CAPTCHA code anywhere in the repo (rate limiting today is in-memory + a Postgres `security_rate_limit_events` durable store, `src/lib/publication/security.ts` comment: "In-memory lockout store ... no DB table"); D-027 — no desktop-guard/viewport-guard component exists in `src/`. These remain decisions/goal-card work, not shipped capabilities — do NOT read their "DECIDED" status as "implemented." Whether D-004's "Redis-backed mandatory for beta" requirement has been satisfied is a NEEDS INPUT item (no code evidence).
+
 ---
 
 ## Decision Summary

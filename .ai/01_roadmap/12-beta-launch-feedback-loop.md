@@ -51,10 +51,12 @@ The beta is designed for a narrow, high-signal cohort. Invitees should match thi
 | Use templates | Yes | |
 | Share links with clients | Yes | |
 | Export XLSX proposals | Yes | |
-| Ask Flip questions | Yes | AI assistant in workshop |
-| Use package-builder | Yes | Disclose known limitations clearly |
-| Edit profile and workspace settings | Yes | |
-| View charts | Yes | |
+| Ask Flip questions | Yes — flag-gated OFF by default | AI assistant in workshop. CODE STATUS: route + handler built but `ARCHESTIMATOR_AI_ENABLED` defaults `false` (returns 404) and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` defaults `false` (`.env.example` L49–50; `src/lib/ai/feature-flags.ts`; `src/app/api/ai/ask/handler.ts`). Provider is DeepSeek and needs `DEEPSEEK_API_KEY`. Not live in beta unless flags are flipped on — operator/env fact, not provable from code. |
+| Use package-builder | Yes — flag-gated OFF by default | Same `ARCHESTIMATOR_AI_ENABLED` gate (`src/app/api/ai/package-builder/handler.ts`); per-action sub-flags. Disclose known limitations clearly. Not live in beta until enabled. |
+| Edit profile and workspace settings | Yes | `src/lib/auth/account-actions.ts`; `src/app/workshop/settings/**` |
+| View charts | Yes | Charts render under the project Data tab; the legacy `.../charts` route is now a redirect to `.../data` (`src/app/workshop/projects/[projectId]/charts/page.tsx`). Engine: `src/lib/project-charts/aggregate-project-charts.ts`. |
+
+> **Code-evidence note (2026-06-18 sync):** The non-AI "Yes" rows above are backed by shipped code — projects (`src/lib/projects/actions.ts`), estimates (`src/lib/estimates/actions.ts`), team invites (`src/lib/collaboration/actions.ts`), component library + templates (`src/lib/component-library/actions.ts`), share links (`src/lib/publication/actions.ts` + `src/app/share/[token]/`), XLSX export (`src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts`). Sign-up with Google is built (`src/lib/auth/actions.ts`) but actual OAuth success + the "unverified app" screen are hosted-provider facts. The two **AI rows are flag-gated OFF by default** and are NOT part of the live default beta surface until an operator flips `ARCHESTIMATOR_AI_ENABLED` (and the UI flag) and configures `DEEPSEEK_API_KEY`.
 
 ---
 
@@ -65,8 +67,8 @@ These capabilities are either not implemented, partially built, or not yet harde
 - **Immutable issued proposals.** Export is mutable. There is no locked or signed proposal state.
 - **PDF packages.** Not implemented.
 - **Revision comparison.** Not implemented.
-- **AI remembering past conversations.** Each interaction is stateless. Flip does not retain context across sessions.
-- **Offline editing.** The offline queue is in-memory and lost on browser reload or tab close.
+- **AI remembering past conversations.** Each interaction is stateless. Flip does not retain context across sessions. (Code: package-builder "memory" exists only as a default-OFF flag `AI_PACKAGE_BUILDER_MEMORY_ENABLED` plus a DEFERRED, unapplied migration `supabase/migrations-pending-review/deferred/20260528103341_ai_package_builder_memory.sql` — no persistence is live.)
+- **Offline editing of estimates/projects.** Not implemented — estimate/project edits go straight to the server with optimistic local rollback; a dropped connection fails the mutation. There is no offline/queued-mutation buffer in the estimate/workshop editing paths (`src/lib/estimates/`, `src/components/workshop/`; the only `offline`/`navigator.onLine` reference there is presence/connection status in `ProjectTeamspaceHeader.tsx`, not a mutation queue). *(NOTE: a separate, narrow offline outbox DOES exist for share-link client **comments** — `src/components/share/SharePageComments.tsx`, a `sessionStorage`-backed comment queue with reconnect auto-flush, see `QUEUE_KEY`/`loadQueue`/`saveQueue` ~L59–83, `flushQueue` ~L134 with `navigator.onLine` guard ~L136, and "Auto-flush on reconnect" ~L163–182 — but it does not cover estimate/project editing.)* *[2026-06-18 sync: corrected — prior text first claimed "the offline queue is in-memory" and was then over-corrected to "no offline queue exists in `src/`"; both were wrong. The accurate scope is: no offline queue for **estimate/project editing**, while a share-link **comment** outbox does exist.]*
 - **Mobile or tablet editing.** Workshop is desktop-only. Mobile views may be broken or absent.
 - **Self-serve account deletion.** Not implemented.
 - **Data export.** Not implemented.
@@ -80,11 +82,11 @@ These capabilities are either not implemented, partially built, or not yet harde
 These limitations exist as of beta launch and should be communicated to users before they begin.
 
 - **Unverified Google OAuth.** The consent screen will show an "unverified app" warning. This is expected and temporary.
-- **Rate limiting is in-memory.** Rate counters reset on server restart. A user who hits a limit may be unblocked after a deploy or restart.
-- **No strict Content Security Policy on workshop.** Some editor dependencies require `unsafe-inline`. This is an accepted interim risk.
+- **Rate limiting is partly durable, partly in-memory.** *[2026-06-18 sync: corrected — core rate limits are now DB-backed, not purely in-memory.]* The primary rate limiters (proposal export, share-link snapshot/comment/decision/activity/event, AI ask + package-builder, invite resolution) are **durable**, recorded in the `security_rate_limit_events` table so they survive restarts (`src/lib/publication/public-repository.ts` `checkRecordedRateLimit`; `src/lib/ai/rate-limit.ts`; `src/lib/collaboration/invite-entry.ts`). What remains in-memory/per-process — and therefore resets on restart and is weaker across multiple server instances — is the share-link **password brute-force lockout store** and the comment-route circuit breaker (`src/lib/publication/security.ts` `passwordAttemptStore`). Sign-in (magic-link/OAuth) actions have no app-level rate limit and rely on Supabase's own throttling.
+- **No strict Content Security Policy on workshop.** Workshop ships CSP as **Report-Only** (still allows `unsafe-inline`/`unsafe-eval`); some editor dependencies require it. This is an accepted interim risk (`next.config.ts`, decision D-9). Note: the public `/share` route is now on an **enforced** CSP, so this caveat applies to the authenticated workshop, not the share surface.
 - **Single Supabase database.** No staging/production separation. Beta data lives in the same database that development uses.
-- **No automated backups beyond Supabase defaults.** Additional backup processes have not been configured.
-- **No uptime monitoring.** If the app goes down, Philip may be the last to know unless a user reports it.
+- **No automated backups beyond Supabase defaults.** Additional backup processes have not been configured. (A readiness *checker* exists — `scripts/check-supabase-backup-readiness.ts` — but it only parses an operator-supplied CLI transcript; it does not configure or prove live PITR/backups. There is also NO applied retention/GC: `pg_cron`-based cleanup sits unapplied in `supabase/migrations-pending-review/T4-database-pass.sql`, so event/rate-limit tables grow unbounded on the live DB.)
+- **No uptime monitoring.** If the app goes down, Philip may be the last to know unless a user reports it. (Confirmed: no Sentry/Datadog/PagerDuty/uptime-pinger anywhere in code; `/api/health` is a shallow liveness route with no consumer. `scripts/check-support-monitoring-readiness.ts` only records operator-attested proof flags — it does not implement monitoring.)
 
 ---
 
@@ -119,6 +121,8 @@ All feedback flows into the weekly review (Section 9). Nothing gets dropped.
 | **Churn** | Less than 20% of activated users stop using within 4 weeks | DB query: activated users with 0 activity in 4 weeks |
 
 Metrics are measured weekly (Section 9). Targets are cumulative, not per-week thresholds.
+
+> **Code-evidence note (2026-06-18 sync):** Most of these are computable today via **manual** DB queries against existing tables — `estimates`/`estimate_nodes` (activation, completion), `collaboration_audit_events` + activity/event tables (weekly activity, churn), `project_publications` (share-link usage), and the `ai_action_runs` audit ledger (AI usage). The "AI usage" metric only produces data if the AI feature flags are turned on (see Section 3). What does NOT exist is any **automated dashboard or scheduled metric job** — there is no analytics pipeline, no metrics endpoint, and no in-app reporting surface; these are hand-run SQL queries. The "NEEDS INSTRUMENTATION" status remains accurate for *automated* measurement.
 
 ---
 

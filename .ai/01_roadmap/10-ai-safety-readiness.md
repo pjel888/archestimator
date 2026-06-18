@@ -6,8 +6,15 @@ Last updated: 2026-05-30
 
 ## 1 — Current AI Capabilities (Truthful Summary)
 
-Archestimator ships two AI surfaces and one optional ranking signal. Neither surface
-stores conversations, trusts client-supplied identity, or performs autonomous writes.
+Archestimator has two AI surfaces and one optional ranking signal in code. **Both AI
+surfaces are DISABLED BY DEFAULT for closed beta**: `/api/ai/ask` and
+`/api/ai/package-builder` return HTTP 404 ("AI is disabled for closed beta.") unless
+`ARCHESTIMATOR_AI_ENABLED` is truthy, and the Ask Flip UI is additionally gated behind
+`NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` (also default off). Evidence: `src/lib/ai/feature-flags.ts`,
+`src/app/api/ai/ask/route.ts`, `src/app/api/ai/package-builder/route.ts`. Live operation
+also requires a configured `DEEPSEEK_API_KEY` at runtime (an external/provider fact). When
+enabled, neither surface stores conversations, trusts client-supplied identity, or performs
+autonomous writes.
 
 ### Ask Flip — `/api/ai/ask`
 
@@ -42,11 +49,16 @@ autonomous retries without confirmation.
 
 ### Memory — Ranking Hints (Default-Off)
 
-Feature-flagged behind `AI_PACKAGE_BUILDER_MEMORY_ENABLED`. Supplies source-signal
-ranking hints to the package-builder prompt — which packages, components, and
-templates to score higher — based on historical apply patterns. This is **not**
+Feature-flagged behind `AI_PACKAGE_BUILDER_MEMORY_ENABLED` (default off). Supplies
+source-signal ranking hints to the package-builder prompt — which packages, components,
+and templates to score higher — based on historical apply patterns. This is **not**
 retrieval memory, conversation memory, or a provider memory surface. It is an
-off-by-default ranking signal and nothing more.
+off-by-default ranking signal and nothing more. Evidence/caveat: the scoring logic exists
+(`src/lib/ai/package-builder/memory.ts`, with a `hasPackageBuilderMemorySchema()` probe),
+but its persistence table is DEFERRED and NOT applied to the DB — the migration sits in
+`supabase/migrations-pending-review/deferred/20260528103341_ai_package_builder_memory.sql`.
+So the feature is double-gated off (flag off AND table unapplied) and cannot persist
+anything until a DBA applies the deferred migration (an external/manual fact).
 
 ---
 
@@ -69,9 +81,9 @@ off-by-default ranking signal and nothing more.
 
 | Requirement | Status | Evidence | Launch Blocker? |
 |---|---|---|---|
-| Provider keys are server-only | DONE | All model provider keys live in server-side env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`); never exposed to client bundles. | No |
+| Provider keys are server-only | DONE | The AI provider is DeepSeek (NOT OpenAI/Anthropic). The key lives in the server-side env var `DEEPSEEK_API_KEY` (read in `src/lib/ai/deepseek.ts` + `src/lib/ai/package-builder/provider.ts`); never exposed to client bundles. (Drift fix: doc previously named `OPENAI_API_KEY`/`ANTHROPIC_API_KEY`, which do not exist in code.) | No |
 | AI responses must not leak cross-account / project data | IMPLEMENTED / NEEDS EVIDENCE | Reads are scoped to the authenticated workspace; no automated leakage test suite exists yet. | Pre-production |
-| AI audit records are metadata-only | DONE | `ai_audit` rows contain timestamps, route, model, token counts, and latency; no raw prompts or completions. Verified via schema inspection. | No |
+| AI audit records are metadata-only | DONE | Audit rows are written to `ai_action_runs` / `ai_tool_calls` / `ai_data_access_events` (there is no `ai_audit` table; code in `src/lib/ai/audit.ts`, migration `supabase/migrations/20260523144932_ai_audit_foundation.sql`). Rows contain timestamps, route, model, token counts, and latency; no raw prompts or completions. (Drift fix: doc previously named a single `ai_audit` table.) | No |
 | AI apply flows need idempotency | DONE | Every Apply RPC carries an `idempotency_key` column; the RPC guards against duplicate execution. | No |
 | AI apply flows need confirmation | DONE | The client requires an explicit checkbox confirmation before firing an Apply request; the server rejects unsigned or missing draft tokens. | No |
 | AI apply flows need rollback | PARTIAL | The transactional RPC either fully succeeds or fully rolls back, but no automated rollback drill / forced-failure test exists. | Pre-production |

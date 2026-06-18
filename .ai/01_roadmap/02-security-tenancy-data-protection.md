@@ -2,6 +2,20 @@
 
 **Last updated: 2026-05-30**
 
+> **Roadmap-sync note — 2026-06-18 (code-reconciliation pass):** This 2026-05-30 assessment
+> predates substantial security hardening that has since landed in code. Per-row corrections are
+> appended inline below as `[SYNC 2026-06-18: …]` annotations with file-path evidence. Headline
+> drift: (a) durable rate limiting now exists (`security_rate_limit_events` table +
+> `checkRecordedRateLimit` machinery) for the share-password, AI, and invite surfaces — it is no
+> longer "in-memory only"; (b) CSP on `/workshop` is Report-Only **by decision (D-9, nonce-pipeline
+> deferral)**, NOT blocked by `@firecms/neat` (which is landing-only); (c) hardening headers (HSTS,
+> nosniff, X-Frame-Options DENY, Referrer-Policy no-referrer) are now applied on `/share`, the share
+> API, `/workshop`, and `/invite` via `next.config.ts`; (d) several "no automated test" gaps are
+> closed (redirect sanitizer, share-password hardening, invite-origin/CSRF, image content-type
+> sniffing). Items that depend on **external/hosted/provider/manual** proof (Google OAuth verification
+> status, applied-to-live-DB RLS, secret-scanning/dependency-scanning in CI, CSP report collection)
+> remain OPEN/unproven from code and are left at their existing status.
+
 ## Verification Baseline
 
 **OWASP Application Security Verification Standard (ASVS) 5.0.0** is the verification baseline for this document. ASVS is intended as a basis for testing web application technical security controls and provides a framework of security requirements that can be tested, not merely asserted. Each item maps to one or more ASVS categories. This document also cross-references **OWASP Top Ten 2025** and **OWASP API Security Top 10 2023** where applicable.
@@ -10,17 +24,17 @@
 
 | # | Finding | Severity | Launch Blocker |
 |---|---------|----------|----------------|
-| 1 | No automated RLS denial tests exist for any table | Critical | **Yes** |
-| 2 | Rate limiting is in-memory only (server restart clears all lockouts) | High | **Yes** |
-| 3 | CSP not enforced on workshop route (blocked by @firecms/neat inline styles) | High | No |
+| 1 | No automated RLS denial tests exist for any table — *[SYNC 2026-06-18: PARTIALLY ADDRESSED. Local-Postgres RLS proof harnesses now exist (`scripts/prove-rls-initplan-postgres.mjs` asserts the `(select auth.uid())` rewrite preserves owner/collaborator/non-member access decisions; `scripts/prove-notification-rls-postgres.mjs`; `tests/vitest/notification-rls-proof.test.ts` is `describe.skip` unless live Supabase env). These require local PG binaries and are NOT run in CI (`.github/workflows/ci.yml` has no prove:* step). General per-table CRUD denial coverage across all 55 tables remains absent.]* | Critical | **Yes** |
+| 2 | Rate limiting is in-memory only (server restart clears all lockouts) — *[SYNC 2026-06-18: PARTIALLY RESOLVED. Durable rate limiting now exists via `security_rate_limit_events` (migration `supabase/migrations/20260601003000_security_rate_limit_events.sql`) consumed by `src/lib/publication/public-repository.ts` (`checkRecordedRateLimit`), `src/lib/ai/rate-limit.ts`, and `src/lib/collaboration/invite-entry.ts`. The share-password route (`src/app/api/share/[token]/password/route.ts`) layers a durable per-IP+token limit + in-memory lockout. The in-memory layer remains per-process, and live DB application is external.]* | High | **Yes** |
+| 3 | CSP not enforced on workshop route (blocked by @firecms/neat inline styles) — *[SYNC 2026-06-18: DRIFT. `@firecms/neat` is used ONLY on the landing page (`src/components/landing/NeatWireframeBackground.tsx`), not in `/workshop`. Per `next.config.ts` the `/workshop/:path*` CSP is Report-Only by decision D-9 (deferred pending a per-request nonce pipeline), NOT blocked by firecms/neat. Cause attribution is inaccurate; status (not enforced on workshop) still holds.]* | High | No |
 | 4 | No secret scanning in CI pipeline | High | No |
-| 5 | Google OAuth app is in testing mode (max 100 users) | High | **Yes** |
+| 5 | Google OAuth app is in testing mode (max 100 users) — *[SYNC 2026-06-18: NEEDS INPUT — EXTERNAL/PROVIDER fact. Code has `signInWithGoogle` (`src/lib/auth/actions.ts`), but the Google Cloud Console verification/publishing status (testing vs. in-production, user cap) cannot be determined from the codebase. Left at existing status.]* | High | **Yes** |
 | 6 | No automated cross-workspace/project/estimate access denial tests | Critical | **Yes** |
 | 7 | CSP is Report-Only on public pages | Medium | No |
 | 8 | No dependency vulnerability scanning in CI | Medium | No |
 | 9 | Signed URL expiry model not verified under clock skew scenarios | Medium | No |
 | 10 | No automated test for service-role key isolation from client bundle | Critical | **Yes** |
-| 11 | Abuse/rate-limit posture has no persistent store (lost on deploy/restart) | High | **Yes** |
+| 11 | Abuse/rate-limit posture has no persistent store (lost on deploy/restart) — *[SYNC 2026-06-18: PARTIALLY RESOLVED — persistent store now exists (`security_rate_limit_events`); see Finding #2. Coverage is share/AI/invite surfaces, not login/sign-in-link. Live DB application is external.]* | High | **Yes** |
 | 12 | Error message leakage not systematically reviewed across all API routes | Medium | No |
 
 ---
@@ -137,8 +151,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Shared links V2 has password hardening with in-memory progressive lockout (5 attempts, 15-minute window). Incorrect password attempts are tracked in-memory and the lockout is enforced at the share route level. |
-| **Missing Evidence** | No test of lockout reset behavior across server restarts (lockout is lost). No test of concurrent password attempts from different IPs. No test of password strength enforcement at creation time. No test of password hash storage (where is the hash stored, what algorithm?). |
+| **Current Evidence** | Shared links V2 has password hardening with in-memory progressive lockout (5 attempts, 15-minute window). Incorrect password attempts are tracked in-memory and the lockout is enforced at the share route level. *[SYNC 2026-06-18: lockout is now LAYERED, not in-memory-only. `src/app/api/share/[token]/password/route.ts` calls a DURABLE per-IP+token limit (`checkProjectPublicationPasswordRateLimit` → `security_rate_limit_events`) AND the in-memory `isPasswordLocked`/`recordPasswordFailure`. CSRF/same-origin gate (`assertSameOriginPublicPost`) precedes verification. Password hashing is **scrypt** (`scrypt-sha256-v1`, `src/lib/publication/security.ts`), constant-time compare.]* |
+| **Missing Evidence** | No test of lockout reset behavior across server restarts (lockout is lost). No test of concurrent password attempts from different IPs. No test of password strength enforcement at creation time. No test of password hash storage (where is the hash stored, what algorithm?). *[SYNC 2026-06-18: PARTIALLY RESOLVED. Hash algorithm is now answerable (scrypt; see above). `tests/vitest/project-publication-security.test.ts` and `project-publication-security-hardening.test.ts` cover hashing + keyed-HMAC + publication-scoped lookups. The durable layer survives restarts; the in-memory layer is still per-process. Concurrent-IP and creation-time strength tests not located.]* |
 | **Required Test/Proof** | Test suite: verify lockout after 5 incorrect attempts. Verify 15-minute window expiry resets counter. Verify lockout is per-share-link, not global. Document that lockout resets on server restart (in-memory only) and assess risk. Verify password hash uses strong algorithm (bcrypt/argon2). |
 | **Severity** | **High** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** (in-memory lockout is lost on deploy/restart) |
@@ -154,8 +168,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Invite tokens use app-owned pepper-hashed tokens exposed through a narrow RPC surface (`accept_invite`, `verify_invite`). The RPC functions handle token lookup and validation server-side. |
-| **Missing Evidence** | No automated test for each lifecycle state: unexpired token works, expired token is rejected, revoked token is rejected, already-used token cannot be replayed, token claimed by wrong email/account is rejected. No pepper rotation or compromise recovery plan. |
+| **Current Evidence** | Invite tokens use app-owned pepper-hashed tokens exposed through a narrow RPC surface (`accept_invite`, `verify_invite`). The RPC functions handle token lookup and validation server-side. *[SYNC 2026-06-18: actual RPC names are `resolve_collaboration_invitation` and `accept_collaboration_invitation`/`accept_collaboration_invitation_by_id` (not `accept_invite`/`verify_invite`). Pepper env is `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`. The invite page state machine (valid/expired/revoked/already-used/wrong-account/rate-limited) lives in `src/app/invite/[token]/page.tsx`; acceptance is POST-only with an Origin/CSRF guard (`isAllowedInviteOrigin`) in `src/app/invite/[token]/accept/route.ts`. Entry is fail-closed behind `PROJECT_INVITE_ENTRY_ENABLED` (default off).]* |
+| **Missing Evidence** | No automated test for each lifecycle state: unexpired token works, expired token is rejected, revoked token is rejected, already-used token cannot be replayed, token claimed by wrong email/account is rejected. No pepper rotation or compromise recovery plan. *[SYNC 2026-06-18: PARTIALLY RESOLVED. `tests/vitest/invite-accept-origin.test.ts` (CSRF/Origin guard), `project-invite-entry-route.test.ts`, `project-invite-entry-schema.test.ts`, `project-invite-feature-flag.test.ts`, and `pending-invite-cookie.test.ts` exist; `e2e/project-invite-entry.spec.ts` is env-gated. Per-state lifecycle assertions and live RPC behavior (against the hosted DB) remain unproven from code; pepper-rotation procedure still undocumented.]* |
 | **Required Test/Proof** | Comprehensive lifecycle test suite: (1) valid invite → accept succeeds, (2) expired invite → rejected with clear error, (3) revoked invite → rejected, (4) already-accepted invite → replay rejected, (5) invite sent to EMAIL_PLACEHOLDER attempted by EMAIL_PLACEHOLDER → rejected, (6) manipulated/forged token → rejected. |
 | **Severity** | **Critical** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** |
@@ -171,8 +185,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | The auth callback (`/auth/callback`) uses a redirect sanitizer that validates the target URL against an allowlist or strips open redirect vectors. The sanitizer is applied before the `res.redirect()` call. |
-| **Missing Evidence** | No automated test proving the sanitizer rejects common open redirect payloads (double-encoding, protocol-relative URLs, CRLF injection, javascript: URIs). No test of the allowlist enforcement under different environments (dev vs prod). |
+| **Current Evidence** | The auth callback (`/auth/callback`) uses a redirect sanitizer that validates the target URL against an allowlist or strips open redirect vectors. The sanitizer is applied before the `res.redirect()` call. *[SYNC 2026-06-18: sanitizer is `sanitizeNextPath` in `src/lib/auth/redirects.ts` (multi-pass decode + open-redirect guards) with origin allowlist `getAllowedAppOrigins`; callback at `src/app/auth/callback/route.ts`.]* |
+| **Missing Evidence** | No automated test proving the sanitizer rejects common open redirect payloads (double-encoding, protocol-relative URLs, CRLF injection, javascript: URIs). No test of the allowlist enforcement under different environments (dev vs prod). *[SYNC 2026-06-18: RESOLVED (unit level). `tests/vitest/auth-redirect-sanitizer.test.ts` exercises `https://evil`, `//evil`, `%2F%2Fevil`, `https:%2f%2fevil`, `\evil`, `%5Cevil`, and CRLF (`%0d%0aLocation:`) payloads plus per-environment `requestOrigin` allowlist cases. Live hosted-redirect behavior remains an external smoke (`scripts/verify-hosted-auth-routes.ts`).]* |
 | **Required Test/Proof** | Test suite: for each known open redirect bypass technique, verify the sanitizer returns a safe fallback (e.g., `/dashboard`) rather than following the malicious redirect. Test with `//evil.com`, `https:evil.com`, `javascript:alert(1)`, `%2F%2Fevil.com`, `\evil.com`. |
 | **Severity** | **High** |
 | **Launch Gate Status** | Pre-launch |
@@ -190,8 +204,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | The Supabase `service_role` key is stored server-side in environment variables and is never exposed to the client bundle. Server-side code uses the service role key for admin operations where RLS is bypassed intentionally. |
-| **Missing Evidence** | No automated test that greps the client bundle (after build) for the service role key string. No test verifying that the key is not leaked in server-side rendered HTML, API error responses, or source maps. No test verifying the key is not present in git history. |
+| **Current Evidence** | The Supabase `service_role` key is stored server-side in environment variables and is never exposed to the client bundle. Server-side code uses the service role key for admin operations where RLS is bypassed intentionally. *[SYNC 2026-06-18: server-only client at `src/lib/supabase/service-role.ts` (no session persist); a dev-only admin DB bypass path exists in `src/lib/supabase/server.ts` gated by host + a 32-char secret + non-prod (`src/lib/auth/dev-auth-gate.ts`).]* |
+| **Missing Evidence** | No automated test that greps the client bundle (after build) for the service role key string. No test verifying that the key is not leaked in server-side rendered HTML, API error responses, or source maps. No test verifying the key is not present in git history. *[SYNC 2026-06-18: STILL OPEN (confirmed). No bundle-grep guard test or CI step located (`.github/workflows/ci.yml` has no secret-scan/bundle-grep step; no `gitleaks`/`trufflehog`/`bun audit` in package.json scripts). This gap is accurate.]* |
 | **Required Test/Proof** | Build the production bundle, grep for any string matching the service role key pattern. Add CI step that fails if the key pattern is found in client-side assets, source maps, or HTML responses. Verify .gitignore excludes .env files. Run `git log --all --full-history -- "*.env"` to verify no historical leaks. |
 | **Severity** | **Critical** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** |
@@ -240,8 +254,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Images and attachments uploaded to estimates are stored in Supabase Storage buckets. Access is mediated through the application layer. |
-| **Missing Evidence** | No test verifying that attachment URLs are not guessable/enumerable. No test of content-type validation on upload (can a user upload an HTML file disguised as an image?). No test verifying that direct storage URLs cannot be accessed without proper authorization. No malware scanning on uploads. |
+| **Current Evidence** | Images and attachments uploaded to estimates are stored in Supabase Storage buckets. Access is mediated through the application layer. *[SYNC 2026-06-18: upload routes enforce content-type beyond the declared header — `src/app/api/projects/images/route.ts` and `src/app/api/component-library/images/route.ts` validate against an `ALLOWED_MIME_TYPES` set, sniff magic bytes (JPEG/PNG/WebP/AVIF), validate via sharp format, enforce `.webp`-only paths, and guard path traversal (`..`, `//`). Upload paths are ownership-scoped `${workspaceId}/${userId}/...` (and project routes verify `project.workspace_id` match).]* |
+| **Missing Evidence** | No test verifying that attachment URLs are not guessable/enumerable. No test of content-type validation on upload (can a user upload an HTML file disguised as an image?). No test verifying that direct storage URLs cannot be accessed without proper authorization. No malware scanning on uploads. *[SYNC 2026-06-18: content-type validation is now IMPLEMENTED (magic-byte sniff + sharp format check; see above) — the "can a user upload HTML disguised as an image" gap is mitigated in code. URL-enumeration tests, direct-storage-URL authorization tests, and malware scanning remain absent.]* |
 | **Required Test/Proof** | Verify content-type enforcement on upload. Test that direct URL access to attachments requires valid auth context. Test that attachment IDs cannot be enumerated (non-sequential, non-guessable). Consider virus/malware scanning for V2. |
 | **Severity** | **Medium** |
 | **Launch Gate Status** | Pre-launch (content-type enforcement must be verified) |
@@ -293,7 +307,7 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | RPC functions (e.g., `accept_invite`, `verify_invite`) use `SECURITY DEFINER` with input validation and workspace context checking. Invite-related RPCs use pepper-hashed tokens for security. |
+| **Current Evidence** | RPC functions (e.g., `accept_invite`, `verify_invite`) use `SECURITY DEFINER` with input validation and workspace context checking. Invite-related RPCs use pepper-hashed tokens for security. *[SYNC 2026-06-18: actual invite RPCs are `resolve_collaboration_invitation`/`accept_collaboration_invitation(_by_id)`. App-level edit guards layer over RLS via `assertCanEditEstimate` (RPC `can_edit_estimate`) and `assertCanEditProject` (RPC `can_edit_project`) in `src/lib/estimates/actions.ts`, plus `can_access`/`can_edit` checks in `src/lib/reusable-sources/actions.ts`. Migrations define ~133 functions across `supabase/migrations/`. SECURITY DEFINER correctness on the live DB remains an external fact.]* |
 | **Missing Evidence** | No test of all RPC functions under different auth contexts. No test verifying that RPC functions respect RLS or implement their own authorization correctly. No test of parameter manipulation on RPC calls. No inventory of which RPCs bypass RLS intentionally. |
 | **Required Test/Proof** | Inventory all RPC functions. For each: document whether it uses SECURITY DEFINER or SECURITY INVOKER, test with appropriate and inappropriate auth contexts, test with manipulated parameters, verify authorization logic. |
 | **Severity** | **High** |
@@ -310,8 +324,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Next.js API routes use middleware or inline auth checks. Supabase client on the server validates the session token. |
-| **Missing Evidence** | No systematic test verifying every API route has an authorization check. No test of API routes under missing/invalid/expired auth tokens. No test of API route access with valid auth but insufficient permissions for the requested resource. |
+| **Current Evidence** | Next.js API routes use middleware or inline auth checks. Supabase client on the server validates the session token. *[SYNC 2026-06-18: there is NO `src/middleware.ts`; middleware-equivalent logic lives in `src/proxy.ts` (Next 16 `proxy` API: PROTECTED_PREFIXES `/workshop`, login redirect, closed-beta gate, cache headers) PLUS per-route inline gates and the server-side `workshop/layout.tsx` auth+terms gate. The proposal-export route (`.../export/proposal.xlsx/route.ts`) fail-closes to 401 JSON + per-user/IP 429; share routes gate on password-cookie + recipient session + rate limit. A roadmap looking for `middleware.ts` would wrongly conclude it is absent.]* |
+| **Missing Evidence** | No systematic test verifying every API route has an authorization check. No test of API routes under missing/invalid/expired auth tokens. No test of API route access with valid auth but insufficient permissions for the requested resource. *[SYNC 2026-06-18: PARTIALLY RESOLVED. `tests/vitest/auth-proxy.test.ts` exercises proxy auth; share routes have ~10+ test files (`tests/vitest/share/**`, `share-no-store-invariants.test.ts`); `proposal-export-route.test.ts` asserts 401/429/400/413. A complete per-route 401/403/200 matrix across ALL routes is still absent; many gated E2E specs only run with hosted Supabase + secrets.]* |
 | **Required Test/Proof** | Inventory all API routes. For each route: test without auth header (expect 401), test with invalid/expired token (expect 401), test with valid token but wrong workspace context (expect 403), test with valid token and correct context (expect 200). Automate. |
 | **Severity** | **Critical** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** |
@@ -327,8 +341,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Next.js Server Actions are used for mutations. Server-side auth context is available via Supabase session. |
-| **Missing Evidence** | No test verifying authorization checks exist in every server action. No test of server actions called without auth context (direct HTTP POST to the action endpoint). No CSRF protection verification on server actions. |
+| **Current Evidence** | Next.js Server Actions are used for mutations. Server-side auth context is available via Supabase session. *[SYNC 2026-06-18: nearly every action calls `requireCurrentUserContext` (`src/lib/auth/session.ts`); role/rank gates include `assertProjectAccessManager`, `assertProjectPublicationManager`, `assertCanManageLibrary`, `canManagePlatform`, `canReviewBetaFeedback`. Estimate/project mutations add RPC edit guards (`can_edit_estimate`/`can_edit_project`). Many actions exercised by behavior/UI suites (e.g. `estimate-sheet-actions-authz.test.ts`, `template-editor-actions-authz.test.ts`).]* |
+| **Missing Evidence** | No test verifying authorization checks exist in every server action. No test of server actions called without auth context (direct HTTP POST to the action endpoint). No CSRF protection verification on server actions. *[SYNC 2026-06-18: PARTIALLY ADDRESSED — per-action authz is broadly enforced and several authz suites exist, but there is no exhaustive per-action denial matrix nor a direct-POST-without-auth test for Server Actions specifically. Auth actions (`signInWithEmail`/`signInWithGoogle`/`signOut`) and `legal/actions.ts` have NO direct action-level tests.]* |
 | **Required Test/Proof** | Inventory all server actions. For each: test direct POST without auth (expect rejection), test with cross-workspace parameter injection (expect rejection), verify CSRF token or Next.js built-in protection is active. |
 | **Severity** | **High** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** |
@@ -344,8 +358,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | AI-related API routes exist for estimate generation and analysis features. These routes consume the user's estimate data and return AI-generated content. |
-| **Missing Evidence** | No test verifying that AI routes enforce workspace/project/estimate access controls. No test of prompt injection resistance. No test verifying AI output does not leak data from other users' estimates (model training/caching concerns). No test of rate limiting on AI endpoints. |
+| **Current Evidence** | AI-related API routes exist for estimate generation and analysis features. These routes consume the user's estimate data and return AI-generated content. *[SYNC 2026-06-18: routes are `/api/ai/ask` and `/api/ai/package-builder`. Both are FLAG-GATED OFF by default (`ARCHESTIMATOR_AI_ENABLED` default false → 404 in closed beta). Handlers enforce auth (`getAiRequestUserContext` → 401/403), require `authMode==='supabase'` + `workspaceId`, apply a durable quota (`src/lib/ai/rate-limit.ts` → `security_rate_limit_events`), write an audit trail (fail-closed), and use an injection-hardened system prompt. Provider is DeepSeek only — NOT Anthropic/OpenAI.]* |
+| **Missing Evidence** | No test verifying that AI routes enforce workspace/project/estimate access controls. No test of prompt injection resistance. No test verifying AI output does not leak data from other users' estimates (model training/caching concerns). No test of rate limiting on AI endpoints. *[SYNC 2026-06-18: PARTIALLY RESOLVED. `tests/vitest/ai-auth-guard.test.ts`, `ai-ask-route.test.ts`, `ai-ask-read-context.test.ts`, `ai-audit-flow.test.ts`, and `ai-package-builder-security-contract.test.ts` cover auth/workspace gating, audit, and read-context scoping. DeepSeek data-usage policy + actual prompt-injection robustness remain PROVIDER/external facts.]* |
 | **Required Test/Proof** | Verify AI route authorization matches other API routes (auth check, workspace context). Test prompt injection attempts. Document AI provider data handling policy (is user data used for training?). Verify rate limiting on AI endpoints (cost protection). |
 | **Severity** | **High** |
 | **Launch Gate Status** | Pre-launch |
@@ -380,8 +394,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Rate limiting is **in-memory only**. Progressive lockout for share link passwords (5 attempts, 15 min) resets on server restart. No persistent rate limit store. |
-| **Missing Evidence** | No rate limiting on login attempts, sign-in link generation, invite creation, API endpoints, AI endpoints, or storage uploads. No test verifying rate limits actually function under load. No DDoS protection at infrastructure level. |
+| **Current Evidence** | Rate limiting is **in-memory only**. Progressive lockout for share link passwords (5 attempts, 15 min) resets on server restart. No persistent rate limit store. *[SYNC 2026-06-18: DRIFT — a PERSISTENT store now exists. `security_rate_limit_events` (migration `supabase/migrations/20260601003000_security_rate_limit_events.sql`) backs `checkRecordedRateLimit`/`checkExistingRateLimit` in `src/lib/publication/public-repository.ts`, the AI quota in `src/lib/ai/rate-limit.ts`, and invite-entry limits in `src/lib/collaboration/invite-entry.ts`. The proposal-export route also enforces a per-user+IP limit. In-memory layers (e.g. share-password lockout) are now durable-backed, not the sole mechanism.]* |
+| **Missing Evidence** | No rate limiting on login attempts, sign-in link generation, invite creation, API endpoints, AI endpoints, or storage uploads. No test verifying rate limits actually function under load. No DDoS protection at infrastructure level. *[SYNC 2026-06-18: PARTIALLY RESOLVED — durable rate limiting now covers AI endpoints, share/publication endpoints, invite-entry, and proposal export. STILL OPEN: login/sign-in-link generation rely on Supabase's own throttling (no app-level limiter located), storage-upload rate limiting not located, load-tests + infra DDoS protection remain external/manual. Live DB application of the table is an external fact.]* |
 | **Required Test/Proof** | Implement persistent rate limiting (Supabase table or Redis). Add rate limits to: login attempts (5/min/IP), sign-in link generation (3/min/email), invite creation (10/hour/workspace), AI endpoints (cost control), API routes (1000/min/user). Test each limit verify enforcement. |
 | **Severity** | **High** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** (in-memory lockout lost on deploy/restart) |
@@ -397,8 +411,8 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | CSP is enforced on `/share/:path*` routes. CSP is **Report-Only** on public pages. CSP is **not enforced on the workshop route** due to `@firecms/neat` generating inline styles that violate strict CSP (blocked on `style-src 'unsafe-inline'` being required). Other security headers status unknown. |
-| **Missing Evidence** | No inventory of all security headers in production. No test verifying CSP report collection and monitoring. No test of other headers (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy). No test of CSP bypass vectors. |
+| **Current Evidence** | CSP is enforced on `/share/:path*` routes. CSP is **Report-Only** on public pages. CSP is **not enforced on the workshop route** due to `@firecms/neat` generating inline styles that violate strict CSP (blocked on `style-src 'unsafe-inline'` being required). Other security headers status unknown. *[SYNC 2026-06-18: CORRECTION — the `@firecms/neat` attribution is INACCURATE. `@firecms/neat` is used ONLY on the landing page (`src/components/landing/NeatWireframeBackground.tsx`). Per `next.config.ts`, `/workshop/:path*` (and `/invite/:path*`) ship **Report-Only** CSP by decision D-9, deliberately deferred until a per-request nonce pipeline replaces `'unsafe-inline'`/`'unsafe-eval'` (so app + `/share` converge on one enforced policy). `connect-src` allows `https://*.supabase.co wss://*.supabase.co` for Realtime. Other hardening headers ARE now present: X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy no-referrer, HSTS (`max-age=63072000; includeSubDomains; preload`), X-Robots-Tag noindex — applied to `/share`, `/api/share`, `/workshop`, and `/invite`.]* |
+| **Missing Evidence** | No inventory of all security headers in production. No test verifying CSP report collection and monitoring. No test of other headers (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy). No test of CSP bypass vectors. *[SYNC 2026-06-18: PARTIALLY RESOLVED. `tests/vitest/landing-security-headers.test.ts` and `project-publication-security-headers.test.ts` assert header config. STILL OPEN: no CSP report-collection endpoint exists in-app (`/api/**` has no csp/report route and `next.config.ts` sets no `report-uri`/`report-to`), so Report-Only violations are not actually collected/monitored; `Permissions-Policy` is not set. Production header emission is a hosted/runtime fact.]* |
 | **Required Test/Proof** | Inventory all security headers. Implement HSTS, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy: strict-origin-when-cross-origin. Resolve @firecms/neat inline style issue or accept Report-Only on workshop. Set up CSP report collection and monitoring. Test headers on all routes. |
 | **Severity** | **High** (CSP gap) / **Medium** (other headers) |
 | **Launch Gate Status** | CSP workshop gap: not a blocker (documented). Other security headers: pre-launch. |
@@ -414,7 +428,7 @@
 
 | Item | |
 |------|---|
-| **Current Evidence** | Dependencies are managed via `package.json` and `bun.lockb`. No automated vulnerability scanning in CI. |
+| **Current Evidence** | Dependencies are managed via `package.json` and `bun.lockb`. No automated vulnerability scanning in CI. *[SYNC 2026-06-18: CONFIRMED still accurate. `.github/workflows/ci.yml` runs validate + build + lint:design + Playwright e2e/perf only — no `bun audit`/`npm audit`, no SBOM, no dependency-freshness or secret-scanning step. The only `audit` script in package.json is `dbidx:audit-repo` (unrelated DB-index repo audit).]* |
 | **Missing Evidence** | No `npm audit` or `bun audit` in CI pipeline. No dependency freshness check. No SBOM generated. No policy for handling critical CVEs in dependencies. |
 | **Required Test/Proof** | Add `bun audit` (or `npm audit --production`) to CI pipeline. Fail CI on critical/high vulnerabilities. Generate SBOM as part of build. Document vulnerability remediation SLA (e.g., critical: 24h, high: 7 days). |
 | **Severity** | **Medium** |
@@ -526,6 +540,8 @@
 
 *Document prepared for Archestimator MVP security readiness assessment. All findings are based on current codebase state as of 2026-05-30. No security tests have been executed as part of this assessment; this document identifies required tests and proofs.*
 
+*[SYNC 2026-06-18: the "no security tests have been executed" framing reflects the 2026-05-30 snapshot and is no longer current. Security-relevant automated tests now exist (e.g. `auth-redirect-sanitizer.test.ts`, `auth-proxy.test.ts`, `project-publication-security.test.ts` + `-hardening`, `invite-accept-origin.test.ts`, `landing-security-headers.test.ts`, `ai-auth-guard.test.ts`, share `no-dangerous-html` / `no-store-invariants`) and local-Postgres RLS proof harnesses (`scripts/prove-*-postgres.mjs`). What remains NOT proven from code: (1) live-DB application of RLS/grants/RPCs on the hosted project; (2) CI-enforced secret/dependency scanning (absent); (3) external/provider/manual facts — Google OAuth verification status, email deliverability, CSP report monitoring, infra DDoS. Treat per-row `[SYNC 2026-06-18: …]` annotations above as authoritative over the 2026-05-30 cells.]*
+
 ---
 
 ## Collaboration & Sharing Audit Integration Note — 2026-05-30
@@ -543,3 +559,11 @@ This document is a reference domain deep-dive. For detailed, current collaborati
 - **"Email sent" messaging** — must not claim email delivery unless confirmed
 
 See goal cards CODEX-P0-COLLAB-002 (POST-only/fail-closed), BETA-P0-SEC-005 (persistent rate limiting), and CODEX-P0-COLLAB-004 (messaging truthfulness) for implementation details.
+
+> **[SYNC 2026-06-18]** Several of the gaps listed above have since landed in code (verify against
+> the linked plan pack for any residuals):
+> - **POST-only invite acceptance + Origin/CSRF guard** — BUILT: `src/app/invite/[token]/accept/route.ts` (`POST` handler, `isAllowedInviteOrigin`).
+> - **Fail-closed missing config** — BUILT: invite entry is gated by `PROJECT_INVITE_ENTRY_ENABLED` (default off) and falls back to invalid/redirect when absent.
+> - **Durable rate limiting** — BUILT for share/AI/invite surfaces: `security_rate_limit_events` (migration `20260601003000`) via `checkRecordedRateLimit`; share-password route layers durable + in-memory.
+> - **Shared-link lockout persistence** — durable per-IP+token backstop now layered over the in-memory store (`src/app/api/share/[token]/password/route.ts`).
+> - STILL OPEN / external: invite token brute-force coverage breadth, raw-token-logging/referrer-leak audit completeness, "email sent" messaging truthfulness vs. actual Resend deliverability (provider/manual), and durable-store live-DB application.

@@ -16,6 +16,36 @@ Open issues: 0
 Codex review threads found: 21 across 9 PRs
 Final active unresolved non-outdated threads: 0
 
+## Fresh Audit Refresh — 2026-06-18
+
+The historical completion evidence below is no longer sufficient for release
+status by itself. A fresh read-only GitHub GraphQL audit was run on 2026-06-18
+with the authenticated `gh` CLI.
+
+```text
+open PRs inspected: 18
+review threads inspected: 7
+active unresolved non-outdated Codex threads: 7
+active unresolved non-outdated Codex threads by PR:
+- #75: 1 (`codex/fix-playwright-artifacts-exposing-user-data`, DIRTY)
+- #87: 3 (`codex/propose-fix-for-sensitive-blob-ids`, CLEAN)
+- #88: 1 (`codex/fix-vulnerability-in-reusable-source-search`, DIRTY)
+- #89: 1 (`codex/fix-reusable-source-search-vulnerability`, DIRTY)
+- #92: 1 (`codex/propose-fix-for-live-server-token-vulnerability`, DIRTY)
+```
+
+Evidence command:
+
+```sh
+gh api graphql -F owner=pjel888 -F name=archestimator \
+  -f query='query($owner:String!, $name:String!) { repository(owner:$owner, name:$name) { pullRequests(states:OPEN, first:100, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title url isDraft mergeStateStatus headRefName reviewThreads(first:100) { nodes { id isResolved isOutdated path line comments(first:20) { nodes { author { login } url } } } } } } } }'
+```
+
+Proof boundary: fresh GitHub read-only evidence only. No PR comments were posted,
+no threads were resolved, and no PR branches were edited in this refresh.
+Release use: **not clean** until a fresh audit returns zero active unresolved
+non-outdated Codex threads.
+
 ## Execution Constraints
 
 - Work from live GitHub and local git state; do not rely on older session memory.

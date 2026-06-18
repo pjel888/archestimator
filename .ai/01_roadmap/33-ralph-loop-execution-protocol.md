@@ -1,6 +1,6 @@
 # Ralph Loop Execution Protocol
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-18 (roadmap-sync pass: corrected the Wave 1 first-card pointer, which named an EPIC the protocol's own Cardinal Rule #2 forbids executing)
 **Purpose:** Operating protocol for all future Ralph Loop / Codex implementation runs. This ensures every agent follows the same safe, bounded execution pattern.
 
 ---
@@ -151,7 +151,9 @@ Wave 8 — Public/paid launch hardening
 
 **Current wave:** Wave 0 is complete. Next: Wave 1 (Environment/staging foundation).
 
-**First Wave 1 card:** `BETA-P0-INF-001` — Staging/environment separation
+**First Wave 1 epic:** `BETA-P0-INF-001` — Staging/environment separation is marked **EPIC / SPLIT REQUIRED** in `26-codex-goal-cards.md` (line 34) and MUST be split first per Cardinal Rule #2 — do NOT execute it directly.
+
+**First Wave 1 atomic card:** `HUMAN-P0-INF-001A` — Create staging Supabase project (first atomic sub-card of `BETA-P0-INF-001`; other sub-cards: `HUMAN-P0-INF-001B`, `CODEX-P0-INF-001C/D/E` — see `26-codex-goal-cards.md`).
 
 ---
 

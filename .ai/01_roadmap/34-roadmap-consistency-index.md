@@ -1,7 +1,9 @@
 # Roadmap Consistency Index
 
-**Last updated:** 2026-05-30
-**Purpose:** Prevents drift. Every agent and human should use this index to find the canonical source for any topic. Comprehensive index of all 40 files in `.ai/01_roadmap/`.
+**Last updated:** 2026-06-18 (code-reconciliation pass; structure-only edits)
+**Purpose:** Prevents drift. Every agent and human should use this index to find the canonical source for any topic. Comprehensive index of files in `.ai/01_roadmap/`.
+
+> **COUNT RECONCILED (2026-06-18):** `.ai/01_roadmap/` holds **43 roadmap `.md` files** (plus `_SYNC_REPORT.md`, the reconciliation ledger, which is excluded from roadmap-doc counts per the sync-loop contract). The Section 1 table and Section 2 summary below now enumerate all 43 — the three previously-unlisted files (`35-activity-history-overhaul-v1-execution.md`, `35-codex-goal-start-pack.md`, `36-first-execution-queue.md`) are classified as non-canonical execution aids. Cross-reference plan paths to `share-and-collaboration-implementation` and `route-transition-performance-optimization` moved from `.ai/03_plans/` to `.ai/09_archive/` (corrected inline below).
 
 ---
 
@@ -38,7 +40,7 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | `23-codex-goal-execution-plan.md` | ACTIVE EXECUTION DOC | **YES** | Wave plan (0-8), sequencing, Codex execution rules, what Codex must/must not do | Goal card details (see 26) | — | Most important doc for Codex; start here |
 | `24-owner-decision-packet.md` | ACTIVE EXECUTION DOC | NO — reference only | Compressed reference of approved defaults for agents; maps decisions to unblocked goal cards | Full decision register (see 14), canonical defaults (see 29) | — | Compressed agent reference; 29 and 14 are canonical |
 | `25-active-workstreams.md` | ACTIVE EXECUTION DOC | NO — reference only | 8 workstreams organized by wave, status dashboard, dependencies, explicit out-of-scope items | Goal card details (see 26), wave plan (see 23) | — | Execution aid; derived from 23 and 26 |
-| `26-codex-goal-cards.md` | ACTIVE EXECUTION DOC | **YES** | 88 atomic goal cards + 15 EPIC headers for Codex `/goal`; canonical card statuses and details | Wave sequencing (see 23), priority classification (see 22) | — | Canonical for goal cards; what Codex actually implements |
+| `26-codex-goal-cards.md` | ACTIVE EXECUTION DOC | **YES** | **93 atomic executable goal cards** (78 original + 10 collab/share + 5 DBIDX, per 26's own header) + 15 EPIC headers, for Codex `/goal`; canonical card statuses and details | Wave sequencing (see 23), priority classification (see 22) | — | Canonical for goal cards; what Codex actually implements |
 | `27-performance-budget-and-regression-gates.md` | ACTIVE EXECUTION DOC | **YES** | Global perf rules, Enterprise MVP stricter rules, three-tier budgets, regression gates | Performance domain detail (see 06) | — | Canonical for performance requirements on every goal |
 | `28-evidence-artifact-index.md` | ACTIVE EXECUTION DOC | **YES** | Where Codex saves evidence; directory structure, artifact categories, 26 per-card evidence mappings | What evidence is required (see 01 for acceptance criteria) | — | DONE requires evidence path; canonical for evidence storage |
 | `29-enterprise-mvp-scope-and-owner-defaults.md` | ACTIVE EXECUTION DOC | **YES** | 21 approved owner defaults, 4-layer launch model, controlled beta/enterprise MVP/public launch scope boundaries | Full decision register (see 14 for complete register), compressed reference (see 24) | — | Canonical for owner defaults and launch layer model |
@@ -46,13 +48,16 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | `31-founder-ops-and-bus-factor-plan.md` | ACTIVE EXECUTION DOC | NO — reference only | Philip's solo-operator model, weekly load limits, delegation pathways, emergency contacts | Support runbooks (see 09) | — | Philip action items; execution aid for founder operations |
 | `32-test-infrastructure-execution-spec.md` | ACTIVE EXECUTION DOC | NO — reference only | Test runner recommendation, environment requirements, RLS denial test architecture, storage denial test architecture, auth audit test design | QA domain detail (see 07) | — | Execution aid; derived from security requirements |
 | `33-ralph-loop-execution-protocol.md` | ACTIVE EXECUTION DOC | **YES** | Agent execution protocol: read-before-implement list, step-by-step workflow, branch/commit rules, evidence requirements | Wave plan (see 23), goal cards (see 26) | — | Canonical for how agents must execute |
-| `34-roadmap-consistency-index.md` | ACTIVE EXECUTION DOC | **YES** | This document — prevents drift, cross-reference index for all 40 files | — | — | Single source of truth for roadmap structure |
+| `34-roadmap-consistency-index.md` | ACTIVE EXECUTION DOC | **YES** | This document — prevents drift, cross-reference index for all 43 files | — | — | Single source of truth for roadmap structure |
+| `35-activity-history-overhaul-v1-execution.md` | ACTIVE EXECUTION DOC | NO — reference only | Feature-specific execution record for the Activity History Overhaul V1 work | Current status (see 00), goal cards (see 26) | — | Execution aid; scoped to one feature, not roadmap-wide |
+| `35-codex-goal-start-pack.md` | ACTIVE EXECUTION DOC | NO — reference only | Codex goal-execution start pack (kickoff context for the first cards) | Canonical goal cards (see 26), wave plan (see 23) | — | Execution aid; derived from 23/26 |
+| `36-first-execution-queue.md` | ACTIVE EXECUTION DOC | NO — reference only | The first execution queue / ordering of initial goal cards | Canonical card list (see 26), wave sequencing (see 23) | — | Execution aid; derived from 23/26 |
 | `99-roadmap-quality-self-audit.md` | ACTIVE EXECUTION DOC | NO — reference only | PASS/FAIL audit of 28 criteria, contradiction resolution log, summary statistics | Current status (see 00, 01) | — | Quality checkpoint; re-run after each wave |
 | `action-plan.md` | SUPERSEDED / HISTORICAL DOC | **NO — SUPERSEDED** | Historical reference only — original phased action plan | Current launch status, beta scope, owner decisions, Codex execution order | README.md, 00, 01, 22, 23, 26, 34 | Banners at top of file; preserved for git history |
 | `production-readiness-audit.md` | SUPERSEDED / HISTORICAL DOC | **NO — SUPERSEDED** | Historical reference only — original audit findings | Current audit status, known gaps | 02, 03, 00 | Banners at top of file; preserved for git history |
 | `status-tracker.md` | SUPERSEDED / HISTORICAL DOC | **NO — SUPERSEDED** | Historical reference only — original task/dimension tracker | Current status, completion percentages | 00-production-readiness-dashboard.md | Banners at top of file; preserved for git history |
 
-*Note: `35-codex-goal-start-pack.md` and `36-first-execution-queue.md` do not exist as of 2026-05-30.*
+*Note (reconciled 2026-06-18): the table above now enumerates all **43** roadmap `.md` files on disk (verified via `ls .ai/01_roadmap/`), including the three previously-unlisted files — `35-activity-history-overhaul-v1-execution.md`, `35-codex-goal-start-pack.md`, `36-first-execution-queue.md` — now classified as non-canonical ACTIVE EXECUTION aids. `_SYNC_REPORT.md` (the reconciliation ledger) is intentionally excluded from these counts per the sync-loop contract.*
 
 ---
 
@@ -61,11 +66,11 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | Category | Count | Files |
 |---|---|---|
 | ACTIVE EXECUTION DOC (canonical) | 12 | README, 00, 01, 14, 22, 23, 26, 27, 28, 29, 33, 34 |
-| ACTIVE EXECUTION DOC (non-canonical, reference only) | 6 | 24, 25, 30, 31, 32, 99 |
+| ACTIVE EXECUTION DOC (non-canonical, reference only) | 9 | 24, 25, 30, 31, 32, 35-activity-history, 35-codex-goal-start-pack, 36-first-execution-queue, 99 |
 | REFERENCE READINESS DOC | 12 | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13 |
 | SUPPLEMENTAL PRODUCT DOC | 7 | 15, 16, 17, 18, 19, 20, 21 |
 | SUPERSEDED / HISTORICAL DOC | 3 | action-plan, production-readiness-audit, status-tracker |
-| **Total** | **40** | |
+| **Total** | **43** *(roadmap `.md` files; `_SYNC_REPORT.md` excluded as the reconciliation ledger per the sync-loop contract)* | |
 
 ---
 
@@ -74,8 +79,8 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | Topic | Canonical Doc | Supporting Docs | Do NOT Use as Source of Truth |
 |---|---|---|---|
 | **Launch status** | `README.md` | `00-production-readiness-dashboard.md` | `action-plan.md`, `status-tracker.md`, `production-readiness-audit.md` |
-| **Collaboration & sharing (detailed audit and implementation truth)** | `.ai/03_plans/share-and-collaboration-implementation/` | `26-codex-goal-cards.md` (for goal cards), `22-ruthless-prioritization-for-beta.md` (for priority lanes) | Roadmap files that claim invites are "IMPLEMENTED" (see drift warning below) |
-| **Route transition performance (conflict resolution)** | `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` | `27-performance-budget-and-regression-gates.md` (for budget targets) | Legacy route-transition docs marked SUPERSEDED in the plan README |
+| **Collaboration & sharing (detailed audit and implementation truth)** | `.ai/09_archive/share-and-collaboration-implementation/` (MOVED 2026-06-18 from `.ai/03_plans/...`) | `26-codex-goal-cards.md` (for goal cards), `22-ruthless-prioritization-for-beta.md` (for priority lanes) | Roadmap files that claim invites are "IMPLEMENTED" (see drift warning below) |
+| **Route transition performance (conflict resolution)** | `.ai/09_archive/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` (MOVED 2026-06-18 from `.ai/03_plans/...`) | `27-performance-budget-and-regression-gates.md` (for budget targets) | Legacy route-transition docs marked SUPERSEDED in the plan README |
 | **Beta scope** | `29-enterprise-mvp-scope-and-owner-defaults.md` | `30-design-partner-beta-recruiting-plan.md`, `12-beta-launch-feedback-loop.md` | `24-owner-decision-packet.md` (pre-resolution) |
 | **Owner decisions** | `29-enterprise-mvp-scope-and-owner-defaults.md` | `14-owner-decisions.md`, `24-owner-decision-packet.md` | Any doc still saying `OWNER DECISION REQUIRED` for the 21 resolved items |
 | **Goal cards** | `26-codex-goal-cards.md` | `23-codex-goal-execution-plan.md`, `25-active-workstreams.md` | `00-production-readiness-dashboard.md` (dashboard is summary, cards are canonical) |
@@ -120,19 +125,21 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | "Old four-gate model only" | **SUPERSEDED.** New model: Four Launch Layers (0-4) + 5 Gate categories. | `29-enterprise-mvp-scope-and-owner-defaults.md`, `README.md` |
 | "137 items in dashboard" | **STALE — corrected.** Dashboard has 143 items (see Gate Summary table). | `00-production-readiness-dashboard.md` |
 | "69 total blockers" | **HISTORICAL ONLY.** After ruthless prioritization: 21 BETA P0, 10 BETA P1, 12 ENTERPRISE MVP, 11 PUBLIC LAUNCH. | `22-ruthless-prioritization-for-beta.md` |
-| "26 implementation-ready goal cards" | **STALE — corrected.** `26-codex-goal-cards.md` now contains 78 atomic cards + 15 EPIC headers + 10 new collab/share cards (2026-05-30). | `26-codex-goal-cards.md` |
+| "26 implementation-ready goal cards" | **STALE — corrected.** `26-codex-goal-cards.md` now contains **93 atomic executable cards** (78 original + 10 collab/share + 5 DBIDX) + 15 EPIC headers. | `26-codex-goal-cards.md` |
 
 ### ⚠️ Drift Warning — Collaboration Invites
 
-If a roadmap file says the invite flow, shared-link delivery, or collaboration readiness is DONE/beta-ready while `.ai/03_plans/share-and-collaboration-implementation/` still lists provider/dashboard or real-email smokes as open, **the roadmap must be corrected.** The current distinction is: local/live route implementation is substantially complete, but Supabase Auth email/provider dashboard proof, hosted invite template/confirmation proof, Resend dashboard/webhook proof, and real invite/recipient browser smokes are still not done. The combined pack is the newer truth for invite operational readiness and shared-link receiver sequencing.
+If a roadmap file says the invite flow, shared-link delivery, or collaboration readiness is DONE/beta-ready while the share-and-collaboration plan still lists provider/dashboard or real-email smokes as open, **the roadmap must be corrected.** (Path note, 2026-06-18: this plan has been MOVED to `.ai/09_archive/share-and-collaboration-implementation/`; the cited `.ai/03_plans/share-and-collaboration-implementation/` path no longer exists.) Code corroborates the distinction: the invite/share *routes and server actions* are substantially built (e.g. `src/app/invite/[token]/page.tsx`, `src/app/share/[token]/page.tsx`, `src/lib/collaboration/actions.ts`, `src/lib/publication/actions.ts`), but project invite entry is FEATURE-FLAG gated (`PROJECT_INVITE_ENTRY_ENABLED`, default off) and real email delivery (Resend) plus Supabase Auth provider/dashboard proof remain EXTERNAL/HOSTED facts not provable from code. The current distinction is: local/live route implementation is substantially complete, but Supabase Auth email/provider dashboard proof, hosted invite template/confirmation proof, Resend dashboard/webhook proof, and real invite/recipient browser smokes are still not done. The combined pack is the newer truth for invite operational readiness and shared-link receiver sequencing.
 
 ### ⚠️ Drift Warning — Route Transition Performance
 
-If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in middleware, or claims route transition optimization is complete/archive-ready, **the roadmap must be corrected.** `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution authority. `proxy.ts` is active Next.js 16 middleware. `getUser()` must be used, not `getSession()`. Production-authenticated hover `_rsc` proof, authenticated Lighthouse, true webpack bundle-analyzer, and public bfcache cache-header mitigation are now captured, but the route-transition plan remains incomplete until manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof are captured.
+If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in middleware, or claims route transition optimization is complete/archive-ready, **the roadmap must be corrected.** The conflict-resolution plan has since been MOVED to `.ai/09_archive/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` (the cited `.ai/03_plans/route-transition-performance-optimization/` path no longer exists — verified 2026-06-18). The code facts in this warning remain CONFIRMED against the current codebase: `src/proxy.ts` is active Next.js 16 middleware (`src/middleware.ts` is absent; `PROTECTED_PREFIXES=["/workshop"]`, matcher config present) and it uses `getUser()` (`src/proxy.ts:114`), not `getSession()`. Production-authenticated hover `_rsc` proof, authenticated Lighthouse, true webpack bundle-analyzer, and public bfcache cache-header mitigation are now captured, but the route-transition plan remains incomplete until manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof are captured.
 
 ### ⚠️ Drift Warning — Database Indexing / Query Performance
 
-If a roadmap file says indexing is implemented or "DONE" but the database indexing plan at `.ai/03_plans/database-indexing-and-query-performance/` says no indexes have been created and the audit has not started, **the roadmap must be corrected.** Index planning is not implementation evidence. No index migration exists. No EXPLAIN evidence has been collected. The audit (CODEX-P0-DBIDX-001) is BETA P0 and must complete before any index can be proposed.
+If a roadmap file says the dedicated DBIDX audit is complete or that audit-driven candidate indexes (CODEX-P0-DBIDX-001/002/003) are "DONE" while the database indexing plan at `.ai/03_plans/database-indexing-and-query-performance/` still shows the audit/EXPLAIN phase open, **the roadmap must be corrected.** That DBIDX audit-then-DDL workstream remains incomplete (its README, refreshed 2026-06-18, states "No DBIDX candidate index migration was found" and that candidate indexes "remain future work behind DBIDX-001/002/003 evidence and owner-approved shortlist"; only a repo-only audit helper `scripts/audit-dbidx-repo.ts` exists).
+
+CORRECTED (2026-06-18) — the original blanket claims "No index migration exists" and "No EXPLAIN evidence has been collected" are now FALSE against code and have been narrowed: (1) Indexes DO exist in the applied schema — 28 migration files under `supabase/migrations/` contain `create index`, including the explicit `20260520051908_optimize_workspace_estimate_list_indexes.sql`. (2) EXPLAIN evidence HAS been collected for the estimates-list perf work — `metrics/p2-explain-before.txt`, `metrics/p2-explain-after.txt`, `metrics/baseline-estimates-list.md`, `metrics/after-estimates-list.md`. The accurate scope of the warning is narrower: it concerns the formal DBIDX *audit-driven candidate-index* program, not the pre-existing feature-shipped indexes. (Whether any migration is actually applied to the hosted Supabase project remains an EXTERNAL/HOSTED fact code cannot prove.)
 
 ---
 

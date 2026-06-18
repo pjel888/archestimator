@@ -3,6 +3,8 @@
 **Last updated:** 2026-05-30
 **Purpose:** Precise test infrastructure plan to fix ambiguity around RLS/storage/API tests. This does NOT create test files — it documents what Codex should create and how.
 
+> **RECONCILIATION NOTE (2026-06-18, code-verified):** The *staging-Supabase + `RUN_STAGING_TESTS`* approach proposed below was **NOT adopted** as written. No `tests/integration/` or `tests/performance/` directory exists, and none of the proposed gate env vars (`RUN_STAGING_TESTS`, `SUPABASE_STAGING_URL`, `ARCHESTIMATOR_STAGING_TESTS`, `RUN_MUTATING_E2E`, `SKIP_STAGING_TESTS`) are referenced anywhere in the repo. The **actual** shipped RLS/parity proof mechanism is the ephemeral-local-Postgres harness set under `scripts/prove-*-postgres.mjs` (5 scripts, wired as `prove:*` in `package.json`) — these spin up a temp PG cluster, apply real `supabase/migrations/`, and assert access decisions / RPC parity. They are NOT in CI (`.github/workflows/ci.yml`) and require local Postgres binaries. The "Future Test File Paths" at the bottom of this doc are all still **absent** (none created). Treat Sections 2–13 below as the original (now-superseded) proposal; the prove-harness reality is the current truth. See "Actual implemented state" callouts inline.
+
 ---
 
 ## Canonical Test Approach
@@ -22,9 +24,9 @@ Assertions must use authenticated user clients.
 | Test Type | Runner | Rationale |
 |-----------|--------|-----------|
 | Unit tests | Bun test (`bun run test`) | Already configured under `tests/unit/` |
-| DOM/component tests | Vitest + jsdom (`bun run test:dom`) | Already configured under `tests/vitest/` — 115 test files |
-| Integration (RLS/storage/API) | Vitest or Bun test with direct Supabase client | Needs real Supabase connection; recommend Vitest for consistency with existing DOM tests |
-| E2E (browser flows) | Playwright (`bun run test:e2e`) | Already configured — 7 spec files under `e2e/` |
+| DOM/component tests | Vitest + jsdom (`bun run test:dom`) | Already configured under `tests/vitest/` — ~350 test files (361 incl. subdirs) as of 2026-06-18 [was: 115; evidence: `find tests/vitest -name '*.test.ts*'`] |
+| Integration (RLS/storage/API) | Vitest or Bun test with direct Supabase client | Needs real Supabase connection; recommend Vitest for consistency with existing DOM tests. **[NOT BUILT as proposed — `tests/integration/` does not exist; actual RLS proof shipped as `scripts/prove-*-postgres.mjs`, see reconciliation note]** |
+| E2E (browser flows) | Playwright (`bun run test:e2e`) | Already configured — 18 spec files under `e2e/` as of 2026-06-18 [was: 7; evidence: `ls e2e/*.spec.ts`]. Note: 16 of 18 are env-gated (`ARCHESTIMATOR_E2E_*` / `PLAYWRIGHT_STORAGE_STATE`), so only `auth.spec.ts` + `landing-audit.spec.ts` run ungated. |
 | Performance | Custom benchmarks (Vitest or standalone scripts) | Use `performance.now()` instrumentation or Lighthouse CLI |
 
 ## 2. Environment Requirements
@@ -32,7 +34,7 @@ Assertions must use authenticated user clients.
 ### Staging Supabase (required for security/RPC/integration tests):
 
 - Separate Supabase project (NOT `ebxxqidacheyapmmzavr`)
-- All 48 migrations applied
+- All migrations applied — **110 migration files** in `supabase/migrations/` as of 2026-06-18 [was: 48; evidence: `ls supabase/migrations/*.sql`]. (Whether they are applied to any hosted/staging project is an EXTERNAL fact this doc cannot prove; readiness is checked by `scripts/check-supabase-migration-readiness.ts`.)
 - Separate auth users, service-role keys, storage buckets
 - Seed data script for test accounts and workspaces
 
@@ -424,6 +426,15 @@ tests/performance/core-performance-smoke.test.ts
 ```
 
 **Note:** These are DOCUMENTATION ONLY — do not create these files now. These paths are documented for Codex to create when executing corresponding goal cards. They are implementation artifacts for future Codex runs.
+
+> **STATUS (2026-06-18, code-verified):** NONE of the file paths above have been created — all are still absent (checked: `tests/integration/rls/`, `tests/integration/storage/`, `tests/integration/api/`, `tests/e2e/staging/`, `tests/performance/` do not exist). The RLS/parity coverage that *did* ship instead lives at:
+> - `scripts/prove-rls-initplan-postgres.mjs` (auth.uid() initplan rewrite is access-decision-neutral)
+> - `scripts/prove-notification-rls-postgres.mjs` (notification RLS)
+> - `scripts/prove-estimate-tabs-postgres.mjs` (estimate_tabs RLS)
+> - `scripts/prove-estimate-list-summaries-postgres.mjs` (RPC vs JS-oracle byte parity)
+> - `scripts/prove-unify-estimate-node-kinds-postgres.mjs` (node-kind unification semantics)
+>
+> These run against an ephemeral local Postgres (require local PG binaries) and are NOT in CI. So the doc's planned integration/storage/api/staging-e2e/perf test files remain GHOSTS (planned, never built); the prove-harnesses are the actual implemented substitute. Storage-denial and full per-table RLS-denial matrix tests (Sections 7–8) are still not implemented in any form.
 
 ---
 

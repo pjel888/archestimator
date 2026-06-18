@@ -1,6 +1,22 @@
 # Project Groups — Implementation Readiness Package
 
-> **Status: Implementation-ready** (after the three in-flight branches land — see §5).
+> **2026-06-18 status refresh:** This package is now **implemented in the current repo**
+> for the core Project Groups feature. The original readiness text below is historical
+> planning context. Repo-local implementation evidence exists, but this refresh does
+> not claim fresh hosted/browser/manual QA or a new provider-state audit.
+
+## Evidence Anchors
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source | Implemented | `src/lib/workshop/group-actions.ts`, `src/lib/workshop/group-constants.ts`, `src/lib/workshop/group-action-types.ts`, `src/lib/workshop/group-accent.ts`, `src/lib/repositories/workspace-repository.ts`, `src/app/workshop/projects/page.tsx`, `src/components/workshop/projects-page-client.tsx`, `src/components/workshop/ProjectGroupSection.tsx`, and `src/components/workshop/ManageGroupsPopover.tsx`. |
+| Tests/checks | Implemented | `tests/vitest/project-group-actions.test.ts`, `tests/vitest/projects-page-group-mode.test.tsx`, `tests/vitest/projects-page-organize-control.test.tsx`, `tests/vitest/workshop-project-groups-repository.test.ts`, `tests/vitest/project-group-section.test.tsx`, `tests/vitest/group-accent.test.ts`, and `tests/vitest/upsert-update-grant-contract.test.ts`. |
+| Migrations/types | Implemented in repo | `supabase/migrations/20260617090000_project_groups.sql`, `supabase/migrations/20260617210000_grant_update_for_membership_and_favorite_upserts.sql`, and generated `src/lib/supabase/types.ts` entries for `project_groups` / `project_group_memberships`. |
+| Provider apply | Historical evidence only | `.ai/10_state/decisions.md` records the 2026-06-17 live grant diagnosis/fix, but this 2026-06-18 README refresh did not re-query Supabase. |
+| Hosted/browser proof | Not freshly verified | No hosted or authenticated browser QA was run during this docs refresh. |
+| Owner/manual proof | Not freshly verified | No owner/manual acceptance pass was run during this docs refresh. |
+
+> **Historical plan-close status:** Implementation-ready (after the three in-flight branches land — see §5).
 > The prior adversarial-review FIX@IMPL backlog is now **integrated into the phase plans**
 > (`08`–`11`) rather than left as a pre-start checklist, and readiness is evidenced by the
 > requirements→test **traceability matrix** (`13`), the **implementer handoff/runbook** (`14`),

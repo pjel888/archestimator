@@ -160,6 +160,7 @@ Tasks test discoverability and clarity. The participant has never seen the produ
 
 - **Scenario:** You are unsure about the going rate for a specific type of work in your area. Ask Flip, the AI assistant, what a reasonable rate would be, and whether the number you entered seems right.
 - **Starting state:** Estimate open. Flip is accessible from the workspace.
+- **Feature-flag prerequisite (code-verified):** Ask Flip is DISABLED BY DEFAULT. The route returns 404 (`isAiRoutesEnabled` defaults false; `.env.example` ships `ARCHESTIMATOR_AI_ENABLED=false`) and the UI is hidden (`isAskFlipUiEnabled` defaults false; `.env.example` ships `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`). It is DeepSeek-backed and requires a live `DEEPSEEK_API_KEY` at runtime (`src/lib/ai/feature-flags.ts`, `src/lib/ai/deepseek.ts`, `src/app/api/ai/ask/handler.ts`). Do NOT script this task unless both flags are on and the provider key is configured for the session; otherwise the feature will not appear.
 - **Success criteria:** Flip responds with a rate estimate or a relevant suggestion. Participant evaluates whether the response was helpful or not.
 - **Max time:** 2 minutes.
 - **Prompts:**
@@ -170,6 +171,7 @@ Tasks test discoverability and clarity. The participant has never seen the produ
 
 - **Scenario:** Use the AI package builder to draft an estimate from a natural-language description. Review the draft, then apply it so it appears in your estimate sheet.
 - **Starting state:** Inside a project with an estimate available.
+- **Feature-flag prerequisite (code-verified):** The package builder is behind the same DISABLED-BY-DEFAULT AI gate as Ask Flip — the route returns 404 unless `ARCHESTIMATOR_AI_ENABLED` is on (`.env.example` ships it false). It is DeepSeek-backed and requires a live `DEEPSEEK_API_KEY`; the "memory"/preference-learning sub-feature is additionally default-off and its DB table is not applied (`AI_PACKAGE_BUILDER_MEMORY_ENABLED` false; migration sits in `supabase/migrations-pending-review/deferred/`). Evidence: `src/lib/ai/feature-flags.ts`, `src/app/api/ai/package-builder/handler.ts`. Do NOT script this task unless the AI flag is on and the provider key is configured for the session.
 - **Success criteria:** Participant enters a description, receives a draft, reviews it, and applies it. The estimate sheet now contains AI-generated content.
 - **Max time:** 3 minutes.
 - **Prompts:**
@@ -180,6 +182,7 @@ Tasks test discoverability and clarity. The participant has never seen the produ
 
 - **Scenario:** Invite a team member to view and edit this project. Use the test email address provided by the facilitator. Set their permission to editor.
 - **Starting state:** Inside the project.
+- **Feature-flag caveat (code-verified):** The collaboration invite action (`inviteProjectCollaborator`, role-gated, in `src/lib/collaboration/actions.ts`) IS built. BUT: (a) the emailed *invite-entry link* path is default-off — when `PROJECT_INVITE_ENTRY_ENABLED` is false (`.env.example` default) the action falls back to a direct `project_members` upsert without an emailed entry link; and (b) actual email delivery is default-off and fail-closed (`ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=false`, requires `RESEND_API_KEY` + verified sender). So the success criterion "an invitation is sent to the test email" is NOT achievable without enabling the invite-entry flag, configuring Resend, and applying the collaboration migrations to the live DB — all external/operator facts. In the default build the member is granted access via upsert, but no email is sent.
 - **Success criteria:** An invitation is sent to the test email with editor permissions. Participant can describe what the collaborator will be able to do once they accept.
 - **Max time:** 2 minutes.
 - **Prompts:**

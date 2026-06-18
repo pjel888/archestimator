@@ -2,6 +2,8 @@
 
 **Last updated: 2026-05-30**
 
+> **2026-06-18 ROADMAP_SYNC note:** Reconciled against the actual codebase. This is a product/UX intent doc (personas, anxieties, JTBD, evidence metrics); most content is narrative and not a code claim, so it MATCHES by design. The code-checkable parts are the **Feature Paths** and the **Summary Table readiness column**. Every feature-path SURFACE was confirmed to exist in code: login + auth callback (`src/app/login/page.tsx`, `src/app/auth/callback/route.ts`), projects + estimates (`src/app/workshop/projects/**`), component-library sidebar + templates (`src/lib/component-library/actions.ts`, `src/app/workshop/library/**`), donut/cost charts (`src/components/workshop/project-charts/ProjectCostDonutChart.tsx`), XLSX export (`.../export/proposal.xlsx/route.ts`), shared link with Tree View / comments / accept-reject-revision decisions (`src/components/share/ShareEstimateTreeView.tsx`, `SharePageComments.tsx`, `SharePageDecision.tsx`), invite-accept flow (`src/app/invite/[token]/**`, `src/app/workshop/pending-invite/route.ts`), and activity history (`src/components/workshop/estimate-sheet/activity-history.tsx`). Two caveats are flagged inline below: (a) Persona 1's "package-builder" row-add path is built but flag-gated OFF by default (`ARCHESTIMATOR_AI_ENABLED` defaults false → 404; `src/lib/ai/feature-flags.ts`); (b) Persona 6's monitoring/runbooks/metrics are readiness scaffolding + external/manual facts, not built observability. Per the external-proof rule, NO readiness status was promoted: every "Readiness Status" stays UNKNOWN / NEEDS EVIDENCE because those require USER-VALIDATION evidence (completion rates, comprehension tests, survey scores) that code cannot produce.
+
 ---
 
 ## 1. OWNER-CONTRACTOR / DECISION MAKER
@@ -29,6 +31,8 @@ First estimate with real rows, correct totals, and the ability to export or shar
 
 ### Feature Path
 Login → Create project → Create estimate → Add rows (manual or package-builder) → Review totals → Export XLSX or create shared link → Send to client.
+
+> _Code caveat (2026-06-18 sync): the manual row path, XLSX export, and shared-link path are built and the AI package-builder is implemented (`src/lib/ai/package-builder/**`), BUT the package-builder route is flag-gated OFF by default — `ARCHESTIMATOR_AI_ENABLED` defaults false and the route returns 404 (`src/lib/ai/feature-flags.ts` `isAiRoutesEnabled`), and the Ask-Flip UI flag `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` also defaults false. So in the default deployment this persona's only available row-add path is "manual"._
 
 ### Must-Not-Fail Moments
 - Login. If they can't get in, nothing else matters.
@@ -243,6 +247,8 @@ A user completes the core loop (create estimate → add rows → review totals �
 
 ### Feature Path
 Monitor dashboard → Review product metrics (active users, estimates created, shares sent) → Triage user feedback → Make data-informed product decisions → Deploy with confidence using automated CI/CD → Handle incidents via documented runbooks.
+
+> _Code caveat (2026-06-18 sync): this path is largely ASPIRATIONAL against current code. What exists: a GitHub Actions CI pipeline (`.github/workflows/ci.yml`: typecheck/lint/test/build/e2e), a shallow liveness health endpoint (`src/app/api/health/route.ts`), beta-feedback triage actions (`src/lib/workshop/beta-feedback-review-actions.ts`), Vercel Web Analytics with redaction (`src/lib/analytics/vercel-web-analytics.ts`), and a fleet of launch/uptime/monitoring READINESS check scripts that only record operator-attested flags (`scripts/check-support-monitoring-readiness.ts`, `verify-hosted-*.ts`). What does NOT exist in code: a product-metrics "Monitor dashboard" (active-users/estimates-created/shares-sent), production RUM (`@vercel/speed-insights` is not installed; `WebVitalsProbe` only console.logs in dev), error-tracking/alerting (no Sentry/Datadog/PagerDuty), automated CD/rollback, and runbooks. Monitoring, deploy pipeline, incident response, and backup/restore remain EXTERNAL/MANUAL operator facts — code cannot prove them. This is consistent with the persona's own framing ("document what must change to outgrow a solo operator")._
 
 ### Must-Not-Fail Moments
 - Deployment. A bad deploy with no rollback path is the worst-case.

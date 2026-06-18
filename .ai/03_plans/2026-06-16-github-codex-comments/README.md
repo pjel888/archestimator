@@ -14,6 +14,20 @@ Archestimator with evidence. Resolution means one of:
   obsolete with local evidence;
 - the thread is already outdated/resolved in GitHub and is verified closed.
 
+## Fresh Release-Audit Status — 2026-06-18
+
+This older broad tracker remains partially implemented / blocked and must not be
+used as release-clean evidence. A fresh read-only GitHub GraphQL audit on
+2026-06-18 found 7 active unresolved non-outdated `chatgpt-codex-connector`
+threads across open PRs #75, #87, #88, #89, and #92. Three of those active
+threads are on PR #87 and target this plan folder's sensitive-history purge
+runbook/script.
+
+Proof boundary: GitHub read-only audit only. No review threads were resolved, no
+comments posted, and no PR branches edited. If GitHub Codex comment status is a
+release gate, rerun the fresh audit after fixes and require zero active
+unresolved non-outdated Codex threads.
+
 ## Intake Evidence
 
 - Open PRs at intake: `#66, #70, #71, #73, #74, #75, #77, #80, #82, #84, #85, #86`.

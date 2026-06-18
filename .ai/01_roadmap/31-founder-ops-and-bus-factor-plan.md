@@ -3,6 +3,8 @@
 **Last updated:** 2026-05-30
 **Purpose:** Reduce OWNER_NAME_PLACEHOLDER bottleneck during beta. Define operating model for solo founder.
 
+> **TOOLING-REALITY NOTE (2026-06-18, code-verified):** This is an operating-model *plan*; most of it is intentional policy/intent, not shipped state. Two automation assumptions below are out of sync with the codebase: (1) **No Sentry (or any error-tracking / exception-monitoring) integration exists in the repo** — no Sentry, Bugsnag, Rollbar, Datadog, or OpenTelemetry in `src/`, `scripts/`, or `package.json`. The "Sentry" references in Sections 4, 7, 10, and 11 are aspirational, not an installed tool. (2) **CI/CD via GitHub Actions DOES exist** (`.github/workflows/ci.yml`: typecheck, lint, design-system lint, impeccable audit, bun unit, vitest DOM, `next build`, Playwright e2e + perf smoke); the Vercel deploy half is external and not code-provable. A `/api/health` liveness endpoint exists (`src/app/api/health/route.ts`) but no synthetic uptime monitor consumes it. Secret scanning is NOT in `ci.yml`. All hosted/provider/operator items (Vercel deploy, Supabase admin, domain/DNS, email, 1Password) remain external facts this plan cannot verify. Inline `[code-verified ...]` tags mark the specific reconciliations.
+
 ---
 
 ## 1. the owner's Roles During Beta
@@ -110,14 +112,14 @@ Weekly: collect all feedback from:
 
 | Task | Automation Potential | Priority |
 |------|---------------------|----------|
-| Error alerting | Sentry alerts for SEV-1/SEV-2 | Before beta |
-| Uptime monitoring | Synthetic health check | Before beta |
-| Support auto-responder | "Got your message, will respond within 24h" | Before beta |
-| Feedback form | Structured form linked in app | BETA P1 |
-| Weekly feedback reminder | Automated email to participants | BETA P1 |
-| CI/CD | GitHub Actions + Vercel | Before beta |
-| Secret scanning | CI pipeline | Before beta |
-| Log aggregation | Vercel log drain to Sentry or equivalent | BETA P1 |
+| Error alerting | Sentry alerts for SEV-1/SEV-2 | Before beta — **NOT BUILT** [code-verified: no Sentry/error-tracking integration in repo] |
+| Uptime monitoring | Synthetic health check | Before beta — partial: `/api/health` endpoint exists, but no synthetic monitor consumes it [code-verified: `src/app/api/health/route.ts`] |
+| Support auto-responder | "Got your message, will respond within 24h" | Before beta — external/email-ops (not code-provable) |
+| Feedback form | Structured form linked in app | BETA P1 — **BUILT**: in-app beta feedback exists [code-verified: `src/lib/workshop/beta-feedback-actions.ts`, `src/app/workshop/feedback/page.tsx`, `src/app/workshop/settings/feedback/page.tsx`] |
+| Weekly feedback reminder | Automated email to participants | BETA P1 — depends on Resend email delivery (default-off, external) |
+| CI/CD | GitHub Actions + Vercel | Before beta — GitHub Actions **BUILT** [code-verified: `.github/workflows/ci.yml`]; Vercel deploy external |
+| Secret scanning | CI pipeline | Before beta — **NOT in CI** [code-verified: no secret-scan step in `.github/workflows/ci.yml`] |
+| Log aggregation | Vercel log drain to Sentry or equivalent | BETA P1 — **NOT BUILT** [code-verified: no log-shipping/aggregation; Sentry absent] |
 
 ## 8. What Can Be Delegated Later
 
@@ -169,8 +171,8 @@ OWNER_NAME_PLACEHOLDER should check these weekly:
 | Active beta participants | Manual count | 5–8 |
 | Support tickets this week | Email inbox | < 5 |
 | Open incidents | Incident log | 0 SEV-1/SEV-2 |
-| Uptime (health check) | Synthetic monitor | > 99% |
-| Error rate | Sentry | < 5% of requests |
+| Uptime (health check) | Synthetic monitor (note: `/api/health` exists; no synthetic monitor wired yet) | > 99% |
+| Error rate | Sentry (note: NOT installed; no error-rate source exists in repo) | < 5% of requests |
 | Performance baseline | Lighthouse / bundle analyzer | Within beta targets |
 | Goal cards completed | 26-codex-goal-cards.md | Incrementing weekly |
 | Feedback themes | Weekly synthesis | 3+ themes captured |

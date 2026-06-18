@@ -19,6 +19,19 @@ No running of `gitnexus analyze` / `code-review-graph install` (would regenerate
 No dependency changes. No touching the dashboard agent's files (`src/**`, `tests/**`, `scripts/enforce-*`,
 `DESIGN.md`, `decisions.md`, `.impeccable/**`).
 
+## Evidence Anchors
+
+Refreshed 2026-06-18 from repo-local evidence.
+
+| Proof dimension | Status | Evidence |
+|---|---|---|
+| Repo source/docs | Implemented locally | `scripts/neutralize-graph-mandate.mjs`, package scripts `graph:reindex` / `graph:neutralize`, and AGENTS/CLAUDE re-index notes exist in current repo. |
+| Tests/checks | Historical pass recorded | Acceptance criteria below record no-op real-file run, fixture neutralization, idempotency, package parse, and `git diff --check`. |
+| Migrations/provider | Not applicable | No database/provider mutation. |
+| Hosted/browser proof | Not applicable | No hosted/browser proof required. |
+| Owner/manual proof | Not freshly verified | No separate owner/manual acceptance pass was run during the 2026-06-18 refresh. |
+| Tool-generator proof | Not freshly verified | Real `gitnexus analyze` / `code-review-graph install` was intentionally not run. |
+
 ## Branch / Status
 
 `feat/dashboard-content-uxui-improvement`; concurrent dashboard agent active in src/tests/scripts.

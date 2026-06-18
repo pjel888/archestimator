@@ -1,13 +1,15 @@
 # Codex /goal Execution Plan
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-18 (roadmap-sync: ghost references flagged, collaboration/share hardening claims reconciled to code)
 **Purpose:** The single document that tells Codex how to use the roadmap. This is the most important document in the roadmap.
 
 ## Current MVP Launch Handoff
 
 The broad MVP launch `/goal` is blocked, not complete. Repo-local implementation is frozen at `6ab5b38`; docs/status/contract guard evidence is pushed through `bdf9b03`.
 
-Do not run another broad implementation goal against `.ai/03_plans/mvp-launch-readiness-2026-06-01/`. The next bounded goal should be an external/provider/manual proof lane from `46-manual-proof-matrix.md`, after the relevant provider configuration exists. Local code should only reopen if a new repo-local defect is found.
+Do not run another broad implementation goal against the mvp-launch-readiness pack (now archived at `.ai/09_archive/mvp-launch-readiness-2026-06-01/`). The next bounded goal should be an external/provider/manual proof lane from `.ai/09_archive/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`, after the relevant provider configuration exists. Local code should only reopen if a new repo-local defect is found.
+
+> **⚠️ GHOST-PATH NOTE (2026-06-18 cross-doc sync):** The bare `.ai/03_plans/mvp-launch-readiness-2026-06-01/` path no longer resolves under `.ai/03_plans/` (confirmed by directory listing), and `46-manual-proof-matrix.md` does not exist under `.ai/01_roadmap/` (no `4x`-numbered roadmap files exist). However, the pack and its `46-manual-proof-matrix.md` were **archived, not deleted** — they are filesystem-verified at `.ai/09_archive/mvp-launch-readiness-2026-06-01/` (archive move recorded in commit `b0ff67c3`). This resolution matches `28-evidence-artifact-index.md` and `25-active-workstreams.md`; readers should follow the `.ai/09_archive/...` path. The git commits `6ab5b38` and `bdf9b03` also still resolve in history. The bare `.ai/03_plans/...` form remains a GHOST REFERENCE wherever it still appears in sibling roadmap docs.
 
 ## Execution Philosophy
 
@@ -143,16 +145,23 @@ bun run test tests/integration/storage-isolation.test.ts  # must pass against st
 
 **Owner decisions required:** None (all resolved in Wave 0)
 
-**Explicit non-goals:** Fixing every RLS policy gap (report only), penetration testing, implementing new auth features, modifying RLS policies without test coverage first. Do NOT use `.ai/03_plans/share-and-collaboration-implementation/` as evidence of implementation — it is a plan/audit/readiness pack only. Collab invite implementation must be atomic: human dashboard/provider setup (Wave 1) must be separated from Codex code tasks (Wave 2). Agents may run tests against staging Supabase but must not modify staging infrastructure.
+**Explicit non-goals:** Fixing every RLS policy gap (report only), penetration testing, implementing new auth features, modifying RLS policies without test coverage first. Do NOT use the share-and-collaboration-implementation pack (archived at `.ai/09_archive/share-and-collaboration-implementation/`; the bare `.ai/03_plans/...` form is a GHOST REFERENCE) as evidence of implementation — it is a plan/audit/readiness pack only. Collab invite implementation must be atomic: human dashboard/provider setup (Wave 1) must be separated from Codex code tasks (Wave 2). Agents may run tests against staging Supabase but must not modify staging infrastructure.
 
 ---
 
 ## Collaboration & Sharing Audit Integration
 
-**⚠️ Important:** The collaboration & sharing implementation-readiness pack at `.ai/03_plans/share-and-collaboration-implementation/` has been integrated into the roadmap. Key points:
+**⚠️ Important:** The collaboration & sharing implementation-readiness pack (now archived at `.ai/09_archive/share-and-collaboration-implementation/`) has been integrated into the roadmap. Key points:
 
-- **Collaboration Invites are implemented locally but provider proof is still open.** Supabase Auth email/SMTP provider must be configured, `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` must be set in the target environment, hosted invite template/confirmation settings must be proven, and a real invite email/browser smoke must pass. The invite acceptance route has local POST-only/fail-closed hardening, but local route proof is not beta readiness.
-- **Shared Link is functional but has production-hardening gaps.** In-memory rate limiters are not durable, per-recipient open tracking is missing, project-card/homebase visibility signifiers are missing, one-click copy is missing, and owner digest uses hardcoded/placeholder sender.
+> **⚠️ GHOST-PATH NOTE (2026-06-18 cross-doc sync):** The bare `.ai/03_plans/share-and-collaboration-implementation/` path no longer exists under `.ai/03_plans/` (confirmed by directory listing), but the pack was **archived, not deleted** — it is filesystem-verified at `.ai/09_archive/share-and-collaboration-implementation/`. Treat the bullets below as integrated guidance and follow the `.ai/09_archive/...` path. The bare `.ai/03_plans/...` form remains a GHOST REFERENCE wherever it still appears.
+
+- **Collaboration Invites are implemented locally but provider proof is still open.** Supabase Auth email/SMTP provider must be configured, `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` must be set in the target environment, hosted invite template/confirmation settings must be proven, and a real invite email/browser smoke must pass. The invite acceptance route has local POST-only/fail-closed hardening, but local route proof is not beta readiness. *(MATCH 2026-06-18: `src/app/invite/[token]/accept/route.ts` exists with POST-only/CSRF/rate-limit hardening; `PROJECT_INVITE_ENTRY_ENABLED` defaults OFF and the invite pepper ships blank per `.env.example` — provider/hosted email proof correctly remains OPEN/external.)*
+- **Shared Link is functional, and several previously-listed production-hardening gaps are now closed in code.** *(DRIFT corrected 2026-06-18 — see evidence per item):*
+  - In-memory rate limiters are **no longer the only layer**: a durable, cross-instance rate limit backed by `security_rate_limit_events` now wraps the share endpoints (`src/lib/publication/public-repository.ts` `checkRecordedRateLimit`/`checkExistingRateLimit`); the in-memory limiter/circuit-breaker (`src/app/api/share/[token]/comment/route.ts`) remains only as additional per-process defense.
+  - Per-recipient open tracking is **now present** (`last_opened_at` column in `supabase/migrations/20260528220000_project_shared_link_overhaul.sql`; `latestRecipientOpen` view-model in `src/lib/publication/types.ts`; `delivery_status`/`last_opened_at` on `listSharedLinkRecipients` in `src/lib/publication/actions.ts`; Resend webhook ingestion in `src/lib/email/resend-webhooks.ts`). *(Live open/bounce delivery events remain an EXTERNAL Resend fact.)*
+  - One-click copy is **now present** (`copyProjectInviteLink` in `src/lib/collaboration/actions.ts`; copy affordances in `src/components/workshop/ProjectPublicationHeader.tsx`).
+  - Owner digest sender is **no longer hardcoded/placeholder**: it reads `RESEND_FROM` from env (`src/lib/publication/actions.ts:220`, `src/lib/email/resend-client.ts:49`). *(Actual deliverability remains an EXTERNAL Resend/DNS fact; default email delivery ships DISABLED.)*
+  - **Still open:** project-card/homebase shared-link visibility signifier is NOT rendered. `LiveProjectCard.tsx` declares a `publicationSummary?: ProjectPublicationListSummary | null` prop but never consumes it in the render body (`sharedEstimateCount` shown there is shared-WITH-me collaboration access, not own-project publication state).
 - **Do NOT execute the whole audit at once.** Each implementation unit must be atomic. See new goal cards in `26-codex-goal-cards.md`: HUMAN-P0-COLLAB-001A (human external setup), CODEX-P0-COLLAB-001B through 004 (invite hardening), CODEX-P1-COLLAB-005 (invite visibility), CODEX-P1-SHARE-001 through 004 (shared-link hardening).
 - **Wave mapping:** Invite config/unblock (Wave 1 human setup), invite acceptance security + rate limiting (Wave 2), invite visibility + shared-link hardening (P1 items, parallel with Waves 4-5).
 - **The audit pack is a plan, not evidence.** Do not claim implementation is done based on audit documents.

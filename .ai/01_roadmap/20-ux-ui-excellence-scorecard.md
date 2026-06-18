@@ -1,6 +1,6 @@
 # UX/UI Excellence Scorecard
 
-**Last updated: 2026-05-30**
+**Last updated: 2026-05-30** (code-fact reconciliation pass 2026-06-18: corrected stale tech descriptions for the estimate tree and charts, flagged default-off AI gating and the missing custom 404/500 — UX scores remain provisional/unaudited by user observation)
 
 > **EXCELLENCE RULE:** A feature is not considered excellent until it has a documented happy path, recovery path, success metric, evidence, and at least one user-observation note.
 
@@ -80,13 +80,15 @@
 
 ### 2. Workshop home (bento grid)
 
+<!-- CODE NOTE (2026-06-18): the homebase was rebuilt as a command-center bento dashboard (src/components/workshop/dashboard/WorkshopDashboard.tsx, "full-bleed bento"). A DashboardEmptyState component (src/components/workshop/dashboard/DashboardEmptyState.tsx) and a route-level src/app/workshop/loading.tsx now EXIST — the empty/loading dimensions below are "not audited by users", not "absent in code". UX scores remain provisional. -->
+
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | Clarity | 2 | Bento grid layout is scannable; card labels untested |
 | Visual hierarchy | 2 | Card sizing creates hierarchy; no eye-tracking data |
 | Interaction economy | 2 | Click-to-navigate; acceptable |
-| Empty state | 0 | Not audited |
-| Loading state | 0 | Not audited |
+| Empty state | 0 | Not audited by users (DashboardEmptyState component exists in code) |
+| Loading state | 0 | Not audited by users (src/app/workshop/loading.tsx exists in code) |
 | Error state | 0 | Not audited |
 | Success state | 0 | Not audited |
 | Recovery path | 0 | Not audited |
@@ -140,7 +142,10 @@
 | Required evidence | Tree-test of project IA, time-to-find-target-project |
 | Next product decision | Define minimum project count before search/filter is required |
 
-### 4. Estimate tree nav (React Complex Tree)
+### 4. Estimate tree nav (custom virtualized tree; was React Complex Tree)
+
+<!-- CODE DRIFT (2026-06-18): the estimate tree is no longer React Complex Tree. src/components/workshop/EstimateSheetTree.tsx now renders the in-house @/components/ui/tree (custom DnD via src/lib/estimates/estimate-tree-reorder.ts, virtualization, context menus, single-node "Area" unification). react-complex-tree ^2.6.1 survives only as vendored CSS in src/app/workshop/layout.tsx and a TreeItemIndex type import in src/lib/component-library/library-folder-reorder.ts — it does NOT render the estimate tree. UX scores below remain provisional/unaudited. -->
+
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
@@ -152,11 +157,11 @@
 | Error state | 0 | Not audited |
 | Success state | 0 | Not audited |
 | Recovery path | 0 | Not audited |
-| Keyboard accessibility | 0 | Not audited (React Complex Tree claims some keyboard support) |
+| Keyboard accessibility | 0 | Not audited (custom @/components/ui/tree; the prior React-Complex-Tree keyboard claim no longer applies) |
 | Screen-reader accessibility | 0 | Not audited |
 | Mobile/desktop guard | 0 | Not audited |
 | Copy/microcopy | 0 | Not audited |
-| Design-system compliance | 2 | Third-party component, partially styled to match |
+| Design-system compliance | 2 | In-house @/components/ui/tree built on shared primitives (was third-party); styling unaudited |
 | Cognitive load | 2 | Tree depth may cause overwhelm; untested |
 | First-time-user guidance | 0 | Not audited |
 | Power-user efficiency | 0 | Not audited |
@@ -169,7 +174,7 @@
 | Target public launch | 4.0 |
 | Main UX risk | Deeply nested trees become unusable on small screens, keyboard nav gaps |
 | Required evidence | Task-completion for 3-level, 5-level, and 8-level tree operations |
-| Next product decision | Set max recommended tree depth; test React Complex Tree keyboard claims |
+| Next product decision | Set max recommended tree depth; audit keyboard nav of the custom @/components/ui/tree (React-Complex-Tree keyboard claim no longer applies) |
 
 ### 5. Row editing (inline estimate editing)
 
@@ -264,23 +269,26 @@
 | Required evidence | Selection accuracy (did user pick the right template for their need?) |
 | Next product decision | Define minimum template preview requirements (summary, structure, key metrics) |
 
-### 8. Charts (D3 donut/bubble)
+### 8. Charts (cost donut + comparison/variance views)
+
+<!-- CODE DRIFT (2026-06-18): no "bubble" chart exists. Chart surface is src/components/workshop/project-charts/* — donut (ProjectCostDonutChart), variance spine (ProjectVarianceSpine), composition bars (ProjectCompositionBars) + an accessible data-table (ProjectComparisonTable). Donut geometry uses d3-shape (src/components/charts/CostDonutChart.tsx, arc/pie), dynamic-imported so default comparison views ship no d3. An accessible data-table fallback DOES exist (ProjectComparisonTable links via aria-describedby; keyboard/screen-reader operable) with a passing test (tests/vitest/project-charts-a11y.test.tsx). UX scores below remain provisional/unaudited by user observation. -->
+
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
-| Clarity | 3 | Donut and bubble charts render correctly; legend present |
-| Visual hierarchy | 3 | Color encoding and sizing create clear visual weight |
+| Clarity | 3 | Donut + variance/comparison views render correctly; legend present (no bubble chart) |
+| Visual hierarchy | 3 | Color encoding (Okabe-Ito CVD-safe palette) and sizing create clear visual weight |
 | Interaction economy | 2 | Hover tooltips work; click/zoom behavior may exist |
 | Empty state | 0 | Not audited |
 | Loading state | 0 | Not audited |
 | Error state | 0 | Not audited (what happens with zero values, NaN?) |
 | Success state | 0 | Not audited |
 | Recovery path | 0 | Not audited |
-| Keyboard accessibility | 0 | Not audited (SVG charts notoriously inaccessible) |
-| Screen-reader accessibility | 0 | Not audited (no data table fallback confirmed) |
+| Keyboard accessibility | 0 | Not audited by users (SVG charts; data-table fallback IS keyboard-operable per ProjectComparisonTable) |
+| Screen-reader accessibility | 0 | Not audited by users; a data-table fallback EXISTS (ProjectComparisonTable, aria-describedby; tests/vitest/project-charts-a11y.test.tsx passes) — prior "no data table fallback" note is stale |
 | Mobile/desktop guard | 2 | Charts resize; touch interaction untested |
 | Copy/microcopy | 0 | Not audited |
-| Design-system compliance | 2 | Custom D3 rendering, color tokens used |
+| Design-system compliance | 2 | Donut uses d3-shape; CVD-safe inline fills (design-system exception); color tokens used |
 | Cognitive load | 2 | Charts add visual interest; interpretation burden unknown |
 | First-time-user guidance | 0 | Not audited |
 | Power-user efficiency | 0 | Not audited (export, zoom, filter unknown) |
@@ -291,9 +299,9 @@
 | Current average | 0.9 |
 | Target beta | 2.5 |
 | Target public launch | 3.5 |
-| Main UX risk | Charts are visual-only, inaccessible to screen readers, no data table |
-| Required evidence | Screen-reader audit of chart sections, comprehension test (n >= 5) |
-| Next product decision | Require data-table fallback for every chart before public launch |
+| Main UX risk | Charts are visual; screen-reader comprehension via the data-table fallback is unaudited by users |
+| Required evidence | Screen-reader audit of chart sections + data-table fallback, comprehension test (n >= 5) |
+| Next product decision | Data-table fallback exists (ProjectComparisonTable) — validate it covers every chart and audit it with screen-reader users before public launch |
 
 ### 9. XLSX export
 
@@ -514,6 +522,9 @@
 
 ### 16. Invite entry (config-blocked; local code path exists)
 
+<!-- CODE NOTE (2026-06-18): POST-only accept WITH an Origin/CSRF guard is now implemented (src/app/invite/[token]/accept/route.ts: POST + isAllowedInviteOrigin; GET redirects, does not mutate) and tested (tests/vitest/invite-accept-origin.test.ts). STILL EXTERNAL/PENDING: PROJECT_INVITE_ENTRY_ENABLED defaults OFF (must === "true", src/lib/collaboration/invite-entry.ts) + requires ARCHESTIMATOR_INVITE_TOKEN_PEPPER, hosted Supabase RPCs, and Resend email delivery — none provable from code. Keep at config-blocked until provider/env/delivery are proven. -->
+
+
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | Clarity | 2 | Invite acceptance page exists; purpose is clear |
@@ -545,6 +556,8 @@
 
 ### 17. Ask Flip (AI assistant)
 
+<!-- CODE NOTE (2026-06-18): the Ask Flip + Package Builder UI lives in src/components/workshop/EstimateCopilotFloatingButton.tsx, but it is FLAG-GATED OFF BY DEFAULT and not reachable in the default deployment: ARCHESTIMATOR_AI_ENABLED defaults false (route -> 404, src/lib/ai/feature-flags.ts isAiRoutesEnabled) AND NEXT_PUBLIC_ASK_FLIP_UI_ENABLED defaults false (isAskFlipUiEnabled). Provider is DeepSeek (src/lib/ai/deepseek.ts), requires DEEPSEEK_API_KEY (external). UX scores below are provisional and presume the feature is enabled. -->
+
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | Clarity | 2 | Chat interface is familiar; AI context may be unclear |
@@ -575,6 +588,8 @@
 | Next product decision | Add example prompts and capability disclosure; consider source citations |
 
 ### 18. Package-builder (draft/refine/apply)
+
+<!-- CODE NOTE (2026-06-18): same default-off gating as Ask Flip (ARCHESTIMATOR_AI_ENABLED default false -> 404; UI in EstimateCopilotFloatingButton.tsx behind NEXT_PUBLIC_ASK_FLIP_UI_ENABLED default false). Apply path is additionally confirmation-gated server-side (signed draft token + matching draftHash, src/app/api/ai/package-builder/handler.ts). DeepSeek-backed; not reachable in the default deployment. UX scores below presume the feature is enabled. -->
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
@@ -680,7 +695,7 @@
 | 5 | Row editing | 0.8 | 3.0 | 4.0 | No undo, accidental data loss |
 | 6 | Component library | 0.8 | 2.5 | 3.5 | Large library becomes unbrowsable |
 | 7 | Templates | 1.0 | 2.5 | 3.5 | Insufficient preview for selection |
-| 8 | Charts (D3) | 0.9 | 2.5 | 3.5 | Inaccessible, no data table fallback |
+| 8 | Charts (donut + comparison) | 0.9 | 2.5 | 3.5 | SVG charts; data-table fallback exists but unaudited with screen-reader users |
 | 9 | XLSX export | 0.7 | 2.5 | 3.0 | Large exports freeze UI |
 | 10 | Shared link manager | 1.4 | 3.0 | 4.0 | No search/filter on long share list |
 | 11 | Shared link receiver | 1.2 | 3.0 | 4.0 | Recipient confusion, no context |
@@ -751,7 +766,7 @@ These gaps must be addressed before beta release. A feature with a score of 0 in
 Scores are assigned based on:
 - Codebase structure and component composition (informed by design-system lint rules)
 - Feature descriptions from roadmap and V2 completion notes
-- Known implementation details (e.g., scrypt lockout, React Complex Tree, D3 charts)
+- Known implementation details (e.g., scrypt lockout, the custom @/components/ui/tree, d3-shape donut + comparison/variance charts)
 
 Scores are NOT based on:
 - User observation or usability testing
@@ -789,7 +804,7 @@ All scores are provisional. The scorecard is designed to highlight what we don't
 | 14 | Project creation | (covered by UX-001) | 1.6 | 2.5 | 3.5 | Modal UX, empty project guidance | Fast modal, auto-creates estimate draft, clear next step | Modal works, project appears after creation, estimate draft exists | Creation fails silently; project doesn't appear; no estimate created |
 | 15 | Settings/profile | (covered by UX-001) | 1.3 | 2.0 | 3.5 | Account deletion safety | Profile management, account deletion with confirmation cascade | Profile view/edit works; logout works; basic settings functional | Deletion broken; profile save fails; logout broken |
 | 16 | Collaboration cursors | (covered by UX-002) | 1.2 | 2.0 | 3.5 | Real-time performance, cursor accuracy | Smooth cursor movement, clear attribution, presence indicators | Cursors visible; basic presence works; no performance hit | Cursors laggy; presence broken; causes estimate editing latency |
-| 17 | Error boundaries | BETA-P0-REL-001 | 0.5 | 2.5 | 4.0 | Recovery UX, design-system compliance | Error boundaries catch all workshop errors; custom 404/500; no white screens | Error boundaries on estimate/tree/AI panel; custom 404/500 exist using design system | White screen on error; stack traces in UI; no recovery path |
+| 17 | Error boundaries | BETA-P0-REL-001 | 0.5 | 2.5 | 4.0 | Recovery UX, design-system compliance; NO custom 404/500 yet | Error boundaries catch all workshop errors; custom 404/500; no white screens | Per-segment error.tsx exists on library + projects/[id]/data + estimates routes (7 files) via WorkshopRouteErrorState (sanitized retry, tested). GAP: NO src/app/not-found.tsx (custom 404), NO src/app/global-error.tsx/root error.tsx; NO error.tsx on workshop home, projects list, settings, feedback, terms, onboarding | White screen on error; stack traces in UI; no recovery path |
 | 18 | Mobile guard | BETA-P0-REL-001 | 0.0 | 2.0 | 3.5 | Guard clarity, no broken layouts | Clear desktop-only message, blocks interaction with broken mobile layout | Guard covers full viewport at < 768px; clear message; prevents interaction | Broken mobile layout is visible; user tries to use it; no guard at all |
 | 19 | Design-system consistency | BETA-P0-UX-001 | 2.0 | 3.0 | 4.0 | One-off components, token drift | All workshop components use shared primitives; lint passes | `bun run lint:design-system` passes on workshop routes | Raw Tailwind in workshop; custom colors; wrong font sizes; non-xs radius |
 
