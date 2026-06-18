@@ -28,7 +28,7 @@ export function NotificationBellButton({ unreadCount, open, onClick, buttonRef }
       )}
       onClick={onClick}
     >
-      <Bell size={17} weight="fill" aria-hidden="true" />
+      <Bell size={15} weight="regular" aria-hidden="true" />
       {unreadCount > 0 ? (
         <span
           aria-hidden="true"

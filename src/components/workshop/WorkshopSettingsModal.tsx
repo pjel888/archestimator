@@ -39,7 +39,7 @@ export function WorkshopSettingsModal({
           )}
           onClick={() => setOpen(true)}
         >
-          <GearSix size={17} weight="fill" aria-hidden="true" />
+          <GearSix size={15} weight="regular" aria-hidden="true" />
         </button>
       ) : null}
       <Modal
