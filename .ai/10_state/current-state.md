@@ -40,6 +40,17 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Workshop Dashboard query-batching plan canonicalized (2026-06-19):**
+The plan pack `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/`
+is the canonical owner for `workspace_homebase_summary` if Phase 3 proceeds.
+Phase 3 keeps publications and pending-invite summary app-side; RPC scope is
+authorized recent/favorite projects/estimates and estimate node roots only.
+Performance-Refactor Phase 8 now back-points to this pack for that RPC while
+retaining general DB/RLS law. Phase 0 is measurement harness and baseline,
+Phase 1 uses bounded app-only wave merging, Phase 2 is conditional for the
+library path, and the docs score planning readiness at 100% for the planning
+scope.
+
 **Pre-launch MVP database autonomy mandate active (2026-06-13):**
 Philip grants standing authorization for Archestimator Supabase/Postgres changes
 inside project `ebxxqidacheyapmmzavr`. Agents should make needed database
