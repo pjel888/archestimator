@@ -14,16 +14,15 @@ Fail-safe: fail closed because this lane is deprecated unless explicitly reappro
 Gemini is fail-closed for Archestimator. Shared rules live in `.ai/00_system`;
 this payload exists to prevent accidental routing drift.
 If Gemini is explicitly reapproved for a task, loop-engineered product work
-follows the shared `.ai/00_system` sequence: discover/audit, `.ai/03_plans`
-plan pack, `.ai/13_research` research, loop execution, maker/checker
-verification, real-surface proof, durable memory, and next decision.
+follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: ordinary non-trivial work
+uses an in-session loop; high-blast-radius or explicitly exhaustive work adds a
+dated `.ai/03_plans` plan pack and `LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-If reapproved for a specific task, Gemini must read `AGENTS.md`, `.ai/README.md`,
-`.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`, `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, `.ai/00_system/VALIDATION_MATRIX.md`, current state, decisions,
-and task-specific docs.
+If reapproved for a specific task, Gemini must start with `AGENTS.md` and the
+FAST PATH block at the top of `.ai/10_state/current-state.md`, then pull only
+task-specific `.ai/00_system`, state, decision, source, or proof docs.
 
 ## Repo-Safety Commands
 
@@ -64,8 +63,9 @@ No `.ai` writes unless reapproved.
 
 ## Bug Discovery Protocol
 
-If any task tries to route work to Gemini without reapproval, create or update a
-bug/plan-gap note.
+If any task tries to route work to Gemini without reapproval, report the
+deprecated/fail-closed blocker. Create or update a bug/plan-gap note only when
+the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

@@ -13,18 +13,17 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Shared rules live in `.ai/00_system`; `.commandcode/` is an adapter, not a
 separate brain. If this payload conflicts with `.ai/00_system`, `.ai` wins.
-Loop-engineered product work follows the shared `.ai/00_system` sequence:
-discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
-execution, maker/checker verification, real-surface proof, durable memory, and
-next decision.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
-`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
-`.ai/10_state/decisions.md`, `DESIGN.md`, and relevant `.commandcode/taste/*`
-for review tone only.
+Start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull narrower `.ai` docs by task/risk; use
+`rg` for `current-state.md` and `decisions.md` instead of preloading them. Pull
+`DESIGN.md` for UI work and relevant `.commandcode/taste/*` for review tone only.
 
 ## Repo-Safety Commands
 
@@ -37,7 +36,7 @@ Use code-review-graph/GitNexus for broad or risky code claims when useful.
 ## Allowed Edit Scope
 
 Default review/sentinel mode. Implementation requires explicit assignment,
-disjoint scope, branch/worktree isolation, and validation.
+disjoint scope, branch/worktree choice by the lead, and validation.
 
 ## Disallowed Edit Scope
 
@@ -46,7 +45,10 @@ GitHub settings, Notion, or unrelated files.
 
 ## Branch And Worktree Rules
 
-Use current checkout for narrow assigned edits when appropriate. Use isolated branches/worktrees for parallel write tasks. Do not parallel-edit shared files.
+Use current checkout for narrow assigned edits and whenever the active user says
+to stay on `main`. Use isolated branches/worktrees only when the lead explicitly
+chooses isolation or the risk/parallelism justifies it. Do not parallel-edit
+shared files.
 
 ## Validation Rules
 
@@ -54,7 +56,8 @@ Review outputs need file/line evidence. Edits follow `.ai/00_system/VALIDATION_M
 
 ## Design-System Guidance
 
-UI taste must defer to `DESIGN.md`; run design lint for substantial, shared, or primarily visual edits.
+UI taste treats `DESIGN.md` as alpha-stage guidance; run design lint for
+substantial, shared, or primarily visual edits.
 
 ## Security And Provider Rules
 
@@ -66,7 +69,8 @@ Record sentinel findings in `.ai` only when they become durable task evidence.
 
 ## Bug Discovery Protocol
 
-Create `.ai/15_Bugs` plans for blocking review findings or stale policy.
+Create `.ai/15_Bugs` plans for blocking review findings or stale policy only
+when the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

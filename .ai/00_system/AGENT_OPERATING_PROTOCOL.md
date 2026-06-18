@@ -56,11 +56,13 @@ or run-log work, also follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 
 ## Loop-engineered product development
 
-The normal Archestimator product-development loop is:
+The normal Archestimator product-development loop is proportional:
 
 1. Discover and audit current reality from source, tests, provider boundaries,
    and current `.ai` truth.
-2. Write or update a dated plan pack under `.ai/03_plans/<YYYY-MM-DD>-<slug>/`.
+2. Plan at the lightest depth that reduces risk: in-session for ordinary work,
+   dated `.ai/03_plans/<YYYY-MM-DD>-<slug>/` plan pack for high-blast-radius or
+   explicitly exhaustive work.
 3. Research uncertain implementation, product, dependency, policy, or UX claims
    and store durable source-backed notes in `.ai/13_research/`.
 4. Execute through the smallest loop surface that preserves quality.
@@ -90,7 +92,7 @@ alter policy, simple lookups or explanations, one-line reversible local fixes, b
 or direct answers with no repo mutation. Always verify proportionally and never claim completion
 from intent — regardless of which path you took.
 
-Loop shape (named): `DISCOVER current repo truth → PLAN in .ai/03_plans/<YYYY-MM-DD>-<slug>/ →
+Loop shape (named): `DISCOVER current repo truth → PLAN in-session or in .ai/03_plans/<YYYY-MM-DD>-<slug>/ when required →
 EXECUTE the next smallest coherent change → VERIFY with the narrowest evidence that proves the change
 → RECORD evidence, proof boundary, gaps, next decision → DECIDE iterate / stop / escalate`.
 
@@ -227,6 +229,8 @@ When using parallel agents:
 
 - Keep read-only audit agents read-only.
 - Give implementation agents disjoint write scopes.
+- When the active user instruction says to stay on `main`, keep lanes on the
+  current checkout or read-only unless the lead explicitly authorizes isolation.
 - The lead agent owns integration, conflict checks, validation, and final evidence.
 - Do not let a subagent revive stale routes, stale data assumptions, or superseded `.ai` plans without checking current-state first.
 - Workers do not choose their own model tier, widen their own scope, or become

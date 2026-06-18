@@ -14,19 +14,17 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 Shared rules live in `.ai/00_system`. This payload adds Claude-specific review
 and planning constraints only. If this payload conflicts with `.ai/00_system`,
 `.ai` wins.
-Loop-engineered product work follows the shared `.ai/00_system` sequence:
-discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
-execution, maker/checker verification, real-surface proof, durable memory, and
-next decision.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
-`.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`,
-`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
-`.ai/10_state/decisions.md`, and `DESIGN.md` for UI work.
+Start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull narrower `.ai` docs by task/risk; use
+`rg` for `current-state.md` and `decisions.md` instead of preloading them.
+Pull `DESIGN.md` for UI work.
 
 ## Repo-Safety Commands
 
@@ -44,9 +42,9 @@ gate: `/codex:review` and `/codex:adversarial-review` for independent
 maker/checker passes on Claude-made changes (prefer adversarial for auth, data,
 migration, security, or rollback risk); `/codex:rescue` or the
 `codex:codex-rescue` subagent when stuck, wanting a second implementation, or
-delegating Codex's builder lane. Claude stays lead: Codex output is evidence,
-not the final claim, and never provider proof. Keep write-capable rescue runs in
-a disjoint scope and inside the standing Supabase/provider boundaries. The
+delegating Codex's builder lane. When Claude is the active lead, Codex output is
+evidence, not the final claim, and never provider proof. Keep write-capable
+rescue runs in a disjoint scope and inside the standing Supabase/provider boundaries. The
 stop-time review gate is opt-in via `/codex:setup`.
 
 ## Allowed Edit Scope
@@ -61,7 +59,10 @@ generated files unless explicitly scoped and approved.
 
 ## Branch And Worktree Rules
 
-Use current checkout for narrow assigned edits when appropriate. Use isolated branches/worktrees for larger write tasks. Keep read-only reviews read-only.
+Use current checkout for narrow assigned edits and whenever the active user says
+to stay on `main`. Use isolated branches/worktrees only when the lead explicitly
+chooses isolation or the risk/parallelism justifies it. Keep read-only reviews
+read-only.
 
 ## Validation Rules
 
@@ -90,7 +91,7 @@ plans as superseded instead of creating parallel truth.
 ## Bug Discovery Protocol
 
 Create or request a dated `.ai/15_Bugs` plan for blockers or stale assumptions
-that affect execution.
+that affect execution, but only when the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

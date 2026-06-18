@@ -14,17 +14,28 @@ approved, Gemini, Ollama, and any future agent or harness.
 source files, tests, package scripts, and provider evidence remain the
 authoritative surfaces. Tool-specific files are adapters only.
 
+## Fast-Start Contract
+
+All agent and tool adapters use the same startup rule: read `AGENTS.md`, then
+the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper
+`.ai` docs only by task area, risk, or recovery need; use `rg` for
+`.ai/10_state/current-state.md` and `.ai/10_state/decisions.md` instead of
+linear-reading those history files. Adapter payloads may add role-specific
+deltas, but they must not expand the default startup chain.
+
 ## Loop Engineering Contract
 
 Archestimator treats loop engineering as the product-development control system
-for non-trivial work. A loop states the goal, splits work into bounded lanes,
-runs or delegates the lanes, observes evidence, persists state outside chat,
-decides the next action, and stops only on a proven pass, explicit blocker, or
-owner decision.
+for non-trivial work. A loop states the goal, splits work into bounded lanes when
+useful, runs or delegates the lanes, observes evidence, persists state outside
+chat when the work creates durable truth, decides the next action, and stops only
+on a proven pass, explicit blocker, owner decision, approval-gated action, or
+iteration cap.
 
 The repo-local loop spine is:
 
-- `.ai/03_plans/` for dated audit and implementation plan packs.
+- `.ai/03_plans/` for dated audit and implementation plan packs when the work is
+  high-blast-radius or explicitly planned exhaustively.
 - `.ai/13_research/` for source-backed research notes and research syntheses.
 - `.ai/05_logs/` for run evidence, proof boundaries, and handoffs.
 - `.omx/` or `.omo/` ledgers for runtime loop state when those tools are active.
@@ -48,7 +59,9 @@ where a loop would add ceremony without improving correctness.
 
 ## Durable Loop Artifacts And Loop Ledger
 
-Non-trivial implementation work persists loop state in `.ai`, never in chat:
+High-blast-radius, multi-agent, provider/release, agent-framework, security,
+database/auth/data-integrity, broad refactor, or explicitly exhaustive
+implementation work persists loop state in `.ai`, never in chat:
 
 - Plan pack: `.ai/03_plans/<YYYY-MM-DD>-<task-slug>/` with a `LOOP_LEDGER.md`.
 - Run log (major / risky / multi-agent / provider / release / database / security / agent-framework
@@ -195,8 +208,10 @@ assignment.
   quality, speed, or coverage.
 - Use the smallest lane set that captures that benefit.
 - The lead owns scope, integration, validation, and final evidence.
-- Write-capable agents need disjoint file scopes and usually separate
-  branches/worktrees.
+- Write-capable agents need exact disjoint file scopes. Use the current checkout
+  when the active user instruction says to stay on `main`, when the task is
+  narrow, or when the lead keeps work local. Use branches/worktrees only when
+  the lead explicitly chooses isolation or the risk/parallelism justifies it.
 - Shared policy files are edited sequentially.
 - Workers report blockers and recommended handoffs upward; they do not widen
   scope or re-plan the whole task.

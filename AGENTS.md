@@ -82,8 +82,10 @@ criteria and bounds") for the trigger list, exclusions, stop conditions, and cap
 and `.ai/08_prompts/templates/codebase-ai-loop-task.md` for the reusable prompt.
 
 - Loop-engineered product development is the default shape for non-trivial
-  feature work. The loop is: discover or audit current reality, write or update
-  the dated `.ai/03_plans/` plan pack, research uncertain claims, execute
+  feature work. Ordinary non-trivial work runs an in-session loop; a dated
+  `.ai/03_plans/` plan pack is required only for high-blast-radius work or
+  explicitly exhaustive planning. The loop is: discover or audit current
+  reality, plan at the proportionate depth, research uncertain claims, execute
   through a durable or in-session loop, drive the result through the matching
   surface, record evidence, then decide the next iteration.
 - Prefer multi-agent orchestration when there are independent slices: repo exploration, external research, implementation by disjoint file scope, test/regression mapping, review, QA, or documentation cleanup.

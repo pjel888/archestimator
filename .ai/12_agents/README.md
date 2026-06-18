@@ -6,11 +6,13 @@ Shared framework rules live in `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 Payloads in `payloads/` are thin role-specific adapters and must not fork
 project policy.
 
-All agents and harnesses inherit the same loop-engineered product-development
-mandate from `.ai/00_system`: discover current reality, plan in `.ai/03_plans`,
-research uncertain claims in `.ai/13_research`, execute through the narrowest
-adequate loop surface, verify with maker/checker and real-surface evidence,
-persist state outside chat, then decide the next iteration. Tool-specific
+All agents and harnesses inherit the same fast-start and loop-engineered
+product-development mandate from `.ai/00_system`: read `AGENTS.md` plus the FAST
+PATH block in `.ai/10_state/current-state.md`, pull deeper docs only by
+task/risk, discover current reality, plan at proportional depth, research
+uncertain claims in `.ai/13_research` when needed, execute through the narrowest
+adequate loop surface, verify with maker/checker and real-surface evidence, and
+persist durable state outside chat when project truth changes. Tool-specific
 features translate this loop; they do not replace it.
 
 The loop activation criteria (trivial vs non-trivial), the named loop shape, stop
@@ -28,17 +30,19 @@ do not restate the policy.
 | Claude | approved | planning, architecture, critique, writing | Default review/planning lane; implementation only if assigned. |
 | OpenCode | conditional | exploration, fallback planning/review | Verify installed schema before config edits. |
 | CommandCode | conditional | taste-aware review, sentinel checks, PR work | Sentinels default read-only unless assigned. |
-| Antigravity CLI (`agy`) | approved | isolated terminal lane | Use branch/worktree isolation for write tasks. |
-| Kimi | conditional | UI/product, frontend review, long-context synthesis | UI work must pass `DESIGN.md` and design-system lint. |
+| Antigravity CLI (`agy`) | approved | isolated terminal lane | Use current checkout when assigned to `main`; isolate only when the lead chooses. |
+| Kimi | conditional | UI/product, frontend review, long-context synthesis | Treat `DESIGN.md` as alpha guidance; use lint proportionally. |
 | DeepSeek | conditional | debugging, logic critique | Read-only/default diagnostic unless assigned. |
 | Hermes | unapproved until payload-backed | orchestration/evidence | May not orchestrate until explicitly approved. |
-| Gemini | deprecated | none | Fail closed unless Philip reapproves for a specific task. |
+| Gemini | deprecated | none | Hard-stop fail closed unless Philip reapproves for a specific task. |
 | Ollama | non-agent | embeddings only | No chat/planning/coding use without explicit approval. |
 
 ## Routing Rules
 
 - Use the smallest number of agents needed.
-- Give write-capable agents disjoint scopes and isolated branches/worktrees.
+- Give write-capable agents exact disjoint scopes. When the active user says to
+  stay on `main`, use the current checkout or read-only lanes unless the lead
+  explicitly authorizes isolation.
 - Keep read-only reviewers read-only.
 - The lead owns integration, validation, evidence, and final status.
 - The lead maps agent-specific features to the shared loop surfaces: direct

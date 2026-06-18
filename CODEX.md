@@ -17,9 +17,13 @@ belong in `.ai/10_state/decisions.md` and specs/plans under `.ai/`. If work
 feels stale or off-direction, run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 before continuing.
 
-For non-trivial work (features, plan implementation, multi-file or shared-surface
-changes, DB/auth/security, performance, provider-facing, release, unclear debugging),
-follow the bounded loop-engineering default in `AGENTS.md` and
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Loop activation criteria and bounds"):
-a dated `.ai/03_plans/` pack with a `LOOP_LEDGER.md`, bounded iterations, and
-proportional proof. Trivial reversible work stays direct. Do not duplicate the policy here.
+Read for speed: `AGENTS.md` plus the FAST PATH block at the top of
+`.ai/10_state/current-state.md`; pull deeper `.ai` docs by task/risk and use
+`rg` for `current-state.md`/`decisions.md` instead of preloading long histories.
+
+For non-trivial work, follow the bounded loop-engineering default in `AGENTS.md`
+and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Loop activation criteria and
+bounds"). Ordinary non-trivial work uses an in-session loop; a dated
+`.ai/03_plans/` pack with a `LOOP_LEDGER.md` is required only for
+HIGH-BLAST-RADIUS or explicitly exhaustive work. Trivial reversible work stays
+direct. Do not duplicate the policy here.

@@ -13,17 +13,17 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Shared rules live in `.ai/00_system`. DeepSeek defaults to diagnostic/read-only
 work unless implementation is explicitly assigned.
-Loop-engineered product work follows the shared `.ai/00_system` sequence:
-discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
-execution, maker/checker verification, real-surface proof, durable memory, and
-next decision.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
-`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
-`.ai/10_state/decisions.md`, and relevant plan/test/source files.
+Start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull narrower `.ai` docs by task/risk; use
+`rg` for `current-state.md` and `decisions.md` instead of preloading them. Pull
+relevant plan/test/source files for the bug.
 
 ## Repo-Safety Commands
 
@@ -35,8 +35,8 @@ Use code-review-graph/GitNexus for root-cause mapping when useful.
 
 ## Allowed Edit Scope
 
-Read-only by default. Fixes require explicit scope, branch/worktree isolation,
-and validation.
+Read-only by default. Fixes require explicit scope, branch/worktree choice by
+the lead, and validation.
 
 ## Disallowed Edit Scope
 
@@ -45,7 +45,9 @@ weakening.
 
 ## Branch And Worktree Rules
 
-Implementation requires explicit scope; use branch/worktree isolation when edits are large, risky, or parallel.
+Implementation requires explicit scope. Use current checkout when the active user
+says to stay on `main`; otherwise use branch/worktree isolation when edits are
+large, risky, or parallel and the lead chooses it.
 
 ## Validation Rules
 
@@ -54,7 +56,8 @@ possible and green targeted checks.
 
 ## Design-System Guidance
 
-UI bug fixes follow `DESIGN.md`; run design-system lint when the fix is substantial, shared, or primarily visual.
+UI bug fixes treat `DESIGN.md` as alpha-stage guidance; run design-system lint
+when the fix is substantial, shared, or primarily visual.
 
 ## Security And Provider Rules
 
@@ -66,7 +69,8 @@ Document root-cause blockers and durable bug findings in `.ai`.
 
 ## Bug Discovery Protocol
 
-Create `.ai/15_Bugs` plans for blockers or unresolved root-cause findings.
+Create `.ai/15_Bugs` plans for blockers or unresolved root-cause findings only
+when the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

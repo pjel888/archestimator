@@ -13,17 +13,17 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Shared rules live in `.ai/00_system`. Antigravity is an execution lane, not a
 separate project brain.
-Loop-engineered product work follows the shared `.ai/00_system` sequence:
-discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
-execution, maker/checker verification, real-surface proof, durable memory, and
-next decision.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
-`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
-`.ai/10_state/decisions.md`, and `DESIGN.md` for UI.
+Start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull narrower `.ai` docs by task/risk; use
+`rg` for `current-state.md` and `decisions.md` instead of preloading them. Pull
+`DESIGN.md` for UI work.
 
 ## Repo-Safety Commands
 
@@ -35,8 +35,9 @@ Use code-review-graph/GitNexus when useful for broad or risky claims; record fai
 
 ## Allowed Edit Scope
 
-Independent scoped tasks in a separate branch/worktree or clearly isolated
-terminal environment.
+Independent scoped tasks in the current checkout when the active user says to
+stay on `main`; otherwise use a clearly isolated terminal environment or
+branch/worktree only when the lead chooses it.
 
 ## Disallowed Edit Scope
 
@@ -45,7 +46,9 @@ secrets, GitHub settings, Notion, or unrelated files.
 
 ## Branch And Worktree Rules
 
-Prefer a dedicated worktree for write tasks. Lead owns integration.
+Use current checkout for assigned writes when the active user says to stay on
+`main`. Use a dedicated worktree only when the lead explicitly chooses isolation.
+Lead owns integration.
 
 ## Validation Rules
 
@@ -53,7 +56,8 @@ Follow `.ai/00_system/VALIDATION_MATRIX.md`; report command results and unresolv
 
 ## Design-System Guidance
 
-UI edits should follow `DESIGN.md`; run design-system lint for substantial, shared, or primarily visual changes.
+UI edits treat `DESIGN.md` as alpha-stage guidance; run design-system lint for
+substantial, shared, or primarily visual changes.
 
 ## Security And Provider Rules
 
@@ -65,7 +69,8 @@ Record durable task output in `.ai` through the lead or scoped run log.
 
 ## Bug Discovery Protocol
 
-Create or request `.ai/15_Bugs` plans for blockers.
+Create or request `.ai/15_Bugs` plans for blockers only when the current task
+permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

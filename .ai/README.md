@@ -9,16 +9,18 @@ This folder is the project brain. It stores product thinking, implementation pla
 
 ## New-agent reading order
 
-1. `.ai/README.md` — folder purpose and navigation.
-2. `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md` — canonical source map.
-3. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` — safety and work rules.
+Fast start is canonical: read `AGENTS.md`, then only the FAST PATH block at the
+top of `.ai/10_state/current-state.md`. Do not linear-read this folder before
+ordinary work.
+
+Pull deeper files only when the task needs them:
+
+1. `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md` — source map for non-trivial or stale-context work.
+2. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` — loop activation, stop conditions, and proportional validation.
+3. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` — agent-framework, payload, proof-boundary, and multi-agent work.
 4. `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` — mandatory recovery loop when agent performance degrades or context feels stale.
-5. `.ai/10_state/current-state.md` — current project status.
-6. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md` — why the previous prototype was rejected and deleted.
-7. `.ai/06_specs/restart-guardrails.md` — rules for restarting without repeating the same mistakes.
-8. `.ai/10_state/decisions.md` — durable decisions.
-9. `.ai/10_state/known-issues.md` — risks and unresolved decisions.
-10. `.ai/01_roadmap/README.md` — roadmap.
+5. `.ai/10_state/current-state.md` and `.ai/10_state/decisions.md` — use `rg` for the specific area; do not preload the full history logs.
+6. Specs, roadmap, audits, design, plans, or bug files only when the task touches that area.
 
 ---
 
@@ -33,10 +35,12 @@ This folder is the project brain. It stores product thinking, implementation pla
 - Current codebase: ~498 source files, ~218 test files (115 Vitest DOM, 2 Bun unit, 7 Playwright E2E), ~51 app routes/pages, ~17 API routes.
 - Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, and DeepSeek. Ollama is not approved for agent chat models. Gemini is phased out unless explicitly reapproved.
 - Current agent workflow mandate: non-trivial product work is loop-engineered
-  across all coding agents. Agents audit current reality, plan in `.ai/03_plans`,
-  research uncertain claims in `.ai/13_research`, execute through the narrowest
-  adequate loop surface, verify with maker/checker and real-surface evidence,
-  persist state outside chat, and decide the next iteration. See
+  across all coding agents. Ordinary non-trivial work uses an in-session loop;
+  high-blast-radius or explicitly exhaustive work adds a dated `.ai/03_plans/`
+  plan pack and `LOOP_LEDGER.md`. Agents audit current reality, research
+  uncertain claims in `.ai/13_research` when needed, execute through the
+  narrowest adequate loop surface, verify with maker/checker and real-surface
+  evidence, persist state outside chat, and decide the next iteration. See
   `.ai/09_archive/store/2026-06-13-loop-engineering-mandate-and-research/` and
   `.ai/13_research/loop-engineering-agentic-product-development-2026-06-13.md`.
 - Current database mandate: during pre-launch MVP, Philip grants standing
@@ -50,7 +54,9 @@ This folder is the project brain. It stores product thinking, implementation pla
   wording unless a newer, narrower decision explicitly reintroduces a gate.
 - Superseded: the deleted full prototype. Do not resume old plans without explicit reapproval.
 - Storybook 10.4.2 is installed and implemented as a review surface with 60+ UI components and 85+ stories. Production app route migration, public Storybook hosting, and Supabase/provider-backed stories remain explicitly unperformed. See `.ai/10_state/decisions.md` (2026-06-07) for implementation boundaries.
-- Read first for restart: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/10_state/current-state.md`, `.ai/06_specs/feature-inventory.md`, `.ai/10_state/decisions.md`.
+- Read first for restart: `AGENTS.md` plus the FAST PATH block at the top of
+  `.ai/10_state/current-state.md`; pull self-diagnostic, feature inventory, and
+  decisions only when restart risk or task scope requires them.
 
 ---
 

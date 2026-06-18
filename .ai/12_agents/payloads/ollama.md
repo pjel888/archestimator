@@ -17,7 +17,9 @@ allowed unless Philip explicitly reapproves a local chat model.
 
 ## Reading Chain
 
-No agent reading chain applies unless Philip reapproves an Ollama chat lane.
+No agent reading chain applies unless Philip reapproves an Ollama chat lane. If
+that happens, start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`.
 
 ## Repo-Safety Commands
 
@@ -59,7 +61,9 @@ use.
 
 ## Bug Discovery Protocol
 
-If a task attempts to use Ollama chat without approval, create a plan-gap bug.
+If a task attempts to use Ollama chat without approval, report the
+non-agent/embeddings-only blocker. Create a plan-gap bug only when the current
+task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

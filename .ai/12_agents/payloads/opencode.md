@@ -13,18 +13,17 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Shared rules live in `.ai/00_system`. If this payload conflicts with
 `.ai/00_system`, `.ai` wins.
-Loop-engineered product work follows the shared `.ai/00_system` sequence:
-discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
-execution, maker/checker verification, real-surface proof, durable memory, and
-next decision.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-`AGENTS.md`, `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
-`.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/00_system/VALIDATION_MATRIX.md`,
-`.ai/10_state/current-state.md`, `.ai/10_state/decisions.md`, and `DESIGN.md`
-for UI.
+Start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull narrower `.ai` docs by task/risk; use
+`rg` for `current-state.md` and `decisions.md` instead of preloading them. Pull
+`DESIGN.md` for UI work.
 
 ## Repo-Safety Commands
 
@@ -46,7 +45,9 @@ GitHub settings, Notion, generated files, or unrelated source.
 
 ## Branch And Worktree Rules
 
-Use current checkout for narrow assigned writes when appropriate; use isolated branches/worktrees for larger writes.
+Use current checkout for narrow assigned writes and whenever the active user says
+to stay on `main`; use isolated branches/worktrees only when the lead explicitly
+chooses isolation or the risk/parallelism justifies it.
 
 ## Validation Rules
 
@@ -55,7 +56,8 @@ official/installed validation command for that tool plus repo checks.
 
 ## Design-System Guidance
 
-UI analysis should use `DESIGN.md`; UI edits require assignment, with lint for substantial or shared changes.
+UI analysis treats `DESIGN.md` as alpha-stage guidance; UI edits require
+assignment, with lint for substantial or shared changes.
 
 ## Security And Provider Rules
 
@@ -67,7 +69,8 @@ Record findings in `.ai` only when asked or when durable project truth changes.
 
 ## Bug Discovery Protocol
 
-Create `.ai/15_Bugs` plans for stale config, schema drift, or blockers.
+Create `.ai/15_Bugs` plans for stale config, schema drift, or blockers only
+when the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

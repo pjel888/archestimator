@@ -13,21 +13,18 @@ Fail-safe: fail closed when unapproved, deprecated, incompatible, or missing req
 
 Shared rules live in `.ai/00_system`. This payload adds Codex-specific builder
 constraints only. If this payload conflicts with `.ai/00_system`, `.ai` wins.
-Loop-engineered product work follows the shared `.ai/00_system` sequence:
-discover/audit, `.ai/03_plans` plan pack, `.ai/13_research` research, loop
-execution, maker/checker verification, real-surface proof, durable memory, and
-next decision.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-For normal work, start with `AGENTS.md` and the narrow `.ai` docs that govern
-the touched area. For broad, risky, release, provider, or framework work, also
-read `.ai/README.md`, `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`,
-`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`,
-`.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`,
-`.ai/00_system/VALIDATION_MATRIX.md`, `.ai/10_state/current-state.md`,
-`.ai/10_state/decisions.md`, and `DESIGN.md` for UI work.
+Start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull narrower `.ai` docs by task/risk; use
+`rg` for `current-state.md` and `decisions.md` instead of preloading them.
+For UI work, pull `DESIGN.md` and relevant primitives only when the task touches
+that surface.
 
 ## Repo-Safety Commands
 
@@ -54,10 +51,11 @@ explicitly scopes them and evidence rules are satisfied.
 
 ## Branch And Worktree Rules
 
-Use the current checkout when the task is narrow and the branch is appropriate.
-Use a scoped branch/worktree for larger implementation or coordination work. Do
-not force push, reset hard, clean, or delete branches/worktrees unless
-explicitly authorized and proven safe.
+Use the current checkout when the task is narrow, the branch is appropriate, or
+the active user says to stay on `main`. Use a scoped branch/worktree only when
+the lead explicitly chooses isolation or the risk/parallelism justifies it. Do
+not force push, reset hard, clean, or delete branches/worktrees unless explicitly
+authorized and proven safe.
 
 ## Validation Rules
 
@@ -70,9 +68,9 @@ proves the edit. Docs/config-only changes usually need path checks and `git diff
 
 ## Design-System Guidance
 
-For app/workshop UI changes, follow `DESIGN.md`, reuse shared primitives, and
-run `bun run lint:design-system` when the change is substantial, shared, or
-primarily visual.
+For app/workshop UI changes, treat `DESIGN.md` as alpha-stage guidance, reuse
+shared primitives, and run `bun run lint:design-system` when the change is
+substantial, shared, or primarily visual.
 
 ## Security And Provider Rules
 
@@ -88,7 +86,8 @@ Do not mark complete without validation evidence.
 
 Create dated `.ai/15_Bugs` plans for material blockers, stale assumptions,
 validation failures, provider gaps, merge conflicts, and tooling failures that
-are not resolved in the same scoped pass.
+are not resolved in the same scoped pass, but only when the current task permits
+`.ai` writes.
 
 ## Self-Diagnostic Trigger
 

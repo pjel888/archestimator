@@ -22,18 +22,20 @@ direct execution, `ultrawork`, `ultragoal`, `omo:ulw-loop`, `team`,
 provider/manual proof, or an agent-specific equivalent that preserves the same
 loop contract.
 
-Loop-engineered product work follows the shared sequence: discover/audit,
-`.ai/03_plans` plan pack, `.ai/13_research` research, loop execution,
-maker/checker verification, real-surface proof, durable memory, then next
-decision. This sequence is agent-neutral; the payload adapts it to this agent's
-capabilities but does not fork it.
+Loop-engineered product work follows `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
+ordinary non-trivial work uses an in-session loop; high-blast-radius or
+explicitly exhaustive work adds a dated `.ai/03_plans` plan pack and
+`LOOP_LEDGER.md`. This contract is agent-neutral; the payload adapts it to this
+agent's capabilities but does not fork it.
 
 ## Reading Chain
 
-For normal work, start with `AGENTS.md` and the narrow `.ai` docs that govern
-the touched area. For broad, risky, release, provider, or framework work, also
-read the wider `.ai/00_system` chain, `.ai/10_state/current-state.md`,
-`.ai/10_state/decisions.md`, and `DESIGN.md` when UI is involved.
+For normal work, start with `AGENTS.md` and the FAST PATH block at the top of
+`.ai/10_state/current-state.md`. Pull the narrow `.ai` docs that govern the
+touched area only when the task needs them. Use `rg` for `current-state.md` and
+`decisions.md`; do not linear-read the full history logs. For broad, risky,
+release, provider, UI, or framework work, pull the relevant `.ai/00_system`,
+`DESIGN.md`, roadmap, spec, plan, or provider evidence files.
 
 ## Repo-Safety Commands
 
@@ -58,8 +60,9 @@ Notion, generated files, or production code unless explicitly in scope.
 
 ## Branch And Worktree Rules
 
-Use the current checkout for narrow edits when appropriate. Use isolated
-branches/worktrees for larger or parallel write tasks. Preserve unrelated dirty
+Use the current checkout for narrow edits and whenever the active user says to
+stay on `main`. Use isolated branches/worktrees only when the lead explicitly
+chooses isolation or the risk/parallelism justifies it. Preserve unrelated dirty
 work.
 
 ## Validation Rules
@@ -69,8 +72,10 @@ gates when behavior/source changes.
 
 ## Design-System Guidance
 
-If UI-capable, follow `DESIGN.md` and run `bun run lint:design-system` when the
-change is substantial, shared, or primarily visual.
+If UI-capable, treat `DESIGN.md` as alpha-stage guidance and run
+`bun run lint:design-system` when the change is substantial, shared, or
+primarily visual. Do not block or revert Philip-directed design choices solely
+on design-system grounds.
 
 ## Security And Provider Rules
 
@@ -86,7 +91,7 @@ the current task requires it.
 
 Create dated `.ai/15_Bugs` plans for material blockers, stale assumptions,
 validation failures, and provider-proof gaps that cannot be resolved inside the
-same scoped pass.
+same scoped pass, but only when the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

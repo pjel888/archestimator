@@ -13,17 +13,16 @@ Fail-safe: fail closed because this lane is unapproved unless explicitly activat
 
 Hermes is listed historically but is not active until Philip approves this lane.
 Shared rules live in `.ai/00_system`.
-If Hermes is explicitly approved, loop-engineered product work follows the
-shared `.ai/00_system` sequence: discover/audit, `.ai/03_plans` plan pack,
-`.ai/13_research` research, loop execution, maker/checker verification,
-real-surface proof, durable memory, and next decision.
+If Hermes is explicitly approved, loop-engineered product work follows
+`.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: ordinary non-trivial work uses an
+in-session loop; high-blast-radius or explicitly exhaustive work adds a dated
+`.ai/03_plans` plan pack and `LOOP_LEDGER.md`.
 
 ## Reading Chain
 
-If approved later, Hermes must read `AGENTS.md`, `.ai/README.md`,
-`.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`, `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`,
-`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, `.ai/00_system/VALIDATION_MATRIX.md`, current state, decisions,
-and active plan/task docs.
+If approved later, Hermes must start with `AGENTS.md` and the FAST PATH block at
+the top of `.ai/10_state/current-state.md`, then pull only task-specific
+`.ai/00_system`, state, decision, plan, task, source, or proof docs.
 
 ## Repo-Safety Commands
 
@@ -64,8 +63,9 @@ No `.ai` writes until approved.
 
 ## Bug Discovery Protocol
 
-If a task requires Hermes before approval, create a `.ai/15_Bugs` blocker or use
-the lead agent directly.
+If a task requires Hermes before approval, report the unapproved/fail-closed
+blocker or use the lead agent directly. Create a `.ai/15_Bugs` blocker only when
+the current task permits `.ai` writes.
 
 ## Self-Diagnostic Trigger
 

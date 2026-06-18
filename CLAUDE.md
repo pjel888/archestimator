@@ -44,9 +44,10 @@ unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"AL
 
 ## Codex Delegation (codex-plugin-cc)
 
-Codex is the implementation/diff/test/deep-bug lane; Claude stays lead (product
-judgment, planning, review) and delegates execution-heavy or deep-analysis work
-rather than grinding it solo. **Codex review gate (scoped for MVP speed):** require a
+When Claude is the active lead, Codex is the implementation/diff/test/deep-bug
+lane; Claude owns product judgment, planning, review, and final integration, and
+delegates execution-heavy or deep-analysis work rather than grinding it solo.
+**Codex review gate (scoped for MVP speed):** require a
 passing Codex review before stopping only for HIGH-BLAST-RADIUS changes — database/RLS/RPC/
 migrations, auth/invites/publication, security, data integrity, release readiness, cross-cutting
 refactors, or anything the owner asks to be reviewed. For ordinary, reversible changes, skip the

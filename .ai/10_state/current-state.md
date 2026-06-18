@@ -52,6 +52,23 @@ without fresh explicit instruction and a recovery path. This supersedes older
 default owner-gated database wording unless a newer, narrower decision
 explicitly reintroduces a gate for a specific database action.
 
+**Shared agent-bench fast-start contract hardened (2026-06-18):**
+All agent adapters now point to the same startup default: `AGENTS.md` plus the
+FAST PATH block at the top of this file; deeper `.ai` docs and long history logs
+are pulled by task/risk with `rg`, not preloaded. Agent payloads are thinner
+role-specific deltas, plan packs are required only for high-blast-radius or
+explicitly exhaustive work, active user branch/worktree instructions such as
+"stay on main" override adapter defaults, fail-closed Gemini/Hermes/Ollama lanes
+report blockers without writing bug files unless `.ai` writes are permitted, and
+`DESIGN.md` is treated as alpha-stage guidance. `docs/shared/agent-tiers.md` is a
+compatibility pointer back to `.ai/00_system`, not a separate policy source.
+Contract proof:
+`bunx vitest run tests/vitest/security-findings-library-tooling-contracts.test.ts tests/vitest/agentic-framework-routing-docs.test.ts tests/vitest/agent-payload-contract.test.ts --maxWorkers=1`
+passed 3 files / 16 tests; JSON config parsing, required path checks,
+local-state ignore/tracking checks, docs-only stale phrase scan, and
+`git diff --check` passed. Evidence ledger:
+`.ai/03_plans/2026-06-18-Agent-Toolchain-Performance/LOOP_LEDGER.md`.
+
 **Agent toolchain fast path restored (2026-06-18):**
 Codex and Claude are configured for hook-free local agent loops. `.codex/config.toml`
 keeps `hooks = false`, `.codex/hooks.json` is empty, stale Codex hook trust-state
