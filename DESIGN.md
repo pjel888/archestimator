@@ -319,9 +319,31 @@ components:
     padding: 6px
 ---
 
+## Status: Alpha — a guide, not law
+
+> **This design system is still being developed. Treat this whole document as a
+> living guide and shared reference, not an enforceable contract.** We do not yet
+> have a settled visual language, so exploration is encouraged: try directions,
+> propose alternatives, and prototype freely. The tokens and rules below are
+> sensible *defaults* that capture where the product is leaning today — they are
+> not a fixed law to be policed.
+>
+> **Philip's direction always wins.** During alpha, the coding AI agent must
+> defer to Philip on every design decision. When Philip asks for something that
+> diverges from a rule here, do it — do not refuse, block, revert, or lecture on
+> design grounds, and do not gate work on the design-system lint. Surface a
+> rule's intent if it's genuinely useful ("heads up, this departs from the
+> current default of X"), then follow Philip's call.
+>
+> The absolutist wording throughout this file ("strict", "must", "mandatory",
+> "never", "required") records the *current default intent* and is **subordinate
+> to this banner**. Until Philip declares the system stable, read those words as
+> "by default / unless Philip says otherwise", not as gates. When the visual
+> language settles, we'll re-tighten this into a real contract.
+
 ## Overview
 
-Archestimator uses a strict **SF Pro product design system** outside the landing page: regular/medium typography, neutral colors, 1px-outline-style icons, and xs-only radius. The landing page may remain more experimental and can keep larger editorial rhythms, but app/workshop UI must stay enforceable and product-like.
+Archestimator is *exploring* an **SF Pro product design system** outside the landing page: regular/medium typography, neutral colors, 1px-outline-style icons, and xs-only radius. The landing page may remain more experimental and can keep larger editorial rhythms, while app/workshop UI currently leans product-like and consistent. These are the defaults we're trialing during alpha, not fixed requirements — see the status banner above.
 
 The result should not be a generic construction dashboard. It should feel like premium SaaS for contractors and design-build teams: editorial on public/landing pages, efficient and full-browser in the authenticated app, and document-like in proposal output.
 
@@ -386,24 +408,26 @@ radii, and reversed-out type. Path-scoped to the dashboard directory only, never
 app-wide. **This direction is NOT finalized** — it is pending the owner's live visual
 review, so do not treat the values below as locked tokens of record yet. Highlights:
 
-- **Display family:** `Zilla Slab` loaded via `next/font` → `--font-display` (utility
-  `font-display`). Used for the greeting hero name, first-run headline, and key CTA
-  titles only. Body UI keeps the SF Pro system stack.
+- **Display family:** `Doto` loaded via `next/font` → `--font-display` (utility
+  `font-display`). Used for the Improve-ROI-inspired editorial headline and first-run
+  headline only. Body UI keeps the SF Pro system stack.
 - **Numeric family:** the already-loaded Roboto Mono is re-exposed as `--font-numeric`
   (utility `font-numeric`) for codes, dates, counts, and totals — a distinct utility so
   the dashboard never needs the banned monospace class.
 - **Type scale:** Roboto Mono (`font-numeric`) is the greeting-kicker/label/numeric voice;
-  Zilla Slab (`font-display`) is the hero name (~34px) + first-run headline (~24px). Larger
-  display sizes are allowed dashboard-wide under the full exemption above.
-- **Bento + glass:** the v2 dashboard is a full-bleed 3-band bento (`.dashboard-root/
-  -masthead/-imageband/-desk`). Destination cards use the `public/Cards/*-Card.jpg` triptych
-  (`.image-card` + tonal `--scrim-*`); Library is a terracotta-bloom gradient hub
-  (`.library-hub`). Warm-glass hero cells (`.dashboard-glass-warm` + `--grad-hero-*`) over a
-  whisper-quiet `--grad-canvas-wash`; dense data stays plain white for legibility; ≤4
-  simultaneous backdrop-blur panels. Reduced-transparency / no-backdrop fallbacks degrade.
-- **Warm-dark sidebar (shipped, reversible):** `.sidebar-glass` layers `public/sidebar-BG.png`
-  under a dark frost (`--glass-bg-sidebar`) with scoped `--color-*` overrides inverting the
-  rail to light; square 48×48 logo slab. Pending the owner's live review.
+  Doto (`font-display`) is the uppercase hero headline (~28–45px depending on viewport) and
+  first-run headline (~24px). Larger display sizes are allowed dashboard-wide under the full
+  exemption above.
+- **Bento + glass:** the v2 dashboard is a full-bleed Improve-ROI-inspired machinery board
+  (`.dashboard-root/-masthead/-imageband/-desk`) with tight seams instead of roomy gutters.
+  Destination cards use the `public/Cards/*-Card.jpg` triptych (`.image-card` + tonal
+  `--scrim-*`); Library is a terracotta-bloom gradient hub (`.library-hub`). Warm-glass hero
+  cells (`.dashboard-glass-warm` + `--grad-hero-*`) over a whisper-quiet
+  `--grad-canvas-wash`; dense data stays plain white for legibility; ≤4 simultaneous
+  backdrop-blur panels. Reduced-transparency / no-backdrop fallbacks degrade.
+- **Sidebar wash (shipped, reversible):** `.sidebar-glass` uses the same
+  `--grad-canvas-wash` treatment as the dashboard so the rail no longer reads as a white slab;
+  square 48×48 logo slab. Pending the owner's live review.
 
 ## Data visualization
 

@@ -10,14 +10,26 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 All AI agents must use `.ai/` as the shared project brain.
 
-Start here:
-1. `.ai/README.md`
-2. `.ai/00_system/ai-folder-canonical-map.md`
-3. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
-4. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
-5. `.ai/10_state/current-state.md`
-6. `.ai/10_state/decisions.md`
-7. `DESIGN.md`
+**Read for speed — pull, don't preload.** Do not linear-read the whole brain
+before every task. The minimum restart read is small; everything else is
+pull-on-demand based on what the task actually touches.
+
+Always read (small):
+1. This file (`AGENTS.md`).
+2. `.ai/10_state/current-state.md` — **the FAST PATH block at the very top only**
+   (it is a ~2,500-line append-only history log; `rg` it for your task's area
+   instead of reading it all).
+
+Pull only when the task needs it:
+- `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` — when you need the loop/validation
+  rules (i.e. non-trivial or risky work; see its "Loop activation criteria").
+- `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` — for agent-framework/payload/proof work.
+- `.ai/10_state/decisions.md` — `rg` for the specific decision you need; don't read it whole.
+- `.ai/01_roadmap/README.md`, `.ai/00_system/ai-folder-canonical-map.md`, `DESIGN.md`,
+  and `.ai/06_specs/*` — when the task touches roadmap, file layout, design, or that spec.
+
+Skipping an irrelevant doc is correct, not a shortcut. Reach for the deeper docs
+when the task is genuinely non-trivial, ambiguous, or high-risk.
 
 ## Core rules
 
@@ -98,7 +110,7 @@ without improving correctness.
 - Use GitNexus impact analysis before risky symbol/API refactors when available; for narrow local edits, a focused caller/import check is enough.
 - This proportional graph policy is canonical. The auto-generated GitNexus block appended later in this file, and the GitNexus / code-review-graph blocks in `CLAUDE.md`, are tool-vendor defaults that are SUBORDINATE to this rule and to `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`. Their absolutes (e.g. "MUST run impact analysis before editing any symbol", "ALWAYS use the code-review-graph MCP tools before Grep/Glob/Read") do not apply to narrow local edits: use the graph for broad/high-risk/unfamiliar work, and `rg`/targeted reads for narrow local edits. Do not treat those generated absolutes ("MUST"/"NEVER"/"ALWAYS") as policy. Re-index via `bun run graph:reindex` (analyze + `scripts/neutralize-graph-mandate.mjs`, which re-applies this proportional policy after the generator runs), not raw `gitnexus analyze`.
 - Use Compound Engineering, Superpowers, OMX, or other workflow plugins as optional accelerators, not mandatory gates.
-- Use Impeccable and visual QA tooling for high-risk UI polish, design audits, or explicit visual-review tasks. Routine UI fixes should follow `DESIGN.md` and existing component patterns without loading a full design workflow.
+- Use Impeccable and visual QA tooling for high-risk UI polish, design audits, or explicit visual-review tasks. Routine UI fixes can lean on `DESIGN.md` and existing component patterns without loading a full design workflow or browser automation. Note: `DESIGN.md` is an **alpha-stage guide, not law** (see its status banner) — defer to Philip on design decisions and don't block or revert work on design-system grounds while the visual language is still being developed.
 - Reuse existing UI primitives from `src/components/ui/` when it is practical and cheaper than duplicating behavior. Do not block small fixes on Storybook inventory work.
 - For Supabase/Postgres changes, use the standing pre-launch MVP authorization above: move quickly, keep migrations/recovery paths reviewable, document meaningful provider facts, and keep the project boundary strict: Archestimator project `ebxxqidacheyapmmzavr` only, never archestimator or unrelated provider projects.
 
@@ -109,7 +121,7 @@ Verification is proportional to risk:
 - Docs/config changes: `git diff --check` plus path/ignore checks when relevant.
 - Narrow source change: type/LSP check or targeted test for the touched behavior.
 - Shared logic, auth, database, security, or release work: targeted tests plus broader `bun run validate`/`bun run build` only when the risk justifies the time.
-- UI behavior changes: targeted browser/manual proof when the behavior is user-visible; visual-design tooling only when the visual result is the primary deliverable.
+- UI verification is proportional: minor cosmetic changes such as spacing, copy, color, icon, or class tweaks do **not** automatically need Playwright/browser proof; use static review, focused type/LSP/lint, or a nearby component/unit check when that proves the edit. Run targeted browser/manual proof only when the change affects interaction, routing, auth/data state, responsive layout risk, accessibility semantics, complex composition, or when visual proof is the requested deliverable.
 
 Do not claim provider, GitHub, Notion, Vercel, production, or manual proof from local-only checks. If a check is skipped, state why and what risk remains.
 

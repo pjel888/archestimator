@@ -63,8 +63,10 @@ explicitly authorized and proven safe.
 
 Use focused checks first. Run `bun run validate`, `bun run build`, and broader
 browser/manual gates for shared, risky, release, auth, database, security, or
-route-wide changes. Docs/config-only changes usually need path checks and
-`git diff --check`.
+route-wide changes. Minor cosmetic UI edits such as spacing, copy, color, icon,
+or class-only tweaks do not automatically need Playwright/browser proof; use
+static review, focused type/LSP/lint, or nearby component/unit checks when that
+proves the edit. Docs/config-only changes usually need path checks and `git diff --check`.
 
 ## Design-System Guidance
 

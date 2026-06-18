@@ -12,21 +12,27 @@ Primary Claude role:
 
 Implementation baseline is now Next.js + Bun with Supabase/Postgres,
 TanStack Query, Zustand, and repository boundaries. Keep recommendations
-aligned with `DESIGN.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, and
-`.ai/10_state/decisions.md`.
+aligned with `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
+`.ai/10_state/decisions.md`. Treat `DESIGN.md` as an **alpha-stage guide, not
+law** (see its status banner): the visual language is still being developed, so
+encourage exploration and defer to Philip on design decisions rather than
+enforcing design rules.
 
-Read order for current truth: `AGENTS.md` → `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`
-→ `AGENT_OPERATING_PROTOCOL.md` + `AGENT_FRAMEWORK_PROTOCOL.md` →
-`.ai/12_agents/payloads/claude.md` (Claude role/scope) → `.ai/10_state/current-state.md`
-+ `decisions.md`. If the agent feels stale, confused, or off-direction, stop and run
+Read for speed — pull, don't preload (see `AGENTS.md` "Read for speed"). Minimum read:
+`AGENTS.md` + the FAST PATH block at the top of `.ai/10_state/current-state.md`. Pull deeper
+docs only when the task needs them: `AGENT_OPERATING_PROTOCOL.md`/`AGENT_FRAMEWORK_PROTOCOL.md`
+for the loop/validation rules, `.ai/12_agents/payloads/claude.md` for Claude role/scope, and
+`rg` `current-state.md`/`decisions.md` for the specific area you touch — do NOT linear-read those
+long history files. If the agent feels stale, confused, or off-direction, stop and run
 `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before continuing.
 
-For non-trivial work (features, multi-file or shared-surface changes, DB/auth/security,
-performance, UI/workshop, provider-facing, release, or unclear debugging), follow the bounded
-loop-engineering default defined in `AGENTS.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
-("Loop activation criteria and bounds"): discover current truth, plan in a dated `.ai/03_plans/`
-pack with a `LOOP_LEDGER.md`, execute, verify with proportional evidence, record, and decide the
-next iteration. Trivial reversible work stays direct. Do not duplicate that policy here.
+Plan packs are scoped for MVP speed: a dated `.ai/03_plans/` pack with a `LOOP_LEDGER.md` is
+required only for HIGH-BLAST-RADIUS work (DB/auth/security, data integrity, release, cross-cutting
+refactors, architecture, agent-framework). Ordinary non-trivial work (a normal feature, a
+multi-file edit in one area, a focused perf fix, routine debugging) runs a lightweight in-session
+loop with proportional verification — no dated pack. Trivial reversible work stays direct. Full
+policy: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` ("Loop activation criteria and bounds"); do
+not duplicate it here.
 
 **Graph-tool policy is proportional and canonical.** The auto-generated GitNexus and
 code-review-graph blocks below ("MUST run impact analysis before editing any symbol",
@@ -40,8 +46,12 @@ unfamiliar call chains. Do not treat the generated absolutes ("MUST"/"NEVER"/"AL
 
 Codex is the implementation/diff/test/deep-bug lane; Claude stays lead (product
 judgment, planning, review) and delegates execution-heavy or deep-analysis work
-rather than grinding it solo. The **Codex review gate is enabled**: a Codex review
-must pass before Claude stops — adopt its fixes on the merits, escalate
+rather than grinding it solo. **Codex review gate (scoped for MVP speed):** require a
+passing Codex review before stopping only for HIGH-BLAST-RADIUS changes — database/RLS/RPC/
+migrations, auth/invites/publication, security, data integrity, release readiness, cross-cutting
+refactors, or anything the owner asks to be reviewed. For ordinary, reversible changes, skip the
+Codex round-trip and rely on proportional local verification; invoke `/codex:review` on demand
+when you want a second pass. When the gate applies, adopt Codex's fixes on the merits and escalate
 disagreements to the owner. Commands: `/codex:review`, `/codex:adversarial-review`,
 `/codex:rescue`, `/codex:status`, `/codex:result`, `/codex:cancel`, `/codex:setup`
 (toggle the gate with `/codex:setup [--enable-review-gate | --disable-review-gate]`).

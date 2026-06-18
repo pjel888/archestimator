@@ -1105,3 +1105,35 @@ cells, muted-rail AA, dark-card focus rings). Verified: tsc clean, `next build` 
 lint:design-system pass, 26 vitest + 24 bun tests green. NOT finalized — exploratory,
 pending the owner's live visual review. Confidence: high (code-level). Scope-risk:
 medium (new main-surface look; on-device visual + AA spot-check still recommended).
+
+---
+
+## 2026-06-18 — DESIGN.md is an alpha guide, not enforceable law
+
+**Owner directive (Philip):** the design contract is too strict. The visual
+language is still being developed, there is no settled style yet, so the contract
+must stop being enforcive and instead **encourage exploration**. For now the
+coding AI agent must **always defer to Philip** on design and stop enforcing
+design rules — `DESIGN.md` serves as a guide, not law.
+
+**Applied:**
+
+- Added a **"Status: Alpha — a guide, not law"** banner at the top of `DESIGN.md`
+  reframing every token/rule as a current *default*, not a fixed requirement, and
+  declaring the file's absolutist wording ("strict/must/mandatory/never")
+  subordinate to the banner until the system is declared stable.
+- Reworded the `DESIGN.md` Overview from "strict … must stay enforceable" to
+  "exploring … defaults we're trialing during alpha".
+- Softened the agent-facing surfaces that cited `DESIGN.md` as authority:
+  `AGENTS.md`, `CLAUDE.md`, `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` (UI
+  guidance), and `.ai/12_agents/payloads/claude.md` (Design-System Guidance) now
+  say to treat `DESIGN.md` as a guide, defer to Philip, and never block/revert/gate
+  work (incl. the design-system lint) on design grounds during alpha.
+
+**Not changed:** the `enforce-app-design-system.mjs` / `lint:design-system`
+scripts and the `validate` pipeline are left intact as *optional* tooling — they
+are no longer to be treated as a hard gate, but the wiring stays so the contract
+can be re-tightened when the visual language settles.
+
+**Reversible:** remove the banner + revert the guidance wording to restore the
+strict contract once the design system stabilizes.

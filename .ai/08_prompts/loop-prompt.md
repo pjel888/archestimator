@@ -269,7 +269,11 @@ For non-trivial work, add or strengthen this rule:
 Require proof surface to match the claim:
 
 - code behavior → focused tests, type checks, lint, and build when justified;
-- UI/browser behavior → browser/manual/Playwright proof when behavior is user-visible;
+- minor cosmetic UI edits (spacing, copy, color, icon, class-only tweaks) → static review, focused
+  type/LSP/lint, or nearby component/unit checks when adequate; do not run Playwright just because
+  the edit is visible;
+- UI interaction/routing/auth/data/responsive-layout/a11y/complex-composition behavior →
+  targeted browser/manual/Playwright proof when that proof is needed for the claim;
 - Supabase/Postgres behavior → migration status, SQL/RPC/RLS proof, generated types where relevant;
 - provider claims → provider evidence, not local-only checks;
 - docs-only mandate changes → path checks and `git diff --check`.
@@ -296,7 +300,7 @@ The mandate must say:
 
 - loops are mandatory for non-trivial work;
 - validation remains proportional to risk;
-- broad `bun run validate`, full build, full E2E, Storybook, visual QA, provider proof, or multi-agent orchestration should be used only when blast radius justifies it;
+- broad `bun run validate`, full build, full E2E, Storybook, Playwright/browser automation, visual QA, provider proof, or multi-agent orchestration should be used only when blast radius justifies it;
 - narrow reversible changes use focused checks;
 - the loop exists to increase speed, quality, and memory, not to create ceremony.
 

@@ -71,17 +71,24 @@ The normal Archestimator product-development loop is:
 
 ### Loop activation criteria and bounds
 
-A loop is REQUIRED for non-trivial work: feature or `.ai/03_plans` plan implementation;
-multi-file source changes; shared components/hooks/libraries; server actions, repositories, or API
-routes; database/Supabase/RLS/RPC/migration/generated-types work; auth, invites, or
-publication/shared links; provider-facing behavior; app/workshop or design-system-sensitive UI;
-route or browser behavior; proposal/export; performance work; unclear debugging or root-cause
-analysis; security; launch/release readiness; CI/CD or validation-framework work; codebase-wide
-audits or refactors; and agent-framework, prompt, payload, or orchestration changes.
+MVP speed default: prefer the lightest path that proves the change. A **dated
+`.ai/03_plans/` plan pack + `LOOP_LEDGER.md` is required only for HIGH-BLAST-RADIUS
+work** — where a wrong move is expensive or hard to reverse: database/Supabase/RLS/RPC/
+migration/generated-types; auth, invites, or publication/shared links; security; data
+integrity; launch/release readiness; cross-cutting or codebase-wide refactors/audits;
+architecture changes; agent-framework/prompt/payload/orchestration changes; or any work the
+owner explicitly asks to be planned exhaustively. For these, plan thoroughly and verify hard.
 
-A loop is NOT required for trivial work: typo fixes, narrow docs cleanup that does not alter policy,
-simple lookups or explanations, one-line reversible local fixes, bounded formatting, or direct
-answers with no repo mutation. Even then, verify proportionally and never claim completion from intent.
+Ordinary non-trivial work — a normal feature, a multi-file edit within one area, a
+component/hook change, a focused performance fix, routine debugging — does **NOT** need a dated
+plan pack. Run a lightweight in-session loop (discover the relevant files → make the smallest
+coherent edit → verify with the narrowest evidence that proves it → report), and only escalate to
+a full plan pack if the work turns out to touch a high-blast-radius surface above.
+
+A loop/plan is NOT required at all for trivial work: typo fixes, narrow docs cleanup that does not
+alter policy, simple lookups or explanations, one-line reversible local fixes, bounded formatting,
+or direct answers with no repo mutation. Always verify proportionally and never claim completion
+from intent — regardless of which path you took.
 
 Loop shape (named): `DISCOVER current repo truth → PLAN in .ai/03_plans/<YYYY-MM-DD>-<slug>/ →
 EXECUTE the next smallest coherent change → VERIFY with the narrowest evidence that proves the change
@@ -94,8 +101,13 @@ meaningful iterations unless the task sets its own. Never loop endlessly; never 
 self-report, a plan doc, or one green check unless the whole requested outcome is proven.
 
 Proportionality: the loop increases speed, quality, and memory — it is not ceremony. Validation stays
-proportional to risk (`VALIDATION_MATRIX.md`); reserve broad `bun run validate`/build/E2E/Storybook/
-visual/provider proof and multi-agent orchestration for blast radius that justifies them. Durable loop
+proportional to risk (`VALIDATION_MATRIX.md`). Minor cosmetic UI edits such as spacing, copy, color,
+icon, or class tweaks do not automatically require Playwright, browser automation, or visual QA; use
+static review, focused type/LSP/lint, or a nearby component/unit check when that proves the edit.
+Reserve targeted browser/manual proof for interaction changes, routing/auth/data behavior, responsive
+layout risk, accessibility semantics, complex composition, explicit visual-proof requests, or higher
+blast radius. Reserve broad `bun run validate`/build/E2E/Storybook/visual/provider proof and
+multi-agent orchestration for blast radius that justifies them. Durable loop
 artifacts (plan pack + `LOOP_LEDGER.md`) live in `.ai`, not chat — see `AGENT_FRAMEWORK_PROTOCOL.md`.
 Reusable prompt: `.ai/08_prompts/templates/codebase-ai-loop-task.md`.
 
@@ -114,12 +126,16 @@ Loop surface routing:
 - Use `ultraqa` when user-facing, CLI/runtime, integration, or safety-sensitive
   behavior could otherwise report a false green.
 - Use `vercel:agent-browser` or an equivalent browser-driving surface when the
-  claim depends on real web behavior.
+  claim depends on real web behavior. Do not use it just because a tiny cosmetic
+  UI edit is technically user-visible.
 
 A loop is complete only when the stop condition is proven by evidence outside
 the chat. A green unit test, worker self-report, or plan document can support the
-claim, but it does not replace the matching real-surface proof when the behavior
-is user-facing or provider-facing.
+claim, but it does not replace matching real-surface proof when the behavior
+actually depends on browser/runtime/provider behavior. Minor cosmetic UI edits
+can be completed with proportional non-browser evidence when no interaction,
+layout-risk, accessibility, routing, auth, data, or requested visual-proof claim
+is being made.
 
 ## Response economy overlay
 
@@ -228,7 +244,7 @@ Default roles:
 - Gemini: phased out; do not route new work to Gemini unless Philip explicitly reapproves it for a specific task
 - Kimi: frontend/product UI implementation and review, long-context synthesis, fallback planning/review, document analysis
 - DeepSeek: debugging, logic review, second-opinion critique
-- Ollama: not an approved agent LLM lane; only the nomic embedding model used by ChunkHound is approved for active use, and locally listed chat models must not be used for planning, review, or implementation unless explicitly approved and documented
+- Ollama: not an approved agent LLM lane; locally listed chat models must not be used for planning, review, or implementation unless explicitly approved and documented. (ChunkHound — which used the nomic embedding model via Ollama — is DISABLED as of 2026-06-18: removed from `.mcp.json` because Ollama was down and its daemon spun in a failing retry loop with zero working semantic search. Use `rg` + code-review-graph instead. To re-enable: start Ollama, then re-add ChunkHound to `.mcp.json`.)
 - Hermes: orchestration, memory, routing, task delegation across the AI bench, file/system operations, and final evidence verification
 
 ## Safety rules
@@ -249,7 +265,7 @@ Default roles:
 
 ## UI implementation guidance
 
-- Follow `DESIGN.md` for app/workshop UI: compact SF Pro typography, 0 letter spacing, 3px radius, restrained colors, and regular-outline icons.
+- Treat `DESIGN.md` as an **alpha-stage guide, not law** (see its status banner). Its defaults for app/workshop UI — compact SF Pro typography, 0 letter spacing, 3px radius, restrained colors, regular-outline icons — capture the current lean, not fixed requirements. The visual language is still being developed, so exploration is encouraged. **Defer to Philip on design decisions:** when he diverges from a rule, follow him — don't refuse, block, revert, or gate work on the design-system lint on design grounds.
 - Reuse existing `src/components/ui/` primitives when practical and cheaper than duplicating behavior.
 - Create shared primitives when a repeated pattern is clearly emerging; do not block small fixes on component-library or Storybook work.
 - Use Impeccable, design-system lint, Storybook, or visual QA when the task is primarily visual, high-risk, or explicitly asks for those gates.

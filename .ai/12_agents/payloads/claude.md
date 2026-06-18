@@ -70,7 +70,12 @@ changes follow `.ai/00_system/VALIDATION_MATRIX.md`.
 
 ## Design-System Guidance
 
-UI recommendations must follow `DESIGN.md`; run design-system lint for substantial, shared, or primarily visual edits.
+`DESIGN.md` is an **alpha-stage guide, not law** (see its status banner). The visual
+language is still being developed, so treat its tokens/rules as the current defaults and
+encourage exploration. **Defer to Philip on every design decision**: when he asks for
+something that diverges, do it — don't refuse, block, revert, or gate on design grounds.
+Use `DESIGN.md` as a reference and the design-system lint as an optional check, never as a
+hard stop, until Philip declares the system stable.
 
 ## Security And Provider Rules
 

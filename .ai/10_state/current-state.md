@@ -1,4 +1,43 @@
 # Current State
+
+<!-- ============================================================
+FAST PATH — READ THIS BLOCK, NOT THE WHOLE FILE.
+
+This file is an APPEND-ONLY history log (newest entries near the top). It is
+reference material, not a required linear read. On a normal task: read this
+Fast Path block, then `rg` this file for the area your task touches and read
+only those entries. Do NOT read all ~2,500 lines on every task — that is the
+single biggest source of slow agent startup.
+
+Stable current truth (verify against git/source before relying on a detail):
+- Stage: pre-launch closed-beta MVP. Bias to fast, useful iteration over
+  heavyweight regression ceremony. No external users yet.
+- Stack: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 +
+  Supabase/Postgres, TanStack Query, Zustand, repository boundaries.
+- DB autonomy mandate ACTIVE for Supabase project `ebxxqidacheyapmmzavr` only
+  (create/edit/apply migrations, scoped SQL, RLS/RPC/types, fix forward — no
+  per-change approval). Hard boundaries: no other provider projects, no
+  secrets, no PITR/paid add-ons without reapproval, no prod deploy unless asked,
+  no irreversible data loss without a recovery path + fresh instruction.
+- Active branches with recent work: `codex/fix-project-delete` (project-delete
+  hardening, Project Groups, Sidebar favorites), `feat/sidebar-redesign`
+  (Workshop Dashboard, liquid-glass sidebar). `main` has merged perf work.
+- Known pre-existing reds on `main` (NOT your change if you see them): full
+  `bun run validate` is red (charts `set-state-in-effect`;
+  `ProposalExportPreviewDialog` design-lint); the all-DOM phase can hang —
+  use targeted DOM matrices.
+- Codex/UI verification policy: do not automatically run Playwright/browser
+  proof for every minor UI element tweak. Spacing, copy, color, icon, and
+  class-only cosmetic edits can use static review plus focused type/LSP/lint or
+  nearby component/unit checks. Reserve browser/manual proof for interaction,
+  routing, auth/data, responsive-layout risk, accessibility semantics, complex
+  composition, explicit visual-proof requests, or higher blast radius.
+
+To go deeper: `rg -n "<feature/keyword>" .ai/10_state/current-state.md` and
+read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
+grep, don't linear-read).
+============================================================ -->
+
 **Pre-launch MVP database autonomy mandate active (2026-06-13):**
 Philip grants standing authorization for Archestimator Supabase/Postgres changes
 inside project `ebxxqidacheyapmmzavr`. Agents should make needed database

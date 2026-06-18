@@ -88,8 +88,10 @@ and evidence. Maker/checker separation is expected when risk, breadth, or user-v
 
 Proof-boundary labels (use precisely; never call a local check provider/browser proof):
 `local-only` · `provider-proven` · `browser-proven` · `manual-proof-pending` · `not-verified`. Match
-the surface to the claim: code → focused tests/type/lint/build-when-justified; UI/browser →
-browser/manual/Playwright when user-visible; Supabase/Postgres → migration status + SQL/RPC/RLS proof +
+the surface to the claim: code → focused tests/type/lint/build-when-justified; minor cosmetic UI
+edits → static review, focused type/LSP/lint, or nearby component/unit checks when adequate; UI
+interaction/routing/auth/data/responsive-layout/a11y/complex-composition claims → targeted
+browser/manual/Playwright proof; Supabase/Postgres → migration status + SQL/RPC/RLS proof +
 generated types; provider claims → provider evidence; docs-only → path checks + `git diff --check`.
 
 ## Agent Receipt

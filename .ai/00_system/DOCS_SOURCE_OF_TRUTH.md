@@ -4,8 +4,12 @@ The `.ai` folder prevents agent drift. Each type of knowledge has one canonical 
 
 ## Current restart entry point
 
-- Current state: `.ai/10_state/current-state.md`
-- Decisions: `.ai/10_state/decisions.md`
+Read for speed: do NOT linear-read these. Read the FAST PATH block at the top of
+`current-state.md`, then `rg` these files for the area your task touches. They are
+append-only history logs (~2,500 and ~1,100 lines), not required full reads.
+
+- Current state (read top FAST PATH block; `rg` for specifics): `.ai/10_state/current-state.md`
+- Decisions (`rg` for the specific decision): `.ai/10_state/decisions.md`
 - Roadmap and launch cutline: `.ai/01_roadmap/README.md`
 - Validation matrix: `.ai/00_system/VALIDATION_MATRIX.md`
 - Agent operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
