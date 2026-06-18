@@ -40,6 +40,7 @@ describe("Codex component-library and tooling hardening contracts", () => {
     const cursorMcp = JSON.parse(read(".cursor/mcp.json"));
     const codexHooks = JSON.parse(read(".codex/hooks.json"));
     const codexConfig = read(".codex/config.toml");
+    const claudeSettings = JSON.parse(read(".claude/settings.json"));
     const hookCommands = Object.values(codexHooks.hooks)
       .flatMap((entries) => entries as Array<{ hooks?: Array<{ command?: string }> }>)
       .flatMap((entry) => entry.hooks ?? [])
@@ -53,9 +54,11 @@ describe("Codex component-library and tooling hardening contracts", () => {
 
     expect(codexConfig).toContain(`"${expectedPackage}"`);
     expect(codexConfig).toContain("hooks = false");
+    expect(codexConfig).not.toContain("[hooks.state.");
     expect(codexConfig).not.toMatch(/^\s*"code-review-graph",\s*$/m);
     expect(codexHooks.hooks).toEqual({});
     expect(hookCommands).toEqual([]);
+    expect(claudeSettings.hooks).toEqual({});
     expect(
       hookCommands.filter(
         (command) =>
@@ -70,6 +73,23 @@ describe("Codex component-library and tooling hardening contracts", () => {
           !command.includes(`uvx --from ${expectedPackage} code-review-graph status`),
       ),
     ).toEqual([]);
+  });
+
+  it("keeps local agent startup/edit loops hook-free and explicit", () => {
+    const claudeSettings = JSON.parse(read(".claude/settings.json"));
+    const codexHooks = JSON.parse(read(".codex/hooks.json"));
+    const codexConfig = read(".codex/config.toml");
+    const claudeGuide = read("CLAUDE.md");
+    const serializedAgentConfig = JSON.stringify({ claudeSettings, codexHooks });
+
+    expect(claudeSettings.hooks).toEqual({});
+    expect(codexHooks.hooks).toEqual({});
+    expect(codexConfig).toContain("hooks = false");
+    expect(serializedAgentConfig).not.toContain("code-review-graph update");
+    expect(serializedAgentConfig).not.toContain("code-review-graph status");
+    expect(serializedAgentConfig).not.toContain("impeccable/scripts/hook.mjs");
+    expect(claudeGuide).toContain("Hooks are disabled for speed");
+    expect(claudeGuide).toContain("bun run graph:reindex");
   });
 
   it("uses the repo-pinned Impeccable detector instead of mutable npx resolution", () => {

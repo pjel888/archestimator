@@ -52,6 +52,19 @@ without fresh explicit instruction and a recovery path. This supersedes older
 default owner-gated database wording unless a newer, narrower decision
 explicitly reintroduces a gate for a specific database action.
 
+**Agent toolchain fast path restored (2026-06-18):**
+Codex and Claude are configured for hook-free local agent loops. `.codex/config.toml`
+keeps `hooks = false`, `.codex/hooks.json` is empty, stale Codex hook trust-state
+blocks were removed, tracked `.claude/settings.json` is empty-hook, and this
+machine's gitignored `.claude/settings.local.json` no longer runs Impeccable after
+edits or enables ChunkHound. Graph/design checks are explicit commands, not
+automatic per-edit or per-session hooks. Contract proof:
+`bunx vitest run tests/vitest/security-findings-library-tooling-contracts.test.ts --maxWorkers=1`
+passed 6/6, JSON config parsing passed, stale-hook harness printed
+`agent-fast-path-ok`, and `git diff --check` passed for the touched tooling files.
+Evidence ledger:
+`.ai/03_plans/2026-06-18-Agent-Toolchain-Performance/LOOP_LEDGER.md`.
+
 **Project delete active-publication hardening applied (2026-06-17, branch `codex/fix-project-delete`):**
 Project deletion with active published shared links is warning-based, not blocked:
 the delete preview/modal says active links will be revoked, hard blockers render

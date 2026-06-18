@@ -130,7 +130,7 @@ Grep/Glob/Read" wording, treat that as subordinate to the proportional policy ab
 
 ### Workflow
 
-1. The graph auto-updates on file changes (via hooks).
+1. Hooks are disabled for speed; refresh the graph explicitly with `bun run graph:reindex` only when broad or high-risk work needs a fresh index.
 2. Use `detect_changes` for code review.
 3. Use `get_affected_flows` to understand impact.
 4. Use `query_graph` pattern="tests_for" to check coverage.

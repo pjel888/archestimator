@@ -20,7 +20,7 @@ startup_timeout_sec = 15
 [features]
 multi_agent = true
 child_agents_md = true
-hooks = true
+hooks = false
 goals = true
 
 [shell_environment_policy.set]
@@ -36,39 +36,7 @@ max_threads = 6
 [features.multi_agent_v2]
 enabled = false
 
-# ============================================================
-# oh-my-codex (OMX) Configuration
-# Managed by omx setup - manual edits preserved on next setup
-# ============================================================
-
-# OMX-owned Codex hook trust state
-# Trusts only setup-managed native hook wrappers.
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:post_compact:0:0"]
-trusted_hash = "sha256:8df0bbca993d85e768f7ede0609a03ff35ec69ccff494a31c7ecc54b9391c03d"
-
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:post_tool_use:0:0"]
-trusted_hash = "sha256:cbc633929259760380704f9b6d053a26635bd4f40b9148443e08407c5e403fa7"
-
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:pre_compact:0:0"]
-trusted_hash = "sha256:60f6268641998d70249271733d0bc569a76b4264bebf80c8d25da779e4fddba0"
-
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:pre_tool_use:0:0"]
-trusted_hash = "sha256:d9fe34d30d8dcb260cc553cdbad925d382f2638263fcabcd54a71a3873e91ecf"
-
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:session_start:0:0"]
-trusted_hash = "sha256:c83f036a913d13acaabbcf553b4f58e5b54a83a9d1a8533c1c165fe019e3e84a"
-
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:stop:0:0"]
-trusted_hash = "sha256:0585a6c89b0480831fcfa826e3007e1cd75a04458b34944c86b7d9f8d728e3e9"
-
-[hooks.state."/Users/philiplewis/Documents/archestimator/.codex/hooks.json:user_prompt_submit:0:0"]
-trusted_hash = "sha256:624a4a7104da0e97e3397c56e7062856110fbf18342d830b6ed3d3fe92f6f67a"
-# End OMX-owned Codex hook trust state
-
 # OMX TUI StatusLine (Codex CLI v0.101.0+)
 [tui]
 # omx:managed-status-line
 status_line = ["model-with-reasoning", "git-branch", "context-remaining", "total-input-tokens", "total-output-tokens", "five-hour-limit", "weekly-limit"]
-
-# ============================================================
-# End oh-my-codex
