@@ -17,17 +17,23 @@ import {
 
 type RecentProjectsListProps = {
   projects: WorkshopProjectSummary[];
+  embedded?: boolean;
 };
 
 const ROW_FOCUS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0";
 
-export function RecentProjectsList({ projects }: RecentProjectsListProps) {
+export function RecentProjectsList({ projects, embedded = false }: RecentProjectsListProps) {
   const rows = projects.slice(0, 6);
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xs border border-hairline bg-white">
-      <div className="flex shrink-0 items-end justify-between gap-2 px-2 py-1.5">
+    <section
+      className={cn(
+        "flex h-full min-h-0 flex-col bg-white",
+        embedded ? "" : "rounded-xs border border-hairline",
+      )}
+    >
+      <div className="flex shrink-0 items-end justify-between gap-2 px-2 py-2">
         <div className="min-w-0">
           <p className="font-numeric text-[9px] text-secondary">Workspace</p>
           <h2 className="text-[12px] font-medium text-ink">Recent projects</h2>
@@ -46,7 +52,7 @@ export function RecentProjectsList({ projects }: RecentProjectsListProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {rows.length === 0 ? (
-          <p className="border-t border-hairline px-2 py-1.5 text-[10px] text-secondary">
+          <p className="border-t border-hairline px-2 py-2 text-[10px] text-secondary">
             No recent projects yet
           </p>
         ) : (
@@ -58,7 +64,7 @@ export function RecentProjectsList({ projects }: RecentProjectsListProps) {
                   <Link
                     href={projectHref(project.id)}
                     className={cn(
-                      "flex items-center gap-2 px-2 py-1.5 hover:bg-surface-muted",
+                      "flex items-center gap-2 px-2 py-2 hover:bg-surface-muted",
                       ROW_FOCUS,
                     )}
                   >

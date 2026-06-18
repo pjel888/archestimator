@@ -9,22 +9,41 @@ import { Button } from "@/components/ui/button";
 import { NewProjectModal } from "@/components/workshop/NewProjectModal";
 import { cn } from "@/lib/ui/cn";
 
-import { MATERIAL_PHOTOS_READY, WORKSHOP_ROUTES } from "./lib";
+import { WORKSHOP_ROUTES } from "./lib";
 
 type DashboardEmptyStateProps = {
   /** Personalises the hero greeting when known (e.g. first name). */
   displayName?: string | null;
 };
 
-/** Shared responsive sizing hint for the destination preview images. */
-const TILE_IMAGE_SIZES = "(max-width:640px) 50vw, (max-width:1024px) 25vw, 22vw";
+const PROJECTS_MOUNTAIN_SRC = "/Cards/projects-mountain.jpg";
 
-/** The four destination previews, each backed by a construction-material macro. */
+/** The four destination previews, using the same dashboard surface system. */
 const PREVIEW_TILES = [
-  { href: WORKSHOP_ROUTES.projects, label: "Projects", material: "timber", warm: false },
-  { href: WORKSHOP_ROUTES.libraryComponents, label: "Components", material: "steel", warm: false },
-  { href: WORKSHOP_ROUTES.libraryTemplates, label: "Templates", material: "concrete", warm: false },
-  { href: WORKSHOP_ROUTES.library, label: "Library", material: "aggregate", warm: true },
+  {
+    href: WORKSHOP_ROUTES.projects,
+    label: "Projects",
+    toneClass: "dashboard-destination-card--projects",
+    imageSrc: PROJECTS_MOUNTAIN_SRC,
+  },
+  {
+    href: WORKSHOP_ROUTES.libraryComponents,
+    label: "Components",
+    toneClass: "dashboard-destination-card--components",
+    imageSrc: null,
+  },
+  {
+    href: WORKSHOP_ROUTES.libraryTemplates,
+    label: "Templates",
+    toneClass: "dashboard-destination-card--templates",
+    imageSrc: null,
+  },
+  {
+    href: WORKSHOP_ROUTES.library,
+    label: "Library",
+    toneClass: "dashboard-destination-card--library",
+    imageSrc: null,
+  },
 ] as const;
 
 /**
@@ -48,7 +67,7 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
     <section
       role="region"
       aria-label="Get started"
-      className="flex w-full flex-col gap-3"
+      className="flex w-full flex-col gap-2"
     >
       {/* Warm-glass hero over a faint bloom — never blank, always a start. */}
       <div className="relative w-full">
@@ -60,7 +79,7 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
         <div
           className={cn(
             "dashboard-glass-warm dashboard-hero-create grain-overlay",
-            "relative flex flex-col gap-3 rounded-xs p-6",
+            "relative flex flex-col gap-2 rounded-xs p-2",
           )}
         >
           <span className="font-numeric text-[9px] text-secondary">First run</span>
@@ -74,7 +93,7 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
             supplier context, and a document-ready proposal.
           </p>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
               <FolderPlus size={16} weight="regular" aria-hidden="true" />
               New project
@@ -95,38 +114,32 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
         </div>
       </div>
 
-      {/* "What you can build" — preview of the four destinations as material-frost
-          tiles (self-contained; mirrors the populated dashboard's language). */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {PREVIEW_TILES.map(({ href, label, material, warm }) => (
+      {/* "What you can build" — preview of the four destinations using the same
+          surface system as the populated dashboard. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {PREVIEW_TILES.map(({ href, label, toneClass, imageSrc }) => (
           <Link
             key={label}
             href={href}
             aria-label={`Open ${label}`}
             className={cn(
-              "material-card relative block h-[120px]",
-              `material-${material}`,
+              "dashboard-destination-card relative block h-[120px]",
+              toneClass,
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
             )}
           >
-            {MATERIAL_PHOTOS_READY ? (
+            {imageSrc ? (
               <Image
-                src={`/Cards/materials/${material}.jpg`}
+                src={imageSrc}
                 alt=""
                 fill
-                className="object-cover"
-                sizes={TILE_IMAGE_SIZES}
+                sizes="(max-width:640px) 50vw, (max-width:1024px) 25vw, 22vw"
+                className="dashboard-destination-card-image"
               />
             ) : null}
+            <span className="dashboard-destination-card-mark" aria-hidden="true" />
             <span
-              className={cn("material-card-frost", warm && "material-card-frost--warm")}
-              aria-hidden="true"
-            />
-            <span
-              className={cn(
-                "material-card-caption absolute bottom-3 left-3 z-10 text-[11px] font-medium text-ink",
-                warm && "material-card-caption--warm",
-              )}
+              className="dashboard-destination-card-title absolute bottom-2 left-2 z-10 text-[11px] font-medium"
             >
               {label}
             </span>

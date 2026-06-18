@@ -17,10 +17,10 @@ type WorkshopDashboardProps = WorkshopDashboardData & {
 
 /**
  * The Workshop "command center" homebase — a full-bleed bento (no centered
- * column): an editorial masthead headline, a square material-frost image field
- * (destination tiles + Library hub + a big catalogue numeral, with intentional
- * empty voids), and a working desk led by Favorites (the prominent block) with
- * compact Continue/Create actions and the two recent ledgers ranked beneath it.
+ * column): an editorial masthead headline, a square destination field (Projects
+ * mountain image + supporting color blocks + Library hub + a big catalogue
+ * numeral), and a working desk led by Favorites with compact Continue/Create
+ * actions and the two recent ledgers ranked beneath it.
  */
 export function WorkshopDashboard({
   homebase,
@@ -51,12 +51,14 @@ export function WorkshopDashboard({
         </div>
 
         {firstRun ? (
-          <DashboardEmptyState displayName={userDisplayName} />
+          <div className="dashboard-first-run">
+            <DashboardEmptyState displayName={userDisplayName} />
+          </div>
         ) : (
           <>
-            {/* Image band — an editorial square module field: a big Projects
-                hero (2×2), scattered material-frost tiles, the Library hub, a
-                wide display numeral, and unoccupied cells as negative space. */}
+            {/* Destination field — a big Projects mountain hero (2×2), three
+                supporting color blocks, the Library hub, and a wide display
+                numeral. */}
             <div className="dashboard-imageband">
               <ImageDestinationCard
                 kind="projects"
@@ -103,24 +105,28 @@ export function WorkshopDashboard({
               </div>
             </div>
 
-            {/* Working desk — Favorites leads (wide, prominent) over the two
-                recent ledgers; one combined Continue+Create action rail. */}
+            {/* Working desk — Favorites and recent work are one divided ledger;
+                Continue/Create stays as the compact action rail. */}
             <div className="dashboard-desk">
-              <div className="desk-favs">
-                <FavoritesTree favoriteProjects={favoriteProjects} />
+              <div className="desk-board">
+                <div className="desk-board-favs">
+                  <FavoritesTree favoriteProjects={favoriteProjects} embedded />
+                </div>
+                <div className="desk-board-recents">
+                  <div className="desk-recproj">
+                    <RecentProjectsList projects={homebase.projects} embedded />
+                  </div>
+                  <div className="desk-recsheet">
+                    <RecentSheetsList estimates={homebase.estimates} embedded />
+                  </div>
+                </div>
               </div>
-              <div className="desk-action dashboard-glass-warm dashboard-hero-create grain-overlay relative flex min-h-0 flex-col self-start overflow-hidden rounded-xs">
+              <div className="desk-action dashboard-glass-warm dashboard-hero-create grain-overlay relative flex min-h-0 flex-col overflow-hidden rounded-xs">
                 <ContinueCard estimate={continueEstimate} bare />
                 {continueEstimate ? (
-                  <span aria-hidden="true" className="mx-2.5 h-px shrink-0 bg-[color:var(--glass-border)]" />
+                  <span aria-hidden="true" className="mx-2 h-px shrink-0 bg-[color:var(--glass-border)]" />
                 ) : null}
                 <CreateActions recentProjects={homebase.projects} bare />
-              </div>
-              <div className="desk-recproj">
-                <RecentProjectsList projects={homebase.projects} />
-              </div>
-              <div className="desk-recsheet">
-                <RecentSheetsList estimates={homebase.estimates} />
               </div>
             </div>
           </>

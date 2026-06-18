@@ -41,7 +41,7 @@ export function CreateActions({ recentProjects, bare = false }: CreateActionsPro
   return (
     <div
       className={cn(
-        "relative flex min-h-0 flex-col gap-1.5 p-2.5",
+        "relative flex min-h-0 flex-col gap-2 p-2",
         bare ? "" : "dashboard-glass-warm dashboard-hero-create h-full rounded-xs",
       )}
     >
@@ -50,13 +50,13 @@ export function CreateActions({ recentProjects, bare = false }: CreateActionsPro
         <span className="font-numeric text-[9px] text-secondary">Start something new</span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5">
+      <div className="flex flex-1 flex-col gap-2">
         <Button variant="primary" size="sm" className="w-full" onClick={() => setOpen(true)}>
           <FolderPlus size={16} weight="regular" aria-hidden="true" />
           New project
         </Button>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           <Button
             variant="secondary"
             size="sm"
@@ -86,7 +86,7 @@ export function CreateActions({ recentProjects, bare = false }: CreateActionsPro
                     <Link
                       href={projectEstimatesHref(project.id)}
                       className={cn(
-                        "block truncate rounded-xs px-2 py-1.5 font-numeric text-[11px] text-secondary",
+                        "block truncate rounded-xs px-2 py-2 font-numeric text-[11px] text-secondary",
                         "hover:bg-white/40 hover:text-ink",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                       )}

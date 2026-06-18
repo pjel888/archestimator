@@ -31,9 +31,8 @@ type DashboardHeroProps = {
 };
 
 /**
- * Masthead greeting — reference-style editorial type over the canvas wash, no
- * card/border/frost. The time-of-day greeting is the headline, not a marketing
- * kicker, so the dashboard opens with direct user orientation.
+ * Masthead greeting — a compact orientation strip that owns the first dashboard
+ * row without competing with the destination tiles below it.
  */
 export function DashboardHero({ displayName }: DashboardHeroProps) {
   const hydrated = useIsHydrated();
@@ -43,15 +42,13 @@ export function DashboardHero({ displayName }: DashboardHeroProps) {
   const PeriodIcon = tone.icon === "moon" ? MoonStarsIcon : SunHorizonIcon;
 
   return (
-    <section aria-label="Workshop greeting" className="flex min-h-[118px] flex-col justify-center">
-      <h1 className="font-display text-[34px] font-semibold uppercase leading-[0.96] text-ink sm:text-[44px] lg:text-[54px]">
-        <span className="flex items-center gap-2">
-          <span className="grid size-[18px] place-items-center text-secondary sm:size-[20px]">
-            <PeriodIcon role="img" aria-label={tone.periodLabel} weight="regular" className="size-full" />
-          </span>
-          <span>{tone.greeting}</span>
+    <section aria-label="Workshop greeting" className="flex h-full min-h-0 items-start px-2 py-2">
+      <h1 className="flex flex-col items-start gap-1 uppercase leading-none text-ink">
+        <span className="grid size-3 place-items-center text-secondary">
+          <PeriodIcon role="img" aria-label={tone.periodLabel} weight="regular" className="size-full" />
         </span>
-        <span className="block">{name}</span>
+        <span className="font-numeric text-[10px] font-medium text-secondary">{tone.greeting}</span>
+        <span className="font-display text-[14px] font-medium">{name}</span>
       </h1>
     </section>
   );

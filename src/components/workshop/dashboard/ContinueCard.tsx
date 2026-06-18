@@ -30,7 +30,7 @@ export function ContinueCard({ estimate, bare = false }: ContinueCardProps) {
       href={estimateHref(estimate)}
       aria-label={`Continue editing ${estimate.name}`}
       className={cn(
-        "group relative flex flex-col justify-between gap-1.5 p-2.5",
+        "group relative flex flex-col justify-between gap-2 p-2",
         bare
           ? "rounded-xs hover:bg-white/30"
           : "dashboard-glass-warm dashboard-hero-continue dashboard-card-hover grain-overlay h-full min-h-0 rounded-xs",
@@ -47,7 +47,7 @@ export function ContinueCard({ estimate, bare = false }: ContinueCardProps) {
         </span>
       </span>
 
-      <span className="flex items-end justify-between gap-3">
+      <span className="flex items-end justify-between gap-2">
         <span className="font-numeric text-[9px] text-secondary">
           Edited {formatShortDate(estimate.updated_at)}
         </span>

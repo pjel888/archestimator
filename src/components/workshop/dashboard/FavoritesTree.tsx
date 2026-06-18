@@ -24,15 +24,16 @@ import type {
 
 type FavoritesTreeProps = {
   favoriteProjects: MainSidebarFavoriteProject[];
+  embedded?: boolean;
 };
 
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0";
 
 const ROW_LINK =
-  "flex min-w-0 flex-1 items-center gap-1.5 rounded-xs px-1.5 py-1 hover:bg-surface-muted";
+  "flex min-w-0 flex-1 items-center gap-2 rounded-xs px-2 py-2 hover:bg-surface-muted";
 
-export function FavoritesTree({ favoriteProjects }: FavoritesTreeProps) {
+export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesTreeProps) {
   // Default: expand every project that actually has favorite sheets, so the
   // tree is useful on first paint.
   const [openIds, setOpenIds] = useState<Set<string>>(() => {
@@ -141,10 +142,13 @@ export function FavoritesTree({ favoriteProjects }: FavoritesTreeProps) {
 
   return (
     <section
-      className="flex h-full min-h-0 flex-col rounded-xs border border-hairline bg-white"
+      className={cn(
+        "flex h-full min-h-0 flex-col bg-white",
+        embedded ? "" : "rounded-xs border border-hairline",
+      )}
       aria-labelledby="dashboard-favorites-heading"
     >
-      <div className="flex items-center gap-1.5 px-2 py-1.5">
+      <div className="flex items-center gap-2 px-2 py-2">
         <Star size={14} weight="regular" className="shrink-0 text-orange-600" />
         <span className="font-numeric text-[9px] text-secondary">Pinned</span>
         <h2
@@ -156,7 +160,7 @@ export function FavoritesTree({ favoriteProjects }: FavoritesTreeProps) {
       </div>
 
       {favoriteProjects.length === 0 ? (
-        <p className="border-t border-hairline px-2 py-1.5 text-[10px] text-secondary">
+        <p className="border-t border-hairline px-2 py-2 text-[10px] text-secondary">
           Star a project to pin it here.
         </p>
       ) : (
@@ -165,7 +169,7 @@ export function FavoritesTree({ favoriteProjects }: FavoritesTreeProps) {
           role="tree"
           aria-label="Favorite projects"
           onKeyDown={handleKeyDown}
-          className="min-h-0 flex-1 overflow-y-auto border-t border-hairline py-0.5"
+          className="min-h-0 flex-1 overflow-y-auto border-t border-hairline py-0"
         >
           {favoriteProjects.map((project) => {
             const hasSheets = project.favoriteEstimateSheets.length > 0;
@@ -184,7 +188,7 @@ export function FavoritesTree({ favoriteProjects }: FavoritesTreeProps) {
                 aria-selected={false}
                 aria-label={project.name}
               >
-                <div className="flex items-center gap-0.5 px-1.5">
+                <div className="flex items-center gap-2 px-2">
                   {hasSheets ? (
                     <button
                       type="button"
@@ -247,7 +251,7 @@ export function FavoritesTree({ favoriteProjects }: FavoritesTreeProps) {
                           role="treeitem"
                           aria-selected={false}
                           aria-label={sheet.name}
-                          className="flex items-center px-1.5"
+                          className="flex items-center px-2"
                         >
                           <Link
                             href={sheet.href}

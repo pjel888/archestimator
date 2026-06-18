@@ -17,24 +17,30 @@ import {
 
 type RecentSheetsListProps = {
   estimates: WorkshopEstimateSummary[];
+  embedded?: boolean;
 };
 
 const ROW_FOCUS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0";
 
-export function RecentSheetsList({ estimates }: RecentSheetsListProps) {
+export function RecentSheetsList({ estimates, embedded = false }: RecentSheetsListProps) {
   const rows = estimates.slice(0, 6);
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-xs border border-hairline bg-white">
-      <div className="shrink-0 px-2 py-1.5">
+    <section
+      className={cn(
+        "flex h-full min-h-0 flex-col bg-white",
+        embedded ? "" : "rounded-xs border border-hairline",
+      )}
+    >
+      <div className="shrink-0 px-2 py-2">
         <p className="font-numeric text-[9px] text-secondary">Workspace</p>
         <h2 className="text-[12px] font-medium text-ink">Recent estimate sheets</h2>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {rows.length === 0 ? (
-          <p className="border-t border-hairline px-2 py-1.5 text-[10px] text-secondary">
+          <p className="border-t border-hairline px-2 py-2 text-[10px] text-secondary">
             No recent estimate sheets yet
           </p>
         ) : (
@@ -44,7 +50,7 @@ export function RecentSheetsList({ estimates }: RecentSheetsListProps) {
                 <Link
                   href={estimateHref(estimate)}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 hover:bg-surface-muted",
+                    "flex items-center gap-2 px-2 py-2 hover:bg-surface-muted",
                     ROW_FOCUS,
                   )}
                 >
