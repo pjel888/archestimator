@@ -36,6 +36,7 @@ Current filesystem inventory, refreshed 2026-06-18:
 | `.ai/03_plans/2026-06-17-Workshop-Dashboard/` | Implemented in repo; visual/owner proof gap | Dashboard source/tests/build evidence is recorded. Live visual, device, and owner-signoff proof remain separate. |
 | `.ai/03_plans/2026-06-17-loop-engineering-default-mandate/` | Implemented docs/governance | Instruction-level mandate; no CI/tool enforcement claimed. |
 | `.ai/03_plans/2026-06-18-r1-graph-injector-neutralization/` | Implemented locally | Neutralizer and scripts exist. Real generator run was intentionally not performed. |
+| `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/` | Planning only | Dashboard Supabase round-trip reduction (app-only wave-merge + lean library fetch first; gated `workspace_homebase_summary` RPC only if measured). Operationalizes Performance-Refactor A-23/RISK-20; its `01-…` supersedes that pack's stale homebase anchors. No source, migrations, or measurement performed. Adversarially reviewed (ready-with-fixes, applied). |
 | `.ai/03_plans/database-indexing-and-query-performance/` | Repo audit helper only | `DBIDX-001` repo audit helper exists. No indexes, candidate index migrations, or live EXPLAIN/provider proof are implemented. |
 
 Archived entries that were previously mislisted as active:
