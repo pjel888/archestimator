@@ -1338,8 +1338,10 @@ input[type="number"] {
   --dashboard-tile-glass-bg-hover: transparent;
   --dashboard-tile-glass-border: var(--glass-border);
   --dashboard-tile-glass-border-hover: color-mix(in srgb, var(--glass-border) 72%, rgba(38, 44, 58, 0.22));
-  --dashboard-tile-glass-inset: var(--glass-shadow), var(--glass-inset-hi);
-  --dashboard-tile-glass-inset-hover: var(--glass-shadow-hover), var(--glass-inset-hi);
+  --dashboard-tile-glass-shadow: 0 4px 14px rgba(30, 35, 50, 0.06), 0 1px 4px rgba(30, 35, 50, 0.035);
+  --dashboard-tile-glass-shadow-hover: 0 5px 12px rgba(30, 35, 50, 0.065), 0 1.5px 4px rgba(30, 35, 50, 0.04);
+  --dashboard-tile-glass-inset: var(--dashboard-tile-glass-shadow), var(--glass-inset-hi);
+  --dashboard-tile-glass-inset-hover: var(--dashboard-tile-glass-shadow-hover), var(--glass-inset-hi);
 }
 
 .dashboard-destination-card {
@@ -1355,6 +1357,10 @@ input[type="number"] {
   --destination-inner-muted: var(--secondary);
   --destination-mark-opacity: 0.16;
   position: relative;
+  /* Each destination tile is its own size-container so the interior count
+     column + numeral can adapt to the tile's real width (narrow laptops vs.
+     wide monitors) without touching the outer bento geometry. */
+  container-type: inline-size;
   overflow: hidden;
   background: var(--destination-bg);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -1496,6 +1502,15 @@ input[type="number"] {
   border-top: 1px solid var(--glass-border);
   border-bottom: 1px solid var(--glass-border);
 }
+/* Count column tracks the tile's own width: ~32% of the tile, but never wider
+   than the editorial 203px (so wide monitors keep the original design exactly)
+   and never narrower than 116px (so the numeral + label stay legible). On a
+   13" laptop the tiles are far narrower, so this shrinks the count column and
+   hands the freed width back to the Published / Recently-Added ledgers. */
+.dashboard-project-card-panel,
+.dashboard-component-card-panel {
+  --dashboard-count-col: clamp(116px, 32cqi, 203px);
+}
 .dashboard-project-count-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1586,7 +1601,9 @@ input[type="number"] {
 .dashboard-bignum-value {
   font-family: var(--font-numeric);
   font-weight: 200;
-  font-size: clamp(32px, 2.2vw, 32px);
+  /* Scales with the tile so the count never crowds a narrowed count column;
+     wide tiles still land on the original 32px. */
+  font-size: clamp(22px, 7cqi, 32px);
   line-height: 0.9;
   letter-spacing: 0;
   color: var(--destination-inner-text);

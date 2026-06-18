@@ -163,7 +163,7 @@ export function WorkshopDashboard({
                   className="dashboard-project-card-panel"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: `${DASHBOARD_COUNT_COLUMN_WIDTH} minmax(0, 1fr)`,
+                    gridTemplateColumns: `var(--dashboard-count-col, ${DASHBOARD_COUNT_COLUMN_WIDTH}) minmax(0, 1fr)`,
                     alignItems: "stretch",
                     minHeight: 0,
                     paddingBlock: 8,
@@ -234,7 +234,7 @@ export function WorkshopDashboard({
                   className="dashboard-component-card-panel"
                   style={{
                     display: "grid",
-                    gridTemplateColumns: `${DASHBOARD_COUNT_COLUMN_WIDTH} minmax(0, 1fr)`,
+                    gridTemplateColumns: `var(--dashboard-count-col, ${DASHBOARD_COUNT_COLUMN_WIDTH}) minmax(0, 1fr)`,
                     alignItems: "stretch",
                     minHeight: 0,
                     paddingBlock: 8,
