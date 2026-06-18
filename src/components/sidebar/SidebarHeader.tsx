@@ -45,7 +45,7 @@ export function SidebarHeader({ expanded }: SidebarHeaderProps) {
               data-sidebar-header-logo-lock
               style={expanded ? undefined : { transform: "translateX(-2px)" }}
             >
-              <ArchestimatorLogoMark tone={expanded ? "light" : "dark"} size={MARK_SIZE} priority className="size-[36px]" />
+              <ArchestimatorLogoMark tone={expanded ? "light" : "dark"} size={MARK_SIZE} priority className="sidebar-logo-mark size-[36px]" />
             </div>
             <span
               aria-hidden={!expanded}

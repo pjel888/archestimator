@@ -53,12 +53,27 @@ export function ImageDestinationCard({
           <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
             {plateIndex}
           </span>
-          <ArrowUpRight
-            size={32}
-            weight="regular"
-            aria-hidden="true"
-            className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-          />
+          {nonInteractive ? (
+            <ArrowUpRight
+              size={32}
+              weight="regular"
+              aria-hidden="true"
+              className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+            />
+          ) : (
+            <Link
+              href={href}
+              aria-label={`Open ${label}`}
+              className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+            >
+              <ArrowUpRight
+                size={32}
+                weight="regular"
+                aria-hidden="true"
+                className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+              />
+            </Link>
+          )}
         </span>
       )}
 
@@ -70,21 +85,9 @@ export function ImageDestinationCard({
     </>
   );
 
-  if (nonInteractive) {
-    return (
-      <div className={classNames} aria-label={label}>
-        {contents}
-      </div>
-    );
-  }
-
   return (
-    <Link
-      href={href}
-      aria-label={`Open ${label}`}
-      className={classNames}
-    >
+    <div className={classNames} aria-label={label}>
       {contents}
-    </Link>
+    </div>
   );
 }

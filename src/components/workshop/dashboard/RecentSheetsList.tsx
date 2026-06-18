@@ -33,7 +33,8 @@ export function RecentSheetsList({ estimates, embedded = false }: RecentSheetsLi
         embedded ? "" : "rounded-xs border border-hairline",
       )}
     >
-      <div className="flex h-12 shrink-0 items-center border-b border-hairline px-2">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-hairline px-2">
+        <FileText size={14} weight="fill" className="shrink-0 text-tertiary" />
         <h2 className="text-[12px] font-medium text-ink">Sheets</h2>
       </div>
 
@@ -49,36 +50,35 @@ export function RecentSheetsList({ estimates, embedded = false }: RecentSheetsLi
                 <Link
                   href={estimateHref(estimate)}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-2 hover:bg-surface-muted",
+                    "flex items-stretch gap-2 px-2 py-2 hover:bg-surface-muted",
                     ROW_FOCUS,
                   )}
                 >
-                  <FileText size={12} weight="regular" className="shrink-0 text-secondary" />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[11px] text-ink" title={estimate.name}>
-                        {estimate.name}
-                      </span>
+                  <span className="grid w-4 shrink-0 grid-rows-[12px_14px] items-center">
+                    <span className="flex h-3 items-start justify-center">
                       {estimate.isFavorite ? (
                         <Star
-                          size={12}
-                          weight="regular"
-                          className="shrink-0 text-orange-600"
+                          size={10}
+                          weight="fill"
+                          className="shrink-0 text-secondary opacity-50"
                         />
                       ) : null}
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[10px] text-secondary">
+                    <FileText size={12} weight="regular" className="justify-self-center text-secondary" />
+                  </span>
+                  <span className="grid min-w-0 flex-1 grid-rows-[12px_14px]">
+                    <span className="flex min-w-0 items-start gap-1.5">
+                      <span className="truncate text-[11px] leading-3 text-ink" title={estimate.name}>
+                        {estimate.name}
+                      </span>
+                    </span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-[10px] leading-[14px] text-secondary">
                         {estimate.projectName}
                       </span>
-                      {estimate.sheet_code ? (
-                        <span className="font-numeric text-[9px] text-secondary">
-                          {estimate.sheet_code}
-                        </span>
-                      ) : null}
                     </span>
                   </span>
-                  <time className="shrink-0 font-numeric text-[9px] text-secondary">
+                  <time className="self-center shrink-0 font-numeric text-[9px] text-secondary">
                     {formatShortDate(estimate.updated_at)}
                   </time>
                 </Link>

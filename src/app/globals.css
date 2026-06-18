@@ -106,13 +106,20 @@
   --glass-nav-active-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
   /* Combined active-pill shadow: inner top specular + inset accent hairline. */
   --glass-nav-active-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-border);
+  --glass-nav-active-collapsed-bg: linear-gradient(180deg, rgba(38, 44, 58, 0.11), rgba(38, 44, 58, 0.055));
+  --glass-nav-active-collapsed-border: rgba(38, 44, 58, 0.16);
+  --glass-nav-active-collapsed-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
   /* Logo frame: frosted vivid-orange liquid-glass slab with a white mark. */
-  --glass-logo-orange: #C65A42;
+  --glass-logo-orange: #AA412A;
   --glass-logo-bg:
-    linear-gradient(180deg, color-mix(in srgb, var(--glass-logo-orange) 88%, white) 0%, var(--glass-logo-orange) 52%, color-mix(in srgb, var(--glass-logo-orange) 90%, #9f2608) 100%);
+    radial-gradient(92% 150% at 10% 0%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.16) 34%, transparent 58%),
+    radial-gradient(88% 120% at 100% 100%, rgba(92, 20, 8, 0.32) 0%, transparent 62%),
+    linear-gradient(135deg, color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%, var(--glass-logo-orange) 44%, color-mix(in srgb, var(--glass-logo-orange) 84%, #6f1b08) 100%);
   --glass-logo-collapsed-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.07) 48%, rgba(255, 255, 255, 0.025) 100%);
-  --glass-logo-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.12) 36%, transparent 68%);
-  --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 42%, rgba(255, 255, 255, 0.58));
+  --glass-logo-sheen:
+    radial-gradient(120% 170% at 3% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 32%, transparent 56%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 42%);
+  --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 50%, rgba(255, 255, 255, 0.56));
   --glass-logo-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
     inset 0 -1px 0 0 rgba(111, 27, 8, 0.16),
@@ -240,6 +247,53 @@ body:has([data-workshop-page-shell-root]) {
   }
 }
 
+/* ─── Deferred liquid-glass arming (performance) ─────────────────────────────
+   The stacked backdrop-filter blurs (the sidebar rail, the full workspace frost,
+   and the many dashboard tiles) are the single heaviest paint on /workshop, and
+   they all composite at once on first paint. We keep them OFF at first paint —
+   every glass surface ships `backdrop-filter: none`, so content paints with zero
+   GPU blur layers — then ARM them after the first cheap paint has committed and
+   the main thread goes idle, via `<html data-glass="ready">` (set by
+   LiquidGlassReady). The blur radius rides an animatable registered custom
+   property so it ramps in smoothly instead of popping.
+
+   Opt-outs: no-support browsers can't even parse the ARMED block (it's inside
+   `@supports (backdrop-filter)`), so they keep the solid `@supports not(...)`
+   fallback. Reduced-transparency is enforced by an inner `@media reduce` DISARM
+   at the bottom of the armed block (plus the JS short-circuit in LiquidGlassReady)
+   — NOT by gating arming on `no-preference`, because engines that support
+   backdrop-filter but not the `prefers-reduced-transparency` feature (e.g. older
+   Chrome) would read a `no-preference` query as false and lose the frost
+   entirely. The existing `@supports not(...)` / `@media reduce` blocks still
+   supply their solid fallback backgrounds unchanged. */
+@property --glass-blur-amount {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+:root {
+  --glass-blur-amount: 0px;
+}
+:root[data-glass="ready"] {
+  --glass-blur-amount: var(--glass-blur);
+}
+/* Ramp the blur in only on desktop pointer devices. The transition lives on
+   :root (always in scope) so flipping the value on arming ramps instead of
+   snapping. Phones / low-end GPUs snap straight to full blur once armed — still
+   deferred, just without the per-frame backdrop-convolution ramp, which is the
+   worst-case mobile GPU cost. */
+@media (min-width: 1024px) and (pointer: fine) {
+  :root {
+    transition: --glass-blur-amount 220ms ease-out;
+  }
+}
+/* Reduced motion: snap, never run the animated multi-surface backdrop ramp. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
+}
+
 /* ─── Liquid-glass sidebar surface ──────────────────────────────────────────
    The ONE backdrop-filter in the sidebar subtree lives here. Children fake glass
    with plain translucent fills only (never their own backdrop-filter). The outer
@@ -250,21 +304,20 @@ body:has([data-workshop-page-shell-root]) {
   /* Translucent dashboard-matched rail: keeps the same quiet wash, but with an
      alpha base so the page below actually shows through the frost. */
   background: var(--sidebar-glass-wash);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  /* Deferred: blur is OFF until armed (see the arming block above + ARMED block
+     below). The translucent wash sits over the fixed backdrop mesh, so it reads
+     as an intentional flat panel — never see-through content — before arming. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   border: 1px solid var(--glass-border);
   border-top-color: var(--glass-border-top);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-inset-hi);
 }
 
-/* Desktop-Chromium refraction: swap the SINGLE backdrop-filter to the inline SVG
-   filter, which performs blur + saturate + displacement itself. Still exactly one
-   backdrop-filter. Gated at runtime by useLiquidGlassRefraction(). */
-.sidebar-glass[data-refraction="true"] {
-  -webkit-backdrop-filter: url(#sc-sidebar-glass);
-  backdrop-filter: url(#sc-sidebar-glass);
-}
+/* Desktop-Chromium refraction swaps the sidebar's single backdrop-filter to the
+   inline SVG displacement filter — but only once armed, so it lives in the ARMED
+   block below (gated by useLiquidGlassRefraction() AND data-glass="ready"). */
 
 /* Soft 1px specular line along the top edge (simulates a light source above).
    Kept gentle and centre-weighted so it reads as a glass glint, not a white stripe. */
@@ -299,6 +352,16 @@ body:has([data-workshop-page-shell-root]) {
   backdrop-filter: blur(10px) saturate(120%);
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow: 0 6px 16px rgba(30, 35, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.sidebar-logo-frame--collapsed .sidebar-logo-mark {
+  color: #3D3D3D;
+  transition: color 160ms ease-out;
+}
+
+.sidebar-logo-frame--collapsed:hover .sidebar-logo-mark,
+.sidebar-logo-frame--collapsed:focus-within .sidebar-logo-mark {
+  color: #AA412A;
 }
 
 .sidebar-logo-frame::before,
@@ -1147,8 +1210,8 @@ input[type="number"] {
    number of simultaneous glass panels (a few large widgets, not every row). */
 .dashboard-glass {
   background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
   border: 1px solid var(--glass-border);
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
@@ -1179,8 +1242,8 @@ input[type="number"] {
    the material is seamless from top edge to bottom edge. */
 .workshop-workspace-glass-surface {
   background: var(--workshop-shell-chrome-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
   border-color: var(--glass-border);
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
 }
@@ -1189,8 +1252,8 @@ input[type="number"] {
    bright edge relief, and soft shadow so they sit cleanly inside glass bars. */
 .workshop-liquid-button {
   background: rgba(255, 255, 255, 0.86);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
   border-color: rgba(30, 35, 50, 0.08);
   color: var(--secondary);
   box-shadow:
@@ -1258,8 +1321,8 @@ input[type="number"] {
       color-mix(in srgb, var(--brand-orange) 6%, var(--glass-bg)),
       var(--glass-bg)
     );
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
   border: 1px solid color-mix(in srgb, var(--brand-orange) 18%, var(--glass-border));
   border-radius: var(--glass-radius);
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
@@ -1363,12 +1426,76 @@ input[type="number"] {
   container-type: inline-size;
   overflow: hidden;
   background: var(--destination-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
   border: 1px solid var(--destination-border);
   border-radius: var(--radius-xs);
   padding: 8px;
   box-shadow: var(--dashboard-tile-glass-inset);
+}
+
+/* ─── Deferred liquid-glass — ARMED state ───────────────────────────────────
+   The blur for every glass surface is applied ONLY after <html data-glass="ready">
+   is set (post first-paint + idle, by LiquidGlassReady). The radius rides the
+   animatable --glass-blur-amount so it ramps in smoothly. Gated by @supports so
+   no-support browsers keep the solid `@supports not(...)` fallback. Only
+   `backdrop-filter` is touched here — backgrounds, borders, shadows, and the
+   destination-card hover variables are left to their own rules, so nothing in
+   this block can out-rank `:hover`. The `, var(--glass-blur)` fallback inside
+   `blur()` snaps engines without @property to full blur if the var is ever unset.
+
+   Reduced transparency is enforced by the inner `@media reduce` DISARM at the end
+   (same/greater specificity + later source than the armed rules, so it wins),
+   NOT by gating arming on `no-preference` — that would strand engines which
+   support backdrop-filter but not the prefers-reduced-transparency feature
+   (they'd read `no-preference` as false and lose the frost). On those engines the
+   disarm @media is simply inert, and since they can't be in reduced transparency,
+   they correctly keep the frost. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-glass="ready"] .sidebar-glass,
+  :root[data-glass="ready"] .dashboard-glass,
+  :root[data-glass="ready"] .dashboard-glass-warm,
+  :root[data-glass="ready"] .workshop-workspace-glass-surface,
+  :root[data-glass="ready"] .dashboard-destination-card {
+    -webkit-backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
+  }
+  /* Desktop refraction still swaps to the SVG displacement filter, but only
+     once armed. (0,4,0) keeps it ahead of the plain armed sidebar rule above. */
+  :root[data-glass="ready"] .sidebar-glass[data-refraction="true"] {
+    -webkit-backdrop-filter: url(#sc-sidebar-glass);
+    backdrop-filter: url(#sc-sidebar-glass);
+  }
+  /* Chrome buttons use a fixed 10px frost; snap it on (tiny surface, no ramp). */
+  :root[data-glass="ready"] .workshop-liquid-button {
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    backdrop-filter: blur(10px) saturate(120%);
+  }
+  /* Live reduced-transparency opt-out: a viewer who enables reduced transparency
+     AFTER the page armed gets blur removed immediately (also covers JS-on users
+     should the attribute ever be set while reduced). */
+  @media (prefers-reduced-transparency: reduce) {
+    :root[data-glass="ready"] .sidebar-glass,
+    :root[data-glass="ready"] .dashboard-glass,
+    :root[data-glass="ready"] .dashboard-glass-warm,
+    :root[data-glass="ready"] .workshop-workspace-glass-surface,
+    :root[data-glass="ready"] .dashboard-destination-card,
+    :root[data-glass="ready"] .sidebar-glass[data-refraction="true"],
+    :root[data-glass="ready"] .workshop-liquid-button {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* Inner 3-row structure shared by the Projects + Components content tiles
+   (header · count/ledger panel · display title). Lifted out of the inline
+   style so the middle row can relax on smaller viewports instead of clipping
+   the ledger. Desktop keeps the original fixed 240px ledger height. */
+.dashboard-destination-grid {
+  display: grid;
+  grid-template-rows: 32px 240px minmax(0, 1fr);
+  gap: 8px;
 }
 
 .dashboard-destination-card:hover {
@@ -1409,34 +1536,6 @@ input[type="number"] {
 }
 .dashboard-destination-card:hover .dashboard-destination-card-icon {
   color: var(--destination-icon);
-}
-.dashboard-destination-card-image {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  object-fit: cover;
-  opacity: 0.92;
-  filter: contrast(1.05);
-  transition: transform 220ms ease-out;
-}
-.dashboard-destination-card--projects::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: none;
-}
-.dashboard-destination-card--projects:hover .dashboard-destination-card-image {
-  transform: scale(1.035);
-}
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-destination-card-image {
-    transition: none;
-  }
-  .dashboard-destination-card--projects:hover .dashboard-destination-card-image {
-    transform: none;
-  }
 }
 .dashboard-destination-card-mark {
   position: absolute;
@@ -1510,6 +1609,7 @@ input[type="number"] {
 .dashboard-project-card-panel,
 .dashboard-component-card-panel {
   --dashboard-count-col: clamp(116px, 32cqi, 203px);
+  height: 240px;
 }
 .dashboard-project-count-panel {
   display: grid;
@@ -1645,7 +1745,10 @@ input[type="number"] {
   background-size: 140px 140px;
 }
 @media (prefers-reduced-transparency: reduce) {
-  .grain-overlay::after { opacity: 0; }
+  /* display:none (not just opacity:0) so the GPU skips rasterizing the
+     feTurbulence SVG entirely for this segment — visually identical, since the
+     grain is already invisible to these users. */
+  .grain-overlay::after { display: none; }
   .dashboard-canvas-wash { background: var(--grad-canvas-wash-fallback); }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -1656,7 +1759,7 @@ input[type="number"] {
 .dashboard-root {
   --dashboard-gap: 8px;
   --dashboard-row: clamp(126px, 13vw, 214px);
-  --dashboard-board-row: calc(var(--dashboard-row) + 6.4px);
+  --dashboard-board-row: calc(var(--dashboard-row) + var(--dashboard-gap));
   display: grid;
   min-height: 100%;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1718,10 +1821,11 @@ input[type="number"] {
   overflow: visible;
   border-radius: var(--radius-xs);
 }
-.iband-library-continue-slot .dashboard-continue-title {
+.iband-library-continue-slot .dashboard-continue-hover-target {
   transition: color 180ms ease-out;
 }
-.iband-library-continue-slot > a:hover .dashboard-continue-title {
+.iband-library-continue-slot > a:hover .dashboard-continue-hover-target,
+.iband-library-continue-slot > a:focus-visible .dashboard-continue-hover-target {
   color: #AA412A;
 }
 .iband-library-stack {
@@ -1938,6 +2042,9 @@ input[type="number"] {
 @media (max-width: 1023px) {
   .dashboard-root {
     grid-template-columns: 1fr;
+    /* Clear the desktop 5×fixed-row template too, or the masthead/imageband/desk
+       get trapped in 126px rows and their content clips. Rows now size to content. */
+    grid-template-rows: none;
     grid-auto-rows: auto;
     row-gap: 8px;
   }
@@ -1948,8 +2055,20 @@ input[type="number"] {
   .dashboard-imageband {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: clamp(132px, 24vw, 180px);
+    /* minmax(min, auto): simple tiles hold the square minimum, but the row
+       grows when the Projects/Components content tiles need more height — so
+       their ledger is never clipped on tablet. */
+    grid-auto-rows: minmax(clamp(132px, 24vw, 180px), auto);
     gap: var(--dashboard-gap);
+  }
+  /* Compact the content tiles' ledger on tablet/mobile (smaller is fine) while
+     letting it size to content instead of the desktop fixed 240px. */
+  .dashboard-destination-grid {
+    grid-template-rows: 32px minmax(148px, auto) minmax(32px, auto);
+  }
+  .dashboard-project-card-panel,
+  .dashboard-component-card-panel {
+    height: auto;
   }
   .dashboard-masthead,
   .iband-projects,
@@ -1960,6 +2079,13 @@ input[type="number"] {
   .desk-continue,
   .desk-action,
   .dashboard-first-run { grid-column: auto; grid-row: auto; }
+  /* Child-combinator reset must MATCH the specificity of the desktop
+     `.dashboard-imageband > .iband-templates { grid-column: 5 }` rule, or
+     templates keeps a phantom 5th column and the 2-up reflow collapses. */
+  .dashboard-imageband > .iband-projects,
+  .dashboard-imageband > .iband-components,
+  .dashboard-imageband > .iband-templates,
+  .dashboard-imageband > .iband-library { grid-column: auto; grid-row: auto; }
   /* The display numeral + the interior voids are desktop-only flourishes; on the
      2-up reflow they would orphan a half-tile, so collapse them and let the four
      real tiles sit as clean equal squares. */
@@ -1987,7 +2113,8 @@ input[type="number"] {
   .desk-action { grid-area: action; }
 }
 @media (max-width: 639px) {
-  .dashboard-imageband { grid-template-columns: 1fr; grid-auto-rows: 132px; }
+  /* Single-column stack: rows size to content so the ledger tiles never clip. */
+  .dashboard-imageband { grid-template-columns: 1fr; grid-auto-rows: minmax(132px, auto); }
   .dashboard-desk {
     grid-template-columns: 1fr;
     grid-auto-rows: auto;
@@ -1999,6 +2126,14 @@ input[type="number"] {
   .desk-recsheet {
     border-left: 0;
     border-top: 1px solid var(--hairline);
+  }
+  /* WCAG 2.1 AA target size: the library action affordances must be reliably
+     tappable on touch viewports. */
+  .iband-library-new-project,
+  .iband-library-new-component,
+  .iband-library-new-sheet {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 

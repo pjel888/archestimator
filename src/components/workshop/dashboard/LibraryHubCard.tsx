@@ -28,21 +28,26 @@ type LibraryCardLinkProps = {
 
 export function LibraryCardLink({ href, className }: LibraryCardLinkProps) {
   return (
-    <Link
-      href={href}
-      aria-label="Open Library"
+    <div
+      aria-label="Library"
       className={cn(
         "dashboard-destination-card iband-library-card dashboard-destination-card--library dashboard-card-hover group relative block h-full min-h-[118px] w-full",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
         className,
       )}
     >
-      <ArrowUpRight
-        size={32}
-        weight="regular"
-        aria-hidden="true"
-        className="dashboard-destination-card-icon absolute right-2 top-2 z-10 transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-      />
+      <Link
+        href={href}
+        aria-label="Open Library"
+        className="dashboard-project-card-arrow absolute right-2 top-2 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+      >
+        <ArrowUpRight
+          size={32}
+          weight="regular"
+          aria-hidden="true"
+          className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+        />
+      </Link>
 
       <span className="absolute left-2 top-2 z-10">
         <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">04</span>
@@ -53,7 +58,7 @@ export function LibraryCardLink({ href, className }: LibraryCardLinkProps) {
           Library
         </span>
       </span>
-    </Link>
+    </div>
   );
 }
 

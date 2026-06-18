@@ -359,10 +359,15 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
             <div
               data-sidebar-favorites-header
               tabIndex={-1}
-              className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs outline-none"
+              className="group grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs outline-none"
             >
-              <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-xs text-warning">
-                <Star size={15} weight="regular" aria-hidden="true" className="shrink-0" />
+              <span
+                className={[
+                  "flex h-8 w-12 shrink-0 items-center justify-center rounded-xs transition-colors duration-[160ms] ease-out",
+                  expanded ? "text-warning" : "text-tertiary group-hover:text-warning group-focus:text-warning",
+                ].join(" ")}
+              >
+                <Star size={15} weight="fill" aria-hidden="true" className="shrink-0" />
               </span>
               <span
                 aria-hidden={!expanded}

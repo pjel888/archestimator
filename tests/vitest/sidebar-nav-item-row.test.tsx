@@ -40,7 +40,7 @@ describe("SidebarNavItemRow", () => {
     expect(link.className).not.toContain("before:w-9");
   });
 
-  it("keeps the active treatment icon-sized when collapsed", () => {
+  it("keeps a monochrome active treatment icon-sized when collapsed", () => {
     render(
       <SidebarNavItemRow
         item={{ id: "projects", href: "/workshop/projects", label: "Projects", icon: TestIcon }}
@@ -50,7 +50,9 @@ describe("SidebarNavItemRow", () => {
     );
 
     const link = screen.getByRole("link", { name: "Projects" });
-    expect(link).toHaveClass("text-orange-700", "before:left-1.5", "before:w-9");
+    expect(link).toHaveClass("text-primary", "before:left-1.5", "before:w-9");
+    expect(link.className).toContain("var(--glass-nav-active-collapsed-bg)");
+    expect(link).not.toHaveClass("text-orange-700");
     expect(link.className).not.toContain("before:right-1.5");
   });
 

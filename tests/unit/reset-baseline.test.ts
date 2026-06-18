@@ -114,10 +114,13 @@ describe("workshop dashboard baseline", () => {
     expect(sidebarHeader).not.toContain("absolute bottom-0 border-b border-hairline");
     expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-bg)");
+    expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-bg)");
     expect(sidebarNavItemRow).toContain("text-orange-700");
+    expect(sidebarNavItemRow).toContain("text-primary");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-shadow)");
+    expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-shadow)");
     expect(sidebarNavItemRow).toContain('weight="regular"');
-    expect(sidebar).toContain('<Star size={15} weight="regular"');
+    expect(sidebar).toContain('<Star size={15} weight="fill"');
     expect(sidebar).toContain('<Folder size={13} weight="regular"');
     expect(sidebar).toContain('<FileText size={11} weight="regular"');
     expect(sidebar).toContain('<SidebarSimple');

@@ -1,14 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
 
 import { Button } from "@/components/ui/button";
-import { WorkshopDashboard } from "@/components/workshop/dashboard/WorkshopDashboard";
-import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/lib";
-import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 import { acceptPendingInvitationById, signOutForPendingInvite } from "@/lib/collaboration/pending-invite-actions";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import type {
@@ -19,12 +16,15 @@ import type {
 
 type WorkshopHomebaseClientProps = {
   homebase: WorkshopHomebaseData;
-  favoriteProjects: MainSidebarFavoriteProject[];
-  librarySpotlight: DashboardLibrarySpotlight | null;
   inviteBanner?: WorkshopInviteBannerState;
   removedProjectBanner?: WorkshopRemovedProjectBannerState;
   favoritesScope: { workspaceId: string; userId: string };
-  userDisplayName?: string | null;
+  /**
+   * The dashboard is rendered on the server and passed in as children so this
+   * client banner shell does NOT pull the whole dashboard subtree into the
+   * client bundle. Only the banner logic here hydrates.
+   */
+  children: ReactNode;
 };
 
 export type WorkshopRemovedProjectBannerState = {
@@ -38,12 +38,10 @@ type WorkshopRemovedProjectNotice = WorkshopRemovedProjectFavoriteSummary & {
 
 export function WorkshopHomebaseClient({
   homebase,
-  favoriteProjects,
-  librarySpotlight,
   inviteBanner,
   removedProjectBanner,
   favoritesScope,
-  userDisplayName,
+  children,
 }: WorkshopHomebaseClientProps) {
   const router = useNavigationRouter();
   const toggleProjectFavoriteMutation = useToggleProjectFavorite(favoritesScope);
@@ -115,14 +113,7 @@ export function WorkshopHomebaseClient({
           <PendingInvitesPanel invites={homebase.pendingInvites} />
         </div>
       ) : null}
-      <div className="min-h-0 flex-1">
-        <WorkshopDashboard
-          homebase={homebase}
-          favoriteProjects={favoriteProjects}
-          librarySpotlight={librarySpotlight}
-          userDisplayName={userDisplayName}
-        />
-      </div>
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
   );
 }

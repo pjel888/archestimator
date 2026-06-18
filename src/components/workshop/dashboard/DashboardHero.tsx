@@ -48,7 +48,7 @@ export function DashboardHero({ displayName }: DashboardHeroProps) {
           <PeriodIcon role="img" aria-label={tone.periodLabel} weight="regular" className="size-full" />
         </span>
         <span className="font-numeric text-[13px] font-light text-secondary">{tone.greeting}</span>
-        <span className="font-display text-[36px] font-bold">{name}</span>
+        <span className="font-display text-[clamp(22px,6vw,36px)] font-bold [text-wrap:balance]">{name}</span>
       </h1>
     </section>
   );

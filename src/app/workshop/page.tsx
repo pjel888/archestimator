@@ -6,6 +6,7 @@ import {
   WorkshopHomebaseClient,
   type WorkshopRemovedProjectBannerState,
 } from "@/components/workshop/WorkshopHomebaseClient";
+import { WorkshopDashboard } from "@/components/workshop/dashboard/WorkshopDashboard";
 import { PENDING_INVITE_COOKIE } from "@/lib/collaboration/pending-invite";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import { requireCurrentUserContext } from "@/lib/auth/session";
@@ -136,13 +137,17 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
     >
       <WorkshopHomebaseClient
         homebase={homebase}
-        favoriteProjects={favoriteProjects}
-        librarySpotlight={librarySpotlight}
         inviteBanner={inviteBanner}
         removedProjectBanner={removedProjectBanner}
         favoritesScope={favoritesScope}
-        userDisplayName={currentUser.displayName}
-      />
+      >
+        <WorkshopDashboard
+          homebase={homebase}
+          favoriteProjects={favoriteProjects}
+          librarySpotlight={librarySpotlight}
+          userDisplayName={currentUser.displayName}
+        />
+      </WorkshopHomebaseClient>
     </WorkshopPageShell>
   );
 }

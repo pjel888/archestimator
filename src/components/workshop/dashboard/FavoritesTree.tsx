@@ -150,7 +150,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
       aria-labelledby="dashboard-favorites-heading"
     >
       <div className="flex h-12 shrink-0 items-center gap-2 px-2">
-        <Star size={14} weight="regular" className="shrink-0 text-orange-600" />
+        <Star size={14} weight="fill" className="shrink-0 text-tertiary" />
         <h2
           id="dashboard-favorites-heading"
           className="text-[12px] font-medium text-ink"

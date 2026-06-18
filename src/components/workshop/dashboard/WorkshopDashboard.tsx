@@ -1,5 +1,3 @@
-"use client";
-
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
@@ -28,7 +26,9 @@ const DASHBOARD_COUNT_COLUMN_WIDTH = "203px";
 
 function PublishedProjectLinks({ projects }: { projects: WorkshopProjectSummary[] }) {
   const publishedProjects = projects
-    .filter((project) => project.publicationSummary?.status === "published" && project.publicationSummary.clientLinkPath)
+    .filter(
+      (project) => project.publicationSummary?.status === "published" && project.publicationSummary.clientLinkPath,
+    )
     .slice(0, 8);
 
   if (publishedProjects.length === 0) {
@@ -138,8 +138,7 @@ export function WorkshopDashboard({
             <div className="dashboard-imageband">
               <div
                 aria-label="Projects"
-                className="dashboard-destination-card dashboard-card-hover dashboard-destination-card--projects group iband-projects relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-                style={{ display: "grid", gridTemplateRows: "32px 240px minmax(0, 1fr)", gap: 8 }}
+                className="dashboard-destination-card dashboard-destination-grid dashboard-card-hover dashboard-destination-card--projects group iband-projects relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
                 <div className="flex min-h-0 items-start justify-between gap-2">
                   <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
@@ -209,8 +208,7 @@ export function WorkshopDashboard({
               </div>
               <div
                 aria-label="Components"
-                className="dashboard-destination-card dashboard-card-hover dashboard-destination-card--components group iband-components relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
-                style={{ display: "grid", gridTemplateRows: "32px 240px minmax(0, 1fr)", gap: 8 }}
+                className="dashboard-destination-card dashboard-destination-grid dashboard-card-hover dashboard-destination-card--components group iband-components relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
               >
                 <div className="flex min-h-0 items-start justify-between gap-2">
                   <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">

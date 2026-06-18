@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Doto, Roboto_Mono } from "next/font/google";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
+import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { AppProviders } from "./providers";
 import "./globals.css";
 
@@ -33,6 +34,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body className={`${robotoMono.variable} ${doto.variable}`}>
         <AppProviders>{children}</AppProviders>
+        {/* Arms the deferred liquid-glass blur after first paint + idle. Renders
+            null; the glass surfaces ship blur-off so first paint stays cheap. */}
+        <LiquidGlassReady />
         <VercelWebAnalytics />
       </body>
     </html>

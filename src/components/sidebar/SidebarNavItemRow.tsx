@@ -19,12 +19,15 @@ function formatBadgeCount(count: number) {
   return String(count);
 }
 
-// Active pill — faked glass: brand-orange-tinted translucent fill + inset specular
-// hairline (no per-child backdrop-filter; the one blur lives on the panel). The
-// `text-orange-700` + `before:left-1.5/right-1.5/w-9` classes are contract-stable
-// (asserted by sidebar-nav-item-row.test.tsx) — keep them.
-const ACTIVE_NAV_ITEM_CLASSNAME =
+// Active pill — faked glass: expanded keeps the brand-orange translucent fill,
+// while the collapsed rail uses a monochrome active state so the rail stays
+// quiet until the user opens it. No per-child backdrop-filter; the one blur lives
+// on the panel.
+const ACTIVE_NAV_ITEM_EXPANDED_TONE_CLASSNAME =
   "text-orange-700 hover:text-orange-700 before:[background:var(--glass-nav-active-bg)] before:[box-shadow:var(--glass-nav-active-shadow)] before:opacity-100";
+
+const ACTIVE_NAV_ITEM_COLLAPSED_TONE_CLASSNAME =
+  "text-primary hover:text-primary before:[background:var(--glass-nav-active-collapsed-bg)] before:[box-shadow:var(--glass-nav-active-collapsed-shadow)] before:opacity-100";
 
 const ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME = "before:left-1.5 before:right-1.5";
 
@@ -64,7 +67,10 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
         "before:absolute before:top-[-2px] before:z-0 before:h-9 before:[border-radius:var(--glass-nav-radius)] before:opacity-0 before:transition-[background-color,box-shadow,opacity] before:duration-[120ms] before:ease-out before:content-['']",
         "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
         active
-          ? [ACTIVE_NAV_ITEM_CLASSNAME, expanded ? ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME : ACTIVE_NAV_ITEM_COLLAPSED_CLASSNAME].join(" ")
+          ? [
+              expanded ? ACTIVE_NAV_ITEM_EXPANDED_TONE_CLASSNAME : ACTIVE_NAV_ITEM_COLLAPSED_TONE_CLASSNAME,
+              expanded ? ACTIVE_NAV_ITEM_EXPANDED_CLASSNAME : ACTIVE_NAV_ITEM_COLLAPSED_CLASSNAME,
+            ].join(" ")
           : INACTIVE_NAV_ITEM_CLASSNAME,
       ].join(" ")}
     >
@@ -74,7 +80,7 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
           weight="regular"
           className={[
             "relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none",
-            active ? "text-orange-700" : "",
+            active ? (expanded ? "text-orange-700" : "text-primary") : "",
           ].join(" ")}
         />
         {badgeText ? (
