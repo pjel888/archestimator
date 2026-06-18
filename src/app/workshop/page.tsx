@@ -10,7 +10,36 @@ import { PENDING_INVITE_COOKIE } from "@/lib/collaboration/pending-invite";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { ensureDefaultWorkspace, getWorkshopHomebaseData } from "@/lib/repositories/workspace-repository";
+import {
+  ensureDefaultWorkspace,
+  getWorkshopHomebaseData,
+  listMainSidebarFavoriteProjects,
+} from "@/lib/repositories/workspace-repository";
+import { getLibraryOverview } from "@/lib/repositories/component-library-repository";
+import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/lib";
+
+/**
+ * Library overview is a best-effort enhancement (spotlight + counts). It must
+ * never block or fail the dashboard, so we trim it to the dashboard's needs and
+ * degrade to `null` on any error.
+ */
+async function loadDashboardLibrarySpotlight(): Promise<DashboardLibrarySpotlight | null> {
+  try {
+    const overview = await getLibraryOverview();
+    return {
+      componentCount: overview.componentCount,
+      templateCount: overview.templateCount,
+      recentTemplates: overview.recentTemplates.slice(0, 4).map((template) => ({
+        id: template.id,
+        name: template.name,
+        category: template.category,
+        rowCount: template.rowCount,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
 
 type WorkshopPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -77,12 +106,17 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
     redirect("/workshop/pending-invite");
   }
 
-  const homebase = await getWorkshopHomebaseData();
-  const currentUser = await requireCurrentUserContext();
-  // Source the favorites scope identically to WorkshopPageShell (D2): server + client
-  // must build the same sidebar query key. Both helpers are React-cached, so this does
-  // not duplicate the work the shell already performed for the same request.
-  const { workspace } = await ensureDefaultWorkspace();
+  // Fetch the dashboard's data in parallel. All repository calls are React-cached,
+  // so favorites + workspace reuse the work WorkshopPageShell already performed for
+  // the same request; the library spotlight degrades to null on failure and never
+  // blocks the rest of the dashboard.
+  const [homebase, currentUser, { workspace }, favoriteProjects, librarySpotlight] = await Promise.all([
+    getWorkshopHomebaseData(),
+    requireCurrentUserContext(),
+    ensureDefaultWorkspace(),
+    listMainSidebarFavoriteProjects(),
+    loadDashboardLibrarySpotlight(),
+  ]);
   const favoritesScope = { workspaceId: workspace.id, userId: currentUser.userId };
 
   return (
@@ -95,6 +129,8 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
     >
       <WorkshopHomebaseClient
         homebase={homebase}
+        favoriteProjects={favoriteProjects}
+        librarySpotlight={librarySpotlight}
         inviteBanner={inviteBanner}
         removedProjectBanner={removedProjectBanner}
         favoritesScope={favoritesScope}

@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MoonStarsIcon, SunHorizonIcon } from "@phosphor-icons/react/dist/ssr";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { useToggleProjectFavorite } from "@/hooks/use-toggle-project-favorite";
 
 import { Button } from "@/components/ui/button";
+import { WorkshopDashboard } from "@/components/workshop/dashboard/WorkshopDashboard";
+import type { DashboardLibrarySpotlight } from "@/components/workshop/dashboard/lib";
+import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
 import { acceptPendingInvitationById, signOutForPendingInvite } from "@/lib/collaboration/pending-invite-actions";
 import type { WorkshopInviteBannerState } from "@/lib/collaboration/workshop-pending-invite";
 import type {
@@ -18,6 +19,8 @@ import type {
 
 type WorkshopHomebaseClientProps = {
   homebase: WorkshopHomebaseData;
+  favoriteProjects: MainSidebarFavoriteProject[];
+  librarySpotlight: DashboardLibrarySpotlight | null;
   inviteBanner?: WorkshopInviteBannerState;
   removedProjectBanner?: WorkshopRemovedProjectBannerState;
   favoritesScope: { workspaceId: string; userId: string };
@@ -33,14 +36,10 @@ type WorkshopRemovedProjectNotice = WorkshopRemovedProjectFavoriteSummary & {
   projectName: string | null;
 };
 
-type WorkshopGreetingTone = {
-  icon: "sun" | "moon";
-  periodLabel: string;
-  greeting: string;
-};
-
 export function WorkshopHomebaseClient({
   homebase,
+  favoriteProjects,
+  librarySpotlight,
   inviteBanner,
   removedProjectBanner,
   favoritesScope,
@@ -98,63 +97,33 @@ export function WorkshopHomebaseClient({
     );
   }
 
-  return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-2 bg-white p-2">
-      <InviteResolutionBanner inviteBanner={inviteBanner} />
-      <RemovedProjectFavoriteBanner
-        notice={removedProjectNotice}
-        pending={removedProjectNotice ? pendingFavoriteKey === `removed-project:${removedProjectNotice.id}` : false}
-        onRemoveFavorite={removeRemovedProjectFavorite}
-      />
-      <PendingInvitesPanel invites={homebase.pendingInvites} />
-      <WorkshopGreeting displayName={userDisplayName} />
-    </div>
-  );
-}
-
-// Stable placeholder used for SSR + the first client render. The real greeting
-// depends on the viewer's wall clock + timezone (which the server can't know),
-// so computing it during hydration would mismatch the server output — both the
-// text and the moon/sun icon *element*. We render this fixed tone until hydrated,
-// then swap to the viewer-local greeting in a post-commit render.
-const GREETING_PLACEHOLDER_TONE: WorkshopGreetingTone = {
-  icon: "sun",
-  periodLabel: "Morning",
-  greeting: "Good morning",
-};
-
-function WorkshopGreeting({ displayName }: { displayName?: string | null }) {
-  const hydrated = useIsHydrated();
-  const tone = hydrated ? getWorkshopGreetingTone() : GREETING_PLACEHOLDER_TONE;
-  const name = formatWorkshopGreetingName(displayName);
+  const hasBanners =
+    (inviteBanner ? inviteBanner.kind !== "none" : false) ||
+    Boolean(removedProjectNotice) ||
+    homebase.pendingInvites.length > 0;
 
   return (
-    <section
-      className="flex min-h-[180px] w-full flex-1 items-start overflow-hidden bg-white px-2 py-3 text-[10px]"
-      aria-label="Workshop greeting"
-    >
-      <div className="grid w-[280px] max-w-full grid-cols-[36px_minmax(0,1fr)] items-start gap-2">
-        <div className="flex size-9 items-center justify-center text-secondary">
-          <GreetingIcon icon={tone.icon} label={tone.periodLabel} />
+    <div className="flex h-full min-h-0 w-full flex-col bg-white">
+      {hasBanners ? (
+        <div className="flex flex-col gap-2 p-2 pb-0">
+          <InviteResolutionBanner inviteBanner={inviteBanner} />
+          <RemovedProjectFavoriteBanner
+            notice={removedProjectNotice}
+            pending={removedProjectNotice ? pendingFavoriteKey === `removed-project:${removedProjectNotice.id}` : false}
+            onRemoveFavorite={removeRemovedProjectFavorite}
+          />
+          <PendingInvitesPanel invites={homebase.pendingInvites} />
         </div>
-        <div className="min-w-0">
-          <p className="w-full truncate text-[10px] font-[300] leading-4 text-secondary">{tone.greeting}</p>
-          <p className="mt-1 w-full truncate text-[12px] font-medium leading-4 text-ink">{name}</p>
-        </div>
+      ) : null}
+      <div className="min-h-0 flex-1">
+        <WorkshopDashboard
+          homebase={homebase}
+          favoriteProjects={favoriteProjects}
+          librarySpotlight={librarySpotlight}
+          userDisplayName={userDisplayName}
+        />
       </div>
-    </section>
-  );
-}
-
-function GreetingIcon({ icon, label }: { icon: WorkshopGreetingTone["icon"]; label: string }) {
-  if (icon === "moon") {
-    return (
-      <MoonStarsIcon className="size-9 shrink-0 text-[#526070]" size={36} weight="regular" role="img" aria-label={label} />
-    );
-  }
-
-  return (
-    <SunHorizonIcon className="size-9 shrink-0 text-[#B87828]" size={36} weight="regular" role="img" aria-label={label} />
+    </div>
   );
 }
 
@@ -195,40 +164,6 @@ function RemovedProjectFavoriteBanner({
       </Button>
     </section>
   );
-}
-
-function getWorkshopGreetingTone(date = new Date()): WorkshopGreetingTone {
-  const hour = date.getHours();
-  if (hour >= 5 && hour < 12) {
-    return {
-      icon: "sun",
-      periodLabel: "Morning",
-      greeting: "Good morning",
-    };
-  }
-  if (hour >= 12 && hour < 18) {
-    return {
-      icon: "sun",
-      periodLabel: "Afternoon",
-      greeting: "Good afternoon",
-    };
-  }
-  return {
-    icon: "moon",
-    periodLabel: "Night",
-    greeting: "Good evening",
-  };
-}
-
-function formatWorkshopGreetingName(displayName?: string | null) {
-  const trimmed = displayName?.trim();
-  if (!trimmed) return "there";
-  if (!trimmed.includes("@")) return trimmed.slice(0, 48);
-  return trimmed
-    .split("@")[0]
-    .replace(/[._-]+/g, " ")
-    .trim()
-    .slice(0, 48) || "there";
 }
 
 function PendingInvitesPanel({ invites }: { invites: WorkshopPendingInviteSummary[] }) {
