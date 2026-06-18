@@ -25,7 +25,7 @@ const KIND_META: Record<ImageDestinationKind, { toneClass: string }> = {
 
 /**
  * Destination tile for the editorial dashboard field. Projects gets the one
- * large emphasis slot; the supporting destinations stay crisp color blocks.
+ * large emphasis slot; all destination blocks share a transparent glass treatment.
  */
 export function ImageDestinationCard({
   kind,
@@ -47,23 +47,21 @@ export function ImageDestinationCard({
         className,
       )}
     >
-      <span className="dashboard-destination-card-mark" aria-hidden="true" />
-
       <ArrowUpRight
-        size={16}
+        size={32}
         weight="regular"
         aria-hidden="true"
-        className="dashboard-destination-card-icon absolute right-2 top-2 z-10 transition-transform duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+        className="dashboard-destination-card-icon absolute right-2 top-2 z-10 transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
       />
 
       <span className="absolute left-2 top-2 z-10">
-        <span className="dashboard-destination-card-index font-numeric text-[24px] font-medium leading-none">
+        <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
           {plateIndex}
         </span>
       </span>
 
       <span className="absolute bottom-2 right-2 z-10 max-w-[calc(100%-16px)] text-right">
-        <span className="dashboard-destination-card-title font-numeric text-[18px] font-bold leading-none uppercase">
+        <span className="dashboard-destination-card-title font-display text-[32px] font-normal leading-none tracking-[0.04em] uppercase">
           {label}
         </span>
       </span>

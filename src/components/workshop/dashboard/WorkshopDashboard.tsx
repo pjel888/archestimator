@@ -1,12 +1,10 @@
 "use client";
 
-import { ContinueCard } from "./ContinueCard";
-import { CreateActions } from "./CreateActions";
 import { DashboardEmptyState } from "./DashboardEmptyState";
 import { DashboardHero } from "./DashboardHero";
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
-import { LibraryHubCard } from "./LibraryHubCard";
+import { LibraryCardLink, LibraryHubCard } from "./LibraryHubCard";
 import { RecentProjectsList } from "./RecentProjectsList";
 import { RecentSheetsList } from "./RecentSheetsList";
 import { isFirstRun, pickContinueEstimate, WORKSHOP_ROUTES, type WorkshopDashboardData } from "./lib";
@@ -86,18 +84,27 @@ export function WorkshopDashboard({
               <LibraryHubCard
                 href={WORKSHOP_ROUTES.library}
                 count={libraryItemCount}
+                continueEstimate={continueEstimate}
+                recentProjects={homebase.projects}
                 className="iband-library"
               />
               <div aria-hidden="true" className="dashboard-bignum iband-bignum">
-                <span className="dashboard-bignum-value">{projectCount}</span>
-                <span className="font-numeric text-[9px] tracking-normal text-secondary">
-                  {projectCount === 1 ? "project" : "projects"}
-                </span>
+                <div className="dashboard-bignum-count">
+                  <span className="dashboard-bignum-value">{projectCount}</span>
+                  <span className="font-numeric text-[9px] tracking-normal text-secondary">
+                    {projectCount === 1 ? "project" : "projects"}
+                  </span>
+                </div>
+                <div className="dashboard-bignum-fill">
+                  <div className="dashboard-bignum-fill-header">
+                    <h2>Published Projects</h2>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Working desk — Favorites and recent work are one divided ledger;
-                Continue/Create stays as the compact action rail. */}
+                Continue stays as the compact action rail. */}
             <div className="dashboard-desk">
               <div className="desk-board">
                 <div className="desk-board-favs">
@@ -112,11 +119,8 @@ export function WorkshopDashboard({
                   </div>
                 </div>
               </div>
-              <div className="desk-continue relative min-h-0 overflow-hidden rounded-xs">
-                <ContinueCard estimate={continueEstimate} bare />
-              </div>
-              <div className="desk-action relative flex min-h-0 flex-col overflow-hidden rounded-xs">
-                <CreateActions recentProjects={homebase.projects} bare />
+              <div className="desk-continue relative min-h-0 overflow-visible rounded-xs">
+                {continueEstimate ? <LibraryCardLink href={WORKSHOP_ROUTES.library} /> : null}
               </div>
             </div>
           </>

@@ -35,8 +35,8 @@
   --brand-amber: #e7a977;
   --brand-peach: #f4cdb0;
   /* ── Dashboard v2 bento system (owner directive 2026-06-18) ───────────────
-     Projects mountain tile, supporting color-block destinations, the two hero
-     gradients, the quiet canvas wash, and the warm-dark sidebar. */
+     Transparent blurred destination panes, the two hero gradients, the quiet
+     canvas wash, and the warm-dark sidebar. */
   /* Two hero gradients — the only richly-coloured glass cells (Continue wins the duel). */
   --grad-hero-continue: linear-gradient(135deg, color-mix(in srgb, var(--brand-orange) 22%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 16%, var(--glass-bg)) 48%, color-mix(in srgb, var(--brand-peach) 10%, var(--glass-bg)) 100%);
   --grad-hero-create: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 17%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 11%, var(--glass-bg)) 100%);
@@ -46,11 +46,19 @@
     radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.06) 0%, transparent 58%),
     linear-gradient(155deg, #eceeef 0%, #e6e7e7 48%, #dedbd8 100%);
   --grad-canvas-wash-fallback: #e6e7e7;
+  /* Horizontally uniform (top-lit) so the collapsed 64px rail and the full
+     expanded panel read the same tone — every vertical slice is identical.
+     A left-anchored white radial or an angled base would make the narrow rail
+     (left edge only) look lighter than the whole panel; both are kept vertical. */
   --sidebar-glass-wash:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 34%, transparent 64%),
+    linear-gradient(180deg, rgba(248, 250, 251, 0.46) 0%, rgba(238, 240, 241, 0.36) 54%, rgba(221, 224, 226, 0.3) 100%);
+  --sidebar-glass-wash-fallback: #edf0f1;
+  --workshop-shell-chrome-bg:
     radial-gradient(100% 82% at 94% 100%, rgba(170, 65, 42, 0.12) 0%, transparent 54%),
     radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.1) 0%, transparent 58%),
     linear-gradient(155deg, rgba(248, 250, 251, 0.54) 0%, rgba(232, 234, 235, 0.44) 48%, rgba(221, 217, 213, 0.5) 100%);
-  --sidebar-glass-wash-fallback: #e6e7e7;
+  --workshop-shell-chrome-bg-fallback: #e6e7e7;
   --glass-shadow-hover: 0 10px 24px rgba(30, 35, 50, 0.13), 0 3px 8px rgba(30, 35, 50, 0.08);
   /* Warm-dark sidebar (scoped to the rail). */
   --glass-bg-sidebar:
@@ -99,15 +107,15 @@
   /* Combined active-pill shadow: inner top specular + inset accent hairline. */
   --glass-nav-active-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-border);
   /* Logo frame: frosted vivid-orange liquid-glass slab with a white mark. */
+  --glass-logo-orange: #C65A42;
   --glass-logo-bg:
-    radial-gradient(120% 96% at 18% 0%, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.16) 34%, transparent 62%),
-    linear-gradient(155deg, color-mix(in srgb, #FA4415 74%, white) 0%, #FA4415 54%, color-mix(in srgb, #FA4415 82%, #7a1e0a) 100%);
-  --glass-logo-border: rgba(255, 255, 255, 0.28);
+    linear-gradient(180deg, color-mix(in srgb, var(--glass-logo-orange) 88%, white) 0%, var(--glass-logo-orange) 52%, color-mix(in srgb, var(--glass-logo-orange) 90%, #9f2608) 100%);
+  --glass-logo-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.12) 36%, transparent 68%);
+  --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 42%, rgba(255, 255, 255, 0.58));
   --glass-logo-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 0 rgba(108, 24, 7, 0.24),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 2px 8px rgba(250, 68, 21, 0.22);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 0 rgba(111, 27, 8, 0.16),
+    0 1px 2px rgba(30, 35, 50, 0.12);
   /* Section divider: 1px centre-faded hairline (replaces the hard gray line). */
   --glass-divider: linear-gradient(90deg, transparent, rgba(38, 44, 58, 0.14), transparent);
   --glass-grain-opacity: 0.035;
@@ -241,7 +249,6 @@ body:has([data-workshop-page-shell-root]) {
   /* Translucent dashboard-matched rail: keeps the same quiet wash, but with an
      alpha base so the page below actually shows through the frost. */
   background: var(--sidebar-glass-wash);
-  background-attachment: fixed;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border: 1px solid var(--glass-border);
@@ -273,11 +280,58 @@ body:has([data-workshop-page-shell-root]) {
   z-index: 2;
 }
 
-/* Orange liquid-glass logo frame (white mark sits inside). */
+/* State-aware liquid-glass logo frame: neutral chip collapsed, orange slab expanded. */
 .sidebar-logo-frame {
+  position: relative;
+  isolation: isolate;
   background: var(--glass-logo-bg);
   border: 1px solid var(--glass-logo-border);
   box-shadow: var(--glass-logo-shadow);
+  transition-property: width, background, border-color, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+
+.sidebar-logo-frame--collapsed {
+  background: rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 6px 16px rgba(30, 35, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.sidebar-logo-frame::before,
+.sidebar-logo-frame::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.sidebar-logo-frame::before {
+  inset: 1px;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--glass-logo-sheen);
+}
+
+.sidebar-logo-frame--collapsed::before {
+  background: transparent;
+}
+
+.sidebar-logo-frame::after {
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-logo-frame--collapsed::after {
+  box-shadow: none;
+}
+
+.sidebar-logo-frame > * {
+  position: relative;
+  z-index: 2;
 }
 
 /* Centre-faded 1px section divider — quieter than a hard gray line, suits the glass. */
@@ -1099,38 +1153,31 @@ input[type="number"] {
   box-shadow: var(--glass-shadow), var(--glass-inset-hi);
 }
 
-/* Workshop shell chrome — neutral frosted treatment for the title/footer bars.
-   The dashboard canvas keeps the warm wash; shell chrome stays untinted so the
-   route title and utility actions read as quiet product UI. */
+/* Workshop shell chrome sits inside the single workspace glass surface.
+   Header/content/footer must read as one continuous sheet, so the chrome zones
+   do not add their own fill, blur, shadow, or internal separator rules. */
 .workshop-shell-glass-chrome {
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border-color: var(--glass-border);
-  border-inline-width: 0;
-  box-shadow:
-    var(--glass-inset-hi),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.38);
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-width: 0;
+  box-shadow: none;
 }
 
 .workshop-shell-glass-chrome--top {
-  border-top-width: 0;
-  border-bottom-width: 1px;
+  border-width: 0;
 }
 
 .workshop-shell-glass-chrome--bottom {
-  border-top-width: 1px;
-  border-bottom-width: 0;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.38),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.22);
+  border-width: 0;
+  box-shadow: none;
 }
 
-/* Full workspace frost behind the route chrome. This keeps shell pages in the
-   same glass family as the dashboard panels while staying neutral: no warm
-   dashboard gradient/tint on the persistent header, content frame, or footer. */
+/* One full workspace frost behind route chrome, content, and footer. This is
+   the single blurred glass panel for the shell; children stay transparent so
+   the material is seamless from top edge to bottom edge. */
 .workshop-workspace-glass-surface {
-  background: rgba(255, 255, 255, 0.58);
+  background: var(--workshop-shell-chrome-bg);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-color: var(--glass-border);
@@ -1221,10 +1268,20 @@ input[type="number"] {
    unsupported, and when the viewer asks for reduced transparency. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .dashboard-glass,
-  .dashboard-glass-warm,
-  .workshop-workspace-glass-surface,
-  .workshop-shell-glass-chrome {
+  .dashboard-glass-warm {
     background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .workshop-workspace-glass-surface {
+    background: var(--workshop-shell-chrome-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .workshop-shell-glass-chrome {
+    background: transparent;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1238,10 +1295,19 @@ input[type="number"] {
 
 @media (prefers-reduced-transparency: reduce) {
   .dashboard-glass,
-  .dashboard-glass-warm,
-  .workshop-workspace-glass-surface,
-  .workshop-shell-glass-chrome {
+  .dashboard-glass-warm {
     background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .workshop-workspace-glass-surface {
+    background: var(--workshop-shell-chrome-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .workshop-shell-glass-chrome {
+    background: transparent;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1254,9 +1320,8 @@ input[type="number"] {
 }
 
 /* ── Dashboard v2 bento surfaces (owner directive 2026-06-18) ─────────────────
-   Full-bleed bento: editorial image cards (the triptych), a terracotta-bloom
-   Library hub, two warm-glass hero cells, white-paper data ledgers, all on a
-   whisper-quiet warm canvas wash. */
+   Full-bleed bento: transparent blurred destination panes, warm-glass hero
+   cells, white-paper data ledgers, all on a whisper-quiet warm canvas wash. */
 
 /* Quiet warm canvas wash behind the whole dashboard (replaces the loud bloom). */
 .dashboard-canvas-wash {
@@ -1265,63 +1330,70 @@ input[type="number"] {
 }
 
 /* ── Destination tiles (owner correction 2026-06-18) ────────────────────────
-   Projects is the photographic/blue-black hero slot; Components is the orange
-   workhorse; Templates and Library stay quiet gray blocks. The four tiles share
-   one internal geometry so the group reads as one system instead of a collage. */
+   No fill color: these panes retain blur, shadow, and edge relief only, much
+   like the Favorites board. Hierarchy comes from scale and placement. */
+.dashboard-root {
+  --dashboard-tile-glass-bg: transparent;
+  --dashboard-tile-glass-bg-hover: transparent;
+  --dashboard-tile-glass-border: var(--glass-border);
+  --dashboard-tile-glass-border-hover: color-mix(in srgb, var(--glass-border) 72%, rgba(38, 44, 58, 0.22));
+  --dashboard-tile-glass-inset: var(--glass-shadow), var(--glass-inset-hi);
+  --dashboard-tile-glass-inset-hover: var(--glass-shadow-hover), var(--glass-inset-hi);
+}
+
 .dashboard-destination-card {
-  --destination-bg: var(--surface-muted);
-  --destination-accent: var(--ink);
-  --destination-ink: var(--ink);
-  --destination-muted: var(--secondary);
-  --destination-icon: var(--destination-ink);
-  --destination-border: color-mix(in srgb, var(--destination-accent) 22%, var(--glass-border));
-  --destination-mark-opacity: 0.34;
+  --destination-bg: var(--dashboard-tile-glass-bg);
+  --destination-accent: rgba(38, 44, 58, 0.54);
+  --destination-ink: #5d5d5d;
+  --destination-muted: #5d5d5d;
+  --destination-icon: #5d5d5d;
+  --destination-border: var(--dashboard-tile-glass-border);
+  --destination-mark-opacity: 0.16;
   position: relative;
   overflow: hidden;
   background: var(--destination-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border: 1px solid var(--destination-border);
   border-radius: var(--radius-xs);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
+  padding: 8px;
+  box-shadow: var(--dashboard-tile-glass-inset);
 }
-.dashboard-destination-card--projects {
-  --destination-bg: #FA4415;
-  --destination-accent: #1c1c1c;
-  --destination-ink: #1c1c1c;
-  --destination-muted: rgba(28, 28, 28, 0.74);
-  --destination-border: color-mix(in srgb, #1c1c1c 36%, #FA4415);
-  --destination-mark-opacity: 0.2;
+
+.dashboard-destination-card:hover {
+  --destination-bg: var(--dashboard-tile-glass-bg-hover);
+  --destination-ink: #AA412A;
+  --destination-muted: #AA412A;
+  --destination-icon: #AA412A;
+  --destination-border: var(--dashboard-tile-glass-border-hover);
+  box-shadow: var(--dashboard-tile-glass-inset-hover);
 }
-.dashboard-destination-card--components {
-  --destination-bg: #D2A03B;
-  --destination-accent: #1c1c1c;
-  --destination-ink: #1c1c1c;
-  --destination-muted: rgba(28, 28, 28, 0.74);
-  --destination-border: color-mix(in srgb, #1c1c1c 36%, #D2A03B);
-  --destination-mark-opacity: 0.2;
+.dashboard-imageband .dashboard-destination-card,
+.iband-library-card {
+  --destination-ink: #5d5d5d;
+  --destination-muted: #5d5d5d;
+  --destination-icon: #5d5d5d;
 }
-.dashboard-destination-card--templates {
-  --destination-bg: #9b9fa6;
-  --destination-accent: #54565a;
-  --destination-ink: #1c1c1c;
-  --destination-muted: rgba(28, 28, 28, 0.68);
-  --destination-border: color-mix(in srgb, #54565a 38%, #9b9fa6);
-  --destination-mark-opacity: 0.24;
-}
-.dashboard-destination-card--library {
-  --destination-bg: #e0e0e0;
-  --destination-accent: #54565a;
-  --destination-ink: #1c1c1c;
-  --destination-muted: rgba(28, 28, 28, 0.62);
-  --destination-border: color-mix(in srgb, #54565a 28%, #e0e0e0);
-  --destination-mark-opacity: 0.22;
+.dashboard-imageband .dashboard-destination-card:hover,
+.iband-library-card:hover {
+  --destination-ink: #AA412A;
+  --destination-muted: #AA412A;
+  --destination-icon: #AA412A;
 }
 .dashboard-destination-card-index,
 .dashboard-destination-card-count {
+  transition: color 180ms ease-out;
   color: var(--destination-muted);
 }
-.dashboard-destination-card-title,
-.dashboard-destination-card-icon {
+.dashboard-destination-card-title {
+  transition: color 180ms ease-out;
   color: var(--destination-ink);
+}
+.dashboard-destination-card-icon {
+  color: var(--destination-icon);
+}
+.dashboard-destination-card:hover .dashboard-destination-card-icon {
+  color: var(--destination-icon);
 }
 .dashboard-destination-card-image {
   position: absolute;
@@ -1381,13 +1453,37 @@ input[type="number"] {
   height: 1px;
 }
 
-/* The editorial display numeral — a void cell carrying a single large figure
-   (Doto), the catalogue "65" focal point. Transparent: no card, just the mark. */
+/* The editorial display numeral — a 1/3 metric cell paired with a 2/3 void. */
 .dashboard-bignum {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+.dashboard-bignum-count {
   display: flex;
   flex-direction: column;
+  grid-column: 1;
   justify-content: flex-end;
+  min-width: 0;
   padding: 8px;
+  border-right: 1px solid var(--glass-border);
+}
+.dashboard-bignum-fill {
+  grid-column: 2 / span 2;
+  min-width: 0;
+}
+.dashboard-bignum-fill-header {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  border-bottom: 1px solid var(--hairline);
+  padding-inline: 8px;
+}
+.dashboard-bignum-fill-header > h2 {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
 }
 .dashboard-bignum-value {
   font-family: var(--font-numeric);
@@ -1404,11 +1500,14 @@ input[type="number"] {
 
 /* Gentle lift on interactive cards (transform only; reduced-motion safe). */
 .dashboard-card-hover {
-  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+  transition:
+    transform 180ms ease-out,
+    border-color 180ms ease-out,
+    box-shadow 180ms ease-out;
 }
 .dashboard-card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: var(--glass-shadow-hover);
+  box-shadow: var(--dashboard-tile-glass-inset-hover, var(--glass-shadow-hover));
 }
 @media (prefers-reduced-motion: reduce) {
   .dashboard-card-hover { transition: none; }
@@ -1440,10 +1539,13 @@ input[type="number"] {
 /* ── Dashboard v2 bento layout (full-bleed square-unit board) ─────────────── */
 .dashboard-root {
   --dashboard-gap: 8px;
+  --dashboard-row: clamp(126px, 13vw, 214px);
+  --dashboard-board-row: calc(var(--dashboard-row) + 6.4px);
   display: grid;
   min-height: 100%;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-auto-rows: clamp(126px, 13vw, 214px);
+  grid-template-rows: repeat(5, var(--dashboard-row)) minmax(0, 1fr);
+  grid-auto-rows: var(--dashboard-row);
   gap: var(--dashboard-gap);
   align-content: start;
 }
@@ -1452,6 +1554,7 @@ input[type="number"] {
   grid-template-columns: 1fr;
   column-gap: var(--dashboard-gap);
   align-items: stretch;
+  border-bottom: 1px solid var(--glass-border);
 }
 /* No Continue hero → single column. Unlayered + compound so it beats the base
    rule (a layered Tailwind arbitrary utility would lose the cascade-layer fight). */
@@ -1463,11 +1566,11 @@ input[type="number"] {
    units instead of reading as stacked horizontal bands. */
 .dashboard-imageband,
 .dashboard-desk { display: contents; }
-.dashboard-masthead { grid-column: 1; grid-row: 3; }
-.iband-components { grid-column: 3 / span 3; grid-row: 1; }
+.dashboard-masthead { grid-column: 1 / span 2; grid-row: 4; }
+.iband-components { grid-column: 3 / span 3; grid-row: 1 / span 2; }
 .iband-templates  {
   grid-column: 5;
-  grid-row: 2;
+  grid-row: 3;
   align-self: stretch;
   height: 100%;
 }
@@ -1475,21 +1578,188 @@ input[type="number"] {
   grid-column: 5;
 }
 .iband-library    {
+  display: grid;
   grid-column: 3 / span 2;
-  grid-row: 2;
+  grid-row: 3;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--dashboard-gap);
   align-self: start;
   height: calc((100% - var(--dashboard-gap)) / 2);
   min-height: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.iband-library-card {
+  grid-column: 1 / span 2;
+  min-height: 0;
+  overflow: visible;
+}
+.iband-library-continue-slot {
+  grid-column: 1 / span 2;
+  min-height: 0;
+  overflow: visible;
+  border-radius: var(--radius-xs);
+}
+.iband-library-continue-slot .dashboard-continue-title {
+  transition: color 180ms ease-out;
+}
+.iband-library-continue-slot > a:hover .dashboard-continue-title {
+  color: #AA412A;
+}
+.iband-library-stack {
+  display: grid;
+  grid-column: 3;
+  grid-row: 1;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: var(--dashboard-gap);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.iband-library-new-project,
+.iband-library-action-grid {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: var(--radius-xs);
+}
+.iband-library-new-project {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 12px;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.iband-library-new-project > svg {
+  transition: color 180ms ease-out;
+}
+.iband-library-new-project:hover {
+  color: #AA412A;
+}
+.iband-library-new-project:hover > svg {
+  color: #AA412A;
+}
+.iband-library-new-project:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .iband-library-continue-slot .dashboard-continue-title,
+  .iband-library-new-project,
+  .iband-library-new-project > svg {
+    transition: none;
+  }
+}
+.iband-library-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dashboard-gap);
+}
+.iband-library-new-component,
+.iband-library-new-sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 9px;
+  letter-spacing: 0;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.iband-library-new-component > span,
+.iband-library-new-sheet > span {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.iband-library-new-component > svg {
+  transition: color 180ms ease-out;
+}
+.iband-library-new-component:hover {
+  color: #AA412A;
+}
+.iband-library-new-component:hover > svg {
+  color: #AA412A;
+}
+.iband-library-new-sheet > svg {
+  transition: color 180ms ease-out;
+}
+.iband-library-new-sheet:hover {
+  color: #AA412A;
+}
+.iband-library-new-sheet:hover > svg {
+  color: #AA412A;
+}
+.iband-library-new-component:focus-visible,
+.iband-library-new-sheet:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.iband-library-new-sheet:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: reduce) {
+  .iband-library-new-component,
+  .iband-library-new-component > svg,
+  .iband-library-new-sheet,
+  .iband-library-new-sheet > svg {
+    transition: none;
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dashboard-destination-card,
+  .iband-library-card,
+  .iband-library-continue-slot > a,
+  .iband-library-new-project,
+  .iband-library-new-component,
+  .iband-library-new-sheet {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .dashboard-destination-card,
+  .iband-library-card,
+  .iband-library-continue-slot > a,
+  .iband-library-new-project,
+  .iband-library-new-component,
+  .iband-library-new-sheet {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 .iband-bignum     {
-  grid-column: 1;
-  grid-row: 4;
+  grid-column: 1 / 3;
+  grid-row: 5;
+  justify-self: stretch;
+  width: 100%;
 }
-.iband-projects   { grid-column: 1 / span 2; grid-row: 1 / span 2; }
-.desk-board       { grid-column: 6 / span 2; grid-row: 1 / span 5; }
+.iband-projects   { grid-column: 1 / span 2; grid-row: 1 / span 3; }
+.desk-board       { grid-column: 6 / span 2; grid-row: 1 / span 6; }
 .desk-continue    {
   grid-column: 3 / span 2;
-  grid-row: 2;
+  grid-row: 3;
   align-self: end;
   height: calc((100% - var(--dashboard-gap)) / 2);
 }
@@ -1500,18 +1770,13 @@ input[type="number"] {
   min-height: 0;
   overflow: hidden;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(5, minmax(0, 1fr));
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--glass-bg) 82%, rgba(255, 255, 255, 0.32)),
-      color-mix(in srgb, var(--glass-bg) 58%, transparent)
-    );
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--glass-radius);
-  box-shadow: var(--glass-shadow), var(--glass-inset-hi);
+  grid-template-rows: repeat(5, minmax(0, var(--dashboard-board-row))) minmax(0, 1fr);
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 0;
+  box-shadow: none;
+  filter: none;
 }
 .desk-board-favs {
   grid-column: 1 / -1;
@@ -1521,17 +1786,34 @@ input[type="number"] {
 .desk-board-recents {
   display: grid;
   grid-column: 1 / -1;
-  grid-row: 3 / span 3;
+  grid-row: 3 / -1;
+  height: 100%;
   min-height: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid var(--glass-border);
 }
 .desk-recproj,
 .desk-recsheet {
+  height: 100%;
   min-height: 0;
 }
 .desk-recsheet {
   border-left: 1px solid var(--glass-border);
+}
+
+.desk-board,
+.desk-board-favs,
+.desk-board-recents,
+.desk-recproj,
+.desk-recsheet,
+.desk-board-favs > section,
+.desk-recproj > section,
+.desk-recsheet > section {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  filter: none;
 }
 
 @media (max-width: 1023px) {

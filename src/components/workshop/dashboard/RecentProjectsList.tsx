@@ -1,5 +1,5 @@
 /**
- * Recent projects — tall, dense white-paper ledger for the bento working desk.
+ * Projects — tall, dense white-paper ledger for the bento working desk.
  * Legibility first: plain white surface, hairline dividers, no frost/blur.
  * The card fills its bento cell and scrolls internally when rows overflow.
  */
@@ -9,7 +9,6 @@ import { Folder, Star } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 
 import {
-  WORKSHOP_ROUTES,
   formatShortDate,
   projectHref,
   type WorkshopProjectSummary,
@@ -34,21 +33,8 @@ export function RecentProjectsList({ projects, embedded = false }: RecentProject
         embedded ? "" : "rounded-xs border border-hairline",
       )}
     >
-      <div className="flex shrink-0 items-end justify-between gap-2 px-2 py-2">
-        <div className="min-w-0">
-          <p className="font-numeric text-[9px] text-secondary">Workspace</p>
-          <h2 className="text-[12px] font-medium text-ink">Recent projects</h2>
-        </div>
-        <Link
-          href={WORKSHOP_ROUTES.projects}
-          aria-label="View all projects"
-          className={cn(
-            "shrink-0 rounded-xs font-numeric text-[10px] text-secondary hover:text-ink",
-            ROW_FOCUS,
-          )}
-        >
-          View all
-        </Link>
+      <div className="flex h-12 shrink-0 items-center px-2">
+        <h2 className="text-[12px] font-medium text-ink">Projects</h2>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

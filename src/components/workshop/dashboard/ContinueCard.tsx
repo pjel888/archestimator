@@ -32,14 +32,14 @@ export function ContinueCard({ estimate, bare = false }: ContinueCardProps) {
       className={cn(
         "group relative flex flex-col justify-between gap-2 p-2",
         bare
-          ? "h-full min-h-0 rounded-xs hover:bg-white/30"
+          ? "dashboard-destination-card dashboard-card-hover h-full min-h-0 rounded-xs motion-reduce:transition-none"
           : "dashboard-glass-warm dashboard-hero-continue dashboard-card-hover grain-overlay h-full min-h-0 rounded-xs",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
       )}
     >
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="font-numeric text-[9px] text-secondary">Continue where you left off</span>
-        <span className="truncate font-display text-[14px] font-medium leading-tight text-ink">
+        <span className="dashboard-continue-title truncate font-display text-[16px] font-extrabold uppercase leading-tight text-ink">
           {estimate.name}
         </span>
         <span className="truncate font-numeric text-[10px] text-secondary">

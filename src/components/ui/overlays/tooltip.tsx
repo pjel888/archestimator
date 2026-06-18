@@ -41,7 +41,7 @@ export function Tooltip({ label, children, side = "top", open, defaultOpen = fal
       onFocus={() => setHoverOpen(true)}
       onBlur={() => setHoverOpen(false)}
     >
-      <span aria-describedby={isOpen ? tooltipId : undefined} className="inline-flex">
+      <span aria-describedby={isOpen ? tooltipId : undefined} className="inline-flex h-full w-full">
         {trigger}
       </span>
       {isOpen ? (

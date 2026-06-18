@@ -31,8 +31,8 @@ type DashboardHeroProps = {
 };
 
 /**
- * Masthead greeting — a compact orientation strip that owns the first dashboard
- * row without competing with the destination tiles below it.
+ * Masthead greeting — a compact orientation strip aligned with the Projects
+ * column span without competing with the destination tiles above it.
  */
 export function DashboardHero({ displayName }: DashboardHeroProps) {
   const hydrated = useIsHydrated();
@@ -42,13 +42,13 @@ export function DashboardHero({ displayName }: DashboardHeroProps) {
   const PeriodIcon = tone.icon === "moon" ? MoonStarsIcon : SunHorizonIcon;
 
   return (
-    <section aria-label="Workshop greeting" className="flex h-full min-h-0 items-end px-2 py-2">
-      <h1 className="flex flex-col items-start gap-1 uppercase leading-none text-ink">
-        <span className="grid size-3 place-items-center text-secondary">
+    <section aria-label="Workshop greeting" className="flex h-full min-h-0 items-start justify-start px-2 py-2">
+      <h1 className="flex flex-col items-start gap-2 uppercase leading-none text-ink">
+        <span className="grid size-6 place-items-center text-secondary">
           <PeriodIcon role="img" aria-label={tone.periodLabel} weight="regular" className="size-full" />
         </span>
-        <span className="font-numeric text-[10px] font-medium text-secondary">{tone.greeting}</span>
-        <span className="font-display text-[14px] font-medium">{name}</span>
+        <span className="font-numeric text-[13px] font-light text-secondary">{tone.greeting}</span>
+        <span className="font-display text-[36px] font-bold">{name}</span>
       </h1>
     </section>
   );
