@@ -31,7 +31,9 @@ Stable current truth (verify against git/source before relying on a detail):
   class-only cosmetic edits can use static review plus focused type/LSP/lint or
   nearby component/unit checks. Reserve browser/manual proof for interaction,
   routing, auth/data, responsive-layout risk, accessibility semantics, complex
-  composition, explicit visual-proof requests, or higher blast radius.
+  composition, explicit visual-proof requests, or higher blast radius. Codex App
+  speed guardrail: Playwright/screenshots/visual QA are opt-in evidence surfaces;
+  choose them only after naming the browser-only claim they prove.
 
 To go deeper: `rg -n "<feature/keyword>" .ai/10_state/current-state.md` and
 read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —

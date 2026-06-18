@@ -124,6 +124,7 @@ Verification is proportional to risk:
 - Narrow source change: type/LSP check or targeted test for the touched behavior.
 - Shared logic, auth, database, security, or release work: targeted tests plus broader `bun run validate`/`bun run build` only when the risk justifies the time.
 - UI verification is proportional: minor cosmetic changes such as spacing, copy, color, icon, or class tweaks do **not** automatically need Playwright/browser proof; use static review, focused type/LSP/lint, or a nearby component/unit check when that proves the edit. Run targeted browser/manual proof only when the change affects interaction, routing, auth/data state, responsive layout risk, accessibility semantics, complex composition, or when visual proof is the requested deliverable.
+- Codex App speed guardrail: Playwright, browser automation, screenshots, Storybook, and visual QA are opt-in evidence surfaces, not default completion gates. Before choosing them, state the specific browser-only claim they prove; if the claim can be proven by static review, focused type/LSP/lint, unit/DOM tests, or targeted source inspection, use that faster path and report the browser proof as intentionally skipped.
 
 Do not claim provider, GitHub, Notion, Vercel, production, or manual proof from local-only checks. If a check is skipped, state why and what risk remains.
 
