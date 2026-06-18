@@ -26,6 +26,8 @@ export type WorkshopDashboardData = {
   librarySpotlight: DashboardLibrarySpotlight | null;
 };
 
+export const MATERIAL_PHOTOS_READY = true;
+
 // ── Routes ──────────────────────────────────────────────────────────────────
 export const WORKSHOP_ROUTES = {
   projects: "/workshop/projects",

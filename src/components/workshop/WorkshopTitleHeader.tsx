@@ -32,7 +32,7 @@ export function WorkshopTitleHeader({
   const showBreadcrumbs = (breadcrumbs?.length ?? 0) > 1;
 
   return (
-    <header className={cn("relative flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-white", className)}>
+    <header className={cn("workshop-shell-glass-chrome workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between border", className)}>
       {titleSlot ?? (
         <div
           className={cn("flex min-w-0 shrink-0 flex-col gap-0.5", hasBreadcrumbs && "h-[30px] justify-start")}

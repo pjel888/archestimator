@@ -12,6 +12,9 @@ import { projectEstimatesHref, type WorkshopProjectSummary } from "./lib";
 
 type CreateActionsProps = {
   recentProjects: WorkshopProjectSummary[];
+  /** When true, drop the card's own glass surface so it composes inside a shared
+   * panel (the combined Continue+Create action block). */
+  bare?: boolean;
 };
 
 const MAX_RECENT = 5;
@@ -27,7 +30,7 @@ const MAX_RECENT = 5;
  * are used directly. Meta/helper copy uses --secondary (AA-safe over warm frost),
  * never --tertiary.
  */
-export function CreateActions({ recentProjects }: CreateActionsProps) {
+export function CreateActions({ recentProjects, bare = false }: CreateActionsProps) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerId = useId();
@@ -38,17 +41,17 @@ export function CreateActions({ recentProjects }: CreateActionsProps) {
   return (
     <div
       className={cn(
-        "dashboard-glass-warm dashboard-hero-create",
-        "relative flex h-full min-h-[120px] flex-col gap-3 rounded-xs p-4",
+        "relative flex min-h-0 flex-col gap-1.5 p-2.5",
+        bare ? "" : "dashboard-glass-warm dashboard-hero-create h-full rounded-xs",
       )}
     >
-      <div className="flex flex-col gap-0.5">
-        <span className="font-numeric text-[9px] text-secondary">Start something new</span>
+      <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-[12px] font-medium text-ink">Create</h2>
+        <span className="font-numeric text-[9px] text-secondary">Start something new</span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2">
-        <Button variant="primary" size="md" className="w-full" onClick={() => setOpen(true)}>
+      <div className="flex flex-1 flex-col gap-1.5">
+        <Button variant="primary" size="sm" className="w-full" onClick={() => setOpen(true)}>
           <FolderPlus size={16} weight="regular" aria-hidden="true" />
           New project
         </Button>
@@ -56,7 +59,7 @@ export function CreateActions({ recentProjects }: CreateActionsProps) {
         <div className="flex flex-col gap-1.5">
           <Button
             variant="secondary"
-            size="md"
+            size="sm"
             className="w-full"
             disabled={!hasProjects}
             aria-expanded={hasProjects ? pickerOpen : undefined}

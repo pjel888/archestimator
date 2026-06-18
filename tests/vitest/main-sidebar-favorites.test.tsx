@@ -67,8 +67,10 @@ describe("MainSidebar favorites", () => {
     );
 
     const collapsedNavigation = screen.getByRole("navigation", { name: "Main navigation" });
-    // Redesign: the mark is locked into the 48px column (w-12) so it stays put on
-    // toggle; the wordmark lives beside it and fades, hidden when collapsed.
+    // Redesign: the mark is locked into the 48px column so it stays put on
+    // toggle; the red frame expands into a wordmark slab only when opened.
+    const collapsedFrame = collapsedNavigation.querySelector("[data-sidebar-header-frame]");
+    expect(collapsedFrame).toHaveStyle({ width: "48px" });
     const collapsedLogo = collapsedNavigation.querySelector("[data-sidebar-header-logo-lock]");
     expect(collapsedLogo).toBeTruthy();
     expect(collapsedLogo).toHaveClass("w-12");
@@ -78,6 +80,8 @@ describe("MainSidebar favorites", () => {
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
 
     const navigation = screen.getByRole("navigation", { name: "Main navigation" });
+    const expandedFrame = navigation.querySelector("[data-sidebar-header-frame]");
+    expect(expandedFrame).toHaveStyle({ width: "272px" });
     const expandedLogo = navigation.querySelector("[data-sidebar-header-logo-lock]");
     expect(expandedLogo).toBeTruthy();
     expect(expandedLogo).toHaveClass("w-12");

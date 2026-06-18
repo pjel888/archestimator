@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { NewProjectModal } from "@/components/workshop/NewProjectModal";
 import { cn } from "@/lib/ui/cn";
 
-import { WORKSHOP_ROUTES } from "./lib";
+import { MATERIAL_PHOTOS_READY, WORKSHOP_ROUTES } from "./lib";
 
 type DashboardEmptyStateProps = {
   /** Personalises the hero greeting when known (e.g. first name). */
@@ -18,6 +18,14 @@ type DashboardEmptyStateProps = {
 
 /** Shared responsive sizing hint for the destination preview images. */
 const TILE_IMAGE_SIZES = "(max-width:640px) 50vw, (max-width:1024px) 25vw, 22vw";
+
+/** The four destination previews, each backed by a construction-material macro. */
+const PREVIEW_TILES = [
+  { href: WORKSHOP_ROUTES.projects, label: "Projects", material: "timber", warm: false },
+  { href: WORKSHOP_ROUTES.libraryComponents, label: "Components", material: "steel", warm: false },
+  { href: WORKSHOP_ROUTES.libraryTemplates, label: "Templates", material: "concrete", warm: false },
+  { href: WORKSHOP_ROUTES.library, label: "Library", material: "aggregate", warm: true },
+] as const;
 
 /**
  * First-run experience (BENTO v2) — what a brand-new user with zero projects and
@@ -77,7 +85,7 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
               className={cn(
                 "inline-flex items-center gap-1 rounded-xs px-1.5 py-1",
                 "font-numeric text-[10px] text-secondary transition-colors hover:text-ink",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               )}
             >
               or browse templates
@@ -87,87 +95,43 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
         </div>
       </div>
 
-      {/* "What you can build" — preview of the four destinations (self-contained). */}
+      {/* "What you can build" — preview of the four destinations as material-frost
+          tiles (self-contained; mirrors the populated dashboard's language). */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Link
-          href={WORKSHOP_ROUTES.projects}
-          aria-label="Open Projects"
-          className={cn(
-            "image-card image-card-projects relative block h-[120px]",
-            "[background-color:var(--block-clay)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-          )}
-        >
-          <Image
-            src="/Cards/Projects-Card.jpg"
-            alt=""
-            fill
-            className="object-cover"
-            sizes={TILE_IMAGE_SIZES}
-          />
-          <span className="image-card-scrim" aria-hidden="true" />
-          <span className="absolute inset-x-0 bottom-0 z-10 p-3 text-[11px] font-medium text-[color:var(--on-art)]">
-            Projects
-          </span>
-        </Link>
-
-        <Link
-          href={WORKSHOP_ROUTES.libraryComponents}
-          aria-label="Open Components"
-          className={cn(
-            "image-card image-card-components relative block h-[120px]",
-            "[background-color:var(--block-sage)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-          )}
-        >
-          <Image
-            src="/Cards/Components-Card.jpg"
-            alt=""
-            fill
-            className="object-cover"
-            sizes={TILE_IMAGE_SIZES}
-          />
-          <span className="image-card-scrim" aria-hidden="true" />
-          <span className="absolute inset-x-0 bottom-0 z-10 p-3 text-[11px] font-medium text-[color:var(--on-art)]">
-            Components
-          </span>
-        </Link>
-
-        <Link
-          href={WORKSHOP_ROUTES.libraryTemplates}
-          aria-label="Open Templates"
-          className={cn(
-            "image-card image-card-templates relative block h-[120px]",
-            "[background-color:var(--block-indigo)]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-          )}
-        >
-          <Image
-            src="/Cards/Templates-Card.jpg"
-            alt=""
-            fill
-            className="object-cover"
-            sizes={TILE_IMAGE_SIZES}
-          />
-          <span className="image-card-scrim" aria-hidden="true" />
-          <span className="absolute inset-x-0 bottom-0 z-10 p-3 text-[11px] font-medium text-[color:var(--on-art)]">
-            Templates
-          </span>
-        </Link>
-
-        <Link
-          href={WORKSHOP_ROUTES.library}
-          aria-label="Open Library"
-          className={cn(
-            "library-hub grain-overlay relative block h-[120px]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-          )}
-        >
-          <span className="image-card-scrim" aria-hidden="true" />
-          <span className="absolute inset-x-0 bottom-0 z-10 p-3 text-[11px] font-medium text-[color:var(--on-art)]">
-            Library
-          </span>
-        </Link>
+        {PREVIEW_TILES.map(({ href, label, material, warm }) => (
+          <Link
+            key={label}
+            href={href}
+            aria-label={`Open ${label}`}
+            className={cn(
+              "material-card relative block h-[120px]",
+              `material-${material}`,
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+            )}
+          >
+            {MATERIAL_PHOTOS_READY ? (
+              <Image
+                src={`/Cards/materials/${material}.jpg`}
+                alt=""
+                fill
+                className="object-cover"
+                sizes={TILE_IMAGE_SIZES}
+              />
+            ) : null}
+            <span
+              className={cn("material-card-frost", warm && "material-card-frost--warm")}
+              aria-hidden="true"
+            />
+            <span
+              className={cn(
+                "material-card-caption absolute bottom-3 left-3 z-10 text-[11px] font-medium text-ink",
+                warm && "material-card-caption--warm",
+              )}
+            >
+              {label}
+            </span>
+          </Link>
+        ))}
       </div>
 
       {open ? <NewProjectModal onClose={() => setOpen(false)} /> : null}

@@ -7,6 +7,9 @@ import { estimateHref, formatShortDate, type WorkshopEstimateSummary } from "./l
 
 type ContinueCardProps = {
   estimate: WorkshopEstimateSummary | null;
+  /** When true, drop the card's own glass surface so it composes inside a shared
+   * panel (the combined Continue+Create action block). */
+  bare?: boolean;
 };
 
 /**
@@ -19,7 +22,7 @@ type ContinueCardProps = {
  * are used directly. Load-bearing label + meta use --secondary (AA-safe over the
  * warm frost), never --tertiary.
  */
-export function ContinueCard({ estimate }: ContinueCardProps) {
+export function ContinueCard({ estimate, bare = false }: ContinueCardProps) {
   if (!estimate) return null;
 
   return (
@@ -27,17 +30,19 @@ export function ContinueCard({ estimate }: ContinueCardProps) {
       href={estimateHref(estimate)}
       aria-label={`Continue editing ${estimate.name}`}
       className={cn(
-        "dashboard-glass-warm dashboard-hero-continue dashboard-card-hover grain-overlay",
-        "group relative flex h-full min-h-[120px] flex-col justify-between gap-3 rounded-xs p-4",
+        "group relative flex flex-col justify-between gap-1.5 p-2.5",
+        bare
+          ? "rounded-xs hover:bg-white/30"
+          : "dashboard-glass-warm dashboard-hero-continue dashboard-card-hover grain-overlay h-full min-h-0 rounded-xs",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
       )}
     >
-      <span className="flex min-w-0 flex-col gap-1">
+      <span className="flex min-w-0 flex-col gap-0.5">
         <span className="font-numeric text-[9px] text-secondary">Continue where you left off</span>
-        <span className="truncate font-display text-[18px] font-medium leading-tight text-ink">
+        <span className="truncate font-display text-[14px] font-medium leading-tight text-ink">
           {estimate.name}
         </span>
-        <span className="truncate font-numeric text-[11px] text-secondary">
+        <span className="truncate font-numeric text-[10px] text-secondary">
           {estimate.projectName} · {estimate.sheet_code}
         </span>
       </span>

@@ -1,16 +1,12 @@
 "use client";
 
-import { cn } from "@/lib/ui/cn";
-
 import { ContinueCard } from "./ContinueCard";
 import { CreateActions } from "./CreateActions";
 import { DashboardEmptyState } from "./DashboardEmptyState";
 import { DashboardHero } from "./DashboardHero";
-import { DashboardStatStrip } from "./DashboardStatStrip";
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
 import { LibraryHubCard } from "./LibraryHubCard";
-import { LibrarySpotlight } from "./LibrarySpotlight";
 import { RecentProjectsList } from "./RecentProjectsList";
 import { RecentSheetsList } from "./RecentSheetsList";
 import { isFirstRun, pickContinueEstimate, WORKSHOP_ROUTES, type WorkshopDashboardData } from "./lib";
@@ -21,10 +17,10 @@ type WorkshopDashboardProps = WorkshopDashboardData & {
 
 /**
  * The Workshop "command center" homebase — a full-bleed bento (no centered
- * column): a masthead (greeting + Continue hero), an editorial image band (the
- * triptych destination cards + the terracotta Library hub), and a working desk
- * of glass action cells + white-paper data ledgers, over a whisper-quiet warm
- * canvas wash. Loud art, quiet data, two warm glass action heroes.
+ * column): an editorial masthead headline, a square material-frost image field
+ * (destination tiles + Library hub + a big catalogue numeral, with intentional
+ * empty voids), and a working desk led by Favorites (the prominent block) with
+ * compact Continue/Create actions and the two recent ledgers ranked beneath it.
  */
 export function WorkshopDashboard({
   homebase,
@@ -40,30 +36,37 @@ export function WorkshopDashboard({
   const templateCount = librarySpotlight?.templateCount;
   const libraryItemCount =
     componentCount != null && templateCount != null ? componentCount + templateCount : undefined;
-  // Guard desk cells so a null/failed module never leaves a dead grid area.
-  const hasStats =
-    Boolean(librarySpotlight) || homebase.projects.length > 0 || homebase.estimates.length > 0;
+  // The editorial focal numeral — a single real figure (library size, else the
+  // recent-project count). Decorative + aria-hidden: the same counts are
+  // announced, labelled, on the destination tiles themselves.
+  const bigNumber = libraryItemCount ?? (homebase.projects.length || undefined);
+  const bigNumberLabel = libraryItemCount != null ? "library items" : "recent projects";
 
   return (
     <div className="dashboard-canvas-wash h-full min-h-0 overflow-y-auto">
-      <div className="dashboard-root w-full px-4 py-4 lg:px-6">
-        {/* Masthead — greeting (+ Continue hero when there's a recent sheet). */}
-        <div className={cn("dashboard-masthead", !continueEstimate && "dashboard-masthead--solo")}>
+      <div className="dashboard-root w-full p-2">
+        {/* Masthead — editorial headline only (full-bleed, no card). */}
+        <div className="dashboard-masthead dashboard-masthead--solo">
           <DashboardHero displayName={userDisplayName} />
-          {continueEstimate ? <ContinueCard estimate={continueEstimate} /> : null}
         </div>
 
         {firstRun ? (
           <DashboardEmptyState displayName={userDisplayName} />
         ) : (
           <>
-            {/* Image band — the editorial four-up destination cards. */}
+            {/* Image band — an editorial square module field: a big Projects
+                hero (2×2), scattered material-frost tiles, the Library hub, a
+                wide display numeral, and unoccupied cells as negative space. */}
             <div className="dashboard-imageband">
               <ImageDestinationCard
                 kind="projects"
                 href={WORKSHOP_ROUTES.projects}
                 label="Projects"
+                count={homebase.projects.length || undefined}
+                countNoun="recent"
                 plateIndex="01"
+                emphasis
+                className="iband-projects"
               />
               <ImageDestinationCard
                 kind="components"
@@ -72,6 +75,7 @@ export function WorkshopDashboard({
                 count={componentCount}
                 countNoun="components"
                 plateIndex="02"
+                className="iband-components"
               />
               <ImageDestinationCard
                 kind="templates"
@@ -80,31 +84,37 @@ export function WorkshopDashboard({
                 count={templateCount}
                 countNoun="templates"
                 plateIndex="03"
+                className="iband-templates"
               />
-              <LibraryHubCard href={WORKSHOP_ROUTES.library} count={libraryItemCount} />
+              <LibraryHubCard
+                href={WORKSHOP_ROUTES.library}
+                count={libraryItemCount}
+                className="iband-library"
+              />
+              <div aria-hidden="true" className="dashboard-bignum iband-bignum">
+                {bigNumber != null ? (
+                  <>
+                    <span className="dashboard-bignum-value">{bigNumber}</span>
+                    <span className="font-numeric text-[9px] tracking-[0.14em] text-secondary">
+                      {bigNumberLabel}
+                    </span>
+                  </>
+                ) : null}
+              </div>
             </div>
 
-            {/* Working desk — glass action heroes + white-paper data ledgers. */}
+            {/* Working desk — Favorites leads (wide, prominent) over the two
+                recent ledgers; one combined Continue+Create action rail. */}
             <div className="dashboard-desk">
-              <div className="desk-create">
-                <CreateActions recentProjects={homebase.projects} />
-              </div>
-              {librarySpotlight ? (
-                <div className="desk-libspot">
-                  <LibrarySpotlight spotlight={librarySpotlight} />
-                </div>
-              ) : null}
-              {hasStats ? (
-                <div className="desk-stats">
-                  <DashboardStatStrip
-                    spotlight={librarySpotlight}
-                    recentProjectCount={homebase.projects.length}
-                    recentSheetCount={homebase.estimates.length}
-                  />
-                </div>
-              ) : null}
               <div className="desk-favs">
                 <FavoritesTree favoriteProjects={favoriteProjects} />
+              </div>
+              <div className="desk-action dashboard-glass-warm dashboard-hero-create grain-overlay relative flex min-h-0 flex-col self-start overflow-hidden rounded-xs">
+                <ContinueCard estimate={continueEstimate} bare />
+                {continueEstimate ? (
+                  <span aria-hidden="true" className="mx-2.5 h-px shrink-0 bg-[color:var(--glass-border)]" />
+                ) : null}
+                <CreateActions recentProjects={homebase.projects} bare />
               </div>
               <div className="desk-recproj">
                 <RecentProjectsList projects={homebase.projects} />

@@ -150,7 +150,9 @@ export async function WorkshopPageShell({
           <Suspense fallback={<WorkshopShellContentFallback />}>{children}</Suspense>
         </div>
 
-        <footer className={["relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
+        <footer
+          className={["workshop-shell-glass-chrome workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border text-[10px] text-tertiary", chromePaddingClass].join(" ")}
+        >
           <div className="min-w-0 flex-1">
             <WorkshopFeedbackModal />
           </div>

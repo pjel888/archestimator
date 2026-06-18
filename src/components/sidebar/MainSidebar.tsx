@@ -85,7 +85,7 @@ function getFavoriteLinkOrder(favoriteProjects: MainSidebarFavoriteProject[]) {
 }
 
 const TOGGLE_ROW_CLASSNAME = [
-  "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 text-tertiary outline-none transition-[color,transform] duration-[120ms] ease-out hover:text-primary active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
+  "group relative flex h-8 w-12 items-center justify-center overflow-visible rounded-xs px-0 text-tertiary outline-none transition-[color,transform] duration-[120ms] ease-out hover:text-primary active:scale-[0.985] motion-reduce:transition-none motion-reduce:active:scale-100",
   "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:[border-radius:var(--glass-nav-radius)] before:[background:var(--glass-nav-hover-bg)] before:opacity-0 before:transition-opacity before:duration-[120ms] before:ease-out before:content-[''] hover:before:opacity-100",
   "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
 ].join(" ");
@@ -332,15 +332,6 @@ export function MainSidebar({ favoriteProjects = [], favoritesScope, status, use
                   weight="regular"
                   className="relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none"
                 />
-              </span>
-              <span
-                aria-hidden={!expanded}
-                className={[
-                  "relative z-10 min-w-0 truncate whitespace-nowrap text-[10px] leading-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
-                  expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
-                ].join(" ")}
-              >
-                Collapse
               </span>
             </button>
           </div>

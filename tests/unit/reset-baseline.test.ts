@@ -44,8 +44,11 @@ describe("workshop dashboard baseline", () => {
     expect(homebase).not.toContain("onExpandAll");
     expect(homebase).not.toContain("onCollapseAll");
 
-    // The v2 bento lays the masthead + image band (triptych destination cards +
-    // Library hub) + working desk (glass heroes + white-paper ledgers) full-bleed.
+    // The bento lays the masthead headline + the editorial square material field
+    // (destination tiles + Library hub) + a working desk led by Favorites with a
+    // combined Continue+Create action rail and the two recent ledgers beneath.
+    // (LibrarySpotlight + DashboardStatStrip were removed by owner directive
+    // 2026-06-18 — the dashboard no longer surfaces those panels.)
     for (const moduleName of [
       "DashboardHero",
       "ImageDestinationCard",
@@ -55,8 +58,6 @@ describe("workshop dashboard baseline", () => {
       "FavoritesTree",
       "ContinueCard",
       "CreateActions",
-      "LibrarySpotlight",
-      "DashboardStatStrip",
       "DashboardEmptyState",
     ]) {
       expect(dashboard).toContain(moduleName);

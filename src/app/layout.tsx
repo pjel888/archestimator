@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
-import { Roboto_Mono, Zilla_Slab } from "next/font/google";
+import { Doto, Roboto_Mono } from "next/font/google";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { AppProviders } from "./providers";
 import "./globals.css";
 
 const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"] });
-// Display slab for the Workshop dashboard hero + section titles (drafting-stamp
-// character that complements the terracotta brand). Loaded via next/font so the
-// CSS variable is self-hosted and font-display:swap guards against layout shift.
-// Body UI keeps the SF Pro system stack; this only extends the scale.
-const zillaSlab = Zilla_Slab({
-  variable: "--font-zilla-slab",
+// Technical display face for the Workshop dashboard's editorial headline layer,
+// inspired by the "Improve ROI" reference. Body UI keeps the SF Pro stack.
+const doto = Doto({
+  variable: "--font-doto",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: "variable",
   display: "swap",
 });
 
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={robotoMono.variable}>
+      <body className={`${robotoMono.variable} ${doto.variable}`}>
         <AppProviders>{children}</AppProviders>
         <VercelWebAnalytics />
       </body>

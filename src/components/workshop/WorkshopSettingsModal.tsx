@@ -35,12 +35,11 @@ export function WorkshopSettingsModal({
           aria-haspopup="dialog"
           aria-expanded={open}
           className={cn(
-            "relative grid size-10 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-            open ? "bg-surfaceMuted text-ink" : null,
+            "workshop-liquid-button relative grid size-10 shrink-0 place-items-center rounded-xs border focus-visible:outline-none",
           )}
           onClick={() => setOpen(true)}
         >
-          <GearSix size={14} weight="regular" aria-hidden="true" />
+          <GearSix size={17} weight="fill" aria-hidden="true" />
         </button>
       ) : null}
       <Modal
