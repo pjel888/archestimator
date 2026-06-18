@@ -32,7 +32,7 @@ export function ContinueCard({ estimate, bare = false }: ContinueCardProps) {
       className={cn(
         "group relative flex flex-col justify-between gap-2 p-2",
         bare
-          ? "rounded-xs hover:bg-white/30"
+          ? "h-full min-h-0 rounded-xs hover:bg-white/30"
           : "dashboard-glass-warm dashboard-hero-continue dashboard-card-hover grain-overlay h-full min-h-0 rounded-xs",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
       )}

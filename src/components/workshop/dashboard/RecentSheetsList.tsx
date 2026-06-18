@@ -29,7 +29,8 @@ export function RecentSheetsList({ estimates, embedded = false }: RecentSheetsLi
   return (
     <section
       className={cn(
-        "flex h-full min-h-0 flex-col bg-white",
+        "flex h-full min-h-0 flex-col",
+        embedded ? "bg-transparent" : "bg-white",
         embedded ? "" : "rounded-xs border border-hairline",
       )}
     >

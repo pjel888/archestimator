@@ -34,13 +34,8 @@ export function WorkshopDashboard({
   const continueEstimate = pickContinueEstimate(homebase);
   const componentCount = librarySpotlight?.componentCount;
   const templateCount = librarySpotlight?.templateCount;
-  const libraryItemCount =
-    componentCount != null && templateCount != null ? componentCount + templateCount : undefined;
-  // The editorial focal numeral — a single real figure (library size, else the
-  // recent-project count). Decorative + aria-hidden: the same counts are
-  // announced, labelled, on the destination tiles themselves.
-  const bigNumber = libraryItemCount ?? (homebase.projects.length || undefined);
-  const bigNumberLabel = libraryItemCount != null ? "library items" : "recent projects";
+  const libraryItemCount = componentCount != null && templateCount != null ? componentCount + templateCount : undefined;
+  const projectCount = homebase.projects.length;
 
   return (
     <div className="dashboard-canvas-wash h-full min-h-0 overflow-y-auto">
@@ -94,14 +89,10 @@ export function WorkshopDashboard({
                 className="iband-library"
               />
               <div aria-hidden="true" className="dashboard-bignum iband-bignum">
-                {bigNumber != null ? (
-                  <>
-                    <span className="dashboard-bignum-value">{bigNumber}</span>
-                    <span className="font-numeric text-[9px] tracking-[0.14em] text-secondary">
-                      {bigNumberLabel}
-                    </span>
-                  </>
-                ) : null}
+                <span className="dashboard-bignum-value">{projectCount}</span>
+                <span className="font-numeric text-[9px] tracking-normal text-secondary">
+                  {projectCount === 1 ? "project" : "projects"}
+                </span>
               </div>
             </div>
 
@@ -121,11 +112,10 @@ export function WorkshopDashboard({
                   </div>
                 </div>
               </div>
-              <div className="desk-action dashboard-glass-warm dashboard-hero-create grain-overlay relative flex min-h-0 flex-col overflow-hidden rounded-xs">
+              <div className="desk-continue relative min-h-0 overflow-hidden rounded-xs">
                 <ContinueCard estimate={continueEstimate} bare />
-                {continueEstimate ? (
-                  <span aria-hidden="true" className="mx-2 h-px shrink-0 bg-[color:var(--glass-border)]" />
-                ) : null}
+              </div>
+              <div className="desk-action relative flex min-h-0 flex-col overflow-hidden rounded-xs">
                 <CreateActions recentProjects={homebase.projects} bare />
               </div>
             </div>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, FolderPlus } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -16,33 +15,27 @@ type DashboardEmptyStateProps = {
   displayName?: string | null;
 };
 
-const PROJECTS_MOUNTAIN_SRC = "/Cards/projects-mountain.jpg";
-
 /** The four destination previews, using the same dashboard surface system. */
 const PREVIEW_TILES = [
   {
     href: WORKSHOP_ROUTES.projects,
     label: "Projects",
     toneClass: "dashboard-destination-card--projects",
-    imageSrc: PROJECTS_MOUNTAIN_SRC,
   },
   {
     href: WORKSHOP_ROUTES.libraryComponents,
     label: "Components",
     toneClass: "dashboard-destination-card--components",
-    imageSrc: null,
   },
   {
     href: WORKSHOP_ROUTES.libraryTemplates,
     label: "Templates",
     toneClass: "dashboard-destination-card--templates",
-    imageSrc: null,
   },
   {
     href: WORKSHOP_ROUTES.library,
     label: "Library",
     toneClass: "dashboard-destination-card--library",
-    imageSrc: null,
   },
 ] as const;
 
@@ -117,7 +110,7 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
       {/* "What you can build" — preview of the four destinations using the same
           surface system as the populated dashboard. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {PREVIEW_TILES.map(({ href, label, toneClass, imageSrc }) => (
+        {PREVIEW_TILES.map(({ href, label, toneClass }) => (
           <Link
             key={label}
             href={href}
@@ -128,18 +121,9 @@ export function DashboardEmptyState({ displayName }: DashboardEmptyStateProps) {
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
             )}
           >
-            {imageSrc ? (
-              <Image
-                src={imageSrc}
-                alt=""
-                fill
-                sizes="(max-width:640px) 50vw, (max-width:1024px) 25vw, 22vw"
-                className="dashboard-destination-card-image"
-              />
-            ) : null}
             <span className="dashboard-destination-card-mark" aria-hidden="true" />
             <span
-              className="dashboard-destination-card-title absolute bottom-2 left-2 z-10 text-[11px] font-medium"
+              className="dashboard-destination-card-title absolute bottom-2 right-2 z-10 max-w-[calc(100%-16px)] text-right text-[11px] font-medium"
             >
               {label}
             </span>

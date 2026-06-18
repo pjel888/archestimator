@@ -13,7 +13,7 @@ type LibraryHubCardProps = {
  * The Library hub — same destination footprint as the other tiles, with a quiet
  * neutral tint because it is the aggregate library entry point.
  */
-export function LibraryHubCard({ href, count, className }: LibraryHubCardProps) {
+export function LibraryHubCard({ href, className }: LibraryHubCardProps) {
   return (
     <Link
       href={href}
@@ -33,14 +33,14 @@ export function LibraryHubCard({ href, count, className }: LibraryHubCardProps) 
         className="dashboard-destination-card-icon absolute right-2 top-2 z-10 transition-transform duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
       />
 
-      <span className="absolute bottom-2 left-2 z-10 flex flex-col gap-0.5">
-        <span className="dashboard-destination-card-index font-numeric text-[9px]">04</span>
-        <span className="dashboard-destination-card-title text-[12px] font-medium">Library</span>
-        {count != null ? (
-          <span className="dashboard-destination-card-count font-numeric text-[11px]">
-            {count} items
-          </span>
-        ) : null}
+      <span className="absolute left-2 top-2 z-10">
+        <span className="dashboard-destination-card-index font-numeric text-[24px] font-medium leading-none">04</span>
+      </span>
+
+      <span className="absolute bottom-2 right-2 z-10 max-w-[calc(100%-16px)] text-right">
+        <span className="dashboard-destination-card-title font-numeric text-[18px] font-bold leading-none uppercase">
+          Library
+        </span>
       </span>
     </Link>
   );

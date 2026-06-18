@@ -42,7 +42,7 @@ export function DashboardHero({ displayName }: DashboardHeroProps) {
   const PeriodIcon = tone.icon === "moon" ? MoonStarsIcon : SunHorizonIcon;
 
   return (
-    <section aria-label="Workshop greeting" className="flex h-full min-h-0 items-start px-2 py-2">
+    <section aria-label="Workshop greeting" className="flex h-full min-h-0 items-end px-2 py-2">
       <h1 className="flex flex-col items-start gap-1 uppercase leading-none text-ink">
         <span className="grid size-3 place-items-center text-secondary">
           <PeriodIcon role="img" aria-label={tone.periodLabel} weight="regular" className="size-full" />

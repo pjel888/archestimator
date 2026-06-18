@@ -8,7 +8,7 @@ type SidebarHeaderProps = {
 };
 
 // Orange brand slab (owner directive 2026-06-18): collapsed is the 48×48 mark;
-// expanded becomes a single red rectangle that contains the mark + white wordmark.
+// expanded becomes a single orange slab that contains the mark + white wordmark.
 const LOGO_SLAB = 48;
 const MARK_SIZE = 32;
 const EXPANDED_BRAND_SLAB = SIDEBAR_WIDTH_EXPANDED - SIDEBAR_PADDING * 2;

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
@@ -24,21 +23,16 @@ const KIND_META: Record<ImageDestinationKind, { toneClass: string }> = {
   templates: { toneClass: "dashboard-destination-card--templates" },
 };
 
-const PROJECTS_MOUNTAIN_SRC = "/Cards/projects-mountain.jpg";
-
 /**
  * Destination tile for the editorial dashboard field. Projects gets the one
- * mountain photograph; the supporting destinations stay crisp color blocks.
+ * large emphasis slot; the supporting destinations stay crisp color blocks.
  */
 export function ImageDestinationCard({
   kind,
   href,
   label,
-  count,
-  countNoun,
   plateIndex,
   className,
-  emphasis = false,
 }: ImageDestinationCardProps) {
   const { toneClass } = KIND_META[kind];
 
@@ -53,17 +47,6 @@ export function ImageDestinationCard({
         className,
       )}
     >
-      {kind === "projects" ? (
-        <Image
-          src={PROJECTS_MOUNTAIN_SRC}
-          alt=""
-          fill
-          priority
-          sizes="(max-width:640px) 100vw, (max-width:1024px) 100vw, 34vw"
-          className="dashboard-destination-card-image"
-        />
-      ) : null}
-
       <span className="dashboard-destination-card-mark" aria-hidden="true" />
 
       <ArrowUpRight
@@ -73,21 +56,16 @@ export function ImageDestinationCard({
         className="dashboard-destination-card-icon absolute right-2 top-2 z-10 transition-transform duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
       />
 
-      <span className="absolute bottom-2 left-2 z-10 flex flex-col gap-0.5">
-        <span className="dashboard-destination-card-index font-numeric text-[9px]">{plateIndex}</span>
-        <span
-          className={cn(
-            "dashboard-destination-card-title font-medium",
-            emphasis ? "font-display text-[20px] uppercase leading-none" : "text-[12px]",
-          )}
-        >
+      <span className="absolute left-2 top-2 z-10">
+        <span className="dashboard-destination-card-index font-numeric text-[24px] font-medium leading-none">
+          {plateIndex}
+        </span>
+      </span>
+
+      <span className="absolute bottom-2 right-2 z-10 max-w-[calc(100%-16px)] text-right">
+        <span className="dashboard-destination-card-title font-numeric text-[18px] font-bold leading-none uppercase">
           {label}
         </span>
-        {count != null ? (
-          <span className="dashboard-destination-card-count font-numeric text-[11px]">
-            {count} {countNoun ?? ""}
-          </span>
-        ) : null}
       </span>
     </Link>
   );

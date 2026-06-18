@@ -129,7 +129,7 @@ export async function WorkshopPageShell({
             alignment is preserved. */}
         <div
           data-workshop-workspace-surface
-          className="sidebar-glass-shadow flex h-full min-h-0 flex-col overflow-hidden rounded-xs border border-hairline bg-white"
+          className="sidebar-glass-shadow workshop-workspace-glass-surface flex h-full min-h-0 flex-col overflow-hidden rounded-xs border"
         >
         <WorkshopTitleHeader
           title={title}
