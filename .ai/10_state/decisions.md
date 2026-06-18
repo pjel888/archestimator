@@ -1035,3 +1035,73 @@ Branch: `codex/fix-project-delete`. Bug: moving a project into a group did nothi
 **Regression guard:** `tests/vitest/upsert-update-grant-contract.test.ts` replays all migrations to compute the effective `authenticated` grant set per table and asserts the DO-UPDATE upsert tables include UPDATE (mocked unit tests never hit the real grant — only a live DB or this contract catches the class). Group/favorite suites: 86 + 10 tests green; new contract 3 green; tsc clean.
 Confidence: high (proven end-to-end against prod). Scope-risk: low (additive grant + test; no app code changed).
 Directive: any new authenticated-client `.upsert()` doing DO UPDATE MUST add `grant update ... to authenticated` and have a `FOR ALL`/`FOR UPDATE` RLS policy; add the table to the contract test.
+
+---
+
+## 2026-06-17 — Workshop Dashboard ("command center" homebase)
+
+**Decision:** Replaced the empty Workshop greeting shell with a full dashboard
+(`src/components/workshop/dashboard/`): greeting hero, continue-where-you-left-off,
+New Project / New Sheet CTAs, recent projects + sheets, a real favorites tree
+(per-sheet favoriting exists), quick links, library spotlight, honest stat strip,
+and a designed first-run state — over a warm bottom-right bloom + liquid-glass
+canvas. All modules wired to existing repositories (`getWorkshopHomebaseData`,
+`listMainSidebarFavoriteProjects`, `getLibraryOverview`); zero fabricated values.
+
+**Design system:** new named app exception (DESIGN.md) — Zilla Slab display font
+(`--font-display`) + Roboto Mono numerics (`--font-numeric`); path-scoped px-cap
+exemption for the dashboard dir in `enforce-app-design-system.mjs` (mirrors `/share`);
+`--brand-amber`/`--brand-peach` + `.workshop-dashboard-bloom` + `.dashboard-glass*`
+(reuse the sidebar `--glass-*` recipe, dashboard-scoped; global backdrop unchanged).
+
+**Conflict resolved:** the interim "sparse homebase" guards
+(`workshop-reset.test.tsx`, `reset-baseline.test.ts`, and the `no Promise.all` assertion
+in `workshop-pending-invite.test.tsx`) were rewritten to assert the dashboard while
+preserving the greeting a11y contract. Rejected: keeping the homebase sparse (directive
+explicitly orders the build) and globally amplifying `WorkshopGlassBackdrop` (would warm
+every workshop screen; scoped the bloom to the dashboard instead).
+
+**Verified:** tsc clean; `next build` exit 0 (`/workshop` built, Zilla Slab resolved);
+`lint:design-system` pass; dashboard dir 0 eslint/impeccable findings; unit + dashboard DOM
+suites green. Pre-existing branch reds (lint errors in gitnexus/sidebar-refraction, 21
+landing/spinner colors, 10 unrelated `test:dom` failures) confirmed via `git stash` —
+not introduced here.
+Confidence: high (build + targeted suites green). Scope-risk: medium (new main-surface UI;
+live visual/contrast pass on device still recommended).
+
+---
+
+## 2026-06-18 — Workshop Dashboard v2 (bento redesign + warm-dark sidebar)
+
+**Decision:** Reworked the dashboard from a centered column into a **full-bleed
+3-band bento** (masthead greeting + Continue hero · editorial image band · working
+desk) per owner direction. The three triptych renders (`public/Cards/*-Card.jpg`)
+become the Projects/Components/Templates destination cards; **Library** is a
+tokenized terracotta-bloom gradient hub (no 4th image). Continue/Create are
+warm-glass hero cells; recents/favorites/stats stay white-paper for legibility.
+Roboto Mono (`font-numeric`) is now the greeting-kicker/label/numeric voice; Zilla
+Slab the hero name. Page bg simplified to a whisper-quiet warm canvas wash (loud
+bloom dropped from the loaded dashboard; kept only behind first-run).
+
+**Sidebar (owner was unsure — my recommendation, shipped):** a **warm-dark rail**
+(the `public/sidebar-BG.png` amber→maroon grid under a dark frost) framing the light
+bento canvas — the premium dark-rail/light-content contrast (Linear/Vercel). Logo is
+now a **square 48×48 orange slab** with a bigger 32px white mark. Implemented via
+scoped `--color-*` overrides on `.sidebar-glass` so every existing sidebar utility
+class inverts to light WITHOUT touching the focus-rescue component internals (the
+source-grep sidebar test stays green). Easily reversible to white/gray if preferred.
+
+**Design system:** the dashboard dir (`src/components/workshop/dashboard/`) is now
+**fully exempt** from `enforce-app-design-system.mjs` (owner: "don't be constrained
+by DESIGN.md" for this exploration) — display type, color-blocking, gradients, big
+radii allowed; path-scoped, never app-wide (guard test updated). New globals.css
+tokens: image-card/scrim/library-hub/hero-gradient/canvas-wash/color-block + warm-dark
+rail; `border-radius: inherit` + `var(--image-card-radius)` added to the allowed set.
+
+**Process:** design-lab workflow (5 agents: gradient library + 3 bento directions +
+synth) → 6 parallel card builders → integration → adversarial review (ce-correctness)
+→ 5 fixes (masthead layer-precedence dead-CSS, library-hub scrim geometry, empty desk
+cells, muted-rail AA, dark-card focus rings). Verified: tsc clean, `next build` exit 0,
+lint:design-system pass, 26 vitest + 24 bun tests green. NOT finalized — exploratory,
+pending the owner's live visual review. Confidence: high (code-level). Scope-risk:
+medium (new main-surface look; on-device visual + AA spot-check still recommended).
