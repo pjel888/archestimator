@@ -8,6 +8,7 @@ type WorkshopTitleHeaderProps = {
   title: string;
   eyebrow?: string;
   showEyebrow?: boolean;
+  hideTitle?: boolean;
   actions?: ReactNode;
   centerHeader?: ReactNode;
   /** Replaces the default title/breadcrumb block (e.g. route-aware swaps). */
@@ -21,6 +22,7 @@ export function WorkshopTitleHeader({
   title,
   eyebrow = "Workshop",
   showEyebrow = true,
+  hideTitle = false,
   actions,
   centerHeader,
   titleSlot,
@@ -33,7 +35,7 @@ export function WorkshopTitleHeader({
 
   return (
     <header className={cn("workshop-shell-glass-chrome workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between border", className)}>
-      {titleSlot ?? (
+      {titleSlot ?? (hideTitle ? <div className="min-w-0 flex-1" aria-hidden="true" /> : (
         <div
           className={cn("flex min-w-0 shrink-0 flex-col gap-0.5", hasBreadcrumbs && "h-[30px] justify-start")}
           data-workshop-title-region
@@ -48,7 +50,7 @@ export function WorkshopTitleHeader({
             <div className="h-3 shrink-0" aria-hidden="true" data-workshop-layout="workshop-breadcrumbs-spacer" />
           ) : null}
         </div>
-      )}
+      ))}
       {centerHeader ? (
         <EstimateCenterColumnBoundary
           id="workshop-center-header"

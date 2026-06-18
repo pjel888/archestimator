@@ -6,6 +6,7 @@ export default function Loading() {
     <StaticWorkshopLoadingShell
       title="Workshop"
       showEyebrow={false}
+      hideTitle
       contentClassName="overflow-hidden"
     >
       <div className="relative h-full min-h-0 overflow-hidden bg-white p-3" aria-label="Workshop dashboard skeleton">

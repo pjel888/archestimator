@@ -29,6 +29,12 @@ async function loadDashboardLibrarySpotlight(): Promise<DashboardLibrarySpotligh
     return {
       componentCount: overview.componentCount,
       templateCount: overview.templateCount,
+      recentComponents: overview.recentComponents.slice(0, 5).map((component) => ({
+        id: component.id,
+        name: component.name,
+        category: component.category,
+        updatedAt: component.updatedAt,
+      })),
       recentTemplates: overview.recentTemplates.slice(0, 4).map((template) => ({
         id: template.id,
         name: template.name,
@@ -123,6 +129,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
     <WorkshopPageShell
       title="Workshop"
       showEyebrow={false}
+      hideTitle
       breadcrumbs={["Workshop"]}
       contentClassName="overflow-hidden"
       sidebarStatus={{ projectsBadgeCount: homebase.receivedPendingInviteCount }}

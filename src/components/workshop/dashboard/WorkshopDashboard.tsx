@@ -1,5 +1,8 @@
 "use client";
 
+import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+
 import { DashboardEmptyState } from "./DashboardEmptyState";
 import { DashboardHero } from "./DashboardHero";
 import { FavoritesTree } from "./FavoritesTree";
@@ -7,11 +10,91 @@ import { ImageDestinationCard } from "./ImageDestinationCard";
 import { LibraryCardLink, LibraryHubCard } from "./LibraryHubCard";
 import { RecentProjectsList } from "./RecentProjectsList";
 import { RecentSheetsList } from "./RecentSheetsList";
-import { isFirstRun, pickContinueEstimate, WORKSHOP_ROUTES, type WorkshopDashboardData } from "./lib";
+import {
+  formatShortDate,
+  isFirstRun,
+  pickContinueEstimate,
+  WORKSHOP_ROUTES,
+  type DashboardLibrarySpotlight,
+  type WorkshopDashboardData,
+  type WorkshopProjectSummary,
+} from "./lib";
 
 type WorkshopDashboardProps = WorkshopDashboardData & {
   userDisplayName?: string | null;
 };
+
+const DASHBOARD_COUNT_COLUMN_WIDTH = "203px";
+
+function PublishedProjectLinks({ projects }: { projects: WorkshopProjectSummary[] }) {
+  const publishedProjects = projects
+    .filter((project) => project.publicationSummary?.status === "published" && project.publicationSummary.clientLinkPath)
+    .slice(0, 8);
+
+  if (publishedProjects.length === 0) {
+    return (
+      <p className="dashboard-published-empty">
+        No shared links yet
+      </p>
+    );
+  }
+
+  return (
+    <ul className="dashboard-published-list" aria-label="Recent published project shared links">
+      {publishedProjects.map((project) => {
+        const publication = project.publicationSummary;
+        const href = publication?.clientLinkPath ?? "#";
+        const meta = publication?.latestOpenedAt
+          ? `Opened ${formatShortDate(publication.latestOpenedAt)}`
+          : publication?.openCount
+            ? `${publication.openCount} opens`
+            : "Shared link";
+
+        return (
+          <li key={project.id} className="dashboard-published-list-item">
+            <Link href={href} className="dashboard-published-link">
+              <span className="min-w-0 flex-1 truncate" title={project.name}>
+                {project.name}
+              </span>
+              <span className="shrink-0 font-numeric text-[9px] text-secondary">
+                {meta}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function RecentlyAddedComponents({ components }: { components: DashboardLibrarySpotlight["recentComponents"] }) {
+  const recentComponents = components.slice(0, 5);
+
+  if (recentComponents.length === 0) {
+    return (
+      <p className="dashboard-published-empty">
+        No recent components yet
+      </p>
+    );
+  }
+
+  return (
+    <ul className="dashboard-published-list" aria-label="Recently added components">
+      {recentComponents.map((component) => (
+        <li key={component.id} className="dashboard-published-list-item">
+          <Link href={WORKSHOP_ROUTES.libraryComponents} className="dashboard-published-link">
+            <span className="min-w-0 flex-1 truncate" title={component.name}>
+              {component.name}
+            </span>
+            <span className="shrink-0 font-numeric text-[9px] text-secondary">
+              {formatShortDate(component.updatedAt) || component.category}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /**
  * The Workshop "command center" homebase — a full-bleed bento (no centered
@@ -53,25 +136,148 @@ export function WorkshopDashboard({
                 supporting color blocks, the Library hub, and a wide display
                 numeral. */}
             <div className="dashboard-imageband">
-              <ImageDestinationCard
-                kind="projects"
-                href={WORKSHOP_ROUTES.projects}
-                label="Projects"
-                count={homebase.projects.length || undefined}
-                countNoun="recent"
-                plateIndex="01"
-                emphasis
-                className="iband-projects"
-              />
-              <ImageDestinationCard
-                kind="components"
-                href={WORKSHOP_ROUTES.libraryComponents}
-                label="Components"
-                count={componentCount}
-                countNoun="components"
-                plateIndex="02"
-                className="iband-components"
-              />
+              <div
+                aria-label="Projects"
+                className="dashboard-destination-card dashboard-card-hover dashboard-destination-card--projects group iband-projects relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                style={{ display: "grid", gridTemplateRows: "32px 240px minmax(0, 1fr)", gap: 8 }}
+              >
+                <div className="flex min-h-0 items-start justify-between gap-2">
+                  <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
+                    01
+                  </span>
+                  <Link
+                    href={WORKSHOP_ROUTES.projects}
+                    aria-label="Open Projects"
+                    className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                  >
+                    <ArrowUpRight
+                      size={32}
+                      weight="regular"
+                      aria-hidden="true"
+                      className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                    />
+                  </Link>
+                </div>
+
+                <div
+                  className="dashboard-project-card-panel"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: `${DASHBOARD_COUNT_COLUMN_WIDTH} minmax(0, 1fr)`,
+                    alignItems: "stretch",
+                    minHeight: 0,
+                    paddingBlock: 8,
+                    paddingRight: 0,
+                    borderTop: "1px solid var(--glass-border)",
+                    borderBottom: "1px solid var(--glass-border)",
+                  }}
+                >
+                  <div
+                    className="dashboard-project-count-panel"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      alignItems: "start",
+                      height: "100%",
+                      minHeight: 0,
+                      padding: 8,
+                      borderRight: "1px solid var(--glass-border)",
+                    }}
+                  >
+                    <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
+                      Project Count
+                    </span>
+                    <span className="dashboard-bignum-value">{projectCount}</span>
+                  </div>
+
+                  <div
+                    className="dashboard-published-panel"
+                    style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, minWidth: 0 }}
+                  >
+                    <div className="dashboard-published-header">
+                      <span className="text-[12px] font-medium text-ink">Published Projects</span>
+                    </div>
+                    <PublishedProjectLinks projects={homebase.projects} />
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 items-end justify-end">
+                  <span className="dashboard-destination-card-title font-display text-[32px] font-normal leading-none tracking-[0.04em] uppercase">
+                    Projects
+                  </span>
+                </div>
+              </div>
+              <div
+                aria-label="Components"
+                className="dashboard-destination-card dashboard-card-hover dashboard-destination-card--components group iband-components relative h-full min-h-[118px] w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                style={{ display: "grid", gridTemplateRows: "32px 240px minmax(0, 1fr)", gap: 8 }}
+              >
+                <div className="flex min-h-0 items-start justify-between gap-2">
+                  <span className="dashboard-destination-card-index font-numeric text-[22px] font-thin leading-none">
+                    02
+                  </span>
+                  <Link
+                    href={WORKSHOP_ROUTES.libraryComponents}
+                    aria-label="Open Components"
+                    className="dashboard-project-card-arrow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                  >
+                    <ArrowUpRight
+                      size={32}
+                      weight="regular"
+                      aria-hidden="true"
+                      className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+                    />
+                  </Link>
+                </div>
+
+                <div
+                  className="dashboard-component-card-panel"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: `${DASHBOARD_COUNT_COLUMN_WIDTH} minmax(0, 1fr)`,
+                    alignItems: "stretch",
+                    minHeight: 0,
+                    paddingBlock: 8,
+                    paddingRight: 0,
+                    borderTop: "1px solid var(--glass-border)",
+                    borderBottom: "1px solid var(--glass-border)",
+                  }}
+                >
+                  <div
+                    className="dashboard-project-count-panel"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      alignItems: "start",
+                      height: "100%",
+                      minHeight: 0,
+                      padding: 8,
+                      borderRight: "1px solid var(--glass-border)",
+                    }}
+                  >
+                    <span className="font-numeric text-[9px] font-medium uppercase tracking-normal text-secondary">
+                      Component Count
+                    </span>
+                    <span className="dashboard-bignum-value">{componentCount ?? "—"}</span>
+                  </div>
+
+                  <div
+                    className="dashboard-published-panel"
+                    style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, minWidth: 0 }}
+                  >
+                    <div className="dashboard-published-header">
+                      <span className="text-[12px] font-medium text-ink">Recently Added Components</span>
+                    </div>
+                    <RecentlyAddedComponents components={librarySpotlight?.recentComponents ?? []} />
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 items-end justify-end">
+                  <span className="dashboard-destination-card-title font-display text-[32px] font-normal leading-none tracking-[0.04em] uppercase">
+                    Components
+                  </span>
+                </div>
+              </div>
               <ImageDestinationCard
                 kind="templates"
                 href={WORKSHOP_ROUTES.libraryTemplates}
@@ -88,19 +294,6 @@ export function WorkshopDashboard({
                 recentProjects={homebase.projects}
                 className="iband-library"
               />
-              <div aria-hidden="true" className="dashboard-bignum iband-bignum">
-                <div className="dashboard-bignum-count">
-                  <span className="dashboard-bignum-value">{projectCount}</span>
-                  <span className="font-numeric text-[9px] tracking-normal text-secondary">
-                    {projectCount === 1 ? "project" : "projects"}
-                  </span>
-                </div>
-                <div className="dashboard-bignum-fill">
-                  <div className="dashboard-bignum-fill-header">
-                    <h2>Published Projects</h2>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Working desk — Favorites and recent work are one divided ledger;

@@ -10,12 +10,16 @@ import type {
   WorkshopProjectSummary,
 } from "@/lib/repositories/workspace-repository";
 import type { MainSidebarFavoriteProject } from "@/components/sidebar/sidebar-types";
-import type { LibraryOverviewTemplate } from "@/lib/repositories/component-library-repository";
+import type {
+  LibraryOverviewComponent,
+  LibraryOverviewTemplate,
+} from "@/lib/repositories/component-library-repository";
 
 /** Trimmed library data surfaced on the dashboard (counts are real; templates spotlighted). */
 export type DashboardLibrarySpotlight = {
   componentCount: number;
   templateCount: number;
+  recentComponents: Array<Pick<LibraryOverviewComponent, "id" | "name" | "category" | "updatedAt">>;
   recentTemplates: Array<Pick<LibraryOverviewTemplate, "id" | "name" | "category" | "rowCount">>;
 };
 

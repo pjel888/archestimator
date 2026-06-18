@@ -10,6 +10,7 @@ type StaticWorkshopLoadingShellProps = {
   title: string;
   eyebrow?: string;
   showEyebrow?: boolean;
+  hideTitle?: boolean;
   contentClassName?: string;
   alignChromeToProjectSidebar?: boolean;
   children: ReactNode;
@@ -19,6 +20,7 @@ export function StaticWorkshopLoadingShell({
   title,
   eyebrow = "Workshop",
   showEyebrow = false,
+  hideTitle = false,
   contentClassName,
   alignChromeToProjectSidebar = false,
   children,
@@ -43,6 +45,7 @@ export function StaticWorkshopLoadingShell({
           title={title}
           eyebrow={eyebrow}
           showEyebrow={showEyebrow}
+          hideTitle={hideTitle}
           className={chromePaddingClass}
         />
 

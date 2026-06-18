@@ -34,6 +34,8 @@ type WorkshopPageShellProps = {
   subHeader?: ReactNode;
   /** Replaces the title bar's default title/breadcrumb block. */
   titleSlot?: ReactNode;
+  /** Hides the default route title block while preserving header actions. */
+  hideTitle?: boolean;
   breadcrumbs?: WorkshopBreadcrumb[];
   alignChromeToProjectSidebar?: boolean;
   contentClassName?: string;
@@ -76,6 +78,7 @@ export async function WorkshopPageShell({
   centerHeader,
   subHeader,
   titleSlot,
+  hideTitle = false,
   breadcrumbs,
   alignChromeToProjectSidebar = false,
   contentClassName,
@@ -138,6 +141,7 @@ export async function WorkshopPageShell({
           actions={headerActions}
           centerHeader={centerHeader}
           titleSlot={titleSlot}
+          hideTitle={hideTitle}
           breadcrumbs={resolvedBreadcrumbs}
           projectId={projectId}
           className={chromePaddingClass}

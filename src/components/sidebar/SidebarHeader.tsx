@@ -30,7 +30,7 @@ export function SidebarHeader({ expanded }: SidebarHeaderProps) {
               ...(expanded
                 ? {}
                 : {
-                    background: "rgba(255, 255, 255, 0.18)",
+                    background: "var(--glass-logo-collapsed-bg)",
                     borderColor: "rgba(255, 255, 255, 0.22)",
                     boxShadow: "0 6px 16px rgba(30, 35, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.28)",
                     WebkitBackdropFilter: "blur(10px) saturate(120%)",
@@ -40,7 +40,11 @@ export function SidebarHeader({ expanded }: SidebarHeaderProps) {
               transitionTimingFunction: SIDEBAR_TRANSITION.easing,
             }}
           >
-            <div className="flex w-12 shrink-0 items-center justify-center" data-sidebar-header-logo-lock>
+            <div
+              className="flex w-12 shrink-0 items-center justify-center"
+              data-sidebar-header-logo-lock
+              style={expanded ? undefined : { transform: "translateX(-2px)" }}
+            >
               <ArchestimatorLogoMark tone={expanded ? "light" : "dark"} size={MARK_SIZE} priority className="size-[36px]" />
             </div>
             <span
