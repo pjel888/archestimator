@@ -2937,6 +2937,7 @@ export type Database = {
           revoked_at: string | null
           selected_estimate_ids: string[]
           snapshot_json: Json
+          snapshot_size_bytes: number | null
           snapshot_version: number
           status: Database["public"]["Enums"]["project_publication_status"]
           token_hash: string
@@ -2957,6 +2958,7 @@ export type Database = {
           revoked_at?: string | null
           selected_estimate_ids?: string[]
           snapshot_json: Json
+          snapshot_size_bytes?: number | null
           snapshot_version?: number
           status?: Database["public"]["Enums"]["project_publication_status"]
           token_hash: string
@@ -2977,6 +2979,7 @@ export type Database = {
           revoked_at?: string | null
           selected_estimate_ids?: string[]
           snapshot_json?: Json
+          snapshot_size_bytes?: number | null
           snapshot_version?: number
           status?: Database["public"]["Enums"]["project_publication_status"]
           token_hash?: string
@@ -3261,7 +3264,7 @@ export type Database = {
           id: string
           note: string | null
           publication_id: string
-          recipient_id: string
+          recipient_id: string | null
           snapshot_version_at_decision: number
         }
         Insert: {
@@ -3270,7 +3273,7 @@ export type Database = {
           id?: string
           note?: string | null
           publication_id: string
-          recipient_id: string
+          recipient_id?: string | null
           snapshot_version_at_decision: number
         }
         Update: {
@@ -3279,7 +3282,7 @@ export type Database = {
           id?: string
           note?: string | null
           publication_id?: string
-          recipient_id?: string
+          recipient_id?: string | null
           snapshot_version_at_decision?: number
         }
         Relationships: [
@@ -3503,10 +3506,6 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: boolean
       }
-      workspace_homebase_summary: {
-        Args: { recent_limit?: number; target_workspace_id: string }
-        Returns: Json
-      }
       can_assign_estimate_role: {
         Args: {
           target_estimate_id: string
@@ -3634,7 +3633,7 @@ export type Database = {
           initial_sort_order: number
           node_kind: Database["public"]["Enums"]["estimate_node_kind"]
           node_name: string
-          parent_node_id: string | null
+          parent_node_id: string
           target_estimate_id: string
           target_project_id: string
           target_tab_id?: string
@@ -3879,10 +3878,10 @@ export type Database = {
       insert_client_comment: {
         Args: {
           p_body: string
-          p_estimate_id: string | null
+          p_estimate_id: string
           p_expected_snapshot_version: number
           p_recipient_token_hash: string
-          p_row_id: string | null
+          p_row_id: string
           p_token_hash: string
         }
         Returns: string
@@ -4022,7 +4021,7 @@ export type Database = {
           total_cost: number
         }[]
       }
-      promote_express_row_to_library_component: {
+      promote_estimate_row_to_library_component: {
         Args: {
           acting_user_id?: string
           correlation_id?: string
@@ -4033,7 +4032,7 @@ export type Database = {
         }
         Returns: Json
       }
-      promote_estimate_row_to_library_component: {
+      promote_express_row_to_library_component: {
         Args: {
           acting_user_id?: string
           correlation_id?: string
@@ -4196,7 +4195,7 @@ export type Database = {
         Args: {
           p_decision: string
           p_expected_snapshot_version: number
-          p_note: string | null
+          p_note: string
           p_recipient_token_hash: string
           p_token_hash: string
         }
@@ -4500,9 +4499,3 @@ export const Constants = {
     },
   },
 } as const
-
-export const requiredSupabaseEnv = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"] as const;
-
-export function hasSupabaseBrowserEnv() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
