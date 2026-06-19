@@ -97,10 +97,12 @@ describe("MainSidebar favorites", () => {
     expect(favoriteSheet).toHaveClass("pl-[72px]");
     expect(favoriteSheet).toHaveAttribute("aria-current", "page");
 
-    // The staleTime:0 reconcile actually runs on mount; the seeded SSR list must SURVIVE it
-    // with no flash to empty (08 §State table / §214). Prove the queryFn ran and the list
-    // persisted — without this the seeded-mock could pass as a pure initialData render test.
-    await waitFor(() => expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalled());
+    // The SSR-seeded list is treated as fresh within staleTime, so NO mount refetch fires
+    // (one server-action round-trip saved per workshop navigation) and the seeded list paints
+    // with no flash to empty (08 §State table / §214). Favorite/unfavorite still reflect via the
+    // toggle's onSettled invalidateQueries, which bypasses staleTime (covered elsewhere).
+    await Promise.resolve(); // flush a microtask — a mount refetch would have fired here
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
     expect(within(navigation).getByRole("link", { name: "Lewis Residence" })).toBeInTheDocument();
     expect(within(navigation).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
   });
@@ -118,7 +120,7 @@ describe("MainSidebar favorites", () => {
     expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
   });
 
-  it("does not flash to empty while an in-flight reconcile is pending, then shows the hint after it settles empty", async () => {
+  it("does not flash to empty on a workshop navigation — the SSR-seeded list is authoritative, no mount reconcile", async () => {
     const seeded: MainSidebarFavoriteProject[] = [
       {
         favoriteCreatedAt: "2026-06-16T00:00:00.000Z",
@@ -129,13 +131,9 @@ describe("MainSidebar favorites", () => {
         projectCode: "AE-LR-001",
       },
     ];
-    // Hold the reconcile in-flight so we can observe the window between first paint and settle.
-    let resolveReconcile!: (value: MainSidebarFavoriteProject[]) => void;
-    fetchSidebarFavoriteProjectsMock.mockReturnValue(
-      new Promise<MainSidebarFavoriteProject[]>((resolve) => {
-        resolveReconcile = resolve;
-      }),
-    );
+    // A mount refetch — if one fired — would resolve to [] (the beforeEach default) and could
+    // flash the seeded favorite away. Prove no such reconcile fires: the seeded list stays.
+    fetchSidebarFavoriteProjectsMock.mockResolvedValue([]);
 
     renderWithClient(
       <MainSidebar
@@ -147,18 +145,14 @@ describe("MainSidebar favorites", () => {
     await userEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
 
-    // In-flight: the queryFn has fired (staleTime:0) but the seeded favorite is still painted
-    // and the empty hint must NOT flash in (08 §30 — no flash to empty during reconcile).
-    expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalled();
+    // No mount refetch (staleTime treats the SSR seed as fresh), so the seeded favorite is
+    // painted and stays — the empty hint must NOT flash in (08 §30 — no flash to empty).
+    await Promise.resolve(); // flush a microtask — a mount refetch would have fired here
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
+    // Settle a few async turns to be sure the seeded list is not clobbered by a late reconcile.
+    await act(async () => { await Promise.resolve(); });
     expect(within(nav).getByRole("link", { name: "Lewis Residence" })).toBeInTheDocument();
     expect(within(nav).queryByText("Star a project to pin it here.")).not.toBeInTheDocument();
-
-    // Only once the reconcile settles to zero favorites may the hint appear and the link leave.
-    await act(async () => {
-      resolveReconcile([]);
-    });
-    expect(await within(nav).findByText("Star a project to pin it here.")).toBeInTheDocument();
-    expect(within(nav).queryByRole("link", { name: "Lewis Residence" })).not.toBeInTheDocument();
   });
 
   it("mounts two sr-only live regions with the correct ARIA wiring, always present", () => {
