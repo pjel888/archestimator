@@ -35,12 +35,38 @@ implementation of the high-confidence wins.
 
 ### Verification
 - [x] `bun run type-check` → exit 0 (2026-06-19).
-- [ ] Targeted Vitest: `projects-page-*` + workspace-repository.
-- [ ] `bun run build`.
-- [ ] Adversarial review (performance + correctness) — findings triaged.
-- [ ] `git diff --check`.
+- [x] `bun run build` → exit 0 (real gate for the data-layer change).
+- [x] Targeted Vitest: `workshop-favorites-schema` + `workshop-project-groups-repository`
+  → 8/8 PASS after test-anchor fix; `projects-page-*` + `ensure-default-workspace-cache`
+  → 83 pass. (1 unrelated red, see below.)
+- [x] Adversarial review (performance + correctness). Both confirm runtime behavior
+  is byte-for-byte equivalent: each `Promise.all` wave is genuinely independent,
+  error semantics preserved, `null`-query short-circuit reproduces old empty behavior,
+  `cache()` is request-scoped and matches sibling helpers. One low-confidence note:
+  `loading="lazy"` *could* deprioritize an above-the-fold LCP image — mitigated (small
+  tiles, optional images, header chrome is likely LCP); flagged for the Lighthouse
+  re-measure rather than over-engineering per-index `fetchpriority` now.
+- [x] `git diff --check` clean on touched files.
 
-(Verification rows flipped to [x] with evidence as they pass; see commit/notes.)
+### Required follow-up edit (caused by the `cache()` rename)
+Two brittle **source-string** tests anchored on the old `export async function`
+declaration and had to be updated to `export const listCurrentWorkspaceProjects = cache(`:
+`tests/vitest/workshop-favorites-schema.test.ts` and
+`tests/vitest/workshop-project-groups-repository.test.ts`. Both green after the fix.
+(These two edits are in the working tree; the perf changes themselves are already committed.)
+
+### Multi-agent commit note (vigilance)
+A concurrent agent auto-committed during this session and swept my working-tree edits
+into real commits: `f54754a4` (data-layer parallelize+cache), `165adfad` (carries the
+lazy `<img>`), `d2a23887` (this plan pack). Verified HEAD contains my changes coherently
+(cache wrap, wave-2 `sharedProjectsQuery`, wave-3 markers). No work lost; no orphaned stashes.
+
+### Known unrelated red (NOT this pack)
+`tests/vitest/projects-page-view-mode.test.tsx` "defaults to large cards…" fails on
+`toHaveClass("workshop-project-card-glass")` — owned by the concurrent liquid-glass
+commit `165adfad`, unrelated to the perf changes (image attrs don't affect that class).
+Also pre-existing: `tests/vitest/workspace-repository-project-list.test.ts` (asserts
+symbols that don't exist in the file; fails with the perf changes stashed too).
 
 ## Open follow-ups (tracked, not done)
 - Phase 2: stabilize card props → `React.memo` → `useDeferredValue` search →
