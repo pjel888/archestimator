@@ -28,7 +28,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
-import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { executeBulkDeleteProjects, previewBulkDeleteProjects } from "@/lib/projects/actions";
 import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
@@ -53,7 +52,6 @@ import type {
 } from "@/lib/repositories/workspace-repository";
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
-import { ManageGroupsPopover } from "./ManageGroupsPopover";
 import { ProjectCard } from "./ProjectCard";
 import { getProjectDateFlagLayoutClassName, getProjectGridClassName } from "./project-grid-layout";
 import { ProjectGroupSection } from "./ProjectGroupSection";
@@ -103,8 +101,19 @@ const UNGROUPED_GROUP_LABEL = "Ungrouped";
 const PROJECT_TOOLBAR_SELECT_TRIGGER_CLASS =
   "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
-const NewProjectModal = dynamic(() => import("./NewProjectModal").then((mod) => mod.NewProjectModal));
-const ProjectDetailsModal = dynamic(() => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal));
+const NewProjectModal = dynamic(() => import("./NewProjectModal").then((mod) => mod.NewProjectModal), { ssr: false });
+const ProjectDetailsModal = dynamic(() => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal), { ssr: false });
+// Interaction-only surfaces — kept out of the initial entry chunk and fetched on first use.
+// BulkDestructivePreviewModal was statically imported, which pulled the whole dialog stack
+// into the entry chunk and defeated the other modals' lazy split.
+const ManageGroupsPopover = dynamic(
+  () => import("./ManageGroupsPopover").then((mod) => mod.ManageGroupsPopover),
+  { ssr: false },
+);
+const BulkDestructivePreviewModal = dynamic(
+  () => import("@/components/workshop/BulkDestructivePreviewModal").then((mod) => mod.BulkDestructivePreviewModal),
+  { ssr: false },
+);
 const PROJECT_VIEW_MODE_OPTIONS: Array<{
   value: ProjectCardViewMode;
   label: string;
@@ -570,6 +579,12 @@ export function ProjectsPageClient({
   const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
   const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
   const [deleteProjectState, setDeleteProjectState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
+  // Defer the BulkDestructivePreviewModal chunk until the first delete is initiated, then keep
+  // it mounted so its open/close animation stays intact (re-opens are instant — chunk cached).
+  const [bulkDeleteModalMounted, setBulkDeleteModalMounted] = useState(false);
+  useEffect(() => {
+    if (deleteProjectTargetIds.length > 0) setBulkDeleteModalMounted(true);
+  }, [deleteProjectTargetIds.length]);
   // Shared transition for group-CRUD (create/rename/recolor/delete) and the
   // delete-preview/execute flow. Its pending flag is intentionally NOT consumed — the
   // reconciliation gate tracks the assignment-only transition below (F3), so only the

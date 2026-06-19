@@ -1,5 +1,6 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { hasSupabaseBrowserEnv, type Tables, type TablesInsert, type TablesUpdate } from "@/lib/supabase/types";
+import { hasSupabaseBrowserEnv } from "@/lib/supabase/env";
+import { type Tables, type TablesInsert, type TablesUpdate } from "@/lib/supabase/types";
 
 export type CostLibraryItem = Tables<"cost_library_items">;
 export type CreateCostLibraryItemInput = TablesInsert<"cost_library_items">;

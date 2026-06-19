@@ -3,7 +3,8 @@ import type { EstimateNode, EstimateNodeKind, EstimateRowItem, EstimateTree } fr
 import { readEstimateRowMetadata } from "@/lib/estimates/express-components";
 import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { hasSupabaseBrowserEnv, type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
+import { hasSupabaseBrowserEnv } from "@/lib/supabase/env";
+import { type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
 
 export type InsertEstimateRowItemInput = Omit<EstimateRowItem, "id" | "estimateId"> & { id?: string };
 export type UpdateEstimateRowItemInput = Partial<Omit<EstimateRowItem, "id" | "estimateId">>;
