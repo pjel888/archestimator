@@ -1,7 +1,18 @@
 # Verification Matrix
 
 Date: 2026-06-19
-Status: planned QA
+Status: planned QA, phase-scoped gates
+
+## Known Validation Context
+
+The current repo has known unrelated broad-validation reds and a hanging full DOM phase recorded in `.ai/10_state/current-state.md`. This plan uses targeted phase gates:
+
+- touched-file/component/repository tests for implemented behavior;
+- SQL/migration/RLS proof for database phases;
+- `git diff --check`;
+- browser proof only for browser-only claims in implemented phases.
+
+Broad `bun run validate` may be useful before release, but it is not the specific completion gate for this plan while unrelated known reds remain.
 
 ## Claims To Prove
 
@@ -14,6 +25,21 @@ Status: planned QA
 7. Map/provider behavior follows tile, geocoding, attribution, and privacy constraints.
 8. The layout Suspense fallback and the route loading shell both match the simplified liquid-glass direction.
 9. Header chrome remains streamed behind `ProjectChromeAsync` rather than being folded into a slow page-blocking dashboard fetch.
+
+## Phase-Scoped Blocking Matrix
+
+| Phase | Blocking claim | Primary proof | Artifact |
+|---|---|---|---|
+| 1 | No route-local white slab in dashboard, `loading.tsx`, or layout fallback | Component/source tests plus browser desktop/mobile screenshots | `.omx/artifacts/project-dashboard-command-surface/phase-1/` |
+| 1 | Identity rail editing behavior is preserved or deliberately replaced with tests | RTL/action tests for name, client, address, hidden metadata, and save feedback | Test output |
+| 1 | Recent sheets use the dedicated recent-ledger contract | Repository/component tests from `06-DATA-OWNERSHIP-CONTRACT.md` and `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md` | Test output |
+| 1 | Current published-link panel stays shortcut-only and does not remove header chrome | Component/source tests for `ProjectPublicationHeader`, `ProjectTeamspaceHeader`, and dashboard DTO minimization | Test output |
+| 2 | Project activity is one bounded authorized read, not per-sheet fan-out | Repository/action tests, query-count/source proof, SQL/index proof | `.ai/99_scratch/` or provider/local proof |
+| 2 | Activity DTO redacts forbidden fields | Fixture test with snapshots/payloads/raw/correlation fields | Test output |
+| 2 | Activity migration keeps all event writers populating `project_id` | `10-MIGRATION-RLS-QA-RUNBOOK.md` proof | Migration proof artifact |
+| 3 | `project_locations` RLS/grants/types/leak tests pass | SQL/RLS proof plus privacy leak tests | Migration proof artifact |
+| 3 | Map can be disabled, mocked, and lazy-loaded | Source tests and mocked component tests, no public provider calls | Test output |
+| 3 | Browser map claims hold | Attribution, no-overlap, no-WebGL/provider failure screenshots | `.omx/artifacts/project-dashboard-command-surface/phase-3/` |
 
 ## Static And Unit Tests
 
@@ -32,6 +58,10 @@ Status: planned QA
 | Public share privacy | Coordinates absent unless explicitly published by a future decision | Route/action tests |
 | Broad reader privacy | Project readers do not serialize exact coordinates accidentally | Safe-projection/leak tests |
 | Loading shell | Skeleton shape matches simplified layout | Component/source tests |
+| Data ownership | Chrome/page helper boundaries, no monolithic dashboard fetch | Source contract tests |
+| Identity rail | Edit fields, preserve hidden image/currency/project code, save feedback | RTL/action tests |
+| CSP/provider config | Map env keys, allowed-host validation, fail-closed disabled mode, intentional CSP edits | Source tests |
+| DSAR/export/delete | `project_locations` included or explicitly excluded with privacy/legal signoff | SQL/source/runbook proof |
 
 ## Browser And Visual Checks
 
@@ -80,6 +110,10 @@ Map phase:
 | Attribution hidden | Map is small or responsive | Attribution remains visible/legible |
 | Keyboard-only user | Navigate dashboard without pointer | All actions reachable; map has non-pointer text controls |
 | Reduced transparency | Browser disables backdrop-filter | Surface remains legible and structured |
+| Coordinate save spam | Authorized user repeatedly drags/saves invalid pins | Saves are debounced/rate-limited or conflict-safe; invalid saves do not churn data |
+| Restricted sheet activity | Project feed includes events from sheets the actor cannot access | Restricted events are omitted |
+| Monolithic fetch regression | Implementation folds chrome summaries into page dashboard fetch | Source/route-shell test fails |
+| Public provider call in tests | Test accidentally hits tile/geocoder network | Test fails or mocks block call |
 
 ## Performance Checks
 
@@ -91,6 +125,8 @@ Before claiming Phase 2 complete:
 - Confirm actor hydration is batched per page.
 - Confirm activity DTO strips raw/snapshot/payload fields.
 - Confirm migration includes backfill, maintenance path, index, RLS/grant review, generated types, and fix-forward notes if `estimate_sheet_events.project_id` is added.
+- Confirm no direct dashboard query relies on workspace-member `estimate_sheet_events` RLS as the sole authorization boundary.
+- Confirm activity page size defaults to 20 and is hard-clamped to 50.
 
 Before claiming Phase 3 complete:
 
@@ -99,6 +135,8 @@ Before claiming Phase 3 complete:
 - Confirm tests mock provider calls.
 - Confirm map can be disabled or provider URLs swapped by config.
 - Confirm `project_locations` has RLS, coordinate range checks, generated types, and one-active-row policy.
+- Confirm no exact coordinate payload reaches public share, proposal/export, AI/context, analytics, or broad project readers by default.
+- Confirm location data lifecycle, DSAR/export/delete, and privacy copy decisions are recorded.
 
 ## Policy And Privacy Checks
 
@@ -137,6 +175,18 @@ Implementation pass, once started:
 bun test tests/vitest/project-dashboard-client.test.tsx
 bun test tests/vitest/project-dashboard-core-ui.test.ts
 bun test tests/vitest/project-dashboard-route-shell-ui.test.ts
+bun test tests/vitest/project-publication-header.test.tsx
 bun test tests/vitest/estimate-sheet-version-control-actions.test.ts
 git diff --check
 ```
+
+Additional implementation-owned tests must be added with the files in `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md`; command names may change when those files are created.
+
+## Browser Proof Boundaries
+
+Browser proof is required only for browser-only claims:
+
+- Phase 1: desktop/mobile route shell continuity, no white slab, no horizontal overflow, and visible focus/tap sizing.
+- Phase 3: map attribution, map-control overlap, disabled provider fallback, no-WebGL fallback, and text coordinate fallback.
+
+Browser proof does not prove provider uptime, production Vercel state, Supabase RLS, or public tile SLA.

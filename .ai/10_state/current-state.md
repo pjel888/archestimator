@@ -40,6 +40,19 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Dashboard Command Surface planning pack hardened (2026-06-19):**
+The docs-only plan at
+`.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/` was audited with
+parallel product, UX, architecture/performance, security/data/network,
+verification, and adversarial-coherence lanes, then expanded from 5 docs to an
+11-doc planning pack. New closeout docs cover readiness scoring, data ownership,
+UX states, project activity DTO/authz, location/map/CSP/provider decisions,
+migration/RLS QA, fixtures, browser artifact contracts, and stop conditions.
+Post-closeout status is **100% planning readiness**: Phase 1 may implement as a
+targeted protected-route UX slice; Phase 2 activity data and Phase 3 exact
+location/map work remain gated by their migration/RLS/privacy/provider proof
+runbooks. **No source, DB, provider, or production state was mutated.**
+
 **Launch-readiness MVP audit completed (2026-06-19):**
 A whole-codebase wider/external-launch readiness audit ran as two multi-agent
 workflows (37 agents, ~3.27M tok): 13 domain auditors + adversarial verify +

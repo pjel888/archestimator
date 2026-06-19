@@ -31,7 +31,7 @@ Publication references:
 - `src/lib/publication/types.ts`
 - `src/lib/publication/actions.ts`
 - `src/lib/repositories/workspace-repository.ts`
-- `src/lib/repositories/project-publication-repository.ts`
+- possible new `src/lib/repositories/project-publication-repository.ts` only if implementation deliberately extracts publication ownership; no such file exists at planning closeout
 
 Activity references:
 
@@ -63,6 +63,8 @@ Relevant style/design references:
 - `ProjectChromeAsync` already fetches publication and sheet summaries, so page content and chrome need shared request-cached data ownership to avoid duplicate reads and drift.
 - `getCurrentWorkspaceProject` currently uses a broad `select("*")` project read, which makes exact coordinate columns on `projects` a privacy risk unless all project projections are narrowed.
 - The publication picker/list helper for estimate sheets is not the recent-sheets helper the dashboard needs: project dashboard recency requires `updated_at desc` and deep-link fields such as `firstNodeId`.
+- Current `estimate_sheet_events` has estimate/workspace indexes but no `project_id`; current select RLS is workspace-member scoped. Project activity must add its own sheet-access-aware authorization boundary.
+- Current project route tests include source-governance assertions around the existing dashboard shape; implementation should update or invert those tests intentionally rather than treat them as unrelated failures.
 
 ## Delegated Design Findings
 
@@ -103,6 +105,8 @@ Map/dependency lane summary:
 
 ## Official Map And Policy Sources
 
+Revalidated on 2026-06-19.
+
 Leaflet:
 
 - https://leafletjs.com/
@@ -119,7 +123,8 @@ OpenFreeMap:
 - https://openfreemap.org/
 - https://openfreemap.org/quick_start/
 - Public free vector tiles/styles with no API keys and commercial use allowed by the project.
-- Best MVP fit, with a config-driven escape hatch.
+- Best MVP fit for closed beta only with a config-driven escape hatch.
+- Public instance currently states commercial use is allowed and no API keys/cookies are required, but no SLA or personalized support is offered.
 
 Protomaps/PMTiles:
 
@@ -130,11 +135,14 @@ OSM tile policy:
 
 - https://operations.osmfoundation.org/policies/tiles/
 - OSM data is free, but OSMF tile servers have limited capacity and are not a production SLA-backed tile provider.
+- Policy requires visible attribution, a valid browser referer/user agent posture, cache honoring, and no bulk/preseed/offline scraping.
+- Policy warns access can be blocked or changed without notice.
 
 Nominatim policy:
 
 - https://operations.osmfoundation.org/policies/nominatim/
 - Public Nominatim is limited, bans autocomplete/systematic use, and should not receive confidential material.
+- Public Nominatim has an absolute maximum of 1 request per second, requires identifying referer/user-agent, requires caching, and disallows autocomplete, systematic queries, scraping details, and geocoding-reseller use.
 
 OSM attribution:
 
@@ -161,3 +169,11 @@ OSM attribution:
    - MVP recommendation: yes, but through request-cached leaf helpers. Do not replace `ProjectChromeAsync` streaming with a monolithic page-blocking fetch.
 6. Should the project activity panel receive the same owner activity view model as the sheet modal?
    - MVP recommendation: no. Return a redacted dashboard DTO that strips raw snapshots/payloads and only includes render/navigation fields.
+
+## Resolved Planning Decisions At Closeout
+
+- Current published-link module is singular: one current publication status/shortcut surface, not a historical multi-link list.
+- Phase 1 can ship without activity data or map dependency if placeholders are honest and useful.
+- Phase 2 activity must be estimate-activity scoped unless a separate IA plan adds share/collaboration activity.
+- Phase 3 interactive map is optional until owner/product confirmation proves it is worth the provider/privacy surface; structured location can ship first.
+- `project_locations` is the default coordinate storage boundary; coordinates on `projects` remain rejected while broad project readers exist.

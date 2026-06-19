@@ -1,7 +1,7 @@
 # Project Dashboard Command Surface Plan
 
 Date: 2026-06-19
-Status: planning draft
+Status: planning-ready; Phase 1 releasable, Phase 2/3 gated
 Target route: `/workshop/projects/[projectId]`
 Primary source screen: `src/components/workshop/ProjectDashboardClient.tsx`
 
@@ -12,7 +12,7 @@ The current project dashboard has improved visual polish, but it over-solves the
 The dashboard should answer four questions quickly:
 
 1. What estimate sheets were touched recently?
-2. Is there a published client/share link, and what is its state?
+2. Is there a current published client/share link, and what is its state?
 3. What happened recently across this whole project?
 4. Where exactly is this project?
 
@@ -31,7 +31,7 @@ The dashboard should answer four questions quickly:
 Build a project "command surface" with a left project identity rail and a two-column workbench:
 
 - Recent estimate sheets ledger.
-- Published share links/status panel.
+- Current published share status panel.
 - Project activity timeline.
 - Location map/pin panel.
 
@@ -57,7 +57,7 @@ Desktop:
 - Keep the left editable project rail, but quiet it down and treat it as project identity/detail chrome.
 - Main workbench is one liquid-glass surface with four modules:
   - top-left: recent estimate sheets;
-  - top-right: published share links;
+  - top-right: current published share status;
   - bottom-left: project activity timeline;
   - bottom-right: location/map.
 
@@ -89,6 +89,19 @@ Mobile:
 - No nested glass panels.
 - Four dashboard modules maximum in the main workbench.
 - Header, content, and footer read as one continuous workshop shell.
+
+## Requirements Trace
+
+- R1. The route reads as one continuous workshop command surface, not a separate white project form.
+- R2. The main workbench contains at most four project-level modules: recent sheets, current published link, estimate activity, and location.
+- R3. The left project identity rail remains editable unless a deliberate replacement preserves the same save behavior and hidden metadata.
+- R4. Recent sheets are project-scoped, `updated_at desc`, bounded, and deep-linkable without using the publication picker contract.
+- R5. The published-link module is a compact current-publication status/shortcut surface and does not reimplement the full management modal.
+- R6. The project activity module uses one bounded, authorized, project-scoped read path and sends only a redacted dashboard DTO to the client.
+- R7. Exact project coordinates remain internal by default and are not serialized to public share, proposal/export, AI/context, analytics, or broad project readers.
+- R8. Location interaction works without pointer-only controls and remains useful when maps, WebGL, or providers fail.
+- R9. Map/provider behavior is config-driven, attribution-safe, CSP-accounted, and never tested against public providers in CI.
+- R10. Each implemented phase has targeted tests, migration/RLS proof when applicable, browser artifacts for browser-only claims, and explicit stop conditions.
 
 ## User-Facing State Coverage
 
@@ -134,9 +147,48 @@ Copy/Readability:
 
 - Avoid feature-explainer blocks. Use short labels: "Recent sheets", "Published link", "Activity", "Location".
 
+## Phased UX Contract
+
+Phase 1 is allowed to ship before the project activity query and exact pin map exist, but it must not fake either feature.
+
+- Recent sheets and current published link are real Phase 1 modules.
+- Activity in Phase 1 may show a compact "Estimate activity is coming in the next slice" placeholder or be omitted from the workbench. It must not show invented events.
+- Location in Phase 1 shows saved project address context and "No exact pin saved" when no structured coordinates exist. It must not render a fake pin or import a map dependency.
+- "Four modules maximum" means the main workbench may show fewer than four populated modules in an earlier phase.
+- The project identity rail is supporting chrome, not one of the four modules.
+
+## Accessibility Implementation Contract
+
+- Use a single page `main` region from the route shell and named regions for project identity, recent sheets, published link, estimate activity, and location.
+- Keep heading hierarchy shallow: route title from `WorkshopPageShell`, H2-equivalent module names inside the workbench, row labels as text rather than nested headings.
+- Keyboard order is identity rail -> recent sheets -> published link -> activity -> location. Mobile keeps the same logical order.
+- Recent sheet rows and publication actions must be native links/buttons with visible focus rings.
+- Copy/save success and failure use polite `aria-live` feedback; destructive or permission-denied failures use assertive inline copy only when action is blocked.
+- Map interaction must have a non-pointer equivalent: saved coordinates/address are readable as text, and edit mode exposes numeric latitude/longitude inputs or another keyboard-save path.
+- Reduced motion and reduced transparency keep the command surface legible with solid fallback materials and no animated blur.
+
+## Launch-Gate Dependencies
+
+This route plan does not close wider-launch gates. It must not worsen them.
+
+- Phase 1 has no database or provider dependency and can complete with targeted local proof.
+- Phase 2 database work must run through `10-MIGRATION-RLS-QA-RUNBOOK.md`; it must include migration ledger alignment, scratch reset parity or equivalent local proof, generated types, RLS/grant proof, and fix-forward notes.
+- Phase 3 exact-location work must run through `09-LOCATION-MAP-CSP-PROVIDER-ADR.md`; it must include DSAR/export/delete, privacy copy, CSP/provider, telemetry, and map-disable proof before beta-ready claims.
+- Current known unrelated validation reds do not block this plan, but any new failure in touched files or phase-owned tests blocks the phase.
+
+## Beta Task Acceptance
+
+Phase 1 is useful only if a contractor can complete these checks without reading implementation notes:
+
+- Find the most recently edited estimate sheet and open it from the project dashboard.
+- Identify whether a current client/public link exists and reach the existing manage/copy/open path without a duplicate modal.
+- Understand whether project activity is available now or intentionally deferred.
+- Distinguish address-only location context from an exact saved pin.
+- Move through the page by keyboard and see focus on every actionable control.
+
 ## Technical Plan
 
-### Unit 1 - Project Dashboard Data Loader
+### U1. Project Dashboard Data Loader
 
 Expected files:
 
@@ -163,8 +215,10 @@ Acceptance:
 - Header chrome remains streamed behind its existing Suspense boundary.
 - Fallback sample project still works for local/demo states.
 - Server-side fetches remain bounded and readable.
+- Helper ownership follows `06-DATA-OWNERSHIP-CONTRACT.md`.
+- Phase 1 adds no more than one intentionally distinct recent-sheets read beyond the existing streamed chrome summaries unless the shared cached base helper removes that need.
 
-### Unit 2 - Simplified Project Desk UI
+### U2. Simplified Project Desk UI
 
 Expected files:
 
@@ -180,6 +234,18 @@ Plan:
 - Keep or split the left editable project rail as `ProjectIdentityRail`.
 - Add a main `ProjectCommandSurface` using workshop dashboard glass tokens and dense embedded list grammar.
 - Re-theme `ProjectRouteContentFallback` in lockstep with the dashboard so the layout Suspense fallback cannot flash the old white project slab.
+- Preserve identity rail behavior: name/client/address editing, hidden image metadata, currency/project code preservation, and blur-save behavior unless the unit deliberately replaces it with an explicit save path and matching tests.
+- Material map:
+  - route shell and outer workbench: one glass owner;
+  - identity rail: glass chrome with flat controls;
+  - recent sheets/activity rows: plain or paper ledger rows inside the workbench;
+  - published link: compact status row with one primary action;
+  - location: text controls plus optional map viewport, no nested blur.
+- Primitive reuse:
+  - adapt `DashboardGlassPanel` material vocabulary where practical;
+  - use shared `Button`, skeleton, focus, and icon-button primitives where practical;
+  - borrow `RecentSheetsList` density, not its full props contract;
+  - do not create new feature-local action-tile/button patterns.
 
 Acceptance:
 
@@ -188,8 +254,9 @@ Acceptance:
 - Neither `loading.tsx` nor the layout Suspense fallback can show the old white slab.
 - Main page has at most the project identity rail plus four useful modules.
 - Mobile layout stacks without overlap.
+- Current route header actions still render `ProjectPublicationHeader` and `ProjectTeamspaceHeader` through `ProjectChromeAsync`.
 
-### Unit 3 - Recent Estimate Sheets Ledger
+### U3. Recent Estimate Sheets Ledger
 
 Expected files:
 
@@ -203,6 +270,9 @@ Plan:
 - Add or adapt a project-scoped recent sheets summary ordered by `updated_at desc`, limited to a small count.
 - Include enough route data for deep links: estimate id, sheet code/name, updated time, project id, and first node id when available.
 - Reuse row density from `RecentSheetsList`, but avoid importing the whole workshop dashboard if props do not match.
+- Use `listRecentProjectEstimateSheets(projectId, limit)` or equivalent from `06-DATA-OWNERSHIP-CONTRACT.md`.
+- Limit default: 5 rows, hard-clamped to 10.
+- First-node lookup must be bounded. If no node exists, route to the estimate list or another stable estimate-level destination rather than manufacturing a node link.
 
 Acceptance:
 
@@ -210,8 +280,9 @@ Acceptance:
 - The implementation uses a dedicated recent-sheets helper; it does not reuse the publication picker helper unchanged because that helper is sheet-code ordered and lacks route fields.
 - Empty state is one row, not another card.
 - Rows deep-link correctly.
+- Identical `updated_at` rows sort deterministically by a secondary key.
 
-### Unit 4 - Published Share Links Panel
+### U4. Current Published Link Panel
 
 Expected files:
 
@@ -225,14 +296,22 @@ Plan:
 - Use existing project publication summary/list summary types where possible.
 - Show current publication status, client link path, selected estimate count, latest open/activity timestamp, open count, and whether access controls such as password are enabled.
 - Keep full publication management in the existing header/modal; the dashboard panel is a status and shortcut surface.
+- Treat this as singular current publication state. Historical/revoked multi-link browsing is out of scope.
+- Dashboard DTO defaults to aggregate fields only. Do not show recipient email/display name unless a separate product decision approves it.
+- Action hierarchy:
+  - unpublished: primary action is manage/create through the existing publication header/modal boundary;
+  - published active: primary action is copy link, secondary actions are open and manage;
+  - revoked/expired/stale: hide or disable open/copy and route the user to manage;
+  - copy success/error uses inline or polite live feedback.
 
 Acceptance:
 
 - Published, unpublished, revoked/expired/stale, and loading states are covered.
 - Copy/open/manage actions never point to missing routes.
 - Activity indicators do not claim opens when there are none.
+- The panel does not remove or duplicate `ProjectPublicationHeader`.
 
-### Unit 5 - Project Activity Timeline
+### U5. Project Estimate Activity Timeline
 
 Expected files:
 
@@ -260,10 +339,15 @@ Plan:
 - Scope the first project activity feed to estimate-sheet events. Collaboration and share-link activity can be considered later, but should not be mixed into this feed until the information architecture is designed.
 - Project activity must return a dashboard DTO, not raw `EstimateSheetHistoryEvent` or owner `ActivityViewModel`.
 - The dashboard DTO must omit `old_snapshot`, `new_snapshot`, `payload`, `metadata`, `raw`, `correlation_id`, and any ids that are not needed for rendering or navigation.
+- Follow `08-PROJECT-ACTIVITY-CONTRACT.md` before UI implementation starts.
+- Label the module "Estimate activity" or otherwise clarify that share-link and collaboration activity are not included in this slice.
+- Row content grammar: time, event label, actor label, estimate/sheet context, compact summary, and optional navigation target. Group by day when more than one day is present; otherwise render a flat compact list.
+- Pagination affordance: `Load more` row with pending and terminal states; page size 20, hard-clamped to 50.
 
 Recommended data/index direction:
 
 - Add `project_id` to `estimate_sheet_events`, populate from `estimate_id`, and maintain it with a trigger or write-path update.
+- Preferred migration path is trigger-first: add nullable column, backfill, add trigger, prove all writers populate it, then make it not null if safe. See `10-MIGRATION-RLS-QA-RUNBOOK.md`.
 - Add `estimate_sheet_events_project_created_idx` on `(project_id, created_at desc, id desc)`.
 - Add a type-filtered index only if timeline filters become important after measurement.
 - If `project_id` is added to `estimate_sheet_events`, the migration must include backfill, write-path or trigger maintenance, index creation, RLS/grant review, generated types, and rollback or fix-forward notes.
@@ -274,11 +358,11 @@ Acceptance:
 - Cursor pagination is stable under new inserts.
 - Actor labels are resolved once per page.
 - Raw event payloads/snapshots are not sent to the client.
-- Timeline respects project authorization and any future sheet-level access boundaries.
+- Timeline immediately respects current project and sheet-level access boundaries. Do not rely on workspace-member event RLS as the dashboard boundary.
 - Project dashboard depends on a shared activity module or repository, not on private helper functions buried in `src/lib/estimates/actions.ts`.
 - Project dashboard receives a redacted DTO only.
 
-### Unit 6 - Project Location And Map
+### U6. Project Location And Map
 
 Expected files:
 
@@ -297,6 +381,12 @@ Plan:
 - Use MapLibre GL JS with OpenFreeMap for MVP, behind config-driven provider/style URLs.
 - Preserve visible OSM/OpenMap attribution in the map panel.
 - Avoid storing exact coordinates directly on `projects` while `getCurrentWorkspaceProject` and other readers still use broad `select("*")` project projections.
+- Follow `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` before adding dependencies.
+- Structured location can ship without an interactive map if the map provider/privacy/CSP proof is not ready.
+- Location writes require editor-or-higher project authority. Viewers and sheet-only collaborators may read exact coordinates only if project access policy permits project detail viewing; they cannot write.
+- Sample/demo projects cannot persist coordinates.
+- Save semantics: first save inserts the one active row; later saves update the row; clear pin removes exact coordinates while preserving free-text project address context.
+- Abuse controls: reject out-of-range values, rate-limit or debounce repeated saves, and handle concurrent edits with last-write visible feedback or optimistic conflict handling.
 
 Suggested data shape:
 
@@ -324,6 +414,7 @@ Schema contract:
 - Regenerate Supabase types after migration.
 - Document fix-forward/rollback notes for the migration.
 - Historical location rows are deferred until there is a clear audit/product need.
+- Cascade/delete/export/DSAR/retention behavior is part of the schema contract, not a follow-up. See `09-LOCATION-MAP-CSP-PROVIDER-ADR.md`.
 
 Privacy:
 
@@ -340,8 +431,9 @@ Acceptance:
 - Map provider failure leaves a usable text coordinate/address state.
 - No tests hit public tile or geocoding services.
 - Location table RLS, coordinate validation, generated types, and leak tests are complete before claiming Phase 3 done.
+- Coordinates do not appear by default in public share, proposal/export, AI/context, analytics, or broad project row readers.
 
-### Unit 7 - Loading, Responsive, And Accessibility Polish
+### U7. Loading, Responsive, And Accessibility Polish
 
 Expected files:
 
@@ -364,6 +456,7 @@ Acceptance:
 - Layout Suspense fallback does not reintroduce the white background.
 - No module shifts layout after data loads except replacing skeleton rows.
 - Focus states are visible on module actions.
+- Browser proof for this unit is limited to browser-only claims: route shell continuity, desktop/mobile stacking, no horizontal overflow, and no white slab.
 
 ## Map Provider Decision
 
@@ -398,9 +491,11 @@ Exit:
 
 - Visual direction is simplified and matches the workshop shell.
 - No source/database map dependency yet unless deliberately included.
+- Phase 1 is complete without Phase 2/3 if recent sheets, current published link, identity rail, fallback/loading, accessibility, and beta task acceptance pass.
 
 ### Phase 2 - Project Activity Timeline
 
+- Requires Phase 1 acceptance and `10-MIGRATION-RLS-QA-RUNBOOK.md` readiness.
 - Add project-scoped activity data path.
 - Add/verify indexing and cursor pagination.
 - Render compact project activity feed.
@@ -411,6 +506,7 @@ Exit:
 
 ### Phase 3 - Exact Location Pin
 
+- Requires Phase 1 acceptance, owner/product confirmation that interactive map value justifies the provider/privacy surface, and `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` readiness.
 - Add structured location data.
 - Add lazy MapLibre/OpenFreeMap map island.
 - Add manual pin save flow.
@@ -433,6 +529,17 @@ Before implementation completion is claimed:
   - route shell continuity checks;
   - map attribution and no-overlap checks when the map phase lands.
 - Run UltraQA scenarios from `03-VERIFICATION-MATRIX.md`.
+- Apply the stop conditions in `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md`.
+
+Cannot claim complete if:
+
+- project activity performs O(number of sheets) reads;
+- client DTOs contain `old_snapshot`, `new_snapshot`, `payload`, `metadata`, `raw`, `correlation_id`, or unneeded internal ids;
+- coordinates appear in public share, proposal/export, AI/context, analytics, or broad project readers by default;
+- map/provider tests call public tile or geocoding services;
+- `ProjectChromeAsync` streaming is folded into a monolithic dashboard fetch;
+- `loading.tsx` or `ProjectRouteContentFallback` still shows the old white slab;
+- location write authz, RLS/grants, generated types, or migration proof is missing for implemented database changes.
 
 ## Risks And Mitigations
 
