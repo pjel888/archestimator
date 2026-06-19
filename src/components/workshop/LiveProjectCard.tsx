@@ -415,14 +415,20 @@ export function LiveProjectCard({
         {showSecondaryMeta && !isPendingInvite ? (
           <div
             data-project-card-date-band=""
-            className="mt-2 grid grid-cols-2 overflow-hidden border-t border-hairline text-[9px] leading-3"
+            className="mt-2 grid grid-cols-2 gap-1 border-t border-hairline pt-1 text-[9px] leading-3"
             title={`Created ${formatFullDate(project.created_at)}; updated ${formatFullDate(project.updated_at)}`}
           >
-            <div className="min-w-0 px-2 py-1.5">
+            <div
+              data-project-card-date-cell="created"
+              className="min-w-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1.5"
+            >
               <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Created</p>
               <p className="mt-0.5 truncate font-medium text-ink">{formatUpdatedAt(project.created_at)}</p>
             </div>
-            <div className="min-w-0 border-l border-hairline px-2 py-1.5">
+            <div
+              data-project-card-date-cell="updated"
+              className="min-w-0 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1.5"
+            >
               <p className="truncate text-[8px] font-medium leading-[10px] text-tertiary">Updated</p>
               <p className="mt-0.5 truncate font-medium text-ink">{formatUpdatedAt(project.updated_at)}</p>
             </div>

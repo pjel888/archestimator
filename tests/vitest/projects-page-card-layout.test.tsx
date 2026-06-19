@@ -133,9 +133,14 @@ describe("Projects page card layout", () => {
     expect(dateBand).not.toBeNull();
     expect(dateBand).toHaveClass("grid");
     expect(dateBand).toHaveClass("grid-cols-2");
+    expect(dateBand).toHaveClass("gap-1");
     expect(dateBand).not.toHaveClass("border-x");
     expect(dateBand).toHaveClass("border-t");
     expect(dateBand).not.toHaveClass("border-b");
+    const createdDateCell = dateBand?.querySelector('[data-project-card-date-cell="created"]');
+    const updatedDateCell = dateBand?.querySelector('[data-project-card-date-cell="updated"]');
+    expect(createdDateCell).toHaveClass("rounded-xs", "border", "border-hairline", "bg-surfaceMuted");
+    expect(updatedDateCell).toHaveClass("rounded-xs", "border", "border-hairline", "bg-surfaceMuted");
     expect(within(dateBand as HTMLElement).getByText("Created")).toHaveClass("text-[8px]");
     expect(within(dateBand as HTMLElement).getByText("Updated")).toHaveClass("text-[8px]");
     expect(within(dateBand as HTMLElement).getByText("May 20")).toHaveClass("text-ink");
