@@ -40,6 +40,38 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Launch-readiness MVP audit completed (2026-06-19):**
+A whole-codebase wider/external-launch readiness audit ran as two multi-agent
+workflows (37 agents, ~3.27M tok): 13 domain auditors + adversarial verify +
+coverage/conflict critic, then a 5-pack gap pass over unowned surfaces. Output is **one consolidated folder**
+`.ai/03_plans/2026-06-19-Launch-Readiness-Audit/` holding all 18 deletable plan packs
+as subfolders plus the synthesized verdict, deduped launch-blocker register,
+canonical owners, and sequence in its `01-MASTER-INDEX.md` (and `00-ORCHESTRATION-LEDGER.md`).
+**No source/DB/provider state was mutated — audit/planning only.** Verdict: NOT yet
+wider-launch ready, but the security core is verified strong (RLS on all 55 tables
+incl. `realtime.messages`, 0 unpinned SECURITY DEFINER, all 16 `/api` routes
+self-gate, HMAC/AES-GCM share links, upload+bucket hardening). ~9 hard blockers + 2
+verify-gates + 1 conditional, mostly S/M effort, clustered in: (1) CI dark
+(`disabled_manually`, 0 runs in ~1 month) + `validate` red-by-construction; (2) no
+durable error/log sink + no root `global-error/error/not-found` boundaries +
+unproven monitoring; (3) legal/DSAR for external users (account "delete" orphans
+client/project PII via `SET NULL`, no erasure trigger; privacy/terms promise
+deletion/export with no runbook) + an unconsented public-route Vercel-Analytics
+beacon. Current canonical handoff docs are:
+`02-IMPLEMENTATION-READINESS-SCORECARD.md`,
+`03-LAUNCH-GATE-DECISION-REGISTER.md`,
+`04-PROOF-TAXONOMY-AND-AUTHORITY.md`,
+`05-UX-READINESS-CROSSWALK.md`, and `06-UX-FLOW-STATE-MATRICES.md`. The reconciled
+verify-gates are V1 Supabase realtime rate-limit ceiling and V2 consent/Vercel Web
+Analytics decision; beta-access env fail-open is B5 hard blocker. DR risk:
+migration-ledger/tree drift (live
+objects absent from `supabase/migrations/` + ledger). The corrected current red set
+(supersedes the stale FAST-PATH note above): `useLiquidGlassRefraction.ts:118,122` +
+`projects-page-client.tsx:691` react-hooks + `MainSidebar.tsx:370` design-lint;
+`bun run validate` also chains `lint:design` (21 anti-patterns) + a `test:dom` hang
+phase — making it green is a 5-step job (owned by the Testing-CI pack). 7 audit
+findings were refuted, ~13 down-rated; no provider/browser proof claimed.
+
 **Kimi prompt pack archived (2026-06-19):**
 The completed Kimi database delegation prompt pack moved from live prompt paths
 `.ai/08_prompts/kimi/` and `.ai/08_prompts/kimi-all.md` to

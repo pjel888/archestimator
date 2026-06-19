@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ProjectDashboardClient } from "@/components/workshop/ProjectDashboardClient";
@@ -34,7 +34,7 @@ const FALLBACK = {
 };
 
 describe("ProjectDashboardClient", () => {
-  it("keeps editable project details and leaves the dashboard main area empty", () => {
+  it("keeps editable project details inside the glass dashboard", () => {
     render(<ProjectDashboardClient project={PROJECT_FIXTURE} fallback={FALLBACK} />);
 
     expect(screen.getByLabelText("Lewis Residence project information")).toBeInTheDocument();
@@ -42,20 +42,26 @@ describe("ProjectDashboardClient", () => {
     expect(screen.getByDisplayValue("Lewis Residence")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Lewis Family")).toBeInTheDocument();
 
-    const emptyMain = screen.getByLabelText("Project dashboard empty page");
-    expect(emptyMain).toBeInTheDocument();
-    expect(emptyMain.childElementCount).toBe(0);
-    expect(screen.queryByLabelText("Project cockpit")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Project dashboard next steps")).not.toBeInTheDocument();
-    expect(screen.queryByText("Build this project from estimates")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Project dashboard")).toBeInTheDocument();
+    expect(screen.getByLabelText("Project overview")).toBeInTheDocument();
+    expect(screen.getByLabelText("Project dashboard actions")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /estimates/i })).toHaveAttribute(
+      "href",
+      "/workshop/projects/11111111-1111-4111-8111-111111111111/estimates",
+    );
   });
 
-  it("keeps sample project details editable without adding dashboard content", () => {
+  it("keeps sample project details editable with dashboard navigation", () => {
     render(<ProjectDashboardClient project={null} fallback={FALLBACK} />);
 
     expect(screen.getByLabelText("Modern Bungalow project information")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Modern Bungalow")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Sample client")).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Project dashboard empty page")).queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /data/i })).toHaveAttribute(
+      "href",
+      "/workshop/projects/sample-modern-bungalow/data",
+    );
+    expect(screen.getByRole("link", { name: /projects/i })).toHaveAttribute("href", "/workshop/projects");
+    expect(screen.queryByRole("link", { name: /publish/i })).not.toBeInTheDocument();
   });
 });

@@ -61,12 +61,20 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardClient).not.toContain("dispatchProjectBudgetChange");
   });
 
-  it("keeps the project dashboard route as an empty main surface", () => {
+  it("renders the project dashboard as glass content on the shared shell material", () => {
     expect(projectDashboardPage).not.toContain("searchParams");
     expect(projectDashboardPage).not.toContain("getProjectDashboardSummary");
     expect(projectDashboardPage).not.toContain("getProjectActivity");
-    expect(projectDashboardClient).toContain('aria-label="Project dashboard empty page"');
-    expect(projectDashboardClient).not.toContain("Project cockpit");
-    expect(projectDashboardClient).not.toContain("Project dashboard next steps");
+    expect(projectDashboardLayout).toContain('className="flex h-full min-h-0 overflow-hidden"');
+    expect(projectDashboardLayout).not.toContain("overflow-hidden bg-white");
+    expect(projectDashboardLayout).not.toContain("overflow-hidden bg-canvas");
+    expect(projectDashboardClient).toContain('aria-label="Project dashboard"');
+    expect(projectDashboardClient).toContain('aria-label="Project overview"');
+    expect(projectDashboardClient).toContain('aria-label="Project dashboard actions"');
+    expect(projectDashboardClient).toContain("dashboard-glass");
+    expect(projectDashboardClient).toContain("workshop-project-card-control");
+    expect(projectDashboardClient).not.toContain("workshop-project-card-glass");
+    expect(workshopPageShell).not.toContain("workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between border");
+    expect(workshopPageShell).not.toContain("workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border");
   });
 });

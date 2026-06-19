@@ -48,6 +48,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectMiniSidebar).not.toContain('label: "Components"');
     expect(projectMiniSidebar).not.toContain("SquaresFour");
     expect(projectMiniSidebar).not.toContain("/workshop/projects/${projectId}/components");
+    expect(projectMiniSidebar).not.toContain('label: "Publish"');
+    expect(projectMiniSidebar).not.toContain("/workshop/projects/${projectId}/publish");
   });
 
   it("keeps project details CRUD editing available from the project page", () => {
@@ -58,15 +60,16 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain('name="location"');
   });
 
-  it("organizes all project data in a left-aligned 274px project data panel under the project code", () => {
-    expect(projectDashboardClient).toContain("justify-start bg-white");
+  it("organizes project data in a left-aligned 274px frosted project data panel", () => {
+    expect(projectDashboardClient).toContain("justify-start");
+    expect(projectDashboardClient).not.toContain("justify-start bg-white");
     expect(projectDashboardClient).toContain("w-[274px]");
-    expect(projectDashboardClient).toContain("border-r border-hairline");
+    expect(projectDashboardClient).toContain("dashboard-glass flex min-h-0 flex-1 flex-col overflow-hidden");
     expect(projectDashboardClient).not.toContain("ml-auto");
     expect(projectDashboardClient).not.toContain("justify-end");
     expect(projectDashboardClient).not.toContain("Project data");
     expect(projectDashboardClient).not.toContain("<h3");
-    expect(projectDashboardClient).toContain("flex min-h-0 flex-1 flex-col gap-3 overflow-auto py-2 pl-4 pr-2");
+    expect(projectDashboardClient).toContain("flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-2");
     expect(projectDashboardClient).toContain('label="Project name"');
     expect(projectDashboardClient).toContain('label="Client"');
     expect(projectDashboardClient).not.toContain('label="Project code"');
@@ -76,7 +79,7 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient.indexOf('label="Project name"')).toBeLessThan(projectDashboardClient.indexOf('label="Client"'));
     expect(projectDashboardClient.indexOf('label="Client"')).toBeLessThan(projectDashboardClient.indexOf('label="Project address"'));
     expect(projectDashboardClient.indexOf('label="Project address"')).toBeLessThan(projectDashboardClient.indexOf('label="Created"'));
-    expect(projectDashboardClient).not.toContain('label="Currency"');
+    expect(projectDashboardClient).toContain('label="Currency"');
     expect(projectDashboardClient).not.toContain('type="text"');
     expect(projectDashboardClient).not.toContain("formatBudgetInput");
     expect(projectDashboardClient).toContain('name="currencyCode"');
@@ -86,10 +89,15 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).not.toContain("grid grid-cols-2 gap-2");
     expect(projectDashboardClient).toContain('label="Created"');
     expect(projectDashboardClient).toContain('label="Updated"');
-    expect(projectDashboardClient).toContain("grid grid-cols-2 divide-x divide-hairline border-t border-hairline");
+    expect(projectDashboardClient).toContain("grid grid-cols-2 divide-x divide-[color:var(--glass-border)] border-t border-[color:var(--glass-border)] bg-white/25");
     expect(projectDashboardClient).not.toContain("mt-auto grid grid-cols-2 divide-x divide-hairline");
     expect(projectDashboardClient).toContain("text-[8px] font-medium uppercase tracking-normal text-gray-400");
     expect(projectDashboardClient).toContain("text-[8px] font-medium leading-3 text-tertiary");
     expect(projectDashboardClient).not.toContain("ReadOnlyProjectDataField");
+    expect(projectDashboardClient).toContain("ProjectActionTile");
+    expect(projectDashboardClient).toContain('href={`/workshop/projects/${projectId}/estimates`}');
+    expect(projectDashboardClient).toContain('href={`/workshop/projects/${projectId}/data`}');
+    expect(projectDashboardClient).toContain('href="/workshop/projects"');
+    expect(projectDashboardClient).not.toContain('href={`/workshop/projects/${projectId}/publish`}');
   });
 });

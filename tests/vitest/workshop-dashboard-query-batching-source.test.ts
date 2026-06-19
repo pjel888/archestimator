@@ -31,6 +31,20 @@ describe("workshop dashboard query batching source contract", () => {
     expect(workspaceRepository).toContain("canManageCollaborationRole");
   });
 
+  it("keeps homebase project and sheet ledgers ordered by recency, not favorite time", () => {
+    expect(workspaceRepository).toContain("const recentProjects = sortByUpdatedAtDescThenIdDesc(payload.recentProjects)");
+    expect(workspaceRepository).toContain("const projects = mergeHomebaseRecords(recentProjects, favoriteProjects)");
+    expect(workspaceRepository).toContain(
+      "const projects = mergeHomebaseRecords(recentProjects, sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt))",
+    );
+    expect(workspaceRepository).toMatch(
+      /const estimates = mergeHomebaseRecords\(\s*sortByUpdatedAtDescThenIdDesc\(payload\.recentEstimates\),\s*sortByFavoriteCreatedAt\(payload\.favoriteEstimates, estimateFavoriteCreatedAt\),\s*\)/,
+    );
+    expect(workspaceRepository).toContain("const estimates = mergeHomebaseRecords(recentEstimates, favoriteEstimates)");
+    expect(workspaceRepository).not.toContain("const projects = mergeHomebaseRecords(favoriteProjects, recentProjects)");
+    expect(workspaceRepository).not.toContain("const estimates = mergeHomebaseRecords(favoriteEstimates, recentEstimates)");
+  });
+
   it("uses a dashboard-lean library repository path without template detail fetches", () => {
     expect(componentLibraryRepository).toContain("export async function getLibraryDashboardSpotlight");
     expect(componentLibraryRepository).toContain("recentTemplates: []");
