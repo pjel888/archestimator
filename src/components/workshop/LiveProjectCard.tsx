@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { memo, useMemo, type ReactNode } from "react";
 import {
@@ -80,7 +81,11 @@ function formatFullDate(value: string) {
 function getProjectImageUrl(metadata: Json) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata))
     return null;
-  const value = (metadata as Record<string, Json>).projectImageUrl;
+  const record = metadata as Record<string, Json>;
+  // Prefer the 512px thumbnail the upload pipeline already generates — the card frame is
+  // only ~248-320px wide, so serving the 1600px full image was ~85-90% wasted bytes. Fall
+  // back to the full image for projects uploaded before the thumbnail variant existed.
+  const value = record.projectImageThumbnailUrl ?? record.projectImageUrl;
   return typeof value === "string" && value.trim() ? value : null;
 }
 
@@ -450,13 +455,15 @@ function LiveProjectCardImpl({
     return (
       <div className={cn("relative shrink-0 overflow-hidden bg-surfaceMuted", wrapperClass)} data-project-card-thumbnail>
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // Same-origin image (served via /api/projects/images), so Vercel's image optimizer
+          // produces AVIF/WebP + responsive srcset, CDN-cached. `sizes` matches the
+          // minmax(248px,1fr) card grid so it never fetches more than the box needs.
+          <Image
             src={imageUrl}
             alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 320px"
+            className="object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2">
