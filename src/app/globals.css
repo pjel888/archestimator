@@ -1312,6 +1312,81 @@ input[type="number"] {
   }
 }
 
+/* Frosted project cards: a content-grade liquid-glass material for the
+   workshop project index. One blur lives on the card shell; nested controls use
+   translucent fills and inset highlights only. */
+.workshop-project-card-glass {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.58));
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
+  border-color: color-mix(in srgb, var(--glass-border) 82%, rgba(255, 255, 255, 0.28));
+  box-shadow:
+    0 7px 14px rgba(30, 35, 50, 0.08),
+    0 1px 4px rgba(30, 35, 50, 0.05),
+    var(--glass-inset-hi);
+  transition:
+    transform 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+
+.workshop-project-card-glass:hover,
+.workshop-project-card-glass:focus-within {
+  border-color: color-mix(in srgb, var(--brand-orange) 24%, var(--glass-border));
+  box-shadow:
+    0 9px 14px rgba(30, 35, 50, 0.105),
+    0 2px 7px rgba(30, 35, 50, 0.06),
+    var(--glass-inset-hi);
+}
+
+.workshop-project-card-glass:hover {
+  transform: translateY(-1px);
+}
+
+.workshop-project-card-glass[data-project-card-selected="true"] {
+  border-color: color-mix(in srgb, var(--ink) 68%, var(--glass-border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ink) 54%, transparent),
+    0 9px 14px rgba(30, 35, 50, 0.105),
+    var(--glass-inset-hi);
+}
+
+.workshop-project-card-control {
+  background: rgba(255, 255, 255, 0.76);
+  border-color: rgba(30, 35, 50, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 1px 2px rgba(30, 35, 50, 0.06);
+}
+
+.workshop-project-card-control:hover,
+.workshop-project-card-control:focus-visible {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(30, 35, 50, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 2px 5px rgba(30, 35, 50, 0.08);
+}
+
+.workshop-project-card-thumbnail-reveal {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.76));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workshop-project-card-glass {
+    transition: none;
+  }
+
+  .workshop-project-card-glass:hover {
+    transform: none;
+  }
+}
+
 /* Soft variant for over-bloom CTA cards: slightly warmer frost so the bloom
    diffuses through, still keeps crisp dark-ink content on top (AA-safe). */
 .dashboard-glass-warm {
@@ -1355,6 +1430,12 @@ input[type="number"] {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+
+  .workshop-project-card-glass {
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1377,6 +1458,11 @@ input[type="number"] {
   }
   .workshop-liquid-button {
     background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .workshop-project-card-glass {
+    background: rgba(255, 255, 255, 0.92);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1460,6 +1546,10 @@ input[type="number"] {
     -webkit-backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
   }
+  :root[data-glass="ready"] .workshop-project-card-glass {
+    -webkit-backdrop-filter: blur(12px) saturate(124%);
+    backdrop-filter: blur(12px) saturate(124%);
+  }
   /* Desktop refraction still swaps to the SVG displacement filter, but only
      once armed. (0,4,0) keeps it ahead of the plain armed sidebar rule above. */
   :root[data-glass="ready"] .sidebar-glass[data-refraction="true"] {
@@ -1480,6 +1570,7 @@ input[type="number"] {
     :root[data-glass="ready"] .dashboard-glass-warm,
     :root[data-glass="ready"] .workshop-workspace-glass-surface,
     :root[data-glass="ready"] .dashboard-destination-card,
+    :root[data-glass="ready"] .workshop-project-card-glass,
     :root[data-glass="ready"] .sidebar-glass[data-refraction="true"],
     :root[data-glass="ready"] .workshop-liquid-button {
       -webkit-backdrop-filter: none;
@@ -1696,7 +1787,27 @@ input[type="number"] {
   transition: color 180ms ease-out;
 }
 .dashboard-project-card-arrow {
+  display: inline-grid;
+  width: 26.667px;
+  height: 26.667px;
+  place-items: center;
+  border-radius: var(--radius-xs);
   color: var(--destination-icon);
+  transition:
+    background-color 180ms ease-out,
+    box-shadow 180ms ease-out,
+    color 180ms ease-out;
+}
+.dashboard-project-card-arrow .dashboard-destination-card-icon {
+  width: 21.333px;
+  height: 21.333px;
+}
+.dashboard-destination-card:hover .dashboard-project-card-arrow,
+.dashboard-project-card-arrow:focus-visible {
+  background: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 5px 8px rgba(69, 34, 22, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
 }
 .dashboard-bignum-value {
   font-family: var(--font-numeric);
@@ -1714,20 +1825,18 @@ input[type="number"] {
 .dashboard-hero-continue { background-image: var(--grad-hero-continue); }
 .dashboard-hero-create { background-image: var(--grad-hero-create); }
 
-/* Gentle lift on interactive cards (transform only; reduced-motion safe). */
+/* Hover feedback without positional movement, so corner arrows stay anchored. */
 .dashboard-card-hover {
   transition:
-    transform 180ms ease-out,
     border-color 180ms ease-out,
     box-shadow 180ms ease-out;
 }
 .dashboard-card-hover:hover {
-  transform: translateY(-2px);
   box-shadow: var(--dashboard-tile-glass-inset-hover, var(--glass-shadow-hover));
 }
 @media (prefers-reduced-motion: reduce) {
   .dashboard-card-hover { transition: none; }
-  .dashboard-card-hover:hover { transform: none; }
+  .dashboard-project-card-arrow { transition: none; }
 }
 
 /* SVG-noise grain — kills banding on gradient cards; sits under content. */
@@ -1761,9 +1870,19 @@ input[type="number"] {
   --dashboard-row: clamp(126px, 13vw, 214px);
   --dashboard-board-row: calc(var(--dashboard-row) + var(--dashboard-gap));
   display: grid;
-  min-height: 100%;
+  /* Definite height (not min-height): the trailing minmax(0,1fr) row then
+     resolves against real leftover space — it collapses when there is none and
+     fills the slack otherwise — instead of inflating to the desk-board's tall
+     content. Under min-height the desk content stretched the grid past the
+     viewport, and that overgrowth was the phantom scroll band below the greeting. */
+  height: 100%;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-template-rows: repeat(5, var(--dashboard-row)) minmax(0, 1fr);
+  /* 4 fixed square rows carry the bento (Projects span 1–3) + greeting (row 4);
+     the trailing flex row absorbs extra height into the desk on taller screens.
+     Was repeat(5, …): the unused 5th fixed row only over-stretched the desk and
+     left an empty band below the content, forcing a needless scroll on small
+     (13") laptops. Bento + greeting row heights are unchanged. */
+  grid-template-rows: repeat(4, minmax(0, var(--dashboard-row))) minmax(0, 1fr);
   grid-auto-rows: var(--dashboard-row);
   gap: var(--dashboard-gap);
   align-content: start;
@@ -1976,7 +2095,7 @@ input[type="number"] {
   width: 100%;
 }
 .iband-projects   { grid-column: 1 / span 2; grid-row: 1 / span 3; }
-.desk-board       { grid-column: 6 / span 2; grid-row: 1 / span 6; }
+.desk-board       { grid-column: 6 / span 2; grid-row: 1 / -1; }
 .desk-continue    {
   grid-column: 3 / span 2;
   grid-row: 3;

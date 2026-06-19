@@ -547,6 +547,7 @@ Archestimator has **two surface materials** floating on the grey canvas. Reach f
 
 - **Paper (solid white)** — anything that *holds content*: the workspace card, project/estimate tiles, tables, modals, proposal surfaces. White fill, `--hairline` border, soft floating shadow, `12px` radius for the panel itself (`3px` for dense things inside it).
 - **Liquid glass (frosted)** — *chrome* that frames or floats over content: the navigation rail today; later, command palette, floating inspectors, and over-content overlays. Frosted translucency that reads brighter than the canvas, so it floats.
+- **Workshop project index cards (2026-06-19)** are the first content-card rollout into liquid glass. Keep the existing compact card structure and `3px` radius, but use a frosted card shell (`.workshop-project-card-glass`) with one soft shadow, one deferred backdrop blur on the shell only, and child controls that fake glass with translucent fills/inset highlights rather than their own blur.
 
 Glass is a **skin, never a behaviour change**. The reference implementation is the workshop navigation rail (`MainSidebar`), authorized 2026-06-17. Rules for any glass surface:
 

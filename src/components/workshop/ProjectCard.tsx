@@ -18,7 +18,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       href={`/workshop/projects/${project.id}`}
-      className="group flex flex-col overflow-hidden rounded-xs border border-hairline bg-white transition-colors duration-150 hover:border-tertiary/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      className="workshop-project-card-glass group flex flex-col overflow-hidden rounded-xs border border-hairline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
       <div className="aspect-[4/3] w-full overflow-hidden border-b border-hairline bg-surfaceMuted">
         <div className="flex h-full w-full items-center justify-center px-2">
@@ -61,7 +61,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
         <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-hairline pt-2.5">
           <span className="truncate font-sans text-[10px] font-medium tracking-normal text-ink">{project.estimateTotal}</span>
-          <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-2.5 text-[10px] font-medium text-ink group-hover:bg-surfaceMuted">
+          <span className="workshop-project-card-control inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-2.5 text-[10px] font-medium text-ink">
             Open sample
             <ArrowRight size={13} className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" aria-hidden="true" />
           </span>

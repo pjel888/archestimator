@@ -63,9 +63,9 @@ type LiveProjectCardProps = {
 const REVEAL_ON_INTENT =
   "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100";
 
-const CONTROL_BUTTON = "size-6 border-hairline bg-white";
+const CONTROL_BUTTON = "workshop-project-card-control size-6 border-hairline";
 const OPEN_CONTROL_LINK =
-  "grid size-6 shrink-0 place-items-center rounded-xs border border-hairline bg-white text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
+  "workshop-project-card-control grid size-6 shrink-0 place-items-center rounded-xs border border-hairline text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -186,11 +186,11 @@ export function LiveProjectCard({
   const selectControl = canShowSelect ? (
     <label
       className={cn(
-        "grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border border-hairline bg-white text-ink hover:bg-surfaceMuted",
+        "workshop-project-card-control grid size-6 shrink-0 cursor-pointer place-items-center rounded-xs border border-hairline text-ink",
         // When a selection is active the checkbox must stay clickable, so it drops
         // the reveal gate and re-asserts pointer-events over the wrapper's none.
         selectedForDeletion || selectionActive ? "opacity-100 pointer-events-auto" : REVEAL_ON_INTENT,
-        !canSelect ? "cursor-not-allowed text-tertiary hover:bg-white" : null,
+        !canSelect ? "cursor-not-allowed text-tertiary" : null,
       )}
       title="Select project for deletion"
     >
@@ -295,8 +295,8 @@ export function LiveProjectCard({
             : `Hover controls for ${project.name}`
         }
         className={cn(
-          "pointer-events-none absolute inset-0 z-10 flex flex-col overflow-hidden bg-white/90 opacity-0 shadow-sm transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
-          viewMode === "large" ? "p-4" : "p-2",
+          "workshop-project-card-thumbnail-reveal pointer-events-none absolute inset-0 z-10 flex flex-col overflow-hidden opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 motion-reduce:transition-none [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
+          "p-2",
         )}
       >
         <div className="flex items-start justify-between gap-2">
@@ -448,6 +448,8 @@ export function LiveProjectCard({
           <img
             src={imageUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : (
@@ -523,12 +525,13 @@ export function LiveProjectCard({
       <article
         data-project-card-view={viewMode}
         data-project-access-kind={accessKind}
+        data-project-card-selected={selectedForDeletion ? "true" : undefined}
         aria-label={cardLabel}
         className={cn(
-          "group relative flex min-w-0 items-center gap-3 px-3 py-2 transition-colors duration-150 motion-reduce:transition-none",
+          "workshop-project-card-glass group relative flex min-w-0 items-center gap-3 px-3 py-2 motion-reduce:transition-none",
           // accentSoft and surfaceMuted are the same grey, so a selected row needs a
           // ring to stay distinct from a merely hovered one during bulk delete.
-          selectedForDeletion ? "bg-accentSoft ring-1 ring-inset ring-ink" : "bg-white hover:bg-surfaceMuted",
+          selectedForDeletion ? "ring-1 ring-inset ring-ink" : null,
         )}
       >
         {renderThumb({
@@ -657,10 +660,11 @@ export function LiveProjectCard({
     <article
       data-project-card-view={viewMode}
       data-project-access-kind={accessKind}
+      data-project-card-selected={selectedForDeletion ? "true" : undefined}
       aria-label={cardLabel}
       className={cn(
-        "group group/card relative flex min-w-0 flex-col overflow-hidden rounded-xs border bg-white transition-colors duration-150 motion-reduce:transition-none",
-        selectedForDeletion ? "border-ink" : "border-hairline hover:border-tertiary/30",
+        "workshop-project-card-glass group group/card relative flex min-w-0 flex-col overflow-hidden rounded-xs border motion-reduce:transition-none",
+        selectedForDeletion ? "border-ink" : "border-hairline",
         viewMode === "large" ? "min-h-[360px]" : viewMode === "medium" ? "min-h-[300px]" : "min-h-[190px]",
       )}
     >

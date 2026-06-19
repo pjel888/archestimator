@@ -77,6 +77,7 @@ describe("Projects page card layout", () => {
 
     const card = screen.getByLabelText("Lewis Residence project, owned access");
     expect(card).toHaveClass("min-h-[360px]");
+    expect(card).toHaveClass("workshop-project-card-glass");
 
     const tileContent = card.querySelector("[data-project-card-tile-content]");
     expect(tileContent).not.toBeNull();
@@ -99,6 +100,9 @@ describe("Projects page card layout", () => {
     expect(hoverReveal).not.toBeNull();
     expect(hoverReveal).toHaveClass("absolute");
     expect(hoverReveal).toHaveClass("inset-0");
+    expect(hoverReveal).toHaveClass("workshop-project-card-thumbnail-reveal");
+    expect(hoverReveal).toHaveClass("p-2");
+    expect(hoverReveal).not.toHaveClass("p-4");
     expect(hoverReveal).toHaveClass("pointer-events-none");
     expect(hoverReveal).toHaveClass("opacity-0");
     expect(hoverReveal).toHaveClass("group-hover/card:pointer-events-auto");
@@ -143,7 +147,7 @@ describe("Projects page card layout", () => {
     expect(openAction.textContent).toBe("");
     expect(openAction).toHaveClass("size-6");
     expect(openAction).toHaveClass("border-hairline");
-    expect(openAction).toHaveClass("bg-white");
+    expect(openAction).toHaveClass("workshop-project-card-control");
     expect(openAction.querySelector('[data-project-card-open-icon="square-out"]')).not.toBeNull();
 
     const footer = card.querySelector("[data-project-card-footer]");
