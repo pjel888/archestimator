@@ -19,6 +19,13 @@ import type { Tables } from "@/lib/supabase/types";
  *      expensive filter/sort over all cards runs against the deferred value.
  *   3. `useStableCallback` handlers — the favorite/select handlers passed to
  *      every card keep a stable identity across parent renders, so memo holds.
+ *   4. group-organize mode — the memoized module-level `ProjectCardRow` receives
+ *      the group menu's PRIMITIVE inputs (showGroupMenu / projectGroups /
+ *      effectiveGroupId / groupBusy) and builds the `<DropdownMenu>` via `useMemo`
+ *      BELOW the memo boundary. Before that fix, `groupAssignMenu={renderMenu(item)}`
+ *      passed a fresh ReactNode per card, so any parent state change (e.g. a single
+ *      move's `pendingGroupProjectId` setState) re-rendered every owned card. Test
+ *      (e) guards this: moving one card must not re-render all N owned cards.
  *
  * How we count: `usePrefetchOnHover` is invoked exactly once per
  * `LiveProjectCardImpl` render body (it is a top-level hook call in the impl).
@@ -67,6 +74,16 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
   setProjectFavorite: vi.fn(async () => undefined),
+  moveProjectToGroup: vi.fn(async () => undefined),
+  bulkAssignProjectsToGroup: vi.fn(async (input: { projectIds: string[]; groupId: string | null }) => ({
+    movedProjectIds: input.projectIds,
+    skippedProjectIds: [] as string[],
+  })),
+  createProjectGroup: vi.fn(async () => ({ id: "g-new" })),
+  renameProjectGroup: vi.fn(async () => undefined),
+  recolorProjectGroup: vi.fn(async () => undefined),
+  deleteProjectGroup: vi.fn(async () => undefined),
+  reorderProjectGroups: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/hooks/use-navigation-router", () => ({
@@ -88,6 +105,18 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: mocks.setProjectFavorite,
+}));
+
+vi.mock("@/lib/workshop/group-actions", () => ({
+  moveProjectToGroup: mocks.moveProjectToGroup,
+  bulkAssignProjectsToGroup: mocks.bulkAssignProjectsToGroup,
+  createProjectGroup: mocks.createProjectGroup,
+  renameProjectGroup: mocks.renameProjectGroup,
+  recolorProjectGroup: mocks.recolorProjectGroup,
+  deleteProjectGroup: mocks.deleteProjectGroup,
+  reorderProjectGroups: mocks.reorderProjectGroups,
+  ProjectGroupCapError: class extends Error {},
+  ProjectGroupNameError: class extends Error {},
 }));
 
 vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
@@ -294,6 +323,71 @@ describe("ProjectsPageClient render-efficiency baseline", () => {
 
     console.log(
       `[render-baseline] view-mode change (prop-driven, expected to propagate): ${viewCardRenders} card renders for ${CARD_COUNT} cards`,
+    );
+  });
+});
+
+describe("ProjectsPageClient render-efficiency baseline — group-organize mode", () => {
+  // The memoized ProjectCardRow gates this: a single group move changes only the
+  // moved card's primitive group props (groupBusy / effectiveGroupId), so memo must
+  // skip every OTHER owned card. Pre-fix (fresh menu ReactNode per card) re-rendered
+  // all N cards on the move's parent setState — this test would then fail.
+  const GROUPS = [{ id: "g1", name: "Pipeline", accentId: null, position: 0 }] as const;
+
+  function createUngroupedOwnedItem(index: number): ProjectListItem {
+    return { ...createOwnedItem(index), groupId: null };
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    resetCardRenderCounts();
+    mocks.refresh.mockClear();
+    mocks.push.mockClear();
+    mocks.replace.mockClear();
+    mocks.setProjectFavorite.mockClear();
+    mocks.moveProjectToGroup.mockClear();
+    // Drive the page into "By group" organize mode (same key the group-mode suite uses).
+    window.localStorage.setItem("archestimator_projects_organize_by_v1", "group");
+  });
+
+  it("(e) moving one card to a group does NOT re-render every owned card (ProjectCardRow memo holds)", async () => {
+    const user = userEvent.setup();
+    const projects = Array.from({ length: CARD_COUNT }, (_, i) =>
+      createUngroupedOwnedItem(i + 1),
+    );
+
+    render(<ProjectsPageClient projects={projects} projectGroups={[...GROUPS]} />);
+
+    // All N owned cards start in the Ungrouped bucket, each rendered once.
+    expect(cardRenderCounts.size).toBe(CARD_COUNT);
+
+    resetCardRenderCounts();
+
+    // Move ONE card into a group. This sets `pendingGroupProjectId` + an optimistic
+    // override for that one card. Only that card's primitive group props change.
+    await user.click(
+      screen.getByRole("button", { name: "Move Project 01 Residence to a group" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Pipeline" }));
+
+    await waitFor(() => expect(mocks.moveProjectToGroup).toHaveBeenCalledWith({
+      projectId: projects[0].project.id,
+      groupId: "g1",
+    }));
+
+    const moveCardRenders = totalCardRenders();
+
+    // A full re-render of all owned cards would be >= CARD_COUNT (the pre-memo-fix
+    // behavior, where every card got a fresh group-menu ReactNode on the move's
+    // setState). With the memoized ProjectCardRow only the moved card (and its
+    // section reparent) re-renders, so this stays well under a full sweep.
+    expect(
+      moveCardRenders,
+      `group move re-rendered cards ${moveCardRenders}x (a full sweep would be >= ${CARD_COUNT})`,
+    ).toBeLessThan(CARD_COUNT);
+
+    console.log(
+      `[render-baseline] group move: ${moveCardRenders} card renders (full sweep would be >= ${CARD_COUNT})`,
     );
   });
 });

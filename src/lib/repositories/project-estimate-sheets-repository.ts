@@ -51,7 +51,7 @@ export async function listRecentProjectEstimateSheets(
     .from("estimates")
     .select("id, project_id, name, sheet_code, updated_at")
     .eq("project_id", projectId)
-    .order("updated_at", { ascending: false })
+    .order("updated_at", { ascending: false, nullsFirst: false })
     .order("id", { ascending: false })
     .limit(safeLimit);
 

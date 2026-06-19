@@ -1,17 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  ProjectDashboardClient,
-  type ProjectPublicationDashboardStatus,
-} from "@/components/workshop/ProjectDashboardClient";
+import type { ProjectPublicationDashboardStatus } from "@/components/workshop/ProjectDashboardClient";
 import type { ProjectRecentEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
 import type { Tables } from "@/lib/supabase/types";
 
-vi.mock("next/navigation", () => ({
-  usePathname: () => "/workshop/projects/11111111-1111-4111-8111-111111111111",
-  useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+vi.mock("@/lib/projects/actions", () => ({
+  updateProjectDetails: vi.fn(async () => undefined),
 }));
 
 const PROJECT_FIXTURE = {
@@ -82,6 +77,7 @@ const UNPUBLISHED_STATUS: ProjectPublicationDashboardStatus = {
 
 describe("ProjectDashboardClient", () => {
   it("renders the Phase 1 command surface with real recent sheets and redacted publication status", async () => {
+    const { ProjectDashboardClient } = await import("@/components/workshop/ProjectDashboardClient");
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, "clipboard", {
       configurable: true,
@@ -108,7 +104,9 @@ describe("ProjectDashboardClient", () => {
     expect(container.querySelector('input[name="currencyCode"]')).toHaveAttribute("value", "PHP");
     expect(container.querySelector('input[name="projectCode"]')).toHaveAttribute("value", "AE-LR-001");
 
-    const regions = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
+    const regions = within(screen.getByRole("main", { name: "Project dashboard" }))
+      .getAllByRole("region")
+      .map((region) => region.getAttribute("aria-label"));
     expect(regions).toEqual(["Project command surface", "Recent sheets", "Published link", "Estimate activity", "Location"]);
 
     const recentSheets = screen.getByRole("region", { name: "Recent sheets" });
@@ -142,7 +140,9 @@ describe("ProjectDashboardClient", () => {
     expect(screen.getByRole("region", { name: "Location" })).toHaveTextContent("No exact pin saved");
   });
 
-  it("keeps sample projects honest with empty recent sheets and no publication shortcut", () => {
+  it("keeps sample projects honest with empty recent sheets and no publication shortcut", async () => {
+    const { ProjectDashboardClient } = await import("@/components/workshop/ProjectDashboardClient");
+
     render(
       <ProjectDashboardClient
         project={null}

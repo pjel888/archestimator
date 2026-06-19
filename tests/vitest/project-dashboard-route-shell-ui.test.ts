@@ -89,10 +89,10 @@ describe("project dashboard route shell UI governance", () => {
 
   it("uses the same command-surface skeleton for dashboard loading and suspense fallback", () => {
     for (const source of [projectDashboardLoading, projectRouteContentFallback]) {
-      expect(source).toContain('aria-label="Recent sheets"');
-      expect(source).toContain('aria-label="Published link"');
-      expect(source).toContain('aria-label="Estimate activity"');
-      expect(source).toContain('aria-label="Location"');
+      expect(source).toContain('label="Recent sheets"');
+      expect(source).toContain('label="Published link"');
+      expect(source).toContain('label="Estimate activity"');
+      expect(source).toContain('label="Location"');
       expect(source).toContain("dashboard-glass flex min-h-0 flex-1 flex-col overflow-hidden");
       expect(source).not.toContain("bg-canvas");
       expect(source).not.toContain("border border-hairline bg-white");

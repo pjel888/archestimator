@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const supabaseMocks = vi.hoisted(() => ({
-  eq: vi.fn(),
+type QueryBuilder = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+};
+
+var supabaseMocks = {
   from: vi.fn(),
-  order: vi.fn(),
-  select: vi.fn(),
-}));
+};
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => ({
@@ -13,20 +18,30 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
-beforeEach(() => {
-  supabaseMocks.eq.mockReset();
-  supabaseMocks.from.mockReset();
-  supabaseMocks.order.mockReset();
-  supabaseMocks.select.mockReset();
+function createBuilder(): QueryBuilder {
+  const builder = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    in: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
+  } satisfies QueryBuilder;
+  builder.select.mockReturnValue(builder);
+  builder.eq.mockReturnValue(builder);
+  builder.in.mockReturnValue(builder);
+  builder.order.mockReturnValue(builder);
+  builder.limit.mockReturnValue(builder);
+  return builder;
+}
 
-  supabaseMocks.from.mockReturnValue({ select: supabaseMocks.select });
-  supabaseMocks.select.mockReturnValue({ eq: supabaseMocks.eq });
-  supabaseMocks.eq.mockReturnValue({ order: supabaseMocks.order });
+beforeEach(() => {
+  supabaseMocks.from.mockReset();
 });
 
 describe("project estimate sheet repository", () => {
   it("returns lightweight estimate sheets with updatedAt freshness metadata", async () => {
-    supabaseMocks.order.mockResolvedValue({
+    const estimatesBuilder = createBuilder();
+    estimatesBuilder.order.mockResolvedValue({
       data: [
         {
           id: "estimate-1",
@@ -37,14 +52,15 @@ describe("project estimate sheet repository", () => {
       ],
       error: null,
     });
+    supabaseMocks.from.mockReturnValue(estimatesBuilder);
 
     const { listProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
     const result = await listProjectEstimateSheetsForProject("project-1");
 
     expect(supabaseMocks.from).toHaveBeenCalledWith("estimates");
-    expect(supabaseMocks.select).toHaveBeenCalledWith("id, name, sheet_code, updated_at");
-    expect(supabaseMocks.eq).toHaveBeenCalledWith("project_id", "project-1");
-    expect(supabaseMocks.order).toHaveBeenCalledWith("sheet_code", { ascending: true });
+    expect(estimatesBuilder.select).toHaveBeenCalledWith("id, name, sheet_code, updated_at");
+    expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(estimatesBuilder.order).toHaveBeenCalledWith("sheet_code", { ascending: true });
     expect(result).toEqual([
       {
         id: "estimate-1",
@@ -53,5 +69,85 @@ describe("project estimate sheet repository", () => {
         updatedAt: "2026-06-12T08:00:00.000Z",
       },
     ]);
+  });
+
+  it("returns recent project sheets ordered by freshness with first-node deep links", async () => {
+    const estimatesBuilder = createBuilder();
+    const nodesBuilder = createBuilder();
+    estimatesBuilder.limit.mockResolvedValue({
+      data: [
+        {
+          id: "estimate-2",
+          project_id: "project-1",
+          name: "Site Works",
+          sheet_code: null,
+          updated_at: "2026-06-13T08:00:00.000Z",
+        },
+        {
+          id: "estimate-1",
+          project_id: "project-1",
+          name: "Lobby Estimate",
+          sheet_code: "EST-002",
+          updated_at: "2026-06-12T08:00:00.000Z",
+        },
+      ],
+      error: null,
+    });
+    nodesBuilder.order.mockResolvedValue({
+      data: [
+        { id: "root-2", estimate_id: "estimate-2", kind: "group", parent_id: null },
+        { id: "root-1", estimate_id: "estimate-1", kind: "group", parent_id: null },
+        { id: "area-1", estimate_id: "estimate-1", kind: "area", parent_id: "root-1" },
+      ],
+      error: null,
+    });
+    supabaseMocks.from.mockImplementation((table: string) => {
+      if (table === "estimates") return estimatesBuilder;
+      if (table === "estimate_nodes") return nodesBuilder;
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    const { listRecentProjectEstimateSheets } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    const result = await listRecentProjectEstimateSheets("project-1");
+
+    expect(estimatesBuilder.select).toHaveBeenCalledWith("id, project_id, name, sheet_code, updated_at");
+    expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(estimatesBuilder.order).toHaveBeenNthCalledWith(1, "updated_at", { ascending: false, nullsFirst: false });
+    expect(estimatesBuilder.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
+    expect(estimatesBuilder.limit).toHaveBeenCalledWith(5);
+    expect(nodesBuilder.select).toHaveBeenCalledWith("id, estimate_id, kind, parent_id");
+    expect(nodesBuilder.in).toHaveBeenCalledWith("estimate_id", ["estimate-2", "estimate-1"]);
+    expect(nodesBuilder.order).toHaveBeenCalledWith("sort_order", { ascending: true });
+    expect(result).toEqual([
+      {
+        id: "estimate-2",
+        projectId: "project-1",
+        name: "Site Works",
+        sheetCode: null,
+        updatedAt: "2026-06-13T08:00:00.000Z",
+        firstNodeId: "root-2",
+      },
+      {
+        id: "estimate-1",
+        projectId: "project-1",
+        name: "Lobby Estimate",
+        sheetCode: "EST-002",
+        updatedAt: "2026-06-12T08:00:00.000Z",
+        firstNodeId: "area-1",
+      },
+    ]);
+  });
+
+  it("clamps recent sheet limits to 10 and skips node lookup when no sheets exist", async () => {
+    const estimatesBuilder = createBuilder();
+    estimatesBuilder.limit.mockResolvedValue({ data: [], error: null });
+    supabaseMocks.from.mockReturnValue(estimatesBuilder);
+
+    const { listRecentProjectEstimateSheets } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    const result = await listRecentProjectEstimateSheets("project-1", 99);
+
+    expect(estimatesBuilder.limit).toHaveBeenCalledWith(10);
+    expect(supabaseMocks.from).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([]);
   });
 });
