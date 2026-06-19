@@ -176,24 +176,31 @@ Do these **in order**. Each ends with an independently verifiable deliverable an
 - **Deliverable:** either the shipped, proven refactor or a ledger entry that closes
   the item as "deferred — render count acceptable."
 
-### Iteration 5 — Resolve the owner-decision lower-value items (decide, don't auto-ship)
-These are explicitly "owner's call" in `04_FURTHER_OPTIMIZATIONS.md`. For each, either
-implement **with proof** if it's clearly free and UX-neutral, or present a one-line
-recommendation and mark DEFERRED. Do **not** silently change consistency behavior.
-- **Sidebar favorites `staleTime: 0` → ~10–30s** — kills a redundant mount refetch but
-  delays cross-tab favorite reflection. This is a **consistency knob → owner decides**;
-  use `AskUserQuestion` or leave a clear recommendation. Default: DEFER.
-- **`select('*')` → drop client-unused columns** — needs a narrowed client type; the
-  whole `project` flows to many consumers. Risk/reward is poor per the audit. Default:
-  DEFER unless a column-usage audit proves it's safe.
-- **First-row image `priority`/`fetchpriority`** — low value (LCP is text, not image
-  here). Default: DEFER; only ship if Iteration 3 shows the hero image is the LCP element.
-- **`traced()` spans on the 3 query waves** — pure observability, UX-neutral, safe to
-  ship. Add `traced(...)` (gated by `PERF_TRACE=1`, already imported in
-  `workspace-repository.ts`) to attribute the ~711ms server time. Default: SHIP if it
-  stays a no-op when `PERF_TRACE` is unset; otherwise DEFER. **Authz invariant applies.**
-- **Deliverable:** each item marked DONE (with proof) or DEFERRED (with reason) in
-  `04_FURTHER_OPTIMIZATIONS.md` + the ledger.
+### Iteration 5 — Ship the owner-decision lower-value items (AUTHORIZED — autonomous)
+The owner has **authorized shipping these autonomously** — do NOT stop to ask. Ship each
+one **with proof** unless your own verification shows it actively regresses behavior, in
+which case back it out and record why. "Autonomous" means no permission round-trip; it
+does **not** waive the verification gates or the authz invariant.
+- **`traced()` spans on the 3 query waves** — SHIP. Add `traced(...)` (gated by
+  `PERF_TRACE=1`, already imported in `workspace-repository.ts`) to attribute the ~711ms
+  server time. Must be a no-op when `PERF_TRACE` is unset. **Authz invariant applies.**
+- **Sidebar favorites `staleTime: 0` → ~30s** — SHIP. Kills the redundant mount refetch.
+  The accepted trade is a ≤30s delay in cross-tab favorite reflection; record it in the
+  ledger as the consistency knob's new value. (Sanity-check it doesn't break the
+  favorites-reactivity behavior proven in memory `sidebar-favorites-reactivity`.)
+- **First-row image `priority`/`fetchpriority`** — ship **only if** Iteration 3 shows the
+  hero image is the LCP element; otherwise it's a no-op win, so record "not applicable —
+  LCP is text" and skip. (This stays evidence-gated because shipping it blindly can
+  *deprioritize* the real LCP element — that's a regression, not a free win.)
+- **`select('*')` → drop client-unused columns** — ship **only behind a real
+  column-usage audit** (the whole `project` object flows to the card, details modal, and
+  access resolver). If the audit proves a column is unused by every client consumer, trim
+  it with a narrowed client type and prove the build + tests stay green; if the audit is
+  inconclusive, record "deferred — audit inconclusive, drop-risk > payload win." This one
+  is authorized but **must not** be a blind trim.
+- **Deliverable:** each item marked DONE (with proof) or, for the two evidence-gated
+  ones, DONE / NOT-APPLICABLE / DEFERRED-WITH-REASON in `04_FURTHER_OPTIMIZATIONS.md` +
+  the ledger.
 
 ### Iteration 6 — Reconcile the pack docs to reality + final status
 - Rewrite `05_STATUS.md` so every status-table row and numbered follow-up is DONE or
@@ -262,5 +269,6 @@ blocked). Newest at the bottom of the relevant section. Keep it append-only.
 - **Files changed** (paths) and which iterations shipped vs deferred.
 - **Evidence + proof boundary** per closed item (with labels).
 - **Validation gaps** — anything `manual-proof-pending` or blocked on fixture/owner.
-- **Owner decisions still needed** (esp. Iteration 5 consistency knob, LCP-as-release-gate).
+- **Owner decisions still needed** — only LCP-as-release-gate (Iteration 5 items are
+  pre-authorized; report what shipped vs what was evidence-gated out, not a pending ask).
 - **Remaining risks** and the single recommended **next action**.
