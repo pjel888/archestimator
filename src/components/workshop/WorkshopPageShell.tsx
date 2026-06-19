@@ -134,47 +134,47 @@ export async function WorkshopPageShell({
           data-workshop-workspace-surface
           className="sidebar-glass-shadow workshop-workspace-glass-surface flex h-full min-h-0 flex-col overflow-hidden rounded-xs border"
         >
-        <WorkshopTitleHeader
-          title={title}
-          eyebrow={eyebrow}
-          showEyebrow={showEyebrow}
-          actions={headerActions}
-          centerHeader={centerHeader}
-          titleSlot={titleSlot}
-          hideTitle={hideTitle}
-          breadcrumbs={resolvedBreadcrumbs}
-          projectId={projectId}
-          className={chromePaddingClass}
-        />
+          <WorkshopTitleHeader
+            title={title}
+            eyebrow={eyebrow}
+            showEyebrow={showEyebrow}
+            actions={headerActions}
+            centerHeader={centerHeader}
+            titleSlot={titleSlot}
+            hideTitle={hideTitle}
+            breadcrumbs={resolvedBreadcrumbs}
+            projectId={projectId}
+            className={chromePaddingClass}
+          />
 
-        {subHeader}
+          {subHeader}
 
-        <div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName ?? "p-2")}>
-          {description ? <p className="mb-2 max-w-2xl text-[10px] leading-4 text-tertiary">{description}</p> : null}
-          <Suspense fallback={<WorkshopShellContentFallback />}>{children}</Suspense>
-        </div>
-
-        <footer
-          className={["workshop-shell-glass-chrome workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border text-[10px] text-tertiary", chromePaddingClass].join(" ")}
-        >
-          <div className="min-w-0 flex-1">
-            <WorkshopFeedbackModal />
+          <div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName ?? "p-2")}>
+            {description ? <p className="mb-2 max-w-2xl text-[10px] leading-4 text-tertiary">{description}</p> : null}
+            <Suspense fallback={<WorkshopShellContentFallback />}>{children}</Suspense>
           </div>
-          {projectId ? (
-            <div
-              className="absolute inset-y-0 flex items-center"
-              style={{
-                left: "384px",
-                right: "388px",
-              }}
-              data-estimate-center-column="project-total-footer"
-              aria-label="Estimate running totals"
-            >
-              <ProjectTotalHeader projectId={projectId} />
+
+          <footer
+            className={["workshop-shell-glass-chrome workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible text-[10px] text-tertiary", chromePaddingClass].join(" ")}
+          >
+            <div className="min-w-0 flex-1">
+              <WorkshopFeedbackModal />
             </div>
-          ) : null}
-          {showAskFlip ? <AskFlipFooterAssistant /> : null}
-        </footer>
+            {projectId ? (
+              <div
+                className="absolute inset-y-0 flex items-center"
+                style={{
+                  left: "384px",
+                  right: "388px",
+                }}
+                data-estimate-center-column="project-total-footer"
+                aria-label="Estimate running totals"
+              >
+                <ProjectTotalHeader projectId={projectId} />
+              </div>
+            ) : null}
+            {showAskFlip ? <AskFlipFooterAssistant /> : null}
+          </footer>
         </div>
       </section>
     </main>

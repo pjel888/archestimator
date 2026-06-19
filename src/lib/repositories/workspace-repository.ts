@@ -1332,15 +1332,15 @@ async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | 
     workspaceRole,
   });
 
-  const recentProjects = payload.recentProjects;
+  const recentProjects = sortByUpdatedAtDescThenIdDesc(payload.recentProjects);
   const favoriteProjects = sortByFavoriteCreatedAt(payload.favoriteProjects, projectFavoriteCreatedAt);
-  const projects = mergeHomebaseRecords(favoriteProjects, recentProjects);
+  const projects = mergeHomebaseRecords(recentProjects, favoriteProjects);
   for (const project of payload.estimateProjects) {
     if (!projects.some((existingProject) => existingProject.id === project.id)) projects.push(project);
   }
   const estimates = mergeHomebaseRecords(
-    sortByFavoriteCreatedAt(payload.favoriteEstimates, estimateFavoriteCreatedAt),
     sortByUpdatedAtDescThenIdDesc(payload.recentEstimates),
+    sortByFavoriteCreatedAt(payload.favoriteEstimates, estimateFavoriteCreatedAt),
   );
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const visibleFavoriteProjectIds = new Set(projects.filter((project) => projectFavoriteCreatedAt.has(project.id)).map((project) => project.id));
@@ -1524,7 +1524,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
     (favoriteEstimatesResult.data ?? []) as WorkshopEstimateRecord[],
     estimateFavoriteCreatedAt,
   );
-  const estimates = mergeHomebaseRecords(favoriteEstimates, recentEstimates);
+  const estimates = mergeHomebaseRecords(recentEstimates, favoriteEstimates);
   const estimateProjectIds = Array.from(new Set(estimates.map((estimate) => estimate.project_id)));
   const initialKnownProjectIds = new Set(recentProjectIds);
   const missingProjectIds = estimateProjectIds.filter((projectId) => !initialKnownProjectIds.has(projectId));
@@ -1553,7 +1553,7 @@ async function getWorkshopHomebaseDataAppPath(): Promise<WorkshopHomebaseData> {
       projectCode: null,
       favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
     }));
-  const projects = mergeHomebaseRecords(sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt), recentProjects);
+  const projects = mergeHomebaseRecords(recentProjects, sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt));
   for (const project of backfillProjects) {
     if (!projects.some((existingProject) => existingProject.id === project.id)) projects.push(project);
   }

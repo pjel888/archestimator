@@ -18,6 +18,7 @@ import {
 } from "./lib";
 
 type WorkshopDashboardProps = WorkshopDashboardData & {
+  favoritesScope: { workspaceId: string; userId: string };
   userDisplayName?: string | null;
 };
 
@@ -105,6 +106,7 @@ function RecentlyAddedComponents({ components }: { components: DashboardLibraryS
 export function WorkshopDashboard({
   homebase,
   favoriteProjects,
+  favoritesScope,
   librarySpotlight,
   userDisplayName,
 }: WorkshopDashboardProps) {
@@ -293,14 +295,24 @@ export function WorkshopDashboard({
             <div className="dashboard-desk">
               <div className="desk-board">
                 <div className="desk-board-favs">
-                  <FavoritesTree favoriteProjects={favoriteProjects} embedded />
+                  <FavoritesTree
+                    key={`${favoritesScope.workspaceId}:${favoritesScope.userId}`}
+                    favoriteProjects={favoriteProjects}
+                    favoritesScope={favoritesScope}
+                    embedded
+                  />
                 </div>
                 <div className="desk-board-recents">
                   <div className="desk-recproj">
-                    <RecentProjectsList projects={homebase.projects} embedded />
+                    <RecentProjectsList projects={homebase.projects} favoritesScope={favoritesScope} embedded />
                   </div>
                   <div className="desk-recsheet">
-                    <RecentSheetsList estimates={homebase.estimates} embedded />
+                    <RecentSheetsList
+                      estimates={homebase.estimates}
+                      favoriteProjects={favoriteProjects}
+                      favoritesScope={favoritesScope}
+                      embedded
+                    />
                   </div>
                 </div>
               </div>

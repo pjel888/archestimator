@@ -133,6 +133,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
         <WorkshopDashboard
           homebase={homebase}
           favoriteProjects={favoriteProjects}
+          favoritesScope={favoritesScope}
           librarySpotlight={librarySpotlight}
           userDisplayName={currentUser.displayName}
         />

@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   CaretDown,
@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { cn } from "@/lib/ui/cn";
+import { useSidebarFavoritesQuery } from "@/hooks/use-sidebar-favorites-query";
 
 import type {
   MainSidebarFavoriteProject,
@@ -24,6 +25,7 @@ import type {
 
 type FavoritesTreeProps = {
   favoriteProjects: MainSidebarFavoriteProject[];
+  favoritesScope: { workspaceId: string; userId: string };
   embedded?: boolean;
 };
 
@@ -33,18 +35,45 @@ const FOCUS_RING =
 const ROW_LINK =
   "flex min-w-0 flex-1 items-center gap-2 rounded-xs px-2 py-2 hover:bg-surface-muted";
 
-export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesTreeProps) {
+export function FavoritesTree({ favoriteProjects, favoritesScope, embedded = false }: FavoritesTreeProps) {
+  const favoritesQuery = useSidebarFavoritesQuery({
+    scope: favoritesScope,
+    initialData: favoriteProjects,
+  });
+  const projects = favoritesQuery.data ?? favoriteProjects;
+
   // Default: expand every project that actually has favorite sheets, so the
   // tree is useful on first paint.
   const [openIds, setOpenIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
-    for (const project of favoriteProjects) {
+    for (const project of projects) {
       if (project.favoriteEstimateSheets.length > 0) {
         initial.add(project.id);
       }
     }
     return initial;
   });
+  const previousSheetProjectIdsRef = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    const sheetProjectIds = new Set(
+      projects
+        .filter((project) => project.favoriteEstimateSheets.length > 0)
+        .map((project) => project.id),
+    );
+    const previousSheetProjectIds = previousSheetProjectIdsRef.current;
+    previousSheetProjectIdsRef.current = sheetProjectIds;
+    if (!previousSheetProjectIds) return;
+
+    const newlySheetfulProjectIds = Array.from(sheetProjectIds).filter((id) => !previousSheetProjectIds.has(id));
+    if (newlySheetfulProjectIds.length === 0) return;
+
+    setOpenIds((current) => {
+      const next = new Set(current);
+      for (const id of newlySheetfulProjectIds) next.add(id);
+      return next;
+    });
+  }, [projects]);
 
   // Roving tabindex: one focusable item at a time; arrow keys move between the
   // flattened set of visible focus targets (project toggles/links + open
@@ -56,7 +85,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
   // Plain derived value (the React Compiler memoizes it) — declared before the
   // handlers that read it so the compiler can track the dependency cleanly.
   const flatItems: { key: string; level: number }[] = [];
-  for (const project of favoriteProjects) {
+  for (const project of projects) {
     flatItems.push({ key: `project:${project.id}`, level: 1 });
     if (openIds.has(project.id)) {
       for (const sheet of project.favoriteEstimateSheets) {
@@ -64,6 +93,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
       }
     }
   }
+  const visibleActiveIndex = flatItems.length === 0 ? 0 : Math.min(activeIndex, flatItems.length - 1);
 
   const toggle = (id: string) => {
     setOpenIds((prev) => {
@@ -96,11 +126,11 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
-        focusItemAt(activeIndex + 1);
+        focusItemAt(visibleActiveIndex + 1);
         break;
       case "ArrowUp":
         event.preventDefault();
-        focusItemAt(activeIndex - 1);
+        focusItemAt(visibleActiveIndex - 1);
         break;
       case "Home":
         event.preventDefault();
@@ -112,10 +142,10 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
         break;
       case "ArrowRight": {
         // Expand the focused project (tree convention). Sheets are not expandable.
-        const item = flatItems[activeIndex];
+        const item = flatItems[visibleActiveIndex];
         if (item?.key.startsWith("project:")) {
           const id = item.key.slice("project:".length);
-          const project = favoriteProjects.find((candidate) => candidate.id === id);
+          const project = projects.find((candidate) => candidate.id === id);
           if (project && project.favoriteEstimateSheets.length > 0 && !openIds.has(id)) {
             event.preventDefault();
             toggle(id);
@@ -125,7 +155,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
       }
       case "ArrowLeft": {
         // Collapse the focused project.
-        const item = flatItems[activeIndex];
+        const item = flatItems[visibleActiveIndex];
         if (item?.key.startsWith("project:")) {
           const id = item.key.slice("project:".length);
           if (openIds.has(id)) {
@@ -159,7 +189,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
         </h2>
       </div>
 
-      {favoriteProjects.length === 0 ? (
+      {projects.length === 0 ? (
         <p className="border-t border-hairline px-2 py-2 text-[10px] text-secondary">
           Star a project to pin it here.
         </p>
@@ -171,14 +201,14 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
           onKeyDown={handleKeyDown}
           className="min-h-0 flex-1 overflow-y-auto border-t border-hairline py-0"
         >
-          {favoriteProjects.map((project) => {
+          {projects.map((project) => {
             const hasSheets = project.favoriteEstimateSheets.length > 0;
             const open = openIds.has(project.id);
             const projectKey = `project:${project.id}`;
             const projectIndex = flatItems.findIndex(
               (item) => item.key === projectKey,
             );
-            const isActive = projectIndex === activeIndex;
+            const isActive = projectIndex === visibleActiveIndex;
 
             return (
               <div
@@ -243,7 +273,7 @@ export function FavoritesTree({ favoriteProjects, embedded = false }: FavoritesT
                       const sheetIndex = flatItems.findIndex(
                         (item) => item.key === sheetKey,
                       );
-                      const sheetActive = sheetIndex === activeIndex;
+                      const sheetActive = sheetIndex === visibleActiveIndex;
 
                       return (
                         <div

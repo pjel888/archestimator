@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { memo, useMemo, type ReactNode } from "react";
 import {
@@ -455,15 +454,18 @@ function LiveProjectCardImpl({
     return (
       <div className={cn("relative shrink-0 overflow-hidden bg-surfaceMuted", wrapperClass)} data-project-card-thumbnail>
         {imageUrl ? (
-          // Same-origin image (served via /api/projects/images), so Vercel's image optimizer
-          // produces AVIF/WebP + responsive srcset, CDN-cached. `sizes` matches the
-          // minmax(248px,1fr) card grid so it never fetches more than the box needs.
-          <Image
+          // Plain <img>, NOT next/image: the image is served by the auth-gated proxy
+          // (/api/projects/images), and only a browser request carries the user's session
+          // cookie. next/image's optimizer fetches the source server-side WITHOUT that cookie,
+          // so the protected image can't be retrieved (blank). The big win is already banked by
+          // serving the 512px thumbnail variant (getProjectImageUrl) into this ~248px box.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={imageUrl}
             alt=""
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 320px"
-            className="object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartBar, ChartBarHorizontal, ClipboardText, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
+import { ChartBar, ChartBarHorizontal, ClipboardText } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 type ProjectMiniSidebarProps = {
@@ -39,18 +39,12 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       icon: ChartBarHorizontal,
       exact: false,
     },
-    {
-      href: `/workshop/projects/${projectId}/publish`,
-      label: "Publish",
-      icon: ShareNetwork,
-      exact: false,
-    },
   ];
 
   if (isEstimateSheetRoute) return null;
 
   return (
-    <aside className="relative z-10 hidden w-[104px] shrink-0 border-r border-hairline bg-white lg:block" aria-label="Project navigation">
+    <aside className="relative z-10 hidden w-[104px] shrink-0 lg:block" aria-label="Project navigation">
       <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
         {links.map((link) => {
           const Icon = link.icon;
@@ -62,8 +56,10 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
               href={link.href}
               aria-current={active ? "page" : undefined}
               className={[
-                "flex h-7 items-center gap-1 rounded-xs p-1 text-[10px] font-medium leading-none transition-colors",
-                active ? "bg-surface-muted text-ink" : "text-tertiary hover:bg-surface-muted hover:text-ink",
+                "flex h-7 items-center gap-1 rounded-xs border border-transparent p-1 text-[10px] font-medium leading-none transition-colors",
+                active
+                  ? "workshop-project-card-control text-ink"
+                  : "text-tertiary hover:border-[color:var(--glass-border)] hover:bg-white/45 hover:text-ink",
               ].join(" ")}
             >
               <Icon size={14} aria-hidden="true" />

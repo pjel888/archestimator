@@ -59,7 +59,7 @@ export function StaticWorkshopLoadingShell({
         <footer
           aria-hidden="true"
           className={[
-            "workshop-shell-glass-chrome workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border text-[10px] text-tertiary",
+            "workshop-shell-glass-chrome workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible text-[10px] text-tertiary",
             chromePaddingClass,
           ].join(" ")}
         />

@@ -44,9 +44,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
         </Suspense>
       }
     >
-      <div className="flex h-full min-h-0 overflow-hidden bg-white">
+      <div className="flex h-full min-h-0 overflow-hidden">
         <ProjectMiniSidebar projectId={projectId} />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-hidden">
             <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
           </div>
