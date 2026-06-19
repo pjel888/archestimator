@@ -55,6 +55,19 @@ type PublicationLookupRow = Pick<
 >;
 
 type PublicationSnapshotLookupRow = PublicationLookupRow & Pick<Tables<"project_publications">, "snapshot_json">;
+type InsertClientCommentRpcArgs = Omit<
+  Database["public"]["Functions"]["insert_client_comment"]["Args"],
+  "p_estimate_id" | "p_row_id"
+> & {
+  p_estimate_id: string | null;
+  p_row_id: string | null;
+};
+type SubmitClientResponseRpcArgs = Omit<
+  Database["public"]["Functions"]["submit_client_response"]["Args"],
+  "p_note"
+> & {
+  p_note: string | null;
+};
 
 export function createPublicationServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -955,15 +968,18 @@ export async function insertSharedLinkComment(params: {
   const sanitizedBody = params.body.trim().slice(0, 1000);
 
   // Call the exact P3 RPC (validates active pub + recipient match internally)
-  // P3 RPC (insert_client_comment) + shared_link_* tables are runtime-verified; generated types lag local Supabase regen.
-  const { data: commentId, error: rpcErr } = await supabase.rpc("insert_client_comment", {
+  const insertClientCommentArgs: InsertClientCommentRpcArgs = {
     p_token_hash: pubHash,
     p_recipient_token_hash: recipientTokenHash,
     p_estimate_id: params.estimateId ?? null,
     p_row_id: params.rowId ?? null,
     p_body: sanitizedBody,
     p_expected_snapshot_version: params.expectedSnapshotVersion,
-  });
+  };
+  const { data: commentId, error: rpcErr } = await supabase.rpc(
+    "insert_client_comment",
+    insertClientCommentArgs as Database["public"]["Functions"]["insert_client_comment"]["Args"],
+  );
 
   if (rpcErr) throw new Error(rpcErr.message);
   if (!commentId) throw new Error("Failed to insert comment.");
@@ -1020,14 +1036,17 @@ export async function submitSharedLinkDecision(params: {
   const trimmedNote = params.note ? params.note.trim().slice(0, 2000) : null;
 
   // Call the exact P3 RPC (validates active pub + recipient + performs snapshot_version_at_decision lock + unique conflict)
-  // P3 RPC (submit_client_response) + shared_link_responses table are runtime-verified; generated types lag local Supabase regen.
-  const { data: responseId, error: rpcErr } = await supabase.rpc("submit_client_response", {
+  const submitClientResponseArgs: SubmitClientResponseRpcArgs = {
     p_token_hash: pubHash,
     p_recipient_token_hash: recipientTokenHash,
     p_decision: params.decision,
     p_note: trimmedNote,
     p_expected_snapshot_version: params.expectedSnapshotVersion,
-  });
+  };
+  const { data: responseId, error: rpcErr } = await supabase.rpc(
+    "submit_client_response",
+    submitClientResponseArgs as Database["public"]["Functions"]["submit_client_response"]["Args"],
+  );
 
   if (rpcErr) throw new Error(rpcErr.message);
   if (!responseId) {

@@ -1422,7 +1422,7 @@ export async function loadSharedLinkActivity(
       created_at: r.created_at,
       decision: r.decision,
       body: r.note || undefined,
-      recipientDisplayName: recipientDisplayNames.get(r.recipient_id),
+      recipientDisplayName: r.recipient_id ? recipientDisplayNames.get(r.recipient_id) : undefined,
     })
   );
   (eventsRes.data ?? []).forEach((e) => {
