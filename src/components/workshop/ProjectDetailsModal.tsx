@@ -179,7 +179,7 @@ export function ProjectDetailsModal({ project, onClose, onDeleteProject, onSaved
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/25 p-2 backdrop-blur-md">
-      <button type="button" className="absolute inset-0 cursor-default" aria-label="Close project details" onClick={onClose} />
+      <button type="button" className="absolute inset-0 cursor-pointer" aria-label="Close project details" onClick={onClose} />
       <section
         role="dialog"
         aria-modal="true"

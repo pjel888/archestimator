@@ -55,7 +55,7 @@ function ContextMenuSubTrigger({
       data-slot="context-menu-sub-trigger"
       data-inset={inset}
       className={cn(
-        "flex min-h-7 cursor-default select-none items-center gap-2 rounded-xs px-2 py-1 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[inset]:pl-8 data-[state=open]:bg-surface-muted [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
+        "flex min-h-7 cursor-pointer select-none items-center gap-2 rounded-xs px-2 py-1 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[inset]:pl-8 data-[state=open]:bg-surface-muted [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -115,7 +115,7 @@ function ContextMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "relative flex min-h-7 cursor-default select-none items-center gap-2 rounded-xs px-2 py-1 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 data-[variant=destructive]:text-danger data-[variant=destructive]:focus:bg-danger-soft data-[variant=destructive]:focus:text-danger [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
+        "relative flex min-h-7 cursor-pointer select-none items-center gap-2 rounded-xs px-2 py-1 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 data-[variant=destructive]:text-danger data-[variant=destructive]:focus:bg-danger-soft data-[variant=destructive]:focus:text-danger [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -133,7 +133,7 @@ function ContextMenuCheckboxItem({
     <ContextMenuPrimitive.CheckboxItem
       data-slot="context-menu-checkbox-item"
       className={cn(
-        "relative flex min-h-7 cursor-default select-none items-center gap-2 rounded-xs py-1 pl-8 pr-2 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
+        "relative flex min-h-7 cursor-pointer select-none items-center gap-2 rounded-xs py-1 pl-8 pr-2 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
         className,
       )}
       checked={checked}
@@ -158,7 +158,7 @@ function ContextMenuRadioItem({
     <ContextMenuPrimitive.RadioItem
       data-slot="context-menu-radio-item"
       className={cn(
-        "relative flex min-h-7 cursor-default select-none items-center gap-2 rounded-xs py-1 pl-8 pr-2 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
+        "relative flex min-h-7 cursor-pointer select-none items-center gap-2 rounded-xs py-1 pl-8 pr-2 text-[10px] font-medium leading-3 text-ink outline-none transition focus:bg-surface-muted focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3 [&_svg]:shrink-0",
         className,
       )}
       {...props}
