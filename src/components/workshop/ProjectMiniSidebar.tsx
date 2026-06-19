@@ -56,7 +56,7 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
               href={link.href}
               aria-current={active ? "page" : undefined}
               className={[
-                "flex h-7 items-center gap-1 rounded-xs border border-transparent p-1 text-[10px] font-medium leading-none transition-colors",
+                "flex h-8 items-center gap-1 rounded-xs border border-transparent p-1 text-[10px] font-medium leading-none transition-colors",
                 active
                   ? "workshop-project-card-control text-ink"
                   : "text-tertiary hover:border-[color:var(--glass-border)] hover:bg-white/45 hover:text-ink",

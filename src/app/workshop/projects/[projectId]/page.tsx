@@ -3,8 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { ProjectDashboardClient, type ProjectPublicationDashboardStatus } from "@/components/workshop/ProjectDashboardClient";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { isUuid } from "@/lib/ids";
+import { createEmptyProjectActivityPage, listProjectActivityPage } from "@/lib/repositories/project-activity-repository";
 import { listRecentProjectEstimateSheets } from "@/lib/repositories/project-estimate-sheets-repository";
+import { getProjectLocation } from "@/lib/repositories/project-location-repository";
 import { getCurrentWorkspaceProject, getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectDashboardPageProps = {
@@ -40,6 +43,13 @@ function createPublicationDashboardStatus(summary: ProjectPublicationSummary | n
   };
 }
 
+async function canEditProject(projectId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("can_edit_project", { target_project_id: projectId });
+  if (error) return false;
+  return data === true;
+}
+
 export default async function ProjectDashboardPage({ params }: ProjectDashboardPageProps) {
   const { projectId } = await params;
   const { project } = await getCurrentWorkspaceProject(projectId);
@@ -59,9 +69,15 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     currencyCode: "PHP",
   };
 
-  const [recentSheets, publicationSummary] = project
-    ? await Promise.all([listRecentProjectEstimateSheets(project.id), getProjectPublicationSummary(project.id)])
-    : [[], null];
+  const [recentSheets, publicationSummary, activity, canEdit] = project
+    ? await Promise.all([
+      listRecentProjectEstimateSheets(project.id),
+      getProjectPublicationSummary(project.id),
+      listProjectActivityPage({ projectId: project.id }),
+      canEditProject(project.id),
+    ])
+    : [[], null, createEmptyProjectActivityPage(), false];
+  const projectLocation = project && canEdit ? await getProjectLocation(project.id) : null;
 
   return (
     <ProjectDashboardClient
@@ -69,6 +85,9 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
       fallback={fallback}
       recentSheets={recentSheets}
       publicationStatus={createPublicationDashboardStatus(publicationSummary)}
+      activity={activity}
+      projectLocation={projectLocation}
+      canEditProject={canEdit}
     />
   );
 }
