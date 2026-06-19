@@ -45,7 +45,7 @@ export function LibraryCardLink({ href, className }: LibraryCardLinkProps) {
           size={32}
           weight="regular"
           aria-hidden="true"
-          className="dashboard-destination-card-icon transition-[color,transform] duration-[200ms] ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+          className="dashboard-destination-card-icon transition-colors duration-[200ms] ease-out motion-reduce:transition-none"
         />
       </Link>
 
