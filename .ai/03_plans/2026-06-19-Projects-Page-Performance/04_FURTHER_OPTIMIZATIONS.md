@@ -1,0 +1,90 @@
+# Further optimizations — exhaustive audit + what shipped
+
+2026-06-19. Four parallel adversarial auditors (bundle, image, data/network,
+render) hunted for every remaining `/workshop/projects` optimization that does
+**not** sacrifice UX/UI. This is the honest "have we exhausted it?" ledger:
+what shipped this round, what's left, and why.
+
+## Shipped this round (load-speed wins)
+
+### IMG — the 414 KB image bug + `next/image` (biggest single win)
+The upload pipeline (`src/app/api/projects/images/route.ts`) already generates a
+**512 px thumbnail** (`metadata.projectImageThumbnailUrl`) alongside the 1600 px
+full image, but the card read the **full** image into a ~248–320 px box (the
+414 KB the live capture found).
+- `LiveProjectCard.tsx` `getProjectImageUrl` now prefers
+  `projectImageThumbnailUrl ?? projectImageUrl` (fallback keeps pre-thumbnail
+  projects working). **~85–90% fewer image bytes per card.**
+- Migrated the card `<img>` → **`next/image`** (`fill` + `sizes` matching the
+  `minmax(248px,1fr)` grid). Images are **same-origin** (`/api/projects/images?path=`),
+  so `remotePatterns` is irrelevant and **Vercel's optimizer** serves AVIF/WebP +
+  responsive `srcset`, CDN-cached. (Confirmed safe: the prior "arbitrary URL" worry
+  doesn't apply — the write path always produces a same-origin proxy URL.)
+
+### STREAM — Suspense boundary so the shell flushes immediately
+`page.tsx` previously `await`ed the whole data fetch before returning any JSX. The
+fetch now lives in an async `ProjectsData` child inside `<Suspense fallback=…>`, so
+the shell chrome streams to the browser instantly and the grid streams in. Fallback
+reuses the exact `loading.tsx` skeleton (extracted to `ProjectsListSkeleton`) → no
+double-flash.
+
+### BUNDLE — code-split interaction-only components
+`BulkDestructivePreviewModal` was statically imported (mounted always), which
+dragged the whole dialog stack into the entry chunk and defeated the other modals'
+lazy split. Now: `BulkDestructivePreviewModal` + `ManageGroupsPopover` are
+`next/dynamic({ ssr:false })`; `NewProjectModal`/`ProjectDetailsModal` gained
+`{ ssr:false }`. The bulk-delete modal is gated behind a `bulkDeleteModalMounted`
+flag (deferred to first delete, then kept mounted so its open/close animation stays
+intact). Est. **~8–12 KB gzip** off the 21.2 KB entry chunk, all behind deliberate
+user actions → no UX change.
+
+**Verification:** type-check clean for all touched files; projects-page +
+LiveProjectCard suites pass (the lone failure is the pre-existing concurrent
+liquid-glass test). A full `next build` is currently blocked by a concurrent agent's
+in-flight RPC/types refactor (errors in `estimates/actions.ts`,
+`publication/*` — not these changes); re-run `next build` once the tree is clean.
+
+## Also shipped (render + micro-wins)
+
+### RENDER — group-mode memo gap FIXED (O(N) → O(1))
+In group-organize mode, every owned card used to re-render on any parent state change
+because `groupAssignMenu={renderProjectGroupMenu(item)}` passed a fresh ReactNode,
+defeating `memo`. **Fixed:** extracted a module-level memoized `ProjectCardRow` that
+receives the menu's *primitive* inputs (`effectiveGroupId`, `groupBusy`, `projectGroups`,
+showGroupMenu) + stable callbacks (`assignProjectToGroup` now wrapped in
+`useStableCallback`) and builds the `<DropdownMenu>` via `useMemo` **below** the memo
+boundary. Now only the card whose effective-group/busy state changed re-renders. The
+LD-10 override-aware checkmark + `aria-busy` are preserved (passed as derived props).
+Verified: type-check clean + projects-page group-mode/card-layout/organize tests pass.
+
+### Micro-wins
+- **`Roboto_Mono` now `display:"swap"`** (`layout.tsx`) — removes a FOIT window.
+- **List-view rows gained `content-visibility:auto`** (`contain-intrinsic-size: auto 52px`)
+  so off-screen list rows skip layout/paint too (off-screen borders aren't visible).
+
+## Confirmed already-optimal (no action — closing the adversarial loop)
+- **Phosphor icons** tree-shaken via `optimizePackageImports`; no date-lib/barrel bloat.
+- **Server waves** parallel + `cache()` (proven: 208ms vs 300ms serial). RSC data
+  **correctly not** cached with `revalidate`/`unstable_cache` (per-user auth data).
+- **Server/Client split** of the 1500-line client isn't worth it — ~95% is genuinely
+  interactive; the hydration win came from code-splitting the modal subtrees instead.
+- **Prefetch-on-hover** is fine; warming TanStack queries would prefetch the wrong
+  route's data.
+- **content-visibility** sized correctly per view mode; no forced reflow.
+- Heavy deps (`@firecms/neat`, lenis) are landing-only, not on this route.
+
+## Lower-value follow-ups (optional, owner's call)
+- Sidebar favorites `staleTime: 0` → a redundant mount refetch; raising to ~10–30s
+  kills it but slightly delays cross-tab favorite reflection (a deliberate consistency
+  knob — owner decides).
+- `select('*')` → drop server-only `workspace_id`/`created_by` from the client payload
+  (needs a narrowed client type); trimming `metadata` needs the modal to fetch on open.
+- `Roboto_Mono` font missing `display:"swap"`; list-view lacks `content-visibility`.
+- First-row image `priority`/`fetchpriority` — low value here (LCP is text, not image).
+- Add `traced()` spans to the 3 query waves to attribute the ~711ms server time.
+- Patch `e2e/route-transition-performance.spec.ts` to inject the dev-auth bypass cookie
+  so the authed projects transition is measurable in CI.
+
+## Still genuinely blocked
+Production-representative authed Lighthouse — dev-auth bypass is disabled when
+`NODE_ENV=production` (security control); needs a real logged-in session.
