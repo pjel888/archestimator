@@ -40,6 +40,27 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Kimi prompt pack second-pass hardening completed (2026-06-19):**
+The `.ai/08_prompts/kimi/` drop-in pack now includes coordinator-grade handoff
+docs: `DROP_IN_HANDOFF.md`, `COORDINATION_MATRIX.md`, `LEAD_REVIEW_GUIDE.md`,
+`PROOF_BOUNDARIES.md`, `PASS_COMPLETION_PROTOCOL.md`, `QUALITY_GATE.md`, and
+`SECOND_PASS_QUALITY_AUDIT.md`. Each task folder includes neutral
+`PASS_STATUS.md`, append-only `PASS_HISTORY.md`, and checklist items requiring
+pass status, history, and folder rename. Prompts derive the current task folder
+from the base folder so later passes keep working after prefixes such as
+`1st-Pass-Completed__...`; provider apply is opt-in only via explicit
+`provider-apply` plus project `ebxxqidacheyapmmzavr`. Static quality gates
+passed for required files, pass-prefix coverage, stale path removal,
+proof-boundary vocabulary, placeholder hygiene, and diff whitespace.
+
+**Kimi database delegation prompt pack created (2026-06-19):**
+The reusable Kimi prompt pack for the nine low/mid-priority database review
+follow-ups lives at `.ai/08_prompts/kimi/`. It includes common operating rules,
+nine task folders, and same-folder templates for `PROMPT.md`, `CHECKLIST.md`,
+`REPORT.md`, `EVIDENCE.md`, and `PATCH_NOTES.md`. Each prompt is `/goal`-ready,
+local-first, multi-agent-aware, and requires Kimi to write task reports in the
+same folder before claiming completion.
+
 **Workshop Dashboard query-batching Phase 0-3 implemented and archived (2026-06-19):**
 The plan pack `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/`
 has been completed and moved to `.ai/09_archive/`. Phase 3 added the
