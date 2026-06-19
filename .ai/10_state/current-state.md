@@ -40,6 +40,12 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Kimi prompt pack archived (2026-06-19):**
+The completed Kimi database delegation prompt pack moved from live prompt paths
+`.ai/08_prompts/kimi/` and `.ai/08_prompts/kimi-all.md` to
+`.ai/09_archive/08_prompts/2026-06-19-kimi-database-delegation-prompt-pack/`.
+The active prompts folder now keeps only `.ai/08_prompts/kimi.md` as a pointer.
+
 **Kimi provider apply closeout completed (2026-06-19):**
 Codex applied the reviewed safe database subset to linked Supabase project
 `ebxxqidacheyapmmzavr`: `AC-MOD-04`, `AC-MOD-06`, T4 `P3`, `P4`, `P5`, `P6`,
