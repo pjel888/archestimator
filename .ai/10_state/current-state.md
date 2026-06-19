@@ -40,6 +40,16 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Dashboard Command Surface autonomous loop prompt created (2026-06-19):**
+The implementation handoff prompt is now available at
+`.ai/08_prompts/IMPLEMENT-2026-06-19-Project-Dashboard-Command-Surface-Loop.md`.
+It turns the 11-doc planning pack into a pasteable autonomous implementation loop
+using `$ultragoal` for durable progress, `$ultrawork` for parallel lanes, and
+`$ultraqa` for adversarial closeout. It preserves the phase gates: Phase 1 may
+implement immediately; Phase 2 activity and Phase 3 exact location/map remain
+gated by their migration/RLS/privacy/provider proof runbooks. **No source, DB,
+provider, or production state was mutated.**
+
 **Project Dashboard Command Surface planning pack hardened (2026-06-19):**
 The docs-only plan at
 `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/` was audited with
