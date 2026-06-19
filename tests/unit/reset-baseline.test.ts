@@ -116,7 +116,7 @@ describe("workshop dashboard baseline", () => {
     expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-bg)");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-bg)");
-    expect(sidebarNavItemRow).toContain("text-orange-700");
+    expect(sidebarNavItemRow).toContain("text-brand-orange-dark");
     expect(sidebarNavItemRow).toContain("text-primary");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-shadow)");
     expect(sidebarNavItemRow).toContain("var(--glass-nav-active-collapsed-shadow)");

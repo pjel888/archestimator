@@ -36,7 +36,7 @@ describe("SidebarNavItemRow", () => {
     );
 
     const link = screen.getByRole("link", { name: "Projects" });
-    expect(link).toHaveClass("text-orange-700", "before:left-1.5", "before:right-1.5");
+    expect(link).toHaveClass("text-brand-orange-dark", "before:left-1.5", "before:right-1.5");
     expect(link.className).not.toContain("before:w-9");
   });
 
@@ -52,7 +52,7 @@ describe("SidebarNavItemRow", () => {
     const link = screen.getByRole("link", { name: "Projects" });
     expect(link).toHaveClass("text-primary", "before:left-1.5", "before:w-9");
     expect(link.className).toContain("var(--glass-nav-active-collapsed-bg)");
-    expect(link).not.toHaveClass("text-orange-700");
+    expect(link).not.toHaveClass("text-brand-orange-dark");
     expect(link.className).not.toContain("before:right-1.5");
   });
 

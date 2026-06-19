@@ -58,8 +58,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain('name="projectCode"');
     expect(projectDashboardClient).toContain('name="projectImageUrl"');
     expect(projectDashboardClient).toContain('name="currencyCode"');
-    expect(projectDashboardClient).toContain('name="clientName"');
-    expect(projectDashboardClient).toContain('name="location"');
+    expect(projectDashboardClient).toContain('name={readOnly ? undefined : "clientName"}');
+    expect(projectDashboardClient).toContain('name={readOnly ? undefined : "location"}');
     expect(projectDashboardClient).toContain('aria-live="polite"');
   });
 
@@ -112,9 +112,14 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient.indexOf('label="Recent sheets"')).toBeLessThan(projectDashboardClient.indexOf('label="Published link"'));
     expect(projectDashboardClient.indexOf('label="Published link"')).toBeLessThan(projectDashboardClient.indexOf('label="Estimate activity"'));
     expect(projectDashboardClient.indexOf('label="Estimate activity"')).toBeLessThan(projectDashboardClient.indexOf('label="Location"'));
-    expect(projectDashboardClient).toContain("Activity feed is deferred");
+    expect(projectDashboardClient).toContain("No estimate activity yet.");
+    expect(projectDashboardClient).toContain("Older activity is available from estimate history.");
     expect(projectDashboardClient).toContain("No exact pin saved.");
+    expect(projectDashboardClient).toContain("Map provider disabled");
+    expect(projectDashboardClient).toContain("Save pin");
+    expect(projectDashboardClient).toContain("Clear pin");
     expect(projectDashboardClient).not.toContain("Mapbox");
+    expect(projectDashboardClient).not.toContain("maplibre");
     expect(projectDashboardClient).not.toContain("geocoder");
   });
 });

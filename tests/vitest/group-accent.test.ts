@@ -137,7 +137,7 @@ describe("resolveAccent", () => {
 });
 
 describe("non-brand-orange guard", () => {
-  const BRAND_ORANGE = { r: 170, g: 65, b: 42 }; // #AA412A
+  const BRAND_ORANGE = { r: 242, g: 68, b: 5 }; // #F24405 (Archestimator Signal)
 
   const allHexes = [
     ...GROUP_ACCENT_SWATCHES.flatMap((swatch) => [swatch.ruleColor, swatch.dotColor]),
@@ -147,7 +147,8 @@ describe("non-brand-orange guard", () => {
 
   it("contains no exact brand-orange token", () => {
     const lowered = allHexes.map((hex) => hex.toLowerCase());
-    expect(lowered).not.toContain("#aa412a");
+    expect(lowered).not.toContain("#f24405");
+    expect(lowered).not.toContain("#aa412a"); // legacy clay — still must not collide
   });
 
   it("contains no color that reads as orange/vermillion (high r, low g, low b)", () => {
@@ -188,6 +189,7 @@ describe("isGroupAccentColor", () => {
   });
 
   it("returns false for brand orange", () => {
+    expect(isGroupAccentColor("#F24405")).toBe(false);
     expect(isGroupAccentColor("#AA412A")).toBe(false);
   });
 

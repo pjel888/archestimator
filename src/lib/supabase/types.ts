@@ -1813,6 +1813,7 @@ export type Database = {
           new_snapshot: Json | null
           old_snapshot: Json | null
           payload: Json
+          project_id: string
           row_context: Json
           target_row_id: string | null
           total_delta: number | null
@@ -1833,6 +1834,7 @@ export type Database = {
           new_snapshot?: Json | null
           old_snapshot?: Json | null
           payload?: Json
+          project_id?: string
           row_context?: Json
           target_row_id?: string | null
           total_delta?: number | null
@@ -1853,6 +1855,7 @@ export type Database = {
           new_snapshot?: Json | null
           old_snapshot?: Json | null
           payload?: Json
+          project_id?: string
           row_context?: Json
           target_row_id?: string | null
           total_delta?: number | null
@@ -1865,6 +1868,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estimates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_events_estimate_project_fkey"
+            columns: ["estimate_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id", "project_id"]
           },
           {
             foreignKeyName: "estimate_sheet_events_estimate_node_id_fkey"
@@ -1886,6 +1896,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estimate_row_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_events_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
           },
           {
             foreignKeyName: "estimate_sheet_events_workspace_id_fkey"
@@ -2842,6 +2859,85 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_locations: {
+        Row: {
+          accuracy_meters: number | null
+          address_text: string | null
+          created_at: string
+          created_by: string | null
+          display_label: string | null
+          geocoder_name: string | null
+          id: string
+          latitude: number
+          longitude: number
+          metadata: Json
+          project_id: string
+          provider_place_id: string | null
+          source: string
+          updated_at: string
+          updated_by: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accuracy_meters?: number | null
+          address_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_label?: string | null
+          geocoder_name?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          metadata?: Json
+          project_id: string
+          provider_place_id?: string | null
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accuracy_meters?: number | null
+          address_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_label?: string | null
+          geocoder_name?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          metadata?: Json
+          project_id?: string
+          provider_place_id?: string | null
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_locations_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
+          },
+          {
+            foreignKeyName: "project_locations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
