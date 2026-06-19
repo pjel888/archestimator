@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 import {
   ArrowRight,
   ArrowSquareOut,
@@ -126,7 +126,7 @@ function getAccessibleAccessLabel({
   return `${projectName} project, shared project, ${role} access`;
 }
 
-export function LiveProjectCard({
+function LiveProjectCardImpl({
   project,
   viewMode = "large",
   accessKind = "owned",
@@ -730,3 +730,9 @@ export function LiveProjectCard({
     </article>
   );
 }
+
+// Memoized so cards skip re-render when an unrelated parent state slice changes. Binds in
+// the default (non-group) view where `groupAssignMenu` is undefined and the toggle handlers
+// are identity-stable (useStableCallback); owned cards in group-organize mode still update
+// because their per-card props (effective group, busy) change meaningfully.
+export const LiveProjectCard = memo(LiveProjectCardImpl);
