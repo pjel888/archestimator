@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopHeaderGreeting } from "@/components/workshop/WorkshopHeaderGreeting";
 import {
   WorkshopHomebaseClient,
   type WorkshopRemovedProjectBannerState,
@@ -118,6 +119,7 @@ export default async function WorkshopPage({ searchParams }: WorkshopPageProps) 
       title="Workshop"
       showEyebrow={false}
       hideTitle
+      titleSlot={<WorkshopHeaderGreeting displayName={currentUser.displayName} />}
       breadcrumbs={["Workshop"]}
       contentClassName="overflow-hidden"
       sidebarStatus={{ projectsBadgeCount: homebase.receivedPendingInviteCount }}

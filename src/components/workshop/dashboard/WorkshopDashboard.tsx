@@ -2,7 +2,6 @@ import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
 import { DashboardEmptyState } from "./DashboardEmptyState";
-import { DashboardHero } from "./DashboardHero";
 import { FavoritesTree } from "./FavoritesTree";
 import { ImageDestinationCard } from "./ImageDestinationCard";
 import { LibraryCardLink, LibraryHubCard } from "./LibraryHubCard";
@@ -121,11 +120,6 @@ export function WorkshopDashboard({
   return (
     <div className="dashboard-canvas-wash h-full min-h-0 overflow-y-auto">
       <div className="dashboard-root w-full p-2">
-        {/* Masthead — editorial headline only (full-bleed, no card). */}
-        <div className="dashboard-masthead dashboard-masthead--solo">
-          <DashboardHero displayName={userDisplayName} />
-        </div>
-
         {firstRun ? (
           <div className="dashboard-first-run">
             <DashboardEmptyState displayName={userDisplayName} />
