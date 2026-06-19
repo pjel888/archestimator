@@ -37,8 +37,11 @@ describe("workshop security headers (F14 / P3-2)", () => {
 describe("local next/image optimizer sources", () => {
   it("allows the project image API route to carry its dynamic storage path query", () => {
     expect(config).toContain("localPatterns: localImagePatterns");
-    expect(config).toContain('pathname: "/api/projects/images"');
     expect(config).toContain("src/app/api/projects/images/route.ts");
+
+    const projectImagePattern = config.match(/\{\s*pathname: "\/api\/projects\/images"[^}]*\}/)?.[0];
+    expect(projectImagePattern).toBeDefined();
+    expect(projectImagePattern).not.toContain("search:");
   });
 
   it("keeps existing static local image folders queryless", () => {

@@ -36,14 +36,31 @@ describe("useSidebarFavoritesQuery", () => {
       { wrapper: wrap(client) });
     expect(result.current.data).toEqual(initialData);
   });
-  it("reconciles to server truth on mount because staleTime is 0", async () => {
+  it("does NOT refetch on mount — SSR initialData is treated as fresh within staleTime", async () => {
+    // The SSR seed (initialData) is already server-truth for this navigation, so a mount refetch
+    // would just re-do the work SSR did. A non-zero staleTime suppresses it (perf: one server
+    // action round-trip saved per workshop navigation).
     const client = new QueryClient();
-    const serverTruth = [project("p1"), project("p2")];
-    fetchSidebarFavoriteProjectsMock.mockResolvedValue(serverTruth);
+    fetchSidebarFavoriteProjectsMock.mockResolvedValue([project("p1"), project("p2")]);
     const { result } = renderHook(
       () => useSidebarFavoritesQuery({ scope: { workspaceId: "ws-1", userId: "u-1" }, initialData: [project("p1")] }),
       { wrapper: wrap(client) });
+    expect(result.current.data?.map((entry) => entry.id)).toEqual(["p1"]); // initialData paints
+    await Promise.resolve(); // flush a microtask — a mount refetch would have fired here
+    expect(fetchSidebarFavoriteProjectsMock).not.toHaveBeenCalled();
+  });
+  it("reconciles to server truth when explicitly invalidated (the favorite-toggle path bypasses staleTime)", async () => {
+    // Favorite/unfavorite reflection survives the staleTime bump: the toggle's onSettled
+    // invalidateQueries ignores staleTime and forces a refetch. Simulate that here.
+    const client = new QueryClient();
+    const serverTruth = [project("p1"), project("p2")];
+    fetchSidebarFavoriteProjectsMock.mockResolvedValue(serverTruth);
+    const scope = { workspaceId: "ws-1", userId: "u-1" };
+    const { result } = renderHook(
+      () => useSidebarFavoritesQuery({ scope, initialData: [project("p1")] }),
+      { wrapper: wrap(client) });
     expect(result.current.data?.map((entry) => entry.id)).toEqual(["p1"]); // initialData paints first
+    await client.invalidateQueries({ queryKey: favoritesQueryKeys.sidebar(scope) });
     await waitFor(() => expect(fetchSidebarFavoriteProjectsMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(result.current.data?.map((entry) => entry.id)).toEqual(["p1", "p2"]));
   });

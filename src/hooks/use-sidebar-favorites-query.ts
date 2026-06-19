@@ -27,7 +27,14 @@ export function useSidebarFavoritesQuery(args: {
     queryKey: favoritesQueryKeys.sidebar(scope),
     queryFn: fetchSidebarFavoriteProjects,
     initialData,
-    staleTime: 0, // D4: override global 5-min so remount + onSettled invalidation refetch
+    // D4 (revised): SSR seeds `initialData` (listMainSidebarFavoriteProjects in WorkshopPageShell),
+    // so a `staleTime: 0` mount refetch just re-does the work SSR already did on every workshop
+    // navigation. With no `initialDataUpdatedAt`, React Query ages initialData from mount, so a
+    // non-zero staleTime treats the SSR seed as fresh and suppresses that redundant mount refetch.
+    // Favorite/unfavorite STILL reflect instantly: the toggle's onSettled invalidateQueries
+    // (use-toggle-project-favorite.ts) bypasses staleTime and always refetches. Cross-tab /
+    // cross-route changes reconcile within this window (acceptable, low-stakes).
+    staleTime: 30_000,
     enabled, // null-scope loading shells/unauth read initialData without a junk-key refetch
   });
 }
