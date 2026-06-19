@@ -47,3 +47,45 @@ describe("workspace_homebase_summary Phase 3 RPC contract", () => {
     expect(packageJson).toContain('"prove:workspace-homebase-summary"');
   });
 });
+
+describe("workspace_homebase_summary RPC fallback precision", () => {
+  it("defines a rollout-only fallback guard", () => {
+    expect(repository).toMatch(/export function isWorkspaceHomebaseSummaryRolloutError\(error: unknown\): boolean/);
+    expect(repository).toContain('code === "PGRST202"');
+    expect(repository).toContain('code === "42883"');
+    expect(repository).toContain('message.includes("schema cache")');
+    expect(repository).toContain('message.includes("could not find the function")');
+  });
+
+  it("binds RPC errors and rethrows non-rollout failures", () => {
+    const rpcPathStart = repository.indexOf("async function getWorkshopHomebaseDataRpcPath");
+    const rpcPathEnd = repository.indexOf("async function getWorkshopHomebaseDataAppPath", rpcPathStart);
+    expect(rpcPathStart).toBeGreaterThan(-1);
+    expect(rpcPathEnd).toBeGreaterThan(rpcPathStart);
+    const rpcPathSource = repository.slice(rpcPathStart, rpcPathEnd);
+    expect(rpcPathSource).toContain("catch (error)");
+    expect(rpcPathSource).toContain("isWorkspaceHomebaseSummaryRolloutError(error)");
+    expect(rpcPathSource).toContain("throw error;");
+  });
+
+  it("logs a sanitized fallback warning without raw payloads or secrets", () => {
+    const rpcPathStart = repository.indexOf("async function getWorkshopHomebaseDataRpcPath");
+    const rpcPathEnd = repository.indexOf("async function getWorkshopHomebaseDataAppPath", rpcPathStart);
+    const rpcPathSource = repository.slice(rpcPathStart, rpcPathEnd);
+    expect(rpcPathSource).toContain("[workspace_homebase_summary] RPC unavailable (code=");
+    expect(rpcPathSource).toContain(", message=");
+    expect(rpcPathSource).toContain(", details=");
+    expect(rpcPathSource).toContain("); using app path");
+    expect(rpcPathSource).not.toContain("${error}");
+    expect(rpcPathSource).not.toContain("String(error)");
+  });
+
+  it("rejects invalid array elements instead of casting them silently", () => {
+    const readRpcArrayStart = repository.indexOf("function readRpcArray");
+    const readRpcArrayEnd = repository.indexOf("function parseWorkshopHomebaseSummaryPayload", readRpcArrayStart);
+    expect(readRpcArrayStart).toBeGreaterThan(-1);
+    expect(readRpcArrayEnd).toBeGreaterThan(readRpcArrayStart);
+    const readRpcArraySource = repository.slice(readRpcArrayStart, readRpcArrayEnd);
+    expect(readRpcArraySource).toContain("workspace_homebase_summary invalid array element");
+  });
+});

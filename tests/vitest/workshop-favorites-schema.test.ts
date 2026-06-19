@@ -39,7 +39,7 @@ describe("workshop favorites schema", () => {
     expect(supabaseTypes).toContain("project_favorites: {");
     expect(supabaseTypes).toContain("estimate_favorites: {");
     expect(repository).toContain("export async function getWorkshopHomebaseData");
-    expect(repository).toContain("export async function listCurrentWorkspaceProjects");
+    expect(repository).toContain("export const listCurrentWorkspaceProjects = cache(");
     expect(repository).toContain(".from(\"project_favorites\")");
     expect(repository).toContain(".from(\"estimate_favorites\")");
     expect(repository).toContain("favoriteProjectIds:");

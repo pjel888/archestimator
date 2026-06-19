@@ -23,7 +23,7 @@ describe("project groups repository wiring (Part 7c, additive)", () => {
   });
 
   test("fetches groups and memberships inside the single listCurrentWorkspaceProjects batch (no N+1)", () => {
-    const fnStart = repository.indexOf("export async function listCurrentWorkspaceProjects");
+    const fnStart = repository.indexOf("export const listCurrentWorkspaceProjects = cache(");
     expect(fnStart).toBeGreaterThan(-1);
     const fnEnd = repository.indexOf("\nfunction mergeHomebaseRecords", fnStart);
     const body = repository.slice(fnStart, fnEnd === -1 ? undefined : fnEnd);
