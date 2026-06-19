@@ -33,3 +33,16 @@ describe("workshop security headers (F14 / P3-2)", () => {
     expect(config).toContain("...appAndInviteHardening");
   });
 });
+
+describe("local next/image optimizer sources", () => {
+  it("allows the project image API route to carry its dynamic storage path query", () => {
+    expect(config).toContain("localPatterns: localImagePatterns");
+    expect(config).toContain('pathname: "/api/projects/images"');
+    expect(config).toContain("src/app/api/projects/images/route.ts");
+  });
+
+  it("keeps existing static local image folders queryless", () => {
+    expect(config).toContain('pathname: "/component-thumbnails/**", search: ""');
+    expect(config).toContain('pathname: "/landing/**", search: ""');
+  });
+});

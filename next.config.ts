@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import createBundleAnalyzer from "@next/bundle-analyzer";
 
 type ImageRemotePattern = Exclude<NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number], URL>;
+type ImageLocalPattern = NonNullable<NonNullable<NextConfig["images"]>["localPatterns"]>[number];
 
 // Dev-only allowance so impeccable live mode can load. Guarded by NODE_ENV.
 const __impeccableLiveDev =
@@ -49,6 +50,15 @@ const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
   }
 })();
 
+const localImagePatterns: ImageLocalPattern[] = [
+  // Next 16 requires an explicit local pattern for queried same-origin images.
+  // The `path` query is intentionally dynamic; access control and storage-path
+  // validation live in src/app/api/projects/images/route.ts.
+  { pathname: "/api/projects/images" },
+  { pathname: "/component-thumbnails/**", search: "" },
+  { pathname: "/landing/**", search: "" },
+];
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   experimental: {
@@ -67,6 +77,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    localPatterns: localImagePatterns,
     remotePatterns: supabaseImageRemotePatterns,
   },
   async redirects() {
