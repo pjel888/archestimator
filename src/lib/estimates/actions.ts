@@ -31,7 +31,14 @@ import {
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getEstimateTabTree, getEstimateTabs, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/types";
+import type { Database, Json, Tables, TablesInsert, TablesUpdate } from "@/lib/supabase/types";
+
+type CreateEstimateNodeWithHistoryArgs = Omit<
+  Database["public"]["Functions"]["create_estimate_node_with_history"]["Args"],
+  "parent_node_id"
+> & {
+  parent_node_id: string | null;
+};
 
 function readRequiredText(formData: FormData, key: string) {
   const value = String(formData.get(key) ?? "").trim();
@@ -2112,7 +2119,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
 
   const siblingRows = (siblings ?? []) as CreateEstimateNodeSiblingRow[];
   const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), -1);
-  const createNodePayload = {
+  const createNodePayload: CreateEstimateNodeWithHistoryArgs = {
     target_project_id: project.id,
     target_estimate_id: estimate.id,
     parent_node_id: parentId,
@@ -2123,7 +2130,10 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
     correlation_id: randomUUID(),
     ...(estimateTabId ? { target_tab_id: estimateTabId } : {}),
   };
-  const { data: nodeResult, error: rpcError } = await supabase.rpc("create_estimate_node_with_history", createNodePayload);
+  const { data: nodeResult, error: rpcError } = await supabase.rpc(
+    "create_estimate_node_with_history",
+    createNodePayload as Database["public"]["Functions"]["create_estimate_node_with_history"]["Args"],
+  );
   if (rpcError) {
     throw new Error(`Could not create estimate tree node: ${rpcError.message}`);
   }

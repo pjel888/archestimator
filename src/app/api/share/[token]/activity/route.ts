@@ -229,7 +229,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       created_at: r.created_at,
       decision: r.decision,
       body: r.note || undefined,
-      recipientDisplayName: recipientDisplayNames.get(r.recipient_id),
+      recipientDisplayName: r.recipient_id ? recipientDisplayNames.get(r.recipient_id) : undefined,
     });
   });
   (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json" | "recipient_id">) => {
