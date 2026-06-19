@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { Suspense, memo, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
@@ -518,6 +518,111 @@ function canAssignProjectToGroup(item: ProjectListItem) {
   return item.accessKind === "owned";
 }
 
+type ProjectCardRowProps = {
+  item: ProjectListItem;
+  viewMode: ProjectCardViewMode;
+  canFavorite: boolean;
+  isFavorite: boolean;
+  favoriteBusy: boolean;
+  selectedForDeletion: boolean;
+  selectionActive: boolean;
+  canSelect: boolean;
+  onToggleSelected: (projectId: string) => void;
+  onToggleFavorite: (projectId: string, nextFavorite: boolean) => void;
+  onExpand: (project: Tables<"projects">) => void;
+  // Group-menu inputs are passed as PRIMITIVES so this row's memo can compare them by value.
+  // The menu node is built inside the memo boundary, so an unrelated parent re-render (search
+  // keystroke, another card's star) no longer creates a fresh `groupAssignMenu` for every card.
+  showGroupMenu: boolean;
+  projectGroups: ProjectGroupSummary[];
+  effectiveGroupId: string | null;
+  groupBusy: boolean;
+  onAssignToGroup: (projectId: string, groupId: string | null) => void;
+};
+
+// Memoized list row. In group-organize mode the per-card "Move to group" menu used to be a
+// fresh ReactNode prop on every parent render, defeating `memo(LiveProjectCard)` for ALL owned
+// cards. Building it here from primitive inputs means only the card whose effective group /
+// busy state actually changed re-renders (O(1) instead of O(N) per interaction).
+const ProjectCardRow = memo(function ProjectCardRow({
+  item,
+  viewMode,
+  canFavorite,
+  isFavorite,
+  favoriteBusy,
+  selectedForDeletion,
+  selectionActive,
+  canSelect,
+  onToggleSelected,
+  onToggleFavorite,
+  onExpand,
+  showGroupMenu,
+  projectGroups,
+  effectiveGroupId,
+  groupBusy,
+  onAssignToGroup,
+}: ProjectCardRowProps) {
+  const groupAssignMenu = useMemo<ReactNode>(() => {
+    if (!showGroupMenu) return undefined;
+    // LD-10: the current (effective, override-aware) group shows a trailing Check.
+    return (
+      <DropdownMenu
+        align="end"
+        trigger={
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-xs"
+            className="size-6 border-hairline bg-white"
+            aria-label={`Move ${item.project.name} to a group`}
+            aria-busy={groupBusy}
+          >
+            <FolderSimple size={13} weight="regular" aria-hidden="true" />
+          </Button>
+        }
+      >
+        {projectGroups.map((group) => (
+          <DropdownMenu.Item
+            key={group.id}
+            label={group.name}
+            selected={effectiveGroupId === group.id}
+            onClick={() => onAssignToGroup(item.project.id, group.id)}
+          />
+        ))}
+        <DropdownMenu.Item
+          label="Ungrouped"
+          selected={effectiveGroupId === null}
+          onClick={() => onAssignToGroup(item.project.id, null)}
+          disabled={effectiveGroupId === null}
+        />
+      </DropdownMenu>
+    );
+  }, [showGroupMenu, projectGroups, effectiveGroupId, groupBusy, item.project.id, item.project.name, onAssignToGroup]);
+
+  return (
+    <LiveProjectCard
+      project={item.project}
+      accessKind={item.accessKind}
+      currentUserRole={item.currentUserRole}
+      ownerWorkspaceName={item.ownerWorkspaceName}
+      pendingInvite={item.pendingInvite}
+      pendingInviteCount={item.pendingInviteCount}
+      publicationSummary={item.publicationSummary}
+      sharedEstimateCount={item.sharedEstimateCount}
+      favoriteEstimateSheets={item.favoriteEstimateSheets}
+      viewMode={viewMode}
+      isFavorite={isFavorite}
+      favoriteBusy={favoriteBusy}
+      selectedForDeletion={selectedForDeletion}
+      selectionActive={selectionActive}
+      onToggleSelected={canSelect ? onToggleSelected : undefined}
+      onToggleFavorite={canFavorite ? onToggleFavorite : undefined}
+      onExpand={onExpand}
+      groupAssignMenu={groupAssignMenu}
+    />
+  );
+});
+
 export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
@@ -614,6 +719,7 @@ export function ProjectsPageClient({
   // unrelated parent state slice changes (the wrappers always invoke the latest closure).
   const stableToggleProjectFavorite = useStableCallback(toggleProjectFavorite);
   const stableToggleProjectSelection = useStableCallback(toggleProjectSelection);
+  const stableAssignProjectToGroup = useStableCallback(assignProjectToGroup);
 
   const activeBaseProjects = activeTab === "your-projects" ? ownedProjectItems : sharedProjectItems;
 
@@ -1016,74 +1122,34 @@ export function ProjectsPageClient({
     );
   }
 
-  // D8 card kebab: the per-card "Move to group" menu, rendered in the LiveProjectCard
-  // DETAILS-ACTION menu (not the C3 hover overlay) via the optional groupAssignMenu prop.
-  // Only owned cards in Group mode get it. The checked item reflects the EFFECTIVE current
-  // group (override wins over SSR, LD-10 trailing Check via DropdownMenu.Item selected).
-  function renderProjectGroupMenu(item: ProjectListItem): ReactNode {
-    if (item.accessKind !== "owned" || organizeBy !== "group") return undefined;
-    const override = groupOverrides[item.project.id];
-    const effectiveGroupId = override !== undefined ? override : item.groupId ?? null;
-    const busy = pendingGroupProjectId === item.project.id;
-    return (
-      <DropdownMenu
-        align="end"
-        trigger={
-          <Button
-            type="button"
-            variant="secondary"
-            size="icon-xs"
-            className="size-6 border-hairline bg-white"
-            aria-label={`Move ${item.project.name} to a group`}
-            aria-busy={busy}
-          >
-            <FolderSimple size={13} weight="regular" aria-hidden="true" />
-          </Button>
-        }
-      >
-        {projectGroups.map((group) => (
-          <DropdownMenu.Item
-            key={group.id}
-            label={group.name}
-            // LD-10: the current (effective, override-aware) group shows a trailing Check.
-            selected={effectiveGroupId === group.id}
-            onClick={() => assignProjectToGroup(item.project.id, group.id)}
-          />
-        ))}
-        <DropdownMenu.Item
-          label="Ungrouped"
-          selected={effectiveGroupId === null}
-          onClick={() => assignProjectToGroup(item.project.id, null)}
-          disabled={effectiveGroupId === null}
-        />
-      </DropdownMenu>
-    );
-  }
-
+  // D8 card kebab: the per-card "Move to group" menu (owned cards in Group mode only) is built
+  // inside the memoized ProjectCardRow from the primitive inputs computed here — see
+  // ProjectCardRow for why this preserves memo while keeping the override-aware checkmark (LD-10).
   function renderLiveProjectCard(item: ProjectListItem) {
     const canFavoriteProject = item.accessKind === "owned";
+    const showGroupMenu = item.accessKind === "owned" && organizeBy === "group";
+    const override = groupOverrides[item.project.id];
+    const effectiveGroupId = override !== undefined ? override : item.groupId ?? null;
 
     return (
-      <LiveProjectCard
+      <ProjectCardRow
         key={item.project.id}
-        project={item.project}
-        accessKind={item.accessKind}
-        currentUserRole={item.currentUserRole}
-        ownerWorkspaceName={item.ownerWorkspaceName}
-        pendingInvite={item.pendingInvite}
-        pendingInviteCount={item.pendingInviteCount}
-        publicationSummary={item.publicationSummary}
-        sharedEstimateCount={item.sharedEstimateCount}
-        favoriteEstimateSheets={item.favoriteEstimateSheets}
+        item={item}
         viewMode={projectViewMode}
+        canFavorite={canFavoriteProject}
         isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
         favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
         selectedForDeletion={selectedProjectIds.has(item.project.id)}
         selectionActive={selectedVisibleProjectIds.length > 0}
-        onToggleSelected={canSelectProjectForDeletion(item) ? stableToggleProjectSelection : undefined}
-        onToggleFavorite={canFavoriteProject ? stableToggleProjectFavorite : undefined}
+        canSelect={canSelectProjectForDeletion(item)}
+        onToggleSelected={stableToggleProjectSelection}
+        onToggleFavorite={stableToggleProjectFavorite}
         onExpand={setExpandedProject}
-        groupAssignMenu={renderProjectGroupMenu(item)}
+        showGroupMenu={showGroupMenu}
+        projectGroups={projectGroups}
+        effectiveGroupId={effectiveGroupId}
+        groupBusy={pendingGroupProjectId === item.project.id}
+        onAssignToGroup={stableAssignProjectToGroup}
       />
     );
   }

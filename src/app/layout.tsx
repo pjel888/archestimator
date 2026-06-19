@@ -5,7 +5,7 @@ import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { AppProviders } from "./providers";
 import "./globals.css";
 
-const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"] });
+const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"], display: "swap" });
 // Technical display face for the Workshop dashboard's editorial headline layer,
 // inspired by the "Improve ROI" reference. Body UI keeps the SF Pro stack.
 const doto = Doto({

@@ -542,6 +542,9 @@ function LiveProjectCardImpl({
         aria-label={cardLabel}
         className={cn(
           "workshop-project-card-glass group relative flex min-w-0 items-center gap-3 px-3 py-2 motion-reduce:transition-none",
+          // Perf: skip layout/paint for off-screen list rows too (off-screen borders aren't
+          // visible; the `auto` intrinsic size self-corrects to each row's real height).
+          "[content-visibility:auto] [contain-intrinsic-size:auto_52px]",
           // accentSoft and surfaceMuted are the same grey, so a selected row needs a
           // ring to stay distinct from a merely hovered one during bulk delete.
           selectedForDeletion ? "ring-1 ring-inset ring-ink" : null,
