@@ -75,6 +75,41 @@ Lifecycle proof:
 - export/delete/DSAR runbook includes location fields;
 - retention decision for geocoder fields is recorded.
 
+## Structured Location Lifecycle / DSAR
+
+`project_locations` stores exact manual/imported project coordinates for the
+authenticated editor dashboard only. Treat latitude, longitude, accuracy,
+display label, address text, provider name, provider place id, and metadata as
+private project data.
+
+Account/project export and DSAR handling:
+
+- Include `project_locations` fields only in authenticated owner/editor
+  account or project data exports where the requester is authorized to edit the
+  project.
+- Do not include exact coordinates in public share pages, proposal package
+  exports, AI/provider context, analytics payloads, or broad `projects` row
+  DTOs by default.
+- Sheet-only collaborators and project viewers do not receive exact coordinate
+  exports unless a future policy explicitly grants that scope.
+
+Delete/anonymization behavior:
+
+- Project deletion cascades the one active location row through
+  `(project_id, workspace_id) -> projects(id, workspace_id)`.
+- Workspace deletion cascades location rows through the same project boundary.
+- User deletion sets `created_by` and `updated_by` to null via the
+  `auth.users` foreign keys; location records remain only while the project
+  remains.
+
+Retention:
+
+- Manual pins are retained for the life of the project unless cleared by an
+  editor or removed by project/workspace deletion.
+- Geocoder fields are optional and currently unused by the MVP map flow.
+  Future geocoding must record provider retention terms before storing
+  provider name, provider place id, or raw metadata.
+
 ## Migration Evidence Table
 
 | Proof | Phase | Blocking |

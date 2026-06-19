@@ -40,6 +40,109 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Dashboard schema-drift runtime guard added (2026-06-19):**
+The protected project dashboard had a runtime crash when the linked Supabase
+schema did not yet include migration `20260619105250`: Postgres returned
+`42703` for `estimate_sheet_events.project_id`, and editor location reads would
+also fail while `project_locations` is absent. Live linked-schema inspection
+returned no `estimate_sheet_events.project_id` column and no `project_locations`
+table; `supabase migration list --linked` showed `20260619105250` as local-only
+with migration-history drift. `supabase migration fetch --linked` recovered the
+remote-only files `20260616163259`, `20260616170256`, and `20260616171158`; older
+local-only migrations still make a normal dashboard-only remote push unsafe. The
+dashboard repositories now degrade only the exact missing-migration signatures to
+empty activity/no saved exact pin and emit a server warning naming migration
+`20260619105250`; unrelated `42703`/schema errors still throw. This is a
+compatibility guard, not completion of the remote DB rollout; the migration still
+needs the history drift resolved before the full activity/location feature is
+live against the linked project. Follow-up protected-route proof passed through
+the local dev-auth bypass:
+`.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/evidence/project-dashboard-route-browser-2026-06-19T130249Z/project-dashboard-route-browser-proof.json`
+plus desktop/mobile screenshots. The route resolved to
+`/workshop/projects/san-juan-townhouse`, rendered the command modules, avoided
+login/terms redirect, had no page/console errors, avoided horizontal overflow,
+and all visible focus/tap targets met the 32px proof threshold. Remote rollout
+remains blocked because linked Supabase CLI attempts now fail with
+`password authentication failed for user "cli_login_postgres"` /
+`ECIRCUITBREAKER`, and local env inspection found no `SUPABASE_DB_PASSWORD`;
+do not keep retrying linked DB commands until valid DB credentials are present.
+
+**Project Dashboard Command Surface Phase 3 interactive map implemented (2026-06-19):**
+The project dashboard exact-location module now has an optional client-only
+MapLibre/OpenFreeMap map for saved editor-visible pins. The provider is
+off-by-default behind `NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED`; style URL is
+bounded to `https://tiles.openfreemap.org/styles/liberty` or another allowed
+`tiles.openfreemap.org` HTTPS URL via
+`NEXT_PUBLIC_PROJECT_LOCATION_MAP_STYLE_URL`. `ProjectDashboardClient` lazy-loads
+`ProjectLocationMap` with `next/dynamic` and `ssr:false`; the map SDK is not a
+static dashboard import. Map click and marker drag update the manual coordinate
+form draft. Disabled, no-pin, no-WebGL, and provider-error states keep exact text
+coordinates available to editors. No public Nominatim/geocoder/autocomplete was
+added. Workshop Report-Only CSP now includes only the bounded map host plus
+MapLibre worker allowances (`worker-src 'self' blob:`, `child-src 'self' blob:`);
+`/share`
+enforced CSP was not widened. Local evidence passed: `bun run type-check`,
+focused location/map/dashboard/header Vitest suite (9 files, 30 tests),
+`bun run prove:project-dashboard-activity-location`, and
+`bun run prove:project-location-map-browser`. Browser proof artifact:
+`.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/evidence/project-location-map-browser-2026-06-19T112956Z/project-location-map-browser-proof.json`
+plus enabled/disabled/no-WebGL screenshots. The browser proof mounted the real
+component in a temporary local Vite page because the protected dashboard route
+still cannot be fully proven until the linked Supabase migration drift is
+resolved and the migration is applied remotely.
+
+**Project Dashboard Command Surface Phase 2/3 manual activity/location implemented (2026-06-19):**
+The project dashboard now loads a bounded project-scoped estimate activity page
+and a private exact-location DTO alongside recent sheets and publication status.
+Activity is read through `estimate_sheet_events.project_id`, RLS still delegates
+row visibility to `can_access_estimate(estimate_id)`, and the dashboard renders
+only redacted composed labels, summaries, timestamps, estimate names, sheet codes,
+and safe project estimate links. Raw snapshots, payloads, metadata, correlation
+ids, emails, and exact event internals stay out of the dashboard DTO. Exact
+project coordinates live in new private `project_locations` storage with
+coordinate checks, project/workspace consistency triggers, owner/editor write
+policies, editor-only select policy, and explicit comments forbidding public
+share/export/analytics/AI use. The dashboard route preflights `can_edit_project`
+before fetching exact coordinates, and the client defensively hides exact
+location details when edit capability is false. The UI ships a manual coordinate
+editor and a "Map provider disabled" fallback. This entry describes the manual
+subset before the later interactive-map entry above; at that point no
+map/geocoder dependency or CSP expansion was added. Local evidence passed: focused
+activity/location/dashboard/privacy Vitest suite (6 files, 20 tests), broader
+related suite (18 files, 237 tests), `bun run type-check`, `git diff --check`,
+and `bun run prove:project-dashboard-activity-location` against a native
+temporary Postgres cluster. The temp-Postgres proof applied migration
+`20260619105250`, proved event backfill/not-null, trigger scope validation,
+cursor index existence, invalid coordinate rejection, editor-only exact-location
+read/write behavior, viewer/outsider/anon denial, and location actor columns.
+Linked remote dry-run was attempted but blocked by remote-only migration-history
+entries (`20260616163259`, `20260616170256`, `20260616171158`); no remote apply
+or repair was performed. Generated DB types were manually mirrored because the
+migration was not applied to a live schema in this session. One broader stale
+source-contract test,
+`workspace-repository-project-list.test.ts`, remains red for pre-existing
+workspace repository text expectations unrelated to this dashboard work.
+
+**Project Dashboard Command Surface Phase 1 implemented (2026-06-19):**
+The protected project route now uses the Phase 1 command-surface shape: editable
+project identity rail, recent estimate sheets, redacted published-link shortcut,
+honest deferred Estimate activity, and address-only Location with “No exact pin
+saved.” Recent sheets use the project-scoped freshness helper with default 5,
+hard clamp 10, `updated_at desc nulls last`, deterministic `id desc`, and
+first-node deep-link data. Dashboard loading and `ProjectRouteContentFallback`
+match the new command surface instead of flashing the old white slab. An
+independent review found and cleared one sample-project fallback bug: sample/null
+dashboards now render the identity rail read-only with no autosubmit form, while
+persisted projects still preserve autosave and hidden metadata. Local evidence
+passed: focused Vitest dashboard/publication/repository suite (5 files, 88
+tests), `bun run type-check`, and `git diff --check`. Independent code review
+returned APPROVE after the sample fix; independent architecture audit returned
+CLEAR. Browser smoke was attempted against the already-running dev server but
+redirected the protected route to `/login`; no authenticated browser layout proof
+is claimed from that attempt. Phase 2 activity and Phase 3 exact pin/map/provider
+work remain explicitly deferred until their migration/RLS/privacy/CSP/provider
+proof gates are satisfied.
+
 **Project Dashboard Command Surface autonomous loop prompt created (2026-06-19):**
 The implementation handoff prompt is now available at
 `.ai/08_prompts/IMPLEMENT-2026-06-19-Project-Dashboard-Command-Surface-Loop.md`.

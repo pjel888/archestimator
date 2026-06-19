@@ -1,0 +1,9 @@
+{
+  "projectId": "3fbb6ffb-52c6-4972-abad-1735b92179a9",
+  "projectName": "Archestimator Design System",
+  "shape": "off-script-kits",
+  "direction": "code-to-design-system",
+  "namespace": "ArchestimatorDesignSystem_3fbb6f",
+  "notes": "Archestimator is a Next.js 16 / React 19 app, NOT a buildable component-library package or Storybook — so this project is synced via hand-authored static kits/tokens/guidelines reconciled FROM the live code, not via the design-sync converter (no ds-bundle/, no _ds_sync.json anchor, no _vendor/_preview/fonts). Kits are React-18-UMD + Babel-standalone (no TS/import/export) reading components off window.ArchestimatorDesignSystem_3fbb6f. Push from a local staging dir via DesignSync write_files. See .design-sync/NOTES.md.",
+  "brandOrangeRule": "Product brand orange is clay #AA412A (dark #8C3623). Signal #F24405 is campaign/marketing only (editorial tokens) and NEVER product chrome. If the DS shows signal as the product mark, treat as drift unless globals.css actually migrated."
+}

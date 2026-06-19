@@ -1,0 +1,61 @@
+{
+  "proof": "project_location_map_browser",
+  "generatedAt": "2026-06-19T11:30:04.240Z",
+  "evidenceDir": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/evidence/project-location-map-browser-2026-06-19T112956Z",
+  "assertions": [
+    "enabled MapLibre map renders with stable dimensions",
+    "OpenFreeMap provider host is requested only in enabled mode",
+    "visible attribution is present",
+    "navigation control and attribution do not overlap",
+    "disabled provider fallback renders text coordinates without provider requests",
+    "no-WebGL fallback renders text coordinates without provider requests",
+    "no Nominatim, tile.openstreetmap.org, or Mapbox requests are made"
+  ],
+  "enabled": {
+    "mode": "enabled",
+    "mapBox": {
+      "x": 24,
+      "y": 24,
+      "width": 412,
+      "height": 176
+    },
+    "externalAttributionText": "OpenFreeMap, OpenMapTiles, and OpenStreetMap contributors",
+    "mapLibreAttributionVisible": true,
+    "navigationControlVisible": true,
+    "openFreeMapRequestCount": 6,
+    "forbiddenRequests": [],
+    "screenshot": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/evidence/project-location-map-browser-2026-06-19T112956Z/enabled-map.png",
+    "checks": {
+      "mapHasStableSize": true,
+      "providerRequested": true,
+      "externalAttributionBelowMap": true,
+      "controlsDoNotOverlapAttribution": true
+    }
+  },
+  "disabled": {
+    "mode": "disabled",
+    "mapRendered": 0,
+    "openFreeMapRequestCount": 0,
+    "screenshot": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/evidence/project-location-map-browser-2026-06-19T112956Z/disabled-map-fallback.png"
+  },
+  "noWebGl": {
+    "mode": "no-webgl",
+    "mapRendered": 0,
+    "openFreeMapRequestCount": 0,
+    "screenshot": "/Users/philiplewis/Documents/archestimator/.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/evidence/project-location-map-browser-2026-06-19T112956Z/no-webgl-map-fallback.png"
+  },
+  "errors": {
+    "enabled": {
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    "disabled": {
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    "noWebGl": {
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  }
+}

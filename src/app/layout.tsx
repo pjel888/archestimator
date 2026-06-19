@@ -3,6 +3,7 @@ import { Doto, Roboto_Mono } from "next/font/google";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { AppProviders } from "./providers";
+import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["latin"], display: "swap" });

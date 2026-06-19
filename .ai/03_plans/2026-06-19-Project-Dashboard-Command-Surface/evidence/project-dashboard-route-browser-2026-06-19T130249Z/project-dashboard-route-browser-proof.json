@@ -1,0 +1,476 @@
+{
+  "proof": "project_dashboard_route_browser",
+  "status": "passed",
+  "generatedAt": "2026-06-19T13:03:13.536Z",
+  "routePath": "/workshop/projects/san-juan-townhouse",
+  "projectId": "san-juan-townhouse",
+  "baseUrl": "http://127.0.0.1:52721",
+  "serverOwnedByScript": true,
+  "startupBlocker": null,
+  "artifactDir": "/Users/philiplewis/Documents/archestimator/.omx/artifacts/project-dashboard-command-surface/phase-1/project-dashboard-route-browser-2026-06-19T130249Z",
+  "envPresence": {
+    "NEXT_PUBLIC_SUPABASE_URL": true,
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": true,
+    "SUPABASE_SERVICE_ROLE_KEY": true,
+    "ARCHESTIMATOR_DEV_AUTH_EMAIL": true
+  },
+  "assertions": [
+    "protected route resolves to the project dashboard instead of login or terms redirect",
+    "workshop shell, continuous workspace surface, and project command surface are present",
+    "desktop keeps the identity rail beside the dashboard",
+    "mobile stacks the dashboard below the identity rail",
+    "desktop and mobile avoid horizontal document overflow",
+    "visible interactive controls meet a 32px minimum proof threshold",
+    "first keyboard tab stop exposes a visible focus style"
+  ],
+  "proofs": [
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 960
+      },
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:52721/workshop/projects/san-juan-townhouse",
+      "screenshot": "/Users/philiplewis/Documents/archestimator/.omx/artifacts/project-dashboard-command-surface/phase-1/project-dashboard-route-browser-2026-06-19T130249Z/desktop-route.png",
+      "metrics": {
+        "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+        "pathname": "/workshop/projects/san-juan-townhouse",
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "bodyClientWidth": 1440,
+        "shellBox": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 960
+        },
+        "canvasBox": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 960
+        },
+        "surfaceBox": {
+          "x": 80,
+          "y": 8,
+          "width": 1352,
+          "height": 944
+        },
+        "projectIdentityBox": {
+          "x": 185,
+          "y": 65,
+          "width": 274,
+          "height": 838
+        },
+        "projectDashboardBox": {
+          "x": 459,
+          "y": 65,
+          "width": 964,
+          "height": 838
+        },
+        "commandSurfaceBox": {
+          "x": 467,
+          "y": 73,
+          "width": 948,
+          "height": 332
+        },
+        "modules": [
+          {
+            "label": "Recent sheets",
+            "box": {
+              "x": 476,
+              "y": 82,
+              "width": 461,
+              "height": 152
+            }
+          },
+          {
+            "label": "Published link",
+            "box": {
+              "x": 945,
+              "y": 82,
+              "width": 461,
+              "height": 152
+            }
+          },
+          {
+            "label": "Estimate activity",
+            "box": {
+              "x": 476,
+              "y": 242,
+              "width": 461,
+              "height": 154
+            }
+          },
+          {
+            "label": "Location",
+            "box": {
+              "x": 945,
+              "y": 242,
+              "width": 461,
+              "height": 154
+            }
+          }
+        ],
+        "focusables": [
+          {
+            "label": "Expand sidebar",
+            "tag": "button",
+            "width": 48,
+            "height": 32,
+            "x": 17,
+            "y": 128
+          },
+          {
+            "label": "Workshop",
+            "tag": "a",
+            "width": 270,
+            "height": 32,
+            "x": 17,
+            "y": 177
+          },
+          {
+            "label": "Projects",
+            "tag": "a",
+            "width": 270,
+            "height": 32,
+            "x": 17,
+            "y": 217
+          },
+          {
+            "label": "Library",
+            "tag": "a",
+            "width": 270,
+            "height": 32,
+            "x": 17,
+            "y": 257
+          },
+          {
+            "label": "Workshop",
+            "tag": "a",
+            "width": 45,
+            "height": 32,
+            "x": 89,
+            "y": 30
+          },
+          {
+            "label": "Projects",
+            "tag": "a",
+            "width": 37,
+            "height": 32,
+            "x": 145,
+            "y": 30
+          },
+          {
+            "label": "San Juan Townhouse Renovation",
+            "tag": "a",
+            "width": 147,
+            "height": 32,
+            "x": 193,
+            "y": 30
+          },
+          {
+            "label": "Open shared link",
+            "tag": "button",
+            "width": 40,
+            "height": 40,
+            "x": 1204,
+            "y": 17
+          },
+          {
+            "label": "Notifications, 0 unread",
+            "tag": "button",
+            "width": 40,
+            "height": 40,
+            "x": 1339,
+            "y": 17
+          },
+          {
+            "label": "Open settings",
+            "tag": "button",
+            "width": 40,
+            "height": 40,
+            "x": 1383,
+            "y": 17
+          },
+          {
+            "label": "Dashboard",
+            "tag": "a",
+            "width": 88,
+            "height": 32,
+            "x": 89,
+            "y": 73
+          },
+          {
+            "label": "Estimates",
+            "tag": "a",
+            "width": 88,
+            "height": 32,
+            "x": 89,
+            "y": 109
+          },
+          {
+            "label": "Data",
+            "tag": "a",
+            "width": 88,
+            "height": 32,
+            "x": 89,
+            "y": 145
+          },
+          {
+            "label": "input",
+            "tag": "input",
+            "width": 240,
+            "height": 32,
+            "x": 202,
+            "y": 98
+          },
+          {
+            "label": "input",
+            "tag": "input",
+            "width": 240,
+            "height": 32,
+            "x": 202,
+            "y": 158
+          },
+          {
+            "label": "San Juan, Metro Manila",
+            "tag": "textarea",
+            "width": 240,
+            "height": 48,
+            "x": 202,
+            "y": 218
+          },
+          {
+            "label": "Open estimates",
+            "tag": "a",
+            "width": 111,
+            "height": 32,
+            "x": 494,
+            "y": 154
+          },
+          {
+            "label": "Send beta feedback",
+            "tag": "button",
+            "width": 32,
+            "height": 32,
+            "x": 89,
+            "y": 911
+          }
+        ],
+        "activeElementBeforeTab": "BODY",
+        "visibleTextSample": "archestimator\nPL\n\nPhilip Lewis\n\nphilipjonlewis@gmail.com\n\nWorkshop\nProjects\nLibrary\nFavorites\nSan Juan Townhouse Renovation\nWorkshop\n/\nProjects\n/\nSan Juan Townhouse Renovation\nUnavailable\n0 unread notifications\nDashboard\nEstimates\nData\nPROJECT NAME\nCLIENT\nPROJECT ADDRESS\nCREATED\n\n-\n\nUPDATED\n\n-\n\nRecent sheets\n\nNo estimate sheets yet.\n\nOpen estimates\nPublished link\nUnpublished\nESTIMATES\n0\nOPENS\n0\n\nUse Share in the header to publish or manage a client link.\n\nEstimate activity\n\nNo estimate activity yet.\n\nLocation\n\nSan Juan, Metro Manila\n\nNo exact pin saved.\n\nNO SAVED MAP PIN\n\nEnter and save coordinates before loading the interactive map."
+      },
+      "firstFocus": {
+        "label": "Expand sidebar",
+        "tag": "button",
+        "width": 48,
+        "height": 32,
+        "outlineStyle": "none",
+        "outlineWidth": "2px",
+        "boxShadow": "none"
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:52721/workshop/projects/san-juan-townhouse",
+      "screenshot": "/Users/philiplewis/Documents/archestimator/.omx/artifacts/project-dashboard-command-surface/phase-1/project-dashboard-route-browser-2026-06-19T130249Z/mobile-route.png",
+      "metrics": {
+        "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+        "pathname": "/workshop/projects/san-juan-townhouse",
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "bodyScrollWidth": 390,
+        "bodyClientWidth": 390,
+        "shellBox": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "canvasBox": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "surfaceBox": {
+          "x": 8,
+          "y": 8,
+          "width": 374,
+          "height": 828
+        },
+        "projectIdentityBox": {
+          "x": 9,
+          "y": 65,
+          "width": 364,
+          "height": 263
+        },
+        "projectDashboardBox": {
+          "x": 9,
+          "y": 328,
+          "width": 364,
+          "height": 459
+        },
+        "commandSurfaceBox": {
+          "x": 17,
+          "y": 336,
+          "width": 348,
+          "height": 668
+        },
+        "modules": [
+          {
+            "label": "Recent sheets",
+            "box": {
+              "x": 26,
+              "y": 345,
+              "width": 330,
+              "height": 152
+            }
+          },
+          {
+            "label": "Published link",
+            "box": {
+              "x": 26,
+              "y": 505,
+              "width": 330,
+              "height": 152
+            }
+          },
+          {
+            "label": "Estimate activity",
+            "box": {
+              "x": 26,
+              "y": 665,
+              "width": 330,
+              "height": 152
+            }
+          },
+          {
+            "label": "Location",
+            "box": {
+              "x": 26,
+              "y": 825,
+              "width": 330,
+              "height": 170
+            }
+          }
+        ],
+        "focusables": [
+          {
+            "label": "Workshop",
+            "tag": "a",
+            "width": 45,
+            "height": 32,
+            "x": 17,
+            "y": 30
+          },
+          {
+            "label": "Projects",
+            "tag": "a",
+            "width": 37,
+            "height": 32,
+            "x": 73,
+            "y": 30
+          },
+          {
+            "label": "San Juan Townhouse Renovation",
+            "tag": "a",
+            "width": 147,
+            "height": 32,
+            "x": 121,
+            "y": 30
+          },
+          {
+            "label": "Open shared link",
+            "tag": "button",
+            "width": 40,
+            "height": 40,
+            "x": 275,
+            "y": 17
+          },
+          {
+            "label": "Notifications, 0 unread",
+            "tag": "button",
+            "width": 40,
+            "height": 40,
+            "x": 410,
+            "y": 17
+          },
+          {
+            "label": "Open settings",
+            "tag": "button",
+            "width": 40,
+            "height": 40,
+            "x": 454,
+            "y": 17
+          },
+          {
+            "label": "input",
+            "tag": "input",
+            "width": 330,
+            "height": 32,
+            "x": 26,
+            "y": 98
+          },
+          {
+            "label": "input",
+            "tag": "input",
+            "width": 330,
+            "height": 32,
+            "x": 26,
+            "y": 158
+          },
+          {
+            "label": "San Juan, Metro Manila",
+            "tag": "textarea",
+            "width": 330,
+            "height": 48,
+            "x": 26,
+            "y": 218
+          },
+          {
+            "label": "Open estimates",
+            "tag": "a",
+            "width": 111,
+            "height": 32,
+            "x": 44,
+            "y": 417
+          },
+          {
+            "label": "Send beta feedback",
+            "tag": "button",
+            "width": 32,
+            "height": 32,
+            "x": 17,
+            "y": 795
+          }
+        ],
+        "activeElementBeforeTab": "BODY",
+        "visibleTextSample": "San Juan Townhouse Renovation\nWorkshop\n/\nProjects\n/\nSan Juan Townhouse Renovation\nUnavailable\n0 unread notifications\nPROJECT NAME\nCLIENT\nPROJECT ADDRESS\nCREATED\n\n-\n\nUPDATED\n\n-\n\nRecent sheets\n\nNo estimate sheets yet.\n\nOpen estimates\nPublished link\nUnpublished\nESTIMATES\n0\nOPENS\n0\n\nUse Share in the header to publish or manage a client link.\n\nEstimate activity\n\nNo estimate activity yet.\n\nLocation\n\nSan Juan, Metro Manila\n\nNo exact pin saved.\n\nNO SAVED MAP PIN\n\nEnter and save coordinates before loading the interactive map."
+      },
+      "firstFocus": {
+        "label": "Workshop",
+        "tag": "a",
+        "width": 45,
+        "height": 32,
+        "outlineStyle": "auto",
+        "outlineWidth": "1px",
+        "boxShadow": "none"
+      },
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  ],
+  "failures": [],
+  "blocker": null
+}

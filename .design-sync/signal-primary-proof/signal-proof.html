@@ -1,0 +1,199 @@
+<!doctype html><html><head><meta charset="utf-8" />
+<style>
+:root {
+  --background: #ffffff;
+  --foreground: #3D3D3D;
+  --primary: #3D3D3D;
+  --ink: #3D3D3D;
+  --secondary: #5d5d5d;
+  --tertiary: #7f7f7f;
+  --surface: #ffffff;
+  --surface-muted: #f5f5f5;
+  --surface-warm: #f5f5f5;
+  --canvas: #f5f5f5;
+  --warm-canvas: #f5f5f5;
+  --hairline: #f2f2f2;
+  --divider: #f2f2f2;
+  --divider-sibling: #d9d9d9;
+  --muted: #7f7f7f;
+  /* Deterministic muted foreground for secondary text. Previously undefined, so
+     `text-muted-foreground` resolved non-deterministically (`06` A11Y-2/16).
+     #6b6b6b ≈ 5.3:1 on white — clears WCAG 1.4.3 (4.5:1) for body text, while the
+     design-system-pinned --tertiary (#7f7f7f) stays untouched. */
+  --muted-foreground: #6b6b6b;
+  --accent: #3D3D3D;
+  /* Primary brand color — Archestimator Signal (owner directive 2026-06-19,
+     supersedes the clay/terracotta #AA412A "product" color; Signal is no longer
+     campaign-only). Two-tone family because #F24405 is mid-luminance: ~3.75:1
+     against both white text and white backgrounds (below WCAG AA 4.5:1 for normal
+     text either direction). So:
+       --brand-orange      #F24405  presence — fills, tints, large/display, logo,
+                                    focus rings, dark-sidebar accents, hover BG.
+       --brand-orange-dark #C63804  (Signal×0.82, ~5.3:1 on white) — small text &
+                                    icons rendered in the brand color on light. */
+  --brand-orange: #F24405;
+  --brand-orange-dark: #C63804;
+  --brand-orange-soft: color-mix(in srgb, var(--brand-orange) 14%, white);
+  /* Warm-bloom palette extension (Workshop Dashboard, 2026-06-17): the amber and
+     soft-peach mid-stops of the bottom-right gradient bloom. Brand-coherent warm
+     family with --brand-orange (clay → amber → peach → transparent). Dashboard
+     bloom only. */
+  --brand-amber: #e7a977;
+  --brand-peach: #f4cdb0;
+  /* ── Dashboard v2 bento system (owner directive 2026-06-18) ───────────────
+     Transparent blurred destination panes, the two hero gradients, the quiet
+     canvas wash, and the warm-dark sidebar. */
+  /* Two hero gradients — the only richly-coloured glass cells (Continue wins the duel). */
+  --grad-hero-continue: linear-gradient(135deg, color-mix(in srgb, var(--brand-orange) 22%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 16%, var(--glass-bg)) 48%, color-mix(in srgb, var(--brand-peach) 10%, var(--glass-bg)) 100%);
+  --grad-hero-create: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 17%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 11%, var(--glass-bg)) 100%);
+  /* Canvas wash — whisper-quiet warm pools bottom-right so frost reads as depth. */
+  --grad-canvas-wash:
+    radial-gradient(100% 82% at 94% 100%, rgba(242, 68, 5, 0.07) 0%, transparent 54%),
+    radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.06) 0%, transparent 58%),
+    linear-gradient(155deg, #eceeef 0%, #e6e7e7 48%, #dedbd8 100%);
+  --grad-canvas-wash-fallback: #e6e7e7;
+  /* Horizontally uniform (top-lit) so the collapsed 64px rail and the full
+     expanded panel read the same tone — every vertical slice is identical.
+     A left-anchored white radial or an angled base would make the narrow rail
+     (left edge only) look lighter than the whole panel; both are kept vertical. */
+  --sidebar-glass-wash:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 34%, transparent 64%),
+    linear-gradient(180deg, rgba(248, 250, 251, 0.46) 0%, rgba(238, 240, 241, 0.36) 54%, rgba(221, 224, 226, 0.3) 100%);
+  --sidebar-glass-wash-fallback: #edf0f1;
+  --workshop-shell-chrome-bg:
+    radial-gradient(100% 82% at 94% 100%, rgba(242, 68, 5, 0.12) 0%, transparent 54%),
+    radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.1) 0%, transparent 58%),
+    linear-gradient(155deg, rgba(248, 250, 251, 0.54) 0%, rgba(232, 234, 235, 0.44) 48%, rgba(221, 217, 213, 0.5) 100%);
+  --workshop-shell-chrome-bg-fallback: #e6e7e7;
+  --glass-shadow-hover: 0 10px 24px rgba(30, 35, 50, 0.13), 0 3px 8px rgba(30, 35, 50, 0.08);
+  /* Warm-dark sidebar (scoped to the rail). */
+  --glass-bg-sidebar:
+    linear-gradient(180deg, rgba(52, 53, 52, 0.84), rgba(35, 34, 33, 0.8));
+  --sidebar-texture: url("/sidebar-BG.png");
+  --on-rail: rgba(255, 255, 255, 0.97);
+  --on-rail-muted: rgba(255, 255, 255, 0.82);
+  --rail-hairline: rgba(255, 255, 255, 0.16);
+  --source-boundary: #e8d8cf;
+  --accent-dark: #2A2A2A;
+  --accent-soft: #f5f5f5;
+  --focus: #3D3D3D;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --proposal-paper: #fffdf8;
+  --font-sf-pro: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius-xs: 3px;
+
+  /* ─── Liquid-glass sidebar (brand-adapted, light) ───────────────────────
+     Sidebar-only design-system exception (authorized 2026-06-17): a frosted
+     "glass surface" vocabulary that intentionally departs from the app's
+     3px-radius / no-shadow / no-glassmorphism defaults. Dark ink text on a
+     light warm frost keeps WCAG AA trivially satisfied. Calibrated against the
+     WorkshopGlassBackdrop mesh. See DESIGN.md → "Glass surface (sidebar)". */
+  --glass-bg: rgba(255, 255, 255, 0.72);          /* frosted white — floats brightly over the grey canvas */
+  --glass-bg-fallback: #fbfbfc;                   /* opaque: no-support / reduced-transparency */
+  --glass-blur: 18px;                             /* capped 16–20px for mobile GPU */
+  --glass-saturate: 145%;
+  --glass-border: rgba(38, 44, 58, 0.10);         /* cool neutral hairline (not warm/brown) */
+  --glass-border-top: rgba(255, 255, 255, 0.5);   /* soft specular top edge — present, not a white stripe */
+  --glass-inset-hi: inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 8px 28px rgba(30, 35, 50, 0.12), 0 2px 8px rgba(30, 35, 50, 0.07);
+  --glass-radius: 12px;
+  --glass-nav-radius: 8px;
+  /* Hover: a faint top-lit neutral gradient (not a flat tint). */
+  --glass-nav-hover-bg: linear-gradient(180deg, rgba(38, 44, 58, 0.07), rgba(38, 44, 58, 0.035));
+  /* Active pill: brand-orange glass — a soft vertical gradient (stronger at the
+     top edge where light catches), inset specular, accent hairline. */
+  --glass-nav-active-bg: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 18%, transparent), color-mix(in srgb, var(--brand-orange) 7%, transparent));
+  --glass-nav-active-border: color-mix(in srgb, var(--brand-orange) 30%, transparent);
+  --glass-nav-active-inset: inset 0 1px 0 0 rgba(255, 255, 255, 0.55);
+  /* Combined active-pill shadow: inner top specular + inset accent hairline. */
+  --glass-nav-active-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-border);
+  --glass-nav-active-collapsed-bg: linear-gradient(180deg, rgba(38, 44, 58, 0.11), rgba(38, 44, 58, 0.055));
+  --glass-nav-active-collapsed-border: rgba(38, 44, 58, 0.16);
+  --glass-nav-active-collapsed-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
+  /* Logo frame: frosted vivid-orange liquid-glass slab with a white mark. */
+  --glass-logo-orange: #F24405;
+  --glass-logo-bg:
+    radial-gradient(92% 150% at 10% 0%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.16) 34%, transparent 58%),
+    radial-gradient(88% 120% at 100% 100%, rgba(121, 34, 2, 0.32) 0%, transparent 62%),
+    linear-gradient(135deg, color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%, var(--glass-logo-orange) 44%, color-mix(in srgb, var(--glass-logo-orange) 84%, #7a1e02) 100%);
+  --glass-logo-collapsed-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.07) 48%, rgba(255, 255, 255, 0.025) 100%);
+  --glass-logo-sheen:
+    radial-gradient(120% 170% at 3% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 32%, transparent 56%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 42%);
+  --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 50%, rgba(255, 255, 255, 0.56));
+  --glass-logo-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 0 rgba(121, 34, 2, 0.16),
+    0 1px 2px rgba(30, 35, 50, 0.12);
+  /* Section divider: 1px centre-faded hairline (replaces the hard gray line). */
+  --glass-divider: linear-gradient(90deg, transparent, rgba(38, 44, 58, 0.14), transparent);
+  --glass-grain-opacity: 0.035;
+  /* Left offset the workshop content reserves for the floating rail:
+     INSET(8) + COLLAPSED(64) + GAP(8) = 80px. Single source of truth — both
+     WorkshopPageShell and StaticWorkshopLoadingShell consume this, so they can
+     never drift. Mirrors SIDEBAR geometry in sidebar-types.ts. */
+  --sidebar-content-offset: 80px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sf-pro), system-ui, sans-serif; background: var(--canvas); padding: 28px; }
+.grid { display: grid; gap: 24px; grid-template-columns: 280px 1fr; align-items: start; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--secondary); margin: 0 0 8px; }
+/* — light frost sidebar (mirrors .sidebar-glass) — */
+.rail { background: var(--sidebar-glass-wash-fallback); border: 1px solid var(--glass-border); border-radius: var(--glass-radius); padding: 12px; box-shadow: var(--glass-shadow); }
+.logo { height: 44px; border-radius: 12px; background: var(--glass-logo-bg); box-shadow: var(--glass-logo-shadow); border: 1px solid var(--glass-logo-border); display: grid; place-items: center; color: #fff; font-weight: 800; letter-spacing: .12em; font-size: 13px; margin-bottom: 12px; }
+.nav { display: grid; gap: 4px; }
+.row { position: relative; height: 32px; border-radius: var(--glass-nav-radius); display: flex; align-items: center; padding: 0 12px; font-size: 13px; }
+.row.inactive { color: var(--tertiary); }
+.row.active { color: var(--brand-orange-dark); font-weight: 600; background: var(--glass-nav-active-bg); box-shadow: var(--glass-nav-active-shadow); }
+/* — dashboard destination card hover state — */
+.card { background: var(--glass-bg-fallback); border: 1px solid rgba(242,68,5,0.48); border-radius: var(--glass-radius); padding: 16px; box-shadow: var(--glass-shadow); }
+.card .idx { color: var(--brand-orange-dark); font-size: 22px; font-weight: 200; }
+.card .title { color: var(--brand-orange-dark); font-size: 32px; font-weight: 400; text-transform: uppercase; letter-spacing: .04em; }
+.card .meta { color: var(--brand-orange-dark); font-size: 10px; }
+/* — hero gradient tiles — */
+.heroes { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+.hero { height: 120px; border-radius: var(--glass-radius); border: 1px solid var(--glass-border); display: flex; align-items: flex-end; padding: 12px; font-weight: 700; color: var(--ink); }
+.hero.cont { background: var(--grad-hero-continue); }
+.hero.create { background: var(--grad-hero-create); }
+/* — swatch comparison — */
+.swatches { display: flex; gap: 12px; margin-top: 8px; }
+.sw { width: 120px; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); font-size: 11px; }
+.sw .chip { height: 56px; } .sw .cap { padding: 6px 8px; background: #fff; color: var(--secondary); }
+</style></head>
+<body>
+  <h2 style="font:600 13px var(--font-sf-pro);color:var(--ink);margin:0 0 18px">Archestimator Signal #F24405 — rebrand proof (live globals.css tokens)</h2>
+  <div class="grid">
+    <div>
+      <p class="label">Sidebar (light frost) — logo + active nav</p>
+      <div class="rail">
+        <div class="logo">A</div>
+        <div class="nav">
+          <div class="row active">Projects</div>
+          <div class="row inactive">Components</div>
+          <div class="row inactive">Templates</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="label">Dashboard destination card — hover state</p>
+      <div class="card">
+        <div class="idx">01</div>
+        <div class="meta">Project Count · 12</div>
+        <div class="title">Projects</div>
+      </div>
+      <p class="label" style="margin-top:24px">Hero gradient tiles (Continue / Create)</p>
+      <div class="heroes"><div class="hero cont">Continue</div><div class="hero create">Create</div></div>
+      <p class="label" style="margin-top:24px">Old → New</p>
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:#AA412A"></div><div class="cap">was clay #AA412A</div></div>
+        <div class="sw"><div class="chip" style="background:var(--brand-orange)"></div><div class="cap">Signal #F24405</div></div>
+        <div class="sw"><div class="chip" style="background:var(--brand-orange-dark)"></div><div class="cap">Signal-dark #C63804 (text)</div></div>
+      </div>
+    </div>
+  </div>
+</body></html>
