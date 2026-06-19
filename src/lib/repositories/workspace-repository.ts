@@ -851,7 +851,7 @@ export const ensureDefaultWorkspace = cache(async function ensureDefaultWorkspac
   return { workspace, profile };
 });
 
-export async function listCurrentWorkspaceProjects() {
+export const listCurrentWorkspaceProjects = cache(async () => {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
@@ -934,33 +934,47 @@ export async function listCurrentWorkspaceProjects() {
     ]),
   ).filter((projectId) => !ownedProjectIds.has(projectId));
 
-  let sharedProjects: Tables<"projects">[] = [];
-  if (sharedProjectIds.length > 0) {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .in("id", sharedProjectIds)
-      .order("updated_at", { ascending: false });
-    if (error) throw error;
-    sharedProjects = data ?? [];
-  }
-
   const favoriteEstimateRows = estimateFavoritesResult.data ?? [];
   const favoriteEstimateIds = favoriteEstimateRows.map((favorite) => favorite.estimate_id);
   const favoriteEstimateCreatedAtById = new Map(
     favoriteEstimateRows.map((favorite) => [favorite.estimate_id, favorite.created_at]),
   );
+
+  // Wave 2: shared-project hydration and favorite-estimate hydration each depend only
+  // on the parallel wave-1 results (sharedProjectIds / favoriteEstimateIds) and are
+  // independent of each other, so issue them concurrently instead of serially. Empty
+  // inputs skip the round-trip entirely (null query → null response).
+  const sharedProjectsQuery =
+    sharedProjectIds.length > 0
+      ? supabase
+          .from("projects")
+          .select("*")
+          .in("id", sharedProjectIds)
+          .order("updated_at", { ascending: false })
+      : null;
+  const favoriteEstimatesQuery =
+    favoriteEstimateIds.length > 0
+      ? supabase
+          .from("estimates")
+          .select("id, project_id, name, sheet_code, updated_at")
+          .in("id", favoriteEstimateIds)
+      : null;
+  const [sharedProjectsResponse, favoriteEstimatesResponse] = await Promise.all([
+    sharedProjectsQuery,
+    favoriteEstimatesQuery,
+  ]);
+
+  if (sharedProjectsResponse?.error) throw sharedProjectsResponse.error;
+  const sharedProjects: Tables<"projects">[] = sharedProjectsResponse?.data ?? [];
+
   let favoriteEstimateSheetsByProjectId = new Map<string, ProjectFavoriteEstimateSheetSummary[]>();
 
   if (favoriteEstimateIds.length > 0) {
-    const { data, error } = await supabase
-      .from("estimates")
-      .select("id, project_id, name, sheet_code, updated_at")
-      .in("id", favoriteEstimateIds);
+    if (favoriteEstimatesResponse?.error) throw favoriteEstimatesResponse.error;
 
-    if (error) throw error;
-
-    const favoriteEstimateById = new Map((data ?? []).map((estimate) => [estimate.id, estimate]));
+    const favoriteEstimateById = new Map(
+      (favoriteEstimatesResponse?.data ?? []).map((estimate) => [estimate.id, estimate]),
+    );
     favoriteEstimateSheetsByProjectId = favoriteEstimateRows.reduce((byProject, favorite) => {
       const estimate = favoriteEstimateById.get(favorite.estimate_id);
       if (!estimate) return byProject;
@@ -1016,23 +1030,28 @@ export async function listCurrentWorkspaceProjects() {
       return createProjectListItem(project);
     }),
   ];
-  const publicationRows = await readOptionalProjectPublications(
-    supabase,
-    Array.from(new Set(projectItems.map((item) => item.project.id))),
-  );
+  // Wave 3: publication summaries and pending-invite visibility both depend only on the
+  // assembled projectItems and are independent of each other, so fetch them concurrently
+  // rather than waiting for publications before starting the invite-visibility read.
+  const [publicationRows, pendingInviteVisibility] = await Promise.all([
+    readOptionalProjectPublications(
+      supabase,
+      Array.from(new Set(projectItems.map((item) => item.project.id))),
+    ),
+    readPendingCollaborationVisibilitySummary({
+      email: profile.email,
+      projectIds: projectItems
+        .filter((item) => canManageCollaborationRole(item.currentUserRole))
+        .map((item) => item.project.id),
+      supabase,
+    }),
+  ]);
   const publicationByProjectId = new Map<string, ProjectPublicationListRow>();
   for (const publication of publicationRows) {
     if (!publicationByProjectId.has(publication.project_id)) {
       publicationByProjectId.set(publication.project_id, publication);
     }
   }
-  const pendingInviteVisibility = await readPendingCollaborationVisibilitySummary({
-    email: profile.email,
-    projectIds: projectItems
-      .filter((item) => canManageCollaborationRole(item.currentUserRole))
-      .map((item) => item.project.id),
-    supabase,
-  });
   const acceptedProjectIds = new Set(projectItems.map((item) => item.project.id));
   const pendingInviteItemsByProjectId = new Map<string, WorkshopProjectListItem>();
   for (const invite of pendingInviteVisibility.receivedPendingInvites) {
@@ -1062,7 +1081,7 @@ export async function listCurrentWorkspaceProjects() {
     favoriteProjectIds: (favoritesResult.data ?? []).map((favorite) => favorite.project_id),
     projectGroups,
   };
-}
+});
 
 function mergeHomebaseRecords<T extends { id: string }>(primary: T[], secondary: T[]) {
   const byId = new Map<string, T>();
@@ -1100,9 +1119,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+export function isWorkspaceHomebaseSummaryRolloutError(error: unknown): boolean {
+  if (!isRecord(error)) return false;
+  const code = typeof error.code === "string" ? error.code : "";
+  const message = typeof error.message === "string" ? error.message.toLowerCase() : "";
+  return (
+    code === "PGRST202" ||
+    code === "42883" ||
+    message.includes("schema cache") ||
+    message.includes("could not find the function")
+  );
+}
+
 function readRpcArray(payload: Record<string, unknown>, key: keyof WorkshopHomebaseSummaryPayload) {
   const value = payload[key];
   if (!Array.isArray(value)) throw new Error("workspace_homebase_summary invalid shape");
+  if (value.some((item) => !isRecord(item))) {
+    throw new Error("workspace_homebase_summary invalid array element");
+  }
   return value;
 }
 
@@ -1253,9 +1287,15 @@ async function getWorkshopHomebaseDataRpcPath(): Promise<WorkshopHomebaseData | 
       removedProjectFavorites,
       receivedPendingInviteCount: pendingInviteVisibility.receivedPendingInviteCount,
     };
-  } catch {
-    console.warn("[workspace_homebase_summary] RPC unavailable; using app path");
-    return null;
+  } catch (error) {
+    if (isWorkspaceHomebaseSummaryRolloutError(error)) {
+      const code = isRecord(error) && typeof error.code === "string" ? error.code : "unknown";
+      const message = isRecord(error) && typeof error.message === "string" ? error.message : "unknown";
+      const details = isRecord(error) && typeof error.details === "string" ? error.details : null;
+      console.warn(`[workspace_homebase_summary] RPC unavailable (code=${code}, message=${message}, details=${details}); using app path`);
+      return null;
+    }
+    throw error;
   }
 }
 
