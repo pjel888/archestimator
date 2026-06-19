@@ -890,7 +890,7 @@ export const listCurrentWorkspaceProjects = cache(async () => {
     workspaceMembershipResult,
     projectGroupsResult,
     projectGroupMembershipsResult,
-  ] = await Promise.all([
+  ] = await traced("projects.wave1.batch", () => Promise.all([
     supabase
       .from("projects")
       // Explicit columns (not select('*')): workspace_id + created_by are read ONLY by the
@@ -936,7 +936,7 @@ export const listCurrentWorkspaceProjects = cache(async () => {
       .select("project_id, group_id")
       .eq("workspace_id", workspace.id)
       .eq("user_id", profile.id),
-  ]);
+  ]));
 
   if (projectsResult.error) throw projectsResult.error;
   if (favoritesResult.error) throw favoritesResult.error;
@@ -988,10 +988,14 @@ export const listCurrentWorkspaceProjects = cache(async () => {
           .select("id, project_id, name, sheet_code, updated_at")
           .in("id", favoriteEstimateIds)
       : null;
-  const [sharedProjectsResponse, favoriteEstimatesResponse] = await Promise.all([
-    sharedProjectsQuery,
-    favoriteEstimatesQuery,
-  ]);
+  const [sharedProjectsResponse, favoriteEstimatesResponse] = await traced(
+    "projects.wave2.shared+favorites",
+    () =>
+      Promise.all([
+        sharedProjectsQuery,
+        favoriteEstimatesQuery,
+      ]),
+  );
 
   if (sharedProjectsResponse?.error) throw sharedProjectsResponse.error;
   const sharedProjects: Tables<"projects">[] = sharedProjectsResponse?.data ?? [];
@@ -1065,19 +1069,23 @@ export const listCurrentWorkspaceProjects = cache(async () => {
   // Wave 3: publication summaries and pending-invite visibility both depend only on the
   // assembled projectItems and are independent of each other, so fetch them concurrently
   // rather than waiting for publications before starting the invite-visibility read.
-  const [publicationRows, pendingInviteVisibility] = await Promise.all([
-    readOptionalProjectPublications(
-      supabase,
-      Array.from(new Set(projectItems.map((item) => item.project.id))),
-    ),
-    readPendingCollaborationVisibilitySummary({
-      email: profile.email,
-      projectIds: projectItems
-        .filter((item) => canManageCollaborationRole(item.currentUserRole))
-        .map((item) => item.project.id),
-      supabase,
-    }),
-  ]);
+  const [publicationRows, pendingInviteVisibility] = await traced(
+    "projects.wave3.publications+invites",
+    () =>
+      Promise.all([
+        readOptionalProjectPublications(
+          supabase,
+          Array.from(new Set(projectItems.map((item) => item.project.id))),
+        ),
+        readPendingCollaborationVisibilitySummary({
+          email: profile.email,
+          projectIds: projectItems
+            .filter((item) => canManageCollaborationRole(item.currentUserRole))
+            .map((item) => item.project.id),
+          supabase,
+        }),
+      ]),
+  );
   const publicationByProjectId = new Map<string, ProjectPublicationListRow>();
   for (const publication of publicationRows) {
     if (!publicationByProjectId.has(publication.project_id)) {
@@ -1909,7 +1917,9 @@ export async function getProjectCollaborationSummary(projectId: string): Promise
   };
 }
 
-export async function getProjectPublicationSummary(projectId: string): Promise<ProjectPublicationSummary | null> {
+export const getProjectPublicationSummary = cache(async function getProjectPublicationSummary(
+  projectId: string,
+): Promise<ProjectPublicationSummary | null> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   if (!isUuid(projectId)) return null;
 
@@ -1981,7 +1991,7 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
     latestRecipientOpen,
     staleSnapshotWarning,
   };
-}
+});
 
 // Explicit safe columns for the list query: never ship metadata/created_by to the
 // client (over-fetch + data exposure, finding F9 / P2-2). Adding a UI field means

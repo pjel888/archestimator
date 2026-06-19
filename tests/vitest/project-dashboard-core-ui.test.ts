@@ -56,14 +56,17 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain("updateProjectDetails");
     expect(projectDashboardClient).toContain("AutoSubmitForm");
     expect(projectDashboardClient).toContain('name="projectCode"');
+    expect(projectDashboardClient).toContain('name="projectImageUrl"');
+    expect(projectDashboardClient).toContain('name="currencyCode"');
     expect(projectDashboardClient).toContain('name="clientName"');
     expect(projectDashboardClient).toContain('name="location"');
+    expect(projectDashboardClient).toContain('aria-live="polite"');
   });
 
-  it("organizes project data in a left-aligned 274px frosted project data panel", () => {
+  it("organizes the dashboard as an identity rail plus four command modules", () => {
     expect(projectDashboardClient).toContain("justify-start");
     expect(projectDashboardClient).not.toContain("justify-start bg-white");
-    expect(projectDashboardClient).toContain("w-[274px]");
+    expect(projectDashboardClient).toContain("md:w-[274px]");
     expect(projectDashboardClient).toContain("dashboard-glass flex min-h-0 flex-1 flex-col overflow-hidden");
     expect(projectDashboardClient).not.toContain("ml-auto");
     expect(projectDashboardClient).not.toContain("justify-end");
@@ -79,8 +82,7 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient.indexOf('label="Project name"')).toBeLessThan(projectDashboardClient.indexOf('label="Client"'));
     expect(projectDashboardClient.indexOf('label="Client"')).toBeLessThan(projectDashboardClient.indexOf('label="Project address"'));
     expect(projectDashboardClient.indexOf('label="Project address"')).toBeLessThan(projectDashboardClient.indexOf('label="Created"'));
-    expect(projectDashboardClient).toContain('label="Currency"');
-    expect(projectDashboardClient).not.toContain('type="text"');
+    expect(projectDashboardClient).not.toContain('label="Currency"');
     expect(projectDashboardClient).not.toContain("formatBudgetInput");
     expect(projectDashboardClient).toContain('name="currencyCode"');
     expect(projectDashboardClient).toContain("value={currencyCode}");
@@ -94,10 +96,25 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain("text-[8px] font-medium uppercase tracking-normal text-gray-400");
     expect(projectDashboardClient).toContain("text-[8px] font-medium leading-3 text-tertiary");
     expect(projectDashboardClient).not.toContain("ReadOnlyProjectDataField");
-    expect(projectDashboardClient).toContain("ProjectActionTile");
-    expect(projectDashboardClient).toContain('href={`/workshop/projects/${projectId}/estimates`}');
-    expect(projectDashboardClient).toContain('href={`/workshop/projects/${projectId}/data`}');
-    expect(projectDashboardClient).toContain('href="/workshop/projects"');
+    expect(projectDashboardClient).not.toContain("ProjectActionTile");
+    expect(projectDashboardClient).not.toContain("ProjectMetric");
+    expect(projectDashboardClient).not.toContain('href={`/workshop/projects/${projectId}/data`}');
+    expect(projectDashboardClient).not.toContain('href="/workshop/projects"');
     expect(projectDashboardClient).not.toContain('href={`/workshop/projects/${projectId}/publish`}');
+    expect(projectDashboardClient).not.toContain('aria-label="Project overview"');
+    expect(projectDashboardClient).not.toContain('aria-label="Project dashboard actions"');
+    expect(projectDashboardClient).not.toContain("Working surface");
+    expect(projectDashboardClient).toContain('aria-label="Project command surface"');
+    expect(projectDashboardClient).toContain('label="Recent sheets"');
+    expect(projectDashboardClient).toContain('label="Published link"');
+    expect(projectDashboardClient).toContain('label="Estimate activity"');
+    expect(projectDashboardClient).toContain('label="Location"');
+    expect(projectDashboardClient.indexOf('label="Recent sheets"')).toBeLessThan(projectDashboardClient.indexOf('label="Published link"'));
+    expect(projectDashboardClient.indexOf('label="Published link"')).toBeLessThan(projectDashboardClient.indexOf('label="Estimate activity"'));
+    expect(projectDashboardClient.indexOf('label="Estimate activity"')).toBeLessThan(projectDashboardClient.indexOf('label="Location"'));
+    expect(projectDashboardClient).toContain("Activity feed is deferred");
+    expect(projectDashboardClient).toContain("No exact pin saved.");
+    expect(projectDashboardClient).not.toContain("Mapbox");
+    expect(projectDashboardClient).not.toContain("geocoder");
   });
 });

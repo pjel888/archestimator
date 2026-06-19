@@ -142,6 +142,24 @@ function getMedian(values: number[]) {
 test.describe("route transition performance evidence", () => {
   test.setTimeout(90_000);
 
+  // Inject the dev-auth bypass cookie so the authed scenarios below reach
+  // protected routes instead of redirecting to /login. The cookie is read by
+  // src/proxy.ts (localhost only) and validated in src/lib/auth/dev-auth-gate.ts.
+  test.beforeEach(async ({ page }) => {
+    const bypassSecret = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET;
+    if (!hasDevAuthBypass || !bypassSecret) return;
+    await page.context().addCookies([
+      {
+        name: "archestimator-dev-auth-bypass",
+        value: bypassSecret,
+        domain: "127.0.0.1",
+        path: "/",
+        httpOnly: false,
+        sameSite: "Lax",
+      },
+    ]);
+  });
+
   test("captures public route baseline metrics", async ({ page }, testInfo) => {
     const snapshots: RouteMetricSnapshot[] = [];
 

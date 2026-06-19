@@ -5,9 +5,11 @@ function readOptional(path: string): string {
 }
 
 export const projectDashboardPage = readFileSync("src/app/workshop/projects/[projectId]/page.tsx", "utf8");
+export const projectDashboardLoading = readFileSync("src/app/workshop/projects/[projectId]/loading.tsx", "utf8");
 export const projectDashboardLayout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", "utf8");
 export const projectChromeAsync = readFileSync("src/components/workshop/ProjectChromeAsync.tsx", "utf8");
 export const projectDashboardClient = readFileSync("src/components/workshop/ProjectDashboardClient.tsx", "utf8");
+export const projectRouteContentFallback = readFileSync("src/components/workshop/ProjectRouteContentFallback.tsx", "utf8");
 export const projectTotalHeader = readFileSync("src/components/workshop/ProjectTotalHeader.tsx", "utf8");
 export const projectMiniSidebar = readFileSync("src/components/workshop/ProjectMiniSidebar.tsx", "utf8");
 export const workshopTitleHeader = readFileSync("src/components/workshop/WorkshopTitleHeader.tsx", "utf8");
