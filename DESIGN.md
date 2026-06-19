@@ -421,7 +421,7 @@ review, so do not treat the values below as locked tokens of record yet. Highlig
 - **Bento + glass:** the v2 dashboard is a full-bleed Improve-ROI-inspired machinery board
   (`.dashboard-root/-masthead/-imageband/-desk`) with tight seams instead of roomy gutters.
   Destination cards use the `public/Cards/*-Card.jpg` triptych (`.image-card` + tonal
-  `--scrim-*`); Library is a terracotta-bloom gradient hub (`.library-hub`). Warm-glass hero
+  `--scrim-*`); Library is a Signal-bloom gradient hub (`.library-hub`, `--brand-orange`). Warm-glass hero
   cells (`.dashboard-glass-warm` + `--grad-hero-*`) over a whisper-quiet
   `--grad-canvas-wash`; dense data stays plain white for legibility; ≤4 simultaneous
   backdrop-blur panels. Reduced-transparency / no-backdrop fallbacks degrade.

@@ -22,13 +22,13 @@ export function WorkshopFeedbackModal({ className }: WorkshopFeedbackModalProps)
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
-          "inline-flex size-7 items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          "inline-flex size-8 items-center justify-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
           open ? "bg-surfaceMuted text-ink" : null,
           className,
         )}
         onClick={() => setOpen(true)}
       >
-        <Lifebuoy size={14} weight="regular" aria-hidden="true" />
+        <Lifebuoy size={15} weight="regular" aria-hidden="true" />
       </button>
       <Modal
         open={open}

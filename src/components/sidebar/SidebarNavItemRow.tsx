@@ -24,7 +24,7 @@ function formatBadgeCount(count: number) {
 // quiet until the user opens it. No per-child backdrop-filter; the one blur lives
 // on the panel.
 const ACTIVE_NAV_ITEM_EXPANDED_TONE_CLASSNAME =
-  "text-orange-700 hover:text-orange-700 before:[background:var(--glass-nav-active-bg)] before:[box-shadow:var(--glass-nav-active-shadow)] before:opacity-100";
+  "text-brand-orange-dark hover:text-brand-orange-dark before:[background:var(--glass-nav-active-bg)] before:[box-shadow:var(--glass-nav-active-shadow)] before:opacity-100";
 
 const ACTIVE_NAV_ITEM_COLLAPSED_TONE_CLASSNAME =
   "text-primary hover:text-primary before:[background:var(--glass-nav-active-collapsed-bg)] before:[box-shadow:var(--glass-nav-active-collapsed-shadow)] before:opacity-100";
@@ -80,7 +80,7 @@ export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onP
           weight="regular"
           className={[
             "relative z-10 shrink-0 transition-transform duration-[160ms] ease-out group-hover:scale-110 group-active:scale-95 motion-reduce:transform-none motion-reduce:transition-none",
-            active ? (expanded ? "text-orange-700" : "text-primary") : "",
+            active ? (expanded ? "text-brand-orange-dark" : "text-primary") : "",
           ].join(" ")}
         />
         {badgeText ? (

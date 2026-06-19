@@ -25,8 +25,17 @@
      design-system-pinned --tertiary (#7f7f7f) stays untouched. */
   --muted-foreground: #6b6b6b;
   --accent: #3D3D3D;
-  --brand-orange: rgb(170,65,42);
-  --brand-orange-dark: rgb(140,54,35);
+  /* Primary brand color — Archestimator Signal (owner directive 2026-06-19,
+     supersedes the clay/terracotta #AA412A "product" color; Signal is no longer
+     campaign-only). Two-tone family because #F24405 is mid-luminance: ~3.75:1
+     against both white text and white backgrounds (below WCAG AA 4.5:1 for normal
+     text either direction). So:
+       --brand-orange      #F24405  presence — fills, tints, large/display, logo,
+                                    focus rings, dark-sidebar accents, hover BG.
+       --brand-orange-dark #C63804  (Signal×0.82, ~5.3:1 on white) — small text &
+                                    icons rendered in the brand color on light. */
+  --brand-orange: #F24405;
+  --brand-orange-dark: #C63804;
   --brand-orange-soft: color-mix(in srgb, var(--brand-orange) 14%, white);
   /* Warm-bloom palette extension (Workshop Dashboard, 2026-06-17): the amber and
      soft-peach mid-stops of the bottom-right gradient bloom. Brand-coherent warm
@@ -42,7 +51,7 @@
   --grad-hero-create: linear-gradient(180deg, color-mix(in srgb, var(--brand-orange) 17%, var(--glass-bg)) 0%, color-mix(in srgb, var(--brand-amber) 11%, var(--glass-bg)) 100%);
   /* Canvas wash — whisper-quiet warm pools bottom-right so frost reads as depth. */
   --grad-canvas-wash:
-    radial-gradient(100% 82% at 94% 100%, rgba(170, 65, 42, 0.07) 0%, transparent 54%),
+    radial-gradient(100% 82% at 94% 100%, rgba(242, 68, 5, 0.07) 0%, transparent 54%),
     radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.06) 0%, transparent 58%),
     linear-gradient(155deg, #eceeef 0%, #e6e7e7 48%, #dedbd8 100%);
   --grad-canvas-wash-fallback: #e6e7e7;
@@ -55,7 +64,7 @@
     linear-gradient(180deg, rgba(248, 250, 251, 0.46) 0%, rgba(238, 240, 241, 0.36) 54%, rgba(221, 224, 226, 0.3) 100%);
   --sidebar-glass-wash-fallback: #edf0f1;
   --workshop-shell-chrome-bg:
-    radial-gradient(100% 82% at 94% 100%, rgba(170, 65, 42, 0.12) 0%, transparent 54%),
+    radial-gradient(100% 82% at 94% 100%, rgba(242, 68, 5, 0.12) 0%, transparent 54%),
     radial-gradient(72% 58% at 6% 14%, rgba(70, 82, 104, 0.1) 0%, transparent 58%),
     linear-gradient(155deg, rgba(248, 250, 251, 0.54) 0%, rgba(232, 234, 235, 0.44) 48%, rgba(221, 217, 213, 0.5) 100%);
   --workshop-shell-chrome-bg-fallback: #e6e7e7;
@@ -110,11 +119,11 @@
   --glass-nav-active-collapsed-border: rgba(38, 44, 58, 0.16);
   --glass-nav-active-collapsed-shadow: var(--glass-nav-active-inset), inset 0 0 0 1px var(--glass-nav-active-collapsed-border);
   /* Logo frame: frosted vivid-orange liquid-glass slab with a white mark. */
-  --glass-logo-orange: #AA412A;
+  --glass-logo-orange: #F24405;
   --glass-logo-bg:
     radial-gradient(92% 150% at 10% 0%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.16) 34%, transparent 58%),
-    radial-gradient(88% 120% at 100% 100%, rgba(92, 20, 8, 0.32) 0%, transparent 62%),
-    linear-gradient(135deg, color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%, var(--glass-logo-orange) 44%, color-mix(in srgb, var(--glass-logo-orange) 84%, #6f1b08) 100%);
+    radial-gradient(88% 120% at 100% 100%, rgba(121, 34, 2, 0.32) 0%, transparent 62%),
+    linear-gradient(135deg, color-mix(in srgb, var(--glass-logo-orange) 78%, white) 0%, var(--glass-logo-orange) 44%, color-mix(in srgb, var(--glass-logo-orange) 84%, #7a1e02) 100%);
   --glass-logo-collapsed-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.07) 48%, rgba(255, 255, 255, 0.025) 100%);
   --glass-logo-sheen:
     radial-gradient(120% 170% at 3% 0%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.1) 32%, transparent 56%),
@@ -122,7 +131,7 @@
   --glass-logo-border: color-mix(in srgb, var(--glass-logo-orange) 50%, rgba(255, 255, 255, 0.56));
   --glass-logo-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.42),
-    inset 0 -1px 0 0 rgba(111, 27, 8, 0.16),
+    inset 0 -1px 0 0 rgba(121, 34, 2, 0.16),
     0 1px 2px rgba(30, 35, 50, 0.12);
   /* Section divider: 1px centre-faded hairline (replaces the hard gray line). */
   --glass-divider: linear-gradient(90deg, transparent, rgba(38, 44, 58, 0.14), transparent);
@@ -361,7 +370,7 @@ body:has([data-workshop-page-shell-root]) {
 
 .sidebar-logo-frame--collapsed:hover .sidebar-logo-mark,
 .sidebar-logo-frame--collapsed:focus-within .sidebar-logo-mark {
-  color: #AA412A;
+  color: var(--brand-orange);
 }
 
 .sidebar-logo-frame::before,
@@ -1591,14 +1600,14 @@ input[type="number"] {
 
 .dashboard-destination-card:hover {
   --destination-bg: var(--dashboard-tile-glass-bg-hover);
-  --destination-ink: #AA412A;
-  --destination-muted: #AA412A;
-  --destination-icon: #AA412A;
+  --destination-ink: var(--brand-orange-dark);
+  --destination-muted: var(--brand-orange-dark);
+  --destination-icon: var(--brand-orange-dark);
   --destination-border: var(--dashboard-tile-glass-border-hover);
-  --destination-inner-border: rgba(170, 65, 42, 0.48);
-  --destination-inner-list-border: rgba(170, 65, 42, 0.24);
-  --destination-inner-text: #AA412A;
-  --destination-inner-muted: #AA412A;
+  --destination-inner-border: rgba(242, 68, 5, 0.48);
+  --destination-inner-list-border: rgba(242, 68, 5, 0.24);
+  --destination-inner-text: var(--brand-orange-dark);
+  --destination-inner-muted: var(--brand-orange-dark);
   box-shadow: var(--dashboard-tile-glass-inset-hover);
 }
 .dashboard-imageband .dashboard-destination-card,
@@ -1609,9 +1618,9 @@ input[type="number"] {
 }
 .dashboard-imageband .dashboard-destination-card:hover,
 .iband-library-card:hover {
-  --destination-ink: #AA412A;
-  --destination-muted: #AA412A;
-  --destination-icon: #AA412A;
+  --destination-ink: var(--brand-orange-dark);
+  --destination-muted: var(--brand-orange-dark);
+  --destination-icon: var(--brand-orange-dark);
 }
 .dashboard-destination-card-index,
 .dashboard-destination-card-count {
@@ -1769,7 +1778,7 @@ input[type="number"] {
 }
 .dashboard-published-link:hover {
   background: rgba(255, 255, 255, 0.28);
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .dashboard-published-link:focus-visible,
 .dashboard-project-card-arrow:focus-visible {
@@ -1945,7 +1954,7 @@ input[type="number"] {
 }
 .iband-library-continue-slot > a:hover .dashboard-continue-hover-target,
 .iband-library-continue-slot > a:focus-visible .dashboard-continue-hover-target {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-stack {
   display: grid;
@@ -1982,10 +1991,10 @@ input[type="number"] {
   transition: color 180ms ease-out;
 }
 .iband-library-new-project:hover {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-new-project:hover > svg {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-new-project:focus-visible {
   outline: 2px solid var(--focus);
@@ -2033,19 +2042,19 @@ input[type="number"] {
   transition: color 180ms ease-out;
 }
 .iband-library-new-component:hover {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-new-component:hover > svg {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-new-sheet > svg {
   transition: color 180ms ease-out;
 }
 .iband-library-new-sheet:hover {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-new-sheet:hover > svg {
-  color: #AA412A;
+  color: var(--brand-orange-dark);
 }
 .iband-library-new-component:focus-visible,
 .iband-library-new-sheet:focus-visible {

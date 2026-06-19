@@ -164,7 +164,7 @@ export function NeatWireframeBackground() {
         />
       ) : (
         <div
-          className='absolute inset-0 size-full bg-[linear-gradient(135deg,rgba(170,65,42,0.72),rgba(140,54,35,0.64)_45%,rgba(100,38,24,0.42))]'
+          className='absolute inset-0 size-full bg-[linear-gradient(135deg,rgba(242,68,5,0.72),rgba(198,56,4,0.64)_45%,rgba(150,42,3,0.42))]'
           data-neat-static-fallback='true'
           data-testid='neat-static-fallback'
           aria-hidden='true'

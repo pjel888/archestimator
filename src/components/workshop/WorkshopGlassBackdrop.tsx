@@ -24,7 +24,7 @@ const WORKSHOP_GLASS_MESH: string = [
   // frosted glass to catch a hint of depth.
   "radial-gradient(560px circle at 0% 1%, rgba(70,82,104,0.05), transparent 460px)",
   // Barely-there warm counterweight lower-right (brand family, near-subliminal).
-  "radial-gradient(840px circle at 100% 100%, rgba(170,65,42,0.022), transparent 700px)",
+  "radial-gradient(840px circle at 100% 100%, rgba(242,68,5,0.022), transparent 700px)",
   // Calm cool-grey base — distinct enough from white that surfaces clearly float.
   "#eef0f3",
 ].join(", ");

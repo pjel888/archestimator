@@ -21,6 +21,23 @@ const landingReportOnlyCsp = [
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms${__impeccableLiveDev}`,
 ].join("; ");
 
+const openFreeMapTileOrigin = "https://tiles.openfreemap.org";
+
+const workshopReportOnlyCsp = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "form-action 'self'",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms${__impeccableLiveDev}`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms ${openFreeMapTileOrigin}`,
+  "font-src 'self' data:",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms ${openFreeMapTileOrigin}${__impeccableLiveDev}`,
+  "worker-src 'self' blob:",
+  "child-src 'self' blob:",
+].join("; ");
+
 // P11: Separate sources for enforced CSP on public share (additive security upgrade from Report-Only)
 // Landing/other pages remain Report-Only (existing behavior).
 // Share API gets the 3 required security headers (central, minimal blast, consistent with existing no-store in handlers).
@@ -163,16 +180,16 @@ const nextConfig: NextConfig = {
     // observation window before flipping to enforced `Content-Security-Policy`. Enforcement
     // is DEFERRED and must be coordinated with the Shared-Link CSP-nonce work (the per-request
     // nonce pipeline that replaces 'unsafe-inline'/'unsafe-eval') so the app and /share converge
-    // on one enforced policy. The Report-Only value reuses `landingReportOnlyCsp`, whose
-    // connect-src already allows `https://*.supabase.co wss://*.supabase.co` — required for
-    // Supabase Realtime websockets used on /workshop (presence + live cursors).
+    // on one enforced policy. Workshop uses its own Report-Only value so the authenticated
+    // dashboard can load the optional OpenFreeMap/MapLibre location map without widening the
+    // enforced public-share CSP.
     const appAndInviteHardening = [
       {
         source: "/workshop/:path*",
         headers: [
           {
             key: "Content-Security-Policy-Report-Only",
-            value: landingReportOnlyCsp,
+            value: workshopReportOnlyCsp,
           },
           ...shareHardeningHeaders,
         ],

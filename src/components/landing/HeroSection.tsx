@@ -78,7 +78,7 @@ const heroSignalItems = [
   "Activity History",
 ] as const;
 
-const HERO_HEADLINE_ANNOTATION_COLOR = "rgb(170, 65, 42)";
+const HERO_HEADLINE_ANNOTATION_COLOR = "rgb(242, 68, 5)";
 const PROPOSAL_TO_APPROVAL_HEADLINE = "The fastest path from proposal to approval.";
 const PRECISION_TO_WIN_HEADLINE = "Estimate with Precision. Win with Clarity.";
 

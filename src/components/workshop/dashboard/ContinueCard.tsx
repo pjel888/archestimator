@@ -38,26 +38,26 @@ export function ContinueCard({ estimate, bare = false }: ContinueCardProps) {
       )}
     >
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="dashboard-continue-hover-target font-numeric text-[9px] text-secondary transition-colors group-hover:text-brand-orange group-focus-visible:text-brand-orange">
+        <span className="dashboard-continue-hover-target font-numeric text-[9px] text-secondary transition-colors group-hover:text-brand-orange-dark group-focus-visible:text-brand-orange-dark">
           Continue where you left off
         </span>
-        <span className="dashboard-continue-hover-target dashboard-continue-title truncate font-display text-[16px] font-extrabold uppercase leading-tight text-ink transition-colors group-hover:text-brand-orange group-focus-visible:text-brand-orange">
+        <span className="dashboard-continue-hover-target dashboard-continue-title truncate font-display text-[16px] font-extrabold uppercase leading-tight text-ink transition-colors group-hover:text-brand-orange-dark group-focus-visible:text-brand-orange-dark">
           {estimate.name}
         </span>
-        <span className="dashboard-continue-hover-target truncate font-numeric text-[10px] text-secondary transition-colors group-hover:text-brand-orange group-focus-visible:text-brand-orange">
+        <span className="dashboard-continue-hover-target truncate font-numeric text-[10px] text-secondary transition-colors group-hover:text-brand-orange-dark group-focus-visible:text-brand-orange-dark">
           {estimate.projectName} · {estimate.sheet_code}
         </span>
       </span>
 
       <span className="flex items-end justify-between gap-2">
-        <span className="dashboard-continue-hover-target font-numeric text-[9px] text-secondary transition-colors group-hover:text-brand-orange group-focus-visible:text-brand-orange">
+        <span className="dashboard-continue-hover-target font-numeric text-[9px] text-secondary transition-colors group-hover:text-brand-orange-dark group-focus-visible:text-brand-orange-dark">
           Edited {formatShortDate(estimate.updated_at)}
         </span>
         <ArrowRight
           size={18}
           weight="regular"
           aria-hidden="true"
-          className="dashboard-continue-hover-target shrink-0 text-ink transition-[color,transform] motion-reduce:transition-none group-hover:translate-x-0.5 group-hover:text-brand-orange group-focus-visible:text-brand-orange"
+          className="dashboard-continue-hover-target shrink-0 text-ink transition-[color,transform] motion-reduce:transition-none group-hover:translate-x-0.5 group-hover:text-brand-orange-dark group-focus-visible:text-brand-orange-dark"
         />
       </span>
     </Link>

@@ -18,7 +18,7 @@ export function ArchestimatorLogoMark({ tone = "dark", size = 32, className }: A
       viewBox="0 0 1024 1024"
       aria-hidden="true"
       focusable="false"
-      className={cn("shrink-0", tone === "light" ? "text-white" : "text-[#AA412A]", className)}
+      className={cn("shrink-0", tone === "light" ? "text-white" : "text-[#F24405]", className)}
     >
       <path
         fill="currentColor"

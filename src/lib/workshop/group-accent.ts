@@ -11,7 +11,7 @@
  *   of the accent becomes the background; and the label text is a contrast
  *   variant (dark on light, light on dark) so it stays readable.
  * - The palette is provably non-brand-orange: no swatch reads as the brand
- *   orange (#AA412A / rgb(170,65,42)) or any vermillion/orange hue.
+ *   color (Signal #F24405 / rgb(242,68,5)) or any vermillion/orange hue.
  * - `DEFAULT_GROUP_ACCENT.id` is "neutral" — a distinct sentinel that is NOT a
  *   member of `GROUP_ACCENT_SWATCHES` and is never persisted. Only the 8
  *   `GroupAccentId` tokens are ever written to `accent_id`.
