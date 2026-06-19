@@ -1,0 +1,49 @@
+# RALPLAN Review
+
+Date: 2026-06-19
+Status: pending sequential review
+
+## Architect Review
+
+Verdict: iterate.
+
+Accepted findings:
+
+- The route Suspense fallback was missing from the visual scope. `ProjectRouteContentFallback` can still show the old white slab even if the dashboard component and `loading.tsx` are simplified.
+- Publication and recent-sheet ownership needed a shared request-cached data boundary because `ProjectChromeAsync` already fetches publication and sheet summaries.
+- Activity timeline helper reuse was under-specified. The plan now requires a stable shared activity module or exported helper boundary before project timeline code depends on those helpers.
+- Exact coordinates on `projects` are too leak-prone while broad `select("*")` project readers still exist. The plan now prefers a dedicated `project_locations` table.
+
+Plan patches applied:
+
+- Added `ProjectRouteContentFallback` to UI/loading scope and acceptance criteria.
+- Added shared request-cached dashboard helper requirement.
+- Added recent-sheets data contract.
+- Added activity helper extraction/shared-boundary requirement.
+- Changed Phase 3 location default to `project_locations`.
+- Added privacy tests for broad project readers, AI/context surfaces, and public share surfaces.
+
+## Critic Review
+
+Verdict: iterate.
+
+Accepted findings:
+
+- The shared dashboard helper wording could have caused a monolithic page-blocking fetch and undone `ProjectChromeAsync` streaming.
+- Phase 1's "existing data paths" wording contradicted the recent-sheets requirements because the existing publication picker helper is sheet-code ordered and lacks route fields.
+- Project activity needed an explicit redacted dashboard DTO because owner activity composition can include raw payload data.
+- `project_locations` needed a real schema/RLS contract, not just a table name.
+- Map/provider fallback needed configuration, a disable path, and mocked provider tests.
+
+Plan patches applied:
+
+- Replaced monolithic loader wording with request-cached leaf helpers and a requirement to preserve `ProjectChromeAsync` Suspense streaming.
+- Replaced Phase 1 recent-sheets wording with a dedicated `updated_at desc` project recent-sheets helper contract.
+- Added redacted project activity DTO requirements and migration requirements for `estimate_sheet_events.project_id`.
+- Added `project_locations` schema, RLS, validation, uniqueness, grants, generated-type, and fix-forward requirements.
+- Added OpenFreeMap configuration, provider-swap, disable/fallback, no-SLA, and mocked-test requirements.
+- Added visual acceptance checklist blocking extra hero cards, metric rows, action grids, and nested glass panels.
+
+## Review-Driven Changes
+
+Architect and critic pass changes are recorded above. A final critic re-check was attempted after patching, but the subagent thread limit was reached; the remaining closeout uses local static verification.

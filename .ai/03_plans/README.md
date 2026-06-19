@@ -15,7 +15,7 @@ Current planning baseline:
 - The deleted full prototype remains superseded.
 - Future work must be route-scoped, screen-scoped, and easy to delete if Philip rejects it.
 
-Current filesystem inventory, refreshed 2026-06-18:
+Current filesystem inventory, refreshed 2026-06-19:
 
 | Path | Current status | Notes |
 |---|---|---|
@@ -37,7 +37,9 @@ Current filesystem inventory, refreshed 2026-06-18:
 | `.ai/03_plans/2026-06-17-loop-engineering-default-mandate/` | Implemented docs/governance | Instruction-level mandate; no CI/tool enforcement claimed. |
 | `.ai/03_plans/2026-06-18-r1-graph-injector-neutralization/` | Implemented locally | Neutralizer and scripts exist. Real generator run was intentionally not performed. |
 | `.ai/03_plans/2026-06-19-Workshop-Dashboard-Query-Batching/` | Planning only | Dashboard Supabase round-trip reduction (app-only wave-merge + lean library fetch first; gated `workspace_homebase_summary` RPC only if measured). Operationalizes Performance-Refactor A-23/RISK-20; its `01-…` supersedes that pack's stale homebase anchors. No source, migrations, or measurement performed. Adversarially reviewed (ready-with-fixes, applied). |
+| `.ai/03_plans/2026-06-19-Projects-Page-Performance/` | Implemented locally; follow-ups tracked | Start at `05_STATUS.md`. Phase 1-3 local work and proof are recorded: server wave parallelization, card thumbnail/lazy image path, render-count proof, content-visibility, skeleton parity, and local production-build Lighthouse with a real Supabase session. This is **not hosted Vercel proof** and does not authorize provider/source action by itself. Remaining follow-ups are route-transition auth harness, optional Slow-3G, large-list spot-check, and main-thread/image-proxy investigation if LCP becomes a release gate. |
 | `.ai/03_plans/database-indexing-and-query-performance/` | Repo audit helper only | `DBIDX-001` repo audit helper exists. No indexes, candidate index migrations, or live EXPLAIN/provider proof are implemented. |
+| `.ai/03_plans/2026-06-19-Launch-Readiness-Audit/` | **Single consolidated launch-readiness audit folder (2026-06-19)** | **Start at `01-MASTER-INDEX.md`**, then read `03-LAUNCH-GATE-DECISION-REGISTER.md` and `04-PROOF-TAXONOMY-AND-AUTHORITY.md` before implementation. Contains **all 18 audit/remediation packs as subfolders**: 13 domain (`Auth-And-Session-Security`, `RLS-RPC-And-DB-Security`, `Database-Schema-Indexing-Query-Perf`, `API-Routes-And-Server-Actions`, `Frontend-Rendering-Performance`, `Bundle-And-Asset-Optimization`, `NextJS-Vercel-Deploy-And-Headers`, `Data-Fetching-Caching-RSC`, `Observability-Reliability-Ops`, `Testing-CI-Quality-Gates`, `Accessibility-SEO-Legal-Content`, `Dependencies-Supply-Chain-Code-Health`, `Email-Notifications-Integrations`) + 5 gap (`Realtime-Collaboration-Presence`, `Analytics-Consent-Privacy`, `DSAR-Account-Deletion-Data-Export`, `Storage-Buckets-And-Upload-Lifecycle`, `Share-Routes-And-Proxy-Self-Gating`). Every finding adversarially verified (7 refuted, ~13 down-rated). **Audit/readiness/planning only — nothing was implemented**; follow each pack's evidence gates and current owner/provider constraints before any Supabase/Vercel/CI/prod action. Verdict: not yet wider/external-launch ready (~9 hard blockers + 2 verify-gates + 1 conditional, mostly S/M effort); security core verified strong but does not waive remaining gates. |
 
 Archived entries that were previously mislisted as active:
 
@@ -143,6 +145,9 @@ A new plan must state:
 
 - exact user job;
 - route/screen affected;
+- UX state coverage for user-facing work: success, loading, empty/not-found,
+  error, permission/identity, mobile, keyboard/screen-reader, and copy/readability
+  states as applicable;
 - non-goals;
 - files expected to change;
 - validation gate;

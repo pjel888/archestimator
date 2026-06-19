@@ -1,8 +1,9 @@
 # Implementation Plan — `/workshop/projects` performance
 
-Phased by **confidence × impact × risk**. Phase 1 is implemented in this pass;
-Phases 2–3 are specified with explicit prerequisites and gates so they can be
-picked up safely (by a human or an agent) without re-discovery.
+Phased by **confidence x impact x risk**. This file began as the implementation
+plan; after the 2026-06-19 passes it is now the implemented phase record plus the
+remaining gate list. Do not re-run Phase 1-3 from scratch. Use `LOOP_LEDGER.md`
+for exact changes and `03_METRICS.md` for proof.
 
 ## Phase 1 — Load-path wins (IMPLEMENTED 2026-06-19)
 
@@ -36,38 +37,36 @@ High-confidence, low-risk, directly on the "slow when I navigate there" path.
    `ce-correctness-reviewer` on the diff; adopt valid findings.
 5. `git diff --check` (whitespace) on touched files.
 
-## Phase 2 — Client render cost (PLANNED, gated)
+## Phase 2 — Client render cost (IMPLEMENTED 2026-06-19)
 
-Bigger, coupled, needs a render-count proof. Do as one unit so the memo actually
-binds and the test churn happens once.
+Bigger and coupled, so it was done as one unit and locked with a render-count
+proof.
 
-- **P2.1 Stabilize card props** so memo can bind: wrap `onToggleFavorite` /
-  `onExpand` in `useCallback`; restructure `groupAssignMenu` so it is not a fresh
-  ReactNode every parent render (e.g., pass primitive props + build the menu
-  inside the card, or memoize per-item).
-- **P2.2 `React.memo(LiveProjectCard)`** — only after P2.1.
-- **P2.3 `useDeferredValue(searchQuery)`** feeding the `displayProjects` filter;
-  update the 5 projects-page tests that assert search synchronously to
-  `await waitFor`/`findBy`.
-- **P2.4 (optional) Split the 1,481-line client** — push static card chrome to a
-  server component, keep only interactive leaves client. Highest risk; only if
-  P2.1–P2.3 don't close the hydration cost.
-- **Gate:** a new `tests/vitest/perf/projects-page-render-baseline.test.tsx`
-  (cloned from `estimate-sheet-render-baseline`) must show a measured drop in
-  re-render count for sort/favorite/search with **no behavior change** in the 7
-  existing tests.
+- **P2.1 Stabilized card props** with identity-stable callbacks and primitive
+  group-menu inputs where needed.
+- **P2.2 `React.memo(LiveProjectCard)` shipped.**
+- **P2.3 `useDeferredValue(searchQuery)` shipped** without test churn; jsdom
+  `act()` flushed the deferred value for existing synchronous assertions.
+- **P2.4 client split rejected for now**: later bundle audit found most of the
+  client is genuinely interactive; code-splitting modal/popover leaves produced
+  a better risk/reward ratio.
+- **Proof:** `tests/vitest/perf/projects-page-render-baseline.test.tsx` now shows
+  search typing and sort toggles cause zero card-body re-renders in the 10-card
+  fixture; see `03_METRICS.md` section 1.
 
-## Phase 3 — Scale hardening (PLANNED, conditional)
+## Phase 3 — Scale hardening (PARTLY IMPLEMENTED; remainder evidence-gated)
 
-- **P3.1 Real large-data fixture** (100+ projects) — resolve
+- **P3.1 Real large-data fixture** (100+ projects) remains open — resolve
   `2026-06-17-Performance-Refactor` RISK-15 first. Without it, virtualization is
   speculative.
-- **P3.2 Grid virtualization** — only if P3.1 shows DOM-node cost is real at
-  scale; must preserve grouping + responsive auto-fill + SSR.
-- **P3.3 `select(...)` column trim + `next/image`** — after a column-usage audit
-  (whole `project` object currently flows to the client) and image-`sizes` tuning.
-- **P3.4 DB index candidates** — coordinate with
-  `database-indexing-and-query-performance`; prove with `EXPLAIN` before/after.
+- **P3.2 Heavy virtualization deferred**; lightweight `content-visibility:auto`
+  shipped for cards/list rows because it keeps layout semantics and avoids a new
+  virtualization dependency.
+- **P3.3 `select(...)` column trim remains deferred** after a column-usage audit
+  showed poor risk/reward. Image work shipped through 512px thumbnails and
+  verified proxy-rendered WebP output; see `03_METRICS.md`.
+- **P3.4 DB index candidates rejected for now**: existing indexes cover the
+  primary query and speculative indexes violate the prove-before-apply rule.
 
 ## Measurement protocol (adopt for before/after proof)
 - **Server waterfall:** `PERF_TRACE=1` + `withPerfTraceRequest("workshop.projects", …)`
@@ -75,8 +74,10 @@ binds and the test churn happens once.
   drop from 4 to ≤2 sequential).
 - **Route transition:** `SCENARIO_FILTER="workshop to projects" RUNS=5
   bun run scripts/measure-route-transitions.ts` against a dev server.
-- **LCP / Slow-3G:** fresh **multi-run** authed Lighthouse (the 2026-06-01 number
-  was single-run) — confirm the 865ms / 1941ms gaps close.
+- **LCP / Slow-3G:** production-representative authed Lighthouse is now captured
+  once with a real Supabase session (`03_METRICS.md` section 7). Slow-3G remains
+  uncaptured and should be measured only if it will drive the next implementation
+  lever.
 - **Image bytes:** Playwright `performance.getEntriesByType("resource")` filter to
   images — confirm first-paint image bytes drop with lazy loading.
 

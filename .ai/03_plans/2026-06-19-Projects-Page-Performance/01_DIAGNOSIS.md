@@ -77,9 +77,11 @@ renders every project to the DOM (no virtualization, `:1349-1404`).
 ### 4. [IMAGE] Eager-loaded `<img>` thumbnails — HIGH on bandwidth/LCP
 `LiveProjectCard.tsx:446-459` renders a plain `<img>` with **no `loading="lazy"`**,
 so all 50–100 project thumbnails fetch on first paint regardless of viewport.
-**Fix (Phase 1): `loading="lazy"` + `decoding="async"`.** Full `next/image`
-migration (WebP, responsive srcset) is a follow-up needing sizing/`sizes` tuning
-and a build verification.
+**Fix (Phase 1): `loading="lazy"` + `decoding="async"`.** Later proof kept the
+plain `<img>` intentionally because the private image proxy is auth-gated and must
+carry the browser session cookie; `next/image` server-side optimizer fetches cannot
+prove that session. The safe win is the 512px thumbnail path plus browser-loaded
+WebP output, not an optimizer migration.
 
 ## Measurement infrastructure that already exists (reuse, don't rebuild)
 - Route-transition harness: `scripts/measure-route-transitions.ts` (has a

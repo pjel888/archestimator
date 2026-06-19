@@ -1,0 +1,163 @@
+# Research Notes
+
+Date: 2026-06-19
+Status: planning evidence
+
+## Local Codebase Anchors
+
+Current project route:
+
+- `src/app/workshop/projects/[projectId]/page.tsx`
+- `src/app/workshop/projects/[projectId]/layout.tsx`
+- `src/app/workshop/projects/[projectId]/loading.tsx`
+- `src/components/workshop/ProjectDashboardClient.tsx`
+- `src/components/workshop/ProjectChromeAsync.tsx`
+- `src/components/workshop/ProjectMiniSidebar.tsx`
+
+Workshop dashboard references:
+
+- `src/app/workshop/page.tsx`
+- `src/components/workshop/WorkshopHomebaseClient.tsx`
+- `src/components/workshop/dashboard/WorkshopDashboard.tsx`
+- `src/components/workshop/dashboard/RecentSheetsList.tsx`
+- `src/components/workshop/dashboard/RecentProjectsList.tsx`
+- `src/components/workshop/dashboard/DashboardGlassPanel.tsx`
+- `src/components/workshop/dashboard/lib.ts`
+
+Publication references:
+
+- `src/components/workshop/ProjectPublicationHeader.tsx`
+- `src/components/share/SharedLinkActivityFeed.tsx`
+- `src/lib/publication/types.ts`
+- `src/lib/publication/actions.ts`
+- `src/lib/repositories/workspace-repository.ts`
+- `src/lib/repositories/project-publication-repository.ts`
+
+Activity references:
+
+- `src/lib/estimates/actions.ts`
+- `src/lib/activity/activity-composer.ts`
+- `src/lib/activity/types.ts`
+- `src/components/workshop/estimate-sheet/activity-history.tsx`
+- `tests/vitest/estimate-sheet-version-control-actions.test.ts`
+
+Relevant style/design references:
+
+- `DESIGN.md`
+- `src/app/globals.css`
+- `src/components/workshop/dashboard/DashboardGlassPanel.tsx`
+
+## Current Implementation Findings
+
+- The project dashboard currently centers on a left editable rail plus project overview, activity/working-surface, metrics, and action tiles.
+- The current page has too many high-level cards for a page that should mostly orient users and expose active project workflows.
+- `ProjectRouteContentFallback` still uses `bg-canvas` and white inner panels, and the project layout uses that component as the route Suspense fallback. This fallback must be re-themed with the dashboard, not treated as a separate loading-only concern.
+- The workshop dashboard already has the desired visual vocabulary:
+  - canvas wash;
+  - glass chrome;
+  - dense recent rows;
+  - published link summary;
+  - restrained shadows and blur.
+- `RecentSheetsList` intentionally keeps dense ledger content legible and can guide the project-specific recent sheets module.
+- `ProjectPublicationHeader` already owns the full publication management modal; the project dashboard should show a compact status/shortcut, not duplicate the modal.
+- `ProjectChromeAsync` already fetches publication and sheet summaries, so page content and chrome need shared request-cached data ownership to avoid duplicate reads and drift.
+- `getCurrentWorkspaceProject` currently uses a broad `select("*")` project read, which makes exact coordinate columns on `projects` a privacy risk unless all project projections are narrowed.
+- The publication picker/list helper for estimate sheets is not the recent-sheets helper the dashboard needs: project dashboard recency requires `updated_at desc` and deep-link fields such as `firstNodeId`.
+
+## Delegated Design Findings
+
+Designer lane summary:
+
+- Treat the page as a project desk, not a card dashboard.
+- Keep one quiet editable rail and one main workbench.
+- Recommended four modules: recent sheets, published link, activity, location.
+- Remove the extra hero/overview, working-surface card, metric boxes, and action tiles.
+- Keep glass as the framing material, with dense rows and thin dividers inside.
+- Distinguish exact pin, address-only, and no-location states.
+- Responsive order should prioritize recent sheets and published link before activity and map.
+
+## Delegated Performance Findings
+
+Performance lane summary:
+
+- Do not call `fetchEstimateSheetVersionControl` per estimate sheet.
+- Build one project-scoped activity read over `estimate_sheet_events`.
+- Reuse existing event normalization, actor hydration, filters, and activity composition helpers.
+- Use keyset pagination on `(created_at, id)`.
+- Add `project_id` to `estimate_sheet_events` or create an equivalent indexed project lookup path.
+- Recommended index: `(project_id, created_at desc, id desc)`.
+- Do not send raw snapshots/payloads to the client.
+
+## Delegated Map Findings
+
+Map/dependency lane summary:
+
+- Recommended MVP: MapLibre GL JS plus OpenFreeMap public vector tiles.
+- Keep provider/style URLs config-driven so the app can move to self-hosted Protomaps/PMTiles later.
+- Manual pin/drop/drag should be the source of truth for exact project location.
+- Geocoding should be optional, user-triggered, server-side, cached, throttled, and provider-swappable.
+- Do not use public OSM raster tiles as production infrastructure.
+- Do not use public Nominatim for autocomplete, systematic reverse geocoding, scheduled enrichment, or bulk lookups.
+- Do not send confidential project details or client names to public geocoding endpoints.
+- OpenFreeMap is acceptable for a closed-beta MVP only behind configuration. The dashboard must keep a non-map text fallback and must not claim tile-provider SLA.
+
+## Official Map And Policy Sources
+
+Leaflet:
+
+- https://leafletjs.com/
+- Useful as a lightweight map library, but still needs a production-safe tile provider.
+
+MapLibre GL JS:
+
+- https://maplibre.org/maplibre-gl-js/docs/
+- TypeScript/WebGL map renderer using style documents and vector tiles.
+- Needs client-only loading in Next.js, CSS import, and likely CSP attention for workers/blob URLs.
+
+OpenFreeMap:
+
+- https://openfreemap.org/
+- https://openfreemap.org/quick_start/
+- Public free vector tiles/styles with no API keys and commercial use allowed by the project.
+- Best MVP fit, with a config-driven escape hatch.
+
+Protomaps/PMTiles:
+
+- https://docs.protomaps.com/pmtiles/maplibre
+- Good later upgrade path for self-hosted static vector tiles through MapLibre and `pmtiles`.
+
+OSM tile policy:
+
+- https://operations.osmfoundation.org/policies/tiles/
+- OSM data is free, but OSMF tile servers have limited capacity and are not a production SLA-backed tile provider.
+
+Nominatim policy:
+
+- https://operations.osmfoundation.org/policies/nominatim/
+- Public Nominatim is limited, bans autocomplete/systematic use, and should not receive confidential material.
+
+OSM attribution:
+
+- https://osmfoundation.org/wiki/Licence/Attribution_Guidelines
+- OSM attribution must be visible, legible, and close to maps or map-like use.
+
+## Package/Dependency Notes
+
+- No existing `maplibre`, `leaflet`, or `pmtiles` dependency was found in `package.json` or current lockfiles during planning inspection.
+- Add `maplibre-gl` only when Phase 3 begins.
+- Keep tests mocked; do not let local/CI tests call public tile or geocoding services.
+
+## Open Questions For Implementation
+
+1. Should structured project coordinates live as nullable columns on `projects`, or in a `project_locations` table with history?
+   - MVP recommendation: `project_locations` table. This avoids leaking exact coordinates through existing broad project row readers and leaves room for history later.
+2. Should a location pin be included in future public proposals?
+   - MVP recommendation: no, internal-only until explicitly designed.
+3. Should activity timeline include share-link activity as well as estimate-sheet events?
+   - MVP recommendation: keep project dashboard activity focused on estimate/project work first; published link panel can show share-link opens separately.
+4. Should project recent sheets use favorites?
+   - MVP recommendation: not initially; this panel is recency-led.
+5. Should the page and project chrome share dashboard data?
+   - MVP recommendation: yes, but through request-cached leaf helpers. Do not replace `ProjectChromeAsync` streaming with a monolithic page-blocking fetch.
+6. Should the project activity panel receive the same owner activity view model as the sheet modal?
+   - MVP recommendation: no. Return a redacted dashboard DTO that strips raw snapshots/payloads and only includes render/navigation fields.

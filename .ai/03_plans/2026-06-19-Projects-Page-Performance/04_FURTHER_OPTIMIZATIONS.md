@@ -7,7 +7,7 @@ what shipped this round, what's left, and why.
 
 ## Shipped this round (load-speed wins)
 
-### IMG — the 414 KB image bug + `next/image` (biggest single win)
+### IMG — the 414 KB image bug + auth-carrying `<img>` (biggest single win)
 The upload pipeline (`src/app/api/projects/images/route.ts`) already generates a
 **512 px thumbnail** (`metadata.projectImageThumbnailUrl`) alongside the 1600 px
 full image, but the card read the **full** image into a ~248–320 px box (the
@@ -15,11 +15,11 @@ full image, but the card read the **full** image into a ~248–320 px box (the
 - `LiveProjectCard.tsx` `getProjectImageUrl` now prefers
   `projectImageThumbnailUrl ?? projectImageUrl` (fallback keeps pre-thumbnail
   projects working). **~85–90% fewer image bytes per card.**
-- Migrated the card `<img>` → **`next/image`** (`fill` + `sizes` matching the
-  `minmax(248px,1fr)` grid). Images are **same-origin** (`/api/projects/images?path=`),
-  so `remotePatterns` is irrelevant and **Vercel's optimizer** serves AVIF/WebP +
-  responsive `srcset`, CDN-cached. (Confirmed safe: the prior "arbitrary URL" worry
-  doesn't apply — the write path always produces a same-origin proxy URL.)
+- Kept a browser-rendered `<img>` intentionally. The auth-gated image proxy needs
+  the browser session cookie; `next/image` would fetch server-side through the
+  optimizer without that cookie and break private covers. The shipped fix is the
+  512px thumbnail path plus `loading="lazy"` / `decoding="async"` on the plain
+  image.
 
 ### STREAM — Suspense boundary so the shell flushes immediately
 `page.tsx` previously `await`ed the whole data fetch before returning any JSX. The
@@ -39,10 +39,10 @@ intact). Est. **~8–12 KB gzip** off the 21.2 KB entry chunk, all behind delibe
 user actions → no UX change.
 
 **Verification:** type-check clean for all touched files; projects-page +
-LiveProjectCard suites pass (the lone failure is the pre-existing concurrent
-liquid-glass test). A full `next build` is currently blocked by a concurrent agent's
-in-flight RPC/types refactor (errors in `estimates/actions.ts`,
-`publication/*` — not these changes); re-run `next build` once the tree is clean.
+LiveProjectCard suites pass (the lone failure was the pre-existing concurrent
+liquid-glass test). The earlier "full `next build` blocked by concurrent refactor"
+note is historical and superseded by `LOOP_LEDGER.md` + `03_METRICS.md`, which record
+a later successful build and local production-start Lighthouse proof.
 
 ## Also shipped (render + micro-wins)
 
@@ -85,6 +85,10 @@ Verified: type-check clean + projects-page group-mode/card-layout/organize tests
 - Patch `e2e/route-transition-performance.spec.ts` to inject the dev-auth bypass cookie
   so the authed projects transition is measurable in CI.
 
-## Still genuinely blocked
-Production-representative authed Lighthouse — dev-auth bypass is disabled when
-`NODE_ENV=production` (security control); needs a real logged-in session.
+## Resolved / remaining
+
+- **Production-representative authed Lighthouse — resolved locally.** `03_METRICS.md`
+  section 7 captured a real Supabase session against `next build` -> `next start`.
+  This is local production-build proof, not hosted Vercel proof.
+- **Slow-3G remains uncaptured.** Measure it only if the next implementation lever
+  depends on throttled proof.

@@ -103,10 +103,11 @@ symbols that don't exist in the file; fails with the perf changes stashed too).
   type-check + build + tests green.
 
 ### Investigated → NOT shipped (evidence, not hand-wave)
-- **`next/image`**: `getProjectImageUrl` returns an arbitrary `metadata.projectImageUrl`
-  string, but `next.config` `images.remotePatterns` only allows the Supabase host. Migrating
-  would **break** any non-Supabase image URL at runtime. Kept the `<img>` (already lazy +
-  async from Phase 1). A safe migration must first guarantee the URL host (or add a loader).
+- **`next/image`**: kept rejected. The current private-image route returns a same-origin
+  `/api/projects/images?path=...` URL, but it is auth-gated and must carry the
+  browser's session cookie. `next/image` would fetch through the optimizer from the
+  server side without that cookie, so it breaks private project covers. Kept the
+  `<img>` and validated the 512px thumbnail path instead.
 - **`select('*')` column trim**: the big columns (`snapshot_json`, `selected_estimate_ids`)
   were already trimmed (2026-06-01). The whole `project` object flows to many client
   consumers (card, details modal, access resolver), so trimming the remainder risks dropping
@@ -132,11 +133,11 @@ symbols that don't exist in the file; fails with the perf changes stashed too).
   perf 56 / LCP 10.6s / CLS 0 — **dev-mode only** (unminified + Turbopack JIT), not prod.
 - **Bundle** (webpack analyzer): projects entry **21.2 KB gzip**; shared baseline 123.3 KB;
   est. First Load ≈165 KB gzip. Runtime is the win, not bundle (A/B delta <0.5 KB).
-- **Genuinely blocked (by design):** production-representative authed Lighthouse — dev-auth
-  bypass is disabled when `NODE_ENV=production` (security control), so it needs a real
-  logged-in session (`PLAYWRIGHT_STORAGE_STATE`), unavailable headlessly. Also found a real
-  harness gap: `e2e/route-transition-performance.spec.ts` never injects the bypass cookie,
-  so its authed scenario redirects to `/login` (worth patching for CI).
+- **Resolved:** production-representative authed Lighthouse was later captured with a
+  real Supabase session against `next build` -> `next start`; see `03_METRICS.md`
+  section 7. This is local production-build proof, not hosted Vercel proof.
+- **Remaining harness gap:** `e2e/route-transition-performance.spec.ts` never injects
+  the bypass cookie, so its authed scenario redirects to `/login` (worth patching for CI).
 
 ### Skeleton loading
 - `src/app/workshop/projects/loading.tsx`: added the **access-tabs bar** placeholder

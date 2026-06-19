@@ -13,7 +13,7 @@ passing). It mounts the real `ProjectsPageClient` with a 10-project fixture and
 counts `LiveProjectCardImpl` body renders per interaction (spying the
 once-per-render `usePrefetchOnHover`), with a `<Profiler>` as a secondary signal.
 
-| Interaction | Card re-renders NOW | Naive (no memo/defer) | 
+| Interaction | Card re-renders NOW | Naive (no memo/defer) |
 |---|---|---|
 | Initial mount (10 cards) | **10** (1 each — correct) | 10 |
 | Type "Project" (7 keystrokes) in search | **0** | ~70 |
@@ -111,21 +111,54 @@ no network throttling:
 Lighthouse (mobile, simulated slow-4G, authed): **perf 56 · FCP 1.4s · LCP 10.6s ·
 TBT 450ms · CLS 0 · SI 7.5s**.
 
-**Heavy caveat:** these are **DEV-server** numbers — unminified bundles + Turbopack
-on-demand compilation. The 10.6s Lighthouse LCP and score 56 reflect dev-mode JS
-weight + simulated throttling, **NOT production**. Treat as relative/dev signals,
-not the production figure. (CLS 0 is meaningful and good; the skeleton + reserved
-tabs row keep layout stable.)
+**Heavy caveat:** these are **DEV-server** numbers — superseded by §7 (production).
 
-## What remains genuinely blocked (and why)
+## 7. PRODUCTION-representative authed Lighthouse — MEASURED (the real picture)
 
-- **Production-representative authed Lighthouse / Slow-3G** — *blocked by design*,
-  not deferred: the dev-auth bypass only works when `NODE_ENV !== production`, and
-  `next start` forces production, which disables it (a security control). A
-  production authed run therefore needs a **real logged-in session**
-  (`PLAYWRIGHT_STORAGE_STATE` from a real credentialed login) — unavailable
-  headlessly without real credentials. This is the one figure left to confirm the
-  old 3865ms LCP baseline closes; capture it from a logged-in session when convenient.
+Captured against a **true production build** (`next build` → `next start`, minified
+bundles, prod React) authenticated with a **real Supabase session** (minted for the
+seeded user via admin `generateLink` → `verifyOtp` → `@supabase/ssr` cookies). The
+dev-auth bypass is dead-code-eliminated in production builds (it's `NODE_ENV !==
+"production"`-gated), so a real session — NOT a gate change — was the correct path.
+No security code was modified (`git diff` on the gate/proxy is empty). Localhost
+loopback, no network throttle, single run per condition (treat as representative,
+±~10% variance):
+
+| Metric | Cold | Warm |
+|---|---|---|
+| **First Load JS** (`/workshop/projects`) | **767 kB raw / 215.9 kB gzip** | — |
+| **Performance score** | **56** | **64** |
+| FCP | 1.4 s | 1.4 s |
+| **LCP** | **4.9 s** | **4.4 s** |
+| TBT | 650 ms | 440 ms |
+| CLS | **0** | **0** |
+| Speed Index | 13.6 s | 11.1 s |
+
+**Dev vs production:** the dev LCP 10.6s was ~6s of pure dev overhead (Turbopack JIT
+compile + unminified JS). Production LCP **4.4–4.9s is ~2.2–2.4× faster**. CLS 0.
+
+**Images — fix + thumbnail win CONFIRMED in production:** 3/3 card `<img>` to the
+auth-gated `/api/projects/images` proxy rendered (`naturalWidth=512`, HTTP 200,
+`image/webp`), each **14.9 / 17.8 / 57.1 kB (avg ~30 kB)** — tens of KB, not the old
+~414 kB. Both the broken-image fix (revert to `<img>` so the browser carries the
+session cookie) and the 512px-thumbnail optimization are validated end-to-end.
+
+**The remaining ~4.4s warm LCP is genuine production cost** — NOT bundle compile. The
+next real levers (beyond this pack's scope) are main-thread/hydration work (TBT 440ms)
+and the **serial auth-gated image-proxy fetches** (Speed Index 11s = images painting
+late, after LCP). Bundle size is not the bottleneck.
+
+## Resolved / remaining
+
+- **Production-representative authed Lighthouse — DONE** (§7). The earlier "blocked by
+  design" note is resolved: instead of weakening the prod-disabled dev-auth bypass, a
+  real Supabase session was minted for the seeded user against a true `next start` build.
+  Production LCP is **4.4s warm** (vs the 2026-06-01 baseline of 3865ms — *higher*, but
+  that baseline was a different, pre-RPC build; the meaningful comparison is dev 10.6s →
+  prod 4.4s, and the image bytes drop). Closing LCP under 3s further needs the
+  main-thread / image-proxy work noted in §7, not bundle changes.
+- **Slow-3G** still uncaptured (would need throttled runs); lower priority than the
+  above which is now measured.
 - **Repo harness gap (found, worth fixing):** `e2e/route-transition-performance.spec.ts`
   gates its authed projects test on `ARCHESTIMATOR_DEV_AUTH_BYPASS===1` but never
   injects the bypass **secret cookie**, so the authed scenario redirects to `/login`
