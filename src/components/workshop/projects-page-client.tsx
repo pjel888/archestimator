@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { Suspense, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
+import { useStableCallback } from "@/hooks/use-stable-callback";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import {
   CalendarBlank,
@@ -590,34 +591,44 @@ export function ProjectsPageClient({
     return ids;
   }, [favoriteProjectIds, favoriteOverrides]);
 
+  // Perf: filter against a deferred copy of the query so each keystroke no longer blocks a
+  // full re-filter + re-sort of every card; the input stays bound to `searchQuery`.
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  // Identity-stable handlers so memoized project cards can skip re-render when only an
+  // unrelated parent state slice changes (the wrappers always invoke the latest closure).
+  const stableToggleProjectFavorite = useStableCallback(toggleProjectFavorite);
+  const stableToggleProjectSelection = useStableCallback(toggleProjectSelection);
+
   const activeBaseProjects = activeTab === "your-projects" ? ownedProjectItems : sharedProjectItems;
 
   const displayProjects = useMemo(() => {
-    const searchedProjects = !searchQuery.trim() ? activeBaseProjects : activeBaseProjects.filter(
+    const query = deferredSearchQuery.trim().toLowerCase();
+    const searchedProjects = !query ? activeBaseProjects : activeBaseProjects.filter(
       (item) =>
-        item.project.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.project.client_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.project.project_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.project.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        getProjectAccessSearchText(item).includes(searchQuery.toLowerCase()),
+        item.project.name?.toLowerCase().includes(query) ||
+        item.project.client_name?.toLowerCase().includes(query) ||
+        item.project.project_code?.toLowerCase().includes(query) ||
+        item.project.location?.toLowerCase().includes(query) ||
+        getProjectAccessSearchText(item).includes(query),
     );
     if (!sortTouched && isDateSortField(sortField)) {
       return [...searchedProjects].sort((a, b) => compareProjectsByDateOnly(a, b, sortField, sortDirection));
     }
     if (!sortTouched) return searchedProjects;
     return [...searchedProjects].sort((a, b) => compareProjectsBySort(a, b, sortField, sortDirection));
-  }, [activeBaseProjects, searchQuery, sortDirection, sortField, sortTouched]);
+  }, [activeBaseProjects, deferredSearchQuery, sortDirection, sortField, sortTouched]);
 
   const filteredSamples = useMemo(() => {
-    if (!searchQuery.trim()) return sampleProjects;
-    const q = searchQuery.toLowerCase();
+    const q = deferredSearchQuery.trim().toLowerCase();
+    if (!q) return sampleProjects;
     return sampleProjects.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.client.toLowerCase().includes(q) ||
         p.location.toLowerCase().includes(q),
     );
-  }, [searchQuery]);
+  }, [deferredSearchQuery]);
 
   const hasLiveProjects = projectItems.length > 0;
   const hasActiveProjects = activeBaseProjects.length > 0;
@@ -1054,8 +1065,8 @@ export function ProjectsPageClient({
         favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
         selectedForDeletion={selectedProjectIds.has(item.project.id)}
         selectionActive={selectedVisibleProjectIds.length > 0}
-        onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
-        onToggleFavorite={canFavoriteProject ? toggleProjectFavorite : undefined}
+        onToggleSelected={canSelectProjectForDeletion(item) ? stableToggleProjectSelection : undefined}
+        onToggleFavorite={canFavoriteProject ? stableToggleProjectFavorite : undefined}
         onExpand={setExpandedProject}
         groupAssignMenu={renderProjectGroupMenu(item)}
       />
