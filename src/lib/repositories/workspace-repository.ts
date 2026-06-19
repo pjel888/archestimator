@@ -118,6 +118,20 @@ type WorkshopProjectListItem = {
   groupId: string | null;
 };
 
+// Columns fetched for the /workshop/projects list. We fetch workspace_id + created_by because
+// the server-side access resolver (createWorkshopProjectAccessResolver) needs them, but they are
+// stripped from the client payload by toClientProjectRow — no client consumer reads them, so
+// shipping them in the RSC Flight stream is pure waste (~2 UUIDs + keys ≈ 100 bytes/project).
+const WORKSHOP_PROJECT_LIST_COLUMNS =
+  "id, workspace_id, created_by, name, client_name, location, project_code, currency_code, metadata, created_at, updated_at" as const;
+
+// Drop the two server-only columns the access resolver consumed so they never reach the client.
+// Keeps the return type as the full projects Row (no consumer reads these fields at runtime).
+function toClientProjectRow(project: Tables<"projects">): Tables<"projects"> {
+  const { workspace_id: _workspaceId, created_by: _createdBy, ...rest } = project;
+  return rest as Tables<"projects">;
+}
+
 export type ProjectFavoriteEstimateSheetSummary = Pick<
   Tables<"estimates">,
   "id" | "project_id" | "name" | "sheet_code" | "updated_at"
@@ -467,7 +481,10 @@ function createPendingInviteProjectListItem({
 }): WorkshopProjectListItem {
   const timestamp = invite.lastOpenedAt ?? invite.expiresAt ?? new Date(0).toISOString();
   return {
-    project: {
+    // workspace_id/created_by are intentionally omitted: this synthetic row is never run through
+    // the access resolver (accessKind is hard-coded "pending-invite"), and no client consumer reads
+    // them — matching the trimmed shape of toClientProjectRow for the real owned/shared rows.
+    project: toClientProjectRow({
       id: invite.projectId,
       workspace_id: workspaceId,
       name: invite.projectName,
@@ -479,7 +496,7 @@ function createPendingInviteProjectListItem({
       created_at: timestamp,
       updated_at: timestamp,
       created_by: profileId,
-    },
+    }),
     accessKind: "pending-invite",
     currentUserRole: invite.role,
     ownerWorkspaceName: invite.inviterLabel,
@@ -876,7 +893,10 @@ export const listCurrentWorkspaceProjects = cache(async () => {
   ] = await Promise.all([
     supabase
       .from("projects")
-      .select("*")
+      // Explicit columns (not select('*')): workspace_id + created_by are read ONLY by the
+      // server-side access resolver below and are stripped from the client payload via
+      // toClientProjectRow before serialization, so they never ship in the RSC Flight stream.
+      .select(WORKSHOP_PROJECT_LIST_COLUMNS)
       .eq("workspace_id", workspace.id)
       .order("updated_at", { ascending: false }),
     supabase
@@ -957,7 +977,7 @@ export const listCurrentWorkspaceProjects = cache(async () => {
     sharedProjectIds.length > 0
       ? supabase
           .from("projects")
-          .select("*")
+          .select(WORKSHOP_PROJECT_LIST_COLUMNS)
           .in("id", sharedProjectIds)
           .order("updated_at", { ascending: false })
       : null;
@@ -1023,9 +1043,12 @@ export const listCurrentWorkspaceProjects = cache(async () => {
   );
 
   function createProjectListItem(project: Tables<"projects">): WorkshopProjectListItem {
+    // Resolve access off the FULL row (needs workspace_id/created_by), then ship the trimmed
+    // client row so the two server-only columns never enter the serialized payload.
+    const access = resolveProjectAccess(project);
     return {
-      project,
-      ...resolveProjectAccess(project),
+      project: toClientProjectRow(project),
+      ...access,
       pendingInviteCount: 0,
       publicationSummary: null,
       favoriteEstimateSheets: favoriteEstimateSheetsByProjectId.get(project.id) ?? [],
