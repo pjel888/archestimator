@@ -6,8 +6,9 @@
 **Goal (orchestrator):** Produce a comprehensive, evidence-backed launch-readiness
 audit of the entire Archestimator codebase across every production discipline
 (security, performance, database, deploy, reliability, testing, a11y, deps,
-integrations) and emit one self-contained, deletable plan pack per domain under
-`.ai/03_plans/`, reconciled with existing packs (do not duplicate prior work).
+integrations) and emit one consolidated, self-contained launch-readiness pack under
+`.ai/03_plans/2026-06-19-Launch-Readiness-Audit/`, reconciled with existing packs
+(do not duplicate prior work).
 
 ## Method
 
@@ -67,27 +68,43 @@ HMAC+AES-GCM, AI draft-token HMAC + `revoke from service_role`, invite fail-clos
 upload magic-byte+sharp re-encode, Svix webhook verification, RLS on all tables,
 SECURITY DEFINER `search_path=public` pinned.
 
-## Domains (each → one `2026-06-19-Launch-Readiness-<Domain>/` pack)
+## Domains (each -> one subfolder under this consolidated audit pack)
 
 | # | Domain | Folder | Status |
 |---|--------|--------|--------|
-| 1 | Auth & Session Security | `...-Auth-And-Session-Security` | pending |
-| 2 | RLS, RPC & DB Security | `...-RLS-RPC-And-DB-Security` | pending |
-| 3 | DB Schema, Indexing & Query Perf | `...-Database-Schema-Indexing-Query-Perf` | pending |
-| 4 | API Routes & Server Actions | `...-API-Routes-And-Server-Actions` | pending |
-| 5 | Frontend Rendering Performance | `...-Frontend-Rendering-Performance` | pending |
-| 6 | Bundle & Asset Optimization | `...-Bundle-And-Asset-Optimization` | pending |
-| 7 | Next.js/Vercel, Headers & Deploy | `...-NextJS-Vercel-Deploy-And-Headers` | pending |
-| 8 | Data Fetching, Caching & RSC | `...-Data-Fetching-Caching-RSC` | pending |
-| 9 | Observability, Reliability & Ops | `...-Observability-Reliability-Ops` | pending |
-| 10 | Testing, CI & Quality Gates | `...-Testing-CI-Quality-Gates` | pending |
-| 11 | Accessibility, SEO & Legal/Content | `...-Accessibility-SEO-Legal-Content` | pending |
-| 12 | Dependencies, Supply Chain & Code Health | `...-Dependencies-Supply-Chain-Code-Health` | pending |
-| 13 | Email, Notifications & Integrations | `...-Email-Notifications-Integrations` | pending |
+| 1 | Auth & Session Security | `Auth-And-Session-Security` | completed audit pack; 1 config verify blocker |
+| 2 | RLS, RPC & DB Security | `RLS-RPC-And-DB-Security` | completed audit pack; no exploitable RLS blocker, DR drift blocker owned in master index |
+| 3 | DB Schema, Indexing & Query Perf | `Database-Schema-Indexing-Query-Perf` | completed audit pack; no domain launch blocker |
+| 4 | API Routes & Server Actions | `API-Routes-And-Server-Actions` | completed audit pack; AI rate limit is conditional pre-flip gate |
+| 5 | Frontend Rendering Performance | `Frontend-Rendering-Performance` | completed audit pack; green-gate code lint items feed B2 |
+| 6 | Bundle & Asset Optimization | `Bundle-And-Asset-Optimization` | completed audit pack; no launch blocker |
+| 7 | Next.js/Vercel, Headers & Deploy | `NextJS-Vercel-Deploy-And-Headers` | completed audit pack; no domain launch blocker |
+| 8 | Data Fetching, Caching & RSC | `Data-Fetching-Caching-RSC` | completed audit pack; no launch blocker |
+| 9 | Observability, Reliability & Ops | `Observability-Reliability-Ops` | completed audit pack; 2 hard blockers + monitoring gate |
+| 10 | Testing, CI & Quality Gates | `Testing-CI-Quality-Gates` | completed audit pack; 2 hard blockers |
+| 11 | Accessibility, SEO & Legal/Content | `Accessibility-SEO-Legal-Content` | completed audit pack; no domain launch blocker after SEO down-rate |
+| 12 | Dependencies, Supply Chain & Code Health | `Dependencies-Supply-Chain-Code-Health` | completed audit pack; no launch blocker |
+| 13 | Email, Notifications & Integrations | `Email-Notifications-Integrations` | completed audit pack; no launch blocker |
 
 ## Phase log
 
-- [in progress] Phase 1 — Parallel deep audit + adversarial verify (Workflow 1).
-- [pending] Phase 2 — Synthesis: master index, dedup, launch-blocker ranking.
-- [pending] Phase 3 — Coverage/conflict resolution & gap closure.
-- [pending] Phase 4 — Final completeness verification & README index update.
+- [DONE] Phase 1 — 13-domain parallel deep audit + adversarial verify + coverage/conflict critic
+  (Workflow 1, `wf_8c26c813-ffe`; 27 agents, ~2.36M tok). 6 findings refuted, ~10 down-rated.
+- [DONE] Phase 2 — synthesis into `01-MASTER-INDEX.md` (reconciled/deduped blocker register,
+  conflict resolutions, canonical-owner table, sequencing). SEO-01 conflict resolved (not a blocker).
+- [DONE] Phase 3 — 5-pack gap pass over the critic's unowned surfaces (Workflow 2, `wf_ef1892a5-29b`;
+  10 agents, ~0.9M tok): Realtime, Consent/Privacy, DSAR, Storage, Share-Proxy. Added B8/B9 + V1/V2;
+  closed the proxy `/api` seam (all 16 routes self-gate, verified) + the staleTimes/collab handoff.
+- [DONE] Phase 4 — master index finalized; `.ai/03_plans/README.md` + `current-state.md` updated;
+  completeness verified (18 packs × 5 docs).
+- [DONE] Phase 5 — consolidation: all 18 domain packs moved to live as subfolders of THIS single
+  folder (`.ai/03_plans/2026-06-19-Launch-Readiness-Audit/<Pack>/`), alongside this ledger and
+  `01-MASTER-INDEX.md`. No separate sibling launch-readiness folders remain. Docs only —
+  nothing implemented.
+- [DONE] Phase 6 — implementation-readiness pass: added the scorecard, launch-gate register,
+  proof/authority taxonomy, UX crosswalk, and UX flow matrices; reconciled RLS/OPS/Realtime/Consent
+  gate taxonomy and corrected stale handoff references.
+
+**Outcome:** NOT yet wider/external launch-ready — ~9 hard blockers + 2 verify-gates + 1 conditional,
+mostly S/M effort, clustered in CI/quality-gate, observability, and legal/DSAR; security core verified
+strong. Full detail and sequence: `01-MASTER-INDEX.md`.
