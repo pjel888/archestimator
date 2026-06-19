@@ -67,7 +67,6 @@ export function ProjectGroupSection({
         <ProjectGroupFlag
           mode={mode}
           group={group}
-          items={items}
           flagLayoutClassName={flagLayoutClassName}
           collapsed={collapsed}
           onToggleCollapse={onToggleCollapse}

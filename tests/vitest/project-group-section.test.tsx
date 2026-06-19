@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ProjectGroupSection } from "@/components/workshop/ProjectGroupSection";
 import type { ProjectListItem } from "@/components/workshop/projects-page-client";
@@ -47,6 +47,12 @@ const renderCard = (i: ProjectListItem) => (
 
 const layout = "grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3";
 const flagLayout = layout;
+
+beforeAll(() => {
+  if (!window.PointerEvent) {
+    window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
+  }
+});
 
 describe("ProjectGroupSection date mode (legacy orange-flag DOM parity)", () => {
   it("emits the verbatim date-mode section + orange label attributes/styles", () => {
@@ -175,7 +181,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     expect(within(section).getByText("Pipeline")).toBeInTheDocument();
   });
 
-  it("shows the item count and toggles collapse via the caret button", async () => {
+  it("hides the item count and toggles collapse via the caret button", async () => {
     const user = userEvent.setup();
     const onToggleCollapse = vi.fn();
     const { rerender } = render(
@@ -193,7 +199,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     );
 
     const section = screen.getByLabelText("Pipeline");
-    expect(within(section).getByText("2")).toBeInTheDocument();
+    expect(within(section).queryByText("2")).not.toBeInTheDocument();
     expect(within(section).getAllByRole("article")).toHaveLength(2);
 
     const caret = within(section).getByRole("button", { name: /collapse pipeline|expand pipeline/i });
@@ -221,7 +227,7 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
     expect(within(collapsedSection).queryAllByRole("article")).toHaveLength(0);
   });
 
-  it("renders the header menu slot for an editable group and marks the virtual bucket", () => {
+  it("opens the header menu slot from right-click and marks the virtual bucket", async () => {
     const { rerender } = render(
       <ProjectGroupSection
         mode="group"
@@ -231,10 +237,14 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         renderCard={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        headerMenuSlot={<button type="button">menu</button>}
+        headerMenuSlot={<div role="menuitem">Manage groups</div>}
       />,
     );
-    expect(within(screen.getByLabelText("Pipeline")).getByText("menu")).toBeInTheDocument();
+    const editableLabel = screen.getByText("Pipeline").closest("[data-project-group-label]");
+    expect(editableLabel).toBeInstanceOf(HTMLElement);
+    expect(screen.queryByRole("menuitem", { name: "Manage groups" })).not.toBeInTheDocument();
+    fireEvent.contextMenu(editableLabel as HTMLElement, { clientX: 24, clientY: 24 });
+    expect(await screen.findByRole("menuitem", { name: "Manage groups" })).toBeInTheDocument();
 
     rerender(
       <ProjectGroupSection
@@ -245,13 +255,13 @@ describe("ProjectGroupSection group mode (accent + collapse + menu)", () => {
         renderCard={renderCard}
         layoutClassName={layout}
         flagLayoutClassName={flagLayout}
-        headerMenuSlot={<button type="button">menu</button>}
+        headerMenuSlot={<div role="menuitem">Manage groups</div>}
       />,
     );
     const virtualSection = screen.getByLabelText("Ungrouped");
     expect(virtualSection).toHaveAttribute("data-project-group", "__ungrouped__");
     expect(virtualSection).toHaveAttribute("data-project-group-virtual", "");
     // Virtual bucket: no editable header menu (it can't be renamed/recolored/deleted).
-    expect(within(virtualSection).queryByText("menu")).toBeNull();
+    expect(within(virtualSection).queryByRole("menuitem", { name: "Manage groups" })).toBeNull();
   });
 });
