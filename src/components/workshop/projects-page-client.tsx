@@ -1493,21 +1493,23 @@ export function ProjectsPageClient({
           />
         ) : null}
       </Suspense>
-      <BulkDestructivePreviewModal
-        open={deleteProjectTargetIds.length > 0}
-        title={deleteProjectModalTitle}
-        description={deleteProjectDescription}
-        requiredPhrase={deleteProjectPhrase}
-        executeLabel={deleteProjectTargetIds.length === 1 ? "Delete project" : "Delete projects"}
-        loading={deleteProjectState === "loading"}
-        executing={deleteProjectState === "executing"}
-        preview={deleteProjectPreview}
-        previewError={deleteProjectError}
-        onExecute={executeProjectDeletePreview}
-        onOpenChange={(open) => {
-          if (!open) closeProjectDeletePreview();
-        }}
-      />
+      {bulkDeleteModalMounted && (
+        <BulkDestructivePreviewModal
+          open={deleteProjectTargetIds.length > 0}
+          title={deleteProjectModalTitle}
+          description={deleteProjectDescription}
+          requiredPhrase={deleteProjectPhrase}
+          executeLabel={deleteProjectTargetIds.length === 1 ? "Delete project" : "Delete projects"}
+          loading={deleteProjectState === "loading"}
+          executing={deleteProjectState === "executing"}
+          preview={deleteProjectPreview}
+          previewError={deleteProjectError}
+          onExecute={executeProjectDeletePreview}
+          onOpenChange={(open) => {
+            if (!open) closeProjectDeletePreview();
+          }}
+        />
+      )}
     </WorkshopCollectionLayout>
   );
 }

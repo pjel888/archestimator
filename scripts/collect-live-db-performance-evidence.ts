@@ -21,6 +21,7 @@
 //   - Secrets (DATABASE_URL, tokens) are never printed.
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
@@ -68,61 +69,56 @@ Guardrails:
   - Live modes run only SELECT/read-only SQL.
 `;
 
-const LIVE_EVIDENCE_SQL = `-- Live DB performance evidence collection
--- Read-only. Safe to run on a linked/staging Postgres instance.
--- Do not run on production without explicit owner authorization and a maintenance window.
+const LIVE_EVIDENCE_SQL = `-- Live DB performance evidence collection.
+-- Read-only and compatible with both Supabase Management API db query and psql.
+-- The result is one row with JSON arrays so db query does not discard earlier
+-- result sets. pg_stat_statements is intentionally reported as availability only;
+-- query text capture should happen in a controlled follow-up environment.
 
-\pset format json
-
--- 1. Table row counts (live estimate)
-SELECT schemaname, relname AS table_name, n_live_tup AS row_count
-FROM pg_stat_user_tables
-WHERE schemaname = 'public'
-ORDER BY n_live_tup DESC;
-
--- 2. Table total sizes
-SELECT relname AS table_name,
-       pg_size_pretty(pg_total_relation_size(quote_ident(relname)::regclass)) AS total_size
-FROM pg_stat_user_tables
-WHERE schemaname = 'public'
-ORDER BY pg_total_relation_size(quote_ident(relname)::regclass) DESC;
-
--- 3. Index usage
-SELECT schemaname, tablename, indexrelname AS index_name, idx_scan, idx_tup_read, idx_tup_fetch
-FROM pg_stat_user_indexes
-WHERE schemaname = 'public'
-ORDER BY idx_scan DESC;
-
--- 4. Unindexed foreign-key columns (candidate investigation, not a prescription)
-SELECT tc.table_name, kcu.column_name
-FROM information_schema.table_constraints tc
-JOIN information_schema.key_column_usage kcu
-  ON tc.constraint_name = kcu.constraint_name
-  AND tc.table_schema = kcu.table_schema
-WHERE tc.constraint_type = 'FOREIGN KEY'
-  AND tc.table_schema = 'public'
-  AND NOT EXISTS (
-    SELECT 1
-    FROM pg_indexes pi
-    WHERE pi.schemaname = 'public'
-      AND pi.tablename = tc.table_name
-      AND pi.indexdef ILIKE '%(' || kcu.column_name || '%'
-  )
-ORDER BY tc.table_name, kcu.column_name;
-
--- 5. Top statements by total time (requires pg_stat_statements extension)
--- Keep raw query text out of persisted evidence; queryid is enough to identify
--- candidates for follow-up EXPLAIN capture in a controlled environment.
-SELECT queryid AS query_id, calls, mean_exec_time, total_exec_time, rows
-FROM pg_stat_statements
-ORDER BY total_exec_time DESC
-LIMIT 20;
-
--- 6. Top statements by mean time (requires pg_stat_statements extension)
-SELECT queryid AS query_id, calls, mean_exec_time, total_exec_time, rows
-FROM pg_stat_statements
-ORDER BY mean_exec_time DESC
-LIMIT 20;
+with
+table_rows as (
+  select schemaname, relname as table_name, n_live_tup as row_count
+  from pg_stat_user_tables
+  where schemaname = 'public'
+),
+table_sizes as (
+  select
+    schemaname,
+    relname as table_name,
+    pg_total_relation_size(format('%I.%I', schemaname, relname)::regclass) as total_size_bytes,
+    pg_size_pretty(pg_total_relation_size(format('%I.%I', schemaname, relname)::regclass)) as total_size
+  from pg_stat_user_tables
+  where schemaname = 'public'
+),
+index_usage as (
+  select schemaname, relname as table_name, indexrelname as index_name, idx_scan, idx_tup_read, idx_tup_fetch
+  from pg_stat_user_indexes
+  where schemaname = 'public'
+),
+unindexed_foreign_keys as (
+  select tc.table_name, kcu.column_name
+  from information_schema.table_constraints tc
+  join information_schema.key_column_usage kcu
+    on tc.constraint_name = kcu.constraint_name
+   and tc.table_schema = kcu.table_schema
+  where tc.constraint_type = 'FOREIGN KEY'
+    and tc.table_schema = 'public'
+    and not exists (
+      select 1
+      from pg_indexes pi
+      where pi.schemaname = 'public'
+        and pi.tablename = tc.table_name
+        and pi.indexdef ilike '%(' || kcu.column_name || '%'
+    )
+)
+select
+  now() as collected_at,
+  current_database() as database_name,
+  (to_regclass('public.pg_stat_statements') is not null) as has_pg_stat_statements,
+  coalesce((select jsonb_agg(to_jsonb(table_rows) order by row_count desc, table_name) from table_rows), '[]'::jsonb) as table_rows,
+  coalesce((select jsonb_agg(to_jsonb(table_sizes) order by total_size_bytes desc, table_name) from table_sizes), '[]'::jsonb) as table_sizes,
+  coalesce((select jsonb_agg(to_jsonb(index_usage) order by idx_scan desc, index_name) from index_usage), '[]'::jsonb) as index_usage,
+  coalesce((select jsonb_agg(to_jsonb(unindexed_foreign_keys) order by table_name, column_name) from unindexed_foreign_keys), '[]'::jsonb) as unindexed_foreign_keys;
 `;
 
 function main() {
@@ -320,7 +316,7 @@ function collectLiveEvidence(mode: Mode, outputDir: string, runSql: boolean): Ev
 }
 
 function runLinkedSql(sql: string): { ok: true; output: string } | { ok: false; error: string } {
-  const tempSql = join(dirname(resolve(process.cwd())), "tmp", `live-evidence-${Date.now()}.sql`);
+  const tempSql = join(tmpdir(), `archestimator-live-evidence-${Date.now()}.sql`);
   mkdirSync(dirname(tempSql), { recursive: true });
   writeFileSync(tempSql, sql);
 
