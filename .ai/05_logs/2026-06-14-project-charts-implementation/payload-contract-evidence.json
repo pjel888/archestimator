@@ -1,8 +1,9 @@
 {
-  "generatedFrom": "tests/vitest/project-charts-payload-contract.test.ts",
+  "generatedFrom": "scripts/generate-project-charts-payload-evidence.ts",
   "fixtureRows": 5000,
   "serializedBytes": 11171,
   "budgetBytes": 50000,
+  "withinBudget": true,
   "rawFactArraysPresent": false,
   "note": "buckets-only payload; raw estimate_row_items never cross the wire"
 }
