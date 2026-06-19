@@ -94,42 +94,44 @@ Performance lane summary:
 
 Map/dependency lane summary:
 
-- Recommended MVP: MapLibre GL JS plus OpenFreeMap public vector tiles.
-- Keep provider/style URLs config-driven so the app can move to self-hosted Protomaps/PMTiles later.
-- Manual pin/drop/drag should be the source of truth for exact project location.
-- Geocoding should be optional, user-triggered, server-side, cached, throttled, and provider-swappable.
+- Superseding decision after owner discussion: use Google Maps Platform as the single provider for project-location search and display.
+- Google Places Autocomplete should run only during set/edit location flows. Once a place is selected, store formatted address, place id, latitude, and longitude; normal dashboard views should render stored coordinates rather than geocoding again.
+- Google Maps JavaScript API should render the map so Places results are shown on a Google map and the app avoids a mixed-provider policy surface.
+- Manual coordinate/pin adjustment remains required as the keyboard/non-pointer fallback and as a recovery path when Google is disabled or unavailable.
+- The previous MapLibre/OpenFreeMap target should be removed in the implementation follow-up rather than carried as an active alternate provider.
 - Do not use public OSM raster tiles as production infrastructure.
 - Do not use public Nominatim for autocomplete, systematic reverse geocoding, scheduled enrichment, or bulk lookups.
-- Do not send confidential project details or client names to public geocoding endpoints.
-- OpenFreeMap is acceptable for a closed-beta MVP only behind configuration. The dashboard must keep a non-map text fallback and must not claim tile-provider SLA.
+- Do not send confidential project details, client names, internal ids, proposal details, or raw Google response payloads to provider URLs/storage.
+- Keep a non-map text fallback and a kill switch. Missing key, disabled provider, quota exhaustion, or CSP/load failure must not break location read/edit.
 
 ## Official Map And Policy Sources
 
 Revalidated on 2026-06-19.
 
-Leaflet:
+Google Maps JavaScript API:
 
-- https://leafletjs.com/
-- Useful as a lightweight map library, but still needs a production-safe tile provider.
+- https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+- Requires a Google Maps Platform API key. The map can be loaded client-side and should be lazy-loaded so first dashboard paint does not depend on it.
 
-MapLibre GL JS:
+Google Places Autocomplete:
 
-- https://maplibre.org/maplibre-gl-js/docs/
-- TypeScript/WebGL map renderer using style documents and vector tiles.
-- Needs client-only loading in Next.js, CSS import, and likely CSP attention for workers/blob URLs.
+- https://developers.google.com/maps/documentation/javascript/place-autocomplete-new
+- Provides the type-ahead place/address search UI. Use it in set/edit flows, then fetch only the needed location fields for the selected place.
 
-OpenFreeMap:
+Google Autocomplete session pricing:
 
-- https://openfreemap.org/
-- https://openfreemap.org/quick_start/
-- Public free vector tiles/styles with no API keys and commercial use allowed by the project.
-- Best MVP fit for closed beta only with a config-driven escape hatch.
-- Public instance currently states commercial use is allowed and no API keys/cookies are required, but no SLA or personalized support is offered.
+- https://developers.google.com/maps/documentation/javascript/session-pricing
+- Autocomplete is session-priced around a user typing/selecting a place. This fits Archestimator's low-frequency use because a project location is usually set once and not continuously changed.
 
-Protomaps/PMTiles:
+Google Places policy:
 
-- https://docs.protomaps.com/pmtiles/maplibre
-- Good later upgrade path for self-hosted static vector tiles through MapLibre and `pmtiles`.
+- https://developers.google.com/maps/documentation/places/web-service/policies
+- Places API results displayed on a map should be displayed on a Google Map with required attribution/branding. This is the main reason the plan should not combine Google Places autocomplete with OpenFreeMap/MapLibre rendering.
+
+Google Maps Platform pricing:
+
+- https://mapsplatform.google.com/pricing/
+- Use budget alerts, quota caps, and restricted keys before enabling outside local development.
 
 OSM tile policy:
 
@@ -151,9 +153,10 @@ OSM attribution:
 
 ## Package/Dependency Notes
 
-- No existing `maplibre`, `leaflet`, or `pmtiles` dependency was found in `package.json` or current lockfiles during planning inspection.
-- Add `maplibre-gl` only when Phase 3 begins.
-- Keep tests mocked; do not let local/CI tests call public tile or geocoding services.
+- Current source now has a MapLibre/OpenFreeMap path from the prior Phase 3 implementation. The Google addendum supersedes it.
+- Implementation follow-up should remove `maplibre-gl`, OpenFreeMap style/env config, OpenFreeMap CSP allowances, and provider-specific tests/proof scripts that only exist for the old provider path.
+- Add no non-Google geocoding provider. Do not preserve a provider abstraction unless it directly removes complexity inside the existing codebase.
+- Keep tests mocked; do not let local/CI tests call live Google Maps/Places or public tile/geocoding services.
 
 ## Open Questions For Implementation
 
@@ -175,5 +178,5 @@ OSM attribution:
 - Current published-link module is singular: one current publication status/shortcut surface, not a historical multi-link list.
 - Phase 1 can ship without activity data or map dependency if placeholders are honest and useful.
 - Phase 2 activity must be estimate-activity scoped unless a separate IA plan adds share/collaboration activity.
-- Phase 3 interactive map is optional until owner/product confirmation proves it is worth the provider/privacy surface; structured location can ship first.
+- Phase 3 interactive map/search is Google-only once implemented. Structured location can still ship first if Google key/CSP/quota/privacy proof is not ready.
 - `project_locations` is the default coordinate storage boundary; coordinates on `projects` remain rejected while broad project readers exist.

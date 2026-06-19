@@ -1,7 +1,33 @@
 # Handoff - Project Dashboard Command Surface
 
 Date: 2026-06-19
-Status: local implementation/proof mostly complete; linked Supabase rollout blocked by DB auth
+Status: local implementation/proof mostly complete; linked Supabase rollout blocked by DB auth; Google Maps/Places provider addendum pending implementation
+
+## Provider Direction Addendum
+
+Current product direction has changed: use Google Maps Platform as the single
+provider for project-location autocomplete and display. The prior
+MapLibre/OpenFreeMap path remains historical local implementation/proof, but is
+no longer the target.
+
+Next implementation branch:
+
+```text
+codex/project-dashboard-google-maps-integration
+```
+
+Docs-only addendum requirements:
+
+- Replace the OpenFreeMap/MapLibre provider path with Google Maps JavaScript API
+  for display and Google Places Autocomplete for setup/edit search.
+- Use Places only when setting/editing a project location. Saved dashboard views
+  should render from stored coordinates and should not repeatedly geocode.
+- Remove old `maplibre-gl`, OpenFreeMap env/config, CSP allowances, and
+  provider-specific tests/proof scripts during the implementation pass.
+- Require a browser-restricted Google key, Maps JavaScript API, Places API,
+  localhost/production-domain restrictions, budget alerts, and quota caps before
+  enabling the feature outside local development.
+- Do not display Google Places results on a non-Google map.
 
 ## User-Facing Error
 
@@ -23,7 +49,7 @@ Implemented locally:
 - Temporary exact schema-drift guards:
   - `src/lib/repositories/project-activity-repository.ts`
   - `src/lib/repositories/project-location-repository.ts`
-- Lazy MapLibre/OpenFreeMap map island behind config:
+- Superseded lazy MapLibre/OpenFreeMap map island currently present behind config:
   - `NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED`
   - `NEXT_PUBLIC_PROJECT_LOCATION_MAP_STYLE_URL`
 - Protected route browser proof script:

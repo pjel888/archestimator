@@ -30,6 +30,7 @@ function formData(fields: Record<string, string>) {
 function makeMutationBuilder(result = { error: null }) {
   const builder = {
     upsert: vi.fn(() => builder),
+    update: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     eq: vi.fn(() => builder),
     then: (resolve: (value: typeof result) => void) => Promise.resolve(result).then(resolve),
@@ -100,11 +101,58 @@ describe("project location actions", () => {
         source: "manual",
         display_label: "Site gate",
         address_text: "Quezon City",
+        geocoder_name: null,
+        provider_place_id: null,
       },
       { onConflict: "project_id" },
     );
     expect(result).toEqual({ status: "success", message: "Project pin saved." });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1");
+  });
+
+  it("saves a Google place selection and syncs the formatted address back to the project", async () => {
+    const locationMutationBuilder = makeMutationBuilder();
+    const projectMutationBuilder = makeMutationBuilder();
+    const supabase = {
+      rpc: vi.fn(async () => ({ data: true, error: null })),
+      from: vi.fn((table: string) => {
+        if (table === "project_locations") return locationMutationBuilder;
+        if (table === "projects") return projectMutationBuilder;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+
+    const { saveProjectLocation } = await import("@/lib/projects/location-actions");
+    const result = await saveProjectLocation({ status: "idle", message: "" }, formData({
+      projectId: "project-1",
+      latitude: "14.676",
+      longitude: "121.0437",
+      displayLabel: "Quezon City",
+      addressText: "Quezon City, Metro Manila, Philippines",
+      source: "geocoded",
+      geocoderName: "google",
+      providerPlaceId: "google-place-1",
+      syncProjectAddress: "1",
+    }));
+
+    expect(locationMutationBuilder.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_id: "project-1",
+        workspace_id: "workspace-1",
+        latitude: 14.676,
+        longitude: 121.0437,
+        source: "geocoded",
+        display_label: "Quezon City",
+        address_text: "Quezon City, Metro Manila, Philippines",
+        geocoder_name: "google",
+        provider_place_id: "google-place-1",
+      }),
+      { onConflict: "project_id" },
+    );
+    expect(projectMutationBuilder.update).toHaveBeenCalledWith({ location: "Quezon City, Metro Manila, Philippines" });
+    expect(projectMutationBuilder.eq).toHaveBeenCalledWith("id", "project-1");
+    expect(result).toEqual({ status: "success", message: "Project pin saved." });
   });
 
   it("clears a saved manual pin by project id", async () => {

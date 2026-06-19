@@ -35,7 +35,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
         { label: title, href: `/workshop/projects/${projectId}` },
       ]}
       alignChromeToProjectSidebar
-      contentClassName="pt-0 pb-0 pr-2 pl-0"
+      contentClassName="pt-0 pb-0 pr-0 pl-0"
       centerHeader={<ProjectEstimateMetadataStrip />}
       projectId={projectId}
       actions={

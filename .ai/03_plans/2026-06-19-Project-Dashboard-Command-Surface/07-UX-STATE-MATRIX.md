@@ -13,7 +13,7 @@ Status: required before UI implementation
 | Recent sheets | Plain ledger rows | Dense, focusable, no card grid. |
 | Current published link | Compact status row/panel | One primary action, one secondary manage path. |
 | Estimate activity | Plain timeline rows | Day grouping only when useful. |
-| Location | Text controls plus optional map viewport | Map is a viewport, not decorative background. |
+| Location | Text controls plus optional Google autocomplete/map viewport | Map is a viewport, not decorative background. |
 
 ## Phase 1 Placeholder Rules
 
@@ -70,16 +70,16 @@ Module label should be "Estimate activity" unless share/collaboration activity i
 |---|---|---|
 | No address/no pin | "No project address or exact pin" | Edit project details; set pin only in Phase 3 |
 | Address-only | Address text and "No exact pin saved" | Set exact pin in Phase 3 |
-| Exact pin saved | Coordinates/address text and map when enabled | Edit pin, clear pin |
-| Edit mode | Map click/drag when available, coordinate fields or keyboard alternative | Save, cancel, clear |
+| Exact pin saved | Coordinates/address text and Google map when enabled | Edit pin, clear pin |
+| Edit mode | Google Places autocomplete and map click/drag when available, coordinate fields or keyboard alternative | Save, cancel, clear |
 | Dirty/unsaved | Unsaved indicator | Save/cancel |
 | Save pending | Disabled save with pending feedback | Cancel only if safe |
 | Save error | Field-level error | Retry/cancel |
 | Bad coordinates | Validation message | Correct fields |
-| Map disabled | Text coordinate/address panel | Edit with fields if authorized |
-| Tile/style failure | Text coordinate/address panel and provider error copy | Retry/disable map |
-| No WebGL | Text coordinate/address panel | Edit with non-map controls |
-| Attribution constrained | Attribution remains visible or map does not render | None |
+| Google disabled/missing key | Text coordinate/address panel | Edit with fields if authorized |
+| Google loader/quota/API failure | Text coordinate/address panel and provider error copy | Retry/disable map |
+| Autocomplete unavailable | Manual coordinate/address fields | Save manually |
+| Attribution constrained | Google branding/attribution remains visible or map does not render | None |
 
 ## Accessibility Contract
 

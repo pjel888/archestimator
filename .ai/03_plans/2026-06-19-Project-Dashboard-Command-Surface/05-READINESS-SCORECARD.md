@@ -1,7 +1,7 @@
 # Readiness Scorecard
 
 Date: 2026-06-19
-Status: 100% planning-ready after closeout amendments
+Status: planning-ready after closeout amendments; Google Maps/Places provider addendum supersedes prior OpenFreeMap/MapLibre target
 
 ## Scoring Rule
 
@@ -28,7 +28,7 @@ Lowest pre-closeout readiness: 72%.
 | Helper ownership and duplicate-fetch risk | `06-DATA-OWNERSHIP-CONTRACT.md` |
 | Module state, action hierarchy, accessibility, placeholders | `07-UX-STATE-MATRIX.md` |
 | Project activity authorization, DTO, cursor, redaction | `08-PROJECT-ACTIVITY-CONTRACT.md` |
-| Location authz, lifecycle, map provider, CSP, telemetry, abuse | `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` |
+| Location authz, lifecycle, Google map/search provider, CSP, quota, telemetry, abuse | `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` |
 | Activity/location migrations, RLS, grants, generated types, write-path proof | `10-MIGRATION-RLS-QA-RUNBOOK.md` |
 | Executable fixtures, browser artifacts, stop conditions | `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md` |
 
@@ -41,7 +41,7 @@ Lowest pre-closeout readiness: 72%.
 | Implementation readiness | 100% | Each high-risk phase has owner contracts, DTOs, test fixtures, RLS/CSP/provider proof, and cannot-claim-complete rules. |
 | UX/UI readiness | 100% | `07-UX-STATE-MATRIX.md` covers module states, placeholders, action hierarchy, material ownership, keyboard/focus behavior, and location interaction. |
 | Architecture/performance readiness | 100% | `06-DATA-OWNERSHIP-CONTRACT.md` and `08-PROJECT-ACTIVITY-CONTRACT.md` define query boundaries, cache ownership, fan-out limits, and DTO shape. |
-| Security/data/network readiness | 100% | `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` and `10-MIGRATION-RLS-QA-RUNBOOK.md` define role matrices, CSP/network, telemetry, lifecycle, RLS, and migration proof. |
+| Security/data/network readiness | 100% | `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` and `10-MIGRATION-RLS-QA-RUNBOOK.md` define role matrices, Google CSP/network, quota/key controls, telemetry, lifecycle, RLS, and migration proof. |
 | Verification readiness | 100% | `03-VERIFICATION-MATRIX.md` plus `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md` define phase-gated tests, fixtures, artifacts, and failure states. |
 
 ## Execution Permission
@@ -51,6 +51,8 @@ Phase 1 may begin as a bounded implementation slice after the implementer reads 
 Phase 2 must additionally read and satisfy `08-PROJECT-ACTIVITY-CONTRACT.md` and `10-MIGRATION-RLS-QA-RUNBOOK.md`.
 
 Phase 3 must additionally read and satisfy `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` and the location sections in `10-MIGRATION-RLS-QA-RUNBOOK.md`.
+
+The next Phase 3 implementation pass must remove the old OpenFreeMap/MapLibre provider path and replace it with the Google Maps/Places direction before claiming provider readiness.
 
 ## Residual Non-Planning Risks
 

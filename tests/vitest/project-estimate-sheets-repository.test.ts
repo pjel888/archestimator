@@ -10,11 +10,13 @@ type QueryBuilder = {
 
 var supabaseMocks = {
   from: vi.fn(),
+  rpc: vi.fn(),
 };
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => ({
     from: supabaseMocks.from,
+    rpc: supabaseMocks.rpc,
   })),
 }));
 
@@ -36,6 +38,7 @@ function createBuilder(): QueryBuilder {
 
 beforeEach(() => {
   supabaseMocks.from.mockReset();
+  supabaseMocks.rpc.mockReset();
 });
 
 describe("project estimate sheet repository", () => {
@@ -81,6 +84,7 @@ describe("project estimate sheet repository", () => {
           project_id: "project-1",
           name: "Site Works",
           sheet_code: null,
+          project_budget: 120000,
           updated_at: "2026-06-13T08:00:00.000Z",
         },
         {
@@ -88,6 +92,7 @@ describe("project estimate sheet repository", () => {
           project_id: "project-1",
           name: "Lobby Estimate",
           sheet_code: "EST-002",
+          project_budget: null,
           updated_at: "2026-06-12T08:00:00.000Z",
         },
       ],
@@ -101,6 +106,13 @@ describe("project estimate sheet repository", () => {
       ],
       error: null,
     });
+    supabaseMocks.rpc.mockResolvedValue({
+      data: [
+        { estimate_id: "estimate-2", node_count: 1, row_count: 2, total_cost: 98765.4, first_node_id: "root-2" },
+        { estimate_id: "estimate-1", node_count: 2, row_count: 3, total_cost: 12345.6, first_node_id: "area-1" },
+      ],
+      error: null,
+    });
     supabaseMocks.from.mockImplementation((table: string) => {
       if (table === "estimates") return estimatesBuilder;
       if (table === "estimate_nodes") return nodesBuilder;
@@ -110,7 +122,7 @@ describe("project estimate sheet repository", () => {
     const { listRecentProjectEstimateSheets } = await import("@/lib/repositories/project-estimate-sheets-repository");
     const result = await listRecentProjectEstimateSheets("project-1");
 
-    expect(estimatesBuilder.select).toHaveBeenCalledWith("id, project_id, name, sheet_code, updated_at");
+    expect(estimatesBuilder.select).toHaveBeenCalledWith("id, project_id, name, sheet_code, project_budget, updated_at");
     expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
     expect(estimatesBuilder.order).toHaveBeenNthCalledWith(1, "updated_at", { ascending: false, nullsFirst: false });
     expect(estimatesBuilder.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
@@ -118,6 +130,7 @@ describe("project estimate sheet repository", () => {
     expect(nodesBuilder.select).toHaveBeenCalledWith("id, estimate_id, kind, parent_id");
     expect(nodesBuilder.in).toHaveBeenCalledWith("estimate_id", ["estimate-2", "estimate-1"]);
     expect(nodesBuilder.order).toHaveBeenCalledWith("sort_order", { ascending: true });
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith("project_estimate_list_summaries", { target_project_id: "project-1" });
     expect(result).toEqual([
       {
         id: "estimate-2",
@@ -126,6 +139,8 @@ describe("project estimate sheet repository", () => {
         sheetCode: null,
         updatedAt: "2026-06-13T08:00:00.000Z",
         firstNodeId: "root-2",
+        totalCost: 98765.4,
+        projectBudget: 120000,
       },
       {
         id: "estimate-1",
@@ -134,6 +149,8 @@ describe("project estimate sheet repository", () => {
         sheetCode: "EST-002",
         updatedAt: "2026-06-12T08:00:00.000Z",
         firstNodeId: "area-1",
+        totalCost: 12345.6,
+        projectBudget: null,
       },
     ]);
   });
@@ -148,6 +165,7 @@ describe("project estimate sheet repository", () => {
 
     expect(estimatesBuilder.limit).toHaveBeenCalledWith(10);
     expect(supabaseMocks.from).toHaveBeenCalledTimes(1);
+    expect(supabaseMocks.rpc).not.toHaveBeenCalled();
     expect(result).toEqual([]);
   });
 });

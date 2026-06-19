@@ -19,9 +19,11 @@ Stable current truth (verify against git/source before relying on a detail):
   per-change approval). Hard boundaries: no other provider projects, no
   secrets, no PITR/paid add-ons without reapproval, no prod deploy unless asked,
   no irreversible data loss without a recovery path + fresh instruction.
-- Active branches with recent work: `codex/fix-project-delete` (project-delete
-  hardening, Project Groups, Sidebar favorites), `feat/sidebar-redesign`
-  (Workshop Dashboard, liquid-glass sidebar). `main` has merged perf work.
+- Active branches with recent work: `codex/project-dashboard-google-maps-integration`
+  (docs-only Google Maps/Places provider addendum for project location),
+  `codex/fix-project-delete` (project-delete hardening, Project Groups, Sidebar
+  favorites), `feat/sidebar-redesign` (Workshop Dashboard, liquid-glass
+  sidebar). `main` has merged perf work.
 - Known pre-existing reds on `main` (NOT your change if you see them): full
   `bun run validate` is red (charts `set-state-in-effect`;
   `ProposalExportPreviewDialog` design-lint); the all-DOM phase can hang —
@@ -39,6 +41,128 @@ To go deeper: `rg -n "<feature/keyword>" .ai/10_state/current-state.md` and
 read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
+
+**Project Dashboard lower-left map strip shows estimate running costs (2026-06-20):**
+The lower-left 5-column by 1-row frosted map panel now renders a 3-column
+recent-estimate cost strip instead of empty glass. It uses the three freshest
+estimate sheets; the first two cells have right dividers, each cell places the
+estimate sheet title at the upper left and the current sheet total at the lower
+right using the project currency formatter. `listRecentProjectEstimateSheets`
+now enriches recent sheet summaries with `totalCost` from the
+`project_estimate_list_summaries` RPC while preserving first-node deep links.
+A 5-column frosted budget-health panel now sits directly below that strip and
+spans the remaining lower-left rows (`row-start-6 row-span-3`). It aligns into
+the same three vertical lanes as the cost strip and shows each recent sheet's
+actual cost against its sheet budget, including a budget tick, blue in-budget
+fill, red over-budget fill, and a no-budget state. Verification on 2026-06-20:
+`bun run type-check` and focused dashboard/map/repository/source Vitest suites
+passed; `git diff --check` passed.
+The budget-health panel was then tightened visually: its colors are now
+near-monochrome, and the floating labels were replaced with a lined header,
+meter body, and footer row so it aligns with the neighboring glass panel
+language. Verification on 2026-06-20: `bun run type-check` and focused
+dashboard/map/repository/source Vitest suites passed; `git diff --check`
+passed.
+All Project Dashboard map frosted overlay panels now use a 10px backdrop blur.
+Verification on 2026-06-20: focused project-location map provider/source Vitest
+suites passed after the 10px blur adjustment.
+Those same frosted overlay backgrounds were made slightly less translucent by
+raising the white alpha stops while keeping the 10px blur. Verification on
+2026-06-20: focused project-location map provider/source Vitest suites passed;
+`git diff --check` passed.
+Over-budget budget-health header copy now uses the cost-to-budget percentage as
+`N% overbudget` instead of `N% used`. Verification on 2026-06-20: focused
+project dashboard client Vitest suite passed; `git diff --check` passed.
+The `Budget` header label is hidden specifically for overbudget budget-health
+cells, leaving only the overbudget percentage/status in that header cell.
+Verification on 2026-06-20: focused project dashboard client Vitest suite
+passed; `git diff --check` passed.
+The three-cell recent estimate running-cost strip now uses `p-1` on each cell,
+and each estimate sheet name sits on a full-width bottom border before the
+running total. Verification on 2026-06-20: focused project dashboard client
+Vitest suite passed; `git diff --check` passed.
+
+**Project Dashboard map overlay now shows estimate count/recent sheets (2026-06-19):**
+The upper-left 5-column by 4-row frosted map panel on the Project Dashboard now
+uses the same inner layout as the `/workshop` Projects destination card, minus
+the `01` index, arrow, and title chrome. It renders `Estimate Count` in the
+fixed count column and a `Recent Estimate Sheets` ledger with deep links to the
+first estimate node when available. The panel itself now has `p-2`, leaving
+intentional empty glass space below the reused card panel. The project page
+fetches only the all-sheet count plus recent-sheet summaries for this overlay;
+activity/publication modules remain out of the dashboard surface. Verification
+on 2026-06-19: `bun run type-check`, focused dashboard/map/source Vitest suite
+(35 tests), and `git diff --check` passed.
+
+**Project Dashboard Google map styling stripped to POI-free grayscale (2026-06-19):**
+The project dashboard Google map now uses inline Maps JavaScript API styles
+instead of the default Google basemap/Map ID styling. The style hides all POI
+categories, transit, label icons, landscape labels, land-parcel clutter, and
+default map UI controls, while preserving locality/city labels,
+neighborhood/district labels, and road labels for orientation. The local pin
+overlay was changed from red to black/charcoal; the map palette was adjusted
+away from sepia into whites plus neutral grayscale values, with water rendered
+as a pale blue-gray (`#dcebf2`), map labels softened to medium-light gray, and
+road geometry lightened so it recedes behind labels/pin. A 16-column by 8-row
+overlay grid now sits above the map with `p-2`/`gap-2`; the last 4 columns
+contain an empty translucent glass lane using a 10px backdrop blur, and the upper
+left of the grid contains a matching 5-column by 4-row glass panel. A second
+5-column by 1-row frosted panel now sits in the lower left of the grid.
+Verification on 2026-06-19: `bun run type-check`, focused project-location map
+provider/source Vitest tests, `git diff --check`, and in-app browser visual
+crops passed.
+
+**Project Dashboard identity fields and address autocomplete polished (2026-06-19):**
+The project identity panel fields now render as quiet metadata at rest:
+transparent background and border, stable 28px height, and visible control
+chrome only on hover/focus. `ProjectAddressAutocomplete` now uses the shared
+fixed `DropdownPopupPanel` layer instead of an absolutely positioned child, so
+Google Places suggestions escape the glass panel overflow, align under the
+address input, and close through the standard popup mechanics. The address
+request uses Google Places `includedPrimaryTypes` for address/area suggestions
+(`street_address`, `route`, `locality`, `sublocality`, `neighborhood`) to avoid
+business/POI-heavy dropdowns. Verification on 2026-06-19: `bun run type-check`,
+focused address/dashboard/source Vitest tests, `git diff --check`, and in-app
+browser DOM/visual checks passed.
+
+**Project Dashboard Google Maps/Places implementation wired and persistence verified (2026-06-19):**
+Branch `codex/project-dashboard-google-maps-integration` now wires the
+Project Dashboard address rail to Google Places autocomplete and renders Google
+Maps in the right command surface. The map loader lives in
+`src/lib/google-maps/loader.ts`; `ProjectAddressAutocomplete` fetches Places
+suggestions/details only while editing; `ProjectLocationMap` loads the Maps JS
+API and uses a local centered pin overlay so no separate Google Map ID is
+required for pin display. The MapLibre/OpenFreeMap dependency, CSS import,
+config module, proof script, package entry, and CSP allowances were removed;
+workshop Report-Only CSP now allows the Google Maps/Places domains while public
+share CSP remains map-free. Migration `20260619105250`
+(`project_dashboard_activity_location`) is applied on Supabase project
+`ebxxqidacheyapmmzavr`; verification found `project_locations`, the
+`estimate_sheet_events.project_id` column/index, and project-location RLS/grants
+present. Verification on 2026-06-19: `bun run type-check` passed, the targeted
+9-file Vitest suite passed (32 tests), and the in-app browser at
+`/workshop/projects/22222222-2222-4222-8222-222222222222` loaded Google map
+DOM/tiles, showed Google Places suggestions for Quezon City, saved the top
+suggestion with status `Project pin saved.`, persisted a `geocoded` row with
+Google geocoder/place-id metadata, synced `projects.location`, and survived a
+reload with the saved address, pin overlay, Google map DOM, 48 tile images, no
+fallback, and no current page warnings/errors.
+
+**Project Dashboard location provider direction changed to Google Maps/Places docs-only (2026-06-19):**
+Branch `codex/project-dashboard-google-maps-integration` updates the
+Project Dashboard Command Surface plan pack only. The active provider direction
+is now Google Maps Platform as the single map/search provider: Google Maps
+JavaScript API for the displayed map and Google Places Autocomplete only during
+set/edit. Saved project location rows remain the source of truth for normal
+dashboard display; implementation should store formatted address/place id/lat/lng
+once and avoid repeated geocoding on every view. The prior local
+MapLibre/OpenFreeMap implementation remains historical evidence but is no longer
+the target provider. The follow-up implementation pass should remove
+`maplibre-gl`, OpenFreeMap env/config, CSP allowances, provider tests/proof
+scripts, and active docs copy, then add Google key restrictions, domain
+restrictions, budget alerts, quota caps, disabled/missing-key fallback, and
+Google branding/attribution proof. Do not mix Google Places results with a
+non-Google map, and do not add public Nominatim autocomplete or bulk geocoding.
 
 **Project Dashboard schema-drift runtime guard added (2026-06-19):**
 The protected project dashboard had a runtime crash when the linked Supabase

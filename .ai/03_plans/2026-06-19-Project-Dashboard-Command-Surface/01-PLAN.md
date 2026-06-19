@@ -1,7 +1,7 @@
 # Project Dashboard Command Surface Plan
 
 Date: 2026-06-19
-Status: planning-ready; Phase 1 releasable, Phase 2/3 gated
+Status: planning-ready; Phase 1 releasable, Phase 2/3 gated; Google Maps/Places addendum supersedes the prior OpenFreeMap/MapLibre direction
 Target route: `/workshop/projects/[projectId]`
 Primary source screen: `src/components/workshop/ProjectDashboardClient.tsx`
 
@@ -24,6 +24,7 @@ The dashboard should answer four questions quickly:
 - Fewer, more useful panels.
 - Fast project-level data loading without per-sheet fan-out.
 - First-class location data for both user value and future Archestimator intelligence.
+- A single trusted map/search provider for the project-location UX.
 - Clear privacy boundary between internal workshop data and public share surfaces.
 
 ### Recommended Option
@@ -33,7 +34,7 @@ Build a project "command surface" with a left project identity rail and a two-co
 - Recent estimate sheets ledger.
 - Current published share status panel.
 - Project activity timeline.
-- Location map/pin panel.
+- Google location search and map/pin panel.
 
 This preserves the liquid-glass direction while removing decorative metrics, action tiles, and broad card grids.
 
@@ -44,6 +45,7 @@ This preserves the liquid-glass direction while removing decorative metrics, act
 | Keep the current dashboard and only reduce visual intensity | Lowest code churn | Still feels overfilled and card-heavy | Reject |
 | Project command surface with four high-value modules | Matches the user request, keeps scope clear, supports future data value | Requires new project activity query and later location data work | Choose |
 | Map-first project dashboard | Strong visual identity | Overweights a future feature and distracts from active estimate/share workflows | Reject for MVP |
+| OpenFreeMap/MapLibre map with separate geocoder | No Google billing account needed | Splits autocomplete/search from map display, adds provider trust questions, and risks policy ambiguity when Places data enters the flow | Superseded by Google-only addendum |
 | Reuse the workshop dashboard components wholesale | Visual consistency | Project context needs different density and hierarchy | Use as vocabulary, not as copy/paste |
 | Store exact coordinates directly on `projects` | Fast schema change | Broad `select("*")` readers can leak precise coordinates | Reject unless a later audit proves safe projections everywhere |
 | Store exact coordinates in `project_locations` | Stronger privacy boundary, easier location history later | Extra migration and join | Choose for Phase 3 |
@@ -99,8 +101,8 @@ Mobile:
 - R5. The published-link module is a compact current-publication status/shortcut surface and does not reimplement the full management modal.
 - R6. The project activity module uses one bounded, authorized, project-scoped read path and sends only a redacted dashboard DTO to the client.
 - R7. Exact project coordinates remain internal by default and are not serialized to public share, proposal/export, AI/context, analytics, or broad project readers.
-- R8. Location interaction works without pointer-only controls and remains useful when maps, WebGL, or providers fail.
-- R9. Map/provider behavior is config-driven, attribution-safe, CSP-accounted, and never tested against public providers in CI.
+- R8. Location interaction works without pointer-only controls and remains useful when Google Maps/Places is disabled, unavailable, or unconfigured.
+- R9. Google Maps/Places behavior is config-driven, attribution-safe, CSP-accounted, quota/budget guarded, and never tested against live public providers in CI.
 - R10. Each implemented phase has targeted tests, migration/RLS proof when applicable, browser artifacts for browser-only claims, and explicit stop conditions.
 
 ## User-Facing State Coverage
@@ -114,8 +116,8 @@ Success:
 
 Loading:
 
-- Use shell-consistent skeleton rows and map placeholder; avoid spinner-only states.
-- Do not block the first paint on map bundle load.
+- Use shell-consistent skeleton rows and a map/search placeholder; avoid spinner-only states.
+- Do not block the first paint on the Google Maps bundle load.
 
 Empty:
 
@@ -126,7 +128,7 @@ Empty:
 
 Error:
 
-- Activity and map modules fail independently with small inline recovery copy.
+- Activity and map/search modules fail independently with small inline recovery copy.
 - Project-level fetch failure should use the existing not-found/fallback route behavior.
 
 Permission/Identity:
@@ -173,7 +175,7 @@ This route plan does not close wider-launch gates. It must not worsen them.
 
 - Phase 1 has no database or provider dependency and can complete with targeted local proof.
 - Phase 2 database work must run through `10-MIGRATION-RLS-QA-RUNBOOK.md`; it must include migration ledger alignment, scratch reset parity or equivalent local proof, generated types, RLS/grant proof, and fix-forward notes.
-- Phase 3 exact-location work must run through `09-LOCATION-MAP-CSP-PROVIDER-ADR.md`; it must include DSAR/export/delete, privacy copy, CSP/provider, telemetry, and map-disable proof before beta-ready claims.
+- Phase 3 exact-location work must run through `09-LOCATION-MAP-CSP-PROVIDER-ADR.md`; it must include DSAR/export/delete, privacy copy, Google CSP/provider, quota/budget, telemetry, key-restriction, and map-disable proof before beta-ready claims.
 - Current known unrelated validation reds do not block this plan, but any new failure in touched files or phase-owned tests blocks the phase.
 
 ## Beta Task Acceptance
@@ -369,24 +371,31 @@ Expected files:
 - Supabase migration for a structured `project_locations` table
 - Generated database types
 - `src/components/workshop/project-dashboard/ProjectLocationPanel.tsx`
-- Client-only map island, likely `ProjectLocationMap.tsx`
+- Client-only Google map island, likely replacing `ProjectLocationMap.tsx`
+- Google Places autocomplete client island, likely `ProjectLocationGoogleAutocomplete.tsx` or an equivalent colocated component
+- Google map/search config helper, replacing the OpenFreeMap/MapLibre-specific config
+- Dependency/config cleanup for `package.json`, `bun.lock`, `next.config.ts`, and any map-provider tests/scripts created for the older provider path
 - Project update action/repository tests
 
 Plan:
 
-- Treat exact manual pin/drop/drag as the primary source of truth.
+- Treat the saved project location row as the primary source of truth after setup. Google Places autocomplete is used when setting or editing the location, not on every dashboard view.
 - Keep the existing free-text project address as display/address context.
-- Add structured WGS84 coordinates with source and accuracy metadata in a dedicated `project_locations` table.
-- Lazy-load the map client island so the project dashboard is not blocked by map bundle/WebGL.
-- Use MapLibre GL JS with OpenFreeMap for MVP, behind config-driven provider/style URLs.
-- Preserve visible OSM/OpenMap attribution in the map panel.
+- Add structured WGS84 coordinates with source, accuracy, provider, and provider-place-id metadata in a dedicated `project_locations` table.
+- Use Google Places Autocomplete for the address/city search field when a Google key is configured. Fetch only the fields needed to save and display the project location: formatted address, display name when useful, place id, viewport when useful, and latitude/longitude.
+- Use Google Maps JavaScript API for the displayed map so Google Places results are shown on a Google map. Do not combine Google Places data with OpenFreeMap/MapLibre rendering.
+- Prefer a low-usage display model: normal project dashboard reads render the stored coordinates; only edit/setup sessions invoke Places autocomplete and place details.
+- Lazy-load the Google map/search client island so the project dashboard is not blocked by the Google bundle.
+- Preserve Google's native attribution/branding controls and do not cover them with dashboard chrome.
+- Remove the prior OpenFreeMap/MapLibre implementation path during the implementation follow-up: dependency, config, CSP allowances, tests, browser proof script, and docs copy should no longer point at `maplibre-gl` or `tiles.openfreemap.org` as the target provider.
 - Avoid storing exact coordinates directly on `projects` while `getCurrentWorkspaceProject` and other readers still use broad `select("*")` project projections.
 - Follow `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` before adding dependencies.
-- Structured location can ship without an interactive map if the map provider/privacy/CSP proof is not ready.
+- Structured location can ship without an interactive map if Google provider/privacy/CSP/quota proof is not ready.
 - Location writes require editor-or-higher project authority. Viewers and sheet-only collaborators may read exact coordinates only if project access policy permits project detail viewing; they cannot write.
 - Sample/demo projects cannot persist coordinates.
 - Save semantics: first save inserts the one active row; later saves update the row; clear pin removes exact coordinates while preserving free-text project address context.
 - Abuse controls: reject out-of-range values, rate-limit or debounce repeated saves, and handle concurrent edits with last-write visible feedback or optimistic conflict handling.
+- Google operational controls: require browser-restricted API keys, enabled Maps JavaScript API and Places API, production-domain and localhost restrictions, budget alerts, and quota caps before enabling outside local development.
 
 Suggested data shape:
 
@@ -395,15 +404,17 @@ Suggested data shape:
 - `workspace_id`
 - `latitude`
 - `longitude`
-- `source` (`manual_pin`, `address_geocode`, `imported`)
+- `source` (`manual`, `geocoded`, `imported`; Google Places selections use `geocoded`)
 - `accuracy_m`
-- `display_address`
-- `geocoder_provider`
-- `geocoder_place_id`
+- `display_label`
+- `address_text`
+- `geocoder_name` (`google` for Google Places selections)
+- `provider_place_id` (Google Place ID when a place is selected)
 - `geocoded_at`
 - `created_at`
 - `updated_at`
 - `updated_by`
+- optional metadata that must exclude raw Google response payloads unless a later privacy review approves retention
 
 Schema contract:
 
@@ -426,10 +437,12 @@ Privacy:
 Acceptance:
 
 - Manual pin can be saved and reloaded.
+- Google Places selection can populate formatted address, place id, latitude, and longitude, then save once to `project_locations`.
 - Address-only projects do not show a fake exact pin.
-- Map attribution remains visible.
-- Map provider failure leaves a usable text coordinate/address state.
-- No tests hit public tile or geocoding services.
+- Google map attribution/branding remains visible.
+- Google Maps/Places disabled, missing-key, quota, or load failure leaves a usable text coordinate/address state.
+- No tests hit live public map/geocoding services.
+- MapLibre/OpenFreeMap dependency and provider config are removed or marked obsolete in source tests during the implementation follow-up.
 - Location table RLS, coordinate validation, generated types, and leak tests are complete before claiming Phase 3 done.
 - Coordinates do not appear by default in public share, proposal/export, AI/context, analytics, or broad project row readers.
 
@@ -460,18 +473,21 @@ Acceptance:
 
 ## Map Provider Decision
 
-Recommended MVP:
+Current target:
 
-- Map rendering: MapLibre GL JS.
-- Tiles/style: OpenFreeMap public vector tiles for closed-beta MVP.
-- Upgrade path: self-hosted Protomaps/PMTiles when usage, privacy, or reliability requires it.
-- OpenFreeMap is closed-beta acceptable only behind configuration; do not claim provider reliability or SLA.
-- The implementation must support disabling the interactive map or swapping style/tile URLs without code changes.
-- The location panel must keep a text coordinate/address fallback even when the interactive map is disabled.
-- Tests must mock provider calls and must not call public map/geocoding services.
+- Provider: Google Maps Platform only for project-location search and display.
+- Map rendering: Google Maps JavaScript API.
+- Address/city search: Google Places Autocomplete, using session-aware autocomplete behavior and fetching only location essentials on selection.
+- Usage model: low-frequency setup/edit flow. Users usually set the project address/location once; saved dashboard views use stored coordinates and should not geocode again.
+- Cost controls: browser-restricted public API key, production-domain and localhost restrictions, budget alerts, quota caps, and key rotation notes before enabling outside local development.
+- Privacy controls: no project/client/proposal/internal ids in provider URLs; no raw Google response payload stored by default; exact coordinates remain internal unless a later public-share decision says otherwise.
+- Fallback: the location panel must keep a text coordinate/address fallback when Google is disabled, missing a key, over quota, blocked by CSP, or unavailable.
+- Tests must mock provider calls and must not call live Google Maps/Places services.
 
 Do not use:
 
+- OpenFreeMap/MapLibre as the implementation target for this feature after this addendum.
+- Google Places results on a non-Google map.
 - `tile.openstreetmap.org` as production tile infrastructure.
 - Public Nominatim for autocomplete, per-keystroke search, scheduled reverse-geocoding, analytics enrichment, or bulk lookups.
 - OpenMaps.fr for commercial beta without negotiated terms.
@@ -490,7 +506,7 @@ Do not use:
 Exit:
 
 - Visual direction is simplified and matches the workshop shell.
-- No source/database map dependency yet unless deliberately included.
+- No new source/database map dependency yet unless deliberately included by a later implementation pass.
 - Phase 1 is complete without Phase 2/3 if recent sheets, current published link, identity rail, fallback/loading, accessibility, and beta task acceptance pass.
 
 ### Phase 2 - Project Activity Timeline
@@ -506,15 +522,17 @@ Exit:
 
 ### Phase 3 - Exact Location Pin
 
-- Requires Phase 1 acceptance, owner/product confirmation that interactive map value justifies the provider/privacy surface, and `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` readiness.
+- Requires Phase 1 acceptance, owner/product confirmation that Google Maps/Places value justifies the provider/privacy/cost surface, and `09-LOCATION-MAP-CSP-PROVIDER-ADR.md` readiness.
 - Add structured location data.
-- Add lazy MapLibre/OpenFreeMap map island.
-- Add manual pin save flow.
+- Remove the old MapLibre/OpenFreeMap map target from code, config, CSP, tests, and docs copy.
+- Add lazy Google Maps display island.
+- Add Google Places autocomplete for set/edit location flow.
+- Add manual coordinate/pin adjustment save flow as the keyboard/non-pointer fallback.
 
 Exit:
 
 - Users can set and reload exact project coordinates.
-- Map failure and no-WebGL states are graceful.
+- Google disabled/missing-key/quota/load-failure states are graceful.
 
 ## Validation Gate
 
@@ -527,7 +545,7 @@ Before implementation completion is claimed:
 - Run browser/visual verification only for the implemented phases:
   - desktop and mobile screenshots for the project dashboard route;
   - route shell continuity checks;
-  - map attribution and no-overlap checks when the map phase lands.
+  - Google map branding/attribution and no-overlap checks when the map phase lands.
 - Run UltraQA scenarios from `03-VERIFICATION-MATRIX.md`.
 - Apply the stop conditions in `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md`.
 
@@ -536,7 +554,7 @@ Cannot claim complete if:
 - project activity performs O(number of sheets) reads;
 - client DTOs contain `old_snapshot`, `new_snapshot`, `payload`, `metadata`, `raw`, `correlation_id`, or unneeded internal ids;
 - coordinates appear in public share, proposal/export, AI/context, analytics, or broad project readers by default;
-- map/provider tests call public tile or geocoding services;
+- map/provider tests call live public map/geocoding services;
 - `ProjectChromeAsync` streaming is folded into a monolithic dashboard fetch;
 - `loading.tsx` or `ProjectRouteContentFallback` still shows the old white slab;
 - location write authz, RLS/grants, generated types, or migration proof is missing for implemented database changes.
@@ -547,8 +565,9 @@ Cannot claim complete if:
 |---|---:|---|
 | The page becomes card-heavy again | High | Cap the main dashboard to four modules and one project rail |
 | Activity feed fans out per estimate | High | Add project-scoped timeline query and index |
-| Map dependency slows the route | Medium | Lazy client-only map island; text fallback |
-| Public map/geocoding policy violation | High | Use OpenFreeMap for MVP, avoid OSM raster production dependency, no Nominatim autocomplete |
+| Map dependency slows the route | Medium | Lazy client-only Google map/search island; text fallback |
+| Google Maps/Places spend or quota surprise | Medium | Low-frequency setup/edit usage, budget alerts, quota caps, restricted key, stored-coordinate display path |
+| Public map/geocoding policy violation | High | Use Google Maps with Google Places, avoid mixed-provider display, no Nominatim autocomplete |
 | Precise location data leaks to share pages | High | Keep coordinates internal by default; explicit future publication decision required |
 | Precise location data leaks through broad project readers | High | Use `project_locations` table and safe projection helpers |
 | Workshop header/content/footer seam returns | Medium | Use existing shell glass surface and avoid route-local white slab |
@@ -564,7 +583,7 @@ Consequences:
 - The page becomes more useful and quieter.
 - Activity requires a new project-level data path for performance.
 - Location becomes first-class project data rather than a free-text-only field.
-- Map/geocoder choices need explicit provider and privacy boundaries.
+- Google Maps/Places choices need explicit provider, privacy, cost, and key-restriction boundaries.
 - Header chrome streaming must be preserved while page dashboard data is improved.
 
 Rejected:
@@ -574,7 +593,9 @@ Rejected:
 - Direct dependency on private sheet-version-control helper functions.
 - Exact coordinates on `projects` without a prior safe-projection audit.
 - Production dependence on public OSM tile servers.
+- OpenFreeMap/MapLibre as the target project-location provider after this addendum.
 - Nominatim-powered autocomplete.
+- Google Places results displayed on a non-Google map.
 - A map-first page before sheet/share/activity basics are right.
 
 ## Staffing Guidance
@@ -584,7 +605,7 @@ Use `ultragoal` for durable execution if the implementation spans multiple sessi
 - Lane A: UI simplification and responsive/loading states.
 - Lane B: recent sheets and publication summary integration.
 - Lane C: project activity timeline data path and indexes.
-- Lane D: location/map data model and client island.
+- Lane D: location data model, Google Places autocomplete, Google map display, and OpenFreeMap/MapLibre removal.
 - Lane E: QA, accessibility, and visual verification.
 
 Maker/checker split:

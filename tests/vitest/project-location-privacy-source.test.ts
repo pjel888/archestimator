@@ -22,24 +22,26 @@ describe("project exact location privacy boundaries", () => {
     }
   });
 
-  it("keeps the optional map provider bounded and avoids public geocoding", () => {
+  it("keeps the Google map/search provider bounded to authenticated workshop surfaces", () => {
     const nextConfig = readFileSync("next.config.ts", "utf8");
     const packageJson = readFileSync("package.json", "utf8");
-    const mapConfig = readFileSync("src/lib/projects/location-map-config.ts", "utf8");
     const mapComponent = readFileSync("src/components/workshop/ProjectLocationMap.tsx", "utf8");
+    const addressAutocomplete = readFileSync("src/components/workshop/ProjectAddressAutocomplete.tsx", "utf8");
 
-    expect(nextConfig).toContain("https://tiles.openfreemap.org");
+    expect(nextConfig).toContain("https://maps.googleapis.com");
+    expect(nextConfig).toContain("https://*.googleapis.com");
+    expect(nextConfig).toContain("https://*.gstatic.com");
     expect(nextConfig).toContain("workshopReportOnlyCsp");
     expect(nextConfig).not.toContain("tile.openstreetmap");
+    expect(nextConfig).not.toContain("tiles.openfreemap");
     expect(nextConfig).not.toContain("mapbox");
-    expect(packageJson).toContain("maplibre-gl");
+    expect(packageJson).not.toContain("maplibre-gl");
     expect(packageJson).not.toContain("leaflet");
     expect(packageJson).not.toContain("pmtiles");
-    expect(mapConfig).toContain("NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED");
-    expect(mapConfig).toContain("NEXT_PUBLIC_PROJECT_LOCATION_MAP_STYLE_URL");
-    expect(mapConfig).toContain("tiles.openfreemap.org");
-    expect(`${mapConfig}\n${mapComponent}\n${nextConfig}`).not.toContain("Nominatim");
-    expect(`${mapConfig}\n${mapComponent}\n${nextConfig}`).not.toContain("nominatim");
-    expect(`${mapConfig}\n${mapComponent}\n${nextConfig}`).not.toContain("tile.openstreetmap.org");
+    expect(mapComponent).toContain("loadGoogleMapsApi");
+    expect(addressAutocomplete).toContain("AutocompleteSuggestion.fetchAutocompleteSuggestions");
+    expect(`${addressAutocomplete}\n${mapComponent}\n${nextConfig}`).not.toContain("Nominatim");
+    expect(`${addressAutocomplete}\n${mapComponent}\n${nextConfig}`).not.toContain("nominatim");
+    expect(`${addressAutocomplete}\n${mapComponent}\n${nextConfig}`).not.toContain("tile.openstreetmap.org");
   });
 });

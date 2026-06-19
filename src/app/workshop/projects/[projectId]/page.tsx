@@ -1,47 +1,19 @@
 import { notFound, redirect } from "next/navigation";
 
-import { ProjectDashboardClient, type ProjectPublicationDashboardStatus } from "@/components/workshop/ProjectDashboardClient";
+import { ProjectDashboardClient } from "@/components/workshop/ProjectDashboardClient";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { isUuid } from "@/lib/ids";
-import { createEmptyProjectActivityPage, listProjectActivityPage } from "@/lib/repositories/project-activity-repository";
-import { listRecentProjectEstimateSheets } from "@/lib/repositories/project-estimate-sheets-repository";
+import {
+  listProjectEstimateSheetsForProject,
+  listRecentProjectEstimateSheets,
+} from "@/lib/repositories/project-estimate-sheets-repository";
 import { getProjectLocation } from "@/lib/repositories/project-location-repository";
-import { getCurrentWorkspaceProject, getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
+import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectDashboardPageProps = {
   params: Promise<{ projectId: string }>;
 };
-
-function createPublicationDashboardStatus(summary: ProjectPublicationSummary | null): ProjectPublicationDashboardStatus {
-  if (!summary) {
-    return {
-      status: "unpublished",
-      clientLinkPath: null,
-      selectedEstimateCount: 0,
-      passwordRequired: false,
-      latestOpenedAt: null,
-      openCount: 0,
-      isStale: false,
-      canCopy: false,
-      canOpen: false,
-    };
-  }
-
-  const hasPublishedLink = summary.status === "published" && Boolean(summary.clientLinkPath);
-  return {
-    status: summary.status,
-    clientLinkPath: summary.clientLinkPath,
-    selectedEstimateCount: summary.selectedEstimateCount,
-    passwordRequired: summary.passwordRequired,
-    latestOpenedAt: summary.latestOpenedAt,
-    openCount: summary.openCount,
-    isStale: Boolean(summary.staleSnapshotWarning),
-    canCopy: hasPublishedLink && summary.tokenCopyAvailable,
-    canOpen: hasPublishedLink,
-  };
-}
 
 async function canEditProject(projectId: string) {
   const supabase = await createSupabaseServerClient();
@@ -69,25 +41,27 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     currencyCode: "PHP",
   };
 
-  const [recentSheets, publicationSummary, activity, canEdit] = project
+  const [canEdit, projectEstimateSheets, recentEstimateSheets] = project
     ? await Promise.all([
-      listRecentProjectEstimateSheets(project.id),
-      getProjectPublicationSummary(project.id),
-      listProjectActivityPage({ projectId: project.id }),
-      canEditProject(project.id),
-    ])
-    : [[], null, createEmptyProjectActivityPage(), false];
+        canEditProject(project.id),
+        listProjectEstimateSheetsForProject(project.id),
+        listRecentProjectEstimateSheets(project.id),
+      ])
+    : ([false, [], []] as const);
   const projectLocation = project && canEdit ? await getProjectLocation(project.id) : null;
+  const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+  const googleMapsMapId = process.env.GOOGLE_MAPS_MAP_ID ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? null;
 
   return (
     <ProjectDashboardClient
       project={project}
       fallback={fallback}
-      recentSheets={recentSheets}
-      publicationStatus={createPublicationDashboardStatus(publicationSummary)}
-      activity={activity}
-      projectLocation={projectLocation}
+      estimateCount={projectEstimateSheets.length}
+      recentEstimateSheets={recentEstimateSheets}
       canEditProject={canEdit}
+      projectLocation={projectLocation}
+      googleMapsApiKey={googleMapsApiKey}
+      googleMapsMapId={googleMapsMapId}
     />
   );
 }

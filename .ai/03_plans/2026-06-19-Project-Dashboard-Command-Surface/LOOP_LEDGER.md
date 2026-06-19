@@ -15,7 +15,8 @@ Implement and verify the Project Dashboard Command Surface plan for `/workshop/p
 - No unrelated cleanup of pre-existing dirty `.ai` files.
 
 ## Branch / Status
-- Branch: `main`
+- Original implementation branch: `main`
+- Current provider-addendum branch: `codex/project-dashboard-google-maps-integration`
 - Baseline status: `.ai/08_prompts/README.md` and `.ai/10_state/current-state.md` modified; implementation prompt file untracked before this run.
 - Context snapshot: `.omx/context/project-dashboard-command-surface-20260619T100305Z.md`
 
@@ -201,8 +202,32 @@ Implement and verify the Project Dashboard Command Surface plan for `/workshop/p
 - Known validation boundary:
   - The route proof demonstrates the guarded application behavior, not that `20260619105250` exists remotely. Remote SQL apply/repair/type regeneration remain unclaimed until `SUPABASE_DB_PASSWORD` or equivalent linked DB credentials are available.
 
+### Iteration 7 - Docs-Only Google Maps/Places Provider Addendum
+- Hypothesis: The location UX should move to a single trusted provider because the product only needs low-frequency project location setup/display, and Google Places results should be displayed on Google Maps rather than mixed with OpenFreeMap/MapLibre.
+- Action: Created branch `codex/project-dashboard-google-maps-integration` and updated the plan pack only. The addendum supersedes the prior OpenFreeMap/MapLibre direction with Google Maps JavaScript API for map display and Google Places Autocomplete for set/edit search. It records that normal dashboard views should render stored coordinates without repeated geocoding, and that the later implementation pass should remove `maplibre-gl`, OpenFreeMap env/config/CSP allowances, and provider-specific proof/tests.
+- Files changed:
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/00-README.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/01-PLAN.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/02-RESEARCH-NOTES.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/03-VERIFICATION-MATRIX.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/04-RALPLAN-REVIEW.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/05-READINESS-SCORECARD.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/07-UX-STATE-MATRIX.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/09-LOCATION-MAP-CSP-PROVIDER-ADR.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/10-MIGRATION-RLS-QA-RUNBOOK.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/11-TEST-FIXTURES-AND-STOP-CONDITIONS.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/HANDOFF.md`
+  - `.ai/03_plans/2026-06-19-Project-Dashboard-Command-Surface/LOOP_LEDGER.md`
+- Evidence:
+  - Official Google sources checked during planning: Maps JavaScript API loading, Places Autocomplete, autocomplete session pricing, Google Places policies, and Google Maps Platform pricing.
+  - Existing migration shape checked: Google selections should map to `source='geocoded'`, `geocoder_name='google'`, and `provider_place_id` rather than a new source enum.
+  - No source implementation files were edited in this addendum.
+- Result: Docs now point implementation toward full Google Maps/Places and explicitly mark the OpenFreeMap/MapLibre path as superseded.
+- Known validation boundary:
+  - This is a docs-only update. Source removal, dependency cleanup, CSP changes, Google env setup, provider mocks, browser proof, and budget/quota/key-restriction evidence remain implementation work.
+
 ## Stop Condition
-Stop only when Phase 1, Phase 2 activity, and Phase 3 private location/map-provider work are proven with targeted evidence; public geocoder work remains explicitly excluded; or when a real blocker repeats and cannot be worked around.
+Stop only when Phase 1, Phase 2 activity, and Phase 3 private location/map-provider work are proven with targeted evidence; the current provider target is Google Maps/Places only; public non-Google geocoder work remains explicitly excluded; or when a real blocker repeats and cannot be worked around.
 
 ## Proof Boundary
 Current proof boundary: local source, Vitest, typecheck, native temp-Postgres migration/RLS proof, isolated browser proof for the real map component, and authenticated protected-route browser proof through the local dev-auth bypass. Linked remote apply proof remains unclaimed because the Supabase CLI currently lacks valid DB credentials.
@@ -216,4 +241,5 @@ Current proof boundary: local source, Vitest, typecheck, native temp-Postgres mi
 - Set valid linked DB credentials (`SUPABASE_DB_PASSWORD` or equivalent), then run the scoped apply/repair/type-regeneration sequence for `20260619105250`.
 - Regenerate Supabase types from the applied schema after the migration is applied.
 - Decide when to enable `NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED=1` for beta environments.
-- Public geocoder/autocomplete remains excluded; add a separate provider/rate-limit/privacy plan if it becomes necessary.
+- Replace the superseded OpenFreeMap/MapLibre implementation with the Google Maps/Places plan before enabling map/search in beta environments.
+- Public non-Google geocoder/autocomplete remains excluded; Google Places autocomplete is allowed only for set/edit flows once the key, budget, quota, CSP, and privacy gates are satisfied.

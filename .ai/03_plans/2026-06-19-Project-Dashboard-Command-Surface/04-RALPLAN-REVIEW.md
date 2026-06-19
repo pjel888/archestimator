@@ -41,7 +41,7 @@ Plan patches applied:
 - Replaced Phase 1 recent-sheets wording with a dedicated `updated_at desc` project recent-sheets helper contract.
 - Added redacted project activity DTO requirements and migration requirements for `estimate_sheet_events.project_id`.
 - Added `project_locations` schema, RLS, validation, uniqueness, grants, generated-type, and fix-forward requirements.
-- Added OpenFreeMap configuration, provider-swap, disable/fallback, no-SLA, and mocked-test requirements.
+- Original closeout added OpenFreeMap configuration, provider-swap, disable/fallback, no-SLA, and mocked-test requirements. The 2026-06-19 Google Maps/Places addendum supersedes that provider direction and requires removing OpenFreeMap/MapLibre during the implementation follow-up.
 - Added visual acceptance checklist blocking extra hero cards, metric rows, action grids, and nested glass panels.
 
 ## Review-Driven Changes
@@ -61,3 +61,7 @@ The later multi-lane planning audit resolved the stale review gap by adding:
 - `11-TEST-FIXTURES-AND-STOP-CONDITIONS.md`
 
 No implementation is claimed by this review file. It only records that the planning pack now has explicit contracts for the gaps found by the architect, critic, and follow-up audit lanes.
+
+## Supersession Note
+
+The original RALPLAN review remains useful historical context for why provider fallback, CSP, privacy, and mocked-provider tests were added. Its provider choice is no longer current. The active provider decision is Google Maps Platform only, documented in `01-PLAN.md`, `02-RESEARCH-NOTES.md`, and `09-LOCATION-MAP-CSP-PROVIDER-ADR.md`.

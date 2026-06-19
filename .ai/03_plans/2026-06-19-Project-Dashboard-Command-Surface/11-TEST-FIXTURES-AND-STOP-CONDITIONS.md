@@ -29,8 +29,9 @@ Status: required before implementation closeout
 | `location.addressOnly` | 1/3 | Location component | Address text plus no exact pin state. |
 | `location.validManualPin` | 3 | Repository/action/component | Save/reload exact pin. |
 | `location.invalidLatLng` | 3 | Repository/action/component | Save rejected with field-level error. |
-| `location.providerDisabled` | 3 | Component/source | Text fallback, no map import/network. |
-| `location.tileFailure` | 3 | Component/browser | Text fallback remains useful. |
+| `location.googleDisabledOrMissingKey` | 3 | Component/source | Text fallback, no Google import/network. |
+| `location.googleLoaderOrQuotaFailure` | 3 | Component/browser | Text fallback remains useful. |
+| `location.googleAutocompleteSelect` | 3 | Component/action | Google place selection stores formatted address, place id, latitude, and longitude once. |
 | `privacy.publicShare` | 3 | Share/proposal tests | Coordinates absent by default. |
 | `privacy.aiContext` | 3 | AI/context tests | Coordinates absent by default. |
 | `privacy.exportProposal` | 3 | Export/proposal tests | Coordinates absent by default. |
@@ -50,10 +51,11 @@ Required Phase 1 browser artifacts:
 
 Required Phase 3 browser artifacts:
 
-- attribution visible;
+- Google branding/attribution visible;
 - map controls do not overlap dashboard chrome;
-- disabled-provider fallback;
-- no-WebGL fallback or documented safe substitute;
+- disabled/missing-key fallback;
+- quota/load-failure fallback or documented safe substitute;
+- autocomplete set/edit proof with mocked Google response;
 - text coordinates/address visible without map.
 
 ## Stop Conditions
@@ -84,7 +86,7 @@ FAIL:
 - restricted sheet events leak;
 - forbidden activity fields reach client props;
 - coordinates reach public share, proposal/export, AI/context, analytics, or broad project readers by default;
-- map/provider tests call public network;
+- map/provider tests call live Google Maps/Places or public network;
 - chrome streaming is collapsed into a monolithic dashboard fetch;
 - `loading.tsx` or `ProjectRouteContentFallback` still renders the old white slab;
 - location write authz, RLS/grants, generated types, or migration proof is missing for implemented database changes.

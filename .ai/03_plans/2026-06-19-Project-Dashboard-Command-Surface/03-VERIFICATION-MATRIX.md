@@ -22,7 +22,7 @@ Broad `bun run validate` may be useful before release, but it is not the specifi
 4. Published link state is accurate and does not duplicate the full publication-management modal.
 5. Project activity uses one bounded project-scoped read, not per-estimate fan-out.
 6. Location pinning stores and reloads exact project coordinates without leaking them to public share surfaces.
-7. Map/provider behavior follows tile, geocoding, attribution, and privacy constraints.
+7. Google Maps/Places behavior follows autocomplete, map display, attribution/branding, quota, key restriction, CSP, and privacy constraints.
 8. The layout Suspense fallback and the route loading shell both match the simplified liquid-glass direction.
 9. Header chrome remains streamed behind `ProjectChromeAsync` rather than being folded into a slow page-blocking dashboard fetch.
 
@@ -38,8 +38,8 @@ Broad `bun run validate` may be useful before release, but it is not the specifi
 | 2 | Activity DTO redacts forbidden fields | Fixture test with snapshots/payloads/raw/correlation fields | Test output |
 | 2 | Activity migration keeps all event writers populating `project_id` | `10-MIGRATION-RLS-QA-RUNBOOK.md` proof | Migration proof artifact |
 | 3 | `project_locations` RLS/grants/types/leak tests pass | SQL/RLS proof plus privacy leak tests | Migration proof artifact |
-| 3 | Map can be disabled, mocked, and lazy-loaded | Source tests and mocked component tests, no public provider calls | Test output |
-| 3 | Browser map claims hold | Attribution, no-overlap, no-WebGL/provider failure screenshots | `.omx/artifacts/project-dashboard-command-surface/phase-3/` |
+| 3 | Google Maps/Places can be disabled, mocked, and lazy-loaded | Source tests and mocked component tests, no live provider calls | Test output |
+| 3 | Browser map/search claims hold | Google branding/attribution, no-overlap, missing-key/disabled/quota/load-failure screenshots or mocked browser proof | `.omx/artifacts/project-dashboard-command-surface/phase-3/` |
 
 ## Static And Unit Tests
 
@@ -60,7 +60,7 @@ Broad `bun run validate` may be useful before release, but it is not the specifi
 | Loading shell | Skeleton shape matches simplified layout | Component/source tests |
 | Data ownership | Chrome/page helper boundaries, no monolithic dashboard fetch | Source contract tests |
 | Identity rail | Edit fields, preserve hidden image/currency/project code, save feedback | RTL/action tests |
-| CSP/provider config | Map env keys, allowed-host validation, fail-closed disabled mode, intentional CSP edits | Source tests |
+| CSP/provider config | Google env keys, fail-closed disabled/missing-key mode, intentional CSP edits, old OpenFreeMap/MapLibre config removed | Source tests |
 | DSAR/export/delete | `project_locations` included or explicitly excluded with privacy/legal signoff | SQL/source/runbook proof |
 
 ## Browser And Visual Checks
@@ -82,11 +82,12 @@ Mobile:
 - Verify no horizontal overflow.
 - Verify buttons/links remain tap-sized.
 
-Map phase:
+Google map/search phase:
 
-- Verify map attribution remains visible.
-- Verify fallback state when map bundle/WebGL/tile style fails.
+- Verify Google branding/attribution remains visible and unobstructed.
+- Verify fallback state when Google key is missing, provider disabled, quota is mocked as exhausted, or loader/API calls fail.
 - Verify no overlap between map controls and dashboard chrome.
+- Verify autocomplete runs only in set/edit mode and saved dashboard display uses stored coordinates.
 
 ## UltraQA Scenarios
 
@@ -100,20 +101,20 @@ Map phase:
 | Owner activity raw field | Composer output contains `raw` | Dashboard DTO strips it before client props |
 | Deleted/renamed sheet | Activity references old sheet metadata | Timeline still renders historical context safely |
 | Revoked share link | Publication exists but not active | Panel does not show invalid open/copy action as live |
-| Tile outage | Map style or tiles fail | Saved address/coordinates remain visible |
-| Map disabled by config | Map provider disabled or URL missing | Text fallback renders and dashboard stays useful |
-| No WebGL | Browser cannot render MapLibre | Location panel falls back without blocking dashboard |
+| Google loader failure | Maps JavaScript loader or import library fails | Saved address/coordinates remain visible |
+| Map disabled by config | Google provider disabled or API key missing | Text fallback renders and dashboard stays useful |
+| Google quota/error | Places or Maps returns quota/authorization/load error | User can still see/edit text coordinates and save manually |
 | No coordinates | Address exists but exact pin absent | UI says address-only; no fake pin |
 | Bad coordinates | Out-of-range lat/lng | Save rejected and user sees field-level error |
 | Public route | Shared link/proposal recipient loads public view | Exact internal coordinates are not exposed by this plan |
 | AI/context route | Any project context payload is generated for assistant/export features | Exact coordinates are excluded unless explicitly requested and authorized |
-| Attribution hidden | Map is small or responsive | Attribution remains visible/legible |
+| Google branding hidden | Map is small or responsive | Google branding/attribution remains visible/legible |
 | Keyboard-only user | Navigate dashboard without pointer | All actions reachable; map has non-pointer text controls |
 | Reduced transparency | Browser disables backdrop-filter | Surface remains legible and structured |
 | Coordinate save spam | Authorized user repeatedly drags/saves invalid pins | Saves are debounced/rate-limited or conflict-safe; invalid saves do not churn data |
 | Restricted sheet activity | Project feed includes events from sheets the actor cannot access | Restricted events are omitted |
 | Monolithic fetch regression | Implementation folds chrome summaries into page dashboard fetch | Source/route-shell test fails |
-| Public provider call in tests | Test accidentally hits tile/geocoder network | Test fails or mocks block call |
+| Live provider call in tests | Test accidentally hits Google Maps/Places or public geocoder network | Test fails or mocks block call |
 
 ## Performance Checks
 
@@ -130,29 +131,34 @@ Before claiming Phase 2 complete:
 
 Before claiming Phase 3 complete:
 
-- Confirm map bundle is client-only and lazy loaded.
+- Confirm Google map/search bundle is client-only and lazy loaded.
 - Confirm initial dashboard content can render before map is interactive.
 - Confirm tests mock provider calls.
-- Confirm map can be disabled or provider URLs swapped by config.
+- Confirm map/search can be disabled by config and fails closed when API key is absent.
+- Confirm old OpenFreeMap/MapLibre env/config/CSP/dependency path is removed or explicitly obsolete.
 - Confirm `project_locations` has RLS, coordinate range checks, generated types, and one-active-row policy.
 - Confirm no exact coordinate payload reaches public share, proposal/export, AI/context, analytics, or broad project readers by default.
 - Confirm location data lifecycle, DSAR/export/delete, and privacy copy decisions are recorded.
+- Confirm Google Cloud key restrictions, budget alerts, and quota caps are recorded before enabling in beta environments.
 
 ## Policy And Privacy Checks
 
-Map/tile:
+Map/search provider:
 
+- Use Google Maps Platform as the single active provider for project-location autocomplete and map display.
+- Do not display Google Places results on a non-Google map.
 - Do not point production dashboard at `https://tile.openstreetmap.org`.
-- Keep map provider/style URL configurable.
 - Keep an implementation-level map kill switch or disabled-map fallback.
-- Keep OSM/OpenMap attribution visible.
+- Keep Google branding/attribution visible.
+- Keep provider spend bounded with alerts/quotas and restricted keys.
 
 Geocoding:
 
 - Do not implement public Nominatim autocomplete.
 - Do not run bulk/systematic reverse geocoding through public Nominatim.
-- Cache and rate-limit any future geocoding.
-- Do not send client names, internal project names, proposal details, or confidential addresses to public geocoding services.
+- Do not add a non-Google geocoding provider in this pass.
+- Use Places autocomplete only during set/edit; saved dashboard views use stored coordinates.
+- Do not send client names, internal project names, proposal details, internal ids, or raw Google response payloads to provider URLs/storage.
 
 Location privacy:
 
@@ -187,6 +193,6 @@ Additional implementation-owned tests must be added with the files in `11-TEST-F
 Browser proof is required only for browser-only claims:
 
 - Phase 1: desktop/mobile route shell continuity, no white slab, no horizontal overflow, and visible focus/tap sizing.
-- Phase 3: map attribution, map-control overlap, disabled provider fallback, no-WebGL fallback, and text coordinate fallback.
+- Phase 3: Google branding/attribution, map-control overlap, disabled/missing-key/quota/load-failure fallback, autocomplete set/edit behavior, and text coordinate fallback.
 
 Browser proof does not prove provider uptime, production Vercel state, Supabase RLS, or public tile SLA.

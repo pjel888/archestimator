@@ -15,6 +15,8 @@ export type ProjectRecentEstimateSheetSummary = {
   sheetCode: string | null;
   updatedAt: string | null;
   firstNodeId: string | null;
+  totalCost: number;
+  projectBudget: number | null;
 };
 
 const RECENT_ESTIMATE_SHEET_DEFAULT_LIMIT = 5;
@@ -49,7 +51,7 @@ export async function listRecentProjectEstimateSheets(
   const supabase = await createSupabaseServerClient();
   const { data: estimates, error } = await supabase
     .from("estimates")
-    .select("id, project_id, name, sheet_code, updated_at")
+    .select("id, project_id, name, sheet_code, project_budget, updated_at")
     .eq("project_id", projectId)
     .order("updated_at", { ascending: false, nullsFirst: false })
     .order("id", { ascending: false })
@@ -61,15 +63,22 @@ export async function listRecentProjectEstimateSheets(
   const estimateIds = estimateRows.map((estimate) => estimate.id);
   if (estimateIds.length === 0) return [];
 
-  const { data: nodeRows, error: nodeError } = await supabase
-    .from("estimate_nodes")
-    .select("id, estimate_id, kind, parent_id")
-    .in("estimate_id", estimateIds)
-    .order("sort_order", { ascending: true });
+  const [nodesResult, summariesResult] = await Promise.all([
+    supabase
+      .from("estimate_nodes")
+      .select("id, estimate_id, kind, parent_id")
+      .in("estimate_id", estimateIds)
+      .order("sort_order", { ascending: true }),
+    supabase.rpc("project_estimate_list_summaries", { target_project_id: projectId }),
+  ]);
 
-  if (nodeError) throw nodeError;
+  if (nodesResult.error) throw nodesResult.error;
+  if (summariesResult.error) throw summariesResult.error;
 
-  const firstNodeIds = selectFirstEstimateNodeIds((nodeRows ?? []) as EstimateFirstNodeSourceRow[]);
+  const firstNodeIds = selectFirstEstimateNodeIds((nodesResult.data ?? []) as EstimateFirstNodeSourceRow[]);
+  const totalCostByEstimateId = new Map(
+    (summariesResult.data ?? []).map((summary) => [summary.estimate_id, Number(summary.total_cost ?? 0)]),
+  );
 
   return estimateRows.map((estimate) => ({
     id: estimate.id,
@@ -78,5 +87,7 @@ export async function listRecentProjectEstimateSheets(
     sheetCode: estimate.sheet_code ?? null,
     updatedAt: estimate.updated_at ?? null,
     firstNodeId: firstNodeIds.get(estimate.id) ?? null,
+    totalCost: totalCostByEstimateId.get(estimate.id) ?? 0,
+    projectBudget: estimate.project_budget ?? null,
   }));
 }

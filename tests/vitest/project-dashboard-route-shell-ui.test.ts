@@ -67,17 +67,31 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardPage).not.toContain("searchParams");
     expect(projectDashboardPage).not.toContain("getProjectDashboardSummary");
     expect(projectDashboardPage).not.toContain("getProjectActivity");
+    expect(projectDashboardPage).toContain("listProjectEstimateSheetsForProject");
     expect(projectDashboardPage).toContain("listRecentProjectEstimateSheets");
-    expect(projectDashboardPage).toContain("createPublicationDashboardStatus");
+    expect(projectDashboardPage).not.toContain("createPublicationDashboardStatus");
+    expect(projectDashboardPage).not.toContain("listProjectActivityPage");
+    expect(projectDashboardPage).toContain("getProjectLocation");
+    expect(projectDashboardPage).toContain("project && canEdit ? await getProjectLocation(project.id) : null");
+    expect(projectDashboardPage).toContain("GOOGLE_MAPS_API_KEY");
     expect(projectDashboardLayout).toContain('className="flex h-full min-h-0 overflow-hidden"');
     expect(projectDashboardLayout).not.toContain("overflow-hidden bg-white");
     expect(projectDashboardLayout).not.toContain("overflow-hidden bg-canvas");
     expect(projectDashboardClient).toContain('aria-label="Project dashboard"');
     expect(projectDashboardClient).toContain('aria-label="Project command surface"');
-    expect(projectDashboardClient).toContain('label="Recent sheets"');
-    expect(projectDashboardClient).toContain('label="Published link"');
-    expect(projectDashboardClient).toContain('label="Estimate activity"');
-    expect(projectDashboardClient).toContain('label="Location"');
+    expect(projectDashboardClient).toContain("dashboard-glass flex h-full min-h-0 flex-1 flex-col overflow-hidden");
+    expect(projectDashboardClient).toContain("ProjectLocationMap");
+    expect(projectDashboardClient).toContain("ProjectAddressAutocomplete");
+    expect(projectDashboardClient).toContain("ProjectEstimateSummaryPanel");
+    expect(projectDashboardClient).toContain("Estimate Count");
+    expect(projectDashboardClient).toContain("Recent Estimate Sheets");
+    expect(projectDashboardClient).toContain("dashboard-project-card-panel");
+    expect(projectDashboardClient).toContain("dashboard-project-count-panel");
+    expect(projectDashboardClient).toContain("dashboard-published-panel");
+    expect(projectDashboardClient).not.toContain('label="Recent sheets"');
+    expect(projectDashboardClient).not.toContain('label="Published link"');
+    expect(projectDashboardClient).not.toContain('label="Estimate activity"');
+    expect(projectDashboardClient).not.toContain('label="Location"');
     expect(projectDashboardClient).not.toContain('aria-label="Project overview"');
     expect(projectDashboardClient).not.toContain('aria-label="Project dashboard actions"');
     expect(projectDashboardClient).toContain("dashboard-glass");
@@ -87,13 +101,14 @@ describe("project dashboard route shell UI governance", () => {
     expect(workshopPageShell).not.toContain("workshop-shell-glass-chrome--bottom relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border");
   });
 
-  it("uses the same command-surface skeleton for dashboard loading and suspense fallback", () => {
+  it("uses the same empty command-surface shell for dashboard loading and suspense fallback", () => {
     for (const source of [projectDashboardLoading, projectRouteContentFallback]) {
-      expect(source).toContain('label="Recent sheets"');
-      expect(source).toContain('label="Published link"');
-      expect(source).toContain('label="Estimate activity"');
-      expect(source).toContain('label="Location"');
-      expect(source).toContain("dashboard-glass flex min-h-0 flex-1 flex-col overflow-hidden");
+      expect(source).not.toContain('label="Recent sheets"');
+      expect(source).not.toContain('label="Published link"');
+      expect(source).not.toContain('label="Estimate activity"');
+      expect(source).not.toContain('label="Location"');
+      expect(source).toContain("dashboard-glass flex h-full min-h-0 flex-1 flex-col overflow-hidden");
+      expect(source).toContain('className="flex min-h-0 flex-1 overflow-auto p-2"');
       expect(source).not.toContain("bg-canvas");
       expect(source).not.toContain("border border-hairline bg-white");
       expect(source).not.toContain("Project overview");

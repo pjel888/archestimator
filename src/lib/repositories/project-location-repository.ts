@@ -13,6 +13,8 @@ export type ProjectLocationSummary = {
   readonly source: "manual" | "geocoded" | "imported";
   readonly displayLabel: string | null;
   readonly addressText: string | null;
+  readonly geocoderName: string | null;
+  readonly providerPlaceId: string | null;
   readonly updatedAt: string;
 };
 
@@ -64,6 +66,8 @@ function toProjectLocationSummary(row: Tables<"project_locations">): ProjectLoca
     source: readLocationSource(row.source),
     displayLabel: row.display_label ?? null,
     addressText: row.address_text ?? null,
+    geocoderName: row.geocoder_name ?? null,
+    providerPlaceId: row.provider_place_id ?? null,
     updatedAt: row.updated_at,
   };
 }
@@ -75,7 +79,7 @@ export const getProjectLocation = cache(async function getProjectLocation(projec
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("project_locations")
-    .select("id, project_id, latitude, longitude, accuracy_meters, source, display_label, address_text, updated_at")
+    .select("id, project_id, latitude, longitude, accuracy_meters, source, display_label, address_text, geocoder_name, provider_place_id, updated_at")
     .eq("project_id", project.id)
     .maybeSingle();
 

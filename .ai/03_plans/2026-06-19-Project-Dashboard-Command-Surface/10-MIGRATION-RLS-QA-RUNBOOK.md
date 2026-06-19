@@ -53,8 +53,8 @@ Required schema properties:
 - `project_id uuid not null references projects(id) on delete cascade`;
 - `workspace_id uuid not null references workspaces(id) on delete cascade`;
 - `latitude` and `longitude` with range checks;
-- `source` constrained to known values such as `manual_pin`, `address_geocode`, `imported`;
-- optional `accuracy_m`, `display_address`, `geocoder_provider`, `geocoder_place_id`, `geocoded_at`;
+- `source` constrained to known values such as `manual`, `geocoded`, `imported`;
+- optional `accuracy_meters`/accuracy, display label, address text, `geocoder_name`, `provider_place_id`, `geocoded_at`, and metadata fields matching the actual migration;
 - `created_at`, `updated_at`, `updated_by`;
 - one active row per project for MVP.
 
@@ -77,7 +77,7 @@ Lifecycle proof:
 
 ## Structured Location Lifecycle / DSAR
 
-`project_locations` stores exact manual/imported project coordinates for the
+`project_locations` stores exact manual/imported/Google-selected project coordinates for the
 authenticated editor dashboard only. Treat latitude, longitude, accuracy,
 display label, address text, provider name, provider place id, and metadata as
 private project data.
@@ -106,9 +106,11 @@ Retention:
 
 - Manual pins are retained for the life of the project unless cleared by an
   editor or removed by project/workspace deletion.
-- Geocoder fields are optional and currently unused by the MVP map flow.
-  Future geocoding must record provider retention terms before storing
-  provider name, provider place id, or raw metadata.
+- Geocoder fields are optional for manual pins. Google Places selections may
+  store `source='geocoded'`, `geocoder_name='google'`, and the Google Place ID
+  in `provider_place_id` so the app can recognize the selected provider record.
+  Do not store raw Google response payloads in metadata unless a later privacy
+  review explicitly approves retention.
 
 ## Migration Evidence Table
 

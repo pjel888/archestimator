@@ -56,9 +56,10 @@ describe("project dashboard activity and location schema", () => {
 
   it("keeps exact coordinates behind dedicated repository and action boundaries", () => {
     expect(projectDashboardPage).toContain("getProjectLocation");
-    expect(projectDashboardPage).toContain("listProjectActivityPage");
+    expect(projectDashboardPage).not.toContain("listProjectActivityPage");
     expect(projectDashboardPage).toContain('supabase.rpc("can_edit_project"');
     expect(projectDashboardPage).toContain("project && canEdit ? await getProjectLocation(project.id) : null");
+    expect(projectDashboardPage).toContain("GOOGLE_MAPS_API_KEY");
     expect(projectActivityRepository).toContain('.from("estimate_sheet_events")');
     expect(projectActivityRepository).toContain('.eq("project_id", project.id)');
     expect(projectActivityRepository).toContain("composeEstimateActivity");
@@ -66,17 +67,24 @@ describe("project dashboard activity and location schema", () => {
     expect(projectActivityRepository).not.toContain("readonly payload");
     expect(projectLocationRepository).toContain('.from("project_locations")');
     expect(projectLocationRepository).toContain("latitude, longitude");
+    expect(projectLocationRepository).toContain("geocoder_name, provider_place_id");
     expect(projectLocationActions).toContain("readCoordinate");
-    expect(projectLocationActions).toContain('source: "manual"');
-    expect(projectDashboardClient).toContain("visibleProjectLocation = canPersist ? projectLocation : null");
-    expect(projectDashboardClient).toContain("dynamic(");
-    expect(projectDashboardClient).toContain('import("./ProjectLocationMap")');
-    expect(projectDashboardClient).toContain("ssr: false");
-    expect(projectDashboardClient).toContain("getProjectLocationMapConfig");
-    expect(projectDashboardClient).toContain("Map provider disabled");
+    expect(projectLocationActions).toContain('String(formData.get("source") ?? "manual")');
+    expect(projectLocationActions).toContain("geocoderName");
+    expect(projectLocationActions).toContain("providerPlaceId");
+    expect(projectLocationActions).toContain("syncProjectAddress");
+    expect(projectDashboardClient).not.toContain("visibleProjectLocation = canPersist ? projectLocation : null");
+    expect(projectDashboardClient).not.toContain("dynamic(");
+    expect(projectDashboardClient).not.toContain('import("./ProjectLocationMap")');
+    expect(projectDashboardClient).not.toContain("ssr: false");
+    expect(projectDashboardClient).not.toContain("getProjectLocationMapConfig");
+    expect(projectDashboardClient).not.toContain("Map provider disabled");
     expect(projectDashboardClient).not.toContain("maplibre");
     expect(projectDashboardClient).not.toContain("Mapbox");
     expect(projectDashboardClient).not.toContain("Nominatim");
+    expect(projectDashboardClient).toContain("ProjectAddressAutocomplete");
+    expect(projectDashboardClient).toContain("ProjectLocationMap");
+    expect(projectDashboardClient).toContain('formData.set("geocoderName", "google")');
   });
 
   it("records exact-location DSAR, delete, export, and retention handling", () => {
@@ -89,6 +97,6 @@ describe("project dashboard activity and location schema", () => {
     expect(normalizedRunbook).toContain("analytics payloads");
     expect(normalizedRunbook).toContain("Project deletion cascades the one active location row");
     expect(normalizedRunbook).toContain("User deletion sets `created_by` and `updated_by` to null");
-    expect(normalizedRunbook).toContain("provider retention terms before storing");
+    expect(normalizedRunbook).toContain("Do not store raw Google response payloads in metadata unless a later privacy review explicitly approves retention");
   });
 });

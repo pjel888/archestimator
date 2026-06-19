@@ -1,7 +1,7 @@
 # Project Dashboard Command Surface
 
 Date: 2026-06-19
-Status: planning-ready pack; Phase 1 may implement, Phase 2/3 are gated
+Status: planning-ready pack; Phase 1 may implement, Phase 2/3 are gated; Google Maps/Places addendum pending implementation
 Route: `/workshop/projects/[projectId]`
 Reference project route: `/workshop/projects/22222222-2222-4222-8222-222222222222`
 
@@ -12,7 +12,7 @@ Simplify the project dashboard page so it feels like the workshop dashboard and 
 1. Recent estimate sheets, similar to the workshop dashboard.
 2. Current published share link state and shortcuts.
 3. Collated activity history across the project's estimate sheets.
-4. A free/open map-backed location module where users can pinpoint the exact project location.
+4. A Google Maps-backed location module where users can set the project location once, then display the saved pin from stored coordinates.
 
 ## Core Direction
 
@@ -21,14 +21,14 @@ Use one continuous workshop canvas and one compact project desk instead of a gri
 - recent estimate sheets;
 - published share link state and shortcuts;
 - compact activity timeline;
-- exact project location map/pin module.
+- exact project location search/map/pin module.
 
 Not every zone should be a white div. Glass should frame the command surface; dense data rows can use quiet paper or transparent embedded list treatment when legibility requires it.
 
 ## Plan Pack
 
 - `01-PLAN.md` - implementation plan, decisions, phases, acceptance criteria, ADR, and staffing guidance.
-- `02-RESEARCH-NOTES.md` - local codebase findings, delegated agent findings, and official map/provider policy research.
+- `02-RESEARCH-NOTES.md` - local codebase findings, delegated agent findings, and official map/provider policy research, including the Google Maps/Places superseding addendum.
 - `03-VERIFICATION-MATRIX.md` - planned QA, UltraQA scenarios, browser checks, performance checks, and privacy checks.
 - `04-RALPLAN-REVIEW.md` - architect and critic review notes after the sequential review pass.
 - `05-READINESS-SCORECARD.md` - current 100% planning-readiness closeout and pre/post audit score trace.
@@ -45,7 +45,7 @@ This plan is scoped beta UX/workflow polish for one protected project route. It 
 
 - Phase 1 is a releasable owner-beta UX slice if its targeted route, accessibility, and visual checks pass.
 - Phase 2 adds activity data-path and migration work. It is gated by the migration/RLS runbook and must not deepen the active migration-ledger/DR risk.
-- Phase 3 adds exact location data and map network surface. It is gated by privacy/lifecycle, CSP/provider, and DSAR/export/delete proof.
+- Phase 3 adds exact location data and Google Maps/Places network surface. It is gated by privacy/lifecycle, CSP/provider, budget/quota, and DSAR/export/delete proof.
 - Broad `bun run validate` is not the completion gate for this plan while known unrelated reds remain; targeted phase evidence is the gate.
 
 ## Loop Surface
@@ -54,7 +54,7 @@ Recommended execution surface: `ultragoal` or agent-neutral durable goal for the
 
 - UI/layout lane.
 - Activity data/RPC/index lane.
-- Location/map lane.
+- Location/Google Maps lane.
 - Tests/QA lane.
 
 Use `ultraqa` after implementation for adversarial browser and data-state checks.
@@ -62,7 +62,9 @@ Use `ultraqa` after implementation for adversarial browser and data-state checks
 ## Non-Goals
 
 - Do not build a broad new dashboard system.
-- Do not add map/geocoder dependencies until the location phase is explicitly started.
+- Do not implement source changes during this planning addendum; this branch updates docs first.
+- Do not keep OpenFreeMap/MapLibre as the implementation target for the location feature. The implementation follow-up should remove that provider path/dependency and replace it with the Google-only plan.
+- Do not mix Google Places results with a non-Google map. Places-backed results should display on a Google Map.
 - Do not use public OSM raster tiles as production infrastructure.
 - Do not build Nominatim autocomplete or per-keystroke geocoding.
 - Do not expose exact project coordinates on public share pages unless a later product decision explicitly adds that behavior.

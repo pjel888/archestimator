@@ -21,19 +21,18 @@ const landingReportOnlyCsp = [
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms${__impeccableLiveDev}`,
 ].join("; ");
 
-const openFreeMapTileOrigin = "https://tiles.openfreemap.org";
-
 const workshopReportOnlyCsp = [
   "default-src 'self'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
   "form-action 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms${__impeccableLiveDev}`,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms ${openFreeMapTileOrigin}`,
-  "font-src 'self' data:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms ${openFreeMapTileOrigin}${__impeccableLiveDev}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com blob:${__impeccableLiveDev}`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com https://*.googleusercontent.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms https://*.googleapis.com https://*.google.com https://*.gstatic.com data: blob:${__impeccableLiveDev}`,
+  "frame-src https://*.google.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
 ].join("; ");
@@ -181,7 +180,7 @@ const nextConfig: NextConfig = {
     // is DEFERRED and must be coordinated with the Shared-Link CSP-nonce work (the per-request
     // nonce pipeline that replaces 'unsafe-inline'/'unsafe-eval') so the app and /share converge
     // on one enforced policy. Workshop uses its own Report-Only value so the authenticated
-    // dashboard can load the optional OpenFreeMap/MapLibre location map without widening the
+    // dashboard can load the optional Google Maps/Places project-location surface without widening the
     // enforced public-share CSP.
     const appAndInviteHardening = [
       {

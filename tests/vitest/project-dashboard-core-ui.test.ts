@@ -26,7 +26,7 @@ describe("project dashboard core UI governance", () => {
     expect(projectMiniSidebar).not.toContain("ProjectWorkspaceProjectCode");
     expect(projectDashboardLayout).not.toContain("ProjectWorkspaceHeaderRow");
     expect(projectDashboardLayout).not.toContain("projectCode={projectCode}");
-    expect(projectDashboardLayout).toContain('contentClassName="pt-0 pb-0 pr-2 pl-0"');
+    expect(projectDashboardLayout).toContain('contentClassName="pt-0 pb-0 pr-0 pl-0"');
     expect(projectDashboardLayout).toContain("centerHeader={<ProjectEstimateMetadataStrip />}");
     expect(projectDashboardLayout).toContain("actions={");
     // P1-2: the publication/teamspace header chrome is streamed via ProjectChromeAsync
@@ -63,16 +63,17 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).toContain('aria-live="polite"');
   });
 
-  it("organizes the dashboard as an identity rail plus four command modules", () => {
+  it("organizes the dashboard as an identity rail plus a Google map command surface", () => {
     expect(projectDashboardClient).toContain("justify-start");
     expect(projectDashboardClient).not.toContain("justify-start bg-white");
     expect(projectDashboardClient).toContain("md:w-[274px]");
-    expect(projectDashboardClient).toContain("dashboard-glass flex min-h-0 flex-1 flex-col overflow-hidden");
+    expect(projectDashboardClient).toContain("dashboard-glass flex h-full min-h-0 flex-1 flex-col overflow-hidden");
+    expect(projectDashboardClient).toContain('className="flex min-h-0 flex-1 overflow-auto p-2"');
     expect(projectDashboardClient).not.toContain("ml-auto");
     expect(projectDashboardClient).not.toContain("justify-end");
     expect(projectDashboardClient).not.toContain("Project data");
     expect(projectDashboardClient).not.toContain("<h3");
-    expect(projectDashboardClient).toContain("flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-2");
+    expect(projectDashboardClient).toContain("flex min-h-0 flex-1 flex-col gap-2.5 overflow-auto p-2");
     expect(projectDashboardClient).toContain('label="Project name"');
     expect(projectDashboardClient).toContain('label="Client"');
     expect(projectDashboardClient).not.toContain('label="Project code"');
@@ -86,8 +87,8 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).not.toContain("formatBudgetInput");
     expect(projectDashboardClient).toContain('name="currencyCode"');
     expect(projectDashboardClient).toContain("value={currencyCode}");
-    expect(projectDashboardClient).toContain("<textarea");
-    expect(projectDashboardClient).toContain("!text-[10px] font-medium leading-3 text-secondary");
+    expect(projectDashboardClient).toContain("ProjectAddressAutocomplete");
+    expect(projectDashboardClient).not.toContain("<textarea");
     expect(projectDashboardClient).not.toContain("grid grid-cols-2 gap-2");
     expect(projectDashboardClient).toContain('label="Created"');
     expect(projectDashboardClient).toContain('label="Updated"');
@@ -105,21 +106,28 @@ describe("project dashboard core UI governance", () => {
     expect(projectDashboardClient).not.toContain('aria-label="Project dashboard actions"');
     expect(projectDashboardClient).not.toContain("Working surface");
     expect(projectDashboardClient).toContain('aria-label="Project command surface"');
-    expect(projectDashboardClient).toContain('label="Recent sheets"');
-    expect(projectDashboardClient).toContain('label="Published link"');
-    expect(projectDashboardClient).toContain('label="Estimate activity"');
-    expect(projectDashboardClient).toContain('label="Location"');
-    expect(projectDashboardClient.indexOf('label="Recent sheets"')).toBeLessThan(projectDashboardClient.indexOf('label="Published link"'));
-    expect(projectDashboardClient.indexOf('label="Published link"')).toBeLessThan(projectDashboardClient.indexOf('label="Estimate activity"'));
-    expect(projectDashboardClient.indexOf('label="Estimate activity"')).toBeLessThan(projectDashboardClient.indexOf('label="Location"'));
-    expect(projectDashboardClient).toContain("No estimate activity yet.");
-    expect(projectDashboardClient).toContain("Older activity is available from estimate history.");
-    expect(projectDashboardClient).toContain("No exact pin saved.");
-    expect(projectDashboardClient).toContain("Map provider disabled");
-    expect(projectDashboardClient).toContain("Save pin");
-    expect(projectDashboardClient).toContain("Clear pin");
+    expect(projectDashboardClient).toContain("ProjectLocationMap");
+    expect(projectDashboardClient).toContain("ProjectEstimateSummaryPanel");
+    expect(projectDashboardClient).toContain("Estimate Count");
+    expect(projectDashboardClient).toContain("Recent Estimate Sheets");
+    expect(projectDashboardClient).toContain("dashboard-project-card-panel");
+    expect(projectDashboardClient).toContain("googleMapsApiKey");
+    expect(projectDashboardClient).toContain("saveProjectLocation");
+    expect(projectDashboardClient).toContain('formData.set("source", "geocoded")');
+    expect(projectDashboardClient).toContain('formData.set("geocoderName", "google")');
+    expect(projectDashboardClient).toContain('formData.set("syncProjectAddress", "1")');
+    expect(projectDashboardClient).not.toContain('label="Recent sheets"');
+    expect(projectDashboardClient).not.toContain('label="Published link"');
+    expect(projectDashboardClient).not.toContain('label="Estimate activity"');
+    expect(projectDashboardClient).not.toContain('label="Location"');
+    expect(projectDashboardClient).not.toContain("No estimate activity yet.");
+    expect(projectDashboardClient).not.toContain("Older activity is available from estimate history.");
+    expect(projectDashboardClient).not.toContain("No exact pin saved.");
+    expect(projectDashboardClient).not.toContain("Map provider disabled");
+    expect(projectDashboardClient).not.toContain("Save pin");
+    expect(projectDashboardClient).not.toContain("Clear pin");
     expect(projectDashboardClient).not.toContain("Mapbox");
     expect(projectDashboardClient).not.toContain("maplibre");
-    expect(projectDashboardClient).not.toContain("geocoder");
+    expect(projectDashboardClient).not.toContain("Nominatim");
   });
 });

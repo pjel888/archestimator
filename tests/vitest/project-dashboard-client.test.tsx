@@ -1,10 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { ProjectPublicationDashboardStatus } from "@/components/workshop/ProjectDashboardClient";
-import type { ProjectActivityPage } from "@/lib/repositories/project-activity-repository";
-import type { ProjectRecentEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
-import type { ProjectLocationSummary } from "@/lib/repositories/project-location-repository";
 import type { Tables } from "@/lib/supabase/types";
 
 vi.mock("@/lib/projects/actions", () => ({
@@ -13,7 +9,6 @@ vi.mock("@/lib/projects/actions", () => ({
 
 vi.mock("@/lib/projects/location-actions", () => ({
   saveProjectLocation: vi.fn(async () => ({ status: "success", message: "Project pin saved." })),
-  clearProjectLocation: vi.fn(async () => ({ status: "success", message: "Project pin cleared." })),
 }));
 
 const PROJECT_FIXTURE = {
@@ -30,6 +25,53 @@ const PROJECT_FIXTURE = {
   created_by: null,
 } satisfies Tables<"projects">;
 
+const PROJECT_LOCATION_FIXTURE = {
+  id: "location-1",
+  projectId: PROJECT_FIXTURE.id,
+  latitude: 14.599512,
+  longitude: 120.984222,
+  accuracyMeters: null,
+  source: "geocoded",
+  displayLabel: "Quezon City",
+  addressText: "Quezon City, Metro Manila, Philippines",
+  geocoderName: "google",
+  providerPlaceId: "google-place-1",
+  updatedAt: "2026-05-26T00:00:00.000Z",
+} as const;
+
+const RECENT_ESTIMATE_SHEETS_FIXTURE = [
+  {
+    id: "estimate-1",
+    projectId: PROJECT_FIXTURE.id,
+    name: "Original Estimate",
+    sheetCode: "EST-001",
+    updatedAt: "2026-05-27T00:00:00.000Z",
+    firstNodeId: "node-1",
+    totalCost: 125000,
+    projectBudget: 200000,
+  },
+  {
+    id: "estimate-2",
+    projectId: PROJECT_FIXTURE.id,
+    name: "Permit Budget",
+    sheetCode: "EST-002",
+    updatedAt: "2026-05-22T00:00:00.000Z",
+    firstNodeId: null,
+    totalCost: 88000,
+    projectBudget: 80000,
+  },
+  {
+    id: "estimate-3",
+    projectId: PROJECT_FIXTURE.id,
+    name: "Construction Set",
+    sheetCode: "EST-003",
+    updatedAt: "2026-05-20T00:00:00.000Z",
+    firstNodeId: "node-3",
+    totalCost: 32000,
+    projectBudget: null,
+  },
+] as const;
+
 const FALLBACK = {
   id: "sample-modern-bungalow",
   name: "Modern Bungalow",
@@ -39,116 +81,19 @@ const FALLBACK = {
   currencyCode: "PHP",
 };
 
-const RECENT_SHEETS: ProjectRecentEstimateSheetSummary[] = [
-  {
-    id: "estimate-1",
-    projectId: PROJECT_FIXTURE.id,
-    name: "Shell Estimate",
-    sheetCode: "EST-002",
-    updatedAt: "2026-06-12T08:00:00.000Z",
-    firstNodeId: "node-1",
-  },
-  {
-    id: "estimate-2",
-    projectId: PROJECT_FIXTURE.id,
-    name: "Site Works",
-    sheetCode: null,
-    updatedAt: "2026-06-10T08:00:00.000Z",
-    firstNodeId: null,
-  },
-];
-
-const PUBLISHED_STATUS: ProjectPublicationDashboardStatus = {
-  status: "published",
-  clientLinkPath: "/share/publication-token",
-  selectedEstimateCount: 2,
-  passwordRequired: true,
-  latestOpenedAt: "2026-06-13T08:00:00.000Z",
-  openCount: 3,
-  isStale: true,
-  canCopy: true,
-  canOpen: true,
-};
-
-const UNPUBLISHED_STATUS: ProjectPublicationDashboardStatus = {
-  status: "unpublished",
-  clientLinkPath: null,
-  selectedEstimateCount: 0,
-  passwordRequired: false,
-  latestOpenedAt: null,
-  openCount: 0,
-  isStale: false,
-  canCopy: false,
-  canOpen: false,
-};
-
-const ACTIVITY_PAGE: ProjectActivityPage = {
-  items: [
-    {
-      id: "activity-1",
-      createdAt: "2026-06-19T08:00:00.000Z",
-      actorLabel: "Philip Lewis",
-      title: "Philip Lewis changed quantity for Porcelain tile.",
-      summary: "Updated quantity.",
-      targetLabel: "Porcelain tile",
-      targetKind: "row",
-      estimateId: "estimate-1",
-      estimateName: "Shell Estimate",
-      sheetCode: "EST-001",
-      href: `/workshop/projects/${PROJECT_FIXTURE.id}/estimates`,
-    },
-    {
-      id: "activity-2",
-      createdAt: "2026-06-18T08:00:00.000Z",
-      actorLabel: "Unknown user",
-      title: "Activity recorded.",
-      summary: null,
-      targetLabel: "Item",
-      targetKind: "sheet",
-      estimateId: "estimate-deleted",
-      estimateName: "Deleted estimate",
-      sheetCode: null,
-      href: `/workshop/projects/${PROJECT_FIXTURE.id}/estimates`,
-    },
-  ],
-  nextCursor: { createdAt: "2026-06-18T08:00:00.000Z", id: "activity-2" },
-};
-
-const EMPTY_ACTIVITY_PAGE: ProjectActivityPage = {
-  items: [],
-  nextCursor: null,
-};
-
-const PROJECT_LOCATION: ProjectLocationSummary = {
-  id: "location-1",
-  projectId: PROJECT_FIXTURE.id,
-  latitude: 14.599512,
-  longitude: 120.984222,
-  accuracyMeters: 8.25,
-  source: "manual",
-  displayLabel: "Site gate",
-  addressText: PROJECT_FIXTURE.location,
-  updatedAt: "2026-06-19T08:00:00.000Z",
-};
-
 describe("ProjectDashboardClient", () => {
-  it("renders the Phase 1 command surface with real recent sheets and redacted publication status", async () => {
+  it("renders the project identity rail and the Google map command surface", async () => {
     const { ProjectDashboardClient } = await import("@/components/workshop/ProjectDashboardClient");
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(window.navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
 
     const { container } = render(
       <ProjectDashboardClient
         project={PROJECT_FIXTURE}
         fallback={FALLBACK}
-        recentSheets={RECENT_SHEETS}
-        publicationStatus={PUBLISHED_STATUS}
-        activity={ACTIVITY_PAGE}
-        projectLocation={PROJECT_LOCATION}
+        estimateCount={RECENT_ESTIMATE_SHEETS_FIXTURE.length}
+        recentEstimateSheets={RECENT_ESTIMATE_SHEETS_FIXTURE}
         canEditProject
+        projectLocation={PROJECT_LOCATION_FIXTURE}
+        googleMapsApiKey="test-google-browser-key"
       />,
     );
 
@@ -156,6 +101,13 @@ describe("ProjectDashboardClient", () => {
     expect(screen.getByRole("complementary", { name: "Project identity" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Lewis Residence")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Lewis Family")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Lewis Residence")).toHaveClass("bg-transparent", "hover:bg-white/35", "focus:bg-white/85");
+    expect(screen.getByDisplayValue("Lewis Family")).toHaveClass("bg-transparent", "hover:bg-white/35", "focus:bg-white/85");
+    expect(screen.getByDisplayValue("Quezon City, Metro Manila, Philippines")).toHaveClass(
+      "bg-transparent",
+      "hover:bg-white/35",
+      "focus:bg-white/85",
+    );
     expect(container.querySelector("form")).toBeInTheDocument();
     expect(container.querySelector('input[name="projectId"]')).toHaveAttribute("value", PROJECT_FIXTURE.id);
     expect(container.querySelector('input[name="projectImageUrl"]')).toHaveAttribute(
@@ -168,55 +120,78 @@ describe("ProjectDashboardClient", () => {
     const regions = within(screen.getByRole("main", { name: "Project dashboard" }))
       .getAllByRole("region")
       .map((region) => region.getAttribute("aria-label"));
-    expect(regions).toEqual(["Project command surface", "Recent sheets", "Published link", "Estimate activity", "Location"]);
+    expect(regions).toEqual([
+      "Project command surface",
+      "Project estimates summary",
+      "Recent estimate running costs",
+      "Recent estimate budget health",
+    ]);
 
-    const recentSheets = screen.getByRole("region", { name: "Recent sheets" });
-    expect(within(recentSheets).getByRole("link", { name: "Open Shell Estimate, updated Jun 12" })).toHaveAttribute(
+    const commandSurface = screen.getByRole("region", { name: "Project command surface" });
+    expect(commandSurface).toHaveClass("h-full");
+    expect(within(commandSurface).getByTestId("project-location-google-map")).toBeInTheDocument();
+    expect(within(commandSurface).getByRole("application", { name: /google map pin at/i })).toBeInTheDocument();
+    const estimateSummary = within(commandSurface).getByRole("region", { name: "Project estimates summary" });
+    expect(within(estimateSummary).getByText("Estimate Count")).toBeInTheDocument();
+    expect(within(estimateSummary).getByText(String(RECENT_ESTIMATE_SHEETS_FIXTURE.length))).toBeInTheDocument();
+    expect(within(estimateSummary).getByText("Recent Estimate Sheets")).toBeInTheDocument();
+    expect(within(estimateSummary).getByRole("link", { name: /Original Estimate/i })).toHaveAttribute(
       "href",
       `/workshop/projects/${PROJECT_FIXTURE.id}/estimates/node-1`,
     );
-    expect(within(recentSheets).getByRole("link", { name: "Open Site Works, updated Jun 10" })).toHaveAttribute(
+    expect(within(estimateSummary).getByRole("link", { name: /Permit Budget/i })).toHaveAttribute(
       "href",
       `/workshop/projects/${PROJECT_FIXTURE.id}/estimates`,
     );
-    expect(within(recentSheets).getByText("No sheet code · Updated Jun 10")).toBeInTheDocument();
-
-    const publishedLink = screen.getByRole("region", { name: "Published link" });
-    expect(within(publishedLink).getByText("Published")).toBeInTheDocument();
-    expect(within(publishedLink).getByText("Password protected")).toBeInTheDocument();
-    expect(within(publishedLink).getByText("Snapshot stale")).toBeInTheDocument();
-    expect(within(publishedLink).getByText("Latest open: Jun 13, 2026")).toBeInTheDocument();
+    expect(within(estimateSummary).queryByText("01")).not.toBeInTheDocument();
+    expect(within(estimateSummary).queryByRole("link", { name: "Open Projects" })).not.toBeInTheDocument();
+    const runningCosts = within(commandSurface).getByRole("region", { name: "Recent estimate running costs" });
+    const costCells = within(runningCosts).getAllByTestId("project-location-estimate-cost-cell");
+    expect(costCells).toHaveLength(3);
+    expect(costCells[0]).toHaveClass("border-r");
+    expect(costCells[1]).toHaveClass("border-r");
+    expect(costCells[2]).not.toHaveClass("border-r");
+    costCells.forEach((cell) => expect(cell).toHaveClass("p-1"));
+    expect(within(runningCosts).getByText("Original Estimate")).toHaveClass("block", "border-b", "-mx-1", "px-1");
+    expect(within(runningCosts).getByText("Permit Budget")).toBeInTheDocument();
+    expect(within(runningCosts).getByText("Construction Set")).toBeInTheDocument();
+    expect(within(runningCosts).getByText("₱125,000")).toBeInTheDocument();
+    expect(within(runningCosts).getByText("₱88,000")).toBeInTheDocument();
+    expect(within(runningCosts).getByText("₱32,000")).toBeInTheDocument();
+    const budgetHealth = within(commandSurface).getByRole("region", { name: "Recent estimate budget health" });
+    const budgetHeaders = within(budgetHealth).getAllByTestId("project-location-budget-health-header-cell");
+    const budgetFooters = within(budgetHealth).getAllByTestId("project-location-budget-health-footer-cell");
+    expect(budgetHeaders).toHaveLength(3);
+    expect(budgetHeaders[0]).toHaveClass("border-r");
+    expect(budgetHeaders[1]).toHaveClass("border-r");
+    expect(budgetHeaders[2]).not.toHaveClass("border-r");
+    expect(within(budgetHeaders[0]).getByText("Budget")).toBeInTheDocument();
+    expect(within(budgetHeaders[1]).queryByText("Budget")).not.toBeInTheDocument();
+    expect(within(budgetHeaders[2]).getByText("Budget")).toBeInTheDocument();
+    expect(budgetFooters).toHaveLength(3);
+    expect(budgetFooters[0]).toHaveClass("border-r");
+    expect(budgetFooters[1]).toHaveClass("border-r");
+    expect(budgetFooters[2]).not.toHaveClass("border-r");
+    const budgetCells = within(budgetHealth).getAllByTestId("project-location-budget-health-cell");
+    expect(budgetCells).toHaveLength(3);
+    expect(budgetCells[0]).toHaveClass("border-r");
+    expect(budgetCells[1]).toHaveClass("border-r");
+    expect(budgetCells[2]).not.toHaveClass("border-r");
+    expect(within(budgetHealth).getByRole("meter", { name: "Original Estimate budget health" })).toHaveAttribute("aria-valuenow", "63");
+    expect(within(budgetHealth).getByText("63% used")).toBeInTheDocument();
+    expect(within(budgetHealth).getByRole("meter", { name: "Permit Budget budget health" })).toHaveAttribute("aria-valuenow", "110");
+    expect(within(budgetHealth).getByText("110% overbudget")).toBeInTheDocument();
+    expect(within(budgetHealth).getByRole("meter", { name: "Construction Set budget health" })).toHaveAttribute("aria-valuenow", "0");
+    expect(within(budgetHealth).getAllByText("No budget").length).toBeGreaterThan(0);
+    expect(budgetHealth.querySelectorAll("[data-project-location-budget-overflow]")).toHaveLength(1);
+    expect(screen.queryByRole("region", { name: "Recent sheets" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Published link" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Estimate activity" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Location" })).not.toBeInTheDocument();
     expect(screen.queryByText(/recipient/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/lewis@example/i)).not.toBeInTheDocument();
-
-    fireEvent.click(within(publishedLink).getByRole("button", { name: "Copy published client link" }));
-    expect(writeText).toHaveBeenCalledWith("http://localhost:3000/share/publication-token");
-    expect(await screen.findByText("Client link copied")).toBeInTheDocument();
-    expect(within(publishedLink).getByRole("link", { name: "Open link" })).toHaveAttribute(
-      "href",
-      "/share/publication-token",
-    );
-
-    const estimateActivity = screen.getByRole("region", { name: "Estimate activity" });
-    expect(within(estimateActivity).getByText("Philip Lewis changed quantity for Porcelain tile.")).toBeInTheDocument();
-    expect(within(estimateActivity).getByText(/Shell Estimate/)).toBeInTheDocument();
-    expect(within(estimateActivity).getByText(/Deleted estimate/)).toBeInTheDocument();
-    expect(within(estimateActivity).getByText("Older activity is available from estimate history.")).toBeInTheDocument();
     expect(screen.queryByText(/rawSecret/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/correlation/i)).not.toBeInTheDocument();
-
-    const location = screen.getByRole("region", { name: "Location" });
-    expect(within(location).getByText("Exact pin saved at 14.599512, 120.984222.")).toBeInTheDocument();
-    expect(within(location).getByText("Map provider disabled")).toBeInTheDocument();
-    expect(within(location).getByText("Text coordinates remain available at 14.599512, 120.984222. Exact coordinates stay private to project editors.")).toBeInTheDocument();
-    expect(within(location).queryByTestId("project-location-map")).not.toBeInTheDocument();
-    expect(within(location).queryByRole("application", { name: /project map pin/i })).not.toBeInTheDocument();
-    expect(within(location).getByDisplayValue("Site gate")).toBeInTheDocument();
-    expect(within(location).getByDisplayValue("14.599512")).toBeInTheDocument();
-    expect(within(location).getByDisplayValue("120.984222")).toBeInTheDocument();
-    expect(within(location).getByDisplayValue("8.25")).toBeInTheDocument();
-    expect(within(location).getByRole("button", { name: "Save pin" })).toBeInTheDocument();
-    expect(within(location).getByRole("button", { name: "Clear pin" })).toBeInTheDocument();
   });
 
   it("keeps persisted read-only projects from rendering edit controls or exact coordinates", async () => {
@@ -226,23 +201,24 @@ describe("ProjectDashboardClient", () => {
       <ProjectDashboardClient
         project={PROJECT_FIXTURE}
         fallback={FALLBACK}
-        recentSheets={RECENT_SHEETS}
-        publicationStatus={PUBLISHED_STATUS}
-        activity={EMPTY_ACTIVITY_PAGE}
-        projectLocation={PROJECT_LOCATION}
+        estimateCount={0}
+        recentEstimateSheets={[]}
         canEditProject={false}
+        projectLocation={null}
+        googleMapsApiKey=""
       />,
     );
 
     expect(container.querySelector("form")).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("Lewis Residence")).toHaveAttribute("readonly");
     expect(screen.getByDisplayValue("Lewis Family")).toHaveAttribute("readonly");
-    const location = screen.getByRole("region", { name: "Location" });
-    expect(location).toHaveTextContent("No exact pin saved.");
-    expect(location).not.toHaveTextContent("14.599512");
-    expect(location).not.toHaveTextContent("120.984222");
-    expect(within(location).queryByRole("button", { name: "Save pin" })).not.toBeInTheDocument();
-    expect(within(location).queryByRole("button", { name: "Clear pin" })).not.toBeInTheDocument();
+    const commandSurface = screen.getByRole("region", { name: "Project command surface" });
+    expect(within(commandSurface).getByText("Google Maps API key missing")).toBeInTheDocument();
+    expect(screen.queryByText("No exact pin saved.")).not.toBeInTheDocument();
+    expect(screen.queryByText("14.599512")).not.toBeInTheDocument();
+    expect(screen.queryByText("120.984222")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save pin" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear pin" })).not.toBeInTheDocument();
   });
 
   it("keeps sample projects honest with empty recent sheets and no publication shortcut", async () => {
@@ -252,11 +228,11 @@ describe("ProjectDashboardClient", () => {
       <ProjectDashboardClient
         project={null}
         fallback={FALLBACK}
-        recentSheets={[]}
-        publicationStatus={UNPUBLISHED_STATUS}
-        activity={EMPTY_ACTIVITY_PAGE}
-        projectLocation={null}
+        estimateCount={0}
+        recentEstimateSheets={[]}
         canEditProject={false}
+        projectLocation={null}
+        googleMapsApiKey=""
       />,
     );
 
@@ -267,20 +243,15 @@ describe("ProjectDashboardClient", () => {
     expect(screen.getByDisplayValue("Sample client")).toHaveAttribute("readonly");
     expect(screen.getByDisplayValue("Sample location")).toHaveAttribute("readonly");
 
-    const recentSheets = screen.getByRole("region", { name: "Recent sheets" });
-    expect(within(recentSheets).getByText("No estimate sheets yet.")).toBeInTheDocument();
-    expect(within(recentSheets).getByRole("link", { name: "Open estimates" })).toHaveAttribute(
-      "href",
-      "/workshop/projects/sample-modern-bungalow/estimates",
-    );
-
-    const publishedLink = screen.getByRole("region", { name: "Published link" });
-    expect(within(publishedLink).getByText("Unpublished")).toBeInTheDocument();
-    expect(within(publishedLink).getByText("Use Share in the header to publish or manage a client link.")).toBeInTheDocument();
-    expect(within(publishedLink).queryByRole("button", { name: "Copy published client link" })).not.toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Estimate activity" })).toHaveTextContent("No estimate activity yet.");
-    expect(screen.getByRole("region", { name: "Location" })).toHaveTextContent("No exact pin saved.");
-    expect(within(screen.getByRole("region", { name: "Location" })).queryByRole("button", { name: "Save pin" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Project command surface" })).getByText("Google Maps API key missing")).toBeInTheDocument();
+    expect(screen.queryByText("No estimate sheets yet.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open estimates" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Unpublished")).not.toBeInTheDocument();
+    expect(screen.queryByText("Use Share in the header to publish or manage a client link.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy published client link" })).not.toBeInTheDocument();
+    expect(screen.queryByText("No estimate activity yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No exact pin saved.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save pin" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /data/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /projects/i })).not.toBeInTheDocument();
   });

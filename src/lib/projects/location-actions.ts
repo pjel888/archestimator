@@ -20,6 +20,17 @@ function readOptionalText(formData: FormData, key: string, maxLength = 240) {
   return value;
 }
 
+function readLocationSource(formData: FormData) {
+  const source = String(formData.get("source") ?? "manual").trim();
+  if (source === "geocoded" || source === "imported") return source;
+  return "manual";
+}
+
+function readBooleanFlag(formData: FormData, key: string) {
+  const value = String(formData.get(key) ?? "").trim().toLowerCase();
+  return value === "1" || value === "true";
+}
+
 function readCoordinate(formData: FormData, key: "latitude" | "longitude") {
   const raw = String(formData.get(key) ?? "").trim();
   const value = Number(raw);
@@ -74,6 +85,10 @@ export async function saveProjectLocation(
     const accuracyMeters = readAccuracyMeters(formData);
     const displayLabel = readOptionalText(formData, "displayLabel", 120);
     const addressText = readOptionalText(formData, "addressText", 240);
+    const source = readLocationSource(formData);
+    const geocoderName = readOptionalText(formData, "geocoderName", 80);
+    const providerPlaceId = readOptionalText(formData, "providerPlaceId", 160);
+    const syncProjectAddress = readBooleanFlag(formData, "syncProjectAddress");
     const { project, supabase } = await assertCanEditProjectLocation(projectId);
 
     const { error } = await supabase
@@ -85,14 +100,24 @@ export async function saveProjectLocation(
           latitude,
           longitude,
           accuracy_meters: accuracyMeters,
-          source: "manual",
+          source,
           display_label: displayLabel,
           address_text: addressText,
+          geocoder_name: geocoderName,
+          provider_place_id: providerPlaceId,
         },
         { onConflict: "project_id" },
       );
 
     if (error) throw error;
+
+    if (syncProjectAddress && addressText) {
+      const { error: projectError } = await supabase
+        .from("projects")
+        .update({ location: addressText })
+        .eq("id", project.id);
+      if (projectError) throw projectError;
+    }
 
     revalidatePath(`/workshop/projects/${project.id}`);
     return { status: "success", message: "Project pin saved." };
