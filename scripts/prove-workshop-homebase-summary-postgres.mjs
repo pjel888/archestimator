@@ -25,6 +25,7 @@ const ids = {
   userA: "11111111-1111-4111-8111-111111111111",
   userB: "22222222-2222-4222-8222-222222222222",
   userC: "33333333-3333-4333-8333-333333333333",
+  userD: "44444444-4444-4444-8444-444444444444",
   workspaceA: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   workspaceB: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
   projectA: "a1000000-0000-4000-8000-000000000001",
@@ -225,6 +226,84 @@ try {
       sort_order integer not null default 0
     );
     grant select on all tables in schema public to authenticated;
+
+    -- Enable RLS on every table the RPC reads so the security-invoker path
+    -- is actually exercised. Policies below are minimal but faithful to the
+    -- access semantics the RPC depends on.
+    alter table public.workspaces enable row level security;
+    alter table public.workspace_members enable row level security;
+    alter table public.projects enable row level security;
+    alter table public.project_members enable row level security;
+    alter table public.estimates enable row level security;
+    alter table public.estimate_sheet_members enable row level security;
+    alter table public.estimate_nodes enable row level security;
+    alter table public.project_favorites enable row level security;
+    alter table public.estimate_favorites enable row level security;
+
+    create policy "workspace_members_self_read" on public.workspace_members
+      for select to authenticated using (user_id = auth.uid());
+    create policy "project_members_self_read" on public.project_members
+      for select to authenticated using (user_id = auth.uid());
+    create policy "estimate_sheet_members_self_read" on public.estimate_sheet_members
+      for select to authenticated using (user_id = auth.uid());
+
+    create policy "projects_accessible_read" on public.projects
+      for select to authenticated using (
+        exists (
+          select 1 from public.workspace_members wm
+          where wm.workspace_id = projects.workspace_id and wm.user_id = auth.uid()
+        )
+        or exists (
+          select 1 from public.project_members pm
+          where pm.project_id = projects.id and pm.user_id = auth.uid()
+        )
+        or exists (
+          select 1 from public.estimate_sheet_members esm
+          where esm.project_id = projects.id and esm.user_id = auth.uid()
+        )
+      );
+
+    create policy "estimates_accessible_read" on public.estimates
+      for select to authenticated using (
+        exists (
+          select 1 from public.projects p
+          where p.id = estimates.project_id
+            and (
+              exists (select 1 from public.workspace_members wm where wm.workspace_id = p.workspace_id and wm.user_id = auth.uid())
+              or exists (select 1 from public.project_members pm where pm.project_id = p.id and pm.user_id = auth.uid())
+              or exists (select 1 from public.estimate_sheet_members esm where esm.project_id = p.id and esm.user_id = auth.uid())
+            )
+        )
+        or exists (
+          select 1 from public.estimate_sheet_members esm
+          where esm.estimate_id = estimates.id and esm.user_id = auth.uid()
+        )
+      );
+
+    create policy "estimate_nodes_accessible_read" on public.estimate_nodes
+      for select to authenticated using (
+        exists (
+          select 1 from public.estimates e
+          where e.id = estimate_nodes.estimate_id
+            and (
+              exists (
+                select 1 from public.projects p
+                where p.id = e.project_id
+                  and (
+                    exists (select 1 from public.workspace_members wm where wm.workspace_id = p.workspace_id and wm.user_id = auth.uid())
+                    or exists (select 1 from public.project_members pm where pm.project_id = p.id and pm.user_id = auth.uid())
+                    or exists (select 1 from public.estimate_sheet_members esm where esm.project_id = p.id and esm.user_id = auth.uid())
+                  )
+              )
+              or exists (select 1 from public.estimate_sheet_members esm where esm.estimate_id = e.id and esm.user_id = auth.uid())
+            )
+        )
+      );
+
+    create policy "project_favorites_own_read" on public.project_favorites
+      for select to authenticated using (user_id = auth.uid());
+    create policy "estimate_favorites_own_read" on public.estimate_favorites
+      for select to authenticated using (user_id = auth.uid());
   `);
 
   const migrationSql = readFileSync(join(repoRoot, "supabase/migrations/20260618184856_workspace_homebase_summary.sql"), "utf8");
@@ -258,11 +337,16 @@ try {
       ('ea000000-0000-4000-8000-000000000001', ${quote(ids.workspaceA)}, ${quote(ids.userA)}, ${quote(ids.projectA)}, ${quote(ids.estimateA)}, '2026-06-18T12:00:00Z'),
       ('eb000000-0000-4000-8000-000000000001', ${quote(ids.workspaceA)}, ${quote(ids.userB)}, ${quote(ids.projectB)}, ${quote(ids.estimateB)}, '2026-06-18T12:05:00Z'),
       ('ec000000-0000-4000-8000-000000000001', ${quote(ids.workspaceB)}, ${quote(ids.userC)}, ${quote(ids.projectOtherTenant)}, ${quote(ids.estimateOtherTenant)}, '2026-06-18T12:10:00Z');
+
+    -- Sheet-only collaborator: can see estimateA via sheet membership, but not projectB/estimateB/nodeB.
+    insert into public.estimate_sheet_members (estimate_id, project_id, user_id, role) values
+      (${quote(ids.estimateA)}, ${quote(ids.projectA)}, ${quote(ids.userD)}, 'viewer');
   `);
 
   const userA = callSummaryAs(ids.userA, ids.workspaceA);
   const userB = callSummaryAs(ids.userB, ids.workspaceA);
   const nonMember = callSummaryAs(ids.userC, ids.workspaceA);
+  const sheetOnly = callSummaryAs(ids.userD, ids.workspaceA);
 
   assert(userA.projectFavorites.length === 1, "user A sees only one own project favorite");
   assert(userA.projectFavorites[0].project_id === ids.projectA, "user A project favorite leaked or disappeared");
@@ -287,13 +371,40 @@ try {
   assert(!("pendingInvites" in userA), "RPC returned pending invite data");
   assert(!("projectPublications" in userA), "RPC returned publication data");
 
-  runPsql(`
+  // Sheet-only collaborator RLS assertions.
+  assert(
+    sheetOnly.recentProjects.some((project) => project.id === ids.projectA),
+    "sheet-only user did not see authorized project A container",
+  );
+  assert(
+    !sheetOnly.recentProjects.some((project) => project.id === ids.projectB),
+    "sheet-only user leaked unauthorized project B",
+  );
+  assert(
+    !sheetOnly.recentEstimates.some((estimate) => estimate.id === ids.estimateB),
+    "sheet-only user leaked unauthorized estimate B",
+  );
+  assert(
+    !sheetOnly.estimateNodes.some((node) => node.id === ids.nodeB),
+    "sheet-only user leaked unauthorized estimate node B",
+  );
+  assert(
+    !sheetOnly.recentEstimates.some((estimate) => estimate.id === ids.estimateOtherTenant),
+    "sheet-only user leaked cross-tenant estimate",
+  );
+  assert(!JSON.stringify(sheetOnly).includes(ids.workspaceB), "sheet-only user output leaked other workspace");
+
+  const anonDenied = runPsql(`
     begin;
     set local role anon;
     set local request.jwt.claim.sub = ${quote(ids.userA)};
     select public.workspace_homebase_summary(${quote(ids.workspaceA)}::uuid, 12);
     commit;
   `, { expectFailure: true });
+  assert(
+    /permission denied for function workspace_homebase_summary/i.test(`${anonDenied.stdout}\n${anonDenied.stderr}`),
+    "anon execute denial failed for an unexpected reason",
+  );
 
   console.log(JSON.stringify({
     ok: true,
@@ -303,6 +414,7 @@ try {
       "cross-tenant non-member denial",
       "anon execute denial",
       "optional publication and pending invite exclusion",
+      "sheet-only collaborator RLS containment",
     ],
   }, null, 2));
 } finally {
