@@ -45,7 +45,7 @@ export function WorkshopHeaderGreeting({ displayName }: WorkshopHeaderGreetingPr
         <span className="truncate font-numeric text-[10px] font-light uppercase leading-3 text-secondary">
           {tone.greeting}
         </span>
-        <span className="truncate font-display text-[18px] font-bold uppercase leading-5 tracking-normal">
+        <span className="truncate font-display text-[14px] font-bold uppercase leading-4 tracking-normal">
           {name}
         </span>
       </h1>
