@@ -28,7 +28,10 @@ CREATE POLICY "project publication managers can read publication events"
       WHERE public.can_manage_project_publication(project_id)
     )
   );
--- ROLLBACK: DROP POLICY "project publication managers can read publication events" ON public.project_publication_events;
+GRANT SELECT ON TABLE public.project_publication_events TO authenticated;
+-- ROLLBACK:
+--   REVOKE SELECT ON TABLE public.project_publication_events FROM authenticated;
+--   DROP POLICY "project publication managers can read publication events" ON public.project_publication_events;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS shared_link_recipients_invited_by_idx
 -- SELECT cron.schedule(
 --   'security-rate-limit-gc',
 --   '*/30 * * * *',
---   $$ DELETE FROM public.security_rate_limit_events WHERE created_at < now() - interval '24 hours'; $$
+--   $$ DELETE FROM public.security_rate_limit_events WHERE expires_at < now(); $$
 -- );
 -- ROLLBACK: SELECT cron.unschedule('security-rate-limit-gc');
 

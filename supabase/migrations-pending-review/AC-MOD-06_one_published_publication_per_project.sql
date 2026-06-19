@@ -2,6 +2,14 @@
 -- AC-MOD-06 — At most one live (status='published') publication per project
 -- STATUS: READY FOR REVIEW — *** DO NOT AUTO-APPLY *** (no DB write channel for agents)
 -- Plan: .ai/03_plans/2026-06-13-Shared-Link-Improvement-Plan/13_OWNER_MODAL_FUNCTIONAL_AUDIT.md §3.4
+-- ---------------------------------------------------------------------------
+-- DBA CHECKLIST
+--   [ ] Run STEP 0 duplicate preflight; it must return ZERO rows.
+--   [ ] If duplicates exist, run STEP 0b reconciliation, then re-run STEP 0.
+--   [ ] Apply STEP 1 during a maintenance window (CONCURRENTLY cannot run in a tx).
+--   [ ] Run POST-CHECK and confirm the index exists.
+--   [ ] Move this file into supabase/migrations/ with a fresh timestamp prefix.
+--   [ ] Capture preflight/post-check output and any reconciliation decisions.
 -- -----------------------------------------------------------------------------
 -- PROBLEM (MOD-RACE-04, window B)
 --   Only a NON-unique index exists today:
