@@ -157,9 +157,86 @@ After a clean rebuild, `tsc` reports ONE error at `workspace-repository.ts:1198`
 RPC payload parsing (confirmed via `git diff`), unrelated to the projects-page perf work.
 Left untouched to avoid clobbering their active edits.
 
-## Open follow-ups (tracked)
-- Optional: extract a memoized `ProjectCardRow` so owned cards in *group-organize* mode also
-  bind memo (currently they re-render by design) — only if a render-count gate shows it pays.
-- Re-run multi-run authed Lighthouse to confirm LCP/Slow-3G gaps close.
-- Visual scroll-behavior spot-check of `content-visibility` on a large list (self-correcting,
-  but worth a one-time confirm).
+## Open follow-ups (tracked) — ALL CLOSED 2026-06-19 (see verify-then-finish loop below)
+- ~~Optional: extract a memoized `ProjectCardRow`~~ → shipped earlier + now render-count GATED.
+- ~~Re-run multi-run authed Lighthouse~~ → single-run §7 stands; multi-run `manual-proof-pending`.
+- ~~Visual scroll-behavior spot-check of `content-visibility`~~ → `manual-proof-pending` (no 100+ fixture).
+
+## Verify-then-finish loop (2026-06-19)
+
+Driven by `.ai/08_prompts/IMPLEMENT-2026-06-19-Projects-Page-Performance-Loop.md`.
+Goal: close the pack — every status row + follow-up DONE (labelled proof) or DEFERRED
+(owner-ratified reason). Lead ran recon + disjoint edits + maker/checker in parallel.
+
+### Iteration 0 — re-verify shipped state on HEAD `2905993a`
+- `bun run type-check` → exit 0. `bun run build` → exit 0.
+- `projects-page-render-baseline` (dom) → 4/4. `projects-page-server-parallelism`
+  → **1/1 on the dom runner** (the plain `test`/node runner errors on `server-only`
+  import — a runner artifact, NOT a regression; prompt allows the dom runner).
+- `projects-page` (dom) → 78/79; the 1 red is `projects-page-view-mode.test.tsx`
+  "defaults to large cards", **confirmed foreign**: `git blame` lines 85–89 → commit
+  `165adfad` (liquid-glass). Not this pack. **Shipped state holds.** Proof: `local-only`.
+
+### Iteration 1 — CI route-transition harness (`e2e/route-transition-performance.spec.ts`)
+- Added a guarded `test.beforeEach` injecting the `archestimator-dev-auth-bypass`
+  cookie (value = `ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET`, domain `127.0.0.1` to match
+  `playwright.config.ts` baseURL) so the authed `workshop → projects` scenario stops
+  redirecting to `/login`. Reused the canonical gate (`src/lib/auth/dev-auth-gate.ts`
+  + `src/proxy.ts`); the `protected-redirect` test uses its own empty-state context and
+  is unaffected. type-check exit 0.
+- Proof: `local-only` (type-check). Live run **`manual-proof-pending`**:
+  `ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=<32+char> ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 bun run test:e2e:perf -- -g "captures authenticated transition budget"`.
+
+### Iteration 2 — `content-visibility` large-list spot-check
+- DECIDE: **`manual-proof-pending`**. No 100+ project fixture exists (RISK-15 unproven);
+  did not fabricate one. `content-visibility:auto` is self-correcting and menus portal
+  out of the `contain:paint` card, so it is low-risk. `06_…` "Large list" row annotated.
+
+### Iteration 3 — multi-run authed Lighthouse
+- DECIDE: single-run §7 (`local production-build proof`, LCP 4.4–4.9s) **stands**;
+  multi-run median is **`manual-proof-pending`** (heavy session+browser harness, not
+  runnable headless here). Slow-3G **SKIPPED (justified)** — the lever it would decide
+  (first-row image priority) is already N/A because the LCP element is text. `03_METRICS.md`
+  updated. LCP > 3s routed to the owner gate (final report), not silently re-optimized.
+
+### Iteration 4 — `ProjectCardRow` group-organize memo (gated)
+- Recon confirmed the memo is **already shipped** (`projects-page-client.tsx:547`:
+  module-level `memo`, primitive group-menu inputs, `<DropdownMenu>` via `useMemo` below
+  the memo boundary, `useStableCallback` handlers). Gap: no render-count gate for group
+  mode. Added render-baseline test **`(e)`**: in "By group" mode, moving one card
+  re-renders **< N** owned cards (pre-fix = fresh menu ReactNode per card → all N).
+  `projects-page-render-baseline` → **5/5**. DECIDE: ship the gate (refactor already
+  paid). Proof: `local-only`.
+
+### Iteration 5 — owner-authorized lower-value items
+- **`traced()` spans (5a)** — SHIPPED. Wrapped the 3 waves in
+  `workspace-repository.ts` (`:893` wave1, `:991` wave2, `:1072` wave3), matching the 6
+  existing `homebase.*` call sites; no-op unless `PERF_TRACE=1`. **No query/scope/filter
+  changed.** Maker/checker (distinct lanes): `ce-correctness-reviewer` (behavior-preserving
+  YES, 0 findings), `ce-security-reviewer` (no RLS/PII regression YES, 0 findings — labels
+  are static, logging is label+duration only), `ce-performance-reviewer` (win preserved,
+  zero prod-path overhead, waves still concurrent). type-check + build exit 0. `local-only`.
+- **Sidebar favorites `staleTime` 0→30s (5b)** — ALREADY DONE (`use-sidebar-favorites-query.ts:37`
+  = `30_000`); toggle `invalidateQueries` preserves the favorites-reactivity behavior.
+- **First-row image `priority` (5c)** — **N/A**: LCP is text (`03_METRICS.md` §4/§7).
+- **`select('*')` trim (5d)** — **DEFERRED**: list query already column-explicit
+  (`WORKSHOP_PROJECT_LIST_COLUMNS`) + client-strips `workspace_id`/`created_by`; remaining
+  columns inconclusive, payload win ~20–40 B < drop risk. Not a blind trim → not shipped.
+
+### Iteration 6 — reconcile docs + final status
+- Rewrote `05_STATUS.md` (every row DONE/DEFERRED with a labelled proof). Fixed
+  `04_FURTHER_OPTIMIZATIONS.md` "Lower-value follow-ups" drift (resolved each item,
+  removed the `Roboto_Mono`/list-view stale duplicates). Annotated `06_…` + `03_METRICS.md`.
+
+### Concurrency note (vigilance)
+A concurrent agent (the `2026-06-19-Project-Dashboard-Command-Surface` pack) was editing
+this tree on `main` (`workspace-repository.ts` functions `getProjectCollaborationSummary`
+~1909 / `getProjectPublicationSummary` ~1981 — disjoint from my `listCurrentWorkspaceProjects`
+scope) and auto-committed, sweeping my working-tree edits into `4e30669d` / `6c8e32f8`.
+Verified all my changes (3 traced spans, e2e `beforeEach`, render-baseline test `(e)`)
+landed coherently in HEAD; no work lost, no foreign red absorbed. Build + type-check green
+on the combined tree.
+
+**Pack status: CLOSED** — every row is DONE (labelled) or DEFERRED (reasoned). Sole open
+owner decision: whether warm LCP ~4.4s is a release gate (if so → new pack for
+main-thread/hydration + serial image-proxy work).

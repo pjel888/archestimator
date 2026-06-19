@@ -15,7 +15,7 @@ Date: 2026-06-19. This is the UX acceptance surface for `/workshop/projects`.
 | Error state | Data/load errors show recoverable copy and do not crash the root shell. |
 | Mobile | Cards, toolbar, tabs, and text do not overlap at narrow widths. |
 | Keyboard/screen reader | Search, access tabs, menus, and card actions remain reachable and labelled. |
-| Large list | Scrolling, menu portals, and focus behavior work with `content-visibility:auto`. |
+| Large list | Scrolling, menu portals, and focus behavior work with `content-visibility:auto`. **`manual-proof-pending`** (2026-06-19): no 100+ project fixture exists (RISK-15 feasibility-unproven); `content-visibility:auto` is self-correcting and menus portal out of the `contain:paint` card, so it is low-risk, but a one-time large-list browser spot-check is still owed. |
 
 ## Measurement acceptance
 

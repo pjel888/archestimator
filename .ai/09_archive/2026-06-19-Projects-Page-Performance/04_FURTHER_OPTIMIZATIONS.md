@@ -73,17 +73,27 @@ Verified: type-check clean + projects-page group-mode/card-layout/organize tests
 - **content-visibility** sized correctly per view mode; no forced reflow.
 - Heavy deps (`@firecms/neat`, lenis) are landing-only, not on this route.
 
-## Lower-value follow-ups (optional, owner's call)
-- Sidebar favorites `staleTime: 0` → a redundant mount refetch; raising to ~10–30s
-  kills it but slightly delays cross-tab favorite reflection (a deliberate consistency
-  knob — owner decides).
-- `select('*')` → drop server-only `workspace_id`/`created_by` from the client payload
-  (needs a narrowed client type); trimming `metadata` needs the modal to fetch on open.
-- `Roboto_Mono` font missing `display:"swap"`; list-view lacks `content-visibility`.
-- First-row image `priority`/`fetchpriority` — low value here (LCP is text, not image).
-- Add `traced()` spans to the 3 query waves to attribute the ~711ms server time.
-- Patch `e2e/route-transition-performance.spec.ts` to inject the dev-auth bypass cookie
-  so the authed projects transition is measurable in CI.
+## Lower-value follow-ups — RESOLVED 2026-06-19 (verify-then-finish loop)
+- Sidebar favorites `staleTime: 0` → **DONE**: now `30_000` in
+  `src/hooks/use-sidebar-favorites-query.ts:37` (the toggle's `invalidateQueries`
+  keeps favorite/unfavorite instant; cross-tab reflection reconciles within ≤30s).
+- Add `traced()` spans to the 3 query waves → **DONE**:
+  `workspace-repository.ts:893/991/1072`, gated by `PERF_TRACE=1`, no-op otherwise.
+  Maker/checker (correctness + security + performance) all clean.
+- Patch `e2e/route-transition-performance.spec.ts` → **DONE**: a guarded `beforeEach`
+  now injects the `archestimator-dev-auth-bypass` cookie so the authed
+  `workshop → projects` scenario stops redirecting to `/login`. Live CI run is
+  `manual-proof-pending` (needs a dev server + the real 32+char secret).
+- First-row image `priority`/`fetchpriority` → **N/A**: the LCP element is text, not an
+  image (`03_METRICS.md` §4/§7); forcing priority would risk deprioritizing the real
+  LCP element.
+- `select('*')` client-payload trim → **DEFERRED**: the list query already uses the
+  explicit `WORKSHOP_PROJECT_LIST_COLUMNS` and strips `workspace_id`/`created_by`
+  client-side (`toClientProjectRow`); the remaining columns' client usage is
+  inconclusive and the payload win (~20–40 B) is below the drop-risk. Owner can revisit
+  with a narrowed client type if payload ever matters.
+- (`Roboto_Mono` `display:"swap"` and list-view `content-visibility` were stale
+  duplicates of the "Also shipped" section above — already shipped; removed here.)
 
 ## Resolved / remaining
 

@@ -157,8 +157,17 @@ late, after LCP). Bundle size is not the bottleneck.
   that baseline was a different, pre-RPC build; the meaningful comparison is dev 10.6s →
   prod 4.4s, and the image bytes drop). Closing LCP under 3s further needs the
   main-thread / image-proxy work noted in §7, not bundle changes.
-- **Slow-3G** still uncaptured (would need throttled runs); lower priority than the
-  above which is now measured.
+- **Multi-run authed Lighthouse — `manual-proof-pending`.** The §7 numbers are a
+  single representative run per condition. A multi-run median (≥3 runs) against
+  `next build → next start` with a real Supabase session was NOT re-captured in the
+  verify-then-finish loop (heavy browser+session harness, not runnable headless here).
+  The single-run §7 result stands as `local production-build proof`. Operator command:
+  mint a real session (admin `generateLink` → `verifyOtp` → `@supabase/ssr` cookies),
+  then run Lighthouse ×3 vs `next start` and take the median LCP/CLS/TBT.
+- **Slow-3G — SKIPPED (justified), still uncaptured.** It would only matter to decide
+  the next lever, and that decision is already made: the LCP element is **text**, so the
+  first-row image `priority` lever is N/A regardless of throttling. Capture only if a
+  future pack needs throttled evidence.
 - **Repo harness gap (found, worth fixing):** `e2e/route-transition-performance.spec.ts`
   gates its authed projects test on `ARCHESTIMATOR_DEV_AUTH_BYPASS===1` but never
   injects the bypass **secret cookie**, so the authed scenario redirects to `/login`
