@@ -133,7 +133,7 @@ export function ManageGroupsPopover({
                 title={swatch.label}
                 className={cn(
                   // DESIGN.md: swatches use the standard app radius.
-                  "size-4 rounded-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
+                  "size-4 cursor-pointer rounded-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
                   draftAccent === swatch.id ? "border-ink" : "border-hairline",
                 )}
                 style={{ backgroundColor: swatch.dotColor }}
@@ -195,7 +195,7 @@ export function ManageGroupsPopover({
                         aria-label={swatch.label}
                         title={swatch.label}
                         className={cn(
-                          "relative size-4 rounded-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
+                          "relative size-4 cursor-pointer rounded-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus",
                           group.accentId === swatch.id ? "border-ink" : "border-hairline",
                         )}
                         style={{ backgroundColor: swatch.dotColor }}

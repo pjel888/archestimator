@@ -21,6 +21,7 @@ describe("DropdownMenu.Item selected affordance", () => {
 
     const selectedItem = screen.getByRole("menuitem", { name: /Group A/ });
     // The check is exposed via a stable data hook and is an svg inside the item.
+    expect(selectedItem).toHaveClass("cursor-pointer");
     expect(selectedItem.querySelector("[data-action-menu-item-check]")).not.toBeNull();
     expect(selectedItem.querySelector("[data-action-menu-item-check] svg")).not.toBeNull();
   });

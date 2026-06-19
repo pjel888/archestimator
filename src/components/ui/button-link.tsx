@@ -27,7 +27,7 @@ export function ButtonLink({ className, variant = "secondary", size = "md", chil
   return (
     <Link
       className={cn(
-        "inline-flex items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "inline-flex cursor-pointer items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         variantClasses[variant],
         sizeClasses[size],
         className,

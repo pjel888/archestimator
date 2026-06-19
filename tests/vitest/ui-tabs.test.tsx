@@ -12,7 +12,7 @@ describe("shared Tabs primitive", () => {
   it("uses an orange underline for the active tab", () => {
     render(<Tabs tabs={tabs} activeId="scope" onChange={vi.fn()} variant="underline" />);
 
-    expect(screen.getByRole("tab", { name: "Scope" })).toHaveClass("border-brand-orange");
+    expect(screen.getByRole("tab", { name: "Scope" })).toHaveClass("border-brand-orange", "cursor-pointer");
   });
 
   it("keeps inactive underline tabs visually muted", () => {

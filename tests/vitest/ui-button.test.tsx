@@ -4,6 +4,18 @@ import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
 
 describe("shared Button primitive", () => {
+  it("uses a pointer cursor for actionable buttons, including scrim buttons", () => {
+    render(
+      <div>
+        <Button>Action</Button>
+        <Button size="scrim" aria-label="Dismiss overlay" />
+      </div>,
+    );
+
+    expect(screen.getByRole("button", { name: "Action" })).toHaveClass("cursor-pointer");
+    expect(screen.getByRole("button", { name: "Dismiss overlay" })).toHaveClass("cursor-pointer");
+  });
+
   it("supports the compact xs-lg text size scale", () => {
     render(
       <div>

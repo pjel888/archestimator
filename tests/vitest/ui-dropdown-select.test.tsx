@@ -51,6 +51,7 @@ describe("DropdownSelect", () => {
     expect(combobox).toHaveTextContent("Contingency");
     expect(combobox).toHaveAttribute("aria-haspopup", "listbox");
     expect(combobox).toHaveAttribute("aria-expanded", "false");
+    expect(combobox).toHaveClass("cursor-pointer");
   });
 
   it("supports an icon-only trigger with icon and text options", () => {
@@ -77,6 +78,7 @@ describe("DropdownSelect", () => {
 
     const listOption = screen.getByRole("option", { name: "List" });
     expect(listOption).toHaveTextContent("List");
+    expect(listOption).toHaveClass("cursor-pointer");
     expect(screen.getByTestId("list-icon")).toBeInTheDocument();
   });
 

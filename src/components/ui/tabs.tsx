@@ -147,8 +147,8 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
                     if (!event.defaultPrevented) handleKeyDown(event, index);
                   }}
                   className={cn(
-                    "group relative flex min-h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-3 !text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
-                    tab.disabled && "cursor-not-allowed opacity-50",
+                    "group relative flex min-h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap px-3 !text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
+                    isDisabled && "cursor-not-allowed opacity-50",
                     variant === "underline" && [
                       "border-b-2",
                       isActive
