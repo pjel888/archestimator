@@ -4273,6 +4273,10 @@ export type Database = {
         Args: { target_template_id: string }
         Returns: undefined
       }
+      workspace_homebase_summary: {
+        Args: { recent_limit?: number; target_workspace_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       ai_interaction_mode: "ask" | "draft" | "apply" | "eval"
