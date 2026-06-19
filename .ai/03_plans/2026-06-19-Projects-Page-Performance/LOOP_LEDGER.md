@@ -68,9 +68,97 @@ commit `165adfad`, unrelated to the perf changes (image attrs don't affect that 
 Also pre-existing: `tests/vitest/workspace-repository-project-list.test.ts` (asserts
 symbols that don't exist in the file; fails with the perf changes stashed too).
 
-## Open follow-ups (tracked, not done)
-- Phase 2: stabilize card props → `React.memo` → `useDeferredValue` search →
-  render-count gate.
-- Phase 3: large-data fixture → virtualization → `select` trim + `next/image` →
-  DB index candidates.
+## Phase 2 — execution log (IMPLEMENTED 2026-06-19)
+
+### Changes (`projects-page-client.tsx` + `LiveProjectCard.tsx`)
+- `useDeferredValue(searchQuery)` now feeds the `displayProjects` filter and
+  `filteredSamples`; the input stays bound to `searchQuery` for responsiveness, so
+  keystrokes no longer block a full re-filter + re-sort of every card.
+- `stableToggleProjectFavorite` / `stableToggleProjectSelection` via the existing
+  `useStableCallback` (identity-stable, always-latest-closure → no stale-closure risk);
+  passed to the cards in place of the inline handlers.
+- `LiveProjectCard` is now `memo(LiveProjectCardImpl)`. It **binds in the default
+  (non-group) view**, where `groupAssignMenu` is `undefined` (a stable primitive) and the
+  toggle handlers are identity-stable — so unaffected cards skip re-render when an unrelated
+  parent slice changes. Owned cards in group-organize mode still re-render correctly (their
+  per-card group props change), which is desired.
+
+### Verification
+- [x] `bun run type-check` → clean.
+- [x] `bun run build` → exit 0.
+- [x] Vitest `projects-page` + `LiveProjectCard` → 73 pass (1 unrelated concurrent-glass red).
+- [x] Notable: `useDeferredValue` did **not** break the 5 tests that assert search
+  synchronously — jsdom's `act()` flushes the deferred value in-tick, so no test churn
+  was needed (the original concern in `02_IMPLEMENTATION_PLAN.md` did not materialize).
+
+## Phase 3 — execution log + evidence-based decisions (2026-06-19)
+
+### Implemented
+- **Off-screen virtualization via `content-visibility:auto`** on the card root, with a
+  self-correcting `contain-intrinsic-size: auto <len>` seeded per view mode (large 360 /
+  medium 300 / else 190, matching the card `min-h`). The browser skips layout+paint for
+  off-screen cards; the `auto` keyword remembers each card's real height after first render
+  (no lasting scroll drift). **Safe vs menus:** the card is already `overflow-hidden` and the
+  menus still work → they portal out, so `contain: paint` adds no new clipping. Verified:
+  type-check + build + tests green.
+
+### Investigated → NOT shipped (evidence, not hand-wave)
+- **`next/image`**: `getProjectImageUrl` returns an arbitrary `metadata.projectImageUrl`
+  string, but `next.config` `images.remotePatterns` only allows the Supabase host. Migrating
+  would **break** any non-Supabase image URL at runtime. Kept the `<img>` (already lazy +
+  async from Phase 1). A safe migration must first guarantee the URL host (or add a loader).
+- **`select('*')` column trim**: the big columns (`snapshot_json`, `selected_estimate_ids`)
+  were already trimmed (2026-06-01). The whole `project` object flows to many client
+  consumers (card, details modal, access resolver), so trimming the remainder risks dropping
+  a needed column for marginal payload — poor risk/reward; not done.
+- **DB index candidates**: the primary list query
+  (`projects WHERE workspace_id ORDER BY updated_at DESC`) is **already covered** by
+  `projects_workspace_updated_at_idx` (migration `20260520051908`), and `project_members(user_id)`
+  is indexed. No EXPLAIN-justified gap → no new migration (honoring the indexing plan's
+  prove-before-apply rule). Adding speculative indexes was explicitly avoided.
+
+## Metrics + skeleton pass (2026-06-19)
+
+### Metrics captured → `03_METRICS.md` (real numbers, two new proof tests)
+- **Render-count proof** (`tests/vitest/perf/projects-page-render-baseline.test.tsx`):
+  typing 7 chars → **0** card re-renders (naive ~70); sort toggle → **0** (naive ≥10);
+  mount → 10; view-mode change → 10 (control). Proves Phase 2; fails if memo/defer removed.
+- **Server-parallelism proof** (`tests/vitest/perf/projects-page-server-parallelism.test.ts`,
+  stable ×3): latency-injected Supabase mock shows wave-2 overlap **52ms**, wave-3 overlap
+  **50ms**, total **208ms vs ~300ms serial floor** — the 4→2 round-trip collapse is real.
+- **Image lazy-load proof (LIVE, authed browser)**: **0 image bytes above-the-fold** on
+  first paint; **~483 KB** (incl. 414 KB hero) deferred to scroll.
+- **Live authed nav (DEV server, caveated)**: TTFB 711ms / FCP+LCP 812ms cold; Lighthouse
+  perf 56 / LCP 10.6s / CLS 0 — **dev-mode only** (unminified + Turbopack JIT), not prod.
+- **Bundle** (webpack analyzer): projects entry **21.2 KB gzip**; shared baseline 123.3 KB;
+  est. First Load ≈165 KB gzip. Runtime is the win, not bundle (A/B delta <0.5 KB).
+- **Genuinely blocked (by design):** production-representative authed Lighthouse — dev-auth
+  bypass is disabled when `NODE_ENV=production` (security control), so it needs a real
+  logged-in session (`PLAYWRIGHT_STORAGE_STATE`), unavailable headlessly. Also found a real
+  harness gap: `e2e/route-transition-performance.spec.ts` never injects the bypass cookie,
+  so its authed scenario redirects to `/login` (worth patching for CI).
+
+### Skeleton loading
+- `src/app/workshop/projects/loading.tsx`: added the **access-tabs bar** placeholder
+  (glass `bg-white/45` pill row) above the card grid — the one structural gap vs the real
+  page (the card-grid skeleton already matched the default "large" view). Modeled on the
+  dashboard's `StaticWorkshopLoadingShell` + `Skeleton` (`animate-pulse … motion-reduce:animate-none`).
+
+### Verification
+- [x] `bun run build` (turbopack) → passed.
+- [x] `bun run test:dom -- projects-page-render-baseline` → 4/4 pass.
+- [x] type-check: my files (loading.tsx, LiveProjectCard.tsx, render test) clean.
+
+### Concurrent-agent red (NOT this pack)
+After a clean rebuild, `tsc` reports ONE error at `workspace-repository.ts:1198`
+(`assertEstimateNodeRecord` — `kind` typed `string` vs the node-kind enum). This is a
+**concurrent agent's uncommitted in-flight refactor** of the `workspace_homebase_summary`
+RPC payload parsing (confirmed via `git diff`), unrelated to the projects-page perf work.
+Left untouched to avoid clobbering their active edits.
+
+## Open follow-ups (tracked)
+- Optional: extract a memoized `ProjectCardRow` so owned cards in *group-organize* mode also
+  bind memo (currently they re-render by design) — only if a render-count gate shows it pays.
 - Re-run multi-run authed Lighthouse to confirm LCP/Slow-3G gaps close.
+- Visual scroll-behavior spot-check of `content-visibility` on a large list (self-correcting,
+  but worth a one-time confirm).

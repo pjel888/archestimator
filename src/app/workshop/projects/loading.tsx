@@ -12,6 +12,12 @@ export default function Loading() {
         <Skeleton className="h-[38px] w-full rounded-xs" />
         <Skeleton className="h-[34px] w-full shrink-0 rounded-xs" />
         <div className="min-h-0 flex-1 overflow-auto p-2">
+          {/* Access tabs ("Your projects" / "Shared to you") sit above the grid in the
+              glass tab bar, so the skeleton reserves that row to avoid a hydration shift. */}
+          <div className="mb-3 inline-flex items-center gap-1 rounded-xs bg-white/45 p-1">
+            <Skeleton className="h-7 w-28 rounded-xs" />
+            <Skeleton className="h-7 w-32 rounded-xs" />
+          </div>
           {/* Mirrors the default "large" project card (the server view-mode snapshot).
               Users with a saved list/small/medium preference hydrate into their mode. */}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3">

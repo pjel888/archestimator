@@ -672,6 +672,16 @@ function LiveProjectCardImpl({
         "workshop-project-card-glass group group/card relative flex min-w-0 flex-col overflow-hidden rounded-xs border motion-reduce:transition-none",
         selectedForDeletion ? "border-ink" : "border-hairline",
         viewMode === "large" ? "min-h-[360px]" : viewMode === "medium" ? "min-h-[300px]" : "min-h-[190px]",
+        // Perf: let the browser skip layout/paint for off-screen cards. The `auto` intrinsic
+        // size remembers each card's real height after first render (no lasting scroll drift),
+        // seeded with the per-mode min-height. Menus portal out + the card is already
+        // overflow-hidden, so paint containment adds no new clipping.
+        "[content-visibility:auto]",
+        viewMode === "large"
+          ? "[contain-intrinsic-size:auto_360px]"
+          : viewMode === "medium"
+            ? "[contain-intrinsic-size:auto_300px]"
+            : "[contain-intrinsic-size:auto_190px]",
       )}
     >
       {renderThumb({
