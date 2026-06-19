@@ -7,7 +7,6 @@ import {
   CalendarBlank,
   Cards,
   ClockCounterClockwise,
-  DotsThreeVertical,
   FolderSimple,
   GridFour,
   Plus,
@@ -21,6 +20,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { ContextActionMenuContent } from "@/components/ui/action-menu";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { DropdownSelect, type DropdownSelectOption } from "@/components/ui/dropdown-select";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -484,7 +484,7 @@ function ProjectAccessTabs({
       variant="underline"
       ariaLabel="Project access tabs"
       className={cn(
-        "bg-white px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-hairline",
+        "bg-transparent px-2 [&_[role=tablist]]:h-[41px] [&_[role=tablist]]:overflow-visible [&_[role=tablist]]:border-transparent",
         getProjectAccessTabsLayoutClassName(viewMode),
       )}
       getTabButtonProps={() => ({ className: "h-full !min-h-[41px] w-full justify-start px-2.5" })}
@@ -1120,25 +1120,31 @@ export function ProjectsPageClient({
     );
   }
 
-  // Per-group section header menu. v1 ships exactly two items: "Manage groups" (opens
-  // the popover where rename/recolor live) and "Delete group" (inline delete, D10).
-  function renderGroupHeaderMenu(groupKey: string, label: string) {
+  // Per-group section header right-click menu. v1 ships exactly two items:
+  // "Manage groups" (opens the popover where rename/recolor live) and
+  // "Delete group" (inline delete, D10).
+  function renderGroupHeaderMenu(groupKey: string) {
     return (
-      <DropdownMenu
-        align="end"
-        trigger={
-          <Button type="button" variant="secondary" size="icon-xs" aria-label={`${label} group actions`}>
-            <DotsThreeVertical size={13} weight="regular" aria-hidden="true" />
-          </Button>
-        }
-      >
-        <DropdownMenu.Item label="Manage groups" onClick={() => setManageGroupsOpen(true)} />
-        <DropdownMenu.Item
-          label="Delete group"
-          destructive
-          onClick={() => handleDeleteGroup(groupKey)}
-        />
-      </DropdownMenu>
+      <ContextActionMenuContent
+        groups={[
+          {
+            id: "group-actions",
+            items: [
+              {
+                id: "manage-groups",
+                label: "Manage groups",
+                onSelect: () => setManageGroupsOpen(true),
+              },
+              {
+                id: "delete-group",
+                label: "Delete group",
+                tone: "destructive",
+                onSelect: () => handleDeleteGroup(groupKey),
+              },
+            ],
+          },
+        ]}
+      />
     );
   }
 
@@ -1371,7 +1377,7 @@ export function ProjectsPageClient({
                       flagLayoutClassName={projectDateFlagLayoutClassName}
                       collapsed={collapsedGroupKeys.has(group.key)}
                       onToggleCollapse={toggleGroupCollapsed}
-                      headerMenuSlot={group.isVirtual ? undefined : renderGroupHeaderMenu(group.key, group.label)}
+                      headerMenuSlot={group.isVirtual ? undefined : renderGroupHeaderMenu(group.key)}
                     />
                   ))}
                 </>

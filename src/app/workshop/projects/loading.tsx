@@ -8,7 +8,7 @@ export default function Loading() {
       eyebrow="Workspace"
       showEyebrow={false}
     >
-      <div className="flex h-full flex-col bg-white">
+      <div className="dashboard-canvas-wash flex h-full flex-col">
         <Skeleton className="h-[38px] w-full rounded-xs" />
         <Skeleton className="h-[34px] w-full shrink-0 rounded-xs" />
         <div className="min-h-0 flex-1 overflow-auto p-2">

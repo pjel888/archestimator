@@ -39,6 +39,7 @@ type HeaderIconToolbarProps = {
   showDefaultActions?: boolean;
   /** Wired filter control (e.g. a FilterPopover) rendered in the filter position. */
   filterSlot?: ReactNode;
+  className?: string;
 };
 
 export function HeaderIconToolbar({
@@ -58,6 +59,7 @@ export function HeaderIconToolbar({
   addActions,
   showDefaultActions = true,
   filterSlot,
+  className,
 }: HeaderIconToolbarProps) {
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
   const toolbarAddActions: HeaderIconToolbarAddAction[] = addActions ?? [
@@ -71,7 +73,7 @@ export function HeaderIconToolbar({
   ];
 
   return (
-    <div className="flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0" aria-label={ariaLabel}>
+    <div className={cn("flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0", className)} aria-label={ariaLabel}>
       {startActions.length > 0 ? (
         <div
           className="mr-1 flex items-center gap-1 border-r border-hairline pr-1"

@@ -142,11 +142,21 @@ export default function Loading() {
             <ContentTileSkeleton kind="components" />
             <SimpleTileSkeleton iband="iband-templates" />
 
-            {/* Library hub — same internal grid scaffold as LibraryHubCard */}
+            {/* Library hub — same internal grid scaffold as LibraryHubCard. The
+                continue slot mirrors the real ContinueCard (h-full min-h-0): it must
+                NOT carry a min-height, or it overflows its half-row and swallows the
+                8px gap above the Library card below it. */}
             <div className="dashboard-destination-card--library iband-library relative h-full min-h-0 w-full" aria-hidden="true">
               <span className="iband-library-continue-slot">
-                <span className="dashboard-destination-card relative flex h-full min-h-[118px] w-full items-end justify-end p-2">
-                  <Skeleton className="h-7 w-20 rounded-xs" />
+                <span className="dashboard-destination-card relative flex h-full min-h-0 w-full flex-col justify-between gap-2 p-2">
+                  <span className="flex flex-col gap-1">
+                    <Skeleton className="h-2 w-24 rounded-xs" />
+                    <Skeleton className="h-3.5 w-28 rounded-xs" />
+                  </span>
+                  <span className="flex items-end justify-between gap-2">
+                    <Skeleton className="h-2 w-16 rounded-xs" />
+                    <Skeleton className="h-4 w-4 rounded-xs" />
+                  </span>
                 </span>
               </span>
               <span className="iband-library-stack">
@@ -180,10 +190,21 @@ export default function Loading() {
                 </div>
               </div>
             </div>
+            {/* Bottom half of the library column — mirrors the real LibraryCardLink
+                (index top-left, arrow top-right, display title bottom-right). Uses
+                min-h-0 because the real card's .iband-library-card rule overrides its
+                min-height to 0, so it fills exactly the half-row (no overflow). */}
             <div className="desk-continue relative min-h-0 overflow-visible rounded-xs">
-              <span className="dashboard-destination-card relative flex h-full min-h-[118px] w-full flex-col items-center justify-center gap-3 p-2">
-                <Skeleton className="h-5 w-5 rounded-xs" />
-                <Skeleton className="h-3 w-24 rounded-xs" />
+              <span className="dashboard-destination-card relative block h-full min-h-0 w-full">
+                <span className="absolute left-2 top-2 z-10">
+                  <Skeleton className="h-5 w-7 rounded-xs" />
+                </span>
+                <span className="absolute right-2 top-2 z-10">
+                  <Skeleton className="h-7 w-7 rounded-xs" />
+                </span>
+                <span className="absolute bottom-2 right-2 z-10">
+                  <Skeleton className="h-7 w-20 rounded-xs" />
+                </span>
               </span>
             </div>
           </div>

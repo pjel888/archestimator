@@ -69,6 +69,8 @@ export type TreePanelHeaderProps = {
   showBottomBorder?: boolean;
   /** Controls the divider directly under the icon toolbar row. Defaults to showBottomBorder. */
   showToolbarBottomBorder?: boolean;
+  /** Optional class override for the icon toolbar row surface. */
+  toolbarClassName?: string;
   /** Extra header content (e.g. a view-mode menu) inside the sticky stack. */
   children?: ReactNode;
 };
@@ -111,6 +113,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
     className,
     showBottomBorder = true,
     showToolbarBottomBorder,
+    toolbarClassName,
     children,
   },
   ref,
@@ -209,6 +212,7 @@ export const TreePanelHeader = forwardRef<HTMLDivElement, TreePanelHeaderProps>(
           addDisabled={addDisabled}
           showDefaultActions={showDefaultActions}
           filterSlot={filterSlot}
+          className={toolbarClassName}
         />
         {open ? (
           <div

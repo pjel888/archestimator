@@ -51,8 +51,10 @@ export function WorkshopCollectionLayout({
   children,
 }: WorkshopCollectionLayoutProps) {
   return (
-    <div className="flex h-full flex-col">
+    <div className="dashboard-canvas-wash flex h-full flex-col">
       <TreePanelHeader
+        className="bg-transparent"
+        toolbarClassName="bg-transparent"
         ariaLabel={toolbarLabel}
         labelPrefix={toolbarPrefix}
         searchValue={searchValue}
@@ -71,12 +73,12 @@ export function WorkshopCollectionLayout({
         addDisabled={addDisabled}
         addActions={addActions}
         showBottomBorder={!toolbarPanel}
-        showToolbarBottomBorder={toolbarPanel ? true : undefined}
+        showToolbarBottomBorder={toolbarPanel ? false : undefined}
       />
 
       {toolbarPanel}
 
-      <div className={`min-h-0 flex-1 bg-white p-2 ${contentScroll ? "overflow-auto" : "overflow-hidden"}`}>{children}</div>
+      <div className={`min-h-0 flex-1 bg-transparent p-2 ${contentScroll ? "overflow-auto" : "overflow-hidden"}`}>{children}</div>
     </div>
   );
 }
