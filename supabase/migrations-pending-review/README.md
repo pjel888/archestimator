@@ -1,15 +1,27 @@
 # Pending-review migrations — Shared Link Improvement Plan (Track T5 / T4 [DB])
 
-**These `.sql` files are REVIEWED but DELIBERATELY NOT APPLIED.** They live OUTSIDE
+**2026-06-19 provider closeout:** Codex applied the reviewed safe subset directly
+to linked Supabase project `ebxxqidacheyapmmzavr` with live preflight/post-check
+evidence under `.ai/99_scratch/codex-provider-apply-20260619/` (ignored local
+scratch). Applied: `AC-MOD-04`, `AC-MOD-06`, T4 `P3`, `P4`, `P5` (split into
+single `CONCURRENTLY` statements for the Management API), `P6`, `P1`, `P7`, and
+the existing `20260618184856_workspace_homebase_summary.sql` migration. T4 `P2`
+was **not** applied because the mandatory zero-scan preflight failed:
+`project_publications_token_hash_idx.idx_scan = 215` while
+`shared_link_recipients_token_hash_idx.idx_scan = 0`. Leave `P2` gated until both
+target indexes show zero scans and unique replacements remain present.
+
+**These `.sql` files were originally REVIEWED but DELIBERATELY NOT APPLIED.** They live OUTSIDE
 `supabase/migrations/` so the Supabase CLI will **not** auto-apply them on
 `supabase db push`. They were authored by an agent without a DB write channel
 (Docker absent + hosted SQL by agents denied), per the plan's
 `No DB write channel` constraint
 (`.ai/03_plans/2026-06-13-Shared-Link-Improvement-Plan/14_IMPLEMENTATION_HANDOFF_PROMPT.md` §2.2).
 
-A human DBA must: review each file, run its **pre-flight** checks, apply it in a
-maintenance window, and then **move it into `supabase/migrations/`** with a fresh
-timestamp prefix so the migration history stays canonical.
+A human DBA/agent must: review each not-yet-applied file, run its **pre-flight**
+checks, apply it in a maintenance window, and then record the provider evidence
+and migration-history decision. Do **not** re-apply the 2026-06-19 applied subset
+without first checking the live post-check evidence and object existence.
 
 ## Index
 

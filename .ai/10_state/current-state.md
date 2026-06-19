@@ -40,6 +40,24 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Kimi provider apply closeout completed (2026-06-19):**
+Codex applied the reviewed safe database subset to linked Supabase project
+`ebxxqidacheyapmmzavr`: `AC-MOD-04`, `AC-MOD-06`, T4 `P3`, `P4`, `P5`, `P6`,
+`P1`, `P7`, plus `workspace_homebase_summary`. T4 `P2` was deliberately skipped:
+live preflight showed `project_publications_token_hash_idx.idx_scan = 215`, so
+the zero-scan drop gate failed. Post-check proved `shared_link_responses`
+`recipient_id` is nullable with `ON DELETE SET NULL`, the one-published partial
+unique index is valid, T4 RLS/index/retention/snapshot changes are live, stale
+prune rows are zero, and `workspace_homebase_summary` exists. Types were
+regenerated from the linked provider, nullable RPC/type fallout was fixed, and
+the live DB performance evidence collector now works in linked mode. Evidence
+artifacts are under `.ai/99_scratch/codex-provider-apply-20260619/` (local
+ignored scratch). Final targeted validation passed: `bun run type-check`,
+publication/workshop Vitest slices, local Postgres proof scripts for
+AC-MOD-04/T4/workspace homebase/membership floors, linked launch readiness, and
+`git diff --check`. Backup-readiness parser still requires an external backup
+list artifact; do not claim backup proof from this closeout alone.
+
 **Kimi prompt pack second-pass hardening completed (2026-06-19):**
 The `.ai/08_prompts/kimi/` drop-in pack now includes coordinator-grade handoff
 docs: `DROP_IN_HANDOFF.md`, `COORDINATION_MATRIX.md`, `LEAD_REVIEW_GUIDE.md`,
