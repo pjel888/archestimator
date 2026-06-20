@@ -1,6 +1,7 @@
 import { OTHER_BUCKET_ID, colorForBucket } from "./bucket-color";
 import type {
   ProjectChartBucket,
+  ProjectChartCostComposition,
   ProjectChartCategoryNodeFact,
   ProjectChartComparison,
   ProjectChartComparisonRow,
@@ -108,8 +109,38 @@ export function buildProjectChartSeries(
 }
 
 export function calculateProjectChartRowTotal(row: ProjectChartRowFact): number {
+  return calculateProjectChartRowCostParts(row).grandTotal;
+}
+
+export function buildProjectChartCostComposition(
+  rows: ProjectChartRowFact[],
+  estimateId: string,
+): ProjectChartCostComposition {
+  return rows
+    .filter((row) => row.estimateId === estimateId)
+    .reduce<ProjectChartCostComposition>(
+      (totals, row) => {
+        const parts = calculateProjectChartRowCostParts(row);
+        totals.baseTotal += parts.baseTotal;
+        totals.miscTotal += parts.miscTotal;
+        totals.adjustmentTotal += parts.adjustmentTotal;
+        totals.grandTotal += parts.grandTotal;
+        return totals;
+      },
+      { baseTotal: 0, miscTotal: 0, adjustmentTotal: 0, grandTotal: 0 },
+    );
+}
+
+function calculateProjectChartRowCostParts(row: ProjectChartRowFact): ProjectChartCostComposition {
   const subTotal = toFiniteNumber(row.quantity) * toFiniteNumber(row.unitCost);
-  return subTotal + toFiniteNumber(row.miscCost) + (subTotal * toFiniteNumber(row.contingencyPercentage ?? 0)) / 100;
+  const miscTotal = toFiniteNumber(row.miscCost);
+  const adjustmentTotal = (subTotal * toFiniteNumber(row.contingencyPercentage ?? 0)) / 100;
+  return {
+    baseTotal: subTotal,
+    miscTotal,
+    adjustmentTotal,
+    grandTotal: subTotal + miscTotal + adjustmentTotal,
+  };
 }
 
 function buildSeries(

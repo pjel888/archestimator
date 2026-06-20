@@ -37,6 +37,16 @@ describe("ProjectDataClient accessibility and URL state", () => {
     );
   });
 
+  it("surfaces selected-sheet cost composition as pre-aggregated analysis", () => {
+    render(<ProjectDataClient summary={summary()} />);
+
+    expect(screen.getByRole("heading", { level: 2, name: "Cost composition" })).toBeInTheDocument();
+    expect(screen.getByText("Direct")).toBeInTheDocument();
+    expect(screen.getByText("Misc")).toBeInTheDocument();
+    expect(screen.getByText("Contingency / discount")).toBeInTheDocument();
+    expect(screen.getByText("Direct subtotal carries 88.9% of Original Estimate.")).toBeInTheDocument();
+  });
+
   it("canonicalizes legacy left/right params when grouping changes", async () => {
     const user = userEvent.setup();
     render(<ProjectDataClient summary={summary()} />);
@@ -115,10 +125,16 @@ function seriesForEstimate(totalCost: number): ProjectChartEstimateSeries {
   const labor = bucket("labor", "Labor", totalCost - material.total, totalCost);
   const buckets = [material, labor];
   return {
+    composition: {
+      baseTotal: totalCost * (8 / 9),
+      miscTotal: totalCost * (1 / 18),
+      adjustmentTotal: totalCost * (1 / 18),
+      grandTotal: totalCost,
+    },
     category: { total: totalCost, allBuckets: buckets },
     supplier: { total: totalCost, allBuckets: buckets },
     space: { total: totalCost, allBuckets: buckets },
-  };
+  } as ProjectChartEstimateSeries;
 }
 
 function bucket(id: string, label: string, total: number, baseTotal: number): ProjectChartBucket {

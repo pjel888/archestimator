@@ -51,6 +51,18 @@ export type ProjectChartSupplierFact = {
 
 export type ProjectChartsDataLoadMode = "all-estimates" | "selected-pair";
 
+/** Pre-aggregated selected-sheet cost composition. No per-row cost facts. */
+export type ProjectChartCostComposition = {
+  /** Sum of quantity * unit cost. */
+  baseTotal: number;
+  /** Sum of row-level misc additions. */
+  miscTotal: number;
+  /** Sum of row-level adjustment value. Positive = contingency, negative = discount. */
+  adjustmentTotal: number;
+  /** baseTotal + miscTotal + adjustmentTotal. */
+  grandTotal: number;
+};
+
 /** Pre-aggregated buckets for one estimate in one grouping mode. */
 export type ProjectChartModeSeries = {
   total: number;
@@ -58,7 +70,9 @@ export type ProjectChartModeSeries = {
 };
 
 /** Pre-aggregated buckets for one estimate across all grouping modes. */
-export type ProjectChartEstimateSeries = Record<ProjectChartGroupingMode, ProjectChartModeSeries>;
+export type ProjectChartEstimateSeries = Record<ProjectChartGroupingMode, ProjectChartModeSeries> & {
+  composition?: ProjectChartCostComposition;
+};
 
 /**
  * The charts data contract. Aggregation now runs server-side (`02` DB-4 /

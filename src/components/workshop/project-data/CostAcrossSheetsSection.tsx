@@ -3,14 +3,18 @@
 import { Banner } from "@/components/ui/banner";
 import { formatChartMoney } from "@/lib/project-charts/format";
 import { colorForBucket } from "@/lib/project-charts/bucket-color";
-import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
+import { buildInsightSentence } from "@/lib/project-charts/build-insight-sentence";
+import { buildProjectChartComparisonView } from "@/lib/project-charts/project-comparison-view";
+import type { ProjectChartEstimateOption, ProjectChartGroupingMode } from "@/lib/project-charts/types";
 import type {
   ProjectDataEstimateSheet,
   ProjectDataRollup,
   ProjectDataRouteSummary,
 } from "@/lib/repositories/project-data-repository";
+import { cn } from "@/lib/ui/cn";
 
 type CostAcrossSheetsSectionProps = {
+  className?: string;
   summary: ProjectDataRouteSummary;
   groupingMode: ProjectChartGroupingMode;
 };
@@ -30,10 +34,10 @@ type BarRow = {
 
 const TOP_SEGMENT_LIMIT = 4;
 
-export function CostAcrossSheetsSection({ summary, groupingMode }: CostAcrossSheetsSectionProps) {
+export function CostAcrossSheetsSection({ className, summary, groupingMode }: CostAcrossSheetsSectionProps) {
   if (summary.rollup.kind === "mixed") {
     return (
-      <section className="rounded-xs border border-hairline bg-white p-3" aria-labelledby="project-data-across-heading">
+      <section className={cn("flex min-h-0 flex-col overflow-hidden rounded-xs p-3", className)} aria-labelledby="project-data-across-heading">
         <SectionHeading />
         <Banner
           title="Mixed currencies"
@@ -52,11 +56,15 @@ export function CostAcrossSheetsSection({ summary, groupingMode }: CostAcrossShe
   const maxTotal = Math.max(...rows.map((row) => row.total), 0);
   const legendSegments = collectLegendSegments(rows);
   const tableId = "project-data-across-sheets-table";
+  const variance = totalsOnly ? null : buildVarianceSentence(summary, groupingMode, rows);
 
   return (
-    <section className="rounded-xs border border-hairline bg-white" aria-labelledby="project-data-across-heading">
-      <div className="border-b border-hairline p-3">
+    <section className={cn("flex min-h-0 flex-col overflow-hidden rounded-xs", className)} aria-labelledby="project-data-across-heading">
+      <div className="shrink-0 border-b border-hairline p-3">
         <SectionHeading />
+        {variance ? (
+          <p className="mt-1.5 max-w-[80ch] text-balance text-[12px] font-medium leading-5 text-ink">{variance}</p>
+        ) : null}
         {totalsOnly ? (
           <p className="mt-1 text-[10px] leading-4 text-secondary">
             This project has more than 20 estimate sheets, so the page shows totals-only bars.
@@ -64,7 +72,7 @@ export function CostAcrossSheetsSection({ summary, groupingMode }: CostAcrossShe
         ) : null}
       </div>
 
-      <div className="space-y-3 p-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
         <div
           role="img"
           aria-label="Cost across estimate sheets"
@@ -93,7 +101,7 @@ export function CostAcrossSheetsSection({ summary, groupingMode }: CostAcrossShe
                     ))}
                   </div>
                 </div>
-                <p className="text-right text-[10px] tabular-nums leading-4 text-secondary">
+                <p className="text-right text-[10px] tabular-nums leading-4 text-ink">
                   {formatChartMoney(row.total, row.estimate.currencyCode)}
                 </p>
               </div>
@@ -114,7 +122,13 @@ export function CostAcrossSheetsSection({ summary, groupingMode }: CostAcrossShe
           </div>
         ) : null}
 
-        <AcrossSheetsTable id={tableId} rows={rows} legendSegments={legendSegments} rollup={summary.rollup} />
+        <div className="rounded-xs border border-hairline">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-2 py-1.5">
+            <p className="text-[10px] font-medium leading-4 text-ink">Data table</p>
+            <p className="text-[9px] leading-3 text-secondary">Zoom-safe values for the bars above</p>
+          </div>
+          <AcrossSheetsTable id={tableId} rows={rows} legendSegments={legendSegments} rollup={summary.rollup} />
+        </div>
       </div>
     </section>
   );
@@ -131,6 +145,40 @@ function SectionHeading() {
       </p>
     </div>
   );
+}
+
+/**
+ * Revive the production variance + insight engine: narrate how the two largest sheets
+ * differ. Zero payload change for ≤20-sheet projects, where every sheet's series is
+ * already loaded into `seriesByEstimateId`. Returns null when there is no comparand
+ * (e.g. equal totals, missing series) so the page silently degrades.
+ */
+function buildVarianceSentence(
+  summary: ProjectDataRouteSummary,
+  groupingMode: ProjectChartGroupingMode,
+  rows: BarRow[],
+): string | null {
+  const topTwoIds = rows.slice(0, 2).map((row) => row.estimate.id);
+  if (topTwoIds.length < 2) return null;
+  if (!topTwoIds.every((id) => summary.seriesByEstimateId[id])) return null;
+
+  const estimates: ProjectChartEstimateOption[] = summary.estimateSheets.map((estimate) => ({
+    id: estimate.id,
+    name: estimate.name,
+    sheetCode: estimate.sheetCode,
+    currencyCode: estimate.currencyCode,
+    updatedAt: estimate.updatedAt,
+    rowCount: estimate.rowCount,
+    totalCost: estimate.totalCost,
+  }));
+
+  const view = buildProjectChartComparisonView({
+    estimates,
+    seriesByEstimateId: summary.seriesByEstimateId,
+    groupingMode,
+    estimateIds: topTwoIds,
+  });
+  return buildInsightSentence(view.insight)?.sentence ?? null;
 }
 
 function buildTotalsOnlyRows(estimateSheets: ProjectDataEstimateSheet[]): BarRow[] {
@@ -214,7 +262,7 @@ function AcrossSheetsTable({
   rollup: Extract<ProjectDataRollup, { kind: "single" }>;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xs border border-hairline">
+    <div className="overflow-x-auto">
       <table id={id} className="min-w-full border-collapse text-left text-[10px] leading-4" aria-label="Cost across sheets data">
         <thead className="border-b border-hairline bg-surfaceMuted/60 text-[9px] font-medium uppercase text-secondary">
           <tr>

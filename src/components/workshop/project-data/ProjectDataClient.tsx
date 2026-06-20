@@ -5,10 +5,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { CostAcrossSheetsSection } from "@/components/workshop/project-data/CostAcrossSheetsSection";
 import { CostBreakdownSection } from "@/components/workshop/project-data/CostBreakdownSection";
-import { ProjectDataKpiHeader } from "@/components/workshop/project-data/ProjectDataKpiHeader";
+import { CostCompositionSection } from "@/components/workshop/project-data/CostCompositionSection";
+import { ProjectDataInsightHeader } from "@/components/workshop/project-data/ProjectDataInsightHeader";
+import { buildCostConcentration } from "@/lib/project-charts/build-concentration-sentence";
 import { collapseProjectChartBuckets } from "@/lib/project-charts/aggregate-project-charts";
 import type { ProjectChartBucket, ProjectChartGroupingMode } from "@/lib/project-charts/types";
 import type { ProjectDataRouteSummary } from "@/lib/repositories/project-data-repository";
+import { cn } from "@/lib/ui/cn";
 
 type ProjectDataClientProps = {
   summary: ProjectDataRouteSummary;
@@ -39,11 +42,21 @@ export function ProjectDataClient({ summary }: ProjectDataClientProps) {
     [selectedEstimateId, summary.estimateSheets],
   );
   const selectedSeries = selectedEstimateId ? summary.seriesByEstimateId[selectedEstimateId] : undefined;
-  const buckets = useMemo(
-    () => sortBuckets(collapseProjectChartBuckets(selectedSeries?.[groupingMode]?.allBuckets ?? [], 6)),
+  const allBuckets = useMemo(
+    () => selectedSeries?.[groupingMode]?.allBuckets ?? [],
     [groupingMode, selectedSeries],
   );
-  const topBucket = buckets.find((bucket) => !bucket.isOther) ?? buckets[0] ?? null;
+  const buckets = useMemo(() => sortBuckets(collapseProjectChartBuckets(allBuckets, 6)), [allBuckets]);
+  const otherGroupCount = Math.max(0, allBuckets.length - 6);
+  const currencyCode = selectedEstimate?.currencyCode ?? "PHP";
+  const concentration = useMemo(
+    () => buildCostConcentration(allBuckets, selectedEstimate?.totalCost ?? 0, currencyCode, groupingMode),
+    [allBuckets, selectedEstimate?.totalCost, currencyCode, groupingMode],
+  );
+  const composition = selectedSeries?.composition ?? null;
+  const hasComposition = Boolean(composition && Number.isFinite(composition.grandTotal) && composition.grandTotal > 0);
+  const hasAcrossSheets = summary.rollup.kind === "mixed" || summary.estimateSheets.length >= 2;
+  const hasRightRail = hasComposition || hasAcrossSheets;
 
   const replaceQuery = (next: { sheet?: string; mode?: ProjectChartGroupingMode }) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -72,26 +85,58 @@ export function ProjectDataClient({ summary }: ProjectDataClientProps) {
   };
 
   return (
-    <section data-project-data-page className="flex h-full min-h-0 flex-col overflow-hidden bg-white" aria-label="Project cost data">
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3">
-        <ProjectDataKpiHeader
+    <section
+      data-project-data-page
+      className="dashboard-canvas-wash flex h-full min-h-0 flex-col overflow-hidden bg-transparent"
+      aria-label="Project cost data"
+    >
+      <div className="project-data-grid min-h-0 flex-1 overflow-auto p-2 md:p-3" data-project-data-grid="16x12">
+        <ProjectDataInsightHeader
+          className="project-data-grid__hero project-data-panel project-data-panel--warm"
+          estimateSheets={summary.estimateSheets}
           selectedEstimate={selectedEstimate}
+          groupingMode={groupingMode}
+          concentration={concentration}
           sheetCount={summary.estimateSheets.length}
-          topBucket={topBucket}
+          didTruncate={summary.didTruncate}
+          rowLimit={summary.rowLimit}
+          onEstimateChange={handleEstimateChange}
+          onGroupingModeChange={handleGroupingModeChange}
         />
         <CostBreakdownSection
+          className={cn(
+            "project-data-panel project-data-panel--paper",
+            hasRightRail ? "project-data-grid__primary" : "project-data-grid__full",
+          )}
           projectId={summary.projectId}
-          estimateSheets={summary.estimateSheets}
           selectedEstimate={selectedEstimate}
           groupingMode={groupingMode}
           buckets={buckets}
           activeBucketId={activeBucketId}
-          didTruncate={summary.didTruncate}
+          otherGroupCount={otherGroupCount}
           onActiveBucketChange={setActiveBucketId}
-          onEstimateChange={handleEstimateChange}
-          onGroupingModeChange={handleGroupingModeChange}
         />
-        <CostAcrossSheetsSection summary={summary} groupingMode={groupingMode} />
+        {hasComposition ? (
+          <CostCompositionSection
+            className={cn(
+              "project-data-panel",
+              hasAcrossSheets ? "project-data-grid__side-top" : "project-data-grid__side-full",
+            )}
+            composition={composition}
+            currencyCode={currencyCode}
+            sheetName={selectedEstimate?.name ?? "Selected sheet"}
+          />
+        ) : null}
+        {hasAcrossSheets ? (
+          <CostAcrossSheetsSection
+            className={cn(
+              "project-data-panel",
+              hasComposition ? "project-data-grid__side-bottom" : "project-data-grid__side-full",
+            )}
+            summary={summary}
+            groupingMode={groupingMode}
+          />
+        ) : null}
       </div>
     </section>
   );

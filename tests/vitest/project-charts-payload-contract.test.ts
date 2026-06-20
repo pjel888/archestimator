@@ -166,3 +166,74 @@ describe("project charts global taxonomy invariant (`02` DB-1)", () => {
     }
   });
 });
+
+describe("project chart composition aggregate", () => {
+  it("ships direct, misc, and adjustment totals as a reconciled aggregate, not row facts", () => {
+    const estimateA: ProjectChartEstimateOption = {
+      id: "estimate-a",
+      name: "Estimate A",
+      sheetCode: "EST-A",
+      currencyCode: "PHP",
+      updatedAt: null,
+      rowCount: 0,
+      totalCost: 0,
+    };
+    const rows: ProjectChartRowFact[] = [
+      row("row-a", estimateA.id, 2, 100, 10, 5),
+      row("row-b", estimateA.id, 1, 50, 20, 10),
+    ];
+
+    const seriesByEstimateId = buildSeriesByEstimate(
+      {
+        estimates: [estimateA],
+        rows,
+        nodes: [],
+        categoryNodes: [],
+        suppliers: [],
+      },
+      [estimateA.id],
+    );
+
+    const estimateSeries = seriesByEstimateId[estimateA.id] as unknown as {
+      composition?: { baseTotal: number; miscTotal: number; adjustmentTotal: number; grandTotal: number };
+      category: { total: number };
+    };
+
+    expect(estimateSeries.composition).toEqual({
+      baseTotal: 250,
+      miscTotal: 30,
+      adjustmentTotal: 15,
+      grandTotal: 295,
+    });
+    expect(estimateSeries.composition?.grandTotal).toBe(estimateSeries.category.total);
+
+    const serialized = JSON.stringify(seriesByEstimateId);
+    for (const field of ["unitCost", "quantity", "miscCost", "contingencyPercentage", "sourceSupplierId"]) {
+      expect(serialized).not.toContain(`"${field}"`);
+    }
+  });
+});
+
+function row(
+  id: string,
+  estimateId: string,
+  quantity: number,
+  unitCost: number,
+  miscCost: number,
+  contingencyPercentage: number,
+): ProjectChartRowFact {
+  return {
+    id,
+    estimateId,
+    nodeId: null,
+    categoryNodeId: null,
+    supplierId: null,
+    supplierName: null,
+    sourceSupplierId: null,
+    sourceSupplierName: null,
+    quantity,
+    unitCost,
+    miscCost,
+    contingencyPercentage,
+  };
+}

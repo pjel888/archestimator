@@ -335,7 +335,7 @@ export function CostDonutChart({
   }
 
   const centerLabel = activeDatum
-    ? `${activeDatum.label}\n${formatCompactMoney(activeDatum.value, currencyCode)}\n${formatPercent(activeDatum.share)}`
+    ? `${truncateLabel(activeDatum.label, hideCallouts ? 16 : 18)}\n${formatCompactMoney(activeDatum.value, currencyCode)}\n${formatPercent(activeDatum.share)}`
     : `${formatCompactMoney(total, currencyCode)}\n${label}`;
 
   const centerFont = compact ? "text-[10px]" : "text-[11px]";

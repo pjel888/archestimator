@@ -11,7 +11,7 @@
  * it. It generalizes to up to three estimates by carrying per-estimate totals per
  * bucket while keeping the baseline-relative delta the headline number.
  */
-import { buildProjectChartSeries } from "./aggregate-project-charts";
+import { buildProjectChartCostComposition, buildProjectChartSeries } from "./aggregate-project-charts";
 import { colorForBucket } from "./bucket-color";
 import type {
   ProjectChartBucket,
@@ -51,7 +51,9 @@ type RawFactsInput = {
  * server-side in the repository so raw facts never reach the client (`02` DB-4).
  */
 export function buildEstimateSeries(input: RawFactsInput, estimateId: string): ProjectChartEstimateSeries {
-  const partial = {} as ProjectChartEstimateSeries;
+  const partial = {
+    composition: buildProjectChartCostComposition(input.rows, estimateId),
+  } as ProjectChartEstimateSeries;
   for (const groupingMode of GROUPING_MODES) {
     const series = buildProjectChartSeries({
       estimates: input.estimates,
