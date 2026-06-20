@@ -42,6 +42,36 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Production Project Dashboard Google Maps key restored (2026-06-20):**
+The deployed Project Dashboard map fallback that said `Google Maps API key
+missing` was caused by Vercel production lacking `GOOGLE_MAPS_API_KEY` while the
+dashboard server page reads that env before passing the browser key to
+`ProjectLocationMap`. Added encrypted `GOOGLE_MAPS_API_KEY` to the Vercel
+Production environment for project `archestimator`, then redeployed the current
+production deployment to
+`https://archestimator-nv4too3w0-philipjonlewis-projects.vercel.app`; Vercel
+aliased it to `https://www.archestimator.com`. Verification on 2026-06-20:
+`vercel env ls production` shows `GOOGLE_MAPS_API_KEY` as encrypted Production
+env, redeploy finished Ready and aliased, `https://www.archestimator.com/api/health`
+returned HTTP 200, and signed-out `/workshop` still redirects to login with
+Google Maps domains present in the workshop Report-Only CSP. A provider sanity
+probe against the Maps JavaScript loader with
+`https://www.archestimator.com/workshop/projects/probe` as referrer returned
+HTTP 200 with no invalid-key, referrer-denied, API-not-activated, billing, or
+deleted-project markers. No app code, database, or local deployment package was
+changed.
+
+**Library Page overall improvement plan pack hardened (2026-06-20):**
+The planning pack at
+`.ai/03_plans/2026-06-20-Library-Page-Overall-Improvement/` is now a docs-only
+implementation handoff rather than a visual/UI plan alone. It adds lane ratings,
+beta success metrics, MVP cutline, exact surface specs, source-trust state
+matrix, responsive/accessibility contract, data/route/cache contracts,
+security/authz/data-exposure rules, input/import/export/file handling,
+performance/network/concurrency budgets, blast-radius/rollback sequencing, and
+adversarial QA completion gates. No application code, database schema, provider
+state, tests, or browser screenshots were changed in this planning pass.
+
 **Project Data page uses a glass 16x12 analysis grid (2026-06-20):**
 The Project Data route now keeps the insight header, ranked cost ledger,
 composition strip, and across-sheets table inside a liquid-glass workspace grid:
