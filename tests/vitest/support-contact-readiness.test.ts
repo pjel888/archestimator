@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const contactPage = readFileSync("src/app/contact/page.tsx", "utf8");
 const contactForm = readFileSync("src/components/landing/ContactForm.tsx", "utf8");
 const workshopShell = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
-const workshopSettingsModalContent = readFileSync("src/components/workshop/WorkshopSettingsModalContent.tsx", "utf8");
+const workshopSettingsModalContent = readFileSync("src/components/workshop/WorkshopSettingsModalContentView.tsx", "utf8");
 const betaFeedbackPage = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
 const betaFeedbackAction = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");
 const termsPage = readFileSync("src/app/terms/page.tsx", "utf8");
@@ -33,7 +33,8 @@ describe("closed beta support contact readiness", () => {
 
   it("keeps authenticated workshop users one click from persisted beta feedback", () => {
     expect(workshopShell).toContain("WorkshopSettingsModalContent");
-    expect(workshopSettingsModalContent).toContain("Send beta feedback");
+    expect(workshopSettingsModalContent).toContain("Send feedback");
+    expect(workshopSettingsModalContent).toContain("Beta feedback");
     expect(workshopSettingsModalContent).toContain('href: "/workshop/feedback"');
     expect(betaFeedbackPage).toContain("BetaFeedbackForm");
     expect(betaFeedbackAction).toContain("beta_feedback_submissions");
