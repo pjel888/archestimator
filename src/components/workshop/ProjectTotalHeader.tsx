@@ -245,41 +245,30 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
   );
 }
 
-// Paper/live layout: the tree/library panes abut the centre paper, so the totals
-// bar aligns at (tree width + shell padding) / (library width + shell padding) —
+// The estimate workspace is liquid-glass: its root insets the three floating
+// panes by 8px (root `gap-2 p-2`, marginless panes), so the floated centre paper
+// shifts inward ~8px on both edges. The running-totals bar adds that inset so it
+// tracks the centre paper instead of drifting and reading as "cut off". These are
 // the same CSS vars the centre-column boundary uses, kept in sync via calc().
-const PROJECT_TOTAL_FOOTER_OFFSET_PAPER = {
-  left: "calc(var(--estimate-tree-panel-width) + var(--workshop-page-shell-padding))",
-  right: "calc(var(--estimate-library-panel-width) + var(--workshop-page-shell-padding))",
-} as const;
-
-// Glass (/newdesign): the workspace insets its three panes by 8px (root `gap-2 p-2`,
-// marginless panes), so the floated centre paper shifts inward ~8px on both edges.
-// Add the inset so the running-totals bar tracks the paper instead of drifting and
-// reading as "cut off".
-const PROJECT_TOTAL_FOOTER_OFFSET_GLASS = {
+const PROJECT_TOTAL_FOOTER_OFFSET = {
   left: "calc(var(--estimate-tree-panel-width) + var(--workshop-page-shell-padding) + 8px)",
   right: "calc(var(--estimate-library-panel-width) + var(--workshop-page-shell-padding) + 8px)",
 } as const;
 
 /**
  * Absolutely-positioned running-totals overlay that lives in the workshop shell
- * footer. The offsets are glass-route-aware: the glass preview route's pathname
- * ends with `/newdesign`, in which case the 8px workspace inset is added to both
- * sides so the bar aligns under the floated centre paper. The paper/live route
- * keeps the non-inset offsets so it never regresses.
+ * footer. It aligns under the floated centre paper of the glass estimate
+ * workspace (the live, and only, estimate surface). It lives at the shell layer —
+ * a sibling of the EstimateSurfaceVariant provider rather than a descendant — so
+ * it can't read that context; the offset is fixed to the glass inset instead.
  */
 export function ProjectTotalFooterOverlay({ projectId }: { projectId: string }) {
-  const pathname = usePathname();
-  const isGlassRoute = Boolean(pathname?.endsWith("/newdesign"));
-  const offset = isGlassRoute ? PROJECT_TOTAL_FOOTER_OFFSET_GLASS : PROJECT_TOTAL_FOOTER_OFFSET_PAPER;
-
   return (
     <div
       className="absolute inset-y-0 flex items-center"
-      style={offset}
+      style={PROJECT_TOTAL_FOOTER_OFFSET}
       data-estimate-center-column="project-total-footer"
-      data-estimate-surface={isGlassRoute ? "glass" : "paper"}
+      data-estimate-surface="glass"
       aria-label="Estimate running totals"
     >
       <ProjectTotalHeader projectId={projectId} />

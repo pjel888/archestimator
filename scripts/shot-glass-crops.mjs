@@ -1,6 +1,6 @@
-// Detailed region crops of the estimate-sheet "liquid glass" /newdesign route,
-// for fine-grained design critique. Reuses the WebBridge-extracted Supabase
-// session in /tmp/sb-cookies.json (see shot-glass-newdesign.mjs).
+// Detailed region crops of the estimate-sheet "liquid glass" workspace (the live
+// main estimate route), for fine-grained design critique. Reuses the
+// WebBridge-extracted Supabase session in /tmp/sb-cookies.json (see shot-glass-newdesign.mjs).
 //
 //   node scripts/shot-glass-crops.mjs
 import { readFileSync, mkdirSync } from "node:fs";
@@ -12,7 +12,7 @@ const COOKIES_FILE = process.env.SHOT_COOKIES_FILE || "/tmp/sb-cookies.json";
 const OUT = resolve(process.cwd(), ".design-shots", "crops");
 const PROJECT = "22222222-2222-4222-8222-222222222222";
 const NODE_ID = "bf254cbd-13d4-4dbf-b21a-84b171cdd6db";
-const URL_GLASS = `${BASE}/workshop/projects/${PROJECT}/estimates/${NODE_ID}/newdesign`;
+const URL_GLASS = `${BASE}/workshop/projects/${PROJECT}/estimates/${NODE_ID}`;
 
 function cookies() {
   const raw = JSON.parse(readFileSync(COOKIES_FILE, "utf8"));

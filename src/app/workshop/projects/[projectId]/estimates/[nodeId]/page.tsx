@@ -6,7 +6,6 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getEstimateTabs, resolveEstimateEditCapability, resolveEstimateTabRouteContext } from "@/lib/repositories/workspace-repository";
 import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
-import type { EstimateTabSummary } from "@/lib/estimates/types";
 import type { Json } from "@/lib/supabase/types";
 
 type ProjectEstimateNodePageProps = {

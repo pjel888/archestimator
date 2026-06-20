@@ -25,8 +25,8 @@ const NODE_ID = "bf254cbd-13d4-4dbf-b21a-84b171cdd6db";
 const EST = `/workshop/projects/${PROJECT}/estimates/${NODE_ID}`;
 
 const TARGETS = [
-  { file: "01-glass-newdesign", path: `${EST}/newdesign`, full: true },
-  { file: "02-live-paper", path: EST, full: false },
+  // The glass design is now the live estimate surface at the main route.
+  { file: "01-glass-newdesign", path: EST, full: true },
   { file: "03-ref-estimates-list", path: `/workshop/projects/${PROJECT}/estimates`, full: true },
   { file: "04-ref-project-dashboard", path: `/workshop/projects/${PROJECT}`, full: false },
   { file: "05-ref-workshop", path: "/workshop", full: false },

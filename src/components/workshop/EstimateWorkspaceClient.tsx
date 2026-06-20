@@ -57,9 +57,9 @@ type EstimateWorkspaceClientProps = {
   libraryBrands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
   /**
-   * Surface design language. "paper" (default) is the live solid-white
-   * workspace; "glass" opts into the liquid-glass refresh used by the
-   * /newdesign preview route.
+   * Surface design language. "glass" is the live liquid-glass workspace (the
+   * main estimate route passes it explicitly). "paper" is the legacy
+   * solid-white look, kept as the prop default for any caller that omits it.
    */
   surfaceVariant?: EstimateSurfaceVariant;
 };

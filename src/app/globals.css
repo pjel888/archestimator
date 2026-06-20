@@ -1522,9 +1522,9 @@ input[type="number"] {
    inner panels therefore add NO new backdrop-filter — they are translucent
    washes layered on that existing frost. That keeps the dense cost grid crisp,
    never stacks blur, and honours DESIGN.md (glass is purposeful: one frost per
-   region). Opt-in only: applied when the EstimateSurfaceVariant is "glass" (the
-   /newdesign preview + the eventual flip); the default "paper" variant is byte
-   identical to today. Hierarchy reads as: bright floating paper (centre) >
+   region). Applied when the EstimateSurfaceVariant is "glass" — the live main
+   estimate route. The legacy "paper" variant (the prop default, no live route)
+   stays byte-identical to the original. Hierarchy reads as: bright floating paper (centre) >
    recessed frosted rails (tree / library) > the grey well behind. */
 
 /* The well behind the floating panes (the root <section>). A cool, slightly

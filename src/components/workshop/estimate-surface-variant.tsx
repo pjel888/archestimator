@@ -5,17 +5,18 @@ import { createContext, useContext, type ReactNode } from "react";
 /**
  * Surface variant for the estimate-sheet hero workspace.
  *
- * - "paper": the long-standing solid-white panels (today's live design). The
- *   class constants below resolve to the EXACT strings the components shipped
- *   with, so the default path is byte-for-byte unchanged.
- * - "glass": the liquid-glass refresh — translucent frosted rails + a floating
+ * - "glass": the liquid-glass design — translucent frosted rails + a floating
  *   near-opaque "paper" centre, layered on the workspace's existing frost
- *   shell. See `.estimate-glass-*` in globals.css.
+ *   shell. This is the live estimate surface. See `.estimate-glass-*` in
+ *   globals.css.
+ * - "paper": the legacy solid-white panels. The class constants below resolve
+ *   to the EXACT strings the components originally shipped with. No live route
+ *   renders it today; it stays the context default so any subtree rendered
+ *   outside a provider falls back to the plain, un-frosted look.
  *
  * The variant flows through React context so the three deeply-nested,
  * dynamically-imported surface components (tree, sheet content, library) can
- * read it without prop-drilling. The default value is "paper" so any subtree
- * rendered outside a provider is unaffected.
+ * read it without prop-drilling.
  */
 export type EstimateSurfaceVariant = "paper" | "glass";
 
@@ -136,7 +137,7 @@ export function estimateSurfaceClass(
     case "gridTableRoot":
       // glass: transparent so the one glass paper reads through (kills the
       // stacked-white-box look); the grid's border hairlines still structure it.
-      // paper: the original solid white — live page byte-for-byte unchanged.
+      // paper: the original solid white — the legacy paper look, unchanged.
       return glass ? "" : "bg-white";
     case "gridStickyHeader":
     case "gridTableHead":
