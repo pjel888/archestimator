@@ -27,11 +27,11 @@ vi.mock("@/lib/repositories/estimate-repository", () => ({ estimateRepository: {
 
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
 
-function renderClient() {
+function renderClient(estimates: (typeof canonicalRow)[] = []) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEstimatesClient projectId="p" projectName="Proj" estimates={[]} canCreateEstimates canEditEstimateById={{}} />
+      <ProjectEstimatesClient projectId="p" projectName="Proj" estimates={estimates} canCreateEstimates canEditEstimateById={{}} />
     </QueryClientProvider>,
   );
 }
@@ -86,11 +86,50 @@ describe("ProjectEstimatesClient optimistic create", () => {
 
     // Synchronous optimistic placeholder, before the action resolves.
     expect(screen.getByText(/creating/i)).toBeInTheDocument();
+    expect(screen.getByText("ES-001")).toBeInTheDocument();
     expect(show).not.toHaveBeenCalled();
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("p");
+    expect(actionMocks.regenerateEstimateSheetCode).not.toHaveBeenCalled();
 
     resolveCreate?.({ row: canonicalRow });
     await waitFor(() => expect(screen.getByDisplayValue("EST-002 Estimate")).toBeInTheDocument());
+    expect(screen.getByDisplayValue("EST-002")).toBeInTheDocument();
+    expect(routerMock.refresh).not.toHaveBeenCalled();
+    expect(show).not.toHaveBeenCalled();
+  });
+
+  it("creates an estimate when a blank estimate-name cell is committed", async () => {
+    let resolveCreate: ((value: { row: typeof canonicalRow }) => void) | undefined;
+    actionMocks.createEstimateSheetDraft.mockImplementation(
+      () => new Promise((resolve) => { resolveCreate = resolve; }),
+    );
+    const existingRow = {
+      ...canonicalRow,
+      id: "existing-1",
+      name: "Existing Estimate",
+      sheet_code: "ES-001",
+    };
+    const createdRow = {
+      ...canonicalRow,
+      id: "created-1",
+      name: "Guest Wing Allowance",
+      sheet_code: "EST-003",
+    };
+
+    renderClient([existingRow]);
+
+    const blankNameCell = screen.getByRole("textbox", { name: "Create estimate from blank name cell" });
+    fireEvent.change(blankNameCell, { target: { value: "Guest Wing Allowance" } });
+    fireEvent.keyDown(blankNameCell, { key: "Enter" });
+
+    expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledTimes(1);
+    expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("p", { name: "Guest Wing Allowance" });
+    await waitFor(() => expect(screen.getByText("Guest Wing Allowance")).toBeInTheDocument());
+    expect(screen.getByText("ES-002")).toBeInTheDocument();
+    expect(show).not.toHaveBeenCalled();
+
+    resolveCreate?.({ row: createdRow });
+    await waitFor(() => expect(screen.getByDisplayValue("EST-003")).toBeInTheDocument());
     expect(routerMock.refresh).not.toHaveBeenCalled();
     expect(show).not.toHaveBeenCalled();
   });

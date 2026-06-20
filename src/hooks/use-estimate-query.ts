@@ -43,6 +43,7 @@ export function useEstimateAreaTreeQuery({
     queryFn: () => (projectId && estimateId ? fetchEstimateTree({ projectId, estimateId }) : Promise.resolve(initialNodes)),
     initialData: initialNodes,
     enabled: enabled && Boolean(projectId && estimateId),
+    refetchOnMount: false,
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
@@ -104,6 +105,7 @@ export function useEstimateTabTreeQuery({
     queryFn: () => (projectId && estimateId && tabId ? fetchEstimateTabTree({ projectId, estimateId, tabId }) : Promise.resolve(initialNodes)),
     initialData: initialNodes,
     enabled: enabled && Boolean(projectId && estimateId && tabId),
+    refetchOnMount: false,
     refetchOnWindowFocus,
     staleTime: 5 * 60_000,
   });
@@ -158,6 +160,9 @@ export function useEstimateTabsQuery({
     queryFn: () => (projectId && estimateId ? fetchEstimateTabs({ projectId, estimateId }) : Promise.resolve(initialTabs)),
     initialData: initialTabs,
     enabled: enabled && Boolean(projectId && estimateId),
+    // Tabs are server-seeded via initialData; matches the tree hooks above to
+    // skip a wasted mount refetch (5-min staleTime keeps seeded data fresh).
+    refetchOnMount: false,
     staleTime: 5 * 60_000,
   });
 

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { ProjectEstimatesClient } from "@/components/workshop/ProjectEstimatesClient";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { listCurrentUserEstimateFavoriteCreatedAtById } from "@/lib/repositories/estimate-favorites-repository";
 import { ensureDefaultWorkspace, listMainSidebarFavoriteProjects, listProjectEstimates } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -13,18 +14,23 @@ type ProjectEstimatesPageProps = {
 export default async function ProjectEstimatesPage({ params }: ProjectEstimatesPageProps) {
   const { projectId } = await params;
   const { project, estimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId } =
-    await listProjectEstimates(projectId);
+    await withPerfTraceRequest("workshop.estimates-list", () =>
+      traced("estimates-list.project-estimates", () => listProjectEstimates(projectId)),
+    );
 
   if (!project) notFound();
 
   const estimateIds = estimates.map((estimate) => estimate.id);
-  const [favoriteCreatedAtByEstimateId, editCapabilities, currentUser, workspaceBootstrap, sidebarFavoriteProjects] = await Promise.all([
-    listCurrentUserEstimateFavoriteCreatedAtById(estimateIds),
-    resolveEstimateListEditCapabilities(projectId, estimateIds),
-    requireCurrentUserContext(),
-    ensureDefaultWorkspace(),
-    listMainSidebarFavoriteProjects(),
-  ]);
+  const [favoriteCreatedAtByEstimateId, editCapabilities, currentUser, workspaceBootstrap, sidebarFavoriteProjects] =
+    await withPerfTraceRequest("workshop.estimates-list-tail", () =>
+      Promise.all([
+        traced("estimates-list.favorites", () => listCurrentUserEstimateFavoriteCreatedAtById(estimateIds)),
+        traced("estimates-list.edit-capabilities", () => resolveEstimateListEditCapabilities(projectId, estimateIds)),
+        traced("estimates-list.current-user", () => requireCurrentUserContext()),
+        traced("estimates-list.workspace", () => ensureDefaultWorkspace()),
+        traced("estimates-list.sidebar-favorites", () => listMainSidebarFavoriteProjects()),
+      ]),
+    );
 
   // isSidebarFavorite: membership in the scoped top-window favorites list (cached
   // read, no extra query). Drives the optimistic sidebar insert + the legibility cue.
@@ -72,6 +78,12 @@ async function resolveEstimateListEditCapabilities(projectId: string, estimateId
     };
   }
 
+  // The current-user read (`requireCurrentUserContext`) and the Supabase client
+  // (`createSupabaseServerClient`) are both request-scoped via React `cache()`,
+  // so the gate below reuses the same getUser/profile resolution and client the
+  // rest of the render already triggered — no extra Supabase round-trip is made
+  // here. The explicit `await` keeps the original auth short-circuit ordering
+  // (redirect before any read) intact; on the hero path it resolves from cache.
   const currentUser = await requireCurrentUserContext();
   const [projectEditResult, sheetMembershipsResult, sheetSettingsResult] = await Promise.all([
     supabase.rpc("can_edit_project", { target_project_id: projectId }),

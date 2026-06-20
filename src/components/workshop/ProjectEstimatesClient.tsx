@@ -36,6 +36,8 @@ const OPTIMISTIC_ESTIMATE_LIST_ENABLED = true;
 const ESTIMATE_TOOLBAR_SELECT_TRIGGER_CLASS =
   "h-7 w-auto gap-1.5 border-0 border-transparent bg-transparent px-1.5 text-[10px] hover:border-transparent hover:bg-surfaceMuted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-focus";
 
+const GENERATED_ESTIMATE_CODE_PREFIX = "ES";
+
 const ESTIMATE_FILTER_OPTIONS = [
   { value: "all", label: "All estimates", icon: <FunnelSimple size={12} weight="regular" aria-hidden="true" /> },
   { value: "favorites", label: "Favorites", icon: <Star size={12} weight="regular" aria-hidden="true" /> },
@@ -170,6 +172,18 @@ function projectEstimateToolbarRows(
     .toSorted((a, b) => compareEstimateSheets(a, b, sortField, sortDirection));
 }
 
+function getNextOptimisticEstimateSheetCode(estimates: ProjectEstimateTableRow[]) {
+  const generatedCodePattern = new RegExp(`^${GENERATED_ESTIMATE_CODE_PREFIX}-(\\d+)$`, "i");
+  const nextNumber = estimates.reduce((highest, estimate) => {
+    const match = estimate.sheet_code.trim().match(generatedCodePattern);
+    if (!match) return highest;
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) ? Math.max(highest, parsed) : highest;
+  }, 0) + 1;
+
+  return `${GENERATED_ESTIMATE_CODE_PREFIX}-${String(nextNumber).padStart(3, "0")}`;
+}
+
 export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById, estimates, projectId, projectName, parentProject, scope }: ProjectEstimatesClientProps) {
   const router = useNavigationRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,33 +217,41 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
   const hasEstimates = sourceEstimates.length > 0;
   const hasFilteredEstimates = filteredEstimates.length > 0;
 
-  function handleCreateEstimateSheet() {
-    if (!canCreateEstimates || createInFlightRef.current) return;
+  function createDraftEstimate(requestedName: string) {
+    return requestedName
+      ? createEstimateSheetDraft(projectId, { name: requestedName })
+      : createEstimateSheetDraft(projectId);
+  }
+
+  function handleCreateEstimateSheet(name?: string) {
+    const requestedName = typeof name === "string" ? name.trim() : "";
+    if (!canCreateEstimates || createInFlightRef.current) return false;
 
     createInFlightRef.current = true;
     setIsCreating(true);
     setCreateError(null);
 
     if (!OPTIMISTIC_ESTIMATE_LIST_ENABLED) {
-      void createEstimateSheetDraft(projectId)
+      void createDraftEstimate(requestedName)
         .then(() => router.refresh())
         .catch((error: unknown) => setCreateError(error instanceof Error ? error.message : "Could not create estimate."))
         .finally(() => {
           createInFlightRef.current = false;
           setIsCreating(false);
         });
-      return;
+      return true;
     }
 
     // Optimistic create: a "Creating…" placeholder appears synchronously, then
     // reconciles to the server-canonical row. No overlay, no full re-render (P0-3).
     const now = new Date().toISOString();
     const tempId = `temp-${crypto.randomUUID()}`;
+    const optimisticSheetCode = getNextOptimisticEstimateSheetCode(sourceEstimates);
     const placeholder: ProjectEstimateListRow = {
       id: tempId,
       project_id: projectId,
-      name: "Creating…",
-      sheet_code: "…",
+      name: requestedName || "Creating…",
+      sheet_code: optimisticSheetCode,
       currency_code: "PHP",
       notes: null,
       project_budget: null,
@@ -246,7 +268,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
     };
     store.getState().insertOptimistic(placeholder);
 
-    void createEstimateSheetDraft(projectId)
+    void createDraftEstimate(requestedName)
       .then((result) => store.getState().reconcileInsert(tempId, result.row))
       .catch((error: unknown) => {
         store.getState().rollbackInsert(tempId);
@@ -256,23 +278,28 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
         createInFlightRef.current = false;
         setIsCreating(false);
       });
+    return true;
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-white" aria-label={`${projectName} estimates`}>
+    <section className="workshop-estimates-list-glass flex h-full min-h-0 flex-col overflow-hidden p-1" aria-label={`${projectName} estimates`}>
       <TreePanelHeader
+        className="bg-transparent"
+        toolbarClassName="bg-transparent"
         ariaLabel="Project estimate tools"
         labelPrefix="estimates"
         searchValue={searchQuery}
         onSearchValueChange={setSearchQuery}
         searchPlaceholder="Search Estimates"
         searchLabel="Search Estimates"
+        showBottomBorder={false}
+        showToolbarBottomBorder={false}
         addActions={[
           {
             label: isCreating ? "Creating estimate" : "Create Estimate",
             icon: <NewspaperClipping size={12} weight="regular" aria-hidden="true" />,
             disabled: !canCreateEstimates || isCreating,
-            onClick: handleCreateEstimateSheet,
+            onClick: () => { handleCreateEstimateSheet(); },
             className: ADD_BUTTON_CLASSNAME,
           },
         ]}
@@ -324,7 +351,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
         </p>
       ) : null}
 
-      <div className="min-h-0 flex-1 bg-white">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-[7px] border border-white/45 bg-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.58)]">
         {hasFilteredEstimates ? (
           <ProjectEstimatesTable
             projectId={projectId}
@@ -335,6 +362,9 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
             optimistic={OPTIMISTIC_ESTIMATE_LIST_ENABLED}
             parentProject={parentProject}
             scope={scope}
+            canCreateEstimates={canCreateEstimates}
+            isCreatingEstimate={isCreating}
+            onCreateEstimateFromName={handleCreateEstimateSheet}
           />
         ) : (
           <EmptyState
@@ -351,7 +381,7 @@ export function ProjectEstimatesClient({ canCreateEstimates, canEditEstimateById
                   type="button"
                   variant="primary"
                   size="sm"
-                  onClick={handleCreateEstimateSheet}
+                  onClick={() => { handleCreateEstimateSheet(); }}
                   disabled={!canCreateEstimates || isCreating}
                   aria-label={isCreating ? "Creating first estimate" : "Create first estimate"}
                   title={canCreateEstimates ? undefined : "View-only project."}

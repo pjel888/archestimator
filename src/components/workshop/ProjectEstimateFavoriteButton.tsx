@@ -70,6 +70,7 @@ export function ProjectEstimateFavoriteButton({
   // renders). The actual persistence + sidebar-cache patch is owned by the hook.
   const [favoriteOverride, setFavoriteOverride] = useState<{ readonly estimateId: string; readonly value: boolean } | null>(null);
   const [errorMessage, setErrorMessage] = useState<{ readonly estimateId: string; readonly message: string } | null>(null);
+  const [isToggling, setIsToggling] = useState(false);
   // The hook calls announceCue inside onMutate (only when the parent is NOT a sidebar
   // favorite). The favorited copy is only correct when ADDING a favorite, so we gate on
   // the latest intent carried here; the prop, if provided, overrides the default bridge.
@@ -82,11 +83,12 @@ export function ProjectEstimateFavoriteButton({
   const currentErrorMessage = errorMessage?.estimateId === estimate.id ? errorMessage.message : null;
 
   function toggleFavorite() {
-    if (disabled || isPending) return;
+    if (disabled || isPending || isToggling) return;
 
     const previousFavorite = isFavorite;
     const nextFavorite = !previousFavorite;
     nextFavoriteRef.current = nextFavorite;
+    setIsToggling(true);
     setFavoriteOverride({ estimateId: estimate.id, value: nextFavorite });
     setErrorMessage(null);
 
@@ -118,6 +120,7 @@ export function ProjectEstimateFavoriteButton({
           setErrorMessage({ estimateId: estimate.id, message: getErrorMessage(error) });
           announceSidebarFavoriteAssertive(FAVORITE_FAILURE_ALERT);
         },
+        onSettled: () => setIsToggling(false),
       },
     );
   }
@@ -127,9 +130,9 @@ export function ProjectEstimateFavoriteButton({
       <button
         type="button"
         className={cn(
-          "grid size-6 cursor-pointer place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40",
-          isFavorite ? "bg-surface-muted text-ink" : null,
-          isPending ? "cursor-wait opacity-70" : null,
+          "grid size-6 cursor-pointer place-items-center rounded-xs transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40",
+          isFavorite ? "text-brand-orange hover:text-brand-orange" : "text-tertiary hover:bg-surface-muted hover:text-ink",
+          isPending || isToggling ? "cursor-wait opacity-70" : null,
         )}
         aria-label={
           isFavorite
@@ -137,13 +140,13 @@ export function ProjectEstimateFavoriteButton({
             : `Add ${estimate.name} to favorite estimate sheets`
         }
         aria-pressed={isFavorite}
-        aria-busy={isPending}
-        aria-disabled={disabled || isPending}
-        disabled={disabled}
+        aria-busy={isPending || isToggling}
+        aria-disabled={disabled || isPending || isToggling}
+        disabled={disabled || isPending || isToggling}
         onClick={toggleFavorite}
         title={currentErrorMessage ?? (isFavorite ? "Remove from favorite estimate sheets" : "Add to favorite estimate sheets")}
       >
-        <Star size={12} weight="regular" aria-hidden="true" />
+        <Star size={12} weight={isFavorite ? "fill" : "regular"} aria-hidden="true" />
       </button>
       {currentErrorMessage ? <span className="sr-only">{currentErrorMessage}</span> : null}
     </>

@@ -166,12 +166,10 @@ describe("project estimates table inline editing", () => {
     vi.restoreAllMocks();
   });
 
-  it("prefetches estimate route and real estimate query data from the open link", async () => {
+  it("prefetches only the estimate route from the open link", async () => {
     vi.useFakeTimers();
-    actionMocks.fetchEstimateTree.mockResolvedValue([]);
-    repositoryMocks.getEstimateTree.mockResolvedValue({ id: "estimate-1" });
 
-    const queryClient = renderTable();
+    renderTable();
 
     const openLink = screen.getByLabelText("Open Original Estimate");
     fireEvent.mouseEnter(openLink);
@@ -183,23 +181,12 @@ describe("project estimates table inline editing", () => {
     });
 
     expect(routerMock.prefetch).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/node-1");
-    expect(repositoryMocks.getEstimateTree).toHaveBeenCalledWith("estimate-1");
-    expect(actionMocks.fetchEstimateTree).toHaveBeenCalledWith({
-      projectId: "project-1",
-      estimateId: "estimate-1",
-    });
-    expect(componentLibraryActionMocks.loadProjectComponentLibraryLite).toHaveBeenCalledWith("project-1");
-    expect(queryClient.getQueryData(["workspace-component-library", "lite", "project", "project-1"])).toEqual({
-      libraryItems: [],
-      templates: [],
-      categoryTree: [],
-      suppliers: [],
-      brands: [],
-      libraryFolders: [],
-    });
+    expect(repositoryMocks.getEstimateTree).not.toHaveBeenCalled();
+    expect(actionMocks.fetchEstimateTree).not.toHaveBeenCalled();
+    expect(componentLibraryActionMocks.loadProjectComponentLibraryLite).not.toHaveBeenCalled();
   });
 
-  it("places the favorite star after row selection and gives row icons pointer affordance", async () => {
+  it("places selection, open, favorite, duplicate, and delete controls in tight action columns", async () => {
     const user = userEvent.setup();
 
     renderTable();
@@ -209,11 +196,25 @@ describe("project estimates table inline editing", () => {
     const deleteButton = screen.getByRole("button", { name: "Delete Original Estimate" });
     const duplicateButton = screen.getByRole("button", { name: "Duplicate Original Estimate" });
     const openLink = screen.getByRole("link", { name: "Open Original Estimate" });
-    const actionCluster = favoriteButton.parentElement;
-    const actionChildren = Array.from(actionCluster?.children ?? []);
+    const dataRow = screen.getByDisplayValue("Original Estimate").closest("tr");
+    const dataCells = Array.from(dataRow?.querySelectorAll("td") ?? []);
+    const tableColumns = Array.from(dataRow?.closest("table")?.querySelectorAll("col") ?? []);
+    const selectCell = selectInput.closest("td");
+    const openCell = openLink.closest("td");
+    const favoriteCell = favoriteButton.closest("td");
+    const duplicateCell = duplicateButton.closest("td");
+    const deleteCell = deleteButton.closest("td");
 
-    expect(actionCluster).not.toBeNull();
-    expect(actionChildren.indexOf(favoriteButton)).toBeGreaterThan(actionChildren.indexOf(selectInput));
+    expect(selectCell).toBe(dataCells.at(0));
+    expect(openCell).toBe(dataCells.at(1));
+    expect(favoriteCell).toBe(dataCells.at(2));
+    expect(duplicateCell).toBe(dataCells.at(3));
+    expect(deleteCell).toBe(dataCells.at(-1));
+    expect(favoriteCell).toHaveClass("px-1");
+    expect(duplicateCell).toHaveClass("px-1");
+    expect(tableColumns.at(2)).toHaveStyle({ width: "34px" });
+    expect(tableColumns.at(3)).toHaveStyle({ width: "34px" });
+    expect(screen.queryByLabelText("View version history for Original Estimate")).not.toBeInTheDocument();
     expect(selectInput).toHaveClass("cursor-pointer");
     expect(favoriteButton).toHaveClass("cursor-pointer");
     expect(deleteButton).toHaveClass("cursor-pointer");
@@ -223,11 +224,57 @@ describe("project estimates table inline editing", () => {
     await user.click(favoriteButton);
 
     expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+    expect(favoriteButton).toHaveClass("text-brand-orange");
+    expect(favoriteButton).not.toHaveClass("bg-surface-muted", "hover:bg-surface-muted");
     await waitFor(() => expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledTimes(1));
     expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledWith({
       estimateId: "estimate-1",
       favorite: true,
     });
+  });
+
+  it("keeps editable cells borderless on hover and tints read-only cells", () => {
+    renderTable();
+
+    const codeInput = screen.getByLabelText("Estimate code for Original Estimate");
+    const nameInput = screen.getByLabelText("Estimate name for Original Estimate");
+    const notesInput = screen.getByLabelText("Notes for Original Estimate");
+    const budgetInput = screen.getByLabelText("Project budget for Original Estimate");
+    const dataRow = nameInput.closest("tr");
+    const dataCells = Array.from(dataRow?.querySelectorAll("td") ?? []);
+
+    expect(codeInput).not.toHaveClass("hover:border-hairline");
+    expect(nameInput).not.toHaveClass("hover:border-hairline");
+    expect(notesInput).not.toHaveClass("hover:border-hairline");
+    expect(budgetInput).not.toHaveClass("hover:border-hairline");
+
+    expect(dataCells.at(8)).toHaveClass("hover:bg-dangerSoft/30");
+    expect(dataCells.at(9)).toHaveClass("hover:bg-dangerSoft/30");
+    expect(dataCells.at(10)).toHaveClass("hover:bg-dangerSoft/30");
+    expect(dataCells.at(11)).toHaveClass("hover:bg-dangerSoft/30");
+    expect(codeInput.closest("td")).not.toHaveClass("hover:bg-dangerSoft/30");
+    expect(nameInput.closest("td")).not.toHaveClass("hover:bg-dangerSoft/30");
+    expect(notesInput.closest("td")).not.toHaveClass("hover:bg-dangerSoft/30");
+    expect(budgetInput.closest("td")).not.toHaveClass("hover:bg-dangerSoft/30");
+  });
+
+  it("does not queue duplicate favorite mutations when the star is double-clicked", async () => {
+    let resolveFavorite: (() => void) | undefined;
+    workshopActionMocks.setEstimateFavorite.mockImplementationOnce(
+      () => new Promise<void>((resolve) => { resolveFavorite = resolve; }),
+    );
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const favoriteButton = screen.getByRole("button", { name: "Add Original Estimate to favorite estimate sheets" });
+    await user.dblClick(favoriteButton);
+
+    expect(workshopActionMocks.setEstimateFavorite).toHaveBeenCalledTimes(1);
+    expect(favoriteButton).toBeDisabled();
+
+    resolveFavorite?.();
+    await waitFor(() => expect(favoriteButton).not.toBeDisabled());
   });
 
   it("rolls back an estimate favorite toggle when persistence fails", async () => {
@@ -368,7 +415,11 @@ describe("project estimates table inline editing", () => {
     expect(screen.getByRole("checkbox", { name: "Select Original Estimate" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Delete Original Estimate" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Duplicate Original Estimate" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Auto-generate estimate code for Original Estimate" })).toBeDisabled();
+    const autoCodeButton = screen.getByRole("button", { name: "Auto-generate estimate code for Original Estimate" });
+    expect(autoCodeButton).toBeDisabled();
+    expect(autoCodeButton).not.toHaveTextContent("Auto");
+    expect(autoCodeButton.querySelector("svg")).not.toBeNull();
+    expect(autoCodeButton).toHaveClass("opacity-0", "group-hover/sheet-code:opacity-100");
     expect(screen.getByLabelText("Estimate code for Original Estimate")).toBeDisabled();
     expect(screen.getByLabelText("Estimate name for Original Estimate")).toBeDisabled();
     expect(screen.getByLabelText("Notes for Original Estimate")).toBeDisabled();
@@ -406,6 +457,27 @@ describe("project estimates table inline editing", () => {
 
     expect(() => renderTable()).not.toThrow();
     expect(screen.getByLabelText("Estimate name for Original Estimate")).toBeInTheDocument();
+  });
+
+  it("flushes the latest column width preference when the table unmounts during the debounce window", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const { unmount } = render(
+      <QueryClientProvider client={queryClient}>
+        <ProjectEstimatesTable estimates={[makeEstimate()]} projectId="project-1" />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.keyDown(screen.getByRole("separator", { name: "Resize Estimate Name" }), { key: "ArrowRight" });
+    unmount();
+
+    expect(JSON.parse(window.localStorage.getItem("archestimator:project-estimates-column-widths:project-1") ?? "{}")).toMatchObject({
+      name: 356,
+    });
   });
 
   it("duplicates an estimate sheet from the row actions once and refreshes the table", async () => {

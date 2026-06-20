@@ -94,6 +94,29 @@ describe("ProjectEstimatesTable optimistic inline edit", () => {
     expect(show).not.toHaveBeenCalled();
   });
 
+  it("does not roll back over a fresher store reseed when an optimistic rename fails", async () => {
+    let rejectUpdate: ((error: Error) => void) | undefined;
+    actionMocks.updateEstimateDetails.mockImplementationOnce(
+      () => new Promise((_resolve, reject) => { rejectUpdate = reject; }),
+    );
+    const user = userEvent.setup();
+    const store = renderWithStore();
+
+    const nameInput = screen.getByLabelText("Estimate name for Original Estimate");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Draft Rename{Enter}");
+
+    await waitFor(() => expect(store.getState().estimates[0].name).toBe("Draft Rename"));
+    store.getState().reseed([makeRow({ name: "Server Renamed Estimate" })]);
+
+    rejectUpdate?.(new Error("Rename failed."));
+
+    await waitFor(() => expect(actionMocks.updateEstimateDetails).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(store.getState().estimates[0].name).toBe("Server Renamed Estimate"));
+    expect(routerMock.refresh).not.toHaveBeenCalled();
+    expect(show).not.toHaveBeenCalled();
+  });
+
   it("auto-generates a sheet code into the store without an overlay refresh", async () => {
     actionMocks.regenerateEstimateSheetCode.mockResolvedValue({ estimate: makeRow({ sheet_code: "EST-042" }) });
     const user = userEvent.setup();

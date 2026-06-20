@@ -1532,7 +1532,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
   redirect(`/workshop/projects/${project.id}/estimates/${areaNodeId}`);
 }
 
-export async function createEstimateSheetDraft(projectId: string) {
+export async function createEstimateSheetDraft(projectId: string, input?: { name?: string }) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
 
@@ -1540,11 +1540,12 @@ export async function createEstimateSheetDraft(projectId: string) {
   await assertCanEditProject(supabase, project.id);
   const currentUser = await requireCurrentUserContext();
   const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
+  const requestedName = typeof input?.name === "string" ? input.name.trim() : "";
 
   const { estimate, areaNodeId, nodeCount } = await createEstimateWithDefaultTree({
     supabase,
     project,
-    name: `${sheetCode} Estimate`,
+    name: requestedName || `${sheetCode} Estimate`,
     sheetCode,
     createdBy: currentUser.userId,
   });
