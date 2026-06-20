@@ -14,7 +14,7 @@
 
 import { writeFileSync } from "node:fs";
 
-import { chromium, type Browser, type BrowserContextOptions, type Page } from "@playwright/test";
+import { chromium, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from "@playwright/test";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const RUNS = Number.parseInt(process.env.RUNS ?? "3", 10);
@@ -23,6 +23,18 @@ const OUTPUT_FILE = process.env.OUTPUT_FILE;
 const SCENARIO_FILTER = process.env.SCENARIO_FILTER?.toLowerCase();
 const INCLUDE_AUTHENTICATED = process.env.INCLUDE_AUTHENTICATED === "1" || Boolean(process.env.PLAYWRIGHT_STORAGE_STATE);
 const SKIP_AUTHENTICATED = process.env.SKIP_AUTHENTICATED === "1" || !INCLUDE_AUTHENTICATED;
+const WAIT_FOR_NETWORK_IDLE = process.env.ROUTE_TRANSITION_WAIT_FOR_NETWORK_IDLE === "1";
+const WARM_ROUTES_BEFORE_MEASURE = process.env.ROUTE_TRANSITION_SKIP_WARMUP !== "1";
+const HERO_PROJECT_ID = process.env.HERO_PROJECT_ID ?? "22222222-2222-4222-8222-222222222222";
+const HERO_ESTIMATE_NODE_ID =
+  process.env.HERO_ESTIMATE_NODE_ID ?? process.env.HERO_ESTIMATE_ID ?? "bf254cbd-13d4-4dbf-b21a-84b171cdd6db";
+const HERO_PROJECT_PATH = `/workshop/projects/${HERO_PROJECT_ID}`;
+const HERO_ESTIMATES_PATH = `${HERO_PROJECT_PATH}/estimates`;
+const HERO_ESTIMATE_PATH = `${HERO_ESTIMATES_PATH}/${HERO_ESTIMATE_NODE_ID}`;
+const DEV_AUTH_BYPASS_COOKIE = "archestimator-dev-auth-bypass";
+const DEV_AUTH_BYPASS_SECRET = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET?.trim();
+const DEV_AUTH_BYPASS_ENABLED = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1" && Boolean(DEV_AUTH_BYPASS_SECRET);
+const LOCAL_DEV_AUTH_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
 
 type NetworkPreset = {
   download: number;
@@ -66,6 +78,18 @@ type ScenarioResult = {
 };
 
 const collapsedSidebarIconPosition = { x: 24, y: 16 };
+
+function getHrefSelector(href: string) {
+  return `a[href="${href.replaceAll('"', '\\"')}"]`;
+}
+
+async function clickHref(page: Page, href: string, position?: { x: number; y: number }) {
+  const selector = getHrefSelector(href);
+  const link = page.locator(`${selector}:visible`).first();
+  await link.waitFor({ state: "visible", timeout: 15_000 });
+  await link.scrollIntoViewIfNeeded().catch(() => undefined);
+  await link.click(position ? { position } : undefined);
+}
 
 const SCENARIOS: Scenario[] = [
   {
@@ -132,6 +156,43 @@ const SCENARIOS: Scenario[] = [
       await page.locator('a[href="/workshop/settings"]').first().click({ position: collapsedSidebarIconPosition });
     },
   },
+  {
+    name: "Authenticated Hero: Workshop to Projects",
+    from: "/workshop",
+    expectedPathname: "/workshop/projects",
+    requiresAuth: true,
+    clickPosition: collapsedSidebarIconPosition,
+    action: async (page) => {
+      await clickHref(page, "/workshop/projects", collapsedSidebarIconPosition);
+    },
+  },
+  {
+    name: "Authenticated Hero: Projects to Target Project",
+    from: "/workshop/projects",
+    expectedPathname: HERO_PROJECT_PATH,
+    requiresAuth: true,
+    action: async (page) => {
+      await clickHref(page, HERO_PROJECT_PATH);
+    },
+  },
+  {
+    name: "Authenticated Hero: Target Project to Estimates",
+    from: HERO_PROJECT_PATH,
+    expectedPathname: HERO_ESTIMATES_PATH,
+    requiresAuth: true,
+    action: async (page) => {
+      await clickHref(page, HERO_ESTIMATES_PATH);
+    },
+  },
+  {
+    name: "Authenticated Hero: Estimates to Target Estimate",
+    from: HERO_ESTIMATES_PATH,
+    expectedPathname: HERO_ESTIMATE_PATH,
+    requiresAuth: true,
+    action: async (page) => {
+      await clickHref(page, HERO_ESTIMATE_PATH);
+    },
+  },
 ];
 
 function getMedian(values: number[]) {
@@ -153,9 +214,56 @@ async function emulateNetworkProfile(page: Page, preset: NetworkPreset) {
   return client;
 }
 
+function getAuthMode() {
+  if (process.env.PLAYWRIGHT_STORAGE_STATE) return "storage-state";
+  if (DEV_AUTH_BYPASS_ENABLED) return "dev-auth-bypass";
+  return "none";
+}
+
+function assertDevAuthBypassLocalOnly() {
+  if (!DEV_AUTH_BYPASS_ENABLED) return;
+  const { hostname } = new URL(BASE_URL);
+  if (LOCAL_DEV_AUTH_HOSTS.has(hostname.toLowerCase())) return;
+
+  throw new Error(
+    [
+      "Refusing to attach the dev-auth bypass cookie to a non-local BASE_URL.",
+      "Use PLAYWRIGHT_STORAGE_STATE for remote benchmarks, or run dev-auth bypass only against localhost/loopback.",
+    ].join(" "),
+  );
+}
+
+async function addDevAuthBypassCookie(context: BrowserContext) {
+  if (!DEV_AUTH_BYPASS_ENABLED || !DEV_AUTH_BYPASS_SECRET) return;
+  const baseUrl = new URL(BASE_URL);
+  await context.addCookies([
+    {
+      name: DEV_AUTH_BYPASS_COOKIE,
+      value: DEV_AUTH_BYPASS_SECRET,
+      url: baseUrl.origin,
+      path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+}
+
+async function preflightBaseUrl() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7_500);
+  try {
+    await fetch(BASE_URL, { redirect: "manual", signal: controller.signal });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`BASE_URL preflight failed for ${BASE_URL}: ${message}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function measureTransition(page: Page, scenario: Scenario, run: number): Promise<ScenarioRun> {
-  await page.goto(new URL(scenario.from, BASE_URL).toString(), { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(150);
+  await page.goto(new URL(scenario.from, BASE_URL).toString(), { waitUntil: "load" });
+  await waitForRouteReady(page, scenario.from);
 
   const rscRequests = new Set<string>();
   const onRequest = (request: { url: () => string }) => {
@@ -172,14 +280,9 @@ async function measureTransition(page: Page, scenario: Scenario, run: number): P
 
   const startedAt = Date.now();
   try {
-    await scenario.action(page);
-    await page.waitForFunction(
-      (expectedPathname) => window.location.pathname === expectedPathname,
-      scenario.expectedPathname,
-      { timeout: 15_000 },
-    );
-    await page.locator("[data-route-overlay]").waitFor({ state: "hidden", timeout: 15_000 }).catch(() => undefined);
-    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+    const targetPathReady = waitForPathname(page, scenario.expectedPathname);
+    await Promise.all([targetPathReady, scenario.action(page)]);
+    await settleAfterTransition(page);
     await page.waitForTimeout(100);
 
     return {
@@ -189,18 +292,71 @@ async function measureTransition(page: Page, scenario: Scenario, run: number): P
       rscRequestCount: rscRequests.size,
       finalPathname: new URL(page.url()).pathname,
     };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${message}; finalPathname=${new URL(page.url()).pathname}`);
   } finally {
     page.off("request", onRequest);
   }
 }
 
-async function measureScenario(browser: Browser, scenario: Scenario, preset: NetworkPreset): Promise<ScenarioResult> {
+async function waitForPathname(page: Page, expectedPathname: string) {
+  if (new URL(page.url()).pathname === expectedPathname) return;
+  await page.waitForURL((url) => url.pathname === expectedPathname, { timeout: 15_000 });
+}
+
+async function waitForRouteOverlayHidden(page: Page) {
+  await page.locator("[data-route-overlay]").waitFor({ state: "hidden", timeout: 15_000 }).catch(() => undefined);
+}
+
+// Shared post-click readiness settle: waits for the route overlay to hide and,
+// when enabled, for the network to go idle. Reused by both the measurement path
+// and the warm-up so warm-up absorbs the exact same first-hit compilation tail.
+async function settleAfterTransition(page: Page) {
+  await waitForRouteOverlayHidden(page);
+  if (WAIT_FOR_NETWORK_IDLE) {
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
+  }
+}
+
+async function waitForRouteReady(page: Page, expectedPathname: string) {
+  await waitForPathname(page, expectedPathname);
+  await waitForRouteOverlayHidden(page);
+}
+
+function getContextOptions(): BrowserContextOptions {
   const contextOptions: BrowserContextOptions = {};
   if (process.env.PLAYWRIGHT_STORAGE_STATE) {
     contextOptions.storageState = process.env.PLAYWRIGHT_STORAGE_STATE;
   }
+  return contextOptions;
+}
 
-  const context = await browser.newContext(contextOptions);
+async function createBenchmarkContext(browser: Browser) {
+  const context = await browser.newContext(getContextOptions());
+  await addDevAuthBypassCookie(context);
+  return context;
+}
+
+async function warmScenario(browser: Browser, scenario: Scenario) {
+  if (!WARM_ROUTES_BEFORE_MEASURE) return;
+
+  const context = await createBenchmarkContext(browser);
+  const page = await context.newPage();
+  try {
+    await page.goto(new URL(scenario.from, BASE_URL).toString(), { waitUntil: "load" });
+    await waitForRouteReady(page, scenario.from);
+    await Promise.all([waitForPathname(page, scenario.expectedPathname), scenario.action(page)]);
+    await settleAfterTransition(page);
+  } finally {
+    await context.close();
+  }
+}
+
+async function measureScenario(browser: Browser, scenario: Scenario, preset: NetworkPreset): Promise<ScenarioResult> {
+  await warmScenario(browser, scenario);
+
+  const context = await createBenchmarkContext(browser);
   const page = await context.newPage();
   const client = await emulateNetworkProfile(page, preset);
   const runs: ScenarioRun[] = [];
@@ -255,12 +411,27 @@ async function main() {
   console.log(`Base URL: ${BASE_URL}`);
   console.log(`Network: ${NETWORK_PROFILE}`);
   console.log(`Runs per scenario: ${RUNS}`);
+  console.log(`Warm routes before measure: ${WARM_ROUTES_BEFORE_MEASURE}`);
   if (SCENARIO_FILTER) {
     console.log(`Scenario filter: ${SCENARIO_FILTER}`);
   }
   if (skippedScenarios.length > 0) {
     console.log(`Skipping authenticated scenarios: ${skippedScenarios.join(", ")}`);
   }
+  if (INCLUDE_AUTHENTICATED && skippedScenarios.some((name) => name.includes("Authenticated Hero"))) {
+    console.error("Authenticated hero scenarios were skipped even though INCLUDE_AUTHENTICATED=1. Refusing misleading success.");
+    process.exit(1);
+  }
+  if (runnableScenarios.length === 0) {
+    console.error("No route-transition scenarios are runnable. Check SCENARIO_FILTER and authentication settings.");
+    process.exit(1);
+  }
+  if (INCLUDE_AUTHENTICATED && getAuthMode() === "none") {
+    console.warn("Authenticated scenarios requested without PLAYWRIGHT_STORAGE_STATE or dev-auth bypass secret; protected routes may fail.");
+  }
+
+  assertDevAuthBypassLocalOnly();
+  await preflightBaseUrl();
 
   const browser = await chromium.launch({ headless: true });
   const results: ScenarioResult[] = [];
@@ -285,11 +456,19 @@ async function main() {
   const payload = {
     generatedAt: new Date().toISOString(),
     baseUrl: BASE_URL,
+    authMode: getAuthMode(),
     networkProfile: NETWORK_PROFILE,
     runsPerScenario: RUNS,
+    waitForNetworkIdle: WAIT_FOR_NETWORK_IDLE,
+    warmRoutesBeforeMeasure: WARM_ROUTES_BEFORE_MEASURE,
     scenarioFilter: SCENARIO_FILTER ?? null,
     skipAuthenticated: SKIP_AUTHENTICATED,
     skippedScenarios,
+    heroPath: {
+      projectId: HERO_PROJECT_ID,
+      estimateNodeId: HERO_ESTIMATE_NODE_ID,
+      routes: ["/workshop", "/workshop/projects", HERO_PROJECT_PATH, HERO_ESTIMATES_PATH, HERO_ESTIMATE_PATH],
+    },
     results,
   };
 
@@ -301,7 +480,7 @@ async function main() {
   console.log("\n--- JSON OUTPUT ---");
   console.log(JSON.stringify(payload, null, 2));
 
-  if (results.some((result) => result.runs.length === 0)) {
+  if (results.some((result) => result.runs.length === 0 || result.failures.length > 0)) {
     process.exitCode = 1;
   }
 }

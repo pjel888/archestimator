@@ -39,6 +39,7 @@ const thresholds = {
   slow3gPublicMedianBudgetMs: 30_000,
   authenticatedMedianBudgetMs: 10_000,
   overlayVisibilityRateMax: 1,
+  requireHeroScenarios: false,
 };
 
 describe("route transition readiness checker", () => {
@@ -61,6 +62,7 @@ describe("route transition readiness checker", () => {
 
     expect(result.passed).toBe(true);
     expect(result.budgetMs).toBe(15_000);
+    expect(result.maxDurationMs).toBe(430);
     expect(result.reasons).toEqual([]);
   });
 
@@ -93,6 +95,21 @@ describe("route transition readiness checker", () => {
     ]);
   });
 
+  it("fails closed when any measured run exceeds the scenario budget", () => {
+    const result = checkScenarioReadiness(makeScenario({
+      runs: [
+        { run: 1, durationMs: 410, overlayVisible: true, rscRequestCount: 1, finalPathname: "/login" },
+        { run: 2, durationMs: 395, overlayVisible: true, rscRequestCount: 1, finalPathname: "/login" },
+        { run: 3, durationMs: 16_100, overlayVisible: false, rscRequestCount: 1, finalPathname: "/login" },
+      ],
+      medianMs: 410,
+    }), thresholds);
+
+    expect(result.passed).toBe(false);
+    expect(result.maxDurationMs).toBe(16_100);
+    expect(result.reasons).toContain("max duration 16100ms exceeds 15000ms budget");
+  });
+
   it("summarizes a benchmark artifact without writing auth material or claiming hosted proof", () => {
     const result = checkRouteTransitionReadiness({
       benchmarkFile: "/tmp/route-transition-benchmark.json",
@@ -100,8 +117,11 @@ describe("route transition readiness checker", () => {
     }, {
       generatedAt: "2026-06-02T00:00:00.000Z",
       baseUrl: "http://127.0.0.1:3039",
+      authMode: "none",
       networkProfile: "No throttle",
       runsPerScenario: 3,
+      waitForNetworkIdle: false,
+      warmRoutesBeforeMeasure: true,
       skipAuthenticated: true,
       skippedScenarios: ["Authenticated: Workshop to Projects"],
       results: [makeScenario()],
@@ -109,9 +129,41 @@ describe("route transition readiness checker", () => {
 
     expect(result.routeTransitionReady).toBe(true);
     expect(result.scenarioChecks).toHaveLength(1);
+    expect(result.authMode).toBe("none");
+    expect(result.waitForNetworkIdle).toBe(false);
+    expect(result.warmRoutesBeforeMeasure).toBe(true);
     expect(result.skippedScenarios).toEqual(["Authenticated: Workshop to Projects"]);
     expect(result.note).toContain("does not create hosted/manual browser proof");
     expect(JSON.stringify(result)).not.toContain("cookie");
+  });
+
+  it("fails when required hero scenarios are missing or skipped", () => {
+    const result = checkRouteTransitionReadiness({
+      benchmarkFile: "/tmp/hero-route-transition-benchmark.json",
+      ...thresholds,
+      requireHeroScenarios: true,
+    }, {
+      generatedAt: "2026-06-20T00:00:00.000Z",
+      baseUrl: "http://localhost:3000",
+      authMode: "dev-auth-bypass",
+      networkProfile: "No throttle",
+      runsPerScenario: 3,
+      skipAuthenticated: false,
+      skippedScenarios: ["Authenticated Hero: Estimates to Target Estimate"],
+      results: [
+        makeScenario({ scenario: "Authenticated Hero: Workshop to Projects", from: "/workshop", expectedPathname: "/workshop/projects" }),
+      ],
+    });
+
+    expect(result.routeTransitionReady).toBe(false);
+    expect(result.requiredHeroScenarios).toEqual([
+      "Authenticated Hero: Workshop to Projects",
+      "Authenticated Hero: Projects to Target Project",
+      "Authenticated Hero: Target Project to Estimates",
+      "Authenticated Hero: Estimates to Target Estimate",
+    ]);
+    expect(result.missing).toContain("required hero scenario missing: Authenticated Hero: Projects to Target Project");
+    expect(result.missing).toContain("required hero scenario skipped: Authenticated Hero: Estimates to Target Estimate");
   });
 
   it("fails empty benchmark artifacts", () => {

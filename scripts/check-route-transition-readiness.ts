@@ -26,8 +26,11 @@ type BenchmarkScenarioResult = {
 type BenchmarkPayload = {
   generatedAt?: string;
   baseUrl?: string;
+  authMode?: string;
   networkProfile?: string;
   runsPerScenario?: number;
+  waitForNetworkIdle?: boolean;
+  warmRoutesBeforeMeasure?: boolean;
   skipAuthenticated?: boolean;
   skippedScenarios?: string[];
   results?: BenchmarkScenarioResult[];
@@ -41,6 +44,7 @@ type RouteTransitionReadinessInputs = {
   slow3gPublicMedianBudgetMs: number;
   authenticatedMedianBudgetMs: number;
   overlayVisibilityRateMax: number;
+  requireHeroScenarios: boolean;
 };
 
 type ScenarioCheck = {
@@ -49,6 +53,7 @@ type ScenarioCheck = {
   runs: number;
   failures: number;
   medianMs: number | null;
+  maxDurationMs: number | null;
   budgetMs: number;
   overlayVisibilityRate: number;
   rscRequestCount: number;
@@ -64,8 +69,11 @@ export type RouteTransitionReadinessResult = {
   baseUrl: string | null;
   networkProfile: string | null;
   runsPerScenario: number | null;
+  waitForNetworkIdle: boolean | null;
+  warmRoutesBeforeMeasure: boolean | null;
   skipAuthenticated: boolean | null;
   skippedScenarios: string[];
+  authMode: string | null;
   thresholds: {
     minRuns: number;
     publicMedianBudgetMs: number;
@@ -73,6 +81,7 @@ export type RouteTransitionReadinessResult = {
     authenticatedMedianBudgetMs: number;
     overlayVisibilityRateMax: number;
   };
+  requiredHeroScenarios: string[];
   scenarioChecks: ScenarioCheck[];
   missing: string[];
   routeTransitionReady: boolean;
@@ -110,6 +119,7 @@ export function parseInputsFromEnv(): RouteTransitionReadinessInputs {
     slow3gPublicMedianBudgetMs: parsePositiveInteger(readEnv("ROUTE_TRANSITION_SLOW3G_MEDIAN_BUDGET_MS"), 30_000),
     authenticatedMedianBudgetMs: parsePositiveInteger(readEnv("ROUTE_TRANSITION_AUTH_MEDIAN_BUDGET_MS"), 10_000),
     overlayVisibilityRateMax: parseNonNegativeNumber(readEnv("ROUTE_TRANSITION_OVERLAY_RATE_MAX"), 1),
+    requireHeroScenarios: readEnv("ROUTE_TRANSITION_REQUIRE_HERO") === "1",
   };
 }
 
@@ -138,11 +148,13 @@ export function checkScenarioReadiness(
   >,
 ): ScenarioCheck {
   const budgetMs = getScenarioBudgetMs(scenario, inputs);
+  const maxDurationMs = scenario.runs.length > 0 ? Math.max(...scenario.runs.map((run) => run.durationMs)) : null;
   const reasons = [
     scenario.runs.length < inputs.minRuns ? `expected at least ${inputs.minRuns} successful runs` : null,
     scenario.failures.length > 0 ? `${scenario.failures.length} benchmark run failure(s)` : null,
     scenario.medianMs === null ? "missing median transition duration" : null,
     scenario.medianMs !== null && scenario.medianMs > budgetMs ? `median ${scenario.medianMs}ms exceeds ${budgetMs}ms budget` : null,
+    maxDurationMs !== null && maxDurationMs > budgetMs ? `max duration ${maxDurationMs}ms exceeds ${budgetMs}ms budget` : null,
     scenario.overlayVisibilityRate > inputs.overlayVisibilityRateMax
       ? `overlay visibility rate ${scenario.overlayVisibilityRate} exceeds ${inputs.overlayVisibilityRateMax}`
       : null,
@@ -154,6 +166,7 @@ export function checkScenarioReadiness(
     runs: scenario.runs.length,
     failures: scenario.failures.length,
     medianMs: scenario.medianMs,
+    maxDurationMs,
     budgetMs,
     overlayVisibilityRate: scenario.overlayVisibilityRate,
     rscRequestCount: scenario.rscRequestCount,
@@ -168,8 +181,23 @@ export function checkRouteTransitionReadiness(
 ): RouteTransitionReadinessResult {
   const results = payload.results ?? [];
   const scenarioChecks = results.map((scenario) => checkScenarioReadiness(scenario, inputs));
+  const requiredHeroScenarios = [
+    "Authenticated Hero: Workshop to Projects",
+    "Authenticated Hero: Projects to Target Project",
+    "Authenticated Hero: Target Project to Estimates",
+    "Authenticated Hero: Estimates to Target Estimate",
+  ];
+  const resultNames = new Set(results.map((result) => result.scenario));
+  const missingHeroScenarios = inputs.requireHeroScenarios
+    ? requiredHeroScenarios.filter((scenario) => !resultNames.has(scenario))
+    : [];
+  const skippedHeroScenarios = inputs.requireHeroScenarios
+    ? (payload.skippedScenarios ?? []).filter((scenario) => requiredHeroScenarios.includes(scenario))
+    : [];
   const missing = [
     results.length === 0 ? "benchmark scenario results" : null,
+    ...missingHeroScenarios.map((scenario) => `required hero scenario missing: ${scenario}`),
+    ...skippedHeroScenarios.map((scenario) => `required hero scenario skipped: ${scenario}`),
     ...scenarioChecks.flatMap((check) => check.reasons.map((reason) => `${check.scenario}: ${reason}`)),
   ].filter((value): value is string => Boolean(value));
 
@@ -181,8 +209,11 @@ export function checkRouteTransitionReadiness(
     baseUrl: payload.baseUrl ?? null,
     networkProfile: payload.networkProfile ?? null,
     runsPerScenario: typeof payload.runsPerScenario === "number" ? payload.runsPerScenario : null,
+    waitForNetworkIdle: typeof payload.waitForNetworkIdle === "boolean" ? payload.waitForNetworkIdle : null,
+    warmRoutesBeforeMeasure: typeof payload.warmRoutesBeforeMeasure === "boolean" ? payload.warmRoutesBeforeMeasure : null,
     skipAuthenticated: typeof payload.skipAuthenticated === "boolean" ? payload.skipAuthenticated : null,
     skippedScenarios: payload.skippedScenarios ?? [],
+    authMode: typeof payload.authMode === "string" ? payload.authMode : null,
     thresholds: {
       minRuns: inputs.minRuns,
       publicMedianBudgetMs: inputs.publicMedianBudgetMs,
@@ -190,6 +221,7 @@ export function checkRouteTransitionReadiness(
       authenticatedMedianBudgetMs: inputs.authenticatedMedianBudgetMs,
       overlayVisibilityRateMax: inputs.overlayVisibilityRateMax,
     },
+    requiredHeroScenarios: inputs.requireHeroScenarios ? requiredHeroScenarios : [],
     scenarioChecks,
     missing,
     routeTransitionReady: results.length > 0 && missing.length === 0,
