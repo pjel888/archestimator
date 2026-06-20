@@ -67,8 +67,11 @@ describe("project dashboard route shell UI governance", () => {
     expect(projectDashboardPage).not.toContain("searchParams");
     expect(projectDashboardPage).not.toContain("getProjectDashboardSummary");
     expect(projectDashboardPage).not.toContain("getProjectActivity");
-    expect(projectDashboardPage).toContain("listProjectEstimateSheetsForProject");
+    expect(projectDashboardPage).toContain("countProjectEstimateSheetsForProject");
+    expect(projectDashboardPage).not.toContain("projectEstimateSheets.length");
     expect(projectDashboardPage).toContain("listRecentProjectEstimateSheets");
+    expect(projectDashboardPage).toContain('withPerfTraceRequest("workshop.project-dashboard"');
+    expect(projectDashboardPage).toContain('traced("project-dashboard.estimate-count"');
     expect(projectDashboardPage).not.toContain("createPublicationDashboardStatus");
     expect(projectDashboardPage).toContain("listProjectActivityPage");
     expect(projectDashboardPage).toContain("projectActivityPage={projectActivityPage}");
