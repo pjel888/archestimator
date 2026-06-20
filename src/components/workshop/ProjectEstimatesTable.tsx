@@ -6,6 +6,7 @@ import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type CSSProperties, type KeyboardEvent } from "react";
 import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, CopySimple, MagicWand, Trash } from "@phosphor-icons/react/dist/ssr";
 import { useQueryClient } from "@tanstack/react-query";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   flexRender,
   getCoreRowModel,
@@ -80,6 +81,16 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 });
 
 const EMPTY_TABLE_ROW_COUNT = 60;
+// Row-windowing activation matches the estimate-sheet row table's contract
+// (WORKSHOP_ESTIMATE_ROW_VIRTUALIZATION): off below the threshold so small/empty
+// tables render every row (and keep the filler + blank-name-create rows, which
+// only exist while visibleRows.length < EMPTY_TABLE_ROW_COUNT = 60), on above it
+// so large lists only mount the visible window. The threshold sits above 60, so
+// virtualization and filler rows are mutually exclusive by construction.
+const LIST_ROW_VIRTUALIZATION_MIN_ROWS = 75;
+const LIST_ROW_VIRTUALIZATION_ESTIMATED_HEIGHT = 32;
+const LIST_ROW_VIRTUALIZATION_OVERSCAN = 12;
+const LIST_ROW_VIRTUALIZATION_INITIAL_VIEWPORT_HEIGHT = 720;
 const COLUMN_WIDTH_STORAGE_KEY_PREFIX = "archestimator:project-estimates-column-widths";
 const READ_ONLY_HOVER_COLUMN_IDS = new Set(["totalProjectCost", "overbudget", "updated_at", "created_at"]);
 const TIGHT_ICON_COLUMN_IDS = new Set(["favorite_action", "duplicate_action"]);
@@ -1482,6 +1493,47 @@ function ProjectEstimatesTableComponent({
   const fillerRowCount = Math.max(EMPTY_TABLE_ROW_COUNT - visibleRows.length, 0);
   const tableTotalSize = table.getTotalSize();
   const tableStyle = useMemo<CSSProperties>(() => ({ width: `${tableTotalSize}px`, minWidth: "100%" }), [tableTotalSize]);
+  const leafColumnCount = table.getAllLeafColumns().length;
+
+  // Row windowing. The scroll viewport is the existing overflow-auto wrapper
+  // below, so the virtualizer uses it directly (no scroll-parent walk). Above
+  // the threshold only the in-view window of `<tr>`s mounts, bracketed by two
+  // spacer rows that reserve the off-screen height. Spacer rows keep every
+  // mounted row a normal table-fixed row that still obeys the <colgroup>, so
+  // column alignment, the sticky header, and column resizing are unchanged.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const virtualEnabled = visibleRows.length >= LIST_ROW_VIRTUALIZATION_MIN_ROWS;
+  const rowVirtualizer = useVirtualizer({
+    count: visibleRows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => LIST_ROW_VIRTUALIZATION_ESTIMATED_HEIGHT,
+    overscan: LIST_ROW_VIRTUALIZATION_OVERSCAN,
+    getItemKey: (index) => visibleRows[index]?.id ?? index,
+    enabled: virtualEnabled,
+    initialRect: { height: LIST_ROW_VIRTUALIZATION_INITIAL_VIEWPORT_HEIGHT, width: 0 },
+  });
+
+  const measuredVirtualRows = rowVirtualizer.getVirtualItems();
+  // Before the virtualizer has measured the viewport (first paint / non-DOM
+  // render), fall back to a deterministic initial window so the table is never
+  // blank and SSR/test renders still mount real rows.
+  const virtualRows = virtualEnabled && measuredVirtualRows.length === 0
+    ? Array.from(
+        {
+          length: Math.min(
+            visibleRows.length,
+            Math.ceil(LIST_ROW_VIRTUALIZATION_INITIAL_VIEWPORT_HEIGHT / LIST_ROW_VIRTUALIZATION_ESTIMATED_HEIGHT) +
+              LIST_ROW_VIRTUALIZATION_OVERSCAN * 2,
+          ),
+        },
+        (_, index) => ({ index, key: visibleRows[index]?.id ?? index, start: index * LIST_ROW_VIRTUALIZATION_ESTIMATED_HEIGHT, size: LIST_ROW_VIRTUALIZATION_ESTIMATED_HEIGHT }),
+      )
+    : measuredVirtualRows;
+  const virtualTotalSize = rowVirtualizer.getTotalSize();
+  const firstVirtualRow = virtualRows[0];
+  const lastVirtualRow = virtualRows[virtualRows.length - 1];
+  const topSpacerHeight = firstVirtualRow ? firstVirtualRow.start : 0;
+  const bottomSpacerHeight = lastVirtualRow ? Math.max(virtualTotalSize - (lastVirtualRow.start + lastVirtualRow.size), 0) : 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col border-t border-hairline">
@@ -1498,7 +1550,7 @@ function ProjectEstimatesTableComponent({
         onClear={() => setSelectedEstimateIds(new Set())}
         onSelectVisible={() => setSelectedEstimateIds(new Set(estimates.filter((estimate) => editableEstimateIds.has(estimate.id)).map((estimate) => estimate.id)))}
       />
-      <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
           <ProjectEstimatesColGroup table={table} />
           <thead className="sticky top-0 z-10 bg-surface-muted text-[10px] font-medium text-tertiary">
@@ -1534,23 +1586,58 @@ function ProjectEstimatesTableComponent({
               </tr>
             ))}
           </thead>
-          <tbody className="bg-white text-ink">
-            {visibleRows.map((row) => (
-              <tr key={row.id} className="h-8 border-b border-hairline transition hover:bg-surface-muted/60">
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cn(
-                      "border-r border-hairline py-1 text-left align-middle last:border-r-0",
-                      TIGHT_ICON_COLUMN_IDS.has(cell.column.id) ? "px-1" : "px-2",
-                      READ_ONLY_HOVER_COLUMN_IDS.has(cell.column.id) && "transition-colors hover:bg-dangerSoft/30",
-                    )}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+          <tbody data-virtualized={virtualEnabled ? "true" : undefined} className="bg-white text-ink">
+            {virtualEnabled ? (
+              <>
+                {topSpacerHeight > 0 ? (
+                  <tr aria-hidden="true" className="border-0">
+                    <td colSpan={leafColumnCount} className="p-0" style={{ height: `${topSpacerHeight}px` }} />
+                  </tr>
+                ) : null}
+                {virtualRows.map((virtualRow) => {
+                  const row = visibleRows[virtualRow.index];
+                  if (!row) return null;
+                  return (
+                    <tr key={row.id} className="h-8 border-b border-hairline transition hover:bg-surface-muted/60">
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className={cn(
+                            "border-r border-hairline py-1 text-left align-middle last:border-r-0",
+                            TIGHT_ICON_COLUMN_IDS.has(cell.column.id) ? "px-1" : "px-2",
+                            READ_ONLY_HOVER_COLUMN_IDS.has(cell.column.id) && "transition-colors hover:bg-dangerSoft/30",
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {bottomSpacerHeight > 0 ? (
+                  <tr aria-hidden="true" className="border-0">
+                    <td colSpan={leafColumnCount} className="p-0" style={{ height: `${bottomSpacerHeight}px` }} />
+                  </tr>
+                ) : null}
+              </>
+            ) : (
+              visibleRows.map((row) => (
+                <tr key={row.id} className="h-8 border-b border-hairline transition hover:bg-surface-muted/60">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={cn(
+                        "border-r border-hairline py-1 text-left align-middle last:border-r-0",
+                        TIGHT_ICON_COLUMN_IDS.has(cell.column.id) ? "px-1" : "px-2",
+                        READ_ONLY_HOVER_COLUMN_IDS.has(cell.column.id) && "transition-colors hover:bg-dangerSoft/30",
+                      )}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
             {fillerRowCount > 0 ? (
               <ProjectEstimateFillerRows
                 columnCount={table.getAllLeafColumns().length}
