@@ -78,6 +78,9 @@ yarn-error.log*
 /.omo/
 
 # local agent/runtime state is machine-specific
+
+# temporary one-off screenshot/capture harnesses
+scripts/.tmp-*.mjs
 /.omx/
 /.gitnexus/
 /.codex/cache
