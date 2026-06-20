@@ -2870,7 +2870,7 @@ export function EstimateSheetContent({
                     />
                   </EstimateSheetExpansionContext.Provider>
                 ) : (
-                  <div className="mt-4 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center text-[10px] leading-4 text-tertiary">
+                  <div className={cn("mt-4 rounded-xs border border-dashed p-3 text-center text-[10px] leading-4 text-tertiary", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
                     No rows in this tab match &quot;{sheetSearchQuery}&quot;.
                   </div>
                 )}
@@ -2896,7 +2896,7 @@ export function EstimateSheetContent({
           <>
             <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2 pt-2" data-estimate-pointer-surface>
               <EstimateSheetCursorLayer estimateId={estimateId} tabId={dataTabId} userId={collaborationUserId} displayName={collaborationDisplayName} />
-              <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
+              <div className={cn("max-w-md rounded-xs border border-dashed p-3 text-center", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surface-muted")}>
                 {dataTabId ? (
                   <>
                     <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty tab</p>
@@ -2964,7 +2964,7 @@ function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolea
   return (
     <aside className={cn("flex h-full min-h-0 min-w-[320px] flex-col", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
       {isError ? (
-        <div role="alert" className="m-2 mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
+        <div role="alert" className={cn("m-2 mt-2 rounded-xs border border-dashed p-3 text-center", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
           <p className="mt-1 text-[10px] leading-4 text-tertiary">The estimate is still editable. Retry to load components and templates.</p>
           <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={onRetry}>

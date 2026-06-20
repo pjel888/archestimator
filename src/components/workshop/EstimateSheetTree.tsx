@@ -1433,11 +1433,11 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
         <div className="min-h-0 flex-1 overflow-auto">
           <div className={cn("px-2 pt-0", bulkSelectionCount > 0 ? "pb-16" : "pb-1")}>
           {localNodes.length === 0 ? (
-            <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
+            <div className={cn("rounded-xs border border-dashed p-2 text-[10px] leading-4 text-tertiary", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surface-muted")}>
               This estimate is empty. Add an area to begin.
             </div>
           ) : uiTreeNodes.length === 0 ? (
-            <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+            <div className={cn("rounded-xs border border-dashed p-2 text-[10px] leading-4 text-tertiary", surfaceVariant === "glass" ? "border-[color:var(--glass-border)] bg-white/30" : "border-hairline bg-surfaceMuted")}>
               No tree nodes match &quot;{treeSearchQuery}&quot;.
             </div>
           ) : (

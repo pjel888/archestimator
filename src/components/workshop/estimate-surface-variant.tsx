@@ -93,27 +93,25 @@ export function estimateSurfaceClass(
       // near-white shell frost where the float barely registers.
       return glass ? "estimate-glass-well" : "bg-white";
     case "treeRail":
-      // glass: float the rail with its own rounded corners + gutter (the tree
-      // container already carries overflow-hidden, which clips the rounding).
-      // Radius = rounded-xs (3px) to match the workspace shell (also 3px) and
-      // DESIGN.md's "dense estimating surfaces stay 3px" — the glass read comes
-      // from the frost + soft shadow, not from over-rounding.
-      // glass: the rail is a floating frosted pane. No own margin — the root
-      // section owns a uniform 8px gutter (gap-2 + p-2), so the gutter equals
-      // the inner padding everywhere and panes never double up their spacing.
+      // glass: the rail is a floating frosted pane (the tree container carries
+      // overflow-hidden, which clips the rounding). Radius = 8px on the OUTER
+      // floating panes — matching the reference glass family's 8px nav / 12px
+      // panel radii — while inner dense grid cells stay 3px for legibility. No
+      // own margin: the root section owns a uniform 8px gutter (gap-2 + p-2), so
+      // the gutter equals the inner padding and panes never double their spacing.
       return glass
-        ? "estimate-glass-rail rounded-xs"
+        ? "estimate-glass-rail rounded-[8px]"
         : "border-r border-hairline bg-white";
     case "libraryRail":
       // glass: same floating treatment; the library container lacks
       // overflow-hidden, so add it here to clip the rounded corners.
       return glass
-        ? "estimate-glass-rail rounded-xs overflow-hidden"
+        ? "estimate-glass-rail rounded-[8px] overflow-hidden"
         : "border-l border-hairline bg-white";
     case "centerColumn":
     case "centerColumnFallback":
       // glass: floating near-opaque paper with a small frost gutter + rounding.
-      return glass ? "estimate-glass-paper rounded-xs" : "bg-white";
+      return glass ? "estimate-glass-paper rounded-[8px]" : "bg-white";
     case "railPanelHeader":
       // glass: near-opaque masking wash + soft hairline. The leading
       // `bg-transparent` lets tailwind-merge strip TreePanelHeader's baked-in

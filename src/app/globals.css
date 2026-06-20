@@ -1542,11 +1542,11 @@ input[type="number"] {
      than four things stacked. Warm stops stay low so the dark grid ink (which
      sits on the paper, not the well) is unaffected. */
   background:
-    radial-gradient(120% 92% at 100% 100%,
+    radial-gradient(120% 96% at 100% 100%,
       color-mix(in srgb, var(--brand-peach) 16%, transparent) 0%,
-      color-mix(in srgb, var(--brand-amber) 9%, transparent) 26%,
-      transparent 62%),
-    linear-gradient(180deg, rgba(228, 229, 233, 0.62), rgba(213, 215, 221, 0.56));
+      color-mix(in srgb, var(--brand-amber) 11%, transparent) 30%,
+      transparent 72%),
+    linear-gradient(180deg, rgba(230, 228, 228, 0.62), rgba(216, 213, 214, 0.56));
   box-shadow: inset 0 1px 3px rgba(30, 35, 50, 0.06);
 }
 
@@ -1563,7 +1563,9 @@ input[type="number"] {
      narrow 8px gutter; the pane border is softened and its top edge brightened
      to a crisp specular lip against the well. */
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.52));
-  border: 1px solid color-mix(in srgb, var(--glass-border) 58%, rgba(255, 255, 255, 0.42));
+  /* Softer side/bottom outline — depth lives on the shadow edge + specular top
+     lip (DESIGN.md "depth lives on the surface edge"), not a drawn cool line. */
+  border: 1px solid color-mix(in srgb, var(--glass-border) 46%, rgba(255, 255, 255, 0.5));
   border-top-color: rgba(255, 255, 255, 0.85);
   box-shadow:
     0 2px 6px rgba(30, 35, 50, 0.1),
@@ -1581,7 +1583,7 @@ input[type="number"] {
      specular top edge, and softened border as the rails so the three panes read
      as one floating glass family. */
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.84));
-  border: 1px solid color-mix(in srgb, var(--glass-border) 62%, rgba(255, 255, 255, 0.36));
+  border: 1px solid color-mix(in srgb, var(--glass-border) 50%, rgba(255, 255, 255, 0.44));
   border-top-color: rgba(255, 255, 255, 0.85);
   box-shadow:
     0 2px 6px rgba(30, 35, 50, 0.1),
@@ -1606,7 +1608,94 @@ input[type="number"] {
    (never stark #fff) keeps the glass read while staying legible, and obeys the
    one-backdrop-filter-per-region performance contract (no own backdrop-filter). */
 .estimate-glass-headchrome {
-  background: linear-gradient(180deg, rgba(248, 249, 251, 0.94), rgba(246, 247, 250, 0.88));
+  background: linear-gradient(180deg, rgba(250, 249, 248, 0.94), rgba(248, 247, 246, 0.88));
+}
+
+/* Glass interactive states. The shared Tree primitive + the cost rows paint
+   selection/hover with flat #F5F5F5 grey, which reads heavy and "paper-era" on
+   frosted glass. Re-skin them as frosted LIFTS (brighter = active), scoped to
+   the glass surfaces only — the paper variant and the six non-estimate Tree
+   uses keep their grey. Selected (aria-current) is the brightest; hover is a
+   whisper. Specificity (class + attribute/pseudo) beats the Tailwind utility. */
+.estimate-glass-rail [aria-current="page"],
+.estimate-glass-rail [aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.82);
+}
+.estimate-glass-rail [class~="group/tree-row"]:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+.estimate-glass-paper [class~="group/estimate-row"]:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Tree keyboard-focus — a frost lift between selected (0.82) and hover (0.45)
+   so the keyboard "here" row reads on glass, not the paper grey (#f5f5f5). The
+   `border-l-focus` accent rail stays; only the grey fill is replaced. */
+.estimate-glass-rail [class~="group/tree-row"]:focus,
+.estimate-glass-rail [class~="group/tree-row"]:focus-within {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Active estimate row — the hardcoded paper-blue #F6FAFF slab + saturated blue
+   rail read as a foreign language on the frosted paper. Re-skin to a frosted
+   lift with a brand-orange active rail (the box-shadow persists through hover
+   so the active cue never drops). */
+.estimate-glass-paper [data-estimate-row-active="true"] {
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 2px 0 0 var(--brand-orange);
+}
+
+/* Component replace drop-target — drop the opaque pale-blue tile for a frosted
+   well; the ring affordance still carries the drop intent. */
+.estimate-glass-paper [data-replace-target-active="true"] {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+/* Node-group header bar + breadcrumb band — both bake a flat surfaceMuted/40
+   grey that doubles up on the headchrome frost, muddying the band. Let the
+   frost (and the hairlines + chevrons) carry it on glass. */
+.estimate-glass-paper [class~="bg-surfaceMuted/40"] {
+  background-color: transparent;
+}
+
+/* Add-row / drop-zone band — a whisper-translucent fill instead of the opaque
+   30% grey, so the "Add row" affordance reads as an invitation on the glass. */
+.estimate-glass-paper [class~="bg-surfaceMuted/30"] {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Missing-photo material thumbnail — an empty bg-neutral-100 tile punches an
+   opaque grey "hole" in the frost; recess it as a faint frosted well instead.
+   The bg-cover image layer still paints over this when a photo exists. */
+.estimate-glass-paper [class~="bg-neutral-100"][class~="bg-cover"] {
+  background-color: rgba(255, 255, 255, 0.34);
+  box-shadow: inset 0 0 0 1px var(--glass-divider);
+}
+
+/* Grid + rail icon-button hovers — a frosted lift instead of an opaque #f5f5f5
+   chip flashing on the frosted row. */
+.estimate-glass-well [class~="hover:bg-surfaceMuted"]:hover {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+/* Centre Page-tab strip — was an opaque white bar + hard ruled hairline boxed
+   directly under the frosted sheet header. Join it to the frosted-chrome family
+   with the same centre-faded divider the rails use (no backdrop-filter — the
+   one-frost-per-region perf contract is preserved). */
+.estimate-glass-paper [data-estimate-tab-strip] {
+  position: relative;
+  border-bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.62));
+}
+.estimate-glass-paper [data-estimate-tab-strip]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--glass-divider);
+  pointer-events: none;
 }
 
 .estimate-glass-divider {
