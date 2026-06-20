@@ -155,3 +155,46 @@ Sources:
 - MDN `aria-modal`: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-modal
 - Google Data Cards: https://developers.google.com/codelabs/data-cards-inspect
 - GOV.UK AI-ready dataset guidelines: https://assets.publishing.service.gov.uk/media/696e43965a37ab534a9e23ac/Building_AI-Ready_Datasets_for_the_UK.pdf
+
+## Hardening Research Addendum
+
+The second research pass sharpened four implementation implications:
+
+1. Dense mode is a first-class professional table workflow, not a cosmetic
+   alternate card layout. It must support find/filter, compare, inspect/edit,
+   selected-count, and batch actions.
+2. Applied filters should remain visible and resettable. Supplier, lifecycle,
+   brand, and confidence can support multi-select; pricing freshness should stay
+   mutually exclusive unless requirements change.
+3. Editable/interactive dense rows require an explicit semantic choice. Native
+   table is preferred for read-mostly comparison; ARIA grid is only justified if
+   cells become directly editable or grid navigation is essential.
+4. Import/export can stay deferred, but cost-catalog products commonly support
+   CSV/Excel-style catalog maintenance. The MVP should therefore protect future
+   import/export with validation, formula safety, and public/private field
+   classification now.
+
+Additional technical implications:
+
+- Large-list performance is a database/API/DOM problem, not just a visual one.
+  Server-side filtering/search, indexed text fields, reduced browse payloads,
+  pagination, or virtualization should be considered once scale budgets are hit.
+- Supabase/Postgres search work should prefer query/index decisions grounded in
+  actual workload: full-text indexes for text search and trigram indexes for
+  fuzzy name/supplier matching if needed.
+- Source trust is a cost-library norm: centralized cost libraries usually expose
+  item cost, unit, supplier/manufacturer, catalog/source, and assembly context.
+
+Additional source links:
+
+- W3C APG Grid: https://www.w3.org/WAI/ARIA/apg/patterns/grid/
+- web.dev Virtualize Large Lists: https://web.dev/articles/virtualize-long-lists-react-window
+- Supabase Query Optimization: https://supabase.com/docs/guides/database/query-optimization
+- PostgreSQL Text Search Indexes: https://www.postgresql.org/docs/current/textsearch-indexes.html
+- PostgreSQL pg_trgm: https://www.postgresql.org/docs/current/pgtrgm.html
+- GOV.UK File Upload: https://design-system.service.gov.uk/components/file-upload/
+- Procore Cost Catalog Import: https://v2.support.procore.com/product-manuals/cost-catalog-company/tutorials/import-cost-catalog-items
+- Autodesk Cost Library: https://www.autodesk.com/blogs/construction/autodesk-estimates-centralized-cost-library/
+- Houzz Product Library: https://pro.houzz.com/pro-help/r/how-to-use-the-product-library-in-houzz-pro
+- Houzz Assemblies: https://pro.houzz.com/pro-help/r/how-to-create-assemblies
+- Gordian RSMeans Data: https://www.gordian.com/products/rsmeans-data-services/

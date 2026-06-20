@@ -18,6 +18,22 @@ The weak points are less about missing features and more about continuity, consi
 | Maintenance scalability | 3 / 5 | Cards and folder branches work now; large libraries will need a denser table/list maintenance mode. |
 | Verification readiness | 4 / 5 | Good focused test inventory exists. Future changes need smaller tests instead of extending mega-tests. |
 
+## Hardening Audit Addendum
+
+The initial audit was strong on UI/product issues and light on implementation
+control issues. The hardening pass adds these highest-severity planning gaps:
+
+| Severity | Gap | Risk | Closure |
+| --- | --- | --- | --- |
+| High | Actor/RLS/authz matrix missing. | Viewers, public links, or cross-workspace users could get unsafe access. | `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` |
+| High | Public/private field exposure undefined. | Source URLs, internal notes, confidence labels, or price history could leak. | `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md` |
+| High | Route-state and invalid-param behavior underspecified. | Deep links could lose context or leak object existence. | `13-DATA-CONTRACTS-ROUTE-CACHE.md` |
+| High | Insert target re-resolution underspecified. | A stale picker could mutate the wrong estimate/project. | `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` |
+| High | Cache invalidation not mapped by mutation. | Overview/components/templates/estimate insert state could drift. | `13-DATA-CONTRACTS-ROUTE-CACHE.md` |
+| Medium | Large-list behavior lacks budgets. | Dense mode may be attractive but slow at beta scale. | `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md` |
+| Medium | Input/import/export/file safety deferred without guardrails. | Later catalog import/export could require rework or unsafe defaults. | `15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md` |
+| Medium | Rollback and no-go gates too implicit. | Implementation could ship broad UI changes without a safe backout. | `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md`, `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` |
+
 ## Route and Component Map
 
 | Surface | Current structure | Notes |

@@ -32,6 +32,12 @@ An active Codex goal already existed for the user's objective, so no duplicate g
 | UX critique | `designer` | Identified P1/P2/P3 issues: selected component loss, insert target opacity, Add Component overload, native prompts, inconsistent trust visibility, archive copy conflict, template move scaling, dense mode need. |
 | External research | `researcher` | Synthesized catalog, filtering, data table, overlay, accessibility, and provenance guidance from current external references. |
 | QA inventory | `test-engineer` | Mapped existing coverage, gaps, recommended focused tests, and browser-proof boundaries. |
+| Product strategy hardening | `ce-product-lens-reviewer` | Rated strategy 78-84%, called out missing beta metrics, MVP cutline, actor split, and trust semantics. |
+| Design hardening | `ce-design-lens-reviewer` | Rated UX/readiness 72-86%, called out missing state specs, responsive/a11y contracts, and quick-vs-advanced decisions. |
+| Feasibility hardening | `ce-feasibility-reviewer` | Rated implementation readiness as low as 58%, called out route/cache/payload/rollback contracts. |
+| Security hardening | `ce-security-lens-reviewer` | Rated security readiness 32-45%, called out authz/RLS, IDOR, public exposure, input/file, and cache-bleed risks. |
+| Research hardening | `ce-web-researcher` | Added dense table, filter, import/export, performance, and cost-library implications. |
+| Verification hardening | `verifier` | Rated overall readiness 76%, called out missing adversarial, security, network, concurrency, and completion gates. |
 
 ## Source Evidence Highlights
 
@@ -51,14 +57,23 @@ An active Codex goal already existed for the user's objective, so no duplicate g
 - The worktree had unrelated dirty changes before this work. They were not modified or reverted.
 - Code-review graph stats were checked: 1,429 files, 16,148 nodes, 190,581 edges, last updated 2026-06-19.
 - `AddComponentModal.tsx` is 2,359 lines, `ComponentLibraryManager.tsx` is 1,695 lines, and `TemplatesBrowseManager.tsx` is 899 lines. This supports the recommendation to split future work carefully.
+- Existing stale OMX ultragoal runtime state was unrelated to this planning
+  objective, so the active Codex goal and this repo-local plan pack were treated
+  as the authoritative task boundary.
 
 ## Validation Performed For This Planning Pack
 
-Planned final checks:
+Final checks for the hardening pass passed on 2026-06-20:
 
-- Confirm the plan files exist in the requested folder.
-- Run `git diff --check` scoped to the plan folder.
-- Grep for unresolved placeholder markers in the new plan files.
+- Confirmed 20 markdown files exist in the requested folder: `README.md` plus
+  `00` through `18`.
+- Counted 2,902 total markdown lines in the plan pack.
+- `git diff --check -- .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement .ai/10_state/current-state.md` passed.
+- `rg -n "[ \t]+$" .ai/03_plans/2026-06-20-Library-Page-Overall-Improvement .ai/10_state/current-state.md` returned no trailing-whitespace hits.
+- Placeholder-marker scan scoped to the plan pack returned no unresolved hits.
+- The new current-state Fast Path entry was separately scanned for the same
+  unresolved markers and returned no hits. Older historical state-log entries
+  still contain sanitized placeholder strings unrelated to this pass.
 
 ## Known Gaps
 

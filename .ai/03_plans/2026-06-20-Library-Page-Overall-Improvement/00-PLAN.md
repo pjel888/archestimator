@@ -30,6 +30,23 @@ Non-goals:
 - The Library should stay compact, keyboard-friendly, and work-focused.
 - Component Library data must preserve source, pricing date, confidence, supplier, lifecycle, and copied estimate snapshots.
 - Browser automation is not a default planning artifact. Use it later only when it proves a browser-only claim.
+- Older specs that reference standalone `/workshop/templates` or `/workshop/components` are historical context only unless a newer decision explicitly restores them.
+- Public/shared proposal surfaces must not expose protected Library source URLs, internal notes, confidence labels, or workspace-only price history by default.
+- Implementation must start with the Phase 0 contract lock in `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`, and `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md`.
+
+## Planning Readiness Rating After Hardening
+
+| Dimension | Before Hardening | Hardened Target | Closure Artifact |
+| --- | ---: | ---: | --- |
+| Product strategy | 78-84% | 95%+ | `09-MVP-STRATEGY-AND-SUCCESS-METRICS.md` |
+| UI/UX specification | 72-86% | 95%+ | `10-LIBRARY-SURFACE-SPECS.md`, `11-SOURCE-TRUST-STATE-MATRIX.md`, `12-RESPONSIVE-ACCESSIBILITY-INTERACTION-CONTRACT.md` |
+| Implementation feasibility | 58-82% | 95%+ | `13-DATA-CONTRACTS-ROUTE-CACHE.md`, `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md` |
+| Security/readiness | 32-45% | 95%+ | `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`, `15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md` |
+| QA/adversarial coverage | 58-72% | 95%+ | `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md`, `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` |
+
+The remaining gap is implementation-only evidence: rendered UI proof, actual
+tests, schema/RLS confirmation, and provider validation cannot be claimed from a
+planning pass.
 
 ## Design Thesis
 
@@ -55,6 +72,10 @@ The stable mental model:
 6. Applied filter state is too hidden for a professional catalog.
 7. Bulk archive copy conflicts with itself.
 8. Larger libraries will need a denser maintenance mode than cards alone.
+9. Route-state, payload, cache, and insert-target contracts are not explicit enough for implementation.
+10. Security, IDOR, RLS/authz, public exposure, and workspace-switch cache bleed require explicit gates.
+11. Import/export and file handling are deferred, but their validation and privacy constraints must shape the MVP.
+12. Large-list, network failure, out-of-order response, and concurrent edit behavior need designed states.
 
 ## Acceptance Criteria
 
@@ -68,6 +89,21 @@ A future implementation should be considered successful when:
 - Filter state is visible outside the filter popover and can be reset at the category and global level.
 - Keyboard behavior is defined for tabs, search comboboxes, menus, tree views, dialogs, drawers, and escape/close sequencing.
 - Targeted Vitest coverage proves route state, modal behavior, cache behavior, and action payloads before any browser proof.
+- Actor capability, RLS/authz, cross-workspace IDOR, public/private redaction, and workspace-switch cache behavior are tested or explicitly blocked before release.
+- Selected component/template route params fail safely, preserve surrounding search/filter context, and do not leak cross-workspace object existence.
+- Large-list behavior has a server/index or rendering fallback once beta-scale thresholds are reached.
+- Network, stale target, and concurrent edit failures preserve safe user context and never silently mutate a different estimate, folder, component, or template.
+- Rollback/fix-forward plans exist for each phase before implementation begins.
+
+## Beta Outcome Metrics
+
+The implementation pass should prove or instrument:
+
+- A seeded user can find a known component or template from `/workshop/library` in under 30 seconds.
+- At least 90% of visible component cards/rows expose enough information to classify pricing as current, stale, missing, or low confidence.
+- A user can insert a component or template into the intended estimate without losing search/filter context.
+- A user can create a basic component through Quick Add in under 90 seconds.
+- Public/shared surfaces show zero private source URLs, internal supplier notes, confidence labels, or workspace-only price-history fields.
 
 ## Expected File Areas
 
@@ -102,6 +138,21 @@ Expected test areas:
 - Shared primitive tests such as `ui-modal-tooltip.test.tsx`, `ui-dropdown-popup-core.test.tsx`, `ui-dropdown-select.test.tsx`, and `ui-tabs.test.tsx`
 
 ## Implementation Phases
+
+### Phase 0a - Contract Lock
+
+Before UI work, lock the data/route/cache/security/performance contracts:
+
+- `13-DATA-CONTRACTS-ROUTE-CACHE.md`
+- `14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`
+- `15-INPUT-IMPORT-EXPORT-FILE-HANDLING.md`
+- `16-PERFORMANCE-SCALE-NETWORK-CONCURRENCY.md`
+- `17-BLAST-RADIUS-SEQUENCING-ROLLBACK.md`
+- `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md`
+
+Why first: richer source metadata and deeper route state create security,
+privacy, and cache risks unless object ownership, public exposure, stale target,
+and workspace-switch behavior are specified first.
 
 ### Phase 0 - Overlay and Route-State Reliability
 

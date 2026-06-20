@@ -281,3 +281,63 @@ Scenarios:
 Validation:
 
 - Playwright/manual proof only for browser-only claims.
+
+## Phase 0 Contract Lock Addendum
+
+The hardening pass adds a prerequisite before `P0` implementation work:
+
+### LIB-P0A-01 - Route, payload, and cache contracts
+
+Target:
+
+- Lock `component=<id>` and `template=<id>` behavior, invalid-param recovery,
+  overview payload additions, insert target re-resolution, and mutation cache
+  invalidation.
+
+Validation:
+
+- Route-state tests for valid, invalid, deleted, and permission-denied selected
+  objects.
+- Cache tests that include workspace identity and mutation fanout.
+- Insert target tests that prove stale targets cannot mutate the wrong estimate.
+
+### LIB-P0A-02 - Security and data-exposure contracts
+
+Target:
+
+- Lock actor capability, object-level authorization, RLS expectations,
+  cross-workspace IDOR behavior, public/shared redaction, and workspace-switch
+  cache behavior.
+
+Validation:
+
+- Viewer/editor/admin/public/unauthenticated test cases.
+- Cross-workspace component/folder/template/estimate/project/file ID tests.
+- Public/shared route assertions that source URLs, internal notes, confidence
+  labels, and workspace-only price history are redacted.
+
+### LIB-P0A-03 - Performance, network, and concurrency contracts
+
+Target:
+
+- Lock large-list budgets, server/index fallback thresholds, slow/failing
+  network states, out-of-order response handling, and concurrent edit behavior.
+
+Validation:
+
+- 500-row dense-mode budget or documented fallback.
+- Slow search response cannot overwrite newer search/filter intent.
+- Concurrent edit/delete/insert cases return conflict or refetch states.
+
+## Phase Gate Matrix
+
+| Gate | Required Before Merge |
+| --- | --- |
+| P0A | Contracts and targeted security/route/cache tests exist or are explicitly scoped. |
+| P0 | No remaining native prompt/confirm in primary Library-owned flows touched by the phase; focus/error behavior tested. |
+| P1 | Overview search opens exact item, invalid selected params fail safely, and context is preserved. |
+| P2 | Trust metadata renders in card/row/inspector/template decision points with private/public exposure rules. |
+| P3 | Quick Add validates required fields, preserves data on failure, blocks read-only actors, and uses app-owned discard confirmation. |
+| P4 | Template preview names target, dependency health, stale/missing links, and partial failure recovery. |
+| P5 | Dense mode meets performance/accessibility budget or uses the documented fallback. |
+| Final | `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` has pass/skipped-risk entries and no no-go release condition remains. |

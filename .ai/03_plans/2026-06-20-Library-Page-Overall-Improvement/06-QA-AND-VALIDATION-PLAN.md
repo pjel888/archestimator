@@ -158,6 +158,16 @@ Skip browser automation for:
 | Bulk archive copy conflict | User mistrusts action | Copy unit test |
 | Mobile component browse | Controls overlap or scroll traps fail | Browser/manual proof after layout changes |
 | Keyboard-only library management | Accessibility regression | DOM keyboard tests first, browser proof for portal focus if needed |
+| Cross-workspace component param | IDOR/data leak | Permission-safe not-found/denied test with no object detail leakage |
+| Cross-workspace estimate insert target | Wrong estimate mutation | Server-action test that rejects stale/foreign target |
+| Workspace switch with inspector open | Prior-workspace cache bleed | Query/cache test or DOM test that clears/refetches protected data |
+| Public/shared proposal route requests source metadata | Private data leak | Redaction assertions for source URL, notes, confidence, price history |
+| Viewer opens Quick Add or submits mutation | Unauthorized mutation | UI hidden/disabled assertion plus server denial test |
+| Formula-like text or invalid source URL | Unsafe imported/exported data or bad stored source | Field validation/sanitization tests |
+| Folder renamed/deleted concurrently | Silent overwrite or wrong route state | Conflict/retry test |
+| Template dependency archived/discontinued | Unsafe reuse | Preview warning/block/override test |
+| Slow old search returns after newer query | Stale results replace current intent | Out-of-order response handling test |
+| 500-row dense view | UI stalls or keyboard path breaks | Perf smoke/fallback evidence plus accessibility review |
 
 ## Completion Gate For Future Implementation
 
@@ -168,3 +178,9 @@ A future implementation should not be marked complete until:
 - `git diff --check` passes.
 - Browser-only claims have browser evidence or are explicitly listed as not tested.
 - Remaining risks are written in the implementation handoff or final report.
+- Actor/authz, cross-workspace IDOR, public/private redaction, workspace-switch
+  cache, and stale insert target cases pass for any touched protected flow.
+- Performance/concurrency evidence exists for dense mode, server search/filter,
+  or any changed large-list behavior.
+- `18-ADVERSARIAL-QA-AND-COMPLETION-GATES.md` has been updated with pass,
+  skip-with-risk, or no-go status for implemented scenarios.

@@ -98,3 +98,31 @@ Before implementation, count overlays per top task and reduce where possible:
 - Do not nest modals for normal Library tasks.
 - Do not use browser prompts/confirms for Library-owned flows.
 - Do not put critical information only in placeholder text or tooltip content.
+
+## Screen Reader And State Announcement Addendum
+
+Use concise live-region announcements for:
+
+- selected component/template changed from a search result or URL param
+- inspector opened or closed
+- filters changed and result count updated
+- destructive action completed
+- insert target changed
+- mutation failed while previous context was preserved
+
+Do not announce every visual badge. Source-trust badges need accessible names on
+focusable rows/cards/inspector content, while result-count and mutation changes
+use live announcements.
+
+Every overlay implementation should also define:
+
+- permission-denied announcement
+- concurrent-change announcement
+- mutation-success announcement
+- error focus target
+- focus return when the trigger no longer exists
+
+Advanced Add must not become a long modal with every possible field visible. Use
+a full editor page or persistent drawer when the user needs source
+reconciliation, attachments, assemblies, price history, or provider-mapping
+work.

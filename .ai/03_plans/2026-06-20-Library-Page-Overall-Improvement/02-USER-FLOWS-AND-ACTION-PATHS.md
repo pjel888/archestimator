@@ -222,3 +222,39 @@ Target path:
 - Keep add/rename/delete dialog pattern as the model for component folder actions.
 
 Priority: P2
+
+## Actor And Failure-State Addendum
+
+All flows above must obey the actor split in
+`14-SECURITY-AUTHZ-AND-DATA-EXPOSURE.md`:
+
+- unauthenticated users get no protected Library access
+- public/shared-link viewers get sanitized proposal/estimate snapshots only
+- workspace viewers can inspect but not mutate Library data
+- workspace editors can create, update, and insert within permitted workspace
+  scope
+- admins/owners can perform destructive Library management inside their
+  workspace
+
+Cross-flow failure contracts:
+
+- Keep safe context on retry: search text, filters, folder, sort, density, and
+  pagination remain unless the failed state itself invalidates them.
+- Never silently switch a mutation target. If the target estimate, project,
+  folder, component, or template is stale, ask the user to reselect or confirm.
+- Permission errors name the missing capability without leaking whether a
+  cross-workspace object exists.
+- Public/shared-link routes never redirect into protected Library edit surfaces.
+- Autosave is not assumed. Unsaved changes require explicit save, cancel, or
+  app-owned discard behavior.
+
+Additional hostile branches to design and test:
+
+- Overview result belongs to another workspace.
+- Selected component route param is invalid, deleted, archived, or denied.
+- User switches workspace with an inspector open.
+- Folder is deleted while selected in the route.
+- Insert target is deleted or changed after the picker opens.
+- Template includes archived, discontinued, stale, or missing component
+  dependencies.
+- Network failure returns after the user changed search/filter state.
