@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-06-20T09:52:25.082Z",
+  "base": "https://www.archestimator.com",
+  "n": 12,
+  "routes": {
+    "workshop": {
+      "path": "/workshop",
+      "medianMs": 2982,
+      "minMs": 2623,
+      "p75Ms": 3161,
+      "maxMs": 4871,
+      "status": 200,
+      "authed": true,
+      "bytes": 162628,
+      "samples": [
+        4871,
+        3327,
+        3129,
+        3075,
+        2732,
+        2704,
+        3126,
+        2888,
+        2875,
+        2623,
+        3161,
+        2822
+      ]
+    },
+    "projects": {
+      "path": "/workshop/projects",
+      "medianMs": 3546,
+      "minMs": 2923,
+      "p75Ms": 3863,
+      "maxMs": 6305,
+      "status": 200,
+      "authed": true,
+      "bytes": 213757,
+      "samples": [
+        6305,
+        3512,
+        3095,
+        3117,
+        3661,
+        5012,
+        2923,
+        3863,
+        3607,
+        3554,
+        3537,
+        2971
+      ]
+    },
+    "project": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "medianMs": 3281,
+      "minMs": 3031,
+      "p75Ms": 3392,
+      "maxMs": 3923,
+      "status": 200,
+      "authed": true,
+      "bytes": 219581,
+      "samples": [
+        3165,
+        3883,
+        3356,
+        3392,
+        3923,
+        3090,
+        3077,
+        3031,
+        3368,
+        3259,
+        3303,
+        3066
+      ]
+    },
+    "estimates": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "medianMs": 3385,
+      "minMs": 3060,
+      "p75Ms": 3723,
+      "maxMs": 4263,
+      "status": 200,
+      "authed": true,
+      "bytes": 308403,
+      "samples": [
+        3294,
+        3158,
+        3090,
+        3977,
+        3617,
+        3299,
+        4263,
+        3723,
+        3060,
+        3472,
+        3491,
+        3291
+      ]
+    },
+    "sheet": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "medianMs": 3542,
+      "minMs": 3404,
+      "p75Ms": 3769,
+      "maxMs": 3943,
+      "status": 200,
+      "authed": true,
+      "bytes": 575564,
+      "samples": [
+        3542,
+        3734,
+        3477,
+        3432,
+        3769,
+        3542,
+        3478,
+        3468,
+        3806,
+        3404,
+        3562,
+        3943
+      ]
+    }
+  }
+}

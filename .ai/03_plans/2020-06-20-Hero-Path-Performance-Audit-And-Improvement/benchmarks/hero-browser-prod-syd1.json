@@ -1,0 +1,173 @@
+{
+  "generatedAt": "2026-06-20T10:04:50.167Z",
+  "label": "prod-syd1",
+  "base": "https://www.archestimator.com",
+  "runs": 5,
+  "mode": "next-start-production-real-browser-softnav-overlay",
+  "summary": [
+    {
+      "scenario": "Workshop to Projects",
+      "samples": [
+        1327,
+        1900,
+        1363,
+        912,
+        1454
+      ],
+      "median": 1363,
+      "max": 1900,
+      "n": 5
+    },
+    {
+      "scenario": "Projects to Target Project",
+      "samples": [
+        753,
+        803,
+        1853,
+        1148,
+        2323
+      ],
+      "median": 1148,
+      "max": 2323,
+      "n": 5
+    },
+    {
+      "scenario": "Target Project to Estimates",
+      "samples": [
+        6794,
+        892,
+        1439,
+        628,
+        616
+      ],
+      "median": 892,
+      "max": 6794,
+      "n": 5
+    },
+    {
+      "scenario": "Estimates to Target Estimate",
+      "samples": [
+        756,
+        1628,
+        628,
+        622,
+        1063
+      ],
+      "median": 756,
+      "max": 1628,
+      "n": 5
+    }
+  ],
+  "allRuns": [
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1327,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 753,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 6794,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "durationMs": 756,
+        "sawOverlay": false
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1900,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 803,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 892,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "durationMs": 1628,
+        "sawOverlay": false
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1363,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 1853,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 1439,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "durationMs": 628,
+        "sawOverlay": false
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 912,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 1148,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 628,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "durationMs": 622,
+        "sawOverlay": false
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1454,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 2323,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 616,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "durationMs": 1063,
+        "sawOverlay": false
+      }
+    ]
+  ]
+}

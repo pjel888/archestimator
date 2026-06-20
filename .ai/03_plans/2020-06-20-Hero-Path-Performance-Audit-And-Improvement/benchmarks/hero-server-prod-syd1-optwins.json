@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-06-20T11:10:28.428Z",
+  "base": "https://www.archestimator.com",
+  "n": 12,
+  "routes": {
+    "workshop": {
+      "path": "/workshop",
+      "medianMs": 1044,
+      "minMs": 847,
+      "p75Ms": 1222,
+      "maxMs": 1465,
+      "status": 200,
+      "authed": true,
+      "bytes": 163098,
+      "samples": [
+        926,
+        886,
+        868,
+        1198,
+        889,
+        1060,
+        1027,
+        1184,
+        1222,
+        1465,
+        847,
+        1346
+      ]
+    },
+    "projects": {
+      "path": "/workshop/projects",
+      "medianMs": 1193,
+      "minMs": 741,
+      "p75Ms": 1834,
+      "maxMs": 2715,
+      "status": 200,
+      "authed": true,
+      "bytes": 214227,
+      "samples": [
+        1121,
+        2715,
+        771,
+        1927,
+        1834,
+        741,
+        1180,
+        1045,
+        1206,
+        1584,
+        1234,
+        810
+      ]
+    },
+    "project": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "medianMs": 1103,
+      "minMs": 802,
+      "p75Ms": 1259,
+      "maxMs": 1890,
+      "status": 200,
+      "authed": true,
+      "bytes": 220071,
+      "samples": [
+        802,
+        1083,
+        1208,
+        957,
+        1484,
+        1113,
+        1092,
+        1259,
+        1089,
+        1084,
+        1890,
+        1205
+      ]
+    },
+    "estimates": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "medianMs": 1189,
+      "minMs": 906,
+      "p75Ms": 1459,
+      "maxMs": 3442,
+      "status": 200,
+      "authed": true,
+      "bytes": 309576,
+      "samples": [
+        3442,
+        1154,
+        1120,
+        1041,
+        972,
+        1413,
+        1224,
+        1459,
+        906,
+        1274,
+        2953,
+        1103
+      ]
+    },
+    "sheet": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "medianMs": 1122,
+      "minMs": 699,
+      "p75Ms": 1351,
+      "maxMs": 2091,
+      "status": 200,
+      "authed": true,
+      "bytes": 576527,
+      "samples": [
+        777,
+        1096,
+        1645,
+        1056,
+        1276,
+        1149,
+        1150,
+        2091,
+        862,
+        738,
+        699,
+        1351
+      ]
+    }
+  }
+}

@@ -227,3 +227,30 @@ Validation (integrated tree): `bun run type-check` exit 0; `bun run build` exit 
 Owner decision (recorded): SKIP production proof for now (multiple coding agents active in the codebase). Created `DEPLOY-AND-MEASURE.md` runbook so a full `main` deploy + re-benchmark can be run later. Changes left uncommitted in the working tree by design. Owner-decision wins (RLS hoist B1, list pagination B2, browserslist trim B5, dashboard server-shell B4, speed-insights A1) documented, not implemented.
 
 Artifacts: `audit/AUDIT-2026-06-20.md`, `DEPLOY-AND-MEASURE.md`, `benchmarks/hero-browser-*.json`, `benchmarks/hero-server-*.json`.
+
+## 2026-06-20 - Loop 6 Production Proof + Region Fix (THE win)
+
+Owner deployed latest `main` (with the Loop 5 code optimizations) to Vercel. Measured the LIVE production hero path (`https://www.archestimator.com`, authenticated, from PH).
+
+Production baseline (us-east default region), bridge-independent server timing, full authenticated SSR render: workshop 2982 ms, projects 3546 ms, project 3281 ms, estimates 3385 ms, sheet 3542 ms — a consistent ~3 s (NOT cold-start; warming didn't help).
+
+Root cause: Supabase is `ap-southeast-2` (Sydney); Vercel functions ran in the default `iad1` (US-East) because `vercel.json` had no `regions`. Every render = ~10–15 sequential Supabase calls across US-East⇄Sydney (~200 ms each) ≈ 3 s. Owner is in PH (also far from US-East).
+
+Fix (config-only, zero code/UX): `vercel.json` → `"regions": ["syd1"]` (commit `1930f7f2`); deployed to production via `vercel --prod`. Confirmed deployment READY + aliased to www.archestimator.com.
+
+After (syd1, co-located with Supabase), server timing n=12: workshop 723 ms, projects 793 ms, project 812 ms, estimates 810 ms, sheet 898 ms — **~4× faster**, low variance (min 655–782, p75 ≤ 924, max ≤ ~1.2 s). Browser soft-nav (n=5, noisier harness): medians 756–1363 ms, many sub-second. These ~700–900 ms full page loads from PH↔Sydney are near the geographic floor.
+
+Verdict: production-grade fast achieved. The dominant lever was infrastructure region co-location, not code (local benchmarks were network-bound noise — see audit). Code optimizations remain complementary and shipped. Committed `vercel.json` so the region persists across future deploys. Full write-up: `PRODUCTION-RESULTS.md`.
+
+## 2026-06-20 - Loop 7 Optional Wins (owner-approved follow-up)
+
+Owner approved the optional backlog. All four addressed via parallel agents (disjoint file scopes), each verified; concurrent non-owned agents were active in the tree, so only cleanly-isolated owned files were committed.
+
+- ROUND-TRIP REDUCTION (commit: none): investigated the project + estimate-sheet loaders and `workspace-repository.ts` resolvers. Both are ALREADY optimally parallelized by prior passes (wave-batched `Promise.all`; remaining serial awaits are genuine data dependencies or auth-ordering gates). No change warranted — forcing parallelism would change what's fetched or weaken auth ordering. Evidence in agent report.
+- RLS INITPLAN HOIST (commit `ebf28a0b`): live-catalog audit showed hero-table policies were already `(select auth.uid())`-wrapped; only 3 row-independent helpers (`is_platform_admin`, `is_workspace_admin`, `current_user_profile`) had bare `auth.uid()`/`auth.jwt()`. Migration `20260620103306_rls_initplan_hoist.sql` wraps them. Applied to prod `ebxxqidacheyapmmzavr` via MCP `apply_migration` (ledger recorded). Proven outcome-identical (row-parity hero/email-only/non-member before==after; advisors 0 ERROR); `is_platform_admin()` per-row ~14.5× faster in the OR-with-row-dependent shape. LIVE now (no app deploy needed).
+- ESTIMATES-LIST VIRTUALIZATION (commit `8c611d13`): applied `@tanstack/react-virtual` windowing (same as the sheet) to `ProjectEstimatesTable`, threshold-gated, spacer-row pattern preserving `table-fixed`/colgroup/sticky-header + all interactions. INVISIBLE UX. 34 table tests pass. Needs deploy to ship.
+- VERCEL SPEED INSIGHTS + ANALYTICS (commit `edff2480`): owner-approved Option B — installed `@vercel/speed-insights`, mounted `<SpeedInsights/>` in root layout. Reopened/superseded the closed telemetry-privacy decision record + updated `vercel-web-analytics-integration.test.ts` (11 tests pass). Privacy: Next.js integration attributes to route PATTERNS (no literal tokens/IDs, no query strings); Web Analytics keeps its stricter beforeSend drop-policy. Needs deploy to collect field data; owner should confirm in Vercel dashboard → Speed Insights that route labels are patterns.
+
+Deploy status (initial): RLS LIVE; analytics + virtualization committed but the working tree had a large concurrent estimate-sheet redesign (57 dirty files), so the working tree was not directly deployable.
+
+DEPLOYED (owner cleared deploy): to avoid shipping the concurrent in-progress redesign, deployed from a CLEAN throwaway `git worktree --detach` at committed HEAD `8c611d13` via `vercel --prod` → `dpl_8HFESiijcbXd38wxoPbRfLR75BoF`, aliased to www.archestimator.com. Ships only the verified commits (region + RLS file + Speed Insights + virtualization), not other agents' work. Worktree removed; main working tree untouched. Speed Insights confirmed live (`/_vercel/speed-insights/script.js` 200). Post-deploy regression benchmark: warm/min 674–908ms per route (estimates 769ms median) = no regression; wider medians are residential PH↔Sydney variance + fresh-deploy cold-start. Still uncommitted for the owner's next unified commit: the concurrent redesign, the .ai folder rename + these docs, and the bench-script path tweaks.

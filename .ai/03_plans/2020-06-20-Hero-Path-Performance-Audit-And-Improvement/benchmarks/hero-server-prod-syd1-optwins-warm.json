@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-06-20T11:13:12.190Z",
+  "base": "https://www.archestimator.com",
+  "n": 12,
+  "routes": {
+    "workshop": {
+      "path": "/workshop",
+      "medianMs": 1150,
+      "minMs": 908,
+      "p75Ms": 2780,
+      "maxMs": 3781,
+      "status": 200,
+      "authed": true,
+      "bytes": 163098,
+      "samples": [
+        1201,
+        3702,
+        1098,
+        1081,
+        908,
+        1061,
+        1215,
+        1298,
+        1099,
+        2780,
+        973,
+        3781
+      ]
+    },
+    "projects": {
+      "path": "/workshop/projects",
+      "medianMs": 1154,
+      "minMs": 848,
+      "p75Ms": 1248,
+      "maxMs": 2534,
+      "status": 200,
+      "authed": true,
+      "bytes": 214227,
+      "samples": [
+        1094,
+        1214,
+        848,
+        2534,
+        980,
+        1214,
+        907,
+        1248,
+        1035,
+        1429,
+        987,
+        1214
+      ]
+    },
+    "project": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "medianMs": 986,
+      "minMs": 677,
+      "p75Ms": 1358,
+      "maxMs": 2087,
+      "status": 200,
+      "authed": true,
+      "bytes": 220071,
+      "samples": [
+        1077,
+        1005,
+        2087,
+        1048,
+        966,
+        1358,
+        1919,
+        711,
+        809,
+        677,
+        814,
+        678
+      ]
+    },
+    "estimates": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "medianMs": 769,
+      "minMs": 674,
+      "p75Ms": 809,
+      "maxMs": 1119,
+      "status": 200,
+      "authed": true,
+      "bytes": 309576,
+      "samples": [
+        1119,
+        674,
+        689,
+        765,
+        680,
+        793,
+        773,
+        809,
+        823,
+        744,
+        736,
+        780
+      ]
+    },
+    "sheet": {
+      "path": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "medianMs": 1019,
+      "minMs": 729,
+      "p75Ms": 1168,
+      "maxMs": 2876,
+      "status": 200,
+      "authed": true,
+      "bytes": 576527,
+      "samples": [
+        846,
+        1045,
+        729,
+        818,
+        1065,
+        740,
+        1265,
+        992,
+        925,
+        1168,
+        1155,
+        2876
+      ]
+    }
+  }
+}
