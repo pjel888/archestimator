@@ -3020,6 +3020,7 @@ export type Database = {
       }
       project_publications: {
         Row: {
+          activity_target_labels_json: Json
           created_at: string
           encrypted_token: string
           expires_at: string | null
@@ -3041,6 +3042,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          activity_target_labels_json?: Json
           created_at?: string
           encrypted_token: string
           expires_at?: string | null
@@ -3062,6 +3064,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          activity_target_labels_json?: Json
           created_at?: string
           encrypted_token?: string
           expires_at?: string | null
@@ -4109,6 +4112,16 @@ export type Database = {
       }
       project_estimate_list_summaries: {
         Args: { target_project_id: string }
+        Returns: {
+          estimate_id: string
+          first_node_id: string
+          node_count: number
+          row_count: number
+          total_cost: number
+        }[]
+      }
+      project_estimate_list_summaries_for_estimates: {
+        Args: { target_estimate_ids: string[]; target_project_id: string }
         Returns: {
           estimate_id: string
           first_node_id: string
