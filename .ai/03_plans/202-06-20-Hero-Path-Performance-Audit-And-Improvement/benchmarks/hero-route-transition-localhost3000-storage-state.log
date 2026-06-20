@@ -1,0 +1,284 @@
+$ bun run scripts/measure-route-transitions.ts
+Archestimator route transition benchmark
+Base URL: http://localhost:3000
+Network: No throttle
+Runs per scenario: 5
+Scenario filter: authenticated hero
+
+Scenario: Authenticated Hero: Workshop to Projects
+   Run 1: 841ms, overlay=true, rsc=1
+   Run 2: 1039ms, overlay=true, rsc=1
+   Run 3: 1072ms, overlay=true, rsc=1
+   Run 4: 725ms, overlay=true, rsc=1
+   Run 5: 751ms, overlay=true, rsc=1
+
+Scenario: Authenticated Hero: Projects to Target Project
+   Run 1: 823ms, overlay=true, rsc=1
+   Run 2: 835ms, overlay=true, rsc=1
+   Run 3: 1049ms, overlay=true, rsc=1
+   Run 4: 1203ms, overlay=true, rsc=1
+   Run 5: 894ms, overlay=true, rsc=1
+
+Scenario: Authenticated Hero: Target Project to Estimates
+   Run 1: 642ms, overlay=true, rsc=1
+   Run 2: 1051ms, overlay=true, rsc=1
+   Run 3: 791ms, overlay=true, rsc=1
+   Run 4: 1237ms, overlay=true, rsc=1
+   Run 5: FAILED - waitForFunction: Timeout 15000ms exceeded.
+
+Scenario: Authenticated Hero: Estimates to Target Estimate
+   Run 1: FAILED - waitForFunction: Timeout 15000ms exceeded.
+   Run 2: 850ms, overlay=true, rsc=1
+   Run 3: 821ms, overlay=true, rsc=1
+   Run 4: 1435ms, overlay=true, rsc=1
+   Run 5: 770ms, overlay=true, rsc=1
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Authenticated Hero: Workshop to Projects | 841 | 1.00 | 5 | 5 | 0 |
+| Authenticated Hero: Projects to Target Project | 894 | 1.00 | 5 | 5 | 0 |
+| Authenticated Hero: Target Project to Estimates | 1051 | 1.00 | 4 | 4 | 1 |
+| Authenticated Hero: Estimates to Target Estimate | 850 | 1.00 | 4 | 4 | 1 |
+
+Wrote benchmark JSON: .ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks/hero-route-transition-localhost3000-storage-state.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-06-20T02:21:39.716Z",
+  "baseUrl": "http://localhost:3000",
+  "authMode": "storage-state",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 5,
+  "waitForNetworkIdle": false,
+  "scenarioFilter": "authenticated hero",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "heroPath": {
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "estimateNodeId": "bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+    ]
+  },
+  "gitStatusShort": [
+    " M public/storybook-audits/settings-modal-audit-capture.json",
+    " M public/storybook-audits/settings-modal-audit-desktop.png",
+    " M public/storybook-audits/settings-modal-audit-mobile.png",
+    " M public/storybook-audits/settings-modal-audit-notes.md",
+    " M scripts/check-route-transition-readiness.ts",
+    " M scripts/measure-route-transitions.ts",
+    " M src/app/globals.css",
+    " M src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+    " M src/app/workshop/projects/[projectId]/estimates/page.tsx",
+    " M src/app/workshop/projects/[projectId]/page.tsx",
+    " M src/app/workshop/settings/page.tsx",
+    " M src/components/workshop/ProjectEstimatesClient.tsx",
+    " M src/components/workshop/ProjectEstimatesTable.tsx",
+    " M src/components/workshop/WorkshopBreadcrumbs.tsx",
+    " M src/components/workshop/WorkshopPageShell.tsx",
+    " M src/components/workshop/WorkshopSettingsModalContentView.tsx",
+    " M src/components/workshop/WorkshopTitleHeader.tsx",
+    " M src/lib/repositories/project-estimate-sheets-repository.ts",
+    " M src/lib/repositories/workspace-repository.ts",
+    " M src/stories/domain/workshop/modal-patterns.stories.tsx",
+    " M tests/vitest/auth-settings-ui-contract.test.ts",
+    " M tests/vitest/estimate-tabs-domain.test.ts",
+    " M tests/vitest/project-dashboard-route-shell-ui.test.ts",
+    " M tests/vitest/project-estimate-sheets-repository.test.ts",
+    " M tests/vitest/route-transition-measure-script.test.ts",
+    " M tests/vitest/route-transition-readiness-script.test.ts",
+    " M tests/vitest/support-contact-readiness.test.ts",
+    "?? .ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/",
+    "?? tests/vitest/workshop-settings-modal-content-view.test.tsx"
+  ],
+  "results": [
+    {
+      "scenario": "Authenticated Hero: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 841,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 2,
+          "durationMs": 1039,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 3,
+          "durationMs": 1072,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 4,
+          "durationMs": 725,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 5,
+          "durationMs": 751,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        }
+      ],
+      "failures": [],
+      "medianMs": 841,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Projects to Target Project",
+      "from": "/workshop/projects",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 823,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 2,
+          "durationMs": 835,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 3,
+          "durationMs": 1049,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 4,
+          "durationMs": 1203,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 5,
+          "durationMs": 894,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        }
+      ],
+      "failures": [],
+      "medianMs": 894,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Target Project to Estimates",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 642,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 2,
+          "durationMs": 1051,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 3,
+          "durationMs": 791,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 4,
+          "durationMs": 1237,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        }
+      ],
+      "failures": [
+        {
+          "run": 5,
+          "message": "waitForFunction: Timeout 15000ms exceeded."
+        }
+      ],
+      "medianMs": 1051,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 4
+    },
+    {
+      "scenario": "Authenticated Hero: Estimates to Target Estimate",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 2,
+          "durationMs": 850,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 3,
+          "durationMs": 821,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 4,
+          "durationMs": 1435,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 5,
+          "durationMs": 770,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        }
+      ],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitForFunction: Timeout 15000ms exceeded."
+        }
+      ],
+      "medianMs": 850,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 4
+    }
+  ]
+}

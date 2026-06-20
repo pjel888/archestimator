@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-06-20T03:45:50.165Z",
+  "mode": "route-transition-readiness",
+  "benchmarkFile": ".ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks/hero-route-transition-localhost3000-storage-state-final.json",
+  "benchmarkGeneratedAt": "2026-06-20T03:45:50.062Z",
+  "baseUrl": "http://localhost:3000",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 5,
+  "waitForNetworkIdle": false,
+  "warmRoutesBeforeMeasure": true,
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "authMode": "storage-state",
+  "thresholds": {
+    "minRuns": 5,
+    "publicMedianBudgetMs": 15000,
+    "slow3gPublicMedianBudgetMs": 30000,
+    "authenticatedMedianBudgetMs": 10000,
+    "overlayVisibilityRateMax": 1
+  },
+  "requiredHeroScenarios": [
+    "Authenticated Hero: Workshop to Projects",
+    "Authenticated Hero: Projects to Target Project",
+    "Authenticated Hero: Target Project to Estimates",
+    "Authenticated Hero: Estimates to Target Estimate"
+  ],
+  "scenarioChecks": [
+    {
+      "scenario": "Authenticated Hero: Workshop to Projects",
+      "networkProfile": "No throttle",
+      "runs": 5,
+      "failures": 0,
+      "medianMs": 665,
+      "maxDurationMs": 766,
+      "budgetMs": 10000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "scenario": "Authenticated Hero: Projects to Target Project",
+      "networkProfile": "No throttle",
+      "runs": 5,
+      "failures": 0,
+      "medianMs": 908,
+      "maxDurationMs": 1013,
+      "budgetMs": 10000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "scenario": "Authenticated Hero: Target Project to Estimates",
+      "networkProfile": "No throttle",
+      "runs": 5,
+      "failures": 0,
+      "medianMs": 737,
+      "maxDurationMs": 829,
+      "budgetMs": 10000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "scenario": "Authenticated Hero: Estimates to Target Estimate",
+      "networkProfile": "No throttle",
+      "runs": 5,
+      "failures": 0,
+      "medianMs": 817,
+      "maxDurationMs": 1318,
+      "budgetMs": 10000,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5,
+      "passed": true,
+      "reasons": []
+    }
+  ],
+  "missing": [],
+  "routeTransitionReady": true,
+  "note": "Sanitized route-transition readiness check. It validates a benchmark JSON artifact from scripts/measure-route-transitions.ts against local thresholds; it does not create hosted/manual browser proof or verify production-user behavior by itself."
+}

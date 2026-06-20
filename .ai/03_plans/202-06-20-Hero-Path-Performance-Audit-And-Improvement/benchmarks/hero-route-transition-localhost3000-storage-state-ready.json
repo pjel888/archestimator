@@ -1,0 +1,249 @@
+{
+  "generatedAt": "2026-06-20T02:33:47.718Z",
+  "baseUrl": "http://localhost:3000",
+  "authMode": "storage-state",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 5,
+  "waitForNetworkIdle": false,
+  "warmRoutesBeforeMeasure": true,
+  "scenarioFilter": "authenticated hero",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "heroPath": {
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "estimateNodeId": "bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+    ]
+  },
+  "gitStatusShort": [
+    " M .ai/10_state/current-state.md",
+    " M public/storybook-audits/settings-modal-audit-capture.json",
+    " M public/storybook-audits/settings-modal-audit-desktop.png",
+    " M public/storybook-audits/settings-modal-audit-mobile.png",
+    " M public/storybook-audits/settings-modal-audit-notes.md",
+    " M scripts/check-route-transition-readiness.ts",
+    " M scripts/measure-route-transitions.ts",
+    " M src/app/globals.css",
+    " M src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+    " M src/app/workshop/projects/[projectId]/estimates/page.tsx",
+    " M src/app/workshop/projects/[projectId]/page.tsx",
+    " M src/app/workshop/settings/page.tsx",
+    " M src/components/workshop/ProjectEstimateFavoriteButton.tsx",
+    " M src/components/workshop/ProjectEstimatesClient.tsx",
+    " M src/components/workshop/ProjectEstimatesTable.tsx",
+    " M src/components/workshop/WorkshopBreadcrumbs.tsx",
+    " M src/components/workshop/WorkshopPageShell.tsx",
+    " M src/components/workshop/WorkshopSettingsModal.tsx",
+    " M src/components/workshop/WorkshopSettingsModalContentView.tsx",
+    " M src/components/workshop/WorkshopTitleHeader.tsx",
+    " M src/lib/repositories/project-estimate-sheets-repository.ts",
+    " M src/lib/repositories/workspace-repository.ts",
+    " M src/stories/domain/workshop/modal-patterns.stories.tsx",
+    " M tests/vitest/auth-settings-ui-contract.test.ts",
+    " M tests/vitest/estimate-tabs-domain.test.ts",
+    " M tests/vitest/project-dashboard-route-shell-ui.test.ts",
+    " M tests/vitest/project-estimate-sheets-repository.test.ts",
+    " M tests/vitest/project-estimates-delete-duplicate.test.tsx",
+    " M tests/vitest/project-estimates-table-inline-edit.test.tsx",
+    " M tests/vitest/route-transition-measure-script.test.ts",
+    " M tests/vitest/route-transition-readiness-script.test.ts",
+    " M tests/vitest/support-contact-readiness.test.ts",
+    "?? .ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/",
+    "?? tests/vitest/workshop-settings-modal-content-view.test.tsx"
+  ],
+  "results": [
+    {
+      "scenario": "Authenticated Hero: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 627,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 2,
+          "durationMs": 823,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 3,
+          "durationMs": 651,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 4,
+          "durationMs": 1142,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 5,
+          "durationMs": 1347,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        }
+      ],
+      "failures": [],
+      "medianMs": 823,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Projects to Target Project",
+      "from": "/workshop/projects",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 717,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 2,
+          "durationMs": 1988,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 3,
+          "durationMs": 718,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 4,
+          "durationMs": 996,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 5,
+          "durationMs": 869,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        }
+      ],
+      "failures": [],
+      "medianMs": 869,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Target Project to Estimates",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 1584,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 2,
+          "durationMs": 824,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 3,
+          "durationMs": 985,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 4,
+          "durationMs": 717,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 5,
+          "durationMs": 2682,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        }
+      ],
+      "failures": [],
+      "medianMs": 985,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Estimates to Target Estimate",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 10622,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 2,
+          "durationMs": 1012,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 3,
+          "durationMs": 944,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 4,
+          "durationMs": 704,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 5,
+          "durationMs": 2152,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        }
+      ],
+      "failures": [],
+      "medianMs": 1012,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    }
+  ]
+}

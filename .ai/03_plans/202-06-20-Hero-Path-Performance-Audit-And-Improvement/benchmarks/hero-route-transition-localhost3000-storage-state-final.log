@@ -1,0 +1,259 @@
+$ bun run scripts/measure-route-transitions.ts
+Archestimator route transition benchmark
+Base URL: http://localhost:3000
+Network: No throttle
+Runs per scenario: 5
+Warm routes before measure: true
+Scenario filter: authenticated hero
+
+Scenario: Authenticated Hero: Workshop to Projects
+   Run 1: 659ms, overlay=true, rsc=1
+   Run 2: 641ms, overlay=true, rsc=1
+   Run 3: 686ms, overlay=true, rsc=1
+   Run 4: 766ms, overlay=true, rsc=1
+   Run 5: 665ms, overlay=true, rsc=1
+
+Scenario: Authenticated Hero: Projects to Target Project
+   Run 1: 699ms, overlay=true, rsc=1
+   Run 2: 908ms, overlay=true, rsc=1
+   Run 3: 1013ms, overlay=true, rsc=1
+   Run 4: 918ms, overlay=true, rsc=1
+   Run 5: 891ms, overlay=true, rsc=1
+
+Scenario: Authenticated Hero: Target Project to Estimates
+   Run 1: 829ms, overlay=true, rsc=1
+   Run 2: 737ms, overlay=true, rsc=1
+   Run 3: 774ms, overlay=true, rsc=1
+   Run 4: 725ms, overlay=true, rsc=1
+   Run 5: 690ms, overlay=true, rsc=1
+
+Scenario: Authenticated Hero: Estimates to Target Estimate
+   Run 1: 817ms, overlay=true, rsc=1
+   Run 2: 1318ms, overlay=true, rsc=1
+   Run 3: 674ms, overlay=true, rsc=1
+   Run 4: 1065ms, overlay=true, rsc=1
+   Run 5: 665ms, overlay=true, rsc=1
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Authenticated Hero: Workshop to Projects | 665 | 1.00 | 5 | 5 | 0 |
+| Authenticated Hero: Projects to Target Project | 908 | 1.00 | 5 | 5 | 0 |
+| Authenticated Hero: Target Project to Estimates | 737 | 1.00 | 5 | 5 | 0 |
+| Authenticated Hero: Estimates to Target Estimate | 817 | 1.00 | 5 | 5 | 0 |
+
+Wrote benchmark JSON: .ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/benchmarks/hero-route-transition-localhost3000-storage-state-final.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-06-20T03:45:50.062Z",
+  "baseUrl": "http://localhost:3000",
+  "authMode": "storage-state",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 5,
+  "waitForNetworkIdle": false,
+  "warmRoutesBeforeMeasure": true,
+  "scenarioFilter": "authenticated hero",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "heroPath": {
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "estimateNodeId": "bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "Authenticated Hero: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 659,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 2,
+          "durationMs": 641,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 3,
+          "durationMs": 686,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 4,
+          "durationMs": 766,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 5,
+          "durationMs": 665,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        }
+      ],
+      "failures": [],
+      "medianMs": 665,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Projects to Target Project",
+      "from": "/workshop/projects",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 699,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 2,
+          "durationMs": 908,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 3,
+          "durationMs": 1013,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 4,
+          "durationMs": 918,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        },
+        {
+          "run": 5,
+          "durationMs": 891,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222"
+        }
+      ],
+      "failures": [],
+      "medianMs": 908,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Target Project to Estimates",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 829,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 2,
+          "durationMs": 737,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 3,
+          "durationMs": 774,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 4,
+          "durationMs": 725,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        },
+        {
+          "run": 5,
+          "durationMs": 690,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+        }
+      ],
+      "failures": [],
+      "medianMs": 737,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Authenticated Hero: Estimates to Target Estimate",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 817,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 2,
+          "durationMs": 1318,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 3,
+          "durationMs": 674,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 4,
+          "durationMs": 1065,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        },
+        {
+          "run": 5,
+          "durationMs": 665,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+        }
+      ],
+      "failures": [],
+      "medianMs": 817,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    }
+  ]
+}

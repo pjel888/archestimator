@@ -1,0 +1,429 @@
+{
+  "summary": "Research + 3 route-compared design directions for the Project Data page, scored into one spec",
+  "agentCount": 6,
+  "logs": [],
+  "result": {
+    "directions": [
+      {
+        "name": "Cost Ledger / Pareto",
+        "thesis": "A calm, single-column financial statement where the primary breakdown is a ranked horizontal-bar ledger sorted largest-first, so cost concentration reads in one glance like a printed estimate summary — restrained, dense, and authoritative.",
+        "layoutAscii": "\nDESKTOP (single primary column, white surfaces on grey canvas)\n+----------------------------------------------------------------------+\n| Lewis Residence / ... / Data                          [chrome icons] |\n+----------------------------------------------------------------------+\n|                                                                      |\n|  STATEMENT HEADER (one floating panel, inline figures — NOT cards)   |\n|  Selected sheet  LR - Ground Floor (E...) [v]   Group by [Cat|Sup|Sp]|\n|  ----------------------------------------------------------------    |\n|  Total estimate  P2,201,887    Sheets 2    Largest  Casework 31.4%   |\n|  Insight: \"Casework and Furniture make up 61% of this sheet.\"        |\n+----------------------------------------------------------------------+\n|                                                                      |\n|  COST LEDGER  (PRIMARY — ranked horizontal-bar list)        [ring v] |\n|  --------------------------------------------------------------------|\n|  ▢ Casework        ████████████████████████░░░░  P692,299    31.4%   |\n|  ▢ Furniture       ██████████████████████░░░░░░  P654,188    29.7%   |\n|  ▢ Fixtures        ████████████░░░░░░░░░░░░░░░░  P366,150    16.6%   |\n|  ▢ Appliances      ██████░░░░░░░░░░░░░░░░░░░░░░  P190,420     8.6%   |\n|  ▢ Proj. Reqs.     █████░░░░░░░░░░░░░░░░░░░░░░░  P185,000     8.4%   |\n|  ▢ Window Treat.   ██░░░░░░░░░░░░░░░░░░░░░░░░░░  P 57,300     2.6%   |\n|  ▢ Other (n)       ██░░░░░░░░░░░░░░░░░░░░░░░░░░  P 56,530     2.6%   |\n|  --------------------------------------------------------------------|\n|  Total                                            P2,201,887   100%  |\n+----------------------------------------------------------------------+\n|                                                                      |\n|  COST COMPOSITION  (thin secondary strip)                            |\n|  Direct ███████████████████████░  Misc ██  Contingency ███           |\n|  Direct P1.9M (88%) · Misc P61k (3%) · Contingency P201k (9%)        |\n+----------------------------------------------------------------------+\n|                                                                      |\n|  COST ACROSS SHEETS  (kept; ranked stacked bars + table)            |\n|  LR - General Req...  ████████████████████░  P4,712,274              |\n|  LR - Ground Floor    █████████░░░░░░░░░░░░  P2,201,887              |\n|  [legend]  [full table]                                              |\n+----------------------------------------------------------------------+\n\n[ring v] = optional secondary tiny clean ring (hideCallouts), collapsed by default\n",
+        "sections": [
+          {
+            "name": "Statement header",
+            "viz": "Inline figure row inside one floating panel (12px radius, one soft shadow) — label/value pairs separated by hairline dividers, NOT a 3-up card grid. Carries the sheet selector + Category/Supplier/Space segmented control and one auto-insight sentence.",
+            "whatItShows": "The orientation line: which sheet, its total, sheet count, the single largest group, and a plain-language concentration insight.",
+            "dataUsed": "selectedEstimate.totalCost + currencyCode; summary.estimateSheets.length; topBucket (label+share); a new sentence from build-insight-sentence-style copy fed by the top 1-2 buckets' share."
+          },
+          {
+            "name": "Cost ledger (PRIMARY)",
+            "viz": "Ranked horizontal-bar list, one dense row each: [color swatch 8px] [label, truncate] [proportional inline bar, fill width = share, track = surfaceMuted] [amount right-aligned tabular-nums] [share right-aligned]. Sorted largest-first, Other pinned last. Footer total row with a top hairline. Hover/focus highlights the row and (if shown) the secondary ring slice.",
+            "whatItShows": "Exactly where the selected sheet's money is concentrated, readable top-to-bottom as a Pareto — the bar replaces the donut as the primary mental model.",
+            "dataUsed": "buckets from collapseProjectChartBuckets(selectedSeries[groupingMode].allBuckets, 6): id, label, total, share, color (Okabe-Ito), rowCount for the Other count. Bar width = share; amounts via formatChartMoney; share via formatChartShare."
+          },
+          {
+            "name": "Optional secondary ring",
+            "viz": "Tiny clean ring via CostDonutChart with hideCallouts (already crops to a ~190px square, no edge labels). Collapsed behind a quiet 'Show ring' disclosure or shown only at xl in a narrow right rail; labels live entirely in the ledger.",
+            "whatItShows": "A part-to-whole glance for people who think in pie shape, without ever owning the labels.",
+            "dataUsed": "Same buckets array + total; hideCallouts=true so the unreadable 720x560 edge callouts never render."
+          },
+          {
+            "name": "Cost composition",
+            "viz": "A single thin 100%-width stacked composition strip (one bar, 3 segments) + an inline figure line beneath it. Uses three restrained tints, not full categorical hues, to avoid competing with the ledger.",
+            "whatItShows": "NEW: how the sheet total splits into direct cost vs miscellaneous vs contingency — a contractor-relevant fact never shown today.",
+            "dataUsed": "Per-row facts: direct = qty*unitCost summed; misc = miscCost summed; contingency = (qty*unitCost)*contingencyPercentage/100 summed. Requires a new server-side aggregate (see risks)."
+          },
+          {
+            "name": "Cost across sheets",
+            "viz": "Kept largely as-is: ranked stacked horizontal bars (already on-brand for this direction) + the full data table and legend below. Reordered to sit after the single-sheet ledger so the page reads single-sheet -> cross-sheet.",
+            "whatItShows": "How sheets compare in total and cost mix without implying a timeline.",
+            "dataUsed": "summary.rollup, seriesByEstimateId per sheet, top-4 segments + Other (existing buildStackedRows / buildTotalsOnlyRows)."
+          }
+        ],
+        "killsCalloutBug": true,
+        "dataSurfaced": [
+          "Direct cost vs miscellaneous vs contingency composition of the sheet total (computable from row facts qty*unitCost / miscCost / contingencyPercentage, never surfaced today)",
+          "Pareto cumulative reading: the ranked bars make 'top 2 groups = 61%' legible at a glance, plus an explicit total footer row that the donut never showed",
+          "Per-group row counts surfaced as the 'Other (n)' count and available as a quiet secondary metric per ledger row"
+        ],
+        "mobileBehavior": "Already single-column friendly. Statement header figures wrap to stacked label/value pairs (no card grid to collapse). The ledger row keeps swatch + label + amount + share on the first line and drops the inline proportional bar to a thin full-width bar on a second line beneath the label, so nothing is squeezed below ~3px. The optional ring stays collapsed on mobile. Cost-composition strip stays full width (it already is). Cost-across-sheets table gets horizontal scroll as today.",
+        "brandFitSelf": 5,
+        "risks": [
+          "Cost composition (direct/misc/contingency) is NOT pre-aggregated: ProjectChartBucket only carries `total`, and the repo ships KB of buckets not raw rows for data-minimization (SEC-1). Surfacing it needs a new server-side aggregate in project-charts-repository / aggregate-project-charts, not a client compute — otherwise drop this section for v1.",
+          "The ledger bar + the BreakdownTable are now near-duplicates; must merge them into ONE component (the ledger IS the table) or the page regains redundancy — the same redundancy that made the donut callouts pointless.",
+          "Composition strip tints must stay OUTSIDE the Okabe-Ito chart palette rule yet still read as data; risk of either violating the palette exception or producing low-contrast greys that fail AA. Use distinct AA-safe neutrals/inks, validated.",
+          "Proportional inline bars share the row width with right-aligned amount+share; long PHP figures + long labels can collide on narrow desktop columns — needs min-widths and truncation, tested at ~380px.",
+          "Keeping the secondary ring at all risks reintroducing a second labels surface; it must be strictly label-free (hideCallouts) and visually subordinate, or cut entirely."
+        ],
+        "whyStrong": "This is the most conservative and most on-brand of the directions: a ranked bar ledger is literally how contractors read an estimate summary, so it lowers cognitive load instead of decorating. It eliminates the headline callout bug structurally — the donut is demoted to an optional label-free ring (hideCallouts), so the unreadable 5-6px edge text simply never renders, and the labels live where they're already legible. It reuses the existing buckets/color/format pipeline almost untouched (low blast radius), collapses to mobile naturally because it's already one column, and earns its keep by surfacing one genuinely new contractor-relevant fact (direct/misc/contingency composition). It shouts nothing, decorates nothing, and the tool disappears behind the numbers."
+      },
+      {
+        "name": "Cost Anatomy",
+        "thesis": "A composition-first ledger: a calm grey canvas where one quiet full-width DIRECT / MISC / CONTINGENCY strip names how the money is built, then a single dense breakdown matrix dissects it by category, supplier, or space — precise, architectural, no donut and no hero metrics.",
+        "layoutAscii": "DESKTOP (~1100px content, grey canvas, white floating panels, one soft shadow each)\n+-------------------------------------------------------------------------------+\n| Project Data                              [sheet: LR Ground Floor (E-2) v]     |  page chrome row (in-app 12px title)\n+-------------------------------------------------------------------------------+\n| PANEL 1 — COST ANATOMY (selected sheet)                                       |\n|  ₱2,201,887  total estimate · 142 rows · LR Ground Floor                       |  small label, not a hero\n|  +-------------------------------------------------------------------------+   |\n|  |#####################DIRECT###################|##MISC##|##CONTINGENCY##|   |  100% stacked strip, 28px tall, rounded-xs\n|  +-------------------------------------------------------------------------+   |\n|   DIRECT ₱1.89M · 86%      MISC ₱121k · 6%      CONTINGENCY ₱176k · 8%         |  3 inline legend ticks (ink + secondary)\n|   \"Contingency adds ₱176k (8%) on top of direct cost.\"  <- auto insight line  |  one calm sentence, secondary ink\n+-------------------------------------------------------------------------------+\n| PANEL 2 — BREAKDOWN                          [Category | Supplier | Space]     |  segmented control, right-aligned\n|  ROW-RANKED MATRIX (one row per bucket, full width — no donut)                 |\n|   Casework        ████████████████████████  ₱692,299   31.4%   38 rows        |  inline bar + amount + share + count\n|   Furniture       ███████████████████       ₱654,188   29.7%   24 rows        |\n|   Fixtures        ███████████               ₱366,150   16.6%   19 rows        |\n|   Appliances      ██████                     ₱190,420    8.6%   11 rows        |\n|   Proj. Reqs      █████                      ₱185,000    8.4%    6 rows        |\n|   Window Trtmts   ██                         ₱ 57,300    2.6%    8 rows        |\n|   Other (6 more)  █                          ₱ 56,530    2.6%   36 rows        |  collapse bucket, neutral grey\n|  (Space mode swaps in the indented hierarchical tree — same row grammar)       |\n+-------------------------------------------------------------------------------+\n| PANEL 3 — ACROSS SHEETS  (only when >=2 sheets)                                |\n|  General Requirements  |##DIRECT##|MISC|#CONT#|  ₱4,712,274   anatomy + total  |  each sheet = its own anatomy strip\n|  Ground Floor          |###DIRECT###|M|##CONT##| ₱2,201,887                    |\n|  contingency exposure column: 8.0% · 8.0%  (right-aligned, secondary)          |\n+-------------------------------------------------------------------------------+",
+        "sections": [
+          {
+            "name": "Sheet selector + anatomy header",
+            "viz": "Plain in-app dropdown (existing DropdownSelect, boxed) in the page chrome row; one small label-style total beneath the panel title — NOT an oversized hero numeral",
+            "whatItShows": "Which sheet is in focus and its single total cost, row count, and name as quiet meta",
+            "dataUsed": "selectedEstimate.totalCost, selectedEstimate.rowCount, name, currencyCode from ProjectDataEstimateSheet; estimateSheets list for the dropdown"
+          },
+          {
+            "name": "Cost anatomy strip (the lead)",
+            "viz": "One full-width 100%-stacked horizontal composition strip, ~28px tall, rounded-xs, three segments DIRECT / MISC / CONTINGENCY, with three inline legend ticks (color swatch + label + amount + share) below it — no axis, no gridlines",
+            "whatItShows": "How the selected sheet's money is composed before any category cut: direct line-item cost vs miscellaneous add-ons vs contingency reserve",
+            "dataUsed": "NEW per-sheet composition aggregate: DIRECT = sum(qty*unitCost), MISC = sum(miscCost), CONTINGENCY = sum(subtotal*contingencyPercentage/100), derived from the same row facts calculateProjectChartRowTotal already uses but NOT currently shipped — must be added to the series payload server-side"
+          },
+          {
+            "name": "Contingency/misc insight line",
+            "viz": "One calm secondary-ink sentence directly under the strip (reuses the build-insight-sentence.ts tone, new composition template)",
+            "whatItShows": "Surfaces contingency exposure and misc as first-class risk: e.g. 'Contingency adds ₱176k (8%) on top of direct cost; misc is ₱121k (6%).'",
+            "dataUsed": "Same composition aggregate (direct/misc/contingency totals + shares); a small new composition-sentence builder modeled on build-insight-sentence"
+          },
+          {
+            "name": "Breakdown matrix (category / supplier / space)",
+            "viz": "Ranked horizontal-bar matrix — one row per bucket: color swatch + label, an inline proportional bar (share of sheet), right-aligned amount, share %, and row count. Replaces the donut+table 2-col grid entirely. Space mode renders the existing indented hierarchical tableRows tree using the same row grammar (depth indent, group rollup non-colored, area leaves colored)",
+            "whatItShows": "Where the (mostly direct) cost concentrates, cut by category, supplier, or space; bar length and color cross-reference each bucket without a separate chart",
+            "dataUsed": "buckets (collapseProjectChartBuckets, top 6 + Other) for category/supplier; seriesByEstimateId[id].space tableRows for the Space tree; bucket-color.ts Okabe-Ito hues for marks only; format.ts for money/share"
+          },
+          {
+            "name": "Across sheets anatomy",
+            "viz": "One composition strip per sheet (same DIRECT/MISC/CONTINGENCY grammar as Panel 1), stacked vertically, each with its total and a right-aligned contingency-exposure % column; falls back to totals-only single-segment bars at >20 sheets, mixed-currency banner unchanged",
+            "whatItShows": "Compares not just sheet totals but each sheet's cost anatomy and contingency exposure side by side — making an over-reserved or misc-heavy sheet visible at a glance",
+            "dataUsed": "Per-sheet composition aggregate for every loaded sheet + estimateSheets totals; reuses existing rollup.kind mixed/single guard and costAcrossSheetsMode totals-only switch"
+          }
+        ],
+        "killsCalloutBug": true,
+        "dataSurfaced": [
+          "DIRECT vs MISC vs CONTINGENCY composition per sheet (currently computed in the total but never shown as parts)",
+          "Contingency exposure as an explicit share and amount, framed as first-class risk",
+          "Misc cost as an explicit share and amount rather than being silently folded into the total",
+          "Per-bucket row count alongside amount and share (already in ProjectChartBucket.rowCount but unused in the current table)",
+          "Cross-sheet contingency-exposure comparison (which sheet reserves more, proportionally)"
+        ],
+        "mobileBehavior": "Single column. Anatomy strip stays full-width and readable (segments keep min-width; tiny segments collapse their inline amount but keep the swatch+share in a wrapped legend list below). Breakdown matrix drops the inline bar on the narrowest widths and keeps label + amount + share + count as a dense list, or keeps a thin bar above each label; segmented Category/Supplier/Space control becomes full-width. Across-sheets strips stack with total beneath each label. No horizontal scroll except the optional raw data table which scrolls inside its panel.",
+        "brandFitSelf": 5,
+        "risks": [
+          "The lead viz depends on a composition aggregate (direct/misc/contingency) that is NOT currently shipped to the client — the wire only carries pre-bucketed category/supplier/space series plus a single totalCost. This requires a new server-side aggregate in project-charts-repository/aggregate-project-charts and a payload type change; without it Panel 1 cannot render. This is the single biggest build cost of Direction B.",
+          "Adding raw direct/misc/contingency sums to the wire must respect the existing data-minimization stance (SEC-1: qty/unitCost never cross the wire) — ship only the three aggregated sums per sheet, never the row facts.",
+          "Three segments only (direct/misc/contingency) means the strip carries little visual variety; if misc and contingency are near-zero on many real sheets the lead viz can look like a near-solid bar — the insight line must carry the weight in that common case.",
+          "Okabe-Ito palette is categorical, not semantic; direct/misc/contingency should use a restrained 3-step sequence (e.g. ink + two greys, or three palette hues) chosen to avoid implying misc/contingency are 'categories' — needs a deliberate small palette decision since these are NOT bucket ids.",
+          "Replacing the donut removes a chart some users may expect; mitigated because the ranked-bar matrix is strictly more readable and the screenshot proves the donut callouts are already unreadable.",
+          "Space-mode hierarchical tree in a ranked-bar matrix needs careful indent + rollup styling so group totals don't double-count visually against their area leaves."
+        ],
+        "whyStrong": "It directly answers the owner's actual ask ('analyze the cost data') by exposing the one thing the current page hides — how the money is composed (direct/misc/contingency) and how much contingency risk is baked in — rather than re-skinning a donut. It kills the headline unreadable-callout bug definitionally by removing the donut and using full-width bars whose length IS the data, with every label/amount/share/count inline so there is nothing to crop or scale-shrink. It is the boldest in data-richness while staying inside the brand: calm grey canvas, white panels with one shadow, 12px-max type, 3px/12px radii, Okabe-Ito only on marks, secondary #5D5D5D for load-bearing meta. It also revives the unused build-insight-sentence pattern as a quiet one-line takeaway, so the tool states the finding without shouting."
+      },
+      {
+        "name": "Direction C — Insight-led / analyst Data page",
+        "thesis": "A quiet analyst's worksheet: a plain-language insight line and the two numbers that matter lead, then a single ranked-bar ledger you read top-to-bottom and drill in place — calm, dense, action-first, no decorative donut.",
+        "layoutAscii": "DESKTOP (calm grey canvas; white floating panels, one soft shadow, 12px radius)\n+------------------------------------------------------------------------------+\n| Breadcrumbs: Workshop / Projects / Lewis Residence / Data                     |\n+------------------------------------------------------------------------------+\n|  PANEL A — Insight header (white, 12px radius, one shadow)                     |\n|  [Sheet ▾ LR-Estimate – Ground Floor]        [Category|Supplier|Space]         |\n|                                                                               |\n|  \"Casework drives this sheet — ₱692,299 (31.4%) of ₱2.20M, with Furniture     |\n|   (29.7%) the next-biggest lever.\"                                            |\n|                                                                               |\n|   ₱2,201,887            31.4%                3                                 |\n|   Sheet total          Top group share      Groups carrying 80%               |\n+------------------------------------------------------------------------------+\n|  PANEL B — Where the cost is (ranked ledger; replaces donut+table 2-col)       |\n|  Heading: Where the cost is · by Category        [Σ to 80% marker note]        |\n|  ┌──────────────────────────────────────────────────────────────────────┐   |\n|  │▍Casework        ████████████████████████░░░░░  ₱692,299  31.4%  ▸ 14   │   |\n|  │▍Furniture       ██████████████████████░░░░░░░  ₱654,188  29.7%  ▸ 11   │   |\n|  │▍Fixtures        ███████████░░░░░░░░░░░░░░░░░░░  ₱366,150  16.6% ◀80%▸ 9 │   |\n|  │ Appliances      █████░░░░░░░░░░░░░░░░░░░░░░░░░  ₱190,420   8.6%    ▸ 5  │   |\n|  │ Project Req.    ████░░░░░░░░░░░░░░░░░░░░░░░░░░  ₱185,000   8.4%    ▸ 3  │   |\n|  │ Window Treat.   ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ₱ 57,300   2.6%    ▸ 2  │   |\n|  │ Other (2)       ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ₱ 56,530   2.6%       — │   |\n|  └──────────────────────────────────────────────────────────────────────┘   |\n|   (expanding a row pushes a nested sub-ledger inline; no donut anywhere)       |\n+------------------------------------------------------------------------------+\n|  PANEL C — Composition strip (direct vs misc vs contingency)                   |\n|  ₱ Direct ████████████████████████████  92%  ·  Misc █ 3%  ·  Conting. ██ 5%   |\n+------------------------------------------------------------------------------+\n|  PANEL D — Across sheets (only when ≥2 sheets; ranked, not a timeline)         |\n|  Insight: \"Ground Floor is ₱2.51M (53%) lower than General Requirements.\"      |\n|  ┌──────────────────────────────────────────────────────────────────────┐   |\n|  │ General Requirements  ████████████████████████████████  ₱4,712,274     │   |\n|  │ Ground Floor          ███████████████░░░░░░░░░░░░░░░░░░  ₱2,201,887     │   |\n|  └──────────────────────────────────────────────────────────────────────┘   |\n|  [▸ Show per-sheet mix table]  (segmented stack + data table behind disclosure)|\n+------------------------------------------------------------------------------+",
+        "sections": [
+          {
+            "name": "Insight header (Panel A)",
+            "viz": "Auto-generated plain-language sentence (≤12px ink) + an inline 3-up numeral strip (sheet total / top-group share / groups-carrying-80%); sheet dropdown + Category|Supplier|Space segmented control on the same row",
+            "whatItShows": "The one thing to act on first: which group dominates, how concentrated the sheet is, and how few groups carry the bulk — so the estimator instantly sees the biggest lever and single-group risk",
+            "dataUsed": "buckets[0] + buckets[1] (label/total/share) from seriesByEstimateId[sheet][mode].allBuckets; selectedEstimate.totalCost; an 80%-cumulative-share count computed client-side from the ranked buckets. Sentence built by a new buildConcentrationSentence() reusing build-insight-sentence.ts tone (driverClause/formatDeltaPercent style)"
+          },
+          {
+            "name": "Where the cost is — ranked ledger (Panel B)",
+            "viz": "Ranked horizontal bars, one row per bucket, sorted desc: [color tick][label][proportional bar track][amount][share][rowCount ▸]. A thin cumulative '80%' divider rule sits between the rows that cross 80%. Replaces the donut+table 2-col entirely",
+            "whatItShows": "The full breakdown as a single scannable lever list — longest bar = biggest lever; the 80% rule shows how much of the sheet a contractor must control to control most of the cost",
+            "dataUsed": "collapseProjectChartBuckets(...allBuckets, 6) for total/share/rowCount/color; bar width = total/maxTotal. Cumulative-share threshold computed inline"
+          },
+          {
+            "name": "Drill-in sub-ledger (Panel B, expanded)",
+            "viz": "Clicking a row expands an inline indented sub-ledger of the same ranked-bar style (depth-aware), pushing rows below it down — never a modal, never a second chart",
+            "whatItShows": "Why a group is big: in Space mode, the real group/area/Own-items tree; in Category/Supplier mode, the next level (spaces or suppliers contributing to that group) so the estimator finds the exact line cluster to attack",
+            "dataUsed": "Space mode: existing hierarchical tableRows tree (kind group/area, depth) from buildSpaceTableRows. Category/Supplier: a small server addition exposing per-bucket child buckets (cross-tab by space/supplier) — or, MVP fallback, link the row to the estimate's filtered line-item table"
+          },
+          {
+            "name": "Cost composition strip (Panel C)",
+            "viz": "A single full-width 100% horizontal composition strip: Direct cost / Misc / Contingency, three segments, neutral-to-accent, with inline % labels",
+            "whatItShows": "Surfaces never-shown data: how much of the total is real direct cost vs misc add-ons vs contingency padding — a fast sanity/markup check",
+            "dataUsed": "NEW server aggregation: sum(qty*unitCost)=direct, sum(miscCost)=misc, sum(subtotal*contingency%/100)=contingency per sheet, derived from the same row facts calculateProjectChartRowTotal already reads. Added to the pre-aggregated series so raw facts stay off the wire"
+          },
+          {
+            "name": "Across sheets (Panel D)",
+            "viz": "An insight sentence (real buildInsightSentence output) + ranked total bars per sheet, with the per-sheet segmented-mix stacked bar and full data table moved behind a single '▸ Show per-sheet mix' disclosure",
+            "whatItShows": "Which sheet is biggest and by how much, in words, then the ranked totals; deeper mix comparison is available but not forced on first read",
+            "dataUsed": "summary.estimateSheets totals for ranked bars; existing buildStackedRows/legend/table for the disclosure; buildInsightSentence fed the top two sheets as baseline/comparand"
+          }
+        ],
+        "killsCalloutBug": true,
+        "dataSurfaced": [
+          "Direct cost vs misc vs contingency composition (Panel C) — currently computable from row facts but never displayed",
+          "Concentration metric: how many groups carry 80% of the sheet (single-group / few-group risk signal)",
+          "Per-row line-item count (rowCount) promoted to a visible drill affordance on every ranked row",
+          "Plain-language 'biggest lever' identification instead of leaving the estimator to read it off a donut",
+          "Cumulative-share 80% threshold rule rendered directly on the ranked ledger"
+        ],
+        "mobileBehavior": "Single column throughout. Panel A: sentence wraps full-width; the 3 numerals stack to a 1-col list (label above value). Sheet dropdown + grouping control stack and go full-width (grouping control becomes a full-width segmented row). Panel B ranked rows keep [tick+label] on line 1 and [bar] full-width on line 2 with [amount · share · ▸count] right-aligned beneath — bar always has room, never the donut's scaled-text failure. Drill expands inline as before. Panel C composition strip stays full-width (it is already a horizontal strip). Panel D ranked total bars stack; the mix disclosure table scrolls horizontally inside its panel (overflow-x-auto) exactly like the existing table.",
+        "brandFitSelf": 5,
+        "risks": [
+          "Category/Supplier drill needs a server-side per-bucket child aggregation that doesn't exist yet; without it those modes either fall back to a line-item-table link or ship drill for Space only (Space already has the tree) — scope creep risk",
+          "Composition strip (Panel C) requires adding direct/misc/contingency sums to the pre-aggregated series; must stay server-side to preserve the data-minimization guarantee (raw qty/unitCost must not cross the wire)",
+          "Removing the donut is a visible identity change — owner may still want a small ring somewhere; mitigate by keeping CostDonutChart available but not leading with it",
+          "build-insight-sentence.ts is comparison-shaped (baseline vs comparand); the single-sheet concentration headline needs a new sibling generator, not a direct reuse, or the sentence will read awkwardly",
+          "An auto-sentence that is wrong/over-confident on edge data (one bucket, equal buckets, zero total) erodes trust — needs the same equal/new/empty cases the existing generator already handles",
+          "Ranked bars + 80% rule can feel busy if every row also shows a bar track, amount, share, and count; must enforce restraint (one accent, secondary meta, no second color in chrome)"
+        ],
+        "whyStrong": "It is the most 'work on this' direction: it answers the estimator's actual question — where is the biggest lever and where is the single-group risk — in one sentence and one scannable list, instead of making them decode a donut. It deletes the headline callout bug at the root by removing the donut as the lead, replacing it with ranked bars that are readable at any width and degrade cleanly to mobile. It honors every brand constraint (12px max type, 3/8/12px radii, neutral ink/secondary meta, Okabe-Ito only on the bar marks and never in chrome, one soft shadow on white panels, calm grey canvas) while staying dense and understated. And it earns its keep by surfacing genuinely new, computable-but-hidden data (direct/misc/contingency composition, 80% concentration) rather than redecorating what was already shown."
+      }
+    ],
+    "dataOpp": {
+      "opportunities": [
+        {
+          "title": "Concentration / top-N dominance callout (HHI-lite)",
+          "whatItShows": "A single understated sentence + the donut: how concentrated this sheet's cost is — e.g. 'Top 3 categories carry 78% of this sheet' or 'Casework alone is 31% of the total.' Surfaces whether cost is spread or load-bearing on one bucket.",
+          "computation": "From the already-sorted allBuckets: cumulativeShare of top 1/2/3 buckets = sum(buckets[0..n].share); dominant = buckets[0].share. Optionally a Herfindahl index = sum(share_i^2) for a single 0-1 'concentration' scalar. All pure client math on shipped {share,total}.",
+          "dataSource": "100% client-side from existing seriesByEstimateId[id][mode].allBuckets. Nothing new from server. topBucket is already computed in ProjectDataClient.",
+          "feasibility": "easy",
+          "value": 5,
+          "notes": "Highest value-to-effort. Directly answers the 'analyze the cost data' ask, reuses build-insight-sentence.ts style, needs zero payload change, and gives the page a real headline instead of redundant donut+table. Replaces the weak 'Largest group' KPI."
+        },
+        {
+          "title": "Cross-sheet variance insight sentence (baseline vs comparand) — activate the dormant engine",
+          "whatItShows": "The one human sentence the comparison engine was built for: 'Ground Floor is ₱2.5M (−53%) lower than General Requirements, driven mostly by Floor Finishes (−₱1.8M) and Furniture (−₱0.2M).' Turns the mute stacked-bar section into an explained variance.",
+          "computation": "buildProjectChartComparisonView({estimates, seriesByEstimateId, groupingMode, estimateIds:[a,b]}) then buildInsightSentence(view.insight). Both functions already exist and are pure; they consume exactly the shipped series map.",
+          "dataSource": "Client-side. Requires the page to load series for the compared pair (2 sheets) into seriesByEstimateId, not just the single selected sheet. Repository ALREADY supports this (getProjectChartsData selectedEstimateIds slices up to 3); project-data-repository currently passes only [selected]. So: a 1-line repo wiring change to request the pair, NOT a payload-shape change.",
+          "feasibility": "medium",
+          "value": 5,
+          "notes": "The build-insight-sentence.ts generator and the whole project-comparison-view view-model are fully built, tested, and UNUSED on this page. This is the single biggest latent value. No new columns cross the wire; only which estimate ids get aggregated. SEC-1 unaffected (still pre-bucketed)."
+        },
+        {
+          "title": "Per-bucket delta table across sheets (variance, not just totals)",
+          "whatItShows": "For the across-sheets table, add Δ and Δ% columns vs a chosen baseline sheet per category/supplier/space bucket, sorted by |Δ| — the 'what moved and by how much' view. The biggest movers, biggest first.",
+          "computation": "view.buckets each carry baselineTotal, comparandTotal, delta, deltaPercent, already computed by buildProjectChartComparisonView. Render delta with sign + colorless ink (no green/red decoration beyond a restrained accent).",
+          "dataSource": "Client-side from the same pre-bucketed series map (needs the compared sheets loaded, same wiring as opportunity 2). No raw facts.",
+          "feasibility": "medium",
+          "value": 4,
+          "notes": "Reuses ProjectChartComparisonViewBucket end-to-end. Pairs naturally with the insight sentence. Cap to top movers to stay calm/dense, not a wall of rows."
+        },
+        {
+          "title": "Average cost per line item, per bucket",
+          "whatItShows": "A 4th table column: avg ₱/line = bucket.total / bucket.rowCount, plus line count. Distinguishes 'expensive because many cheap lines' (e.g. fixtures) from 'expensive because few big-ticket lines' (e.g. casework). A real estimator signal.",
+          "computation": "bucket.total / bucket.rowCount, guarding rowCount===0. Pure client.",
+          "dataSource": "Client-side. rowCount is ALREADY on every ProjectChartBucket in the shipped payload — confirmed in types.ts and aggregate-project-charts toBucket. Nothing new from server.",
+          "feasibility": "easy",
+          "value": 3,
+          "notes": "Free given rowCount already ships. Low-decoration, high-density add that fits the 'precise/architectural' brand. Useful as a sortable column rather than a hero."
+        },
+        {
+          "title": "Cost composition: direct vs misc vs contingency split",
+          "whatItShows": "How the sheet total decomposes into direct cost (qty*unitCost), miscellaneous cost, and contingency — e.g. 'Direct ₱1.9M / Misc ₱120k / Contingency ₱180k (9%).' Answers 'how much of my number is real work vs padding' which the current page cannot.",
+          "computation": "Per row: direct=qty*unitCost; misc=miscCost; contingency=direct*contingencyPercentage/100. Sum across the sheet (and optionally per bucket). The per-row math ALREADY exists in calculateProjectChartRowTotal — it computes these three terms and then throws away the split, keeping only the sum.",
+          "dataSource": "SERVER CHANGE REQUIRED. The split is computed server-side but collapsed before shipping; only bucket.total crosses the wire. ProjectChartModeSeries/ProjectChartBucket would need to also carry {directTotal, miscTotal, contingencyTotal} (a few pre-aggregated scalars — still bucketed, still SEC-1-compliant since no per-row qty/unitCost is exposed). project-charts-repository + project-comparison-view buildEstimateSeries + types.ts all need the new fields.",
+          "feasibility": "medium",
+          "value": 4,
+          "notes": "FLAGGED: requires extending the server payload contract (new aggregated scalars on the series/bucket). It does NOT violate SEC-1 — it ships sums, not raw qty/unitCost — but it deliberately widens the deliberately-minimal contract, so it's an owner decision. High estimator value; the only insight here that genuinely needs new server data."
+        },
+        {
+          "title": "Hierarchical space breakdown (tree), not a flat donut",
+          "whatItShows": "In Space mode, an indented tree (Floor 1 > Living Room > items) with rollup subtotals and shares, instead of the flat top-6 donut buckets. Shows where in the building the money sits.",
+          "computation": "buildSpaceTableRows already produces ProjectChartTableRow[] with depth/kind(group|area)/rollup totals/shares — fully built and test-pinned in aggregate-project-charts.ts.",
+          "dataSource": "SERVER CHANGE REQUIRED. The tree (tableRows) is built on the server but is part of the fat ProjectChartSeries, NOT the slim ProjectChartModeSeries that actually ships (which keeps only {total, allBuckets}). To render the tree the payload must also carry tableRows for space mode.",
+          "feasibility": "medium",
+          "value": 3,
+          "notes": "FLAGGED: payload extension (add tableRows to space-mode series). The computation is done and tested; only the wire contract drops it. Bounded size (one tree per loaded sheet). Lower priority than the composition split unless space is a primary lens for the owner."
+        },
+        {
+          "title": "Supplier exposure / dependency callout",
+          "whatItShows": "In Supplier mode: concentration on a single vendor — 'One supplier covers 41% of this sheet' or 'No-supplier lines = 22% (₱x unassigned).' A procurement-risk read.",
+          "computation": "Same concentration math as opportunity 1 but applied to supplier-mode allBuckets; the 'No supplier' bucket is already a real bucket id from resolveSupplierBucket. share/total already shipped.",
+          "dataSource": "Client-side from existing supplier-mode series. No server change.",
+          "feasibility": "easy",
+          "value": 3,
+          "notes": "Reuses the concentration primitive with a procurement framing. The 'No supplier' / unassigned share doubles as a data-quality nudge. Keep it as one understated line, not a separate card."
+        },
+        {
+          "title": "Data-quality / coverage strip (uncategorized, no-supplier, unassigned-space, truncation)",
+          "whatItShows": "A quiet footnote: '8% Uncategorized, 22% No supplier, 5% Unassigned space — totals from a capped read' so the user trusts (or distrusts) the breakdown.",
+          "computation": "Share of the 'uncategorized'/'No supplier'/'unassigned-space'/'Other' buckets (stable ids from the resolvers) + existing didTruncate flag. Pure client.",
+          "dataSource": "Client-side; bucket ids and didTruncate already in payload (didTruncate already surfaced as a Banner).",
+          "feasibility": "easy",
+          "value": 2,
+          "notes": "Low glamour but builds trust in every other number and fits 'understated.' Folds the existing truncation banner into a single coverage line instead of a separate alarm."
+        }
+      ],
+      "payloadGaps": [
+        "Per-row cost composition split is computed then discarded: calculateProjectChartRowTotal derives direct (qty*unitCost), misc (miscCost), and contingency (direct*contingencyPercentage/100) per row, but each bucket ships only the summed `total`. To show direct/misc/contingency the series/bucket must carry pre-aggregated {directTotal, miscTotal, contingencyTotal} scalars (still bucketed — SEC-1 safe, no raw qty/unitCost on the wire).",
+        "Space-mode hierarchy is dropped on the wire: aggregate-project-charts builds a full ProjectChartTableRow[] tree (buildSpaceTableRows, depth/kind/rollups, test-pinned), but the shipped ProjectChartModeSeries keeps only {total, allBuckets}. The slim payload (project-comparison-view buildEstimateSeries) discards tableRows, so the page can only render a flat donut for spaces.",
+        "Single-sheet load on the Data route: project-data-repository requests series for only the selected estimate (selectedEstimateIds:[selected]). The comparison engine (delta/insight) needs >=2 sheets' series. The repository already supports loading up to 3 (getProjectChartsData/SELECTED_ESTIMATE_LOAD_LIMIT) — this is a wiring gap, not a contract gap; no new field types needed.",
+        "No precomputed insight/variance on the wire: the comparison view-model (buildProjectChartComparisonView) and the insight-sentence generator (build-insight-sentence.ts) are pure client functions that already consume the shipped series map, but neither is invoked on this page. The 'analysis' the prompt asks for is mostly latent code, not missing data — provided the compared pair's series are loaded.",
+        "Raw per-row facts (qty, unitCost, supplierId, contingencyPercentage) are intentionally server-only per SEC-1 data-minimization. Any insight needing per-line distributions (e.g. histogram of line costs, true big-ticket outliers, supplier price variance) is NOT feasible without either pre-aggregating new summary stats server-side or relaxing SEC-1 — flag to owner; do not ship raw facts."
+      ]
+    },
+    "priorArt": {
+      "findings": [
+        {
+          "point": "Cleveland-McGill hierarchy places angle/area at rank 3-4, position at rank 1 — the foundational argument against pie/donut for comparison tasks",
+          "evidence": "Cleveland & McGill (1984) ranked elementary perceptual tasks: position along a common scale (most accurate) > length/direction/angle > area > volume/curvature > shading. Pie and donut charts require viewers to judge angle and area; bar charts use position and length. The 1984 position-angle experiment directly pitted pie vs bar, and bar outperformed. Their conclusion: pie/donut 'need to be constructed with very careful consideration or give way to chart types with a better-prioritised order.' Source confirmed via multiple independent secondary analyses.",
+          "sourceUrl": "https://creativeartsadventure.wordpress.com/2017/01/02/cleveland-mcgill-graphical-perception-theory-experimentation-and-application-to-the-development-of-graphical-methods/"
+        },
+        {
+          "point": "For cost breakdown with ranking intent, a sorted horizontal bar chart is the correct default — it encodes both magnitude and rank simultaneously on a single positional axis",
+          "evidence": "Consensus across Ataccama, Domo, and Luzmo sources: bar charts are superior when the primary goal is comparison or when there are more than 4-5 categories. Sorted horizontal bars allow long category labels (CSI divisions, trade names, phase names) to read naturally. A stacked horizontal bar works for a single-row total-with-composition view, but individual segment comparison degrades past 4 segments. Ranked bar is the go-to for estimating tools because it surfaces the dominant cost driver at a glance, which is the actionable signal in professional estimating.",
+          "sourceUrl": "https://www.domo.com/learn/charts/horizontal-stacked-bar"
+        },
+        {
+          "point": "Donut earns its place in exactly one professional-tool scenario: a single-metric progress/completion ring with a center callout, not for multi-segment cost composition",
+          "evidence": "Domo, Toucan Toco, and the Logi Analytics KPI pattern all describe the same legitimate use: a 2-segment donut (filled vs. remainder) with a large center number — budget consumed vs. total, percent complete, etc. This works because the viewer reads the center number directly; the ring is just a progress affordance, not a precision comparison. As soon as there are 3+ segments, the angle-perception problem re-emerges. Stephen Few's 'Save the Pies for Dessert' (cited in Ataccama) draws this same boundary. The donut as a KPI ring in a dense professional tool is justified; the donut as a 7-segment cost-breakdown chart is not.",
+          "sourceUrl": "https://www.domo.com/learn/charts/donut-charts"
+        },
+        {
+          "point": "Professional finance and estimating tools converge on: waterfall for incremental buildup, stacked bar for multi-period composition, ranked bar for single-period breakdown — pie/donut rarely appear in analyst-facing UX",
+          "evidence": "Finance Alliance's survey of professional financial charts describes the selection pattern explicitly: simple proportions → pie or stacked bar; incremental buildup (net income changes, change orders stacking to total) → waterfall; multi-period comparisons → grouped bar. Estimating software reviews (Sage, ProEst, Archdesk) describe 'detailed cost breakdowns' and 'professional reporting templates' but the dominant output format is tabular + bar, not pie. Waterfall charts are particularly common in change-order and budget-vs-actual contexts, which is structurally similar to construction cost assembly.",
+          "sourceUrl": "https://www.financealliance.io/financial-charts-and-graphs/"
+        },
+        {
+          "point": "Stacked bar past 4 segments loses readability; the fix is not a donut, it is an 'Other' rollup plus a drill-down pattern",
+          "evidence": "Domo and CleanChart both document the 3-4 segment ceiling for stacked bars: beyond that, smallest segments become unreadable and composition comparison across bars fails. The professional convention is to group tail items into 'Other' and expose a drill-down or secondary breakdown table. This is how Bloomberg, Sage, and cost-management SaaS (CloudZero, Finout) handle long cost hierarchies — a top-level bar with an 'Other' bucket, plus a subordinate detail view, never a 14-segment pie.",
+          "sourceUrl": "https://www.cleanchart.app/blog/stacked-vs-grouped-bar-charts"
+        },
+        {
+          "point": "WCAG AA requires: 4.5:1 contrast for text labels; 3:1 (SC 1.4.11) for non-text chart elements (bars, fills); color must never be the sole differentiator (SC 1.4.1); every chart needs a structured text alternative (SC 1.1.1)",
+          "evidence": "DubBot's 2024 accessible charts guide enumerates: SC 1.1.1 (text alternative, not just chart type description — must convey the actual data), SC 1.4.1 (color alone cannot convey meaning — use pattern fills or direct labels), SC 1.4.3 (4.5:1 for text including data labels and axis labels), SC 1.4.11 (3:1 for adjacent colored chart elements — white dividers between segments are the standard fix). 8% of men have color vision deficiency; red/green pairs are the highest-risk combination in cost/budget UIs (positive/negative, on-budget/over-budget).",
+          "sourceUrl": "https://dubbot.com/dubblog/2024/charts-graphs.html"
+        },
+        {
+          "point": "Direct labeling on bars eliminates the legend-lookup cost that makes dense tools unusable; this also resolves the color-alone WCAG problem",
+          "evidence": "Ataccama and Eval Academy both note that pie/donut charts force legend lookups or callout labels, adding cognitive context-switching. Horizontal bar charts with direct end-of-bar labels (or inline labels for stacked bars with sufficient segment width) remove the legend entirely. For a professional estimating tool, this is a double win: faster scan for the user and accessible-by-default (the text label is the differentiator, not the color).",
+          "sourceUrl": "https://www.ataccama.com/blog/why-pie-charts-are-evil"
+        },
+        {
+          "point": "The only documented case where a donut still earns its place in a pro estimating context is a single 'budget consumed' ring on a project summary card — when the number in the center IS the content and the ring is merely a progress affordance",
+          "evidence": "Logi Analytics KPI donut pattern, VizWiz Tableau tip, and Toucan Toco all describe this identically: one filled segment + one empty segment, large center metric. The ring's job is spatial emphasis on a number the user already reads directly. This is structurally different from a breakdown chart. In an estimating tool, this could appear on a project card showing '73% of budget consumed' — but the cost breakdown behind that number should be a sorted horizontal bar in the detail view.",
+          "sourceUrl": "https://devnet.logianalytics.com/hc/en-us/articles/360045906273-Creating-a-Donut-Chart-Based-KPI-With-Centered-Text"
+        }
+      ],
+      "donutVsBarVerdict": "Horizontal ranked bar wins for cost breakdown in professional estimating tools. The research case is settled (Cleveland-McGill 1984, confirmed by Ataccama/Domo/peer lit): angle and area encoding (donut/pie) are rank 3-4 in human perceptual accuracy; position along a common scale (bar) is rank 1. For a cost-breakdown view with 4+ categories, a sorted horizontal bar surfacing the dominant cost driver is correct. A donut earns its place only as a single-metric progress ring (e.g., '73% of budget consumed') with a large center callout — that is, when the user reads the center number and the ring is a spatial emphasis aid, not a precision comparison. Never use a multi-segment donut for cost breakdown in a dense professional tool.",
+      "recommendations": [
+        "Use a sorted horizontal bar chart as the primary cost breakdown visualization. Sort descending by value so the dominant cost driver is always first. Direct-label bar ends with the formatted value and percentage — this eliminates legend lookup and satisfies WCAG SC 1.4.1 (color not sole differentiator).",
+        "Cap visible segments at 5-6 in any stacked or multi-series view; roll tail items into an 'Other' bucket with a drill-down affordance. Beyond that threshold, segment comparison accuracy degrades regardless of chart type.",
+        "Reserve the donut for a single-metric KPI ring (one fill + one remainder, large center number) on project summary cards or header KPIs — not for composition breakdowns. If you use it, ensure the center callout is the primary readable element and the ring is secondary.",
+        "Use waterfall charts when showing how individual cost items build to a total (e.g., base cost + labor + markup + contingency = contract value). This is the correct chart type for incremental-buildup narratives common in estimating.",
+        "For WCAG AA compliance: maintain 4.5:1 contrast on all data labels and axis labels; 3:1 on adjacent colored bar fills (SC 1.4.11); use white dividers between adjacent colored segments; never use red/green as the only differentiator for positive/negative values (use text labels or shape redundancy). Provide a structured data table or aria-described-by for every chart.",
+        "Avoid 100% stacked horizontal bars for cross-project comparison — only the leftmost segment reads accurately; all others require the viewer to estimate a floating baseline, which is rank 2 in the Cleveland-McGill hierarchy. Use grouped bars or small multiples instead.",
+        "In a dense professional tool, typography discipline matters more than chart type: use tabular-figure (monospaced) number rendering in bar labels so columns align and scanning is fast. This is a common failure in SaaS cost dashboards that use proportional fonts in data labels."
+      ]
+    },
+    "judge": {
+      "scores": [
+        {
+          "name": "Cost Ledger / Pareto",
+          "readability": 5,
+          "brandFit": 5,
+          "feasibility": 5,
+          "dataRichness": 3,
+          "total": 18,
+          "notes": "Kills the callout bug structurally (donut demoted to optional label-free ring via hideCallouts; labels live in the ledger where they are already legible). A ranked horizontal-bar ledger is exactly how contractors read an estimate summary and is the research-endorsed default (Cleveland-McGill rank-1 position encoding vs donut rank 3-4). Reuses buckets/color/format untouched, already single-column so mobile is trivial. Lowest blast radius. Its one new fact (direct/misc/contingency composition) is gated behind a server payload change, and as written it risks ledger-bar vs BreakdownTable redundancy (the ledger MUST be the table). Data-richness is the weakest of the three because the cross-sheet insight engine stays dormant and there is no concentration/80% metric."
+        },
+        {
+          "name": "Cost Anatomy",
+          "readability": 5,
+          "brandFit": 5,
+          "feasibility": 3,
+          "dataRichness": 5,
+          "total": 18,
+          "notes": "Boldest on the actual ask: leads with the never-shown direct/misc/contingency composition and frames contingency as first-class risk, then a ranked matrix. Kills the bug definitionally (no donut). Brand-clean. But the LEAD viz hard-depends on a server payload extension that does not exist yet, so Panel 1 cannot render at all until that ships - the single biggest build cost and a launch risk. The 3-segment strip can look near-solid on real sheets where misc/contingency are tiny (the common case), making the lead viz visually thin and forcing the insight line to carry it. Composition palette must sit outside Okabe-Ito yet stay AA. Feasibility is the gating weakness."
+        },
+        {
+          "name": "Direction C - Insight-led / analyst",
+          "readability": 5,
+          "brandFit": 5,
+          "feasibility": 4,
+          "dataRichness": 5,
+          "total": 19,
+          "notes": "Best total. Answers the estimator's real question (biggest lever + single-group risk) in one plain-language sentence plus one scannable ranked ledger - it revives the already-built, already-in-production insight engine (used on the separate project-charts surface, dormant here). Kills the bug at the root (donut removed as lead). Crucially, the cross-sheet insight is feasible with ZERO repo change for the common <=20-sheet case because the Data repo already loads ALL sheets' series into seriesByEstimateId (all-estimates load mode); only >20 sheets needs the 1-line pair-load. Surfaces concentration (80% / groups-carrying-bulk) as pure client math - free, high-value, no payload change. Composition strip is its only server-gated piece and it is correctly scoped as a secondary strip, not the lead, so the page still ships fully if composition is deferred. Minor: needs a new single-sheet concentration sentence generator (sibling to the comparison one); auto-sentence edge cases (one bucket, equal, zero) must be handled; Category/Supplier drill needs a server child-aggregation so MVP drills Space-only."
+        }
+      ],
+      "winner": "Direction C - Insight-led / analyst Data page",
+      "recommendedSpec": {
+        "thesis": "Rebuild the Data page as a calm analyst's worksheet: a plain-language insight line plus the two or three numbers that matter lead each section, the primary breakdown is a single sorted horizontal-bar ledger read top-to-bottom (the donut is removed, not just demoted), and the page earns its keep by reviving the already-built-and-already-in-production insight engine for cross-sheet variance and by computing cost concentration client-side. The unreadable 720x560 donut callouts never render because the donut is gone from the lead; every label/amount/share/count lives inline on a positional bar that is readable at any width and degrades cleanly to one mobile column. New server data is limited to ONE optional, SEC-1-safe scalar triple (direct/misc/contingency) that powers a secondary strip the page can ship without.",
+        "layoutAscii": "DESKTOP (calm grey canvas; white floating panels, 12px radius, ONE soft shadow each; 12px max type)\n+----------------------------------------------------------------------------------+\n| Workshop / Projects / Lewis Residence / Data                       [chrome icons] |\n+----------------------------------------------------------------------------------+\n| PANEL A - Sheet focus + insight (white, rounded-[12px], one shadow)               |\n|  [Sheet v  LR-Estimate - Ground Floor (E-2)]        [Category | Supplier | Space] |\n|  \"Casework drives this sheet - P692,299 (31.4%) of P2.20M; with Furniture (29.7%) |\n|   the top 2 groups carry 61%.\"   <- auto concentration sentence, ink, <=12px       |\n|  ----------------------------------------------------------------------------     |\n|  P2,201,887        61%                     3                  142 rows            |\n|  Sheet total       Top 2 groups' share     Groups carrying 80%   in this sheet    |\n|     (inline label/value pairs split by hairlines - NOT a 3-up card grid)          |\n+----------------------------------------------------------------------------------+\n| PANEL B - Where the cost is (PRIMARY ranked ledger; replaces donut+table 2-col)    |\n|  Where the cost is - by Category                                                   |\n|  Label            Bar (share)                       Amount      Share   Lines      |\n|  |- Casework      ##########################-------  P692,299   31.4%   14  >      |\n|  |- Furniture     #######################---------- P654,188   29.7%   11  >      |\n|  |- Fixtures      ############------------------ <--80% rule--  P366,150 16.6%  9 >|\n|  |  Appliances    #####------------------------    P190,420    8.6%    5  >      |\n|  |  Project Req.  ####-------------------------    P185,000    8.4%    3  >      |\n|  |  Window Trtmt  ##--------------------------     P 57,300    2.6%    8         |\n|  |  Other (6)     ##--------------------------     P 56,530    2.6%   36         |\n|  ----------------------------------------------------------------------------     |\n|  Total                                             P2,201,887  100%   142        |\n|  (expanding a row pushes an indented sub-ledger inline; Space mode = the tree)     |\n+----------------------------------------------------------------------------------+\n| PANEL C - Cost composition (OPTIONAL - renders only if composition data present)   |\n|  Direct ##########################  P1.94M 88%  ·  Misc # P61k 3%  ·  Conting. ## P201k 9% |\n|  \"Contingency adds P201k (9%) on top of direct cost.\"  <- composition sentence     |\n+----------------------------------------------------------------------------------+\n| PANEL D - Across sheets (only when >=2 sheets; ranked, never a timeline)           |\n|  \"Ground Floor is P2.51M (-53%) lower than General Requirements, driven mostly by  |\n|   Floor Finishes (-P1.8M) and Furniture (-P0.2M).\"  <- REVIVED insight engine      |\n|  |- General Requirements  ################################  P4,712,274            |\n|  |- Ground Floor          ###############---------------    P2,201,887            |\n|  [> Show per-sheet mix]   (existing stacked segments + full data table behind it)  |\n+----------------------------------------------------------------------------------+\n\nMOBILE (single column): Panel A sentence wraps full-width, the inline numerals stack to a 1-col label-above-value list, sheet dropdown + grouping control go full-width. Panel B rows keep [tick+label] on line 1 and the bar full-width on line 2 with [amount . share . >lines] right-aligned beneath - the bar always has room (no scaled-text failure). Panels C/D strips are already horizontal and stay full-width; the mix table scrolls inside its panel.",
+        "sections": [
+          {
+            "name": "Panel A - Sheet focus + concentration insight",
+            "viz": "One white floating panel (rounded-[12px], one soft shadow). Top row: existing DropdownSelect (boxed, h-7) for the sheet + existing SegmentedControl for Category|Supplier|Space. Below: one auto-generated plain-language concentration sentence (<=12px ink). Below that: an INLINE label/value figure row (sheet total / top-2 share / groups-carrying-80% / row count) separated by hairline dividers - explicitly NOT a 3-up FinancialTotalCard grid. This replaces ProjectDataKpiHeader entirely.",
+            "dataUsed": "selectedEstimate.totalCost + currencyCode (already shipped). buckets[] from collapseProjectChartBuckets(selectedSeries[mode].allBuckets, 6) - already computed in ProjectDataClient. Top-N cumulative share and 80%-group-count computed client-side from the already-sorted buckets. rowCount summed from buckets (already on every bucket). Sentence from a NEW buildConcentrationSentence() modeled on build-insight-sentence.ts tone. ZERO payload change.",
+            "notes": "Kills the weak 'Largest group' KPI and the generic 3-card grid (an explicit anti-reference). The concentration sentence is the page's real headline. Graft from Cost Anatomy: keep it understated, ink for the sentence, secondary #5D5D5D for the meta labels."
+          },
+          {
+            "name": "Panel B - Where the cost is (PRIMARY ranked ledger)",
+            "viz": "Sorted-descending horizontal-bar ledger, one dense row each: [8px color swatch][label, truncate][proportional inline bar: fill width = total/maxTotal, track = surfaceMuted][amount right-aligned tabular-nums][share right-aligned][rowCount with a > drill affordance]. A thin cumulative-80% divider rule sits between the rows that cross 80%. Footer Total row with a top hairline (total amount + 100% + total lines). Hover/focus highlights the row. This single component IS the table (merges the old donut + BreakdownTable into one) so there is no redundancy. Replaces the entire 2-col donut+table grid.",
+            "dataUsed": "Same buckets array (collapseProjectChartBuckets, top 6 + Other) - id/label/total/share/rowCount/color. Bar width from total/maxTotal. Okabe-Ito hues ONLY on the swatch + bar fill. 80% threshold computed inline. ZERO payload change.",
+            "notes": "This is the structural fix for the headline bug and the research-endorsed default (sorted horizontal bar = Cleveland-McGill rank-1 positional encoding; direct labels remove legend lookup and satisfy WCAG 1.4.1). Graft from Cost Ledger: the explicit Total footer row and 'Other (n)' count. Graft from Cost Anatomy: per-bucket rowCount as a visible column. Bar fill colors are dynamic so apply via inline style, not Tailwind arbitrary var (the bg-[var(--x)] gotcha emits no color in this TW v4 setup)."
+          },
+          {
+            "name": "Panel B (expanded) - inline drill sub-ledger",
+            "viz": "Clicking a row expands an indented sub-ledger in the same ranked-bar grammar, pushing rows below it down. Never a modal, never a second chart. Space mode: the real group/area/Own-items tree. Category/Supplier mode (MVP): the row links to the estimate's filtered line-item view OR shows a one-line 'open in estimate' affordance, deferring true cross-tab child buckets to a later server addition.",
+            "dataUsed": "Space mode: the existing buildSpaceTableRows tree (depth/kind/rollups) - but this requires adding tableRows to the space-mode ProjectChartModeSeries payload (currently dropped by buildEstimateSeries, which keeps only {total, allBuckets}). Category/Supplier child buckets need a server cross-tab that does not exist - so MVP ships Space drill only (gated on the tableRows payload add) and a link-out for Category/Supplier.",
+            "notes": "Graft from the space-hierarchy opportunity. SCOPE GUARD: Space drill is the only drill that ships in v1, and it depends on a bounded payload add (one tree per loaded sheet, SEC-1-safe). If even that is deferred, Panel B still works perfectly as a flat ranked ledger - the drill is purely additive."
+          },
+          {
+            "name": "Panel C - Cost composition strip (OPTIONAL)",
+            "viz": "A single full-width 100% horizontal composition strip, ~24-28px tall, rounded-xs, three segments DIRECT / MISC / CONTINGENCY with inline amount+% ticks below, plus one calm composition sentence ('Contingency adds Px (n%) on top of direct cost'). Renders ONLY when composition data is present in the payload; otherwise the panel is omitted entirely so the page never shows an empty or fake strip.",
+            "dataUsed": "NEW server aggregate: per series {directTotal, miscTotal, contingencyTotal} = sum(qty*unitCost), sum(miscCost), sum(qty*unitCost*contingency%/100). The per-row math ALREADY exists in calculateProjectChartRowTotal (it computes all three terms then discards the split). Ship the three pre-aggregated SCALARS on ProjectChartModeSeries (or once per estimate) - raw qty/unitCost never cross the wire, so SEC-1 holds.",
+            "notes": "This is the ONLY new server data and it is explicitly optional and deferrable. Graft from Cost Anatomy + Direction C: keep it a SECONDARY strip, not the lead, so a near-solid bar (common when misc/contingency are tiny) is acceptable. Composition segments must use a restrained 3-step NON-Okabe-Ito sequence (e.g. ink + two AA-safe greys) so they don't read as categorical buckets - validate >=3:1 adjacent contrast (WCAG 1.4.11) with white dividers."
+          },
+          {
+            "name": "Panel D - Across sheets with revived variance insight",
+            "viz": "One auto-generated variance sentence (real buildInsightSentence output) at the top, then ranked total horizontal bars per sheet (sorted desc), with the EXISTING stacked-segment mix bars + full data table moved behind a single '> Show per-sheet mix' disclosure. Replaces the current always-on stacked bars as the lead.",
+            "dataUsed": "buildProjectChartComparisonView({estimates, seriesByEstimateId, groupingMode, estimateIds:[top two sheets]}) then buildInsightSentence(view.insight) - BOTH already in production on the project-charts surface. CRITICAL FEASIBILITY: for the common <=20-sheet case the Data repo already loads ALL sheets' series into seriesByEstimateId (all-estimates load mode), so the pair is already present - ZERO repo change. Only the >20-sheet selected-pair mode needs a 1-line change to request the compared pair. Existing buildStackedRows/legend/table reused verbatim behind the disclosure.",
+            "notes": "Graft opportunity #2 (highest latent value). The variance sentence is the single biggest 'analyze the cost data' win and is nearly free. Graft opportunity #3 (per-bucket delta table) as an optional column set inside the disclosure later. Edge cases (one sheet, equal totals, mixed currency) reuse the existing mixed/single rollup guard already in CostAcrossSheetsSection."
+          }
+        ],
+        "componentsToChange": [
+          "src/components/workshop/project-data/ProjectDataClient.tsx (orchestrator: drop ProjectDataKpiHeader; compute concentration metrics + cross-sheet comparison view; pass insight inputs down; keep existing sheet/mode override + URL-sync logic)",
+          "src/components/workshop/project-data/CostBreakdownSection.tsx (remove the 2-col donut+table grid and the CostDonutChart usage; render Panel A insight header + Panel B ranked ledger; this is the file that fixes the headline bug)",
+          "src/components/workshop/project-data/CostAcrossSheetsSection.tsx (add the revived variance insight sentence at top; demote stacked bars + table behind a '> Show per-sheet mix' disclosure; keep ranked total bars as the lead)",
+          "src/lib/project-charts/types.ts (OPTIONAL, only for Panel C: add {directTotal, miscTotal, contingencyTotal} scalars to ProjectChartModeSeries; for Space drill: add tableRows back to space-mode series)",
+          "src/lib/project-charts/project-comparison-view.ts (OPTIONAL: extend buildEstimateSeries to carry the composition scalars and/or space tableRows when the payload contract is widened)",
+          "src/lib/repositories/project-charts-repository.ts (OPTIONAL: only if Panel C ships - compute and attach the composition scalars; the per-row terms already exist via calculateProjectChartRowTotal so this is a sum, not new data access)"
+        ],
+        "componentsToCreate": [
+          "src/lib/project-charts/build-concentration-sentence.ts (NEW single-sheet concentration sentence generator, sibling to build-insight-sentence.ts; pure/deterministic; handles one-bucket, equal-buckets, zero-total edge cases)",
+          "src/components/workshop/project-data/CostLedger.tsx (NEW primary ranked-bar ledger that IS the table: swatch+label+inline bar+amount+share+rowCount, 80% rule, Total footer, inline Space drill) - or implement inline in CostBreakdownSection if small",
+          "src/components/workshop/project-data/ProjectDataInsightHeader.tsx (NEW Panel A: dropdown + segmented control + concentration sentence + inline figure row, replacing ProjectDataKpiHeader)",
+          "src/components/workshop/project-data/CostCompositionStrip.tsx (NEW, OPTIONAL Panel C: 3-segment composition strip + sentence; only mounted when composition data is present)"
+        ],
+        "dataChangesNeeded": [
+          "NONE required for the core page (Panels A, B, D all run on the already-shipped seriesByEstimateId + buckets). This is the deliberate SEC-1-respecting choice.",
+          "Cross-sheet variance insight (Panel D): ZERO payload change for <=20 sheets (all series already loaded); only a 1-line repo change to request the compared pair for the >20-sheet selected-pair mode. Not a contract change - a wiring change.",
+          "Concentration metrics + 80% rule + rowCount column + avg-cost-per-line: ALL pure client math on already-shipped fields (share/total/rowCount). No payload change.",
+          "OPTIONAL (Panel C, high value, flag to owner): add pre-aggregated SCALARS {directTotal, miscTotal, contingencyTotal} per series. SEC-1-safe (sums only, no raw qty/unitCost on the wire). Deliberately widens the minimal contract - owner decision. Page ships fully without it (Panel C simply omitted).",
+          "OPTIONAL (Space drill in Panel B): add tableRows back to the space-mode ProjectChartModeSeries (already built+test-pinned by buildSpaceTableRows, just dropped on the wire). Bounded size, SEC-1-safe. Deferrable - Panel B works as a flat ledger without it."
+        ],
+        "testImpact": [
+          "Update/replace tests asserting the donut+table 2-col grid and ProjectDataKpiHeader (the 3-card grid) - these structures are removed.",
+          "Add unit tests for build-concentration-sentence.ts covering the four edge cases (single dominant bucket, two-bucket tie, equal buckets / no clear driver, zero total) mirroring the existing build-insight-sentence coverage.",
+          "Add a contract test that Panel D's variance sentence matches buildInsightSentence(buildProjectChartComparisonView(...).insight) for a two-sheet fixture (proves the revived engine is wired, not re-derived).",
+          "Add ledger tests: descending sort with Other pinned last, 80% rule placement, Total footer = sum of buckets, rowCount column rendering, and the ~380px no-collision layout (min-widths + truncation).",
+          "If Panel C ships: add an aggregation test that directTotal+miscTotal+contingencyTotal reconciles to series.total (golden-master against calculateProjectChartRowTotal), and a payload-shape test that raw qty/unitCost are NOT present on the wire (SEC-1 guard).",
+          "Accessibility tests: ledger has a structured table-equivalent / aria semantics (WCAG 1.1.1); composition strip segments meet 3:1 adjacent contrast with white dividers; concentration/variance sentences are in the accessible reading order."
+        ],
+        "risks": [
+          "Removing the donut is a visible identity change; the owner may still want a small ring somewhere. Mitigation: CostDonutChart stays available with hideCallouts and can be reintroduced as a label-free secondary ring behind a quiet disclosure if requested - but it must never own labels again.",
+          "An auto-generated sentence that is wrong/over-confident on edge data (one bucket, equal buckets, zero total) erodes trust. Mitigation: build-concentration-sentence.ts must handle the same equal/new/empty cases the existing generator already covers, with tests.",
+          "Panel C composition palette must sit OUTSIDE Okabe-Ito (these are not bucket ids) yet stay AA and not read as categorical. Risk of low-contrast greys failing AA. Mitigation: use ink + two validated AA-safe greys with white dividers; validate 3:1 adjacent + 4.5:1 text.",
+          "Ledger row can get busy (swatch + bar + amount + share + count + 80% rule). Mitigation: enforce restraint - one accent (the bar fill), secondary #5D5D5D for meta, tabular-nums for alignment, min-widths + truncation tested at ~380px.",
+          "Space drill and Panel C both depend on (separate, optional) payload adds; shipping order matters. Mitigation: both are strictly additive - Panels A/B/D ship first with zero payload change; composition and Space drill land as follow-ups gated on the owner approving the contract widening.",
+          "For >20-sheet projects the cross-sheet pair is not pre-loaded; the variance sentence would be empty without the 1-line repo wiring. Mitigation: ship the wiring with Panel D, or gracefully omit the sentence when the comparand series is absent (the page already handles single-sheet)."
+        ],
+        "openQuestions": [
+          "Approve the optional SEC-1-safe payload widening for Panel C (direct/misc/contingency scalars)? It is the highest-value new fact but the only piece that touches the deliberately-minimal contract.",
+          "Keep any donut at all (as a label-free secondary ring behind a disclosure), or remove it entirely from the Data page?",
+          "For Category/Supplier drill in Panel B, is a link-out to the filtered estimate line-item view acceptable for v1, deferring true server-side cross-tab child buckets?",
+          "Should the across-sheets baseline be user-selectable (which sheet is 'baseline' for the variance sentence), or always the largest/first sheet?",
+          "Is avg-cost-per-line (bucket.total / bucket.rowCount) wanted as a Panel B column now (it is free), or held back to keep the ledger calm?"
+        ]
+      },
+      "graftFromRunnersUp": [
+        "From Cost Ledger / Pareto: merge the breakdown bar and the data table into ONE ledger component (the ledger IS the table) so the page never regains the donut-vs-table redundancy; add an explicit Total footer row and the 'Other (n)' count that the donut never showed; keep the optional label-free ring strictly via hideCallouts if the owner wants a part-to-whole glance.",
+        "From Cost Anatomy: frame contingency as first-class risk with a dedicated composition sentence; surface per-bucket rowCount (and optionally avg cost per line) as a visible ledger column; for the across-sheets section consider a per-sheet contingency-exposure % column once composition data ships.",
+        "From the cost-data opportunity analysis: opportunity #1 (concentration / top-N dominance, HHI-lite) folded into Panel A as the headline metric - pure client math, zero payload; opportunity #2 (revive the dormant comparison + insight engine) folded into Panel D - the single biggest latent value, nearly free because all sheet series are already loaded for <=20-sheet projects; opportunity #4 (avg cost per line) available as a free Panel B column; opportunity #7 (supplier exposure / 'No supplier' share) reuses the same concentration primitive in Supplier mode as a one-line procurement read; opportunity #8 (coverage/data-quality footnote) folds the existing truncation banner into one understated coverage line.",
+        "From the prior-art research: sorted horizontal bars with direct end-of-bar labels and tabular-figure numbers as the primary breakdown (Cleveland-McGill rank-1 positional encoding; eliminates legend lookup; WCAG 1.4.1 satisfied by text labels not color); cap visible segments at 5-6 with an 'Other' rollup + drill-down; reserve any donut strictly for a single-metric center-number ring, never multi-segment breakdown; avoid 100% stacked bars for cross-sheet comparison (only the leftmost segment reads accurately) - so cross-sheet uses ranked totals + insight, with the stacked mix demoted behind a disclosure."
+      ]
+    }
+  }
+}

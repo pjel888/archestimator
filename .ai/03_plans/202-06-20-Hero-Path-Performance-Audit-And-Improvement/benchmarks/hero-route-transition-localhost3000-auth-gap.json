@@ -1,0 +1,110 @@
+{
+  "generatedAt": "2026-06-20T02:10:27.633Z",
+  "baseUrl": "http://localhost:3000",
+  "authMode": "none",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 1,
+  "scenarioFilter": "authenticated hero",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "heroPath": {
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "estimateNodeId": "bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+    "routes": [
+      "/workshop",
+      "/workshop/projects",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db"
+    ]
+  },
+  "gitStatusShort": [
+    " M public/storybook-audits/settings-modal-audit-capture.json",
+    " M public/storybook-audits/settings-modal-audit-desktop.png",
+    " M public/storybook-audits/settings-modal-audit-mobile.png",
+    " M public/storybook-audits/settings-modal-audit-notes.md",
+    " M scripts/check-route-transition-readiness.ts",
+    " M scripts/measure-route-transitions.ts",
+    " M src/app/globals.css",
+    " M src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+    " M src/app/workshop/projects/[projectId]/estimates/page.tsx",
+    " M src/app/workshop/projects/[projectId]/page.tsx",
+    " M src/components/workshop/ProjectEstimatesClient.tsx",
+    " M src/components/workshop/WorkshopSettingsModalContentView.tsx",
+    " M src/lib/repositories/project-estimate-sheets-repository.ts",
+    " M src/lib/repositories/workspace-repository.ts",
+    " M src/stories/domain/workshop/modal-patterns.stories.tsx",
+    " M tests/vitest/estimate-tabs-domain.test.ts",
+    " M tests/vitest/project-dashboard-route-shell-ui.test.ts",
+    " M tests/vitest/project-estimate-sheets-repository.test.ts",
+    " M tests/vitest/route-transition-measure-script.test.ts",
+    " M tests/vitest/route-transition-readiness-script.test.ts",
+    "?? .ai/03_plans/202-06-20-Hero-Path-Performance-Audit-And-Improvement/"
+  ],
+  "results": [
+    {
+      "scenario": "Authenticated Hero: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[href=\"/workshop/projects\"]').first() to be visible\u001b[22m\n"
+        }
+      ],
+      "medianMs": null,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    },
+    {
+      "scenario": "Authenticated Hero: Projects to Target Project",
+      "from": "/workshop/projects",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "networkProfile": "No throttle",
+      "runs": [],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[href=\"/workshop/projects/22222222-2222-4222-8222-222222222222\"]').first() to be visible\u001b[22m\n"
+        }
+      ],
+      "medianMs": null,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    },
+    {
+      "scenario": "Authenticated Hero: Target Project to Estimates",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "networkProfile": "No throttle",
+      "runs": [],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[href=\"/workshop/projects/22222222-2222-4222-8222-222222222222/estimates\"]').first() to be visible\u001b[22m\n"
+        }
+      ],
+      "medianMs": null,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    },
+    {
+      "scenario": "Authenticated Hero: Estimates to Target Estimate",
+      "from": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates",
+      "expectedPathname": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db",
+      "networkProfile": "No throttle",
+      "runs": [],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[href=\"/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/bf254cbd-13d4-4dbf-b21a-84b171cdd6db\"]').first() to be visible\u001b[22m\n"
+        }
+      ],
+      "medianMs": null,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    }
+  ]
+}

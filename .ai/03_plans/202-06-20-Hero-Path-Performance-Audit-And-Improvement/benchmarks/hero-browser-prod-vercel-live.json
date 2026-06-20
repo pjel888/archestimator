@@ -1,0 +1,292 @@
+{
+  "generatedAt": "2026-06-20T07:48:16.402Z",
+  "label": "prod-vercel-live",
+  "base": "https://www.archestimator.com",
+  "runs": 10,
+  "mode": "next-start-production-real-browser-softnav-overlay",
+  "summary": [
+    {
+      "scenario": "Workshop to Projects",
+      "samples": [
+        1979,
+        1489,
+        4260,
+        1483,
+        1378,
+        3426,
+        2036,
+        3664,
+        4512,
+        1926
+      ],
+      "median": 2008,
+      "max": 4512,
+      "n": 10
+    },
+    {
+      "scenario": "Projects to Target Project",
+      "samples": [
+        2105,
+        2028,
+        3750,
+        2198,
+        1426,
+        2401,
+        3455,
+        1796,
+        3234,
+        1877
+      ],
+      "median": 2152,
+      "max": 3750,
+      "n": 10
+    },
+    {
+      "scenario": "Target Project to Estimates",
+      "samples": [
+        1900,
+        3937,
+        2061,
+        5125,
+        1243,
+        2025,
+        3241,
+        1891,
+        1819,
+        2671
+      ],
+      "median": 2043,
+      "max": 5125,
+      "n": 10
+    },
+    {
+      "scenario": "Estimates to Target Estimate",
+      "samples": [],
+      "median": null,
+      "max": null,
+      "n": 0
+    }
+  ],
+  "allRuns": [
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1979,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 2105,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 1900,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1489,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 2028,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 3937,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 4260,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 3750,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 2061,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1483,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 2198,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 5125,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1378,
+        "sawOverlay": true
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 1426,
+        "sawOverlay": true
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 1243,
+        "sawOverlay": true
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 3426,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 2401,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 2025,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 2036,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 3455,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 3241,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 3664,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 1796,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 1891,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 4512,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 3234,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 1819,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ],
+    [
+      {
+        "step": "Workshop to Projects",
+        "durationMs": 1926,
+        "sawOverlay": false
+      },
+      {
+        "step": "Projects to Target Project",
+        "durationMs": 1877,
+        "sawOverlay": false
+      },
+      {
+        "step": "Target Project to Estimates",
+        "durationMs": 2671,
+        "sawOverlay": false
+      },
+      {
+        "step": "Estimates to Target Estimate",
+        "error": "no-link",
+        "here": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates"
+      }
+    ]
+  ]
+}

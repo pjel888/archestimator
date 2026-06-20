@@ -42,6 +42,87 @@ read the matching entry. Decisions: `.ai/10_state/decisions.md` (same rule —
 grep, don't linear-read).
 ============================================================ -->
 
+**Project Data page uses a glass 16x12 analysis grid (2026-06-20):**
+The Project Data route now keeps the insight header, ranked cost ledger,
+composition strip, and across-sheets table inside a liquid-glass workspace grid:
+mobile stacks the same surfaces in reading order, while desktop switches to an
+explicit 16-column / 12-row layout with the ledger as the dominant work surface
+and secondary analysis on the right rail. The dense ledger/table panels remain
+paper-like for scanability; glass is used for page chrome and analysis framing.
+Verification on 2026-06-20: focused 8-file Project Data/chart Vitest matrix
+(33 tests), `bun run type-check`, targeted ESLint on changed Project Data
+source, `git diff --check`, and the Project Data screenshot harness passed for
+category/supplier/space on desktop and mobile under
+`/tmp/archestimator-data-redesign-final-verify/*.png`. Broad
+`bun run lint:design-system` still reports unrelated pre-existing/worktree
+violations outside this Project Data pass.
+
+**Shared-link upgrade second pass added performance and receiver hardening (2026-06-20):**
+The shared-link ledger at `.ai/03_plans/2026-06-20-Shared-Link-Feature/` now
+records the follow-up implementation pass. Added compact
+`activity_target_labels_json` storage/backfill plus owner/public activity reads
+that no longer select full `snapshot_json`, public activity comment-body
+redaction, throttled/single-flight durable rate-limit cleanup, bounded recipient
+invitation send concurrency, large estimate-tree and Grid Preview row guards,
+deferred full-package print rendering, narrow `source_snapshot->>imageUrl`
+snapshot-build reads, public receiver activity feed mounting, improved mobile
+tree/table row context, stronger failure/ARIA presentation for recipients and
+decisions, canonical comment POST reconciliation without a full comments reload,
+session-banner 44px-class recovery/dismiss controls, recipient session-start
+analytics deferral with `after()`, and contrast cleanup away from low-contrast
+`text-tertiary` receiver copy. Verification on 2026-06-20: focused 15-file
+shared-link Vitest matrix passed (295 tests), focused ESLint on changed
+shared-link source passed,
+`bun run type-check` passed, and `git diff --check` passed. Known gap:
+linked/local Supabase migration listing still could not run because the local
+Supabase Postgres service was not running; no provider mutation or browser
+visual QA was performed.
+
+**Shared-link/publication receiver surface audited and hardened (2026-06-20):**
+The shared-link audit ledger lives at
+`.ai/03_plans/2026-06-20-Shared-Link-Feature/`. This pass fixed strict
+snapshot-version equality for public comments/decisions at the route layer and
+in a local RPC migration, added shared recipient text sanitization, moved and
+rate-limited open telemetry off the response path with `after()`, hardened
+recipient session creation with public CSRF plus durable rate limiting, added
+loading/not-found states, full-package print output, tree keyboard access,
+password-form invalid-state ARIA, safer comment keyboard submit behavior, and
+manager regression coverage. Verification on 2026-06-20: the focused
+10-file shared-link Vitest matrix passed (205 tests), `bun run type-check`
+passed, and `git diff --check` passed. Browser/visual QA and linked Supabase
+migration apply were intentionally not run in this pass.
+
+**Project Data page is now an insight-led cost analysis workspace (2026-06-20):**
+`/workshop/projects/[projectId]/data` now leads with selected-sheet controls and
+a concentration sentence, then a ranked cost ledger instead of unreadable donut
+callouts. The secondary donut is callout-less and desktop-only; mobile shows the
+ledger as label/amount/share/lines so the bar column cannot collapse into ticks.
+Across-sheets comparison keeps the variance sentence and makes the data table
+visible by default as the zoom-safe value surface. Cost composition is now
+pre-aggregated server-side as `baseTotal`, `miscTotal`, `adjustmentTotal`, and
+`grandTotal`, preserving the charts payload rule that raw row facts and per-row
+cost fields do not cross the client boundary. Verification on 2026-06-20:
+`bun run type-check`, the focused 10-file Project Data/chart Vitest matrix
+(46 tests), `git diff --check`, and the Project Data screenshot harness passed.
+Final screenshots were captured for category/supplier/space at desktop and
+mobile under `/tmp/archestimator-data/*.png`.
+
+**Settings modal rail/detail pattern is production-backed (2026-06-20):**
+The Storybook Settings modal pattern now matches the production workshop settings
+modal path. `WorkshopSettingsModalContentView` is the shared rail/detail content
+used by `WorkshopSettingsModalContent`; Profile is selected by default, the side
+rail remains visible while details change, category groups have separator lines,
+rail rows use explicit pointer cursors, and horizontal overflow is hidden. The
+direct `/workshop/settings` route opens the production modal with
+`Workshop / Settings` footer location and a non-white backing canvas, while the
+global `WorkshopPageShell` settings footer path dedupes an existing trailing
+Settings breadcrumb. Verification on 2026-06-20: focused settings/support
+Vitest suites, broader settings/admin/Storybook guard suites, `bun run
+type-check`, Storybook boundary/component checks, `git diff --check`, an
+unauthenticated production route probe to `/workshop/settings`, and refreshed
+Storybook desktop/mobile audit captures passed. Authenticated live route visual
+proof still requires a signed-in browser/session.
+
 **Project Dashboard right map rail shows combined estimate activity (2026-06-20):**
 The full-height right frosted panel in the Project Dashboard map grid now renders
 a compact project activity feed from the existing `estimate_sheet_events`
