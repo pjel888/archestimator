@@ -37,6 +37,15 @@
   --brand-orange: #F24405;
   --brand-orange-dark: #C63804;
   --brand-orange-soft: color-mix(in srgb, var(--brand-orange) 14%, white);
+  /* Budget-health meter fills (Project dashboard, owner directive 2026-06-20):
+     the bar track stays white; the running-cost (in-budget) portion reads as
+     brand orange; the over-budget overflow is the brand orange's hue at 25% of
+     its saturation (i.e. 75% LESS saturated) and lightened — both desaturated
+     and a lighter shade. Static HSL, not relative-color: hsl(from ...) is not
+     yet universally supported and silently resolves to transparent.
+       --brand-orange #F24405 ≈ hsl(16 96% 48%); overflow = hsl(16 24% 72%). */
+  --budget-meter-fill: var(--brand-orange);
+  --budget-meter-overflow: hsl(16 24% 72%);
   /* Warm-bloom palette extension (Workshop Dashboard, 2026-06-17): the amber and
      soft-peach mid-stops of the bottom-right gradient bloom. Brand-coherent warm
      family with --brand-orange (clay → amber → peach → transparent). Dashboard
@@ -1380,10 +1389,233 @@ input[type="number"] {
     0 2px 5px rgba(30, 35, 50, 0.08);
 }
 
+.workshop-estimates-list-glass {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.52)),
+    var(--workshop-shell-chrome-bg);
+  -webkit-backdrop-filter: none; /* deferred — armed via <html data-glass="ready"> */
+  backdrop-filter: none;
+  border: 1px solid color-mix(in srgb, var(--glass-border) 78%, rgba(255, 255, 255, 0.34));
+  border-top-color: rgba(255, 255, 255, 0.58);
+  border-radius: var(--glass-radius);
+  box-shadow:
+    0 0 24px rgba(30, 35, 50, 0.08),
+    0 -1px 4px rgba(255, 255, 255, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+/* ── Project Data workspace — 16×12 liquid-glass analysis grid ───────────────
+   The route already sits inside the single blurred WorkshopPageShell glass
+   surface. These panels therefore use translucent glass skins + bright edge
+   relief, not additional backdrop filters; dense ledgers and tables stay crisp
+   paper. Desktop uses an explicit 16-column / 12-row grid so hierarchy is a
+   layout contract, while mobile stacks the same surfaces in reading order. */
+.project-data-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-data-panel {
+  position: relative;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--glass-border) 84%, rgba(255, 255, 255, 0.28));
+  border-top-color: rgba(255, 255, 255, 0.62);
+  border-radius: var(--glass-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.58)),
+    var(--workshop-shell-chrome-bg);
+  box-shadow:
+    0 7px 18px rgba(30, 35, 50, 0.08),
+    0 1px 5px rgba(30, 35, 50, 0.045),
+    var(--glass-inset-hi);
+}
+
+.project-data-panel--paper {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.90)),
+    #fff;
+}
+
+.project-data-panel--warm {
+  background:
+    linear-gradient(
+      142deg,
+      color-mix(in srgb, var(--brand-orange) 7%, rgba(255, 255, 255, 0.82)) 0%,
+      rgba(255, 255, 255, 0.74) 44%,
+      color-mix(in srgb, var(--brand-amber) 5%, rgba(255, 255, 255, 0.68)) 100%
+    ),
+    var(--workshop-shell-chrome-bg);
+}
+
+.project-data-bucket-card {
+  border: 1px solid color-mix(in srgb, var(--glass-border) 76%, rgba(255, 255, 255, 0.32));
+  border-top-color: rgba(255, 255, 255, 0.56);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.50));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.56),
+    0 1px 3px rgba(30, 35, 50, 0.04);
+}
+
+@media (min-width: 1200px) {
+  .project-data-grid {
+    display: grid;
+    height: 100%;
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    grid-template-rows: repeat(12, minmax(0, 1fr));
+    align-content: stretch;
+    overflow: hidden;
+  }
+
+  .project-data-grid__hero {
+    grid-column: 1 / 17;
+    grid-row: 1 / 4;
+  }
+
+  .project-data-grid__primary {
+    grid-column: 1 / 12;
+    grid-row: 4 / 13;
+  }
+
+  .project-data-grid__full {
+    grid-column: 1 / 17;
+    grid-row: 4 / 13;
+  }
+
+  .project-data-grid__side-top {
+    grid-column: 12 / 17;
+    grid-row: 4 / 7;
+  }
+
+  .project-data-grid__side-bottom {
+    grid-column: 12 / 17;
+    grid-row: 7 / 13;
+  }
+
+  .project-data-grid__side-full {
+    grid-column: 12 / 17;
+    grid-row: 4 / 13;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .project-data-panel,
+  .project-data-panel--warm {
+    background: var(--glass-bg-fallback);
+  }
+
+  .project-data-panel--paper {
+    background: #fff;
+  }
+}
+
 .workshop-project-card-thumbnail-reveal {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.76));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+/* ── Estimate-sheet hero — liquid-glass surface variant ──────────────────────
+   The /estimates/[nodeId] workspace already renders inside the one blurred
+   .workshop-workspace-glass-surface shell (provided by ProjectLayout). These
+   inner panels therefore add NO new backdrop-filter — they are translucent
+   washes layered on that existing frost. That keeps the dense cost grid crisp,
+   never stacks blur, and honours DESIGN.md (glass is purposeful: one frost per
+   region). Opt-in only: applied when the EstimateSurfaceVariant is "glass" (the
+   /newdesign preview + the eventual flip); the default "paper" variant is byte
+   identical to today. Hierarchy reads as: bright floating paper (centre) >
+   recessed frosted rails (tree / library) > the grey well behind. */
+
+/* The well behind the floating panes (the root <section>). A cool, slightly
+   deeper grey field — a touch darker than the shell frost — so the gutters
+   between panes read as the grey canvas and the bright panes genuinely FLOAT on
+   it (matching how the reference workshop pages float their surfaces on grey),
+   instead of sitting on near-white frost where the float barely registers. */
+.estimate-glass-well {
+  /* A grey field with the reference family's signature warm bottom-right bloom
+     (peach/amber dissolving up off the corner) so the well reads as the calm,
+     lived-in canvas the dashboard/estimates-list float on — not a cold clinical
+     slate. The grey is deepened slightly and the top→bottom delta widened so the
+     gradient is actually perceptible; a faint inset recesses the panes into the
+     well so the workspace reads as ONE floating shell with inset panes rather
+     than four things stacked. Warm stops stay low so the dark grid ink (which
+     sits on the paper, not the well) is unaffected. */
+  background:
+    radial-gradient(120% 92% at 100% 100%,
+      color-mix(in srgb, var(--brand-peach) 16%, transparent) 0%,
+      color-mix(in srgb, var(--brand-amber) 9%, transparent) 26%,
+      transparent 62%),
+    linear-gradient(180deg, rgba(228, 229, 233, 0.62), rgba(213, 215, 221, 0.56));
+  box-shadow: inset 0 1px 3px rgba(30, 35, 50, 0.06);
+}
+
+/* Side rails (estimate tree, component library): frosted, slightly recessed
+   panels that FLOAT on the shell frost with a small corner radius and gutter,
+   matching the centre paper. The wash is
+   a touch more translucent than the paper so the rails read as recessed
+   relative to the bright writing surface. */
+.estimate-glass-rail {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.42));
+  border: 1px solid color-mix(in srgb, var(--glass-border) 76%, rgba(255, 255, 255, 0.32));
+  border-top-color: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 1px 3px rgba(30, 35, 50, 0.045),
+    0 8px 22px rgba(30, 35, 50, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+/* The centre writing surface: a brighter, near-opaque "paper" that floats on
+   the frost. High opacity keeps cost rows and inline edits legible; a small
+   outer margin (set in JSX) lets the frosted shell frame it on every side. */
+.estimate-glass-paper {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.86));
+  border: 1px solid color-mix(in srgb, var(--glass-border) 80%, rgba(255, 255, 255, 0.34));
+  border-top-color: rgba(255, 255, 255, 0.62);
+  box-shadow:
+    0 1px 3px rgba(30, 35, 50, 0.05),
+    0 10px 26px rgba(30, 35, 50, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+/* Sticky header / tab bars inside glass panels: a frosted wash — translucent
+   enough to read as glass (not a solid-white bar) while still dimming the rows
+   that scroll underneath. The inner HeaderIconToolbar's baked-in `bg-white` is
+   stripped in glass (see the "chromeToolbar" surface slot) so this wash is what
+   actually shows. Pair with .estimate-glass-divider for the soft centre-faded
+   hairline that replaces the hard border-hairline. */
+.estimate-glass-chrome {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.62));
+}
+
+.estimate-glass-divider {
+  position: relative;
+}
+
+.estimate-glass-divider::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--glass-divider);
+  pointer-events: none;
+}
+
+/* Accessibility: when the viewer asks for reduced transparency, drop the
+   washes to solid light surfaces. (No backdrop-filter is used here, so the
+   @supports-not branch needs no entry.) */
+@media (prefers-reduced-transparency: reduce) {
+  .estimate-glass-rail {
+    background: #f4f5f7;
+  }
+  .estimate-glass-paper {
+    background: #ffffff;
+  }
+  .estimate-glass-chrome {
+    background: #fbfbfc;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1445,6 +1677,12 @@ input[type="number"] {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+
+  .workshop-estimates-list-glass {
+    background: var(--glass-bg-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -1472,6 +1710,11 @@ input[type="number"] {
   }
   .workshop-project-card-glass {
     background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .workshop-estimates-list-glass {
+    background: var(--glass-bg-fallback);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1551,7 +1794,8 @@ input[type="number"] {
   :root[data-glass="ready"] .dashboard-glass,
   :root[data-glass="ready"] .dashboard-glass-warm,
   :root[data-glass="ready"] .workshop-workspace-glass-surface,
-  :root[data-glass="ready"] .dashboard-destination-card {
+  :root[data-glass="ready"] .dashboard-destination-card,
+  :root[data-glass="ready"] .workshop-estimates-list-glass {
     -webkit-backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur-amount, var(--glass-blur))) saturate(var(--glass-saturate));
   }
@@ -1580,6 +1824,7 @@ input[type="number"] {
     :root[data-glass="ready"] .workshop-workspace-glass-surface,
     :root[data-glass="ready"] .dashboard-destination-card,
     :root[data-glass="ready"] .workshop-project-card-glass,
+    :root[data-glass="ready"] .workshop-estimates-list-glass,
     :root[data-glass="ready"] .sidebar-glass[data-refraction="true"],
     :root[data-glass="ready"] .workshop-liquid-button {
       -webkit-backdrop-filter: none;
@@ -1622,6 +1867,38 @@ input[type="number"] {
   --destination-muted: var(--brand-orange-dark);
   --destination-icon: var(--brand-orange-dark);
 }
+
+/* 01 — Projects: bold orange-fill hover (owner experiment 2026-06-20).
+   The primary destination tile commits fully on hover — the frosted-transparent
+   surface fills with Signal orange and all ink inverts to solid black — while
+   the sibling tiles keep the subtle orange-ink-on-glass treatment above.
+   Black on #F24405 ≈ 5.6:1 (passes WCAG AA). The :hover override below is
+   scoped through .dashboard-imageband so it out-ranks the generic imageband
+   hover rule on source order. */
+.dashboard-destination-card--projects {
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
+}
+.dashboard-imageband .dashboard-destination-card--projects:hover {
+  --destination-bg: var(--brand-orange);
+  --destination-ink: #000;
+  --destination-muted: #000;
+  --destination-icon: #000;
+  --destination-inner-text: #000;
+  --destination-inner-muted: #000;
+  --destination-border: var(--brand-orange-dark);
+  --destination-inner-border: rgba(0, 0, 0, 0.28);
+  --destination-inner-list-border: rgba(0, 0, 0, 0.16);
+}
+/* Keep per-link feedback legible on the orange fill — the global
+   .dashboard-published-link:hover turns text orange-dark, which would vanish
+   against the orange background. */
+.dashboard-destination-card--projects:hover .dashboard-published-link:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000;
+}
+
 .dashboard-destination-card-index,
 .dashboard-destination-card-count {
   transition: color 180ms ease-out;
