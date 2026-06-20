@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Doto, Roboto_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { LiquidGlassReady } from "@/components/system/LiquidGlassReady";
 import { AppProviders } from "./providers";
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             null; the glass surfaces ship blur-off so first paint stays cheap. */}
         <LiquidGlassReady />
         <VercelWebAnalytics />
+        <SpeedInsights />
       </body>
     </html>
   );

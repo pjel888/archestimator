@@ -4,11 +4,31 @@
 
 ## Current decision status
 
+**Status:** REOPENED and superseded on 2026-06-20 — **Option B adopted (owner-approved)**.
+
+Decision (2026-06-20): add `@vercel/speed-insights` root instrumentation for real-user (RUM) field metrics. The owner explicitly approved enabling Speed Insights to measure real-user hero-path performance after the `syd1` region fix brought production authenticated renders to ~700–900 ms.
+
+Privacy rationale (satisfies the Sensitive route policy below via route **templating**, not dropping):
+
+- `@vercel/speed-insights/next` attributes Web Vitals to Next.js **route patterns** (e.g. `/share/[token]`, `/invite/[token]`, `/workshop/projects/[projectId]/estimates/[nodeId]`), NOT literal token/ID values, and does not collect query strings or hash fragments. Raw sensitive values from the Sensitive route policy are therefore not transmitted.
+- Unlike Web Analytics, Speed Insights exposes no `beforeSend` hook, so it cannot DROP authenticated/tokenized routes the way `redactVercelAnalyticsEvent` does — it relies on route-pattern attribution instead. Web Analytics keeps its stricter drop-policy unchanged (authenticated `/workshop/*` and tokenized `/share|/invite` page views are still dropped before Vercel receives them).
+- Residual owner action: verify in Vercel dashboard → Speed Insights that route labels appear as PATTERNS (no literal tokens/IDs). If any literal sensitive value appears, add `sampleRate`/disable.
+
+Repo evidence (2026-06-20):
+
+- `@vercel/speed-insights` is installed and `<SpeedInsights />` is mounted in `src/app/layout.tsx` (root layout → all routes).
+- `@vercel/analytics` + `VercelWebAnalytics` (with `redactVercelAnalyticsEvent`) remain mounted and unchanged.
+- `tests/vitest/vercel-web-analytics-integration.test.ts` updated to assert Speed Insights is present and to record this superseding decision.
+
+---
+
+### Historical decision (superseded 2026-06-20)
+
 **Status:** closed for PR-1A on 2026-06-06.
 
 Decision: **Option A — dashboard/provider-only Speed Insights, no package change**.
 
-The active implementation path must not add `@vercel/speed-insights`, `<SpeedInsights />`, or custom web-vitals telemetry until a later owner-approved decision reopens this record with a concrete redaction/drop/sampling policy and provider proof plan.
+The active implementation path (as of 2026-06-06) must not add `@vercel/speed-insights`, `<SpeedInsights />`, or custom web-vitals telemetry until a later owner-approved decision reopens this record with a concrete redaction/drop/sampling policy and provider proof plan. — Superseded 2026-06-20 by Option B above.
 
 Current repo evidence shows:
 

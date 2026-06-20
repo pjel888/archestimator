@@ -29,20 +29,18 @@ describe("Vercel Web Analytics integration", () => {
     expect(analyticsComponent).toContain("<Analytics beforeSend={redactVercelAnalyticsEvent} />");
   });
 
-  it("keeps Speed Insights removed while enabling Web Analytics", () => {
-    expect(packageJson.dependencies).not.toHaveProperty("@vercel/speed-insights");
-    expect(rootLayout).not.toContain("SpeedInsights");
-    expect(rootLayout).not.toContain("@vercel/speed-insights");
-    expect(analyticsComponent).not.toContain("SpeedInsights");
-    expect(analyticsComponent).not.toContain("@vercel/speed-insights");
+  it("mounts Speed Insights (Option B, owner-approved 2026-06-20) for real-user field metrics", () => {
+    expect(packageJson.dependencies).toHaveProperty("@vercel/speed-insights");
+    expect(rootLayout).toContain('import { SpeedInsights } from "@vercel/speed-insights/next";');
+    expect(rootLayout).toContain("<SpeedInsights />");
+    // Web Analytics keeps its stricter beforeSend drop-policy regardless of Speed Insights.
+    expect(analyticsComponent).toContain("<Analytics beforeSend={redactVercelAnalyticsEvent} />");
   });
 
-  it("locks the PR-1A dashboard-only telemetry decision until owner-approved provider proof exists", () => {
-    expect(telemetryDecision).toContain("Status:** closed for PR-1A");
-    expect(telemetryDecision).toContain("Option A — dashboard/provider-only Speed Insights, no package change");
-    expect(telemetryDecision).toContain("must not add `@vercel/speed-insights`");
-    expect(telemetryDecision).toContain("TELEMETRY DECISION IMPLEMENTED / PROVIDER PROOF OPEN");
-    expect(telemetryDecision).toContain("Vercel Speed Insights dashboard/export p75 route/device metrics remain required");
+  it("records the owner-approved Option B telemetry decision with route-pattern privacy rationale", () => {
+    expect(telemetryDecision).toContain("Option B adopted (owner-approved)");
+    expect(telemetryDecision).toContain("route patterns");
+    expect(telemetryDecision).toContain("Web Analytics keeps its stricter drop-policy unchanged");
   });
 
   it("drops tokenized share and invite page views before Vercel receives them", () => {
