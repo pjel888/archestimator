@@ -387,11 +387,12 @@ rg -o '`[A-Za-z0-9_./\[\]-]+`' .ai/00_corpus/archestimator-app-bible.md \
   | while read -r p; do [ -e "${p%%:*}" ] || echo "DEAD ANCHOR: $p"; done
 ```
 
-**Staleness tripwires.** The strings `maplibre`, `openfreemap`, `tiles.openfreemap.org`, `location-map-config`, and `NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED` must not appear in any *claim* in this corpus (they describe the removed tile-map stack), and the verified-stamp must never read `2026-06-19` or older. This very line is the only intentional occurrence of those tokens; the check below excludes it:
+**Staleness tripwires.** The strings `maplibre`, `openfreemap`, `tiles.openfreemap.org`, `location-map-config`, and `NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED` describe the removed tile-map stack and must not appear in any *claim* (they may appear only inside this protocol), and the verified-stamp must never read `2026-06-19` or older. The check scans only the claim region — everything above this protocol — so it ignores the intentional mentions here:
 
 ```bash
-rg -ni 'maplibre|openfreemap|location-map-config|NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED|Last verified: 2026-06-19' \
-  .ai/00_corpus/archestimator-app-bible.md | rg -v 'Staleness tripwires'   # must print nothing
+sed '/^## Corpus Maintenance Protocol/,$d' .ai/00_corpus/archestimator-app-bible.md \
+  | rg -ni 'maplibre|openfreemap|location-map-config|NEXT_PUBLIC_PROJECT_LOCATION_MAP_ENABLED|Last verified: 2026-06-19'
+# must print nothing
 ```
 
 **Sign-off rule.** A revision is "done" only when every changed claim is confirmable by opening a single cited source file, the anchor sweep is clean, and the tripwire check above prints nothing.

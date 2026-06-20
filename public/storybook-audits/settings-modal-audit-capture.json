@@ -1,49 +1,67 @@
 {
-  "capturedAt": "2026-06-20T01:31:25.195Z",
-  "captures": [
-    {
-      "name": "desktop",
-      "outPath": "public/storybook-audits/settings-modal-audit-desktop.png",
-      "metrics": {
-        "dialog": {
-          "width": 920,
-          "height": 764,
-          "top": 68,
-          "left": 180
-        },
-        "closeLabel": "Close settings",
-        "title": "Settings",
-        "description": "Manage account, workspace, and beta operations.",
-        "navLabel": "Settings sections",
-        "footerText": "Workshop / Modal patterns / Settings",
-        "focusedTag": "BUTTON",
-        "focusedLabel": "Close settings",
-        "rowCount": 7
-      },
-      "messages": [],
-      "pageErrors": []
+  "capturedAt": "2026-06-20T01:48:39.027Z",
+  "settingsUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal&fresh=1781920114748",
+  "auditUrl": "http://localhost:6006/iframe.html?id=domain-workshop-modalpatterns--settings-modal-audit&fresh=1781920114748",
+  "errors": [],
+  "desktop": {
+    "dialog": {
+      "width": 920,
+      "height": 764,
+      "top": 109,
+      "left": 180
     },
-    {
-      "name": "mobile",
-      "outPath": "public/storybook-audits/settings-modal-audit-mobile.png",
-      "metrics": {
-        "dialog": {
-          "width": 358,
-          "height": 764,
-          "top": 40,
-          "left": 16
-        },
-        "closeLabel": "Close settings",
-        "title": "Settings",
-        "description": "Manage account, workspace, and beta operations.",
-        "navLabel": "Settings sections",
-        "footerText": "Workshop / Modal patterns / Settings",
-        "focusedTag": "BUTTON",
-        "focusedLabel": "Close settings",
-        "rowCount": 7
+    "activeElement": {
+      "tag": "DIV",
+      "role": "dialog",
+      "ariaLabel": null,
+      "text": "SettingsManage account, workspace, and beta operations.Settings pagesChoose one "
+    },
+    "hasIndex": true,
+    "hasProfile": true,
+    "hasDataRequests": true,
+    "hasBetaUsers": true,
+    "rowButtonCount": 9
+  },
+  "mobile": {
+    "dialog": {
+      "width": 358,
+      "height": 764,
+      "top": 81,
+      "left": 16
+    },
+    "activeElement": {
+      "tag": "BUTTON",
+      "role": null,
+      "ariaLabel": null,
+      "text": "Settings"
+    },
+    "hasDetail": true,
+    "hasBackCrumb": true,
+    "hasOpenPage": true,
+    "escapeClosed": true
+  },
+  "audit": {
+    "hasProgressiveDisclosureFinding": true,
+    "hasSimplerLinksFinding": true,
+    "images": [
+      {
+        "src": "/storybook-audits/settings-modal-audit-desktop.png",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1064
       },
-      "messages": [],
-      "pageErrors": []
-    }
-  ]
+      {
+        "src": "/storybook-audits/settings-modal-audit-mobile.png",
+        "complete": true,
+        "naturalWidth": 390,
+        "naturalHeight": 1008
+      }
+    ]
+  },
+  "files": {
+    "desktop": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-desktop.png",
+    "mobile": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-mobile.png",
+    "capture": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-capture.json",
+    "notes": "/Users/philiplewis/Documents/archestimator/public/storybook-audits/settings-modal-audit-notes.md"
+  }
 }

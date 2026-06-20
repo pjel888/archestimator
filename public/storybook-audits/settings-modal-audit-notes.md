@@ -1,40 +1,29 @@
-# Settings Modal Audit
+# Settings Modal Audit Notes
+
+Captured: 2026-06-20T01:48:39.027Z
 
 ## Scope
 
-- Surface: Storybook Settings modal in `Domain/Workshop/ModalPatterns`.
-- Evidence:
-  - `settings-modal-audit-desktop.png`
-  - `settings-modal-audit-mobile.png`
-  - `settings-modal-audit-capture.json`
-- Design source: repo `DESIGN.md` app UI tokens and current Storybook modal pattern.
+Storybook Settings modal after the hub/detail redesign. Desktop capture shows the settings index. Mobile capture shows one drill-in detail page.
 
-## Steps
+## Evidence
 
-1. Desktop Settings modal: Healthy with follow-up polish.
-2. Narrow Settings modal: Mostly healthy, with responsive density risk.
+- Desktop screenshot: public/storybook-audits/settings-modal-audit-desktop.png
+- Mobile screenshot: public/storybook-audits/settings-modal-audit-mobile.png
+- Capture metrics: public/storybook-audits/settings-modal-audit-capture.json
 
-## Strengths
+## Findings
 
-- The shell is clear: close strip, title header, content body, and lower-left location footer read as separate zones.
-- The white surface is simple and consistent with the repo's product UI direction.
-- Settings rows follow a predictable title, helper text, and trailing action pattern.
+- Strength: Settings now uses progressive disclosure instead of one long all-settings page.
+- Strength: Settings rows are visually simpler: plain icon, title, helper text, caret.
+- P2: Decide final route ownership: modal-only detail, full route pages, or modal hub plus route handoff.
+- P2: Confirm focus order in the real app once route pages are final.
+- Limit: Storybook proves visible hierarchy and core interactions, not complete screen-reader behavior.
 
-## UX Risks
+## Checks
 
-- Initial focus currently lands on the close button. That is safe, but it may over-prioritize leaving the modal over reviewing settings.
-- Category navigation looks like stable settings IA, but the active state is static rather than clearly tied to selected or scrolled section state.
-- Mobile category navigation fits the current three categories, but it has limited capacity for longer labels or additional settings groups.
-
-## Accessibility Risks
-
-- Screenshots confirm labels and visible structure, but not the full keyboard trap, tab sequence, or screen-reader announcement order.
-- The hash-link category nav should be checked for keyboard and screen-reader clarity if it remains anchor-based.
-- Long labels, zoom, and contrast for every interaction state still need targeted checks.
-
-## Recommendations
-
-1. Decide whether initial focus should remain on Close settings or move to the modal title/container/first category.
-2. Make the category navigation state explicit when a user selects or scrolls to a section.
-3. Define mobile overflow behavior before adding more settings categories.
-4. Run a focused accessibility pass for Tab order, Escape behavior, screen-reader labels, zoom, and contrast.
+- Desktop index rendered: true
+- Mobile Workspace detail rendered: true
+- Escape closed the modal: true
+- Audit story images loaded: true
+- Console/page errors: 0
