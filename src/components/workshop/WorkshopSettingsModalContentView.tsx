@@ -9,7 +9,6 @@ import {
   EnvelopeSimple,
   FileText,
   Lifebuoy,
-  ShieldCheck,
   SignOut,
   UserCircle,
   UsersThree,
@@ -89,17 +88,8 @@ const supportSettings = [
     href: "/terms",
     icon: <FileText size={15} weight="regular" aria-hidden="true" />,
     id: "terms-privacy",
-    notes: ["Terms", "Privacy", "Estimate accuracy limits"],
+    notes: ["Terms", "Privacy", "Estimate accuracy limits", "Accepted Terms version"],
     title: "Terms and privacy",
-  },
-  {
-    category: "Support",
-    description: "Reopen the protected clickwrap screen for the accepted Terms version.",
-    href: "/workshop/terms?next=%2Fworkshop%2Fsettings",
-    icon: <ShieldCheck size={15} weight="regular" aria-hidden="true" />,
-    id: "terms-acceptance",
-    notes: ["Accepted version", "Review screen", "Protected beta access"],
-    title: "Terms acceptance",
   },
 ] as const satisfies readonly SettingsPage[];
 
@@ -166,14 +156,7 @@ function SettingsIndex({
 }) {
   return (
     <div className="min-h-0 overflow-y-auto px-4 py-4">
-      <div className="mx-auto max-w-[680px] space-y-4">
-        <div className="space-y-1">
-          <h3 className="text-[12px] font-medium leading-4 text-ink">Settings pages</h3>
-          <p className="max-w-[62ch] text-[10px] leading-4 text-tertiary">
-            Choose one setting page. The modal keeps the index light, then opens a focused page for the selected task.
-          </p>
-        </div>
-
+      <div className="mx-auto max-w-[680px] space-y-3">
         <div className="rounded-xs border border-hairline bg-white">
           {groups.map((group, groupIndex) => (
             <section key={group.id} aria-labelledby={`settings-group-${group.id}`}>
