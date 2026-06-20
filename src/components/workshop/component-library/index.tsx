@@ -40,6 +40,7 @@ import type {
 } from "@/lib/reusable-sources/types";
 import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
+import { estimateSurfaceClass, useEstimateSurfaceVariant } from "../estimate-surface-variant";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import { beginEstimateWorkshopDrag } from "../estimate-workshop-drag";
 import { ResizableSidePanel } from "../ResizableSidePanel";
@@ -807,6 +808,7 @@ function EstimateRightSidebarBase({
   templateCreateMode = "estimate-node",
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
+  const surfaceVariant = useEstimateSurfaceVariant();
   // Initial state must not read localStorage: SSR renders the fallbacks, so a
   // storage-aware initializer makes the client's first render diverge and
   // throws a hydration mismatch. Stored prefs apply in the mount effect below.
@@ -2055,9 +2057,11 @@ function EstimateRightSidebarBase({
       {/* group/tree on the panel keeps the tree's drag/select rail space open
           while the pointer or focus is anywhere in this sidebar, matching the
           estimate tree's behavior. */}
-      <aside className="group/tree flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
+      <aside className={cn("group/tree flex h-full min-h-0 min-w-[320px] flex-col !text-[10px]", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
         {/* Sticky header */}
         <TreePanelHeader
+          className={estimateSurfaceClass(surfaceVariant, "railPanelHeader")}
+          toolbarClassName={estimateSurfaceClass(surfaceVariant, "chromeToolbar")}
           ref={treeHeaderRef}
           ariaLabel="Library tree tools"
           labelPrefix="library tree"
@@ -2087,7 +2091,7 @@ function EstimateRightSidebarBase({
           <div
             role="toolbar"
             aria-label="Library tools"
-            className="mx-2 flex h-[38px] min-h-[38px] items-center gap-1 border-b border-hairline bg-white px-0 py-0"
+            className={cn("mx-2 flex h-[38px] min-h-[38px] items-center gap-1 px-0 py-0", estimateSurfaceClass(surfaceVariant, "railToolbar"))}
           >
             {/* D1: Facet filter — components only; templates-tab faceting is out of scope. */}
             <ComponentFacetFilterPopover

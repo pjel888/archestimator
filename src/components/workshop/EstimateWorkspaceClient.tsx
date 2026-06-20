@@ -5,6 +5,13 @@ import { useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/ui/cn";
+import {
+  EstimateSurfaceVariantProvider,
+  estimateSurfaceClass,
+  useEstimateSurfaceVariant,
+  type EstimateSurfaceVariant,
+} from "./estimate-surface-variant";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
@@ -49,6 +56,12 @@ type EstimateWorkspaceClientProps = {
   librarySuppliers?: ComponentLibrarySupplierOption[];
   libraryBrands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
+  /**
+   * Surface design language. "paper" (default) is the live solid-white
+   * workspace; "glass" opts into the liquid-glass refresh used by the
+   * /newdesign preview route.
+   */
+  surfaceVariant?: EstimateSurfaceVariant;
 };
 
 export function EstimateWorkspaceClient({
@@ -69,6 +82,7 @@ export function EstimateWorkspaceClient({
   librarySuppliers,
   libraryBrands,
   libraryFolders,
+  surfaceVariant = "paper",
 }: EstimateWorkspaceClientProps) {
   const queryClient = useQueryClient();
   const tabQueriesEnabled = Boolean(activeTabId);
@@ -100,7 +114,11 @@ export function EstimateWorkspaceClient({
   }, [defaultTabId, resolvedActiveTabId, setActiveTabId, tabQueriesEnabled]);
 
   return (
-    <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${projectName} estimates`}>
+    <EstimateSurfaceVariantProvider variant={surfaceVariant}>
+    <section
+      className={cn("flex h-full min-h-0 overflow-hidden", estimateSurfaceClass(surfaceVariant, "root"))}
+      aria-label={`${projectName} estimates`}
+    >
       <EstimateSheetTree
         projectId={projectId}
         estimateId={estimateId}
@@ -138,12 +156,17 @@ export function EstimateWorkspaceClient({
         libraryFolders={libraryFolders}
       />
     </section>
+    </EstimateSurfaceVariantProvider>
   );
 }
 
 function EstimateTreeFallback() {
+  const variant = useEstimateSurfaceVariant();
   return (
-    <aside className="hidden w-[376px] shrink-0 border-r border-hairline bg-white p-2 lg:block" aria-hidden="true">
+    <aside
+      className={cn("hidden w-[376px] shrink-0 p-2 lg:block", estimateSurfaceClass(variant, "treeRail"))}
+      aria-hidden="true"
+    >
       <Skeleton className="h-7 w-full" />
       <div className="mt-2 space-y-1">
         {Array.from({ length: 10 }, (_, index) => (
@@ -155,8 +178,13 @@ function EstimateTreeFallback() {
 }
 
 function EstimateContentFallback() {
+  const variant = useEstimateSurfaceVariant();
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-2" role="status" aria-label="Loading estimate">
+    <div
+      className={cn("flex min-h-0 min-w-0 flex-1 flex-col p-2", estimateSurfaceClass(variant, "centerColumnFallback"))}
+      role="status"
+      aria-label="Loading estimate"
+    >
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-hairline" aria-hidden="true">
         <Skeleton className="h-6 w-28" />
         <Skeleton className="h-6 w-20" />

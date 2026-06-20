@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 describe("estimate tab domain client state", () => {
@@ -10,9 +9,20 @@ describe("estimate tab domain client state", () => {
   });
 
   it("adds tab-aware query keys while preserving the legacy area-tree key", () => {
-    expect(estimateQueryKeys.tabs("estimate-1")).toEqual(["estimate", "estimate-1", "tabs"]);
-    expect(estimateQueryKeys.tabTree("estimate-1", "tab-1")).toEqual(["estimate", "estimate-1", "tab", "tab-1", "area-tree"]);
-    expect(estimateQueryKeys.areaTree("estimate-1")).toEqual(["estimate", "estimate-1", "area-tree"]);
+    const source = readFileSync("src/hooks/use-estimate-query.ts", "utf8");
+
+    expect(source).toContain('tabs: (estimateId: string) => ["estimate", estimateId, "tabs"] as const');
+    expect(source).toContain('tabTree: (estimateId: string, tabId: string) => ["estimate", estimateId, "tab", tabId, "area-tree"] as const');
+    expect(source).toContain('areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const');
+  });
+
+  it("does not refetch server-seeded estimate trees on mount", () => {
+    const source = readFileSync("src/hooks/use-estimate-query.ts", "utf8");
+
+    const refetchOnMountGuards = source.match(/refetchOnMount: false/g) ?? [];
+    expect(refetchOnMountGuards.length).toBeGreaterThanOrEqual(2);
+    expect(source).toContain("fetchEstimateTree({ projectId, estimateId })");
+    expect(source).toContain("fetchEstimateTabTree({ projectId, estimateId, tabId })");
   });
 
   it("tracks selection and expansion independently per tab", () => {
@@ -54,20 +64,24 @@ describe("estimate tab repository compatibility wrappers", () => {
     // U21: the resolver returns the tab list in parallel with the tree, so the
     // page prefers it (`tabs ??`) and only falls back to a direct getEstimateTabs
     // fetch when it wasn't provided.
-    expect(routeSource).toContain("tabs ?? (tab ? getEstimateTabs(project.id, estimate.id)");
+    expect(routeSource).toContain("tabs ?? (tab ? await getEstimateTabs(project.id, estimate.id) : [])");
     // Add New Tabs U1: the edit-capability RPC resolves in parallel with that tabs
     // read (one Promise.all, no new sequential first-paint hop) — it cannot live in
     // the route's first Promise.all because `estimate.id` is only known after
     // `resolveEstimateTabRouteContext` resolves.
-    expect(routeSource).toContain("await Promise.all([");
-    expect(routeSource).toContain("tab ? getEstimateTabs(project.id, estimate.id) : Promise.resolve");
+    expect(routeSource).toContain("Promise.all([");
+    expect(routeSource).toContain("tab ? await getEstimateTabs(project.id, estimate.id) : []");
     expect(routeSource).toContain("resolveEstimateEditCapability(estimate.id)");
     expect(routeSource).toContain("canEditEstimate={canEditEstimate}");
     expect(routeSource).toContain("activeTabId={tab?.id ?? null}");
-    expect(repositorySource).toContain("const defaultTab = await getDefaultEstimateTab(routeSegment)");
-    expect(repositorySource).toContain("getEstimateTabTree(projectId, routeSegment, defaultTab.id, options)");
-    // U21: the tab-present branches resolve the tab list in parallel with the tree.
-    expect(repositorySource).toContain("getEstimateTabs(projectId, routeNode.estimate_id)");
+    expect(repositorySource).toContain('.eq("id", routeSegment)');
+    expect(repositorySource).toContain('.eq("project_id", project.id)');
+    expect(repositorySource).toContain("readEstimateTabsForEstimate(supabase, resolvedEstimate.id)");
+    expect(repositorySource).toContain("getEstimateTabTreeForResolvedEstimateTab(");
+    // U21: the tab-present branches resolve the tab list in parallel with the tree
+    // without re-running project/estimate validation after the project-scoped join.
+    expect(repositorySource).toContain("getEstimateTabTreeForResolvedEstimate(supabase, resolved, routeNode.estimate_tab_id, options)");
+    expect(repositorySource).toContain("readEstimateTabsForEstimate(supabase, routeNode.estimate_id)");
   });
 });
 

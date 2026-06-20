@@ -34,6 +34,7 @@ import {
 import { useEstimateAreaTreeQuery, useEstimateTabTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
+import { estimateSurfaceClass, useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import {
   evaluateEstimateTreeDrop,
   getEstimateTreeContentSignature,
@@ -272,6 +273,7 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
 }
 
 export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialTabId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
+  const surfaceVariant = useEstimateSurfaceVariant();
   const pathname = usePathname();
   const { toast, dismissToast } = useToast();
   const tabInitialNodes = activeTabId && activeTabId === initialTabId ? nodes : [];
@@ -1372,8 +1374,10 @@ export function EstimateSheetTree({ projectId, estimateId, activeTabId, initialT
             their drag/select space while the pointer or focus is anywhere in
             this sidebar (header tools included), so reaching for Add Area or
             search no longer shifts the tree back and forth. */}
-        <div className="group/tree flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
+        <div className={cn("group/tree flex h-full flex-col overflow-hidden", estimateSurfaceClass(surfaceVariant, "treeRail"))}>
         <TreePanelHeader
+          className={estimateSurfaceClass(surfaceVariant, "railPanelHeader")}
+          toolbarClassName={estimateSurfaceClass(surfaceVariant, "chromeToolbar")}
           ariaLabel="Tree tools"
           labelPrefix="tree"
           onExpandAll={handleExpandAll}

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type SetStateAction } from "react";
 import { FunnelSimple, Tabs as TabsIcon, Trash, X } from "@phosphor-icons/react/dist/ssr";
 
@@ -31,6 +32,7 @@ import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal
 import { isExpressComponentRow, readEstimateRowMetadata, withExpressComponentMetadata } from "@/lib/estimates/express-components";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
+import { estimateSurfaceClass, useEstimateSurfaceVariant } from "./estimate-surface-variant";
 import { WORKSHOP_VIRTUALIZATION_FLAGS } from "@/lib/workshop/virtualization-flags";
 import { useEstimateColumnWidthsStore } from "@/stores/estimate-column-widths-store";
 import { EstimateRightSidebar } from "./component-library";
@@ -39,7 +41,12 @@ import type { ComponentLibraryBrand } from "@/lib/repositories/component-library
 import { useToast } from "@/components/ui/toast";
 import { insertProjectSourceIntoEstimate } from "@/lib/reusable-sources/actions";
 import type { ProjectSourceInsertTarget } from "@/lib/reusable-sources/types";
-import { CommandPalette } from "./component-library/CommandPalette";
+// Interaction-gated overlay: only mounts when its `open` prop is true, so it
+// contributes nothing to first paint. Code-split out of the initial bundle.
+const CommandPalette = dynamic(
+  () => import("./component-library/CommandPalette").then((mod) => mod.CommandPalette),
+  { ssr: false },
+);
 import {
   INSERT_ESTIMATE_TEMPLATE_EVENT,
   INSERT_PROJECT_SOURCE_EVENT,
@@ -56,15 +63,19 @@ import type { ComponentLibrarySupplierOption } from "./component-library/tree/bu
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { EstimateTabStrip, type EstimateTabStripHandle } from "./estimate-sheet/EstimateTabStrip";
 import { REQUEST_ESTIMATE_TREE_NODE_CREATE_EVENT } from "./estimate-sheet/events";
-import { ProposalExportPreviewDialog, type ProposalExportPreviewScope, type ProposalExportUserSettings } from "./ProposalExportPreviewDialog";
+import type { ProposalExportPreviewScope, ProposalExportUserSettings } from "./ProposalExportPreviewDialog";
+// Interaction-gated overlay: only mounts when its `open` prop is true, so it
+// contributes nothing to first paint. Code-split out of the initial bundle.
+const ProposalExportPreviewDialog = dynamic(
+  () => import("./ProposalExportPreviewDialog").then((mod) => mod.ProposalExportPreviewDialog),
+  { ssr: false },
+);
 import type { EstimateTabSummary } from "@/lib/estimates/types";
 import {
-  ActivityHistoryModal,
   BLANK_ESTIMATE_ROW_AUDIT_LABEL,
   BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
   BLANK_ESTIMATE_ROW_TAG,
   DEFAULT_ACTIVITY_FILTERS,
-  RowDetailsModal,
   createActivityFilterKey,
   getActivityFilterInput,
   getActivityScopeKey,
@@ -79,6 +90,18 @@ import {
   type RowDetailTab,
   type RowDetailsState,
 } from "./estimate-sheet/activity-history";
+// Interaction-gated overlays from the activity-history barrel: each renders only
+// behind its open-state condition in JSX, so neither contributes to first paint.
+// Code-split out of the initial bundle (the non-component exports above stay
+// static because they run during render/compute).
+const ActivityHistoryModal = dynamic(
+  () => import("./estimate-sheet/activity-history").then((mod) => mod.ActivityHistoryModal),
+  { ssr: false },
+);
+const RowDetailsModal = dynamic(
+  () => import("./estimate-sheet/activity-history").then((mod) => mod.RowDetailsModal),
+  { ssr: false },
+);
 
 import {
   EstimateSheetExpansionContext,
@@ -612,14 +635,16 @@ function EstimateSheetHeader({
   groupMode?: SheetGroupMode;
   onGroupModeChange?: (mode: SheetGroupMode) => void;
 }) {
+  const surfaceVariant = useEstimateSurfaceVariant();
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const groupActive = (groupMode ?? "default") !== "default";
   return (
     // z-30: the search dropdown must paint above the sheet's sticky branch
     // headers (z-20), which sit later in the DOM.
-    <header className="relative sticky top-0 z-30 border-b border-hairline bg-white/95 backdrop-blur" aria-label="Tab controls">
+    <header className={cn("relative sticky top-0 z-30", estimateSurfaceClass(surfaceVariant, "sheetHeader"))} aria-label="Tab controls">
       <TreePanelHeader
         className="static z-auto bg-transparent"
+        toolbarClassName={estimateSurfaceClass(surfaceVariant, "chromeToolbar")}
         showBottomBorder={false}
         ariaLabel="Tab tools"
         labelPrefix="tab"
@@ -1063,6 +1088,7 @@ export function EstimateSheetContent({
   libraryFolders,
 }: EstimateSheetContentProps) {
   reportEstimateSheetContentRender();
+  const surfaceVariant = useEstimateSurfaceVariant();
   const tabInitialNodes = dataTabId && dataTabId === initialTabId ? nodes : [];
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId, dataTabId);
   const { saveState, markRowDirty: markRowDirtyNow, insertRow, replaceRow, detachRow, promoteRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId, dataTabId);
@@ -2577,28 +2603,37 @@ export function EstimateSheetContent({
 
   return (
     <>
-      <CommandPalette
-        open={showCommandPalette}
-        items={shouldLoadLibraryLazily ? resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS : libraryItems}
-        canInsert={canInsertIntoSelectedNode}
-        targetLabel={insertionTargetLabel}
-        onClose={() => setShowCommandPalette(false)}
-        onInsert={insertIntoSelectedNode}
-      />
-      <ProposalExportPreviewDialog
-        open={isProposalPreviewOpen}
-        model={proposalPreviewModel}
-        isStale={isProposalPreviewStale}
-        onDownload={downloadProposalExport}
-        isDownloading={isDownloadingProposal}
-        downloadError={proposalDownloadError}
-        canDownload={Boolean(proposalDownloadHref) && !isProposalExportEmpty}
-        scopeControls={proposalPreviewScopeControls}
-        exportSettings={proposalExportSettings}
-        onExportSettingsChange={changeProposalExportSettings}
-        onRefresh={refreshProposalPreview}
-        onClose={closeProposalPreview}
-      />
+      {/* Mount-gate the code-split overlay on its open-state so its async chunk
+          is fetched on first open, not on first paint. The component still
+          self-guards on `open` (returns null when false) and resets its draft
+          state on each open, so a fresh mount is behaviorally identical to the
+          previous always-mounted-with-open=false render. */}
+      {showCommandPalette ? (
+        <CommandPalette
+          open={showCommandPalette}
+          items={shouldLoadLibraryLazily ? resolvedLibraryItems ?? EMPTY_ESTIMATE_ROW_ITEMS : libraryItems}
+          canInsert={canInsertIntoSelectedNode}
+          targetLabel={insertionTargetLabel}
+          onClose={() => setShowCommandPalette(false)}
+          onInsert={insertIntoSelectedNode}
+        />
+      ) : null}
+      {isProposalPreviewOpen ? (
+        <ProposalExportPreviewDialog
+          open={isProposalPreviewOpen}
+          model={proposalPreviewModel}
+          isStale={isProposalPreviewStale}
+          onDownload={downloadProposalExport}
+          isDownloading={isDownloadingProposal}
+          downloadError={proposalDownloadError}
+          canDownload={Boolean(proposalDownloadHref) && !isProposalExportEmpty}
+          scopeControls={proposalPreviewScopeControls}
+          exportSettings={proposalExportSettings}
+          onExportSettingsChange={changeProposalExportSettings}
+          onRefresh={refreshProposalPreview}
+          onClose={closeProposalPreview}
+        />
+      ) : null}
       {inspector ? (
         <ActivityHistoryModal
           scope={inspector}
@@ -2661,7 +2696,7 @@ export function EstimateSheetContent({
       ) : null}
       <section
         id="estimate-sheet-center-column"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
+        className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", estimateSurfaceClass(surfaceVariant, "centerColumn"))}
         data-estimate-center-column="sheet"
         aria-label="Estimate tab content"
       >
@@ -2925,8 +2960,9 @@ export function EstimateSheetContent({
 // the sidebar footprint stable so the sheet does not reflow, and keeps load
 // failures visible and retryable without blocking sheet editing.
 function ComponentLibrarySidebarFallback({ isError, onRetry }: { isError: boolean; onRetry: () => void }) {
+  const surfaceVariant = useEstimateSurfaceVariant();
   return (
-    <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white p-2">
+    <aside className={cn("flex h-full min-h-0 min-w-[320px] flex-col p-2", estimateSurfaceClass(surfaceVariant, "libraryRail"))}>
       {isError ? (
         <div role="alert" className="mt-2 rounded-xs border border-dashed border-hairline bg-surfaceMuted p-3 text-center">
           <p className="text-[10px] font-medium text-ink">Couldn&apos;t load the component library</p>
