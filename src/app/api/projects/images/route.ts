@@ -199,7 +199,12 @@ export async function GET(request: Request) {
 
   return new Response(await data.arrayBuffer(), {
     headers: {
-      "Cache-Control": "private, max-age=300",
+      // Content-addressed path: each upload uses a fresh randomUUID() in the
+      // storage key (see POST: `${safeUploadName}-${randomUUID()}`) and
+      // upsert:false, so a given path is immutable. Cache aggressively per-user
+      // to avoid repeated auth+DB+storage round-trips across navigation; keep
+      // `private` because these are auth-gated user images.
+      "Cache-Control": "private, max-age=86400, immutable",
       "Content-Type": "image/webp",
       "X-Content-Type-Options": "nosniff",
     },
