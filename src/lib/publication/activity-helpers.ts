@@ -13,6 +13,11 @@ type TargetLabelMap = {
   rowLabels: Map<string, string>;
 };
 
+export type SharedLinkTargetLabelsJson = {
+  estimateLabels: Record<string, string>;
+  rowLabels: Record<string, string>;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -65,6 +70,33 @@ export function createSharedLinkTargetLabelMap(snapshotJson: Json | null | undef
   }
 
   return { estimateLabels, rowLabels };
+}
+
+function readStringRecordMap(value: unknown) {
+  const labels = new Map<string, string>();
+  if (!isRecord(value)) return labels;
+  for (const [key, rawLabel] of Object.entries(value)) {
+    const normalizedKey = readString(key);
+    const label = readString(rawLabel);
+    if (normalizedKey && label) labels.set(normalizedKey, label);
+  }
+  return labels;
+}
+
+export function createSharedLinkTargetLabelsJson(snapshotJson: Json | null | undefined): SharedLinkTargetLabelsJson {
+  const labels = createSharedLinkTargetLabelMap(snapshotJson);
+  return {
+    estimateLabels: Object.fromEntries(labels.estimateLabels),
+    rowLabels: Object.fromEntries(labels.rowLabels),
+  };
+}
+
+export function createSharedLinkTargetLabelMapFromLabelsJson(labelsJson: Json | null | undefined): TargetLabelMap {
+  if (!isRecord(labelsJson)) return { estimateLabels: new Map(), rowLabels: new Map() };
+  return {
+    estimateLabels: readStringRecordMap(labelsJson.estimateLabels),
+    rowLabels: readStringRecordMap(labelsJson.rowLabels),
+  };
 }
 
 export function resolveSharedLinkTargetLabel(

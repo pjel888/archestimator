@@ -22,7 +22,17 @@ import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
-import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
+import {
+  compareSharedLinkActivityDesc,
+  createSharedLinkTargetLabelMapFromLabelsJson,
+  createSharedLinkTargetLabelsJson,
+  decodeSharedLinkActivityCursor,
+  encodeSharedLinkActivityCursor,
+  isBeforeSharedLinkActivityCursor,
+  readSharedLinkRecipientDisplayName,
+  resolveSharedLinkTargetLabel,
+  sharedLinkActivityCursorFilter,
+} from "@/lib/publication/activity-helpers";
 import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
 import { getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
 import type { ProjectPublicationSummary } from "@/lib/publication/types";
@@ -61,9 +71,9 @@ type EstimateRowSource = Pick<
   | "quantity"
   | "unit"
   | "unit_cost"
-  // P9: for source_snapshot.imageUrl extraction (additive to Pick)
-  | "source_snapshot"
->;
+> & {
+  imageUrl: string | null;
+};
 type EstimateNodeSource = {
   id: string;
   name: string;
@@ -105,6 +115,7 @@ const roleRank = {
 const managerRank = roleRank.admin;
 const SHARED_LINK_RECIPIENT_RESEND_SCOPE = "shared_link_recipient_resend";
 const SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS = 5 * 60;
+const SHARED_LINK_RECIPIENT_ADD_CONCURRENCY = 4;
 
 function createPublicationAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -385,7 +396,7 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
     const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }, { data: tabs, error: tabsError }] = await Promise.all([
       context.admin
         .from("estimate_row_items")
-        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, source_snapshot")
+        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, imageUrl:source_snapshot->>imageUrl")
         .in("estimate_id", estimateIds)
         .order("sort_order", { ascending: true }),
       context.admin
@@ -445,7 +456,6 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       sheetCode: estimate.sheet_code,
       updatedAt: estimate.updated_at,
       rows: (rowsByEstimateId.get(estimate.id) ?? []).map((row) => {
-        const imageUrl = readStringMetadataValue(row.source_snapshot, "imageUrl") ?? undefined;
         return {
           id: row.id,
           nodeId: row.node_id ?? undefined,
@@ -458,8 +468,8 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
           unitCost: Number(row.unit_cost),
           miscCost: Number(row.misc_cost),
           contingencyPercentage: Number(row.contingency_percentage ?? 0),
-          // P9: extract for thumbnails (matches workspace-repository source_snapshot.imageUrl pattern)
-          imageUrl,
+          // P9: extract only the source_snapshot image path instead of transferring full row JSON.
+          imageUrl: typeof row.imageUrl === "string" && row.imageUrl.trim() ? row.imageUrl : undefined,
         };
       }),
       nodes: (nodesByEstimateId.get(estimate.id) ?? []).map((node) => ({
@@ -554,6 +564,7 @@ export async function createProjectPublication({
     encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
     password_hash: password ? await hashPublicationPassword(password) : null,
     snapshot_json: snapshot,
+    activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
     selected_estimate_ids: resolvedEstimateIds,
     snapshot_version: (latest?.snapshot_version ?? 0) + 1,
     published_by: context.currentUserId,
@@ -623,6 +634,7 @@ export async function republishProjectPublication({
     .from("project_publications")
     .update({
       snapshot_json: snapshot,
+      activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
       selected_estimate_ids: resolvedEstimateIds,
       snapshot_version: latest.snapshot_version + 1,
       published_at: new Date().toISOString(),
@@ -683,6 +695,7 @@ export async function rotateProjectPublicationLink({
     p_encrypted_token: encryptPublicationToken(token, readPublicationTokenEncryptionSecret()),
     p_password_hash: passwordHash,
     p_snapshot_json: snapshot,
+    p_activity_target_labels_json: createSharedLinkTargetLabelsJson(snapshot),
     p_selected_estimate_ids: resolvedEstimateIds,
   });
 
@@ -753,6 +766,42 @@ interface SharedLinkRecipientRow {
 }
 
 type RecipientInput = { email: string; displayName?: string };
+type SharedLinkRecipientEmailResult = {
+  email: string;
+  ok: boolean;
+  error?: string;
+  id?: string;
+  status?: "sent" | "pending" | "duplicate" | "failed";
+};
+type AddSharedLinkRecipientsResult = {
+  ok: boolean;
+  message: string;
+  added: number;
+  failedEmails: string[];
+  emailResults: SharedLinkRecipientEmailResult[];
+};
+
+async function mapWithBoundedConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await worker(items[index]!, index);
+      }
+    }),
+  );
+
+  return results;
+}
 
 function normalizeRecipientDeliveryStatus(status: string): RecipientDeliveryStatus {
   if (status === "sent" || status === "bounced" || status === "opened" || status === "responded") return status;
@@ -994,7 +1043,7 @@ export async function addSharedLinkRecipients({
   publicationId: string;
   recipients: RecipientInput[];
   baseClientLink?: string | null;
-}): Promise<{ ok: boolean; message: string; added: number; failedEmails: string[]; emailResults: Array<{ email: string; ok: boolean; error?: string; id?: string; status?: "sent" | "pending" | "duplicate" | "failed" }> }> {
+}): Promise<AddSharedLinkRecipientsResult> {
   if (!publicationId || !Array.isArray(inputs) || inputs.length === 0) {
     return { ok: false, message: "No recipients provided.", added: 0, failedEmails: [], emailResults: [] };
   }
@@ -1027,7 +1076,7 @@ export async function addSharedLinkRecipients({
     };
   }
 
-  const emailResults: Array<{ email: string; ok: boolean; error?: string; id?: string; status?: "sent" | "pending" | "duplicate" | "failed" }> = blockedSelfEmails.map((email) => ({
+  const emailResults: SharedLinkRecipientEmailResult[] = blockedSelfEmails.map((email) => ({
     email,
     ok: false,
     error: selfInviteMessage,
@@ -1065,7 +1114,7 @@ export async function addSharedLinkRecipients({
     };
   }
 
-  for (const r of allowedRecipients) {
+  const recipientResults = await mapWithBoundedConcurrency(allowedRecipients, SHARED_LINK_RECIPIENT_ADD_CONCURRENCY, async (r) => {
     try {
       // Generate unique raw token for this recipient (never stored; only hash)
       const rawToken = createPublicationToken();
@@ -1092,12 +1141,10 @@ export async function addSharedLinkRecipients({
           // unaffected, but the explicit status lets the UI render it neutrally instead of as a
           // misleading green "sent" chip (the old `error: "already invited"` drove a success chip
           // while the headline said "No new recipients added").
-          emailResults.push({ email: r.email, ok: true, status: "duplicate" });
-          continue;
+          return { added: 0, emailResult: { email: r.email, ok: true, status: "duplicate" as const } };
         }
         throw insertErr;
       }
-      added++;
       const recipientId = insertedRecipient.id;
 
       const sendResult = await sendSharedLinkRecipientInvitationEmail({
@@ -1121,19 +1168,27 @@ export async function addSharedLinkRecipients({
           .eq("id", recipientId);
         // AC-MOD-17 (MOD-ACT-04): surface the inserted recipient id (and explicit status) so a
         // just-added chip immediately supports Resend/Remove without remounting the modal.
-        emailResults.push({ email: r.email, ok: true, id: recipientId, status: "sent" });
+        return { added: 1, emailResult: { email: r.email, ok: true, id: recipientId, status: "sent" as const } };
       } else {
         // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
         console.warn("[P4] recipient email send non-fatal failure", { email: r.email, error: sendResult.error });
-        emailResults.push({ email: r.email, ok: false, error: sendResult.error, id: recipientId, status: "pending" });
+        return {
+          added: 1,
+          emailResult: { email: r.email, ok: false, error: sendResult.error, id: recipientId, status: "pending" as const },
+        };
         // keep pending
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "unknown error";
-      failedEmails.push(r.email);
-      emailResults.push({ email: r.email, ok: false, error: msg, status: "failed" });
+      return { added: 0, failedEmail: r.email, emailResult: { email: r.email, ok: false, error: msg, status: "failed" as const } };
       // Continue to next; overall add can still succeed
     }
+  });
+
+  for (const result of recipientResults) {
+    added += result.added;
+    if (result.failedEmail) failedEmails.push(result.failedEmail);
+    emailResults.push(result.emailResult);
   }
 
   const successCount = emailResults.filter((e) => e.ok).length;
@@ -1334,7 +1389,7 @@ export async function loadSharedLinkActivity(
   const pubHash = hashPublicationToken(publicationToken, readPublicationTokenHashSecret());
   const { data: pub, error: pubErr } = await admin
     .from("project_publications")
-    .select("id, project_id, status, revoked_at, expires_at, snapshot_json")
+    .select("id, project_id, status, revoked_at, expires_at, activity_target_labels_json")
     .eq("token_hash", pubHash)
     .maybeSingle();
   if (pubErr) throw pubErr;
@@ -1400,7 +1455,7 @@ export async function loadSharedLinkActivity(
     }
   }
 
-  const targetLabels = createSharedLinkTargetLabelMap(pub.snapshot_json);
+  const targetLabels = createSharedLinkTargetLabelMapFromLabelsJson(pub.activity_target_labels_json);
   const raw: SharedLinkActivityInput[] = [];
   (commentsRes.data ?? []).forEach((c) => {
     const recipientDisplayName = c.recipient_id ? recipientDisplayNames.get(c.recipient_id) : undefined;

@@ -42,6 +42,11 @@ export type SharedLinkPublicComment = {
   authorType: "owner" | "recipient";
 };
 
+type SharedLinkPublicCommentRow = Pick<
+  Tables<"shared_link_comments">,
+  "id" | "created_at" | "body" | "author_name" | "recipient_id"
+>;
+
 export type SharedLinkRecipientDecision = {
   type: "accepted" | "declined" | "revision_requested";
   note: string | null;
@@ -181,6 +186,10 @@ function hashRequestValue(value: string | null) {
   return createHmac("sha256", readTelemetryHashPepper()).update(value).digest("base64url");
 }
 
+export function hashPublicTelemetryValue(value: string | null) {
+  return hashRequestValue(value);
+}
+
 export function isProjectPublicationAccessTelemetryEnabled(env: Partial<Pick<NodeJS.ProcessEnv, "NODE_ENV" | "ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED" | "ARCHESTIMATOR_ACCESS_TELEMETRY_PRODUCTION_READY">> = process.env) {
   if (env.ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED !== "true") return false;
   if (env.NODE_ENV === "production" && env.ARCHESTIMATOR_ACCESS_TELEMETRY_PRODUCTION_READY !== "true") return false;
@@ -260,6 +269,7 @@ type RateLimitScope =
   | "project_publication_password"
   | "project_publication_snapshot"
   | "proposal_export"
+  | "shared_link_session_start"
   | "shared_link_comment"
   | "shared_link_comment_read"
   | "shared_link_decision_read"
@@ -286,6 +296,28 @@ async function cleanupExpiredRateLimitEvents(now = Date.now()) {
     .delete()
     .lt("expires_at", new Date(now).toISOString());
   if (error) throw error;
+}
+
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = 60_000;
+let lastRateLimitCleanupAt = 0;
+let rateLimitCleanupPromise: Promise<void> | null = null;
+
+async function cleanupExpiredRateLimitEventsIfDue(now = Date.now()) {
+  if (rateLimitCleanupPromise) {
+    await rateLimitCleanupPromise;
+    return;
+  }
+  if (now - lastRateLimitCleanupAt < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
+  lastRateLimitCleanupAt = now;
+  rateLimitCleanupPromise = cleanupExpiredRateLimitEvents(now)
+    .catch((error) => {
+      lastRateLimitCleanupAt = 0;
+      throw error;
+    })
+    .finally(() => {
+      rateLimitCleanupPromise = null;
+    });
+  await rateLimitCleanupPromise;
 }
 
 async function countRateLimitEvents({
@@ -354,7 +386,7 @@ async function checkRecordedRateLimit({
   const keyHash = hashRateLimitKey(scope, keyParts);
   const maxWindowSeconds = Math.max(...windows.map((window) => window.seconds));
 
-  await cleanupExpiredRateLimitEvents(now);
+  await cleanupExpiredRateLimitEventsIfDue(now);
   await recordRateLimitEvent({ keyHash, metadata, scope, ttlSeconds: maxWindowSeconds });
 
   for (const window of windows) {
@@ -457,6 +489,24 @@ export async function checkProjectPublicationActivityRateLimit({
   });
 }
 
+export async function checkSharedLinkSessionStartRateLimit({
+  token,
+  request,
+}: {
+  token: string;
+  request: Request;
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "shared_link_session_start",
+    keyParts: publicationRequestRateLimitKey(token, request),
+    metadata: { route: "recipient_session" },
+    windows: [
+      { seconds: 60, limit: 10, message: genericRateLimitMessage },
+      { seconds: 60 * 60, limit: 50, message: genericRateLimitMessage },
+    ],
+  });
+}
+
 export async function checkProjectPublicationPasswordRateLimit({
   token,
   request,
@@ -482,7 +532,7 @@ export async function recordProjectPublicationPasswordFailure({
   const now = Date.now();
   const keyHash = hashRateLimitKey("project_publication_password", keyParts);
 
-  await cleanupExpiredRateLimitEvents(now);
+  await cleanupExpiredRateLimitEventsIfDue(now);
   await recordRateLimitEvent({
     scope: "project_publication_password",
     keyHash,
@@ -875,13 +925,17 @@ export async function loadSharedLinkPublicComments({
 
   if (error) throw error;
 
-  return (data ?? []).map((comment) => ({
+  return (data ?? []).map((comment) => mapSharedLinkPublicComment(comment));
+}
+
+function mapSharedLinkPublicComment(comment: SharedLinkPublicCommentRow): SharedLinkPublicComment {
+  return {
     id: comment.id,
     content: comment.body,
     createdAt: comment.created_at,
     authorName: comment.author_name || (comment.recipient_id ? "Client" : "Project team"),
     authorType: comment.recipient_id ? "recipient" : "owner",
-  }));
+  };
 }
 
 function isSharedLinkDecisionType(value: string): value is SharedLinkRecipientDecision["type"] {
@@ -933,7 +987,7 @@ export async function insertSharedLinkComment(params: {
   body: string;
   estimateId?: string | null;
   rowId?: string | null;
-}): Promise<{ id: string }> {
+}): Promise<{ id: string; comment?: SharedLinkPublicComment }> {
   if (!Number.isInteger(params.expectedSnapshotVersion) || params.expectedSnapshotVersion < 1) {
     throw new Error("Expected snapshot version is required.");
   }
@@ -984,7 +1038,20 @@ export async function insertSharedLinkComment(params: {
   if (rpcErr) throw new Error(rpcErr.message);
   if (!commentId) throw new Error("Failed to insert comment.");
 
-  return { id: commentId as string };
+  const id = String(commentId);
+  const { data: insertedComment, error: insertedCommentErr } = await supabase
+    .from("shared_link_comments")
+    .select("id, created_at, body, author_name, recipient_id")
+    .eq("publication_id", publicationId)
+    .eq("id", id)
+    .eq("is_internal", false)
+    .maybeSingle();
+
+  if (insertedCommentErr || !insertedComment) {
+    return { id };
+  }
+
+  return { id, comment: mapSharedLinkPublicComment(insertedComment) };
 }
 
 // (readTokenHash / hash helpers already defined earlier in this module for P3/P5 paths)
