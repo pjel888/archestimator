@@ -230,7 +230,7 @@ export function ProjectLocationMap({
         <div
           data-testid="project-location-map-pin"
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-7 w-7 -translate-x-1/2 -translate-y-full rounded-full border-2 border-white bg-[#111111] shadow-[0_10px_24px_rgba(0,0,0,0.22)] after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-7 w-7 -translate-x-1/2 -translate-y-full rounded-full border-2 border-white bg-[color:var(--brand-orange)] shadow-[0_10px_24px_rgba(0,0,0,0.22)] after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white"
         />
       ) : null}
       {!pin ? (

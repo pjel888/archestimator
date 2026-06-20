@@ -59,7 +59,7 @@ export function WorkshopBreadcrumbs({ breadcrumbs, projectId, className }: Works
       {resolvedBreadcrumbs.map((item, index) => (
         <span key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
           {item.href ? (
-            <Link href={item.href} className="inline-flex min-h-8 items-center truncate hover:text-ink">
+            <Link href={item.href} className="inline-flex min-h-3 items-center truncate hover:text-ink">
               {item.label}
             </Link>
           ) : (

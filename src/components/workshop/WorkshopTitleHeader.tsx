@@ -37,7 +37,7 @@ export function WorkshopTitleHeader({
     <header className={cn("workshop-shell-glass-chrome workshop-shell-glass-chrome--top relative flex h-14 shrink-0 items-center justify-between", className)}>
       {titleSlot ?? (hideTitle ? <div className="min-w-0 flex-1" aria-hidden="true" /> : (
         <div
-          className={cn("flex min-w-0 shrink-0 flex-col gap-0.5", hasBreadcrumbs && "justify-center")}
+          className={cn("flex min-w-0 shrink-0 flex-col gap-0.5", hasBreadcrumbs && "translate-y-1 justify-center gap-0 pt-1")}
           data-workshop-title-region
         >
           <div className="min-w-0" data-workshop-title-block>

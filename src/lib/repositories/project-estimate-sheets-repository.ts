@@ -40,6 +40,17 @@ export async function listProjectEstimateSheetsForProject(projectId: string): Pr
   }));
 }
 
+export async function countProjectEstimateSheetsForProject(projectId: string): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("estimates")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function listRecentProjectEstimateSheets(
   projectId: string,
   limit = RECENT_ESTIMATE_SHEET_DEFAULT_LIMIT,
@@ -69,7 +80,10 @@ export async function listRecentProjectEstimateSheets(
       .select("id, estimate_id, kind, parent_id")
       .in("estimate_id", estimateIds)
       .order("sort_order", { ascending: true }),
-    supabase.rpc("project_estimate_list_summaries", { target_project_id: projectId }),
+    supabase.rpc("project_estimate_list_summaries_for_estimates", {
+      target_project_id: projectId,
+      target_estimate_ids: estimateIds,
+    }),
   ]);
 
   if (nodesResult.error) throw nodesResult.error;

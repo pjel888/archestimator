@@ -8,10 +8,11 @@ import {
   listProjectActivityPage,
 } from "@/lib/repositories/project-activity-repository";
 import {
-  listProjectEstimateSheetsForProject,
+  countProjectEstimateSheetsForProject,
   listRecentProjectEstimateSheets,
 } from "@/lib/repositories/project-estimate-sheets-repository";
 import { getProjectLocation } from "@/lib/repositories/project-location-repository";
+import { traced, withPerfTraceRequest } from "@/lib/perf/server-timing";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -45,14 +46,16 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     currencyCode: "PHP",
   };
 
-  const [canEdit, projectEstimateSheets, recentEstimateSheets, projectActivityPage] = project
-    ? await Promise.all([
-        canEditProject(project.id),
-        listProjectEstimateSheetsForProject(project.id),
-        listRecentProjectEstimateSheets(project.id),
-        listProjectActivityPage({ projectId: project.id, limit: 16 }),
-      ])
-    : ([false, [], [], createEmptyProjectActivityPage()] as const);
+  const [canEdit, estimateCount, recentEstimateSheets, projectActivityPage] = project
+    ? await withPerfTraceRequest("workshop.project-dashboard", () =>
+        Promise.all([
+          traced("project-dashboard.can-edit", () => canEditProject(project.id)),
+          traced("project-dashboard.estimate-count", () => countProjectEstimateSheetsForProject(project.id)),
+          traced("project-dashboard.recent-estimates", () => listRecentProjectEstimateSheets(project.id)),
+          traced("project-dashboard.activity", () => listProjectActivityPage({ projectId: project.id, limit: 16 })),
+        ]),
+      )
+    : ([false, 0, [], createEmptyProjectActivityPage()] as const);
   const projectLocation = project && canEdit ? await getProjectLocation(project.id) : null;
   const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
   const googleMapsMapId = process.env.GOOGLE_MAPS_MAP_ID ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? null;
@@ -61,7 +64,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     <ProjectDashboardClient
       project={project}
       fallback={fallback}
-      estimateCount={projectEstimateSheets.length}
+      estimateCount={estimateCount}
       recentEstimateSheets={recentEstimateSheets}
       canEditProject={canEdit}
       projectLocation={projectLocation}

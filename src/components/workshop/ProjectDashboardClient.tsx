@@ -11,6 +11,7 @@ import { cn } from "@/lib/ui/cn";
 import { updateProjectDetails } from "@/lib/projects/actions";
 import { initialProjectLocationActionState } from "@/lib/projects/location-action-state";
 import { saveProjectLocation } from "@/lib/projects/location-actions";
+import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { formatChartMoney } from "@/lib/project-charts/format";
 import type { ProjectActivityItem, ProjectActivityPage } from "@/lib/repositories/project-activity-repository";
 import type { ProjectRecentEstimateSheetSummary } from "@/lib/repositories/project-estimate-sheets-repository";
@@ -117,12 +118,17 @@ const PROJECT_ESTIMATE_SUMMARY_STYLE = {
   containerType: "inline-size",
 } as CSSProperties;
 const BUDGET_WARNING_THRESHOLD_PERCENT = 85;
-const BUDGET_HEALTH_ACTUAL_FILL_CLASS = "bg-[rgba(30,30,30,0.34)]";
-const BUDGET_HEALTH_OVERBUDGET_FILL_CLASS = "bg-[rgba(30,30,30,0.18)]";
+const BUDGET_HEALTH_ACTUAL_FILL_CLASS = "bg-[color:var(--budget-meter-fill)]";
+const BUDGET_HEALTH_OVERBUDGET_FILL_CLASS = "bg-[color:var(--budget-meter-overflow)]";
 const BUDGET_HEALTH_BUDGET_TICK_CLASS = "bg-[rgba(17,17,17,0.56)]";
 
 function RecentEstimateSheetLinks({ sheets }: { readonly sheets: readonly ProjectRecentEstimateSheetSummary[] }) {
-  const recentSheets = sheets.slice(0, 5);
+  const recentSheets = useMemo(() => sheets.slice(0, 5), [sheets]);
+  const prefetchRoutes = useMemo(
+    () => recentSheets.map((sheet) => ({ pathname: createProjectEstimateHref(sheet) })),
+    [recentSheets],
+  );
+  const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
 
   if (recentSheets.length === 0) {
     return (
@@ -134,18 +140,29 @@ function RecentEstimateSheetLinks({ sheets }: { readonly sheets: readonly Projec
 
   return (
     <ul className="dashboard-published-list" aria-label="Recent estimate sheets">
-      {recentSheets.map((sheet) => (
-        <li key={sheet.id} className="dashboard-published-list-item">
-          <Link href={createProjectEstimateHref(sheet)} className="dashboard-published-link">
-            <span className="min-w-0 flex-1 truncate" title={sheet.name}>
-              {sheet.name}
-            </span>
-            <span className="shrink-0 font-numeric text-[9px] text-secondary">
-              {formatCompactDate(sheet.updatedAt)}
-            </span>
-          </Link>
-        </li>
-      ))}
+      {recentSheets.map((sheet) => {
+        const href = createProjectEstimateHref(sheet);
+        return (
+          <li key={sheet.id} className="dashboard-published-list-item">
+            <Link
+              href={href}
+              prefetch={false}
+              className="dashboard-published-link"
+              onBlur={() => cancel(href)}
+              onFocus={() => prefetch(href)}
+              onMouseEnter={() => prefetch(href)}
+              onMouseLeave={() => cancel(href)}
+            >
+              <span className="min-w-0 flex-1 truncate" title={sheet.name}>
+                {sheet.name}
+              </span>
+              <span className="shrink-0 font-numeric text-[9px] text-secondary">
+                {formatCompactDate(sheet.updatedAt)}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -1,9 +1,9 @@
 import { Suspense, type ReactNode } from "react";
 import { cookies } from "next/headers";
+import dynamic from "next/dynamic";
 
 import { MainSidebar, type MainSidebarStatus } from "@/components/sidebar/MainSidebar";
 import { WorkshopGlassBackdrop } from "@/components/workshop/WorkshopGlassBackdrop";
-import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkshopNotificationEntry } from "@/features/notifications/components/WorkshopNotificationEntry";
@@ -23,6 +23,14 @@ import {
   getSidePanelWidthCookieName,
   SIDE_PANEL_WIDTH_CONFIGS,
 } from "./side-panel-widths";
+
+// Flag-gated copilot: only rendered when isAskFlipUiEnabled() (defaults OFF). Loading it
+// via next/dynamic keeps its code out of the shared workshop client chunk when the flag is
+// off (the chunk is only fetched when the component actually renders). WorkshopPageShell is
+// a Server Component, so this uses the default-SSR dynamic() form (ssr:false is RSC-illegal).
+const AskFlipFooterAssistant = dynamic(() =>
+  import("@/components/workshop/EstimateCopilotFloatingButton").then((module) => module.AskFlipFooterAssistant),
+);
 
 type WorkshopPageShellProps = {
   title: string;
@@ -90,20 +98,27 @@ export async function WorkshopPageShell({
     getCurrentUserContext(),
     getSidePanelWidthCssVariables(),
   ]);
-  const sidebarFavoriteScope = currentUser
-    ? { workspaceId: (await ensureDefaultWorkspace()).workspace.id, userId: currentUser.userId }
+  // ensureDefaultWorkspace() and listMainSidebarFavoriteProjects() are independent here:
+  // the favourites query re-reads the (React-cache()-memoised) default workspace internally
+  // rather than consuming the scope object, so we can await them together instead of
+  // serially. Both run only when there's a signed-in user, matching the prior behaviour.
+  const [workspaceBootstrap, sidebarFavoriteProjects] = currentUser
+    ? await Promise.all([ensureDefaultWorkspace(), listMainSidebarFavoriteProjects()])
+    : [null, []];
+  const sidebarFavoriteScope = currentUser && workspaceBootstrap
+    ? { workspaceId: workspaceBootstrap.workspace.id, userId: currentUser.userId }
     : null;
-  const sidebarFavoriteProjects = sidebarFavoriteScope ? await listMainSidebarFavoriteProjects() : [];
   const sidebarUser = currentUser
     ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
     : undefined;
   const canManagePlatformSettings = currentUser?.role === "ceo" || currentUser?.role === "admin";
   const showAskFlip = isAskFlipUiEnabled();
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
-  const settingsModalLocation = [
-    ...resolvedBreadcrumbs.map((breadcrumb) => (typeof breadcrumb === "string" ? breadcrumb : breadcrumb.label)),
-    "Settings",
-  ].join(" / ");
+  const settingsModalLocationParts = resolvedBreadcrumbs.map((breadcrumb) =>
+    typeof breadcrumb === "string" ? breadcrumb : breadcrumb.label,
+  );
+  if (settingsModalLocationParts.at(-1) !== "Settings") settingsModalLocationParts.push("Settings");
+  const settingsModalLocation = settingsModalLocationParts.join(" / ");
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:px-2" : "p-2";
   const headerActions = (
     <div className="flex h-10 min-w-0 items-center justify-end gap-1">

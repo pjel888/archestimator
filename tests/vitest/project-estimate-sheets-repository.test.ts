@@ -74,6 +74,20 @@ describe("project estimate sheet repository", () => {
     ]);
   });
 
+  it("counts project estimate sheets without fetching list rows", async () => {
+    const estimatesBuilder = createBuilder();
+    estimatesBuilder.eq.mockResolvedValue({ count: 7, error: null });
+    supabaseMocks.from.mockReturnValue(estimatesBuilder);
+
+    const { countProjectEstimateSheetsForProject } = await import("@/lib/repositories/project-estimate-sheets-repository");
+    const result = await countProjectEstimateSheetsForProject("project-1");
+
+    expect(supabaseMocks.from).toHaveBeenCalledWith("estimates");
+    expect(estimatesBuilder.select).toHaveBeenCalledWith("id", { count: "exact", head: true });
+    expect(estimatesBuilder.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(result).toBe(7);
+  });
+
   it("returns recent project sheets ordered by freshness with first-node deep links", async () => {
     const estimatesBuilder = createBuilder();
     const nodesBuilder = createBuilder();
@@ -130,7 +144,10 @@ describe("project estimate sheet repository", () => {
     expect(nodesBuilder.select).toHaveBeenCalledWith("id, estimate_id, kind, parent_id");
     expect(nodesBuilder.in).toHaveBeenCalledWith("estimate_id", ["estimate-2", "estimate-1"]);
     expect(nodesBuilder.order).toHaveBeenCalledWith("sort_order", { ascending: true });
-    expect(supabaseMocks.rpc).toHaveBeenCalledWith("project_estimate_list_summaries", { target_project_id: "project-1" });
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith("project_estimate_list_summaries_for_estimates", {
+      target_project_id: "project-1",
+      target_estimate_ids: ["estimate-2", "estimate-1"],
+    });
     expect(result).toEqual([
       {
         id: "estimate-2",
